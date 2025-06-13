@@ -1,0 +1,147 @@
+body {
+    background-color: #f8f9fa;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+#sidebar-control{
+    color: #a7a7a7;
+    margin-right: 15px;
+}
+#sidebar-control:hover{
+    cursor: pointer;
+    color: #000;
+}
+
+header{
+    height: 100px;
+    position: sticky;
+    top: 0px;
+}
+
+header .box-user-nav{
+    vertical-align: top;
+}
+header .nav-item{
+    vertical-align: top;
+}
+header .img-avatar{
+    height: 45px; width:45px;
+}
+
+.nav-icon{
+    display: inline-block;
+    color: #717375;
+    margin-top: 3px; 
+    margin-right: 10px;
+    height: 40px; width:40px;
+    border-radius: 50%;
+    --bs-bg-opacity:0.3;
+    background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important;
+    transition: all 0.15s ease-in-out;
+}
+
+.nav-icon:hover{
+    cursor: pointer;
+    --bs-bg-opacity:0.7;
+}
+
+.nav-icon .material-symbols-outlined {
+    color: #808489;
+    font-size: 20px;
+    font-variation-settings: 'FILL' 0,'wght' 400;
+    transition: all 0.15s ease-in-out;
+}
+
+.nav-icon:hover .material-symbols-outlined {
+    color: #111;
+    font-variation-settings: 'FILL' 1,'wght' 400; 
+    /* font-variation-settings: 'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24; */
+}
+
+.nav-icon .d-flex{
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.left-nav{
+    position: fixed;
+    background-color: rgb(240, 241,248);
+    min-width: 225px;
+    min-height: calc(50vh + 40px);
+    max-height: calc(100vh - 115px);
+    top: 100px; left: 20px;
+    transition: all 0.2s ease-in-out;
+}
+
+.main-content{
+    height: calc(100vh - 100px); 
+    padding-left: 280px; 
+    padding-right: 20px; 
+    overflow: auto;
+    transition: padding 0.5s;
+}
+
+.main-content-hide{
+    padding-left: 20px;
+}
+
+
+.title-content{
+    
+}
+.title-content h2{
+    color: #676f7a;
+    font-weight: 300;
+}
+
+.body-content{
+    background-color: rgb(240, 241,248);
+    min-height: 50vh;
+    max-height: calc(100vh - 160px);
+}
+
+
+.scrollable-container {
+    overflow: auto; /* Aktifkan scrollbar vertikal hanya jika konten meluap */
+    position: relative; /* Diperlukan untuk overlay scrollbar */
+
+    /* --- Styling Scrollbar Default (sembunyikan) --- */
+
+    /* Untuk WebKit (Chrome, Safari, Edge, dll.) */
+    &::-webkit-scrollbar {
+        width: 5px; /* Lebar scrollbar */
+        background-color: transparent; /* Track scrollbar transparan */
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: transparent; /* Thumb scrollbar transparan */
+        border-radius: 4px; /* Sudut membulat untuk thumb */
+        /* Gunakan border untuk menjaga ukuran visual thumb tanpa memengaruhi padding */
+        border: 2px solid transparent;
+        background-clip: padding-box; /* Penting: background hanya pada area padding */
+    }
+
+    /* Untuk Firefox */
+    scrollbar-width: thin; /* Buat scrollbar tipis */
+    scrollbar-color: transparent transparent; /* Sembunyikan thumb dan track */
+
+    /* Transisi untuk efek smooth saat hover */
+    transition: all 0.3s ease-in-out; /* Transisi untuk semua properti yang berubah */
+}
+
+    /* --- Styling Scrollbar Saat Hover --- */
+
+.scrollable-container:hover {
+    /* Untuk WebKit */
+    &::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.1); /* Warna thumb saat hover, sedikit transparan */
+        border-color: rgba(0, 0, 0, 0.05); /* Warna border saat hover */
+    }
+
+    /* Untuk Firefox */
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* Warna thumb saat hover */
+}

@@ -1,0 +1,79 @@
+body {
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+#backgroundCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+}
+.login-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+.login-container {
+    width: calc(100vw - 50px);
+    max-width: 350px;
+}
+
+.login-box-form {
+    max-width: 350px;
+}
+
+.login-box-form .form-input{
+    font-size: 14px;
+    padding: 13px 20px;
+    border: 0px;
+    border-radius: 10px;
+    outline: none;
+}
+
+.login-box-form .btn-submit{
+    font-size: 14px;
+    padding: 13px 20px;
+    border: 0px;
+    border-radius: 10px;
+    background-color: #272727;
+    color: #ececec;
+}
+
+.login-box-form .btn-submit:hover{
+    background-color: #000000;
+    color: #fff;
+}
+
+
+.login-box-form .btn-submit:active{
+    background-color: #d02e2e;
+    color: #fff;
+}
+
+.form-label {
+    font-weight: 600;
+}
+h2 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+}
+
+/* Gaya untuk Material Symbols */
+.material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24
+}
+/* Penyesuaian untuk ikon di dalam input group */
+.input-group-text .material-symbols-outlined {
+    vertical-align: middle;
+}
