@@ -22,7 +22,6 @@
     <link href="{{ asset('asset/css/MaterialSymbolsOutlined.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/app.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/office.css') }}" rel="stylesheet">
-    <link href="{{ asset('asset/css/department.css') }}" rel="stylesheet">
     
     <style>
         body{
@@ -258,6 +257,9 @@
         } 
     </style>
 
+    @isset($head_slot)
+        {{ $head_slot }}
+    @endisset
 </head>
 
 <body class="">
@@ -353,7 +355,7 @@
                         </a>
                     </li>
                     <li>
-<a href="{{ route('master') }}" class="{{ request()->routeIs('master') || request()->routeIs('department') ? 'active' : '' }}">
+                        <a href="{{ route('master') }}" class="{{ request()->routeIs('master') || request()->routeIs('department') ? 'active' : '' }}">
                             <span class="material-symbols-outlined">database</span> 
                             <span class="text-menu">Master</span>
                         </a>
@@ -385,11 +387,16 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js" integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous"></script>
 
     <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
+    
     <script>
         $('#sidebar-control').on('click',function(){
              $("body").toggleClass("small-sidebar");
         });
     </script>
+
+    @isset($script_slot)
+        {{ $script_slot }}
+    @endisset
 </body>
 
 </html>

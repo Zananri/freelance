@@ -94,13 +94,19 @@ header .img-avatar{
 }
 .title-content h2{
     color: #676f7a;
-    font-weight: 300;
+    font-weight: 200;
 }
 
 .body-content{
     background-color: rgb(240, 241,248);
     min-height: 50vh;
     max-height: calc(100vh - 160px);
+}
+
+.body-content .table-title{
+    font-size: 20px;
+    font-weight: 300;
+    color: #616974;
 }
 
 

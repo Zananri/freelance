@@ -1,88 +1,94 @@
 <x-office-layout>
-    <style>
+    <x-slot name="head_slot">
+        <link href="{{ asset('asset/css/department.css') }}" rel="stylesheet">
 
-        .mb-0 {
-            font-size: 20px;
-        }
+        <style>
 
-        .table-transparent th,
-        .table-transparent td {
-            background-color: rgba(248, 248, 249, 0) !important;
-        }
+            .mb-0 {
+                font-size: 20px;
+            }
 
-        .nav-icon-arrow {
-            display: inline-block;
-            color: #717375;
-            margin-top: 3px; 
-            margin-right: 10px;
-            height: 40px; width:40px;
-            border-radius: 50%;
-            --bs-bg-opacity:0.3;
-            background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important;
-            transition: all 0.15s ease-in-out;
-        }
+            .table-transparent th,
+            .table-transparent td {
+                background-color: rgba(248, 248, 249, 0) !important;
+            }
 
-        .nav-icon-arrow:hover{
-            cursor: pointer;
-            --bs-bg-opacity:0.7;
-        }
+            .nav-icon-arrow {
+                display: inline-block;
+                color: #717375;
+                margin-top: 3px; 
+                margin-right: 10px;
+                height: 40px; width:40px;
+                border-radius: 50%;
+                --bs-bg-opacity:0.3;
+                background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important;
+                transition: all 0.15s ease-in-out;
+            }
 
-        .nav-icon-arrow .material-symbols-outlined {
-            color: #808489;
-            font-size: 20px;
-            font-variation-settings: 'FILL' 0,'wght' 400;
-            transition: all 0.15s ease-in-out;
-        }
+            .nav-icon-arrow:hover{
+                cursor: pointer;
+                --bs-bg-opacity:0.7;
+            }
 
-        .nav-icon-arrow:hover .material-symbols-outlined {
-            color: #111;
-            font-variation-settings: 'FILL' 1,'wght' 400; 
-        }
+            .nav-icon-arrow .material-symbols-outlined {
+                color: #808489;
+                font-size: 20px;
+                font-variation-settings: 'FILL' 0,'wght' 400;
+                transition: all 0.15s ease-in-out;
+            }
 
-        .nav-icon-arrow .d-flex{
-            height: 100%;
-            justify-content: center;
-            align-items: center;
-        }
+            .nav-icon-arrow:hover .material-symbols-outlined {
+                color: #111;
+                font-variation-settings: 'FILL' 1,'wght' 400; 
+            }
 
-        .title-content a {
-            text-decoration: none !important;
-            color: inherit !important;
-        }
+            .nav-icon-arrow .d-flex{
+                height: 100%;
+                justify-content: center;
+                align-items: center;
+            }
 
-        .btn-icon-toggle {
-            position: relative;
-            background-color: transparent;
-            color: inherit;
-            border: 1px solid #DDDDDD;
-            padding: 0.375rem 0.75rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            box-sizing: border-box;
-            height: 38px;
-            min-width: 90px;
-            font-size: 14px;
-        }
+            .title-content a {
+                text-decoration: none !important;
+                color: inherit !important;
+            }
 
-        .btn-icon-toggle .icon {
-            color: inherit;
-            transition: color 0.3s ease;
-        }
+            .btn-icon-toggle {
+                position: relative;
+                background-color: transparent;
+                color: inherit;
+                border: 1px solid #DDDDDD;
+                padding: 0.375rem 0.75rem;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+                box-sizing: border-box;
+                height: 38px;
+                min-width: 90px;
+                font-size: 14px;
+            }
 
-        .btn-icon-toggle:hover {
-            background-color: white;
-        }
+            .btn-icon-toggle .icon {
+                color: inherit;
+                transition: color 0.3s ease;
+            }
 
-        .btn-icon-toggle:hover .icon {
-            color: black;
-        }
-    </style>
+            .btn-icon-toggle:hover {
+                background-color: white;
+            }
 
-    <div class="title-content d-flex align-items-center gap-3">
-        <div class="nav-item d-inline-block me-3">
+            .btn-icon-toggle:hover .icon {
+                color: black;
+            }
+        </style>
+    </x-slot>
+
+
+
+    <div class="title-content d-flex align-items-center gap-2">
+        <div class="nav-item d-inline-block">
             <div class="nav-icon-arrow">
                 <a href="/master" class="text-decoration-none text-dark d-flex align-items-center">
                     <div class="d-flex">
@@ -91,12 +97,12 @@
                 </a>
             </div>
         </div>
-        <h2>Department</h2>
+        <h2 class="m-0">Department</h2>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 p-5" style="margin-top: 20px; width: 100%;">
+    <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%;">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="mb-0">List Department</h5>
+            <h5 class="mb-0 table-title">List Department</h5>
 
             <div class="d-flex gap-2">
                 <button class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;">
@@ -139,4 +145,9 @@
             </table>
         </div>
     </div>
+
+    <x-slot name="script_slot">
+        
+    </x-slot>
+
 </x-office-layout>
