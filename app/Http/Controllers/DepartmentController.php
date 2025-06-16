@@ -30,10 +30,8 @@ class DepartmentController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name_department' => 'required|string|max:255',
-            'status' => 'required|string|in:active,inactive',
-            'created_by' => 'nullable|integer',
-            'deleted_by' => 'nullable|integer',
-            'updated_by' => 'nullable|integer',
+            'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
+            
         ]);
 
         if ($validator->fails()) {
@@ -43,9 +41,10 @@ class DepartmentController extends Controller
         $department = Department::create([
             'name_department' => $request->name_department,
             'status' => $request->status,
-            'created_by' => $request->created_by,
-            'deleted_by' => $request->deleted_by,
-            'updated_by' => $request->updated_by,
+            'created_by' => 1,
+            'updated_by' => 1,
+            'deleted_by' => 1,
+          
         ]);
 
         return response()->json(['message' => 'Department added successfully', 'department' => $department]);
@@ -61,10 +60,8 @@ class DepartmentController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name_department' => 'sometimes|string|max:255',
-            'status' => 'sometimes|string|in:active,inactive,deleted',
-            'created_by' => 'nullable|integer',
-            'deleted_by' => 'nullable|integer',
-            'updated_by' => 'nullable|integer',
+            'status' => 'sometimes|string|in:ACTIVE,INACTIVE,DELETED',
+           
         ]);
 
         if ($validator->fails()) {
@@ -78,14 +75,10 @@ class DepartmentController extends Controller
         if ($request->has('status')) {
             $updateData['status'] = $request->status;
         }
-        if ($request->has('created_by')) {
-            $updateData['created_by'] = $request->created_by;
-        }
-        if ($request->has('deleted_by')) {
-            $updateData['deleted_by'] = $request->deleted_by;
-        }
+        
+        
         if ($request->has('updated_by')) {
-            $updateData['updated_by'] = $request->updated_by;
+            $updateData['updated_by'] = 1;
         }
 
         $department->update($updateData);
@@ -101,7 +94,9 @@ class DepartmentController extends Controller
             return response()->json(['message' => 'Department not found'], 404);
         }
 
-        $department->delete();
+        // Instead of deleting, update status to DELETED
+        $department->status = 'DELETED';
+        $department->save();
 
         return response()->json(['message' => 'Department deleted successfully']);
     }

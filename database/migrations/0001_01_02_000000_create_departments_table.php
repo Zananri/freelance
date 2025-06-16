@@ -17,9 +17,9 @@ class CreateDepartmentsTable extends Migration
             $table->id();
             $table->string('name_department');
             $table->string('status');
-           $table->bigInteger('created_by')->nullable();
-            $table->bigInteger('deleted_by')->nullable();
-            $table->bigInteger('updated_by')->nullable();
+           $table->bigInteger('created_by');
+            $table->bigInteger('deleted_by');
+            $table->bigInteger('updated_by');
             $table->timestamps();
         });
     }

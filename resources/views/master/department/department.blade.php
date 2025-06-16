@@ -151,7 +151,7 @@
             .btn-submit-custom {
                 width: 80%;
             }
-            .status-active {
+            .status-ACTIVE {
                 background-color: #28a745; /* Bootstrap's green */
                 color: white;
                 font-weight: 600;
@@ -163,7 +163,7 @@
                 text-align: center;
             }
 
-            .status-deleted {
+            .status-DELETED {
                 background-color: #dc3545; /* Bootstrap's red */
                 color: white;
                 font-weight: 600;
@@ -193,7 +193,7 @@
                 border-radius: 4px;
             }
 
-            .status-inactive {
+            .status-INACTIVE {
                 background-color: #6c757d; /* Bootstrap's gray */
                 color: white;
                 font-weight: 600;
@@ -298,8 +298,8 @@
                             <div class="mb-3">
                                 <label for="status" class="form-label label-custom">Status</label>
                                 <select class="form-select input-soft" id="status" name="status" required>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
+                                    <option value="ACTIVE">Active</option>
+                                    <option value="INACTIVE">Inactive</option>
                                 </select>
                             </div>
                         </div>
@@ -329,8 +329,8 @@
                         <div class="mb-3">
                             <label for="edit_status" class="form-label label-custom">Status</label>
                             <select class="form-select input-soft" id="edit_status" name="status" required>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive</option>
                             </select>
                         </div>
                         </div>
@@ -505,11 +505,11 @@ function loadDepartments() {
                     var tbody = $('#departmentTableBody');
                     tbody.empty();
                     $.each(departments, function(index, department) {
-                        var statusText = department.status === 'active' ? 'active' : department.status;
-                        var statusClass = department.status === 'active' ? 'status-active' : 'status-inactive';
-                        if(department.status === 'deleted') {
-                            statusText = 'deleted';
-                            statusClass = 'status-deleted';
+                        var statusText = department.status === 'ACTIVE' ? 'ACTIVE' : department.status;
+                        var statusClass = department.status === 'ACTIVE' ? 'status-ACTIVE' : 'status-INACTIVE';
+                        if(department.status === 'DELETED') {
+                            statusText = 'DELETED';
+                            statusClass = 'status-DELETED';
                         }
                         var row = '<tr>' +
                             '<td>' + department.name_department + '</td>' +

@@ -13,7 +13,7 @@ class Department extends Model
         'name_department',
         'status',
         'created_by',
-        'deleted_by',
         'updated_by',
+        'deleted_by',
     ];
 }
