@@ -163,6 +163,18 @@
                 text-align: center;
             }
 
+            .status-deleted {
+                background-color: #dc3545; /* Bootstrap's red */
+                color: white;
+                font-weight: 600;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.875rem;
+                display: inline-block;
+                min-width: 60px;
+                text-align: center;
+            }
+
             .btn-detail, .btn-edit, .btn-delete {
                 border: 1px solid #DDDDDD;
                 background-color: transparent;
@@ -475,7 +487,7 @@
                         $('.alert-delete-container').show();
                         setTimeout(function() {
                             $('.alert-delete-container .alert').alert('close');
-                        }, 2500);
+                        }, 2000);
                         loadDepartments();
                     },
                     error: function() {
@@ -495,6 +507,10 @@ function loadDepartments() {
                     $.each(departments, function(index, department) {
                         var statusText = department.status === 'active' ? 'active' : department.status;
                         var statusClass = department.status === 'active' ? 'status-active' : 'status-inactive';
+                        if(department.status === 'deleted') {
+                            statusText = 'deleted';
+                            statusClass = 'status-deleted';
+                        }
                         var row = '<tr>' +
                             '<td>' + department.name_department + '</td>' +
                             '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +

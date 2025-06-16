@@ -60,8 +60,8 @@ class DepartmentController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name_department' => 'required|string|max:255',
-            'status' => 'required|string|in:active,inactive',
+            'name_department' => 'sometimes|string|max:255',
+            'status' => 'sometimes|string|in:active,inactive,deleted',
             'created_by' => 'nullable|integer',
             'deleted_by' => 'nullable|integer',
             'updated_by' => 'nullable|integer',
@@ -71,13 +71,24 @@ class DepartmentController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $department->update([
-            'name_department' => $request->name_department,
-            'status' => $request->status,
-            'created_by' => $request->created_by,
-            'deleted_by' => $request->deleted_by,
-            'updated_by' => $request->updated_by,
-        ]);
+        $updateData = [];
+        if ($request->has('name_department')) {
+            $updateData['name_department'] = $request->name_department;
+        }
+        if ($request->has('status')) {
+            $updateData['status'] = $request->status;
+        }
+        if ($request->has('created_by')) {
+            $updateData['created_by'] = $request->created_by;
+        }
+        if ($request->has('deleted_by')) {
+            $updateData['deleted_by'] = $request->deleted_by;
+        }
+        if ($request->has('updated_by')) {
+            $updateData['updated_by'] = $request->updated_by;
+        }
+
+        $department->update($updateData);
 
         return response()->json(['message' => 'Department updated successfully', 'department' => $department]);
     }
