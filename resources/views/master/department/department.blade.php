@@ -236,6 +236,11 @@
                 border-bottom: 1px solid #ddd;
             }
 
+            /* Set font size for table data cells */
+            table.table > tbody > tr > td {
+                font-size: 14px;
+            }
+
         </style>
     </x-slot>
 
@@ -244,7 +249,7 @@
     <div class="title-content d-flex align-items-center gap-2">
         <div class="nav-item d-inline-block">
             <div class="nav-icon-arrow">
-                <a href="/master" class="text-decoration-none text-dark d-flex align-items-center">
+                <a href="{{ url('master') }}" class="text-decoration-none text-dark d-flex align-items-center">
                     <div class="d-flex">
                         <span class="material-symbols-outlined">arrow_back</span>
                     </div>
@@ -258,19 +263,22 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="mb-0 table-title">List Department</h5>
 
-            <div class="d-flex gap-2">
-                <button class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;">
-                    <span class="material-symbols-outlined icon">filter_list</span> Filter
-                </button>
+           <div class="d-flex gap-1" style="margin-left: -5px;">
+               <div class="input-group" style="min-width: 200px; height: 38px;">
+                   <input type="text" id="searchInput" class="form-control input-soft" placeholder="Search Department" style="border: 1px solid #DDDDDD; height: 38px;" />
+                   <button id="btnSearch" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD; border-left: 0; height: 38px;">
+                       <span class="material-symbols-outlined icon">search</span> Search
+                   </button>
+               </div>
+    <button class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;">
+        <span class="material-symbols-outlined icon">filter_list</span> Filter
+    </button>
 
-                <button class="btn btn-icon-toggle btn-icon-search" style="border: 1px solid #DDDDDD;">
-                    <span class="material-symbols-outlined icon">search</span> Search
-                </button>
 
-                <button id="btnAddData" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;">
-                    <span class="material-symbols-outlined icon">add</span> Add Data
-                </button>
-            </div>
+    <button id="btnAddData" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD; min-width: 140px; padding-left: 20px; padding-right: 20px;">
+        <span class="material-symbols-outlined icon">add</span> Add Data
+    </button>
+</div>
         </div>
 
         <div class="table-responsive">
@@ -283,7 +291,7 @@
                     </tr>
                 </thead>
                 <tbody id="departmentTableBody">
-                    <!-- Department rows will be dynamically inserted here -->
+
                 </tbody>
             </table>
         </div>
@@ -331,10 +339,10 @@
                     </div>
                     <form id="editDepartmentForm" class="form-custom">
                         <div class="modal-body modal-body-custom">
-                        <div class="mb-2">
-                            <label for="edit_name_department" class="form-label label-custom-name">Name</label>
-                            <input type="text" class="form-control input-soft" id="edit_name_department" name="name_department" placeholder="Input Department Name" required>
-                        </div>
+                            <div class="mb-2">
+                                <label for="edit_name_department" class="form-label label-custom-name">Name</label>
+                                <input type="text" class="form-control input-soft" id="edit_name_department" name="name_department" placeholder="Input Department Name" required>
+                            </div>
                         <div class="mb-3">
                             <label for="edit_status" class="form-label label-custom">Status</label>
                             <select class="form-select input-soft" id="edit_status" name="status" required>
@@ -351,7 +359,29 @@
                 <div class="alert-container mt-2" style="width: 100%;"></div>
             </div>
         </div>
-
+        
+        <!-- Delete Department Modal -->
+        <div class="modal fade" id="deleteDepartmentModal" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
+         <div class="modal-dialog">
+             <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+         <h5 class="modal-title modal-title-custom mb-3" id="deleteDepartmentModalLabel">Delete Department</h5>
+         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="deleteDepartmentForm" class="form-custom">
+         <div class="modal-body modal-body-custom">
+             <p class="mb-3" style="font-weight: 300; font-size: 16px;">Are you sure you want to delete this data?</p>
+             <div class="mb-2">
+                 <input type="text" class="form-control input-soft" id="delete_name_department" name="name_department" readonly disabled />
+             </div>
+         </div>
+                     <div class="modal-footer modal-footer-custom">
+                         <button type="submit" class="btn-submit-black btn-submit-custom" style="background-color: #dc3545;">Delete</button>
+                     </div>
+                 </form>
+             </div>
+         </div>
+        </div>
     <x-slot name="script_slot">
 
         <script>
@@ -525,10 +555,11 @@
                 });
             });
 
-function loadDepartments() {
+function loadDepartments(query = '') {
             $.ajax({
                 url: "{{ route('departments.index') }}",
                 type: "GET",
+                data: { query: query },
                 success: function(departments) {
                     
                     var rowHtml = '';
@@ -543,7 +574,6 @@ function loadDepartments() {
                             '<td>' + department.name_department + '</td>' +
                             '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
                             '<td style="text-align: right;">' +
-                            '<button class="btn-icon-toggle btn-detail" data-id="' + department.id + '"><span class="material-symbols-outlined icon">visibility</span></button> ' +
                             '<button class="btn-icon-toggle btn-edit" data-id="' + department.id + '"><span class="material-symbols-outlined icon">edit</span></button> ' +
                             '<button class="btn-icon-toggle btn-delete" data-id="' + department.id + '"><span class="material-symbols-outlined icon">delete</span></button>' +
                             '</td>' +
@@ -558,32 +588,14 @@ function loadDepartments() {
                 }
             });
 }
+$('#btnSearch').click(function() {
+    var query = $('#searchInput').val();
+    loadDepartments(query);
+});
 
             loadDepartments();
         </script>
     </x-slot>
 
-   <!-- Delete Department Modal -->
-<div class="modal fade" id="deleteDepartmentModal" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content modal-content-custom">
-            <div class="modal-header modal-header-custom">
-                <h5 class="modal-title modal-title-custom" id="deleteDepartmentModalLabel">Delete Department</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="deleteDepartmentForm" class="form-custom">
-                <div class="modal-body modal-body-custom">
-                    <p class="mb-1" style="font-weight: 300; font-size: 16px;">Are you sure you want to delete this data?</p>
-                    <div class="mb-2">
-                        <input type="text" class="form-control input-soft" id="delete_name_department" name="name_department" readonly disabled />
-                    </div>
-                </div>
-                <div class="modal-footer modal-footer-custom">
-                    <button type="submit" class="btn-submit-black btn-submit-custom" style="background-color: #dc3545;">Delete</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 </x-office-layout>

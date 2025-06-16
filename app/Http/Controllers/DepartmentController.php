@@ -9,9 +9,14 @@ use App\Models\Department;
 class DepartmentController extends Controller
 {
     // Display a listing of the departments
-    public function index()
+    public function index(Request $request)
     {
-        $departments = Department::all();
+        $query = $request->input('query');
+        if ($query) {
+            $departments = Department::where('name_department', 'like', '%' . $query . '%')->get();
+        } else {
+            $departments = Department::all();
+        }
         return response()->json($departments);
     }
 
