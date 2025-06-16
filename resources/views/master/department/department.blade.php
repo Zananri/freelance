@@ -267,6 +267,7 @@
             </table>
         </div>
     </div>
+    <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
         <!-- Add Department Modal -->
         <div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-labelledby="addDepartmentModalLabel" aria-hidden="true">
@@ -371,18 +372,13 @@
                         },
                             success: function(response) {
                                 console.log('Add Department Success:', response);
-                                // Remove any existing alert
                                 $('#addDepartmentModal .alert-container').empty();
-                                // Create alert element
                                 var alertHtml = '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
                                     '<div>' + response.message + '</div>' +
                                     '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
                                     '</div>';
-                                // Append alert below modal content
                                 $('#addDepartmentModal .alert-container').append(alertHtml);
-                                // Show alert container
                                 $('#addDepartmentModal .alert-container').show();
-                                // Do not hide modal automatically
                                 loadDepartments();
                             },
                         error: function(xhr) {
@@ -434,18 +430,13 @@
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
                             success: function(response) {
-                                // Remove any existing alert
                                 $('#editDepartmentModal .alert-container').empty();
-                                // Create alert element
                                 var alertHtml = '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
                                     '<div>' + response.message + '</div>' +
                                     '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
                                     '</div>';
-                                // Append alert below modal content
                                 $('#editDepartmentModal .alert-container').append(alertHtml);
-                                // Show alert container
                                 $('#editDepartmentModal .alert-container').show();
-                                // Do not hide modal automatically
                                 loadDepartments();
                             },
                         error: function(xhr) {
@@ -475,13 +466,22 @@
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
                         success: function(response) {
-                            alert(response.message);
-                            loadDepartments();
-                        },
-                        error: function() {
-                            alert('Failed to delete department.');
-                        }
-                    });
+                        $('.alert-delete-container').empty();
+                        var alertHtml = '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
+                            '<div>' + response.message + '</div>' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                            '</div>';
+                        $('.alert-delete-container').append(alertHtml);
+                        $('.alert-delete-container').show();
+                        setTimeout(function() {
+                            $('.alert-delete-container .alert').alert('close');
+                        }, 2500);
+                        loadDepartments();
+                    },
+                    error: function() {
+                        alert('Failed to delete department.');
+                    }
+                });
                 });
             });
 
