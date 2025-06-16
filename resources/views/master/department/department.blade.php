@@ -295,6 +295,7 @@
                         </div>
                     </form>
                 </div>
+                <div class="alert-container mt-2" style="width: 100%;"></div>
             </div>
         </div>
 
@@ -325,6 +326,7 @@
                         </div>
                     </form>
                 </div>
+                <div class="alert-container mt-2" style="width: 100%;"></div>
             </div>
         </div>
 
@@ -335,8 +337,20 @@
                 var addDepartmentModal = new bootstrap.Modal(document.getElementById('addDepartmentModal'));
                 var editDepartmentModal = new bootstrap.Modal(document.getElementById('editDepartmentModal'));
 
+                // Reload page when alert is fully closed
+                $(document).on('closed.bs.alert', '#addDepartmentModal .alert-container .alert, #editDepartmentModal .alert-container .alert', function() {
+                    location.reload();
+                });
+
                 $('#btnAddData').click(function() {
+                    // Clear any existing alert when opening add modal
+                    $('#addDepartmentModal .alert-container').empty();
                     addDepartmentModal.show();
+                });
+                
+                // Clear any existing alert when opening edit modal
+                $('#editDepartmentModal').on('show.bs.modal', function () {
+                    $('#editDepartmentModal .alert-container').empty();
                 });
 
                 $('#addDepartmentForm').submit(function(e) {
@@ -355,12 +369,22 @@
                         headers: {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
-                        success: function(response) {
-                            console.log('Add Department Success:', response);
-                            alert(response.message);
-                            addDepartmentModal.hide();
-                            loadDepartments();
-                        },
+                            success: function(response) {
+                                console.log('Add Department Success:', response);
+                                // Remove any existing alert
+                                $('#addDepartmentModal .alert-container').empty();
+                                // Create alert element
+                                var alertHtml = '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
+                                    '<div>' + response.message + '</div>' +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                                    '</div>';
+                                // Append alert below modal content
+                                $('#addDepartmentModal .alert-container').append(alertHtml);
+                                // Show alert container
+                                $('#addDepartmentModal .alert-container').show();
+                                // Do not hide modal automatically
+                                loadDepartments();
+                            },
                         error: function(xhr) {
                             console.log('Add Department Error:', xhr);
                             if (xhr.status === 422) {
@@ -409,11 +433,21 @@
                         headers: {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
-                        success: function(response) {
-                            alert(response.message);
-                            editDepartmentModal.hide();
-                            loadDepartments();
-                        },
+                            success: function(response) {
+                                // Remove any existing alert
+                                $('#editDepartmentModal .alert-container').empty();
+                                // Create alert element
+                                var alertHtml = '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
+                                    '<div>' + response.message + '</div>' +
+                                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                                    '</div>';
+                                // Append alert below modal content
+                                $('#editDepartmentModal .alert-container').append(alertHtml);
+                                // Show alert container
+                                $('#editDepartmentModal .alert-container').show();
+                                // Do not hide modal automatically
+                                loadDepartments();
+                            },
                         error: function(xhr) {
                             if (xhr.status === 422) {
                                 var errors = xhr.responseJSON.errors;
