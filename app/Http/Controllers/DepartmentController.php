@@ -29,11 +29,11 @@ class DepartmentController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'nama_departmen' => 'required|string|max:255',
-            'manager' => 'required|string|max:255',
-            'auth_provider' => 'nullable|string|max:255',
-            'auth_provider_id' => 'nullable|string|max:255',
-            'remember_token' => 'nullable|string|max:255',
+            'name_department' => 'required|string|max:255',
+            'status' => 'required|string|in:active,inactive',
+            'created_by' => 'nullable|integer',
+            'deleted_by' => 'nullable|integer',
+            'updated_by' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {
@@ -41,11 +41,11 @@ class DepartmentController extends Controller
         }
 
         $department = Department::create([
-            'nama_departmen' => $request->nama_departmen,
-            'manager' => $request->manager,
-            'auth_provider' => $request->auth_provider,
-            'auth_provider_id' => $request->auth_provider_id,
-            'remember_token' => $request->remember_token,
+            'name_department' => $request->name_department,
+            'status' => $request->status,
+            'created_by' => $request->created_by,
+            'deleted_by' => $request->deleted_by,
+            'updated_by' => $request->updated_by,
         ]);
 
         return response()->json(['message' => 'Department added successfully', 'department' => $department]);
@@ -60,11 +60,11 @@ class DepartmentController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'nama_departmen' => 'required|string|max:255',
-            'manager' => 'required|string|max:255',
-            'auth_provider' => 'nullable|string|max:255',
-            'auth_provider_id' => 'nullable|string|max:255',
-            'remember_token' => 'nullable|string|max:255',
+            'name_department' => 'required|string|max:255',
+            'status' => 'required|string|in:active,inactive',
+            'created_by' => 'nullable|integer',
+            'deleted_by' => 'nullable|integer',
+            'updated_by' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {
@@ -72,11 +72,11 @@ class DepartmentController extends Controller
         }
 
         $department->update([
-            'nama_departmen' => $request->nama_departmen,
-            'manager' => $request->manager,
-            'auth_provider' => $request->auth_provider,
-            'auth_provider_id' => $request->auth_provider_id,
-            'remember_token' => $request->remember_token,
+            'name_department' => $request->name_department,
+            'status' => $request->status,
+            'created_by' => $request->created_by,
+            'deleted_by' => $request->deleted_by,
+            'updated_by' => $request->updated_by,
         ]);
 
         return response()->json(['message' => 'Department updated successfully', 'department' => $department]);

@@ -151,6 +151,69 @@
             .btn-submit-custom {
                 width: 80%;
             }
+            .status-active {
+                background-color: #28a745; /* Bootstrap's green */
+                color: white;
+                font-weight: 600;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.875rem;
+                display: inline-block;
+                min-width: 60px;
+                text-align: center;
+            }
+
+            .btn-detail, .btn-edit, .btn-delete {
+                border: 1px solid #DDDDDD;
+                background-color: transparent;
+                color: inherit;
+                padding: 0.375rem 0.75rem;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 0.5rem;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+                box-sizing: border-box;
+                height: 38px;
+                min-width: 38px;
+                font-size: 14px;
+                border-radius: 4px;
+            }
+
+            .status-inactive {
+                background-color: #6c757d; /* Bootstrap's gray */
+                color: white;
+                font-weight: 600;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 0.875rem;
+                display: inline-block;
+                min-width: 60px;
+                text-align: center;
+            }
+
+            .btn-detail .icon, .btn-edit .icon, .btn-delete .icon {
+                color: inherit;
+                transition: color 0.3s ease;
+                font-size: 20px;
+            }
+
+            .btn-detail:hover, .btn-edit:hover, .btn-delete:hover {
+                background-color: white;
+            }
+
+            .btn-detail:hover .icon, .btn-edit:hover .icon, .btn-delete:hover .icon {
+                color: black;
+            }
+
+            /* Align buttons horizontally with spacing */
+            td > .btn-icon-toggle, td > .btn-detail, td > .btn-edit, td > .btn-delete {
+                display: inline-flex;
+                margin-left: 5px;
+                margin-right: 5px;
+                vertical-align: middle;
+            }
 
         </style>
     </x-slot>
@@ -194,8 +257,8 @@
                 <thead>
                     <tr>
                         <th scope="col">Department Name</th>
-                        <th scope="col">Manager</th>
-                        <th scope="col">Actions</th>
+                        <th scope="col">Status</th>
+                        <th scope="col"></th>
                     </tr>
                 </thead>
                 <tbody id="departmentTableBody">
@@ -216,12 +279,15 @@
                     <form id="addDepartmentForm" class="form-custom">
                         <div class="modal-body modal-body-custom">
                             <div class="mb-2">
-                                <label for="nama_departmen" class="form-label label-custom-name">Name</label>
-                                <input type="text" class="form-control input-soft" id="nama_departmen" name="nama_departmen" placeholder="Input Department Name" required>
+                                <label for="name_department" class="form-label label-custom-name">Name</label>
+                                <input type="text" class="form-control input-soft" id="name_department" name="name_department" placeholder="Input Department Name" required>
                             </div>
                             <div class="mb-3">
-                                <label for="manager" class="form-label label-custom">Manager</label>
-                                <input type="text" class="form-control input-soft" id="manager" name="manager" placeholder="Input Manager Name" required>
+                                <label for="status" class="form-label label-custom">Status</label>
+                                <select class="form-select input-soft" id="status" name="status" required>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
                             </div>
                         </div>
                         <div class="modal-footer modal-footer-custom">
@@ -242,14 +308,17 @@
                     </div>
                     <form id="editDepartmentForm" class="form-custom">
                         <div class="modal-body modal-body-custom">
-                            <div class="mb-2">
-                                <label for="edit_nama_departmen" class="form-label label-custom-name">Name</label>
-                                <input type="text" class="form-control input-soft" id="edit_nama_departmen" name="nama_departmen" placeholder="Input Department Name" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="edit_manager" class="form-label label-custom">Manager</label>
-                                <input type="text" class="form-control input-soft" id="edit_manager" name="manager" placeholder="Input Manager Name" required>
-                            </div>
+                        <div class="mb-2">
+                            <label for="edit_name_department" class="form-label label-custom-name">Name</label>
+                            <input type="text" class="form-control input-soft" id="edit_name_department" name="name_department" placeholder="Input Department Name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_status" class="form-label label-custom">Status</label>
+                            <select class="form-select input-soft" id="edit_status" name="status" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
                         </div>
                         <div class="modal-footer modal-footer-custom">
                             <button type="submit" class="btn-submit-black btn-submit-custom">Update</button>
@@ -263,31 +332,37 @@
 
         <script>
             $(document).ready(function() {
+                var addDepartmentModal = new bootstrap.Modal(document.getElementById('addDepartmentModal'));
+                var editDepartmentModal = new bootstrap.Modal(document.getElementById('editDepartmentModal'));
+
                 $('#btnAddData').click(function() {
-                    $('#addDepartmentModal').modal('show');
+                    addDepartmentModal.show();
                 });
 
                 $('#addDepartmentForm').submit(function(e) {
                     e.preventDefault();
 
                     var formData = {
-                        nama_departmen: $('#nama_departmen').val(),
-                        manager: $('#manager').val(),
+                        name_department: $('#name_department').val(),
+                        status: $('#status').val(),
                     };
 
                     $.ajax({
                         url: "{{ route('departments.store') }}",
                         type: "POST",
-                        data: formData,
+                        data: JSON.stringify(formData),
+                        contentType: "application/json",
                         headers: {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
                         success: function(response) {
+                            console.log('Add Department Success:', response);
                             alert(response.message);
-                            $('#addDepartmentModal').modal('hide');
+                            addDepartmentModal.hide();
                             loadDepartments();
                         },
                         error: function(xhr) {
+                            console.log('Add Department Error:', xhr);
                             if (xhr.status === 422) {
                                 var errors = xhr.responseJSON.errors;
                                 var errorMessages = '';
@@ -302,29 +377,29 @@
                     });
                 });
 
-                $(document).on('click', '.btn-edit', function() {
-                    var id = $(this).data('id');
-                    $.ajax({
-                        url: '/api/departments/' + id,
-                        type: 'GET',
-                        success: function(department) {
-                            $('#edit_nama_departmen').val(department.nama_departmen);
-                            $('#edit_manager').val(department.manager);
-                            $('#editDepartmentForm').data('id', id);
-                            $('#editDepartmentModal').modal('show');
-                        },
-                        error: function() {
-                            alert('Failed to fetch department data.');
-                        }
+                    $(document).on('click', '.btn-edit', function() {
+                        var id = $(this).data('id');
+                        $.ajax({
+                            url: '/api/departments/' + id,
+                            type: 'GET',
+                            success: function(department) {
+                                $('#edit_name_department').val(department.name_department);
+                                $('#edit_status').val(department.status);
+                                $('#editDepartmentForm').data('id', id);
+                                editDepartmentModal.show();
+                            },
+                            error: function() {
+                                alert('Failed to fetch department data.');
+                            }
+                        });
                     });
-                });
 
                 $('#editDepartmentForm').submit(function(e) {
                     e.preventDefault();
                     var id = $(this).data('id');
                     var formData = {
-                        nama_departmen: $('#edit_nama_departmen').val(),
-                        manager: $('#edit_manager').val(),
+                        name_department: $('#edit_name_department').val(),
+                        status: $('#edit_status').val(),
                     };
 
                     $.ajax({
@@ -336,7 +411,7 @@
                         },
                         success: function(response) {
                             alert(response.message);
-                            $('#editDepartmentModal').modal('hide');
+                            editDepartmentModal.hide();
                             loadDepartments();
                         },
                         error: function(xhr) {
@@ -376,31 +451,33 @@
                 });
             });
 
-            function loadDepartments() {
-                $.ajax({
-                    url: "{{ route('departments.index') }}",
-                    type: "GET",
-                    success: function(departments) {
-                        var tbody = $('#departmentTableBody');
-                        tbody.empty();
-                        $.each(departments, function(index, department) {
-                            var row = '<tr>' +
-                                '<td>' + department.nama_departmen + '</td>' +
-                                '<td>' + department.manager + '</td>' +
-                                '<td>' +
-                                '<button class="btn btn-sm btn-outline-warning btn-detail" data-id="' + department.id + '">Detail</button> ' +
-                                '<button class="btn btn-sm btn-outline-primary btn-edit" data-id="' + department.id + '">Edit</button> ' +
-                                '<button class="btn btn-sm btn-outline-danger btn-delete" data-id="' + department.id + '">Delete</button>' +
-                                '</td>' +
-                                '</tr>';
-                            tbody.append(row);
-                        });
-                    },
-                    error: function() {
-                        alert('Failed to load departments.');
-                    }
-                });
-            }
+function loadDepartments() {
+            $.ajax({
+                url: "{{ route('departments.index') }}",
+                type: "GET",
+                success: function(departments) {
+                    var tbody = $('#departmentTableBody');
+                    tbody.empty();
+                    $.each(departments, function(index, department) {
+                        var statusText = department.status === 'active' ? 'active' : department.status;
+                        var statusClass = department.status === 'active' ? 'status-active' : 'status-inactive';
+                        var row = '<tr>' +
+                            '<td>' + department.name_department + '</td>' +
+                            '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
+                            '<td style="text-align: right;">' +
+                            '<button class="btn-icon-toggle btn-detail" data-id="' + department.id + '"><span class="material-symbols-outlined icon">visibility</span></button> ' +
+                            '<button class="btn-icon-toggle btn-edit" data-id="' + department.id + '"><span class="material-symbols-outlined icon">edit</span></button> ' +
+                            '<button class="btn-icon-toggle btn-delete" data-id="' + department.id + '"><span class="material-symbols-outlined icon">delete</span></button>' +
+                            '</td>' +
+                            '</tr>';
+                        tbody.append(row);
+                    });
+                },
+                error: function() {
+                    alert('Failed to load departments.');
+                }
+            });
+}
 
             loadDepartments();
         </script>

@@ -10,10 +10,10 @@ class Department extends Model
     use HasFactory;
 
     protected $fillable = [
-        'nama_departmen',
-        'manager',
-        'auth_provider',
-        'auth_provider_id',
-        'remember_token',
+        'name_department',
+        'status',
+        'created_by',
+        'deleted_by',
+        'updated_by',
     ];
 }

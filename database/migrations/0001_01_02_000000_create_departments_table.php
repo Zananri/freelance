@@ -15,11 +15,11 @@ class CreateDepartmentsTable extends Migration
     {
         Schema::create('departments', function (Blueprint $table) {
             $table->id();
-            $table->string('nama_departmen');
-            $table->string('manager');
-            $table->string('auth_provider')->nullable();
-            $table->string('auth_provider_id')->nullable();
-            $table->string('remember_token')->nullable();
+            $table->string('name_department');
+            $table->string('status');
+           $table->bigInteger('created_by')->nullable();
+            $table->bigInteger('deleted_by')->nullable();
+            $table->bigInteger('updated_by')->nullable();
             $table->timestamps();
         });
     }
