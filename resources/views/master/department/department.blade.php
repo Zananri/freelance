@@ -85,18 +85,21 @@
             }
 
             .input-soft {
-                background-color: #f2f2f2;
-                border: none;
+                border: 1px solid #dfe0ec;
+                background-color: #fff;
                 border-radius: 8px;
                 padding: 12px 16px;
                 font-size: 14px;
-                box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            }
+
+            .body-content .input-soft {
+                border: 1px solid rgb(222, 223, 232);
+                background-color: rgb(240, 241, 248);
             }
 
             .input-soft:focus {
                 outline: none;
-                border: 1px solid #ccc;
-                background-color: #fff;
+                
             }
 
             .btn-submit-black {
@@ -137,12 +140,10 @@
             .modal-body-custom {
                 padding: 0;
             }
-            .label-custom-name {
-                font-weight: 300;
-                margin-top: 40px;
-            }
+            
             .label-custom {
-                font-weight: 300;
+                font-size: 14px;
+                font-weight: 400;
             }
             .modal-footer-custom {
                 border: 0;
@@ -308,8 +309,8 @@
                     </div>
                     <form id="addDepartmentForm" class="form-custom">
                         <div class="modal-body modal-body-custom">
-                            <div class="mb-2">
-                                <label for="name_department" class="form-label label-custom-name">Name</label>
+                            <div class="mb-3 mt-4">
+                                <label for="name_department" class="form-label label-custom">Name</label>
                                 <input type="text" class="form-control input-soft" id="name_department" name="name_department" placeholder="Input Department Name" required>
                             </div>
                             <div class="mb-3">
@@ -339,8 +340,8 @@
                     </div>
                     <form id="editDepartmentForm" class="form-custom">
                         <div class="modal-body modal-body-custom">
-                            <div class="mb-2">
-                                <label for="edit_name_department" class="form-label label-custom-name">Name</label>
+                            <div class="mb-3 mt-4">
+                                <label for="edit_name_department" class="form-label label-custom">Name</label>
                                 <input type="text" class="form-control input-soft" id="edit_name_department" name="name_department" placeholder="Input Department Name" required>
                             </div>
                         <div class="mb-3">
@@ -370,9 +371,13 @@
         </div>
         <form id="deleteDepartmentForm" class="form-custom">
          <div class="modal-body modal-body-custom">
-             <p class="mb-3" style="font-weight: 300; font-size: 16px;">Are you sure you want to delete this data?</p>
-             <div class="mb-2">
-                 <input type="text" class="form-control input-soft" id="delete_name_department" name="name_department" readonly disabled />
+
+             <div class="mb-3 mt-4">
+                <label for="delete_name_department" class="form-label label-custom">Name</label>
+                <input type="text" class="form-control input-soft" id="delete_name_department" name="name_department" readonly disabled />
+             </div>
+             <div class="mt-5 text-center">
+                <p class="mb-3" style="font-weight: 300; font-size: 16px;">Are you sure you want to delete this data?</p>
              </div>
          </div>
                      <div class="modal-footer modal-footer-custom">
@@ -385,6 +390,8 @@
     <x-slot name="script_slot">
 
         <script>
+            var appUrl = $('meta[name="app-url"]').attr('content');
+
             $(document).ready(function() {
                 var addDepartmentModal = new bootstrap.Modal(document.getElementById('addDepartmentModal'));
                 var editDepartmentModal = new bootstrap.Modal(document.getElementById('editDepartmentModal'));
@@ -414,7 +421,7 @@
                     };
 
                     $.ajax({
-                        url: "{{ route('departments.store') }}",
+                        url: appUrl+'/departments',
                         type: "POST",
                         data: JSON.stringify(formData),
                         contentType: "application/json",
@@ -451,7 +458,7 @@
                     $(document).on('click', '.btn-edit', function() {
                         var id = $(this).data('id');
                         $.ajax({
-                            url: '/departments/' + id,
+                            url: appUrl+'/departments/' + id,
                             type: 'GET',
                             success: function(department) {
                                 $('#edit_name_department').val(department.name_department);
@@ -473,8 +480,10 @@
                         status: $('#edit_status').val(),
                     };
 
+                    
+                    
                     $.ajax({
-                        url: '/departments/' + id,
+                        url: appUrl+'/departments/' + id,
                         type: 'PUT',
                         data: formData,
                         headers: {
@@ -509,7 +518,7 @@
                     var id = $(this).data('id');
                     // Fetch department data to show in delete modal
                     $.ajax({
-                        url: '/departments/' + id,
+                        url: appUrl+'/departments/' + id,
                         type: 'GET',
                         success: function(department) {
                         $('#delete_name_department').val(department.name_department);
@@ -527,7 +536,7 @@
                     e.preventDefault();
                     var id = $(this).data('id');
                     $.ajax({
-                        url: '/departments/' + id,
+                        url: appUrl+'/departments/' + id,
                         type: 'DELETE',
                         headers: {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -557,7 +566,7 @@
 
 function loadDepartments(query = '') {
             $.ajax({
-                url: "{{ route('departments.index') }}",
+                url:appUrl+'/departments',
                 type: "GET",
                 data: { query: query },
                 success: function(departments) {
