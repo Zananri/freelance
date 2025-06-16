@@ -22,6 +22,7 @@
     <link href="{{ asset('asset/css/MaterialSymbolsOutlined.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/app.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/office.css') }}" rel="stylesheet">
+    <link href="{{ asset('asset/css/department.css') }}" rel="stylesheet">
     
     <style>
         body{
