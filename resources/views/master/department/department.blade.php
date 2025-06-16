@@ -1,5 +1,10 @@
 <x-office-layout>
     <style>
+
+        .mb-0 {
+            font-size: 20px;
+        }
+
         .table-transparent th,
         .table-transparent td {
             background-color: rgba(248, 248, 249, 0) !important;
@@ -59,6 +64,7 @@
             box-sizing: border-box;
             height: 38px;
             min-width: 90px;
+            font-size: 14px;
         }
 
         .btn-icon-toggle .icon {
