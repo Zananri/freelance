@@ -2,6 +2,14 @@
 
 use Illuminate\Support\Facades\Route;
 
+Route::get('/master', function () {
+    return view('master');
+})->name('master');
+
+Route::get('/detail-department', function () {
+    return view('detail-department');
+})->name('detail-department');
+
 Route::get('/', function () {
     return view('welcome');
 });

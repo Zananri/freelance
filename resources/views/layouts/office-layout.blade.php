@@ -351,17 +351,17 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="">
+                        <a href="{{ route('master') }}" class="{{ request()->routeIs('master') ? 'active' : '' }}">
                             <span class="material-symbols-outlined">database</span> 
                             <span class="text-menu">Master</span>
                         </a>
                     </li>
-                    {{-- <li>
-                        <a href="#">
+                    <li>
+                        {{-- <a href="#">
                             <span class="material-symbols-outlined">notifications</span> Notification
                             <span class="notification-badge">4</span>
-                        </a>
-                    </li> --}}
+                        </a> --}}
+                    </li>
                     <li>
                         <a href="#">
                             <span class="material-symbols-outlined">settings</span> 
