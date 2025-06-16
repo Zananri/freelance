@@ -14,6 +14,7 @@
     <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     {{-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" /> --}}
 
@@ -351,7 +352,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('master') }}" class="{{ request()->routeIs('master') ? 'active' : '' }}">
+<a href="{{ route('master') }}" class="{{ request()->routeIs('master') || request()->routeIs('department') ? 'active' : '' }}">
                             <span class="material-symbols-outlined">database</span> 
                             <span class="text-menu">Master</span>
                         </a>

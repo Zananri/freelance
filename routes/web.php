@@ -3,12 +3,16 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/master', function () {
-    return view('master');
+    return view('master/master');
 })->name('master');
 
-Route::get('/detail-department', function () {
-    return view('detail-department');
-})->name('detail-department');
+Route::get('/department', function () {
+    return view('/master/department/department');
+})->name('department');
+
+// Route::get('/department', function () {
+//     return view('/department/detail-department');
+// })->name('detail-department');
 
 Route::get('/', function () {
     return view('welcome');
