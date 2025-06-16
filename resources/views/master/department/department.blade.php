@@ -5,6 +5,41 @@
             background-color: rgba(248, 248, 249, 0) !important;
         }
 
+        .nav-icon-arrow {
+            display: inline-block;
+            color: #717375;
+            margin-top: 3px; 
+            margin-right: 10px;
+            height: 40px; width:40px;
+            border-radius: 50%;
+            --bs-bg-opacity:0.3;
+            background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .nav-icon-arrow:hover{
+            cursor: pointer;
+            --bs-bg-opacity:0.7;
+        }
+
+        .nav-icon-arrow .material-symbols-outlined {
+            color: #808489;
+            font-size: 20px;
+            font-variation-settings: 'FILL' 0,'wght' 400;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .nav-icon-arrow:hover .material-symbols-outlined {
+            color: #111;
+            font-variation-settings: 'FILL' 1,'wght' 400; 
+        }
+
+        .nav-icon-arrow .d-flex{
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+
         .title-content a {
             text-decoration: none !important;
             color: inherit !important;
@@ -26,31 +61,23 @@
             min-width: 90px;
         }
 
-        .btn-icon-toggle .icon-filled {
-            display: none;
-            color: black;
+        .btn-icon-toggle .icon {
+            color: inherit;
+            transition: color 0.3s ease;
         }
 
         .btn-icon-toggle:hover {
             background-color: white;
         }
 
-        .btn-icon-toggle:not(.btn-icon-search):hover .bi {
-            display: none;
-        }
-
-        .btn-icon-toggle:not(.btn-icon-search):hover .icon-filled {
-            display: inline;
-        }
-
-        .btn-icon-toggle.btn-icon-search:hover .bi {
+        .btn-icon-toggle:hover .icon {
             color: black;
         }
     </style>
 
     <div class="title-content d-flex align-items-center gap-3">
         <div class="nav-item d-inline-block me-3">
-            <div class="nav-icon">
+            <div class="nav-icon-arrow">
                 <a href="/master" class="text-decoration-none text-dark d-flex align-items-center">
                     <div class="d-flex">
                         <span class="material-symbols-outlined">arrow_back</span>
@@ -67,17 +94,15 @@
 
             <div class="d-flex gap-2">
                 <button class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;">
-                    <i class="bi bi-funnel"></i>
-                    <i class="bi bi-funnel-fill icon-filled"></i> Filter
+                    <span class="material-symbols-outlined icon">filter_list</span> Filter
                 </button>
 
                 <button class="btn btn-icon-toggle btn-icon-search" style="border: 1px solid #DDDDDD;">
-                    <i class="bi bi-search"></i> Search
+                    <span class="material-symbols-outlined icon">search</span> Search
                 </button>
 
                 <button class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;">
-                    <i class="bi bi-plus"></i>
-                    <i class="bi bi-plus-lg icon-filled"></i> Add Data
+                    <span class="material-symbols-outlined icon">add</span> Add Data
                 </button>
             </div>
         </div>
