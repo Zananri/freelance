@@ -13,11 +13,11 @@ Route::get('/department', function () {
 })->name('department');
 
 // Department CRUD routes
-Route::get('/api/departments', [DepartmentController::class, 'index'])->name('departments.index');
-Route::get('/api/departments/{id}', [DepartmentController::class, 'show'])->name('departments.show');
-Route::post('/api/departments', [DepartmentController::class, 'store'])->name('departments.store');
-Route::put('/api/departments/{id}', [DepartmentController::class, 'update'])->name('departments.update');
-Route::delete('/api/departments/{id}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
+Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
+Route::get('/departments/{id}', [DepartmentController::class, 'show'])->name('departments.show');
+Route::post('/departments', [DepartmentController::class, 'store'])->name('departments.store');
+Route::put('/departments/{id}', [DepartmentController::class, 'update'])->name('departments.update');
+Route::delete('/departments/{id}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
 
 // Route::get('/department', function () {
 //     return view('/department/detail-department');

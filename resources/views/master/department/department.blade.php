@@ -227,6 +227,15 @@
                 vertical-align: middle;
             }
 
+            /* Add bottom borders only below thead and tbody rows */
+            table.table > thead > tr {
+                border-bottom: 1px solid #ddd;
+            }
+
+            table.table > tbody > tr {
+                border-bottom: 1px solid #ddd;
+            }
+
         </style>
     </x-slot>
 
@@ -412,7 +421,7 @@
                     $(document).on('click', '.btn-edit', function() {
                         var id = $(this).data('id');
                         $.ajax({
-                            url: '/api/departments/' + id,
+                            url: '/departments/' + id,
                             type: 'GET',
                             success: function(department) {
                                 $('#edit_name_department').val(department.name_department);
@@ -435,7 +444,7 @@
                     };
 
                     $.ajax({
-                        url: '/api/departments/' + id,
+                        url: '/departments/' + id,
                         type: 'PUT',
                         data: formData,
                         headers: {
@@ -467,33 +476,52 @@
                 });
 
                 $(document).on('click', '.btn-delete', function() {
-                    if (!confirm('Are you sure you want to delete this department?')) {
-                        return;
-                    }
+                    var id = $(this).data('id');
+                    // Fetch department data to show in delete modal
+                    $.ajax({
+                        url: '/departments/' + id,
+                        type: 'GET',
+                        success: function(department) {
+                        $('#delete_name_department').val(department.name_department);
+                        $('#deleteDepartmentForm').data('id', id);
+                        var deleteDepartmentModal = new bootstrap.Modal(document.getElementById('deleteDepartmentModal'));
+                        deleteDepartmentModal.show();
+                        },
+                        error: function() {
+                            alert('Failed to fetch department data.');
+                        }
+                    });
+                });
+
+                $('#deleteDepartmentForm').submit(function(e) {
+                    e.preventDefault();
                     var id = $(this).data('id');
                     $.ajax({
-                        url: '/api/departments/' + id,
+                        url: '/departments/' + id,
                         type: 'DELETE',
                         headers: {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
                         success: function(response) {
-                        $('.alert-delete-container').empty();
-                        var alertHtml = '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
-                            '<div>' + response.message + '</div>' +
-                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                            '</div>';
-                        $('.alert-delete-container').append(alertHtml);
-                        $('.alert-delete-container').show();
-                        setTimeout(function() {
-                            $('.alert-delete-container .alert').alert('close');
-                        }, 2000);
-                        loadDepartments();
-                    },
-                    error: function() {
-                        alert('Failed to delete department.');
-                    }
-                });
+                            $('.alert-delete-container').empty();
+                            var alertHtml = '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
+                                '<div>' + response.message + '</div>' +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                                '</div>';
+                            $('.alert-delete-container').append(alertHtml);
+                            $('.alert-delete-container').show();
+                            setTimeout(function() {
+                                $('.alert-delete-container .alert').alert('close');
+                            }, 2000);
+                            loadDepartments();
+                            var deleteDepartmentModalEl = document.getElementById('deleteDepartmentModal');
+                            var deleteDepartmentModal = bootstrap.Modal.getInstance(deleteDepartmentModalEl);
+                            deleteDepartmentModal.hide();
+                        },
+                        error: function() {
+                            alert('Failed to delete department.');
+                        }
+                    });
                 });
             });
 
@@ -502,8 +530,8 @@ function loadDepartments() {
                 url: "{{ route('departments.index') }}",
                 type: "GET",
                 success: function(departments) {
-                    var tbody = $('#departmentTableBody');
-                    tbody.empty();
+                    
+                    var rowHtml = '';
                     $.each(departments, function(index, department) {
                         var statusText = department.status === 'ACTIVE' ? 'ACTIVE' : department.status;
                         var statusClass = department.status === 'ACTIVE' ? 'status-ACTIVE' : 'status-INACTIVE';
@@ -511,7 +539,7 @@ function loadDepartments() {
                             statusText = 'DELETED';
                             statusClass = 'status-DELETED';
                         }
-                        var row = '<tr>' +
+                        rowHtml += '<tr>' +
                             '<td>' + department.name_department + '</td>' +
                             '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
                             '<td style="text-align: right;">' +
@@ -520,8 +548,10 @@ function loadDepartments() {
                             '<button class="btn-icon-toggle btn-delete" data-id="' + department.id + '"><span class="material-symbols-outlined icon">delete</span></button>' +
                             '</td>' +
                             '</tr>';
-                        tbody.append(row);
+                            
                     });
+
+                    $('#departmentTableBody').html(rowHtml);
                 },
                 error: function() {
                     alert('Failed to load departments.');
@@ -532,5 +562,28 @@ function loadDepartments() {
             loadDepartments();
         </script>
     </x-slot>
+
+   <!-- Delete Department Modal -->
+<div class="modal fade" id="deleteDepartmentModal" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content modal-content-custom">
+            <div class="modal-header modal-header-custom">
+                <h5 class="modal-title modal-title-custom" id="deleteDepartmentModalLabel">Delete Department</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteDepartmentForm" class="form-custom">
+                <div class="modal-body modal-body-custom">
+                    <p class="mb-1" style="font-weight: 300; font-size: 16px;">Are you sure you want to delete this data?</p>
+                    <div class="mb-2">
+                        <input type="text" class="form-control input-soft" id="delete_name_department" name="name_department" readonly disabled />
+                    </div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="submit" class="btn-submit-black btn-submit-custom" style="background-color: #dc3545;">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 </x-office-layout>

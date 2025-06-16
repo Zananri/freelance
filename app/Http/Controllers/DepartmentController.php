@@ -77,9 +77,8 @@ class DepartmentController extends Controller
         }
         
         
-        if ($request->has('updated_by')) {
+       
             $updateData['updated_by'] = 1;
-        }
 
         $department->update($updateData);
 
@@ -96,6 +95,7 @@ class DepartmentController extends Controller
 
         // Instead of deleting, update status to DELETED
         $department->status = 'DELETED';
+        $department->deleted_by = 1;
         $department->save();
 
         return response()->json(['message' => 'Department deleted successfully']);
