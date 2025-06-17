@@ -2,247 +2,6 @@
     <x-slot name="head_slot">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <link href="{{ asset('asset/css/department.css') }}" rel="stylesheet">
-
-        <style>
-
-            .mb-0 {
-                font-size: 20px;
-            }
-
-            .table-transparent th,
-            .table-transparent td {
-                background-color: rgba(248, 248, 249, 0) !important;
-            }
-
-            .nav-icon-arrow {
-                display: inline-block;
-                color: #717375;
-                margin-top: 3px; 
-                margin-right: 10px;
-                height: 40px; width:40px;
-                border-radius: 50%;
-                --bs-bg-opacity:0.3;
-                background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important;
-                transition: all 0.15s ease-in-out;
-            }
-
-            .nav-icon-arrow:hover{
-                cursor: pointer;
-                --bs-bg-opacity:0.7;
-            }
-
-            .nav-icon-arrow .material-symbols-outlined {
-                color: #808489;
-                font-size: 20px;
-                font-variation-settings: 'FILL' 0,'wght' 400;
-                transition: all 0.15s ease-in-out;
-            }
-
-            .nav-icon-arrow:hover .material-symbols-outlined {
-                color: #111;
-                font-variation-settings: 'FILL' 1,'wght' 400; 
-            }
-
-            .nav-icon-arrow .d-flex{
-                height: 100%;
-                justify-content: center;
-                align-items: center;
-            }
-
-            .title-content a {
-                text-decoration: none !important;
-                color: inherit !important;
-            }
-
-            .btn-icon-toggle {
-                position: relative;
-                background-color: transparent;
-                color: inherit;
-                border: 1px solid #DDDDDD;
-                padding: 0.375rem 0.75rem;
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                cursor: pointer;
-                transition: background-color 0.3s ease;
-                box-sizing: border-box;
-                height: 38px;
-                min-width: 90px;
-                font-size: 14px;
-            }
-
-            .btn-icon-toggle .icon {
-                color: inherit;
-                transition: color 0.3s ease;
-            }
-
-            .btn-icon-toggle:hover {
-                background-color: white;
-            }
-
-            .btn-icon-toggle:hover .icon {
-                color: black;
-            }
-
-            .input-soft {
-                border: 1px solid #dfe0ec;
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 12px 16px;
-                font-size: 14px;
-            }
-
-            .body-content .input-soft {
-                border: 1px solid rgb(222, 223, 232);
-                background-color: rgb(240, 241, 248);
-            }
-
-            .input-soft:focus {
-                outline: none;
-                
-            }
-
-            .btn-submit-black {
-                background-color: black;
-                color: white;
-                border: none;
-                padding: 10px 24px;
-                border-radius: 8px;
-                font-weight: 500;
-                transition: background-color 0.3s ease;
-            }
-
-            .btn-submit-black:hover {
-                background-color: #333;
-            }
-
-            .modal-content-custom {
-                border-radius: 16px;
-                padding: 24px;
-                background: #f7f7f8;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-                border: none;
-            }
-            .modal-header-custom {
-                border: 0;
-            }
-            .modal-title-custom {
-                font-weight: 300;
-                font-size: 28px;
-                position: absolute;
-                top: 24px;
-                left: 24px;
-                color: rgb(103, 111, 122);
-            }
-            .form-custom {
-                margin-top: -12px;
-            }
-            .modal-body-custom {
-                padding: 0;
-            }
-            
-            .label-custom {
-                font-size: 14px;
-                font-weight: 400;
-            }
-            .modal-footer-custom {
-                border: 0;
-                justify-content: center;
-            }
-            .btn-submit-custom {
-                width: 80%;
-            }
-            .status-ACTIVE {
-                background-color: #28a745; /* Bootstrap's green */
-                color: white;
-                font-weight: 600;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 0.875rem;
-                display: inline-block;
-                min-width: 60px;
-                text-align: center;
-            }
-
-            .status-DELETED {
-                background-color: #dc3545; /* Bootstrap's red */
-                color: white;
-                font-weight: 600;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 0.875rem;
-                display: inline-block;
-                min-width: 60px;
-                text-align: center;
-            }
-
-            .btn-detail, .btn-edit, .btn-delete {
-                border: 1px solid #DDDDDD;
-                background-color: transparent;
-                color: inherit;
-                padding: 0.375rem 0.75rem;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 0.5rem;
-                cursor: pointer;
-                transition: background-color 0.3s ease;
-                box-sizing: border-box;
-                height: 38px;
-                min-width: 38px;
-                font-size: 14px;
-                border-radius: 4px;
-            }
-
-            .status-INACTIVE {
-                background-color: #6c757d; /* Bootstrap's gray */
-                color: white;
-                font-weight: 600;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 0.875rem;
-                display: inline-block;
-                min-width: 60px;
-                text-align: center;
-            }
-
-            .btn-detail .icon, .btn-edit .icon, .btn-delete .icon {
-                color: inherit;
-                transition: color 0.3s ease;
-                font-size: 20px;
-            }
-
-            .btn-detail:hover, .btn-edit:hover, .btn-delete:hover {
-                background-color: white;
-            }
-
-            .btn-detail:hover .icon, .btn-edit:hover .icon, .btn-delete:hover .icon {
-                color: black;
-            }
-
-            /* Align buttons horizontally with spacing */
-            td > .btn-icon-toggle, td > .btn-detail, td > .btn-edit, td > .btn-delete {
-                display: inline-flex;
-                margin-left: 5px;
-                margin-right: 5px;
-                vertical-align: middle;
-            }
-
-            /* Add bottom borders only below thead and tbody rows */
-            table.table > thead > tr {
-                border-bottom: 1px solid #ddd;
-            }
-
-            table.table > tbody > tr {
-                border-bottom: 1px solid #ddd;
-            }
-
-            /* Set font size for table data cells */
-            table.table > tbody > tr > td {
-                font-size: 14px;
-            }
-
-        </style>
     </x-slot>
 
 
@@ -267,9 +26,6 @@
            <div class="d-flex gap-1" style="margin-left: -5px;">
                <div class="input-group" style="min-width: 200px; height: 38px;">
                    <input type="text" id="searchInput" class="form-control input-soft" placeholder="Search Department" style="border: 1px solid #DDDDDD; height: 38px;" />
-                   <button id="btnSearch" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD; border-left: 0; height: 38px;">
-                       <span class="material-symbols-outlined icon">search</span> Search
-                   </button>
                </div>
     <button class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;">
         <span class="material-symbols-outlined icon">filter_list</span> Filter
@@ -564,45 +320,46 @@
                 });
             });
 
-function loadDepartments(query = '') {
-            $.ajax({
-                url:appUrl+'/departments',
-                type: "GET",
-                data: { query: query },
-                success: function(departments) {
-                    
-                    var rowHtml = '';
-                    $.each(departments, function(index, department) {
-                        var statusText = department.status === 'ACTIVE' ? 'ACTIVE' : department.status;
-                        var statusClass = department.status === 'ACTIVE' ? 'status-ACTIVE' : 'status-INACTIVE';
-                        if(department.status === 'DELETED') {
-                            statusText = 'DELETED';
-                            statusClass = 'status-DELETED';
-                        }
-                        rowHtml += '<tr>' +
-                            '<td>' + department.name_department + '</td>' +
-                            '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
-                            '<td style="text-align: right;">' +
-                            '<button class="btn-icon-toggle btn-edit" data-id="' + department.id + '"><span class="material-symbols-outlined icon">edit</span></button> ' +
-                            '<button class="btn-icon-toggle btn-delete" data-id="' + department.id + '"><span class="material-symbols-outlined icon">delete</span></button>' +
-                            '</td>' +
-                            '</tr>';
-                            
-                    });
+    function loadDepartments(query = '') {
+                $.ajax({
+                    url:appUrl+'/departments',
+                    type: "GET",
+                    data: { query: query },
+                    success: function(departments) {
+                        
+                        var rowHtml = '';
+                        $.each(departments, function(index, department) {
+                            var statusText = department.status === 'ACTIVE' ? 'ACTIVE' : department.status;
+                            var statusClass = department.status === 'ACTIVE' ? 'status-ACTIVE' : 'status-INACTIVE';
+                            if(department.status === 'DELETED') {
+                                statusText = 'DELETED';
+                                statusClass = 'status-DELETED';
+                            }
+                            rowHtml += '<tr>' +
+                                '<td>' + department.name_department + '</td>' +
+                                '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
+                                '<td style="text-align: right;">' +
+                                '<button class="btn-icon-toggle btn-edit" data-id="' + department.id + '"><span class="material-symbols-outlined icon">edit</span></button> ' +
+                                '<button class="btn-icon-toggle btn-delete" data-id="' + department.id + '"><span class="material-symbols-outlined icon">delete</span></button>' +
+                                '</td>' +
+                                '</tr>';
+                                
+                        });
 
-                    $('#departmentTableBody').html(rowHtml);
-                },
-                error: function() {
-                    alert('Failed to load departments.');
+                        $('#departmentTableBody').html(rowHtml);
+                    },
+                    error: function() {
+                        alert('Failed to load departments.');
+                    }
+                });
                 }
-            });
-}
-$('#btnSearch').click(function() {
-    var query = $('#searchInput').val();
-    loadDepartments(query);
-});
+                // Trigger search dynamically as user types
+                $('#searchInput').on('input', function() {
+                    var query = $(this).val();
+                    loadDepartments(query);
+                });
 
-            loadDepartments();
+                loadDepartments();
         </script>
     </x-slot>
 
