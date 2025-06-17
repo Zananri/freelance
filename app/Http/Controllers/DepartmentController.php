@@ -20,8 +20,16 @@ class DepartmentController extends Controller
             $departmentsQuery->where('name_department', 'like', '%' . $query . '%');
         }
 
-        if ($status && $status !== 'ALL') {
-            $departmentsQuery->where('status', $status);
+        if ($status) {
+            if ($status === 'ALL') {
+                // Exclude DELETED records by default
+                $departmentsQuery->where('status', '!=', 'DELETED');
+            } else {
+                $departmentsQuery->where('status', $status);
+            }
+        } else {
+            // If no status filter provided, exclude DELETED records
+            $departmentsQuery->where('status', '!=', 'DELETED');
         }
 
         $departments = $departmentsQuery->get();

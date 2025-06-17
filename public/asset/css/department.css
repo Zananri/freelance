@@ -1,4 +1,5 @@
 
+
             .mb-0 {
                 font-size: 20px;
             }
@@ -249,4 +250,85 @@
     height: 400px;
     overflow-y: auto;
     display: block;
+}
+
+/* Loader styles */
+.modal-loading-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.7);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+}
+
+.loader-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #333;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    animation: spin 1s linear infinite;
+}
+
+
+
+/* Delete modal footer buttons container */
+.modal-footer-delete {
+    display: flex;
+    justify-content: flex-end !important;
+    gap: 10px;
+}
+
+/* Smaller delete button */
+.btn-delete-small {
+    padding: 6px 16px;
+    font-size: 14px;
+    width: auto;
+    min-width: auto;
+    height: 36px;
+}
+
+/* Cancel button style */
+.btn-cancel-small {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    font-size: 14px;
+    width: auto;
+    min-width: auto;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-cancel-small:hover {
+    background-color: #5a6268;
+}
+
+/* Red background for delete button */
+.btn-delete-red {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    font-size: 14px;
+    width: auto;
+    min-width: auto;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-delete-red:hover {
+    background-color: #b02a37;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg);}
+    100% { transform: rotate(360deg);}
 }
