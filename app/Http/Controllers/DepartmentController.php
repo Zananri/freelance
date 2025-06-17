@@ -12,11 +12,20 @@ class DepartmentController extends Controller
     public function index(Request $request)
     {
         $query = $request->input('query');
+        $status = $request->input('status');
+
+        $departmentsQuery = Department::query();
+
         if ($query) {
-            $departments = Department::where('name_department', 'like', '%' . $query . '%')->get();
-        } else {
-            $departments = Department::all();
+            $departmentsQuery->where('name_department', 'like', '%' . $query . '%');
         }
+
+        if ($status && $status !== 'ALL') {
+            $departmentsQuery->where('status', $status);
+        }
+
+        $departments = $departmentsQuery->get();
+
         return response()->json($departments);
     }
 

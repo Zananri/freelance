@@ -235,3 +235,18 @@
             table.table > tbody > tr > td {
                 font-size: 14px;
             }
+
+            /* Scrollbar enabled class for body-content */
+/* .body-content.scrollbar-enabled {
+    max-height: 400px;
+    height: 400px;
+    overflow-y: auto;
+    display: block;
+} */
+
+.table-responsive.scrollbar-enabled {
+    max-height: 400px;
+    height: 400px;
+    overflow-y: auto;
+    display: block;
+}
