@@ -354,11 +354,11 @@ success: function(response) {
             });
 
             // Remove pagination and scroll loading, revert to loading all data at once
-            function loadDepartments(query = '') {
+            function loadDepartments(query = '', status = 'ALL') {
                 $.ajax({
                     url: appUrl + '/departments',
                     type: "GET",
-                    data: { query: query },
+                    data: { query: query, status: status },
                     success: function(departments) {
                         var rowHtml = '';
                         if (departments.length === 0) {
@@ -400,19 +400,11 @@ success: function(response) {
             // Trigger search dynamically as user types
             $('#searchInput').on('input', function() {
                 var query = $(this).val();
-                loadDepartments(query);
+                loadDepartments(query, selectedStatus);
             });
 
             // Initial load
-            loadDepartments();
-
-                // Trigger search dynamically as user types
-                $('#searchInput').on('input', function() {
-                    var query = $(this).val();
-                    loadDepartments(query);
-                });
-
-            loadDepartments();
+            loadDepartments('', selectedStatus);
 
             var selectedStatus = 'ALL';
 
@@ -422,7 +414,7 @@ success: function(response) {
                 $('.filter-option').removeClass('active');
                 $(this).addClass('active');
                 selectedStatus = $(this).data('status');
-                loadDepartments($('#searchInput').val());
+                loadDepartments($('#searchInput').val(), selectedStatus);
             });
         </script>
     </x-slot>
