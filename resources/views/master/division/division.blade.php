@@ -1,0 +1,214 @@
+<x-office-layout>
+    <x-slot name="head_slot">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <link href="{{ asset('asset/css/division.css') }}" rel="stylesheet">
+    </x-slot>
+
+    <div class="title-content d-flex align-items-center gap-2">
+        <div class="nav-item d-inline-block">
+            <div class="nav-icon-arrow">
+                <a href="{{ url('master') }}" class="text-decoration-none text-dark d-flex align-items-center">
+                    <div class="d-flex">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <h2 class="m-0">Division</h2>
+    </div>
+
+    <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="mb-0 table-title">List Division</h5>
+
+           <div class="d-flex gap-1" style="margin-left: -5px;">
+               <div class="input-group" style="min-width: 200px; height: 38px;">
+                   <input type="text" id="searchInput" class="form-control input-soft" placeholder="Search Division" style="border: 1px solid #DDDDDD; height: 38px;" />
+               </div>
+               <div class="dropdown">
+                   <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                       <span class="material-symbols-outlined icon">filter_list</span> Filter
+                   </button>
+                   <ul class="dropdown-menu" aria-labelledby="filterDropdown" style="min-width: 150px;">
+                       <li><a class="dropdown-item filter-option active" href="#" data-status="ALL">All</a></li>
+                       <li><a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a></li>
+                       <li><a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a></li>
+                       <li><a class="dropdown-item filter-option" href="#" data-status="DELETED">Deleted</a></li>
+                   </ul>
+               </div>
+
+               <div class="dropdown">
+                   <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;" type="button" id="departmentFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                       <span class="material-symbols-outlined icon">apartment</span> Department
+                   </button>
+                   <ul class="dropdown-menu" aria-labelledby="departmentFilterDropdown" style="min-width: 150px;" id="departmentFilterMenu">
+                       <li><a class="dropdown-item department-filter-option active" href="#" data-department="">All Departments</a></li>
+                   </ul>
+               </div>
+    
+    </button>
+
+
+<button id="btnAddData" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD; padding-left: 20px; padding-right: 20px;">
+    <span class="material-symbols-outlined icon">add</span> Add Data
+</button>
+</div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-borderless align-middle table-transparent">
+                <thead>
+                    <tr>
+                        <th scope="col">Department Name</th>
+                        <th scope="col">Division Name</th>
+                        <th scope="col">Status</th>
+                        <th scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody id="divisionTableBody">
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="alert-delete-container mb-3" style="width: 100%;"></div>
+
+        <!-- Add Division Modal -->
+        <div class="modal fade" id="addDivisionModal" tabindex="-1" aria-labelledby="addDivisionModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+<div class="modal-content modal-content-custom">
+    <div class="modal-loading-overlay d-none" id="addModalLoader">
+        <div class="loader-spinner"></div>
+    </div>
+    <div class="modal-header modal-header-custom">
+        <h5 class="modal-title modal-title-custom" id="addDivisionModalLabel">Add Division</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+<form id="addDivisionForm" class="form-custom needs-validation" novalidate>
+    <div class="modal-body modal-body-custom">
+        <div class="mb-3 mt-4">
+            <label for="department_id" class="form-label label-custom">Department</label>
+            <select class="form-select input-soft" id="department_id" name="department_id" required>
+                <option value="" disabled selected>Select Department</option>
+            </select>
+            <div class="invalid-feedback">
+                Please select a department.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="name_division" class="form-label label-custom">Division Name</label>
+            <input type="text" class="form-control input-soft" id="name_division" name="name_division" placeholder="Input Division Name" required>
+            <div class="invalid-feedback">
+                Please enter the division name.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="status" class="form-label label-custom">Status</label>
+            <select class="form-select input-soft" id="status" name="status" required>
+                <option value="" disabled selected>Select Status</option>
+                <option value="ACTIVE">Active</option>
+                <option value="INACTIVE">Inactive</option>
+            </select>
+            <div class="invalid-feedback">
+                Please select a status.
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer modal-footer-custom">
+        <button type="submit" class="btn-submit-black btn-submit-custom">Submit</button>
+    </div>
+</form>
+                </div>
+                <div class="alert-container mt-2" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Edit Division Modal -->
+        <div class="modal fade" id="editDivisionModal" tabindex="-1" aria-labelledby="editDivisionModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+<div class="modal-content modal-content-custom">
+    <div class="modal-loading-overlay d-none" id="editModalLoader">
+        <div class="loader-spinner"></div>
+    </div>
+    <div class="modal-header modal-header-custom">
+        <h5 class="modal-title modal-title-custom" id="editDivisionModalLabel">Edit Division</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <form id="editDivisionForm" class="form-custom needs-validation" novalidate>
+        <div class="modal-body modal-body-custom">
+            <input type="hidden" id="edit_division_id" name="division_id">
+            <div class="mb-3 mt-4">
+                <label for="edit_department_id" class="form-label label-custom">Department</label>
+                <select class="form-select input-soft" id="edit_department_id" name="department_id" required>
+                    <option value="" disabled selected>Select Department</option>
+                </select>
+                <div class="invalid-feedback">
+                    Please select a department.
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="edit_name_division" class="form-label label-custom">Division Name</label>
+                <input type="text" class="form-control input-soft" id="edit_name_division" name="name_division" placeholder="Input Division Name" required>
+                <div class="invalid-feedback">
+                    Please enter the division name.
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="edit_status" class="form-label label-custom">Status</label>
+                <select class="form-select input-soft" id="edit_status" name="status" required>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                </select>
+                <div class="invalid-feedback">
+                    Please select a status.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer modal-footer-custom">
+            <button type="submit" class="btn-submit-black btn-submit-custom">Update</button>
+        </div>
+    </form>
+                </div>
+                <div class="alert-container mt-2" style="width: 100%;"></div>
+            </div>
+        </div>
+        
+        <!-- Delete Division Modal -->
+        <div class="modal fade" id="deleteDivisionModal" tabindex="-1" aria-labelledby="deleteDivisionModalLabel" aria-hidden="true">
+         <div class="modal-dialog">
+<div class="modal-content modal-content-custom">
+    <div class="modal-loading-overlay d-none" id="deleteModalLoader">
+        <div class="loader-spinner"></div>
+    </div>
+    <div class="modal-header modal-header-custom">
+        <h5 class="modal-title modal-title-custom mb-3" id="deleteDivisionModalLabel">Delete Division</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <form id="deleteDivisionForm" class="form-custom">
+        <div class="modal-body modal-body-custom">
+
+            <div class="mb-3 mt-4">
+                <label for="delete_name_division" class="form-label label-custom">Division Name</label>
+                <input type="text" class="form-control input-soft" id="delete_name_division" name="name_division" readonly disabled />
+            </div>
+            <div class="mt-5 text-center">
+                <p class="mb-3" style="font-weight: 300; font-size: 16px;">Are you sure you want to delete this data?</p>
+            </div>
+        </div>
+<div class="modal-footer modal-footer-custom modal-footer-delete">
+<button type="submit" class="btn-submit-black btn-submit-custom btn-delete-modal btn-delete-small btn-delete-red">Delete</button>
+    <button type="button" class="btn-cancel-delete btn-submit-black btn-submit-custom btn-cancel-small" data-bs-dismiss="modal">Cancel</button>
+</div>
+                </form>
+            </div>
+        </div>
+        </div>
+        <x-slot name="script_slot">
+            
+        <script src="{{ asset('asset/js/division.js') }}"></script>
+
+        <script>
+           
+        </script>
+    </x-slot>
+</x-office-layout>
