@@ -6,11 +6,32 @@ var editDepartmentModal = new bootstrap.Modal(
     document.getElementById("editDepartmentModal")
 );
 
+var addDepartmentModal;
+
+function readURL(input, labelSelector) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+
+        reader.onload = function (e) {
+            $(labelSelector).css(
+                "background-image",
+                "url(" + e.target.result + ")"
+            );
+        };
+
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
 $(document).ready(function () {
     // Remove reload page on alert close event handler
     // $(document).on('closed.bs.alert', '#addDepartmentModal .alert-container .alert, #editDepartmentModal .alert-container .alert', function() {
     //     location.reload();
     // });
+
+    addDepartmentModal = new bootstrap.Modal(
+        document.getElementById("addDepartmentModal")
+    );
 
     function resetAddDepartmentForm() {
         $("#addDepartmentModal .alert-container").empty();
@@ -20,13 +41,16 @@ $(document).ready(function () {
         $("#name_department, #description, #status, #image").removeClass(
             "is-valid is-invalid"
         );
+        // Reset image label background to default
+        $("#imageLabel").css(
+            "background-image",
+            "url('/asset/img/background/add-image.png')"
+        );
     }
 
     // Event handler for Add Data button to show addDepartmentModal
     $("#btnAddData").on("click", function () {
         resetAddDepartmentForm();
-        var addDepartmentModalEl = document.getElementById("addDepartmentModal");
-        var addDepartmentModal = new bootstrap.Modal(addDepartmentModalEl);
         addDepartmentModal.show();
     });
 
@@ -39,6 +63,33 @@ $(document).ready(function () {
         $("#edit_image").removeClass("is-valid is-invalid");
         // Ensure loader overlay is hidden to allow input
         $("#editModalLoader").addClass("d-none");
+        // Do not reset edit image label background to default here to preserve current image preview
+        // $('#editImageLabel').css('background-image', "url('/asset/img/background/add-image.png')");
+        // Hide edit image preview - will be shown if image exists when loading data
+        // $('#edit_image_preview').hide();
+    });
+
+    // Image input change handlers for preview
+    $("#image").change(function () {
+        readURL(this, "#imageLabel");
+        // Validation for image input label
+        if (this.checkValidity()) {
+            $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $("#imageLabel").removeClass("is-valid").addClass("is-invalid");
+        }
+    });
+
+    $("#edit_image").change(function () {
+        readURL(this, "#editImageLabel");
+        // Hide the old image preview when new image selected
+        $("#edit_image_preview").hide();
+        // Validation for edit image input label
+        if (this.checkValidity()) {
+            $("#editImageLabel").removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $("#editImageLabel").removeClass("is-valid").addClass("is-invalid");
+        }
     });
 
     function showLoader(modalType, show = true) {
@@ -56,7 +107,20 @@ $(document).ready(function () {
         e.preventDefault();
 
         var form = this;
-        if (!form.checkValidity()) {
+        var imageInput = $("#image")[0];
+        var isValid = form.checkValidity();
+
+        // Manual validation for hidden file input
+        if (!imageInput.value) {
+            $("#imageLabel").addClass("is-invalid");
+            $("#imageLabel").next(".invalid-feedback").show();
+            isValid = false;
+        } else {
+            $("#imageLabel").removeClass("is-invalid");
+            $("#imageLabel").next(".invalid-feedback").hide();
+        }
+
+        if (!isValid) {
             e.stopPropagation();
             $(form).addClass("was-validated");
             return false;
@@ -126,13 +190,23 @@ $(document).ready(function () {
                 $("#edit_name_department").val(department.name_department);
                 $("#edit_status").val(department.status);
                 $("#edit_description").val(department.description);
-                // Show current image filename or preview
-                if (department.images) {
-                    $("#edit_image_preview img")
-                        .attr("src", "/file/department/" + department.images)
-                        .show();
+                // Show current image only as label background, NOT in <img>
+                if (department.image_url) {
+                    var imageUrl = department.image_url;
+                    // Set the background image of the label to the current image
+                    $("#editImageLabel").css(
+                        "background-image",
+                        "url(" + imageUrl + ")"
+                    );
+                    // Hide the <img> preview
+                    $("#edit_image_preview").hide();
                 } else {
-                    $("#edit_image_preview img").hide();
+                    // Reset label background to default if no image
+                    $("#editImageLabel").css(
+                        "background-image",
+                        "url('/asset/img/background/add-image.png')"
+                    );
+                    $("#edit_image_preview").hide();
                 }
                 $("#editDepartmentForm").data("id", id);
                 editDepartmentModal.show();
@@ -212,26 +286,52 @@ $(document).ready(function () {
     });
 
     // Real-time validation for editDepartmentForm inputs
-    $("#edit_name_department, #edit_status, #edit_description, #edit_image").on("input change", function () {
-        var input = $(this)[0];
-        if (input.checkValidity()) {
-            $(this).removeClass("is-invalid").addClass("is-valid");
-        } else {
-            $(this).removeClass("is-valid").addClass("is-invalid");
+    $("#edit_name_department, #edit_status, #edit_description, #edit_image").on(
+        "input change",
+        function () {
+            var input = $(this)[0];
+            if (input.checkValidity()) {
+                $(this).removeClass("is-invalid").addClass("is-valid");
+                if (this.id === "edit_image") {
+                    $("#editImageLabel")
+                        .removeClass("is-invalid")
+                        .addClass("is-valid");
+                }
+            } else {
+                $(this).removeClass("is-valid").addClass("is-invalid");
+                if (this.id === "edit_image") {
+                    $("#editImageLabel")
+                        .removeClass("is-valid")
+                        .addClass("is-invalid");
+                }
+            }
+            $("#editDepartmentForm").removeClass("was-validated");
         }
-        $("#editDepartmentForm").removeClass("was-validated");
-    });
+    );
 
     // Real-time validation for addDepartmentForm inputs
-    $("#name_department, #status, #description, #image").on("input change", function () {
-        var input = $(this)[0];
-        if (input.checkValidity()) {
-            $(this).removeClass("is-invalid").addClass("is-valid");
-        } else {
-            $(this).removeClass("is-valid").addClass("is-invalid");
+    $("#name_department, #status, #description, #image").on(
+        "input change",
+        function () {
+            var input = $(this)[0];
+            if (input.checkValidity()) {
+                $(this).removeClass("is-invalid").addClass("is-valid");
+                if (this.id === "image") {
+                    $("#imageLabel")
+                        .removeClass("is-invalid")
+                        .addClass("is-valid");
+                }
+            } else {
+                $(this).removeClass("is-valid").addClass("is-invalid");
+                if (this.id === "image") {
+                    $("#imageLabel")
+                        .removeClass("is-valid")
+                        .addClass("is-invalid");
+                }
+            }
+            $("#addDepartmentForm").removeClass("was-validated");
         }
-        $("#addDepartmentForm").removeClass("was-validated");
-    });
+    );
 
     $(document).on("click", ".btn-delete", function () {
         var id = $(this).data("id");
@@ -355,22 +455,22 @@ function loadDepartments(query = "", status = "ALL") {
     });
 }
 
-// Trigger search dynamically    as user types
-$("#searchInput").on("input", function () {
-    var query = $(this).val();
-    loadDepartments(query, selectedStatus);
-});
+$(document).ready(function () {
+    // Trigger search dynamically as user types
+    $("#searchInput").on("input", function () {
+        var query = $(this).val();
+        loadDepartments(query, selectedStatus);
+    });
 
-// Initial load
-loadDepartments("", selectedStatus);
+    // Initial load
+    loadDepartments("", selectedStatus);
 
-var selectedStatus = "ALL";
-
-// Handle filter option click
-$(".filter-option").click(function (e) {
-    e.preventDefault();
-    $(".filter-option").removeClass("active");
-    $(this).addClass("active");
-    selectedStatus = $(this).data("status");
-    loadDepartments($("#searchInput").val(), selectedStatus);
+    // Handle filter option click
+    $(".filter-option").click(function (e) {
+        e.preventDefault();
+        $(".filter-option").removeClass("active");
+        $(this).addClass("active");
+        selectedStatus = $(this).data("status");
+        loadDepartments($("#searchInput").val(), selectedStatus);
+    });
 });

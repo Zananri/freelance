@@ -45,7 +45,9 @@ class DepartmentController extends Controller
         if (!$department) {
             return response()->json(['message' => 'Department not found'], 404);
         }
-        return response()->json($department);
+        $data = $department->toArray();
+        $data['image_url'] = $department->images ? url('file/department/' . $department->images) : null;
+        return response()->json($data);
     }
 
     // Store a newly created department
@@ -55,7 +57,7 @@ class DepartmentController extends Controller
             'name_department' => 'required|string|max:255',
             'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
             'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {

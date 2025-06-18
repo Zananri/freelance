@@ -390,3 +390,36 @@
     0% { transform: rotate(0deg);}
     100% { transform: rotate(360deg);}
 }
+
+/* Hide the actual file input */
+.input-image {
+    display: none;
+}
+
+/* Style the label as a small square with background image */
+.custom-image-upload {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.custom-image-upload:hover {
+    border-color: #333;
+}
+
+/* Add styles for valid and invalid states on the label */
+.custom-image-upload.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25);
+}
+
+.custom-image-upload.is-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
+}
