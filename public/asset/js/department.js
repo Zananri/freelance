@@ -272,12 +272,6 @@ rowHtml += '<tr data-id="' + department.id + '">' +
 
                         $('#departmentTableBody').html(rowHtml);
 
-                        // Add or remove scrollbar-enabled class based on data count
-                        if (departments.length > 5) {
-                            $('.table-responsive').addClass('scrollbar-enabled');
-                        } else {
-                            $('.table-responsive').removeClass('scrollbar-enabled');
-                        }
                     },
                     error: function() {
                         alert('Failed to load departments.');

@@ -290,11 +290,16 @@
     display: block;
 } */
 
-.table-responsive.scrollbar-enabled {
+/* .table-responsive.scrollbar-enabled {
     max-height: 400px;
     height: 400px;
     overflow-y: auto;
     display: block;
+} */
+
+.table-scroll-wrapper {
+    max-height: 350px;
+    overflow-y: auto;
 }
 
 /* Loader styles */

@@ -48,18 +48,20 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-borderless align-middle table-transparent">
-                <thead>
-                    <tr>
-                        <th scope="col">Department Name</th>
-                        <th scope="col">Status</th>
-                        <th scope="col"></th>
-                    </tr>
-                </thead>
-                <tbody id="departmentTableBody">
+            <div class="table-scroll-wrapper">
+                <table class="table table-borderless align-middle table-transparent">
+                    <thead>
+                        <tr>
+                            <th scope="col">Department Name</th>
+                            <th scope="col">Status</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="departmentTableBody">
 
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>

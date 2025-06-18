@@ -29,24 +29,25 @@
                    <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                        <span class="material-symbols-outlined icon">filter_list</span> Filter
                    </button>
-                   <ul class="dropdown-menu" aria-labelledby="filterDropdown" style="min-width: 150px;">
-                       <li><a class="dropdown-item filter-option active" href="#" data-status="ALL">All</a></li>
-                       <li><a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a></li>
-                       <li><a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a></li>
-                       <li><a class="dropdown-item filter-option" href="#" data-status="DELETED">Deleted</a></li>
+                   <ul class="dropdown-menu p-2" aria-labelledby="filterDropdown" style="min-width: 220px; max-height: 300px; overflow-y: auto;">
+                       <li class="mb-2">
+                           <select class="form-select form-select-sm" id="filterTypeSelect" aria-label="Select filter type">
+                               <option value="" disabled selected>Select Filter Option</option>
+                               <option value="status">Filter by Status</option>
+                               <option value="department">Filter by Department</option>
+                           </select>
+                       </li>
+                       <li id="statusFilterOptions" class="d-none">
+                           <a class="dropdown-item filter-option" href="#" data-status="ALL">All</a>
+                           <a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a>
+                           <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
+                       </li>
+                       <li id="departmentFilterOptions" class="d-none">
+                           <!-- Department options will be loaded here dynamically -->
+                           <span class="dropdown-item text-muted">Loading departments...</span>
+                       </li>
                    </ul>
                </div>
-
-               <div class="dropdown">
-                   <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;" type="button" id="departmentFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                       <span class="material-symbols-outlined icon">apartment</span> Department
-                   </button>
-                   <ul class="dropdown-menu" aria-labelledby="departmentFilterDropdown" style="min-width: 150px;" id="departmentFilterMenu">
-                       <li><a class="dropdown-item department-filter-option active" href="#" data-department="">All Departments</a></li>
-                   </ul>
-               </div>
-    
-    </button>
 
 
 <button id="btnAddData" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD; padding-left: 20px; padding-right: 20px;">
@@ -56,19 +57,21 @@
         </div>
 
         <div class="table-responsive">
-            <table class="table table-borderless align-middle table-transparent">
-                <thead>
-                    <tr>
-                        <th scope="col">Department Name</th>
-                        <th scope="col">Division Name</th>
-                        <th scope="col">Status</th>
-                        <th scope="col"></th>
-                    </tr>
-                </thead>
-                <tbody id="divisionTableBody">
+            <div class="table-scroll-wrapper">
+                <table class="table table-borderless align-middle table-transparent">
+                    <thead>
+                        <tr>
+                            <th scope="col">Department Name</th>
+                            <th scope="col">Division Name</th>
+                            <th scope="col">Status</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="divisionTableBody">
 
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>

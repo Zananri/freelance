@@ -29,36 +29,20 @@ $(document).ready(function() {
         });
     }
 
-    // Load departments for filter dropdown (fixed to populate dropdown menu with <li><a>)
+    // Load departments for filter dropdown into #departmentFilterOptions
     function loadDepartmentsFilter() {
         $.ajax({
             url: appUrl + '/departments',
             type: 'GET',
             success: function(departments) {
-                var menuHtml = '<li><a class="dropdown-item department-filter-option active" href="#" data-department="">All Departments</a></li>';
+                var menuHtml = '<a class="dropdown-item department-filter-option active" href="#" data-department="">All Departments</a>';
                 $.each(departments, function(index, department) {
-                    menuHtml += '<li><a class="dropdown-item department-filter-option" href="#" data-department="' + department.id + '">' + department.name_department + '</a></li>';
+                    menuHtml += '<a class="dropdown-item department-filter-option" href="#" data-department="' + department.id + '">' + department.name_department + '</a>';
                 });
-                $('#departmentFilterMenu').html(menuHtml);
-
-                // Set up click handler for department filter options
-                $('#departmentFilterMenu').off('click').on('click', 'a.department-filter-option', function(e) {
-                    e.preventDefault();
-                    $('#departmentFilterMenu a.department-filter-option').removeClass('active');
-                    $(this).addClass('active');
-
-                    var selectedDepartmentId = $(this).data('department');
-                    var selectedDepartmentName = $(this).text();
-
-                    // Update dropdown button text
-                    $('#departmentFilterDropdown').html('<span class="material-symbols-outlined icon">apartment</span> ' + selectedDepartmentName);
-
-                    // Reload divisions with selected department filter
-                    loadDivisions($('#searchInput').val(), selectedStatus, selectedDepartmentId);
-                });
+                $('#departmentFilterOptions').html(menuHtml);
             },
             error: function() {
-                alert('Failed to load departments for filter.');
+                $('#departmentFilterOptions').html('<span class="dropdown-item text-danger">Failed to load departments</span>');
             }
         });
     }
@@ -76,6 +60,12 @@ $(document).ready(function() {
         $('#status').removeClass('is-valid is-invalid');
         addDivisionModal.show();
     });
+
+    
+
+    
+
+    
 
     // Real-time validation for addDivisionForm inputs
     $('#department_id, #name_division, #status').on('input change', function() {
@@ -320,26 +310,70 @@ $(document).ready(function() {
     // Trigger search dynamically as user types
     $('#searchInput').on('input', function() {
         var query = $(this).val();
-        loadDivisions(query, selectedStatus, $('#departmentFilter').val());
+        var filterType = $('#filterTypeSelect').val();
+        if (filterType === 'status') {
+            var status = $('#statusFilterOptions .filter-option.active').data('status') || 'ALL';
+            loadDivisions(query, status, '');
+        } else if (filterType === 'department') {
+            var departmentId = $('#departmentFilterOptions .department-filter-option.active').data('department') || '';
+            loadDivisions(query, 'ALL', departmentId);
+        } else {
+            loadDivisions(query, 'ALL', '');
+        }
     });
 
     var selectedStatus = 'ALL';
 
-    // Handle filter option click
-    $('.filter-option').click(function(e) {
+    // Handle filter option click for status
+    $(document).on('click', '.filter-option', function(e) {
         e.preventDefault();
         $('.filter-option').removeClass('active');
         $(this).addClass('active');
         selectedStatus = $(this).data('status');
-        loadDivisions($('#searchInput').val(), selectedStatus, $('#departmentFilter').val());
+
+        var query = $('#searchInput').val();
+        var filterType = $('#filterTypeSelect').val();
+        if(filterType === 'status') {
+            loadDivisions(query, selectedStatus, '');
+        } else if(filterType === 'department') {
+            var selectedDepartmentId = $('#departmentFilterOptions a.active').data('department') || '';
+            loadDivisions(query, 'ALL', selectedDepartmentId);
+        }
+    });
+
+    // Handle filter option click for department
+    $(document).on('click', '.department-filter-option', function(e) {
+        e.preventDefault();
+        $('#departmentFilterOptions a.department-filter-option').removeClass('active');
+        $(this).addClass('active');
+
+        var query = $('#searchInput').val();
+        var selectedDepartmentId = $(this).data('department') || '';
+        loadDivisions(query, 'ALL', selectedDepartmentId);
+    });
+
+    // Handle filter type dropdown change
+    $('#filterTypeSelect').change(function() {
+        var filterType = $(this).val();
+        if(filterType === 'status') {
+            $('#statusFilterOptions').removeClass('d-none');
+            $('#departmentFilterOptions').addClass('d-none');
+            // Remove active class from all status filter options
+            $('#statusFilterOptions a.filter-option').removeClass('active');
+            // Reset selectedStatus to empty to indicate no selection
+            selectedStatus = '';
+            // Do not reload divisions until user selects a status option
+        } else if(filterType === 'department') {
+            $('#departmentFilterOptions').removeClass('d-none');
+            $('#statusFilterOptions').addClass('d-none');
+            // Remove active class from all department filter options
+            $('#departmentFilterOptions a.department-filter-option').removeClass('active');
+            // Do not reload divisions until user selects a department option
+        }
     });
 
     // Initial load
     loadDivisions('', selectedStatus, '');
 
-    // Handle department filter change
-    $('#departmentFilter').change(function() {
-        var selectedDepartment = $(this).val();
-        loadDivisions($('#searchInput').val(), selectedStatus, selectedDepartment);
-    });
+    
 });

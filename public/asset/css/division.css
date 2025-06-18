@@ -333,3 +333,8 @@
     0% { transform: rotate(0deg);}
     100% { transform: rotate(360deg);}
 }
+
+.table-scroll-wrapper {
+    max-height: 350px;
+    overflow-y: auto;
+}
