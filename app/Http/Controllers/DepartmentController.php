@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Department;
+use Illuminate\Support\Facades\Storage;
 
 class DepartmentController extends Controller
 {
@@ -53,20 +54,29 @@ class DepartmentController extends Controller
         $validator = Validator::make($request->all(), [
             'name_department' => 'required|string|max:255',
             'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
-            
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $imageName = null;
+        if ($request->hasFile('image')) {
+            $t = time();
+            $imageName = 'DEPARTMENT_' . $t . '.' . $request->image->extension();
+            $request->image->move(public_path('file/department'), $imageName);
+        }
+
         $department = Department::create([
             'name_department' => $request->name_department,
             'status' => $request->status,
+            'description' => $request->description,
+            'images' => $imageName,
             'created_by' => 1,
             'updated_by' => 1,
             'deleted_by' => 1,
-          
         ]);
 
         return response()->json(['message' => 'Department added successfully', 'department' => $department]);
@@ -83,7 +93,8 @@ class DepartmentController extends Controller
         $validator = Validator::make($request->all(), [
             'name_department' => 'sometimes|string|max:255',
             'status' => 'sometimes|string|in:ACTIVE,INACTIVE,DELETED',
-           
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -97,10 +108,18 @@ class DepartmentController extends Controller
         if ($request->has('status')) {
             $updateData['status'] = $request->status;
         }
-        
-        
-       
-            $updateData['updated_by'] = 1;
+        if ($request->has('description')) {
+            $updateData['description'] = $request->description;
+        }
+
+        if ($request->hasFile('image')) {
+            $t = time();
+            $imageName = 'DEPARTMENT_' . $t . '.' . $request->image->extension();
+            $request->image->move(public_path('file/department'), $imageName);
+            $updateData['images'] = $imageName;
+        }
+
+        $updateData['updated_by'] = 1;
 
         $department->update($updateData);
 

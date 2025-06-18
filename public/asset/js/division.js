@@ -82,11 +82,13 @@ $(document).ready(function () {
         $("#department_id").removeClass("is-valid is-invalid");
         $("#name_division").removeClass("is-valid is-invalid");
         $("#status").removeClass("is-valid is-invalid");
+        $("#description").removeClass("is-valid is-invalid");
+        $("#image").removeClass("is-valid is-invalid");
         addDivisionModal.show();
     });
 
     // Real-time validation for addDivisionForm inputs
-    $("#department_id, #name_division, #status").on(
+    $("#department_id, #name_division, #description, #status").on(
         "input change",
         function () {
             var input = $(this)[0];
@@ -98,6 +100,17 @@ $(document).ready(function () {
             $("#addDivisionForm").removeClass("was-validated");
         }
     );
+
+    $("#image").on("change", function () {
+        var fileInput = $(this)[0];
+        var file = fileInput.files[0];
+        if (file && file.type.startsWith("image/")) {
+            $(this).removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $(this).removeClass("is-valid").addClass("is-invalid");
+        }
+        $("#addDivisionForm").removeClass("was-validated");
+    });
 
     function showLoader(modalType, show = true) {
         const loaderId = {
@@ -123,17 +136,14 @@ $(document).ready(function () {
 
         showLoader("add", true);
 
-        var formData = {
-            department_id: $("#department_id").val(),
-            name_division: $("#name_division").val(),
-            status: $("#status").val(),
-        };
+        var formData = new FormData(form);
 
         $.ajax({
             url: appUrl + "/divisions",
             type: "POST",
-            data: JSON.stringify(formData),
-            contentType: "application/json",
+            data: formData,
+            contentType: false,
+            processData: false,
             headers: {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
             },
@@ -186,6 +196,14 @@ $(document).ready(function () {
                 $("#edit_department_id").val(division.department_id);
                 $("#edit_name_division").val(division.name_division);
                 $("#edit_status").val(division.status);
+                $("#edit_description").val(division.description);
+                if (division.images) {
+                    $("#edit_image_preview img")
+                        .attr("src", "/file/division/" + division.images)
+                        .show();
+                } else {
+                    $("#edit_image_preview img").hide();
+                }
                 $("#editDivisionForm").data("id", id);
                 editDivisionModal.show();
             },
@@ -198,19 +216,29 @@ $(document).ready(function () {
     $("#editDivisionForm").submit(function (e) {
         e.preventDefault();
         var id = $("#edit_division_id").val();
-        var formData = {
-            department_id: $("#edit_department_id").val(),
-            name_division: $("#edit_name_division").val(),
-            status: $("#edit_status").val(),
-        };
+        var form = this;
+
+        // Removed required validation for image input on edit form
+
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            $(form).addClass("was-validated");
+            return false;
+        }
+        $(form).removeClass("was-validated");
+
+        var formData = new FormData(form);
+        // Add _method=PUT to formData to match Laravel route
+        formData.append("_method", "PUT");
 
         showLoader("edit", true);
 
         $.ajax({
             url: appUrl + "/divisions/" + id,
-            type: "PUT",
-            data: JSON.stringify(formData),
-            contentType: "application/json",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
             headers: {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
             },

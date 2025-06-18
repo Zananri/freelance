@@ -12,6 +12,8 @@ class Department extends Model
     protected $fillable = [
         'name_department',
         'status',
+        'description',
+        'images',
         'created_by',
         'updated_by',
         'deleted_by',

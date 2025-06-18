@@ -76,7 +76,7 @@
         <h5 class="modal-title modal-title-custom" id="addDepartmentModalLabel">Add Department</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-<form id="addDepartmentForm" class="form-custom needs-validation" novalidate>
+<form id="addDepartmentForm" class="form-custom needs-validation" novalidate enctype="multipart/form-data">
     <div class="modal-body modal-body-custom">
         <div class="mb-3 mt-4">
             <label for="name_department" class="form-label label-custom">Name</label>
@@ -94,6 +94,20 @@
             </select>
             <div class="invalid-feedback">
                 Please select a status.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label label-custom">Description</label>
+            <textarea class="form-control input-soft" id="description" name="description" placeholder="Input Description" required></textarea>
+            <div class="invalid-feedback">
+                Please enter a description.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="image" class="form-label label-custom">Select Image</label>
+            <input type="file" class="form-control input-soft" id="image" name="image" accept="image/*" required>
+            <div class="invalid-feedback">
+                Please select an image file.
             </div>
         </div>
     </div>
@@ -117,24 +131,41 @@
         <h5 class="modal-title modal-title-custom" id="editDepartmentModalLabel">Edit Department</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-    <form id="editDepartmentForm" class="form-custom">
-        <div class="modal-body modal-body-custom">
-            <div class="mb-3 mt-4">
-                <label for="edit_name_department" class="form-label label-custom">Name</label>
-                <input type="text" class="form-control input-soft" id="edit_name_department" name="name_department" placeholder="Input Department Name" required>
-            </div>
-        <div class="mb-3">
-            <label for="edit_status" class="form-label label-custom">Status</label>
-            <select class="form-select input-soft" id="edit_status" name="status" required>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-            </select>
+<form id="editDepartmentForm" class="form-custom needs-validation" novalidate enctype="multipart/form-data">
+    <div class="modal-body modal-body-custom">
+        <div class="mb-3 mt-4">
+            <label for="edit_name_department" class="form-label label-custom">Name</label>
+            <input type="text" class="form-control input-soft" id="edit_name_department" name="name_department" placeholder="Input Department Name" required>
         </div>
+    <div class="mb-3">
+        <label for="edit_status" class="form-label label-custom">Status</label>
+        <select class="form-select input-soft" id="edit_status" name="status" required>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label for="edit_description" class="form-label label-custom">Description</label>
+        <textarea class="form-control input-soft" id="edit_description" name="description" placeholder="Input Description" required></textarea>
+        <div class="invalid-feedback">
+            Please enter a description.
         </div>
-        <div class="modal-footer modal-footer-custom">
-            <button type="submit" class="btn-submit-black btn-submit-custom">Update</button>
+    </div>
+    <div class="mb-3">
+        <label for="edit_image" class="form-label label-custom">Select Image</label>
+<input type="file" class="form-control input-soft" id="edit_image" name="image" accept="image/*">
+        <div class="invalid-feedback">
+            Please select an image file.
         </div>
-    </form>
+        <div id="edit_image_preview" class="mt-2">
+            <img src="" alt="Current Image" style="max-width: 100%; max-height: 150px; display: none; border-radius: 4px;"/>
+        </div>
+    </div>
+    </div>
+    <div class="modal-footer modal-footer-custom">
+        <button type="submit" class="btn-submit-black btn-submit-custom">Update</button>
+    </div>
+</form>
                 </div>
                 <div class="alert-container mt-2" style="width: 100%;"></div>
             </div>

@@ -46,12 +46,23 @@ class DivisionController extends Controller
                 'department_id' => 'required|exists:departments,id',
                 'name_division' => 'required|string|max:255',
                 'status' => 'required|string|in:ACTIVE,INACTIVE',
+                'description' => 'nullable|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
+
+            $imageName = null;
+            if ($request->hasFile('image')) {
+                $t = time();
+                $imageName = 'DIVISION_' . $t . '.' . $request->image->extension();
+                $request->image->move(public_path('file/division'), $imageName);
+            }
 
             $division = Division::create([
                 'department_id' => $validated['department_id'],
                 'name_division' => $validated['name_division'],
                 'status' => $validated['status'],
+                'description' => $validated['description'] ?? null,
+                'images' => $imageName,
                 'created_by' => 1,
                 'updated_by' => 1,
                 'deleted_by' => 1,
@@ -85,11 +96,26 @@ class DivisionController extends Controller
                 'department_id' => 'required|exists:departments,id',
                 'name_division' => 'required|string|max:255',
                 'status' => 'required|string|in:ACTIVE,INACTIVE',
+                'description' => 'nullable|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
-            $validated['updated_by'] = 1;
+            $updateData = [
+                'department_id' => $validated['department_id'],
+                'name_division' => $validated['name_division'],
+                'status' => $validated['status'],
+                'description' => $validated['description'] ?? null,
+                'updated_by' => 1,
+            ];
 
-            $division->update($validated);
+            if ($request->hasFile('image')) {
+                $t = time();
+                $imageName = 'DIVISION_' . $t . '.' . $request->image->extension();
+                $request->image->move(public_path('file/division'), $imageName);
+                $updateData['images'] = $imageName;
+            }
+
+            $division->update($updateData);
 
             return response()->json(['message' => 'Division updated successfully', 'division' => $division]);
         } catch (\Exception $e) {

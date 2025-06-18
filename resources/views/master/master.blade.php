@@ -16,5 +16,11 @@
                 <h5>Division</h5>
             </a>        
         </div>
+        <div class="body-content scrollable-container rounded-4 p-5 w-50 d-flex justify-content-center align-items-center" style="height: 200px;">
+            <a href="{{ url('employee') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">
+            
+                <h5>Employee</h5>
+            </a>        
+        </div>
     </div>
 </x-office-layout>

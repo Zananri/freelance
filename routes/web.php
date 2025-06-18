@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\EmployeeController;
 
 Route::get('/master', function () {
     return view('master/master');
@@ -30,6 +31,13 @@ Route::get('/divisions/{id}', [DivisionController::class, 'show'])->name('divisi
 Route::post('/divisions', [DivisionController::class, 'store'])->name('divisions.store');
 Route::put('/divisions/{id}', [DivisionController::class, 'update'])->name('divisions.update');
 Route::delete('/divisions/{id}', [DivisionController::class, 'destroy'])->name('divisions.destroy');
+
+// Employee CRUD routes
+Route::get('/employee', [EmployeeController::class, 'index'])->name('employee.index');
+Route::get('/employee/{id}', [EmployeeController::class, 'show'])->name('employee.show');
+Route::post('/employee', [EmployeeController::class, 'store'])->name('employee.store');
+Route::put('/employee/{id}', [EmployeeController::class, 'update'])->name('employee.update');
+Route::delete('/employee/{id}', [EmployeeController::class, 'destroy'])->name('employee.destroy');
 
 
 

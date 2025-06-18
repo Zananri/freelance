@@ -13,6 +13,8 @@ class Division extends Model
         'department_id',
         'name_division',
         'status',
+        'description',
+        'images',
         'created_by',
         'updated_by',
         'deleted_by',
