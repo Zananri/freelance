@@ -22,6 +22,14 @@ $(document).ready(function () {
         );
     }
 
+    // Event handler for Add Data button to show addDepartmentModal
+    $("#btnAddData").on("click", function () {
+        resetAddDepartmentForm();
+        var addDepartmentModalEl = document.getElementById("addDepartmentModal");
+        var addDepartmentModal = new bootstrap.Modal(addDepartmentModalEl);
+        addDepartmentModal.show();
+    });
+
     // Clear any existing alert when opening edit modal
     $("#editDepartmentModal").on("show.bs.modal", function () {
         $("#editDepartmentModal .alert-container").empty();
@@ -212,6 +220,17 @@ $(document).ready(function () {
             $(this).removeClass("is-valid").addClass("is-invalid");
         }
         $("#editDepartmentForm").removeClass("was-validated");
+    });
+
+    // Real-time validation for addDepartmentForm inputs
+    $("#name_department, #status, #description, #image").on("input change", function () {
+        var input = $(this)[0];
+        if (input.checkValidity()) {
+            $(this).removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $(this).removeClass("is-valid").addClass("is-invalid");
+        }
+        $("#addDepartmentForm").removeClass("was-validated");
     });
 
     $(document).on("click", ".btn-delete", function () {
