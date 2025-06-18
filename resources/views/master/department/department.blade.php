@@ -1,6 +1,5 @@
 <x-office-layout>
     <x-slot name="head_slot">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
         <link href="{{ asset('asset/css/department.css') }}" rel="stylesheet">
     </x-slot>
 
@@ -67,7 +66,7 @@
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
         <!-- Add Department Modal -->
-        <div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-labelledby="addDepartmentModalLabel" aria-hidden="true">
+        <div class="modal fade" id="addDepartmentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="addDepartmentModalLabel" aria-hidden="true">
             <div class="modal-dialog">
 <div class="modal-content modal-content-custom">
     <div class="modal-loading-overlay d-none" id="addModalLoader">
@@ -108,7 +107,7 @@
         </div>
 
         <!-- Edit Department Modal -->
-        <div class="modal fade" id="editDepartmentModal" tabindex="-1" aria-labelledby="editDepartmentModalLabel" aria-hidden="true">
+        <div class="modal fade" id="editDepartmentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="editDepartmentModalLabel" aria-hidden="true">
             <div class="modal-dialog">
 <div class="modal-content modal-content-custom">
     <div class="modal-loading-overlay d-none" id="editModalLoader">
@@ -142,7 +141,7 @@
         </div>
         
         <!-- Delete Department Modal -->
-        <div class="modal fade" id="deleteDepartmentModal" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
+        <div class="modal fade" id="deleteDepartmentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
          <div class="modal-dialog">
 <div class="modal-content modal-content-custom">
     <div class="modal-loading-overlay d-none" id="deleteModalLoader">

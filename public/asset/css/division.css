@@ -229,6 +229,12 @@
                 border-bottom: 1px solid #ddd;
             }
 
+            table.table > thead > tr > th {
+                border-bottom: 1px solid #ddd;
+                font-size: 14px;
+                font-weight: 500;
+            }
+
             table.table > tbody > tr {
                 border-bottom: 1px solid #ddd;
             }

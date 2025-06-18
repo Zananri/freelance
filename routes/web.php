@@ -1,12 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DivisionController;
+use App\Http\Controllers\DepartmentController;
 
 Route::get('/master', function () {
     return view('master/master');
 })->name('master');
 
-use App\Http\Controllers\DepartmentController;
 
 Route::get('/department', function () {
     return view('/master/department/department');
@@ -19,7 +20,6 @@ Route::post('/departments', [DepartmentController::class, 'store'])->name('depar
 Route::put('/departments/{id}', [DepartmentController::class, 'update'])->name('departments.update');
 Route::delete('/departments/{id}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
 
-use App\Http\Controllers\DivisionController;
 Route::get('/division', function () {
     return view('/master/division/division');
 })->name('division');

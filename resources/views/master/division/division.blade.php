@@ -1,6 +1,5 @@
 <x-office-layout>
     <x-slot name="head_slot">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
         <link href="{{ asset('asset/css/division.css') }}" rel="stylesheet">
     </x-slot>
 
@@ -77,7 +76,7 @@
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
         <!-- Add Division Modal -->
-        <div class="modal fade" id="addDivisionModal" tabindex="-1" aria-labelledby="addDivisionModalLabel" aria-hidden="true">
+        <div class="modal fade" id="addDivisionModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="addDivisionModalLabel" aria-hidden="true">
             <div class="modal-dialog">
 <div class="modal-content modal-content-custom">
     <div class="modal-loading-overlay d-none" id="addModalLoader">
@@ -127,7 +126,7 @@
         </div>
 
         <!-- Edit Division Modal -->
-        <div class="modal fade" id="editDivisionModal" tabindex="-1" aria-labelledby="editDivisionModalLabel" aria-hidden="true">
+        <div class="modal fade" id="editDivisionModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="editDivisionModalLabel" aria-hidden="true">
             <div class="modal-dialog">
 <div class="modal-content modal-content-custom">
     <div class="modal-loading-overlay d-none" id="editModalLoader">
@@ -177,7 +176,7 @@
         </div>
         
         <!-- Delete Division Modal -->
-        <div class="modal fade" id="deleteDivisionModal" tabindex="-1" aria-labelledby="deleteDivisionModalLabel" aria-hidden="true">
+        <div class="modal fade" id="deleteDivisionModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="deleteDivisionModalLabel" aria-hidden="true">
          <div class="modal-dialog">
 <div class="modal-content modal-content-custom">
     <div class="modal-loading-overlay d-none" id="deleteModalLoader">

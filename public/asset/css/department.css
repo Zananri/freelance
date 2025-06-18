@@ -271,6 +271,14 @@
             /* Add bottom borders only below thead and tbody rows */
             table.table > thead > tr {
                 border-bottom: 1px solid #ddd;
+                font-size: 14px;
+                font-weight: normal;
+            }
+
+               table.table > thead > tr > th {
+                border-bottom: 1px solid #ddd;
+                font-size: 14px;
+                font-weight: 500;
             }
 
             table.table > tbody > tr {
