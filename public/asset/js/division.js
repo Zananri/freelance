@@ -112,6 +112,31 @@ $(document).ready(function () {
         $("#addDivisionForm").removeClass("was-validated");
     });
 
+    // Real-time validation for editDivisionForm inputs
+    $("#edit_department_id, #edit_name_division, #edit_description, #edit_status").on(
+        "input change",
+        function () {
+            var input = $(this)[0];
+            if (input.checkValidity()) {
+                $(this).removeClass("is-invalid").addClass("is-valid");
+            } else {
+                $(this).removeClass("is-valid").addClass("is-invalid");
+            }
+            $("#editDivisionForm").removeClass("was-validated");
+        }
+    );
+
+    $("#edit_image").on("change", function () {
+        var fileInput = $(this)[0];
+        var file = fileInput.files[0];
+        if (!file || (file && file.type.startsWith("image/"))) {
+            $(this).removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $(this).removeClass("is-valid").addClass("is-invalid");
+        }
+        $("#editDivisionForm").removeClass("was-validated");
+    });
+
     function showLoader(modalType, show = true) {
         const loaderId = {
             add: "#addModalLoader",

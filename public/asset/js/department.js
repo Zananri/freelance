@@ -336,7 +336,7 @@ function loadDepartments(query = "", status = "ALL") {
     });
 }
 
-// Trigger search dynamically as user types
+// Trigger search dynamically    as user types
 $("#searchInput").on("input", function () {
     var query = $(this).val();
     loadDepartments(query, selectedStatus);
