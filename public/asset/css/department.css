@@ -423,3 +423,37 @@
     border-color: #28a745 !important;
     box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
 }
+
+.image-clear-btn {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: rgba(255,255,255,0.85);
+    color: #dc3545;
+    font-size: 22px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s;
+    opacity: 0.85;
+}
+.image-clear-btn:hover {
+    background: #fff;
+    opacity: 1;
+}
+
+.title-label-image {
+    display: block;
+    font-size: 14px;
+    color: #222;
+    margin-bottom: 6px;
+    margin-left: 2px;
+    font-family: inherit;
+    line-height: 1.5;
+}

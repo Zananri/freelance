@@ -9,36 +9,71 @@
                 background-color: rgba(248, 248, 249, 0) !important;
             }
 
-            /* Added CSS for image upload from department.css */
-            .input-image {
-                display: none;
-            }
+/* Added CSS for image upload from department.css */
+.input-image {
+    display: none;
+}
 
-            .custom-image-upload {
-                display: inline-block;
-                width: 100px;
-                height: 100px;
-                background-size: cover;
-                background-position: center;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                cursor: pointer;
-                transition: border-color 0.3s ease;
-            }
+.custom-image-upload {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
 
-            .custom-image-upload:hover {
-                border-color: #333;
-            }
+.custom-image-upload:hover {
+    border-color: #333;
+}
 
-            .custom-image-upload.is-invalid {
-                border-color: #dc3545 !important;
-                box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25);
-            }
+.custom-image-upload.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25);
+}
 
-            .custom-image-upload.is-valid {
-                border-color: #28a745 !important;
-                box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
-            }
+.title-label-image {
+    display: block;
+    font-size: 14px;
+    color: #222;
+    margin-bottom: 6px;
+    margin-left: 2px;
+    font-family: inherit;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+.custom-image-upload.is-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
+}
+
+.image-clear-btn {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: rgba(255,255,255,0.85);
+    color: #dc3545;
+    font-size: 22px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s;
+    opacity: 0.85;
+}
+.image-clear-btn:hover {
+    background: #fff;
+    opacity: 1;
+}
 
             .nav-icon-arrow {
                 display: inline-block;

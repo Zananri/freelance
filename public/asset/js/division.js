@@ -1,5 +1,32 @@
 var appUrl = $('meta[name="app-url"]').attr("content");
 
+var appUrl = $('meta[name="app-url"]').attr("content");
+
+var selectedStatus = "ALL";
+
+var editDivisionModal = new bootstrap.Modal(
+    document.getElementById("editDivisionModal")
+);
+
+var addDivisionModal;
+
+function readURL(input, labelSelector) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+
+        reader.onload = function (e) {
+            $(labelSelector).css(
+                "background-image",
+                "url(" + e.target.result + ")"
+            ).css(
+                "background-size", "cover"
+            );
+        };
+
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
 $(document).ready(function () {
     var addDivisionModal = new bootstrap.Modal(
         document.getElementById("addDivisionModal")
@@ -11,15 +38,13 @@ $(document).ready(function () {
         document.getElementById("deleteDivisionModal")
     );
 
-    // Tambahkan di sini (setelah deklarasi modal dan sebelum event submit)
     function readURL(input, labelSelector) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
             reader.onload = function (e) {
-                $(labelSelector).css(
-                    "background-image",
-                    "url(" + e.target.result + ")"
-                );
+                $(labelSelector)
+                    .css("background-image", "url(" + e.target.result + ")")
+                    .css("background-size", "cover");
             };
             reader.readAsDataURL(input.files[0]);
         }
@@ -88,7 +113,7 @@ $(document).ready(function () {
     $("#btnAddData").click(function () {
         $("#imageLabel").css(
             "background-image",
-            "url('/asset/img/background/add-image.png')"
+            "url('" + appUrl + "/asset/img/background/add-image.png')"
         );
         $("#addDivisionModal .alert-container").empty();
         var form = $("#addDivisionForm")[0];
@@ -132,6 +157,20 @@ $(document).ready(function () {
 
     $("#image").change(function () {
         readURL(this, "#imageLabel");
+        // Show clear button if file selected
+        if (this.files && this.files[0]) {
+            $("#imageClearBtn").removeClass("d-none");
+            $("#imageLabel").css("background-size", "cover");
+        } else {
+            $("#imageClearBtn").addClass("d-none");
+            // Reset to default icon
+            $("#imageLabel").css({
+                "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+                "background-position": "center center",
+                "background-repeat": "no-repeat",
+                "background-size": "50%"
+            });
+        }
         if (this.checkValidity()) {
             $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
         } else {
@@ -139,10 +178,21 @@ $(document).ready(function () {
         }
     });
 
-    $("#remove_image_btn").on("click", function () {
+    // Add missing image clear button handler for add modal
+    $("#imageClearBtn").on("click", function (e) {
+        e.preventDefault();
+        // Reset input file
         $("#image").val("");
-        $("#image_preview img").hide();
-        $(this).hide();
+        // Reset background label to default icon
+        $("#imageLabel").css({
+            "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%"
+        });
+        $("#imageClearBtn").addClass("d-none");
+        // Reset validation classes
+        $("#imageLabel").removeClass("is-valid is-invalid");
         $("#image").removeClass("is-valid is-invalid");
     });
 
@@ -162,10 +212,26 @@ $(document).ready(function () {
     $("#editDivisionModal").on("show.bs.modal", function () {
         $("#editImageLabel").removeClass("is-valid is-invalid");
         $("#editImageLabel").next(".invalid-feedback").hide();
+        // Hide the edit image clear button initially
+        $("#editImageClearBtn").addClass("d-none");
     });
 
     $("#edit_image").change(function () {
         readURL(this, "#editImageLabel");
+        // Show clear button if file selected
+        if (this.files && this.files[0]) {
+            $("#editImageClearBtn").removeClass("d-none");
+            $("#editImageLabel").css("background-size", "cover");
+        } else {
+            $("#editImageClearBtn").addClass("d-none");
+            // Reset to default icon
+            $("#editImageLabel").css({
+                "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+                "background-position": "center center",
+                "background-repeat": "no-repeat",
+                "background-size": "50%"
+            });
+        }
         if (this.checkValidity()) {
             $("#editImageLabel").removeClass("is-invalid").addClass("is-valid");
             $("#editImageLabel").next(".invalid-feedback").hide();
@@ -175,23 +241,82 @@ $(document).ready(function () {
         }
     });
 
+    // Clear button click handler for edit modal to hide X and reset image to default icon
+    $("#editImageClearBtn").on("click", function (e) {
+        e.preventDefault();
+        $("#edit_image").val(""); // Reset input file
+        $("#editImageLabel").css({
+            "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%"
+        });
+        $("#editImageClearBtn").addClass("d-none"); // Hide clear button
+        $("#edit_image_preview").hide(); // Hide image preview if any
+        $("#editImageLabel").removeClass("is-valid is-invalid");
+        $("#edit_image").removeClass("is-valid is-invalid");
+    });
+
+    // Add clear button click handler for edit modal
+    $("#editImageClearBtn").on("click", function (e) {
+        e.preventDefault();
+        // Reset input file
+        $("#edit_image").val("");
+        // Reset background label to default icon
+        $("#editImageLabel").css({
+            "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%"
+        });
+        // Hide image preview if any
+        $("#edit_image_preview img").hide();
+        // Hide clear button
+        $("#editImageClearBtn").addClass("d-none");
+        // Reset validation classes
+        $("#editImageLabel").removeClass("is-valid is-invalid");
+        $("#edit_image").removeClass("is-valid is-invalid");
+    });
+
     $(document).on("click", ".btn-edit", function () {
         var id = $(this).data("id");
         $.ajax({
             url: appUrl + "/divisions/" + id,
             type: "GET",
             success: function (division) {
+                $("#edit_division_id").val(division.id);
+                $("#edit_department_id").val(division.department_id);
+                $("#edit_name_division").val(division.name_division);
+                $("#edit_status").val(division.status);
+                $("#edit_description").val(division.description);
+
+                // Show old image if exists
                 if (division.images) {
-                    $("#editImageLabel").css(
-                        "background-image",
-                        "url('/file/division/" + division.images + "')"
-                    );
+                    $("#editImageLabel").css({
+                        "background-image": "url('/file/division/" + division.images + "')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "cover"
+                    });
+                    $("#editImageClearBtn").removeClass("d-none"); // Show clear button
                 } else {
-                    $("#editImageLabel").css(
-                        "background-image",
-                        "url('/asset/img/background/add-image.png')"
-                    );
+                    $("#editImageLabel").css({
+                        "background-image": "url('/asset/img/background/add-image.png')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "50%"
+                    });
+                    $("#editImageClearBtn").addClass("d-none"); // Hide clear button
                 }
+
+                // Hide preview image if any
+                $("#edit_image_preview img").hide();
+
+                $("#editDivisionForm").data("id", id);
+                editDivisionModal.show();
+            },
+            error: function () {
+                alert("Failed to fetch division data.");
             },
         });
     });
@@ -294,13 +419,29 @@ $(document).ready(function () {
                 $("#edit_name_division").val(division.name_division);
                 $("#edit_status").val(division.status);
                 $("#edit_description").val(division.description);
+
+                // Show old image if exists
                 if (division.images) {
-                    $("#edit_image_preview img")
-                        .attr("src", "/file/division/" + division.images)
-                        .show();
+                    $("#editImageLabel").css({
+                        "background-image": "url('/file/division/" + division.images + "')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "cover"
+                    });
+                    $("#editImageClearBtn").removeClass("d-none"); // Show clear button
                 } else {
-                    $("#edit_image_preview img").hide();
+                    $("#editImageLabel").css({
+                        "background-image": "url('/asset/img/background/add-image.png')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "50%"
+                    });
+                    $("#editImageClearBtn").addClass("d-none"); // Hide clear button
                 }
+
+                // Hide preview image if any
+                $("#edit_image_preview img").hide();
+
                 $("#editDivisionForm").data("id", id);
                 editDivisionModal.show();
             },

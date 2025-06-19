@@ -122,14 +122,18 @@
                         Please enter a description.
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label for="image" class="custom-image-upload" id="imageLabel" style="background-image: url('/asset/img/background/add-image.png');">
-                        <input type="file" class="input-image" id="image" name="image" accept="image/*" required>
-                    </label>
-                    <div class="invalid-feedback">
-                        Please select an image file.
-                    </div>
-                </div>
+<div class="mb-3">
+    <div class="title-label-image">
+        <span>Upload image</span>
+    </div>
+    <label for="image" class="custom-image-upload position-relative" id="imageLabel" style=" background-position: center center; background-repeat: no-repeat; background-size: 50%;  background-image: url('{!! asset('asset/img/background/add-image.png')!!}');">
+        <input type="file" class="input-image" id="image" name="image" accept="image/*" required>
+        <span class="image-clear-btn d-none" id="imageClearBtn" title="Remove image">&times;</span>
+    </label>
+    <div class="invalid-feedback">
+        Please select an image file.
+    </div>
+</div>
             </div>
             <div class="modal-footer modal-footer-custom">
                 <button type="submit" class="btn-submit-black btn-submit-custom">Submit</button>
@@ -187,14 +191,18 @@
                 Please enter a description.
             </div>
         </div>
-            <div class="mb-3">
-                <label for="edit_image" class="custom-image-upload" id="editImageLabel" style="background-image: url('/asset/img/background/add-image.png');">
-                    <input type="file" class="input-image" id="edit_image" name="image" accept="image/*">
-                </label>
-                <div class="invalid-feedback">
-                    Please select an image file.
-                </div>
-            </div>
+<div class="mb-3">
+    <div class="title-label-image">
+        <span>Upload image</span>
+    </div>
+    <label for="edit_image" class="custom-image-upload position-relative" id="editImageLabel" style="background-image: url('/asset/img/background/add-image.png');">
+        <input type="file" class="input-image" id="edit_image" name="image" accept="image/*">
+        <span class="image-clear-btn d-none" id="editImageClearBtn" title="Remove image">&times;</span>
+    </label>
+    <div class="invalid-feedback">
+        Please select an image file.
+    </div>
+</div>
     </div>
     <div class="modal-footer modal-footer-custom">
         <button type="submit" class="btn-submit-black btn-submit-custom">Update</button>

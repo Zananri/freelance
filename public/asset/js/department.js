@@ -94,6 +94,93 @@ $(document).ready(function () {
         }
     });
 
+    // Handler tombol X pada label image (Add Department)
+$("#image").change(function () {
+    readURL(this, "#imageLabel");
+    // Tampilkan tombol X jika ada file
+    if (this.files && this.files[0]) {
+        $("#imageClearBtn").removeClass("d-none");
+        $("#imageLabel").css("background-size", "cover");
+    } else {
+        $("#imageClearBtn").addClass("d-none");
+        // Kembalikan ke icon default
+        $("#imageLabel").css({
+            "background-image": "url('"+appUrl+"/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%"
+        });
+    }
+    // Validasi
+    if (this.checkValidity()) {
+        $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
+    } else {
+        $("#imageLabel").removeClass("is-valid").addClass("is-invalid");
+    }
+});
+
+$("#imageClearBtn").on("click", function (e) {
+    e.preventDefault();
+    // Reset input file
+    $("#image").val("");
+    // Reset background label ke default icon
+    $("#imageLabel").css({
+        "background-image": "url('"+appUrl+"/asset/img/background/add-image.png')",
+        "background-position": "center center",
+        "background-repeat": "no-repeat",
+        "background-size": "50%"
+    });
+    $("#imageClearBtn").addClass("d-none");
+    // Reset validasi
+});
+    $("#image").removeClass("is-valid is-invalid");
+    $("#imageLabel").removeClass("is-valid is-invalid");
+
+    // Handler tombol X pada label image (Edit Department)
+    $("#editImageClearBtn").on("click", function (e) {
+        e.preventDefault();
+        // Reset input file
+        $("#edit_image").val("");
+        // Reset background label ke default icon
+        $("#editImageLabel").css({
+            "background-image": "url('"+appUrl+"/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%"
+        });
+        // Hide image preview
+        $("#edit_image_preview").hide();
+        // Reset validasi
+        $("#editImageLabel").removeClass("is-valid is-invalid");
+        $("#edit_image").removeClass("is-valid is-invalid");
+        // Hide the X button after clearing
+        $("#editImageClearBtn").addClass("d-none");
+    });
+
+    $("#edit_image").change(function () {
+        readURL(this, "#editImageLabel");
+        // Tampilkan tombol X jika ada file
+        if (this.files && this.files[0]) {
+            $("#editImageClearBtn").removeClass("d-none");
+            $("#editImageLabel").css("background-size", "cover");
+        } else {
+            $("#editImageClearBtn").addClass("d-none");
+            // Kembalikan ke icon default
+            $("#editImageLabel").css({
+                "background-image": "url('"+appUrl+"/asset/img/background/add-image.png')",
+                "background-position": "center center",
+                "background-repeat": "no-repeat",
+                "background-size": "50%"
+            });
+        }
+        // Validasi
+        if (this.checkValidity()) {
+            $("#editImageLabel").removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $("#editImageLabel").removeClass("is-valid").addClass("is-invalid");
+        }
+    });
+
     function showLoader(modalType, show = true) {
         const loaderId = {
             add: "#addModalLoader",
@@ -195,13 +282,17 @@ $(document).ready(function () {
                 // Show current image only as label background, NOT in <img>
                 if (department.image_url) {
                     var imageUrl = department.image_url;
-                    // Set the background image of the label to the current image
-                    $("#editImageLabel").css(
-                        "background-image",
-                        "url(" + imageUrl + ")"
-                    );
-                    // Hide the <img> preview
-                    $("#edit_image_preview").hide();
+                // Set the background image of the label to the current image
+                $("#editImageLabel").css({
+                    "background-image": "url(" + imageUrl + ")",
+                    "background-position": "center center",
+                    "background-repeat": "no-repeat",
+                    "background-size": "cover"
+                });
+                // Tampilkan tombol X
+                $("#editImageClearBtn").removeClass("d-none");
+                // Hide the <img> preview
+                $("#edit_image_preview").hide();
                 } else {
                     // Reset label background to default if no image
                     $("#editImageLabel").css(
