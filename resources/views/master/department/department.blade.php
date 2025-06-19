@@ -105,7 +105,7 @@
         </div>
         <!-- Pindahkan blok image ke sini, setelah description -->
         <div class="mb-3">
-            <label for="image" class="custom-image-upload" id="imageLabel" style="background-image: url('/asset/img/background/add-image.png');">
+        <label for="image" class="custom-image-upload" id="imageLabel" style=" background-position: center center; background-repeat: no-repeat; background-size: 50%;  background-image: url('{!! asset('asset/img/background/add-image.png')!!}');">
                 <input type="file" class="input-image" id="image" name="image" accept="image/*" required>
             </label>
             <div class="invalid-feedback">

@@ -16,6 +16,8 @@ function readURL(input, labelSelector) {
             $(labelSelector).css(
                 "background-image",
                 "url(" + e.target.result + ")"
+            ).css(
+                "background-size", "cover"
             );
         };
 
@@ -44,7 +46,7 @@ $(document).ready(function () {
         // Reset image label background to default
         $("#imageLabel").css(
             "background-image",
-            "url('/asset/img/background/add-image.png')"
+            "url('"+appUrl+"/asset/img/background/add-image.png')"
         );
     }
 
