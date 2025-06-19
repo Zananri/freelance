@@ -190,7 +190,7 @@
         
         <!-- Delete Department Modal -->
         <div class="modal fade" id="deleteDepartmentModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
-         <div class="modal-dialog">
+         <div class="modal-dialog modal-dialog-centered">
 <div class="modal-content modal-content-custom">
     <div class="modal-loading-overlay d-none" id="deleteModalLoader">
         <div class="loader-spinner"></div>
@@ -211,8 +211,8 @@
             </div>
         </div>
 <div class="modal-footer modal-footer-custom modal-footer-delete">
-<button type="submit" class="btn-submit-black btn-submit-custom btn-delete-modal btn-delete-small btn-delete-red">Delete</button>
-    <button type="button" class="btn-cancel-delete btn-submit-black btn-submit-custom btn-cancel-small" data-bs-dismiss="modal">Cancel</button>
+<button type="submit" class="btn btn-danger">Delete</button>
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
 </div>
                 </form>
             </div>

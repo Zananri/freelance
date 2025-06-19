@@ -1,13 +1,11 @@
+.mb-0 {
+    font-size: 20px;
+}
 
-
-            .mb-0 {
-                font-size: 20px;
-            }
-
-            .table-transparent th,
-            .table-transparent td {
-                background-color: rgba(248, 248, 249, 0) !important;
-            }
+.table-transparent th,
+.table-transparent td {
+    background-color: rgba(248, 248, 249, 0) !important;
+}
 
 /* Added CSS for image upload from department.css */
 .input-image {
@@ -15,6 +13,7 @@
 }
 
 .custom-image-upload {
+    position: relative;
     display: inline-block;
     width: 100px;
     height: 100px;
@@ -23,7 +22,12 @@
     border: 1px solid #ddd;
     border-radius: 8px;
     cursor: pointer;
-    transition: border-color 0.3s ease;
+    transition: border-color 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5; /* default opacity when no image */
+}
+
+.custom-image-upload.has-image {
+    opacity: 1; /* full opacity when image is present */
 }
 
 .custom-image-upload:hover {
@@ -32,7 +36,7 @@
 
 .custom-image-upload.is-invalid {
     border-color: #dc3545 !important;
-    box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 
 .title-label-image {
@@ -48,15 +52,15 @@
 
 .custom-image-upload.is-valid {
     border-color: #28a745 !important;
-    box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
 
 .image-clear-btn {
     position: absolute;
-    top: 4px;
-    right: 6px;
-    background: rgba(255,255,255,0.85);
-    color: #dc3545;
+    top: -13px;
+    right: -13px;
+    background: #dc3545;
+    color: #fff;
     font-size: 22px;
     font-weight: bold;
     border-radius: 50%;
@@ -71,246 +75,216 @@
     opacity: 0.85;
 }
 .image-clear-btn:hover {
-    background: #fff;
+    background: #b02a37;
     opacity: 1;
 }
 
-            .nav-icon-arrow {
-                display: inline-block;
-                color: #717375;
-                margin-top: 3px; 
-                margin-right: 10px;
-                height: 40px; width:40px;
-                border-radius: 50%;
-                --bs-bg-opacity:0.3;
-                background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important;
-                transition: all 0.15s ease-in-out;
-            }
+.nav-icon-arrow {
+    display: inline-block;
+    color: #717375;
+    margin-top: 3px;
+    margin-right: 10px;
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    --bs-bg-opacity: 0.3;
+    background-color: rgba(
+        var(--bs-white-rgb),
+        var(--bs-bg-opacity)
+    ) !important;
+    transition: all 0.15s ease-in-out;
+}
 
-            .nav-icon-arrow:hover{
-                cursor: pointer;
-                --bs-bg-opacity:0.7;
-            }
+.nav-icon-arrow:hover {
+    cursor: pointer;
+    --bs-bg-opacity: 0.7;
+}
 
-            .nav-icon-arrow .material-symbols-outlined {
-                color: #808489;
-                font-size: 20px;
-                font-variation-settings: 'FILL' 0,'wght' 400;
-                transition: all 0.15s ease-in-out;
-            }
+.nav-icon-arrow .material-symbols-outlined {
+    color: #808489;
+    font-size: 20px;
+    font-variation-settings: "FILL" 0, "wght" 400;
+    transition: all 0.15s ease-in-out;
+}
 
-            .nav-icon-arrow:hover .material-symbols-outlined {
-                color: #111;
-                font-variation-settings: 'FILL' 1,'wght' 400; 
-            }
+.nav-icon-arrow:hover .material-symbols-outlined {
+    color: #111;
+    font-variation-settings: "FILL" 1, "wght" 400;
+}
 
-            .nav-icon-arrow .d-flex{
-                height: 100%;
-                justify-content: center;
-                align-items: center;
-            }
+.nav-icon-arrow .d-flex {
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+}
 
-            .title-content a {
-                text-decoration: none !important;
-                color: inherit !important;
-            }
+.title-content a {
+    text-decoration: none !important;
+    color: inherit !important;
+}
 
-.btn-icon-toggle {
-    position: relative;
+
+
+.body-content .input-soft {
+    border: 1px solid rgb(222, 223, 232);
+    background-color: rgb(240, 241, 248);
+}
+
+.input-soft:focus {
+    outline: none;
+}
+
+.btn-submit-black {
+    background-color: black;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.btn-submit-black:hover {
+    background-color: #333;
+}
+
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 24px;
+    background: #f7f7f8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+.modal-header-custom {
+    border: 0;
+}
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: rgb(103, 111, 122);
+}
+.form-custom {
+    margin-top: -12px;
+}
+.modal-body-custom {
+    padding: 0;
+}
+
+.label-custom {
+    font-size: 14px;
+    font-weight: 400;
+}
+.modal-footer-custom {
+    border: 0;
+    justify-content: center;
+}
+.btn-submit-custom {
+    width: 80%;
+}
+.status-ACTIVE {
+    background-color: #28a745; /* Bootstrap's green */
+    color: white;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    display: inline-block;
+    text-align: center;
+}
+
+.status-DELETED {
+    background-color: #dc3545; /* Bootstrap's red */
+    color: white;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+}
+
+.btn-detail,
+.btn-edit,
+.btn-delete {
+    border: 1px solid #dddddd;
     background-color: transparent;
     color: inherit;
-    border: 1px solid #DDDDDD;
     padding: 0.375rem 0.75rem;
-    display: inline-flex;
+    display: flex;
+    justify-content: center;
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
     transition: background-color 0.3s ease;
     box-sizing: border-box;
     height: 38px;
-    min-width: unset;
+    min-width: 38px;
     font-size: 14px;
-    white-space: nowrap;
+    border-radius: 4px;
 }
 
-            .btn-icon-toggle .icon {
-                color: inherit;
-                transition: color 0.3s ease;
-            }
+.status-INACTIVE {
+    background-color: #6c757d; /* Bootstrap's gray */
+    color: white;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+}
 
-            .btn-icon-toggle:hover {
-                background-color: white;
-            }
+.btn-detail .icon,
+.btn-edit .icon,
+.btn-delete .icon {
+    color: inherit;
+    transition: color 0.3s ease;
+    font-size: 20px;
+}
 
-            .btn-icon-toggle:hover .icon {
-                color: black;
-            }
+.btn-detail:hover,
+.btn-edit:hover,
+.btn-delete:hover {
+    background-color: white;
+}
 
-            .input-soft {
-                border: 1px solid #dfe0ec;
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 12px 16px;
-                font-size: 14px;
-            }
+.btn-detail:hover .icon,
+.btn-edit:hover .icon,
+.btn-delete:hover .icon {
+    color: black;
+}
 
-            .body-content .input-soft {
-                border: 1px solid rgb(222, 223, 232);
-                background-color: rgb(240, 241, 248);
-            }
+/* Align buttons horizontally with spacing */
+td > .btn-icon-toggle,
+td > .btn-detail,
+td > .btn-edit,
+td > .btn-delete {
+    display: inline-flex;
+    margin-left: 5px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
 
-            .input-soft:focus {
-                outline: none;
-                
-            }
+/* Add bottom borders only below thead and tbody rows */
+table.table > thead > tr {
+    border-bottom: 1px solid #ddd;
+}
 
-            .btn-submit-black {
-                background-color: black;
-                color: white;
-                border: none;
-                padding: 10px 24px;
-                border-radius: 8px;
-                font-weight: 500;
-                transition: background-color 0.3s ease;
-            }
+table.table > tbody > tr {
+    border-bottom: 1px solid #ddd;
+}
 
-            .btn-submit-black:hover {
-                background-color: #333;
-            }
+/* Set font size for table data cells */
+table.table > tbody > tr > td {
+    font-size: 14px;
+}
 
-            .modal-content-custom {
-                border-radius: 16px;
-                padding: 24px;
-                background: #f7f7f8;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-                border: none;
-            }
-            .modal-header-custom {
-                border: 0;
-            }
-            .modal-title-custom {
-                font-weight: 300;
-                font-size: 28px;
-                position: absolute;
-                top: 24px;
-                left: 24px;
-                color: rgb(103, 111, 122);
-            }
-            .form-custom {
-                margin-top: -12px;
-            }
-            .modal-body-custom {
-                padding: 0;
-            }
-            
-            .label-custom {
-                font-size: 14px;
-                font-weight: 400;
-            }
-            .modal-footer-custom {
-                border: 0;
-                justify-content: center;
-            }
-            .btn-submit-custom {
-                width: 80%;
-            }
-            .status-ACTIVE {
-                background-color: #28a745; /* Bootstrap's green */
-                color: white;
-                font-weight: 600;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 0.875rem;
-                display: inline-block;
-                min-width: 60px;
-                text-align: center;
-            }
-
-            .status-DELETED {
-                background-color: #dc3545; /* Bootstrap's red */
-                color: white;
-                font-weight: 600;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 0.875rem;
-                display: inline-block;
-                min-width: 60px;
-                text-align: center;
-            }
-
-            .btn-detail, .btn-edit, .btn-delete {
-                border: 1px solid #DDDDDD;
-                background-color: transparent;
-                color: inherit;
-                padding: 0.375rem 0.75rem;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 0.5rem;
-                cursor: pointer;
-                transition: background-color 0.3s ease;
-                box-sizing: border-box;
-                height: 38px;
-                min-width: 38px;
-                font-size: 14px;
-                border-radius: 4px;
-            }
-
-            .status-INACTIVE {
-                background-color: #6c757d; /* Bootstrap's gray */
-                color: white;
-                font-weight: 600;
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 0.875rem;
-                display: inline-block;
-                min-width: 60px;
-                text-align: center;
-            }
-
-            .btn-detail .icon, .btn-edit .icon, .btn-delete .icon {
-                color: inherit;
-                transition: color 0.3s ease;
-                font-size: 20px;
-            }
-
-            .btn-detail:hover, .btn-edit:hover, .btn-delete:hover {
-                background-color: white;
-            }
-
-            .btn-detail:hover .icon, .btn-edit:hover .icon, .btn-delete:hover .icon {
-                color: black;
-            }
-
-            /* Align buttons horizontally with spacing */
-            td > .btn-icon-toggle, td > .btn-detail, td > .btn-edit, td > .btn-delete {
-                display: inline-flex;
-                margin-left: 5px;
-                margin-right: 5px;
-                vertical-align: middle;
-            }
-
-            /* Add bottom borders only below thead and tbody rows */
-            table.table > thead > tr {
-                border-bottom: 1px solid #ddd;
-            }
-
-            table.table > thead > tr > th {
-                border-bottom: 1px solid #ddd;
-                font-size: 14px;
-                font-weight: 500;
-            }
-
-            table.table > tbody > tr {
-                border-bottom: 1px solid #ddd;
-            }
-
-            /* Set font size for table data cells */
-            table.table > tbody > tr > td {
-                font-size: 14px;
-            }
-
-            /* Scrollbar enabled class for body-content */
+/* Scrollbar enabled class for body-content */
 /* .body-content.scrollbar-enabled {
     max-height: 400px;
     height: 400px;
@@ -328,8 +302,11 @@
 /* Loader styles */
 .modal-loading-overlay {
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255,255,255,0.7);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
     z-index: 10;
     display: flex;
     align-items: center;
@@ -346,12 +323,10 @@
     animation: spin 1s linear infinite;
 }
 
-
-
 /* Delete modal footer buttons container */
 .modal-footer-delete {
     display: flex;
-    justify-content: flex-end !important;
+    justify-content: center !important;
     gap: 10px;
 }
 
@@ -402,8 +377,12 @@
     background-color: #b02a37;
 }
 @keyframes spin {
-    0% { transform: rotate(0deg);}
-    100% { transform: rotate(360deg);}
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .table-scroll-wrapper {
@@ -414,10 +393,10 @@
 /* Add styles for valid and invalid states on the label */
 .custom-image-upload.is-invalid {
     border-color: #dc3545 !important;
-    box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 
 .custom-image-upload.is-valid {
     border-color: #28a745 !important;
-    box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }

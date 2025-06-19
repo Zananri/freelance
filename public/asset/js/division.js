@@ -47,6 +47,40 @@ $(document).ready(function () {
         }
     }
 
+    // Function to toggle has-image class based on image input value
+    function toggleImageLabelHasImage(inputId, labelId, clearBtnId) {
+        const input = document.getElementById(inputId);
+        const label = document.getElementById(labelId);
+        const clearBtn = document.getElementById(clearBtnId);
+
+        function updateLabel() {
+            if (input.files && input.files.length > 0) {
+                label.classList.add('has-image');
+                clearBtn.classList.remove('d-none');
+            } else {
+                label.classList.remove('has-image');
+                clearBtn.classList.add('d-none');
+            }
+        }
+
+        // Initial check on page load
+        updateLabel();
+
+        // Listen for changes on the input
+        input.addEventListener('change', updateLabel);
+
+        // Clear button click handler
+        clearBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            input.value = '';
+            updateLabel();
+        });
+    }
+
+    // Apply to add and edit modals
+    toggleImageLabelHasImage('image', 'imageLabel', 'imageClearBtn');
+    toggleImageLabelHasImage('edit_image', 'editImageLabel', 'editImageClearBtn');
+
     // Remove page reload on alert close to match department.js behavior
     // $(document).on(
     //     "closed.bs.alert",

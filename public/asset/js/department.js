@@ -1,3 +1,4 @@
+
 var appUrl = $('meta[name="app-url"]').attr("content");
 
 var selectedStatus = "ALL";
@@ -45,6 +46,8 @@ $(document).ready(function () {
             "background-image",
             "url('" + appUrl + "/asset/img/background/add-image.png')"
         );
+        // Remove has-image class on reset
+        $("#imageLabel").removeClass("has-image");
     }
 
     // Event handler for Add Data button to show addDepartmentModal
@@ -67,6 +70,7 @@ $(document).ready(function () {
         // Hide edit image preview - will be shown if image exists when loading data
         // $('#edit_image_preview').hide();
     });
+
 
     // Image input change handlers for preview
     $("#image").change(function () {
