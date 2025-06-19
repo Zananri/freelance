@@ -47,7 +47,7 @@ class DivisionController extends Controller
                 'name_division' => 'required|string|max:255',
                 'status' => 'required|string|in:ACTIVE,INACTIVE',
                 'description' => 'nullable|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
             $imageName = null;

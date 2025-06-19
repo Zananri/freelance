@@ -11,14 +11,25 @@ $(document).ready(function () {
         document.getElementById("deleteDivisionModal")
     );
 
-    // Reload page when alert is fully closed
-    $(document).on(
-        "closed.bs.alert",
-        "#addDivisionModal .alert-container .alert, #editDivisionModal .alert-container .alert",
-        function () {
-            location.reload();
+    // Tambahkan di sini (setelah deklarasi modal dan sebelum event submit)
+    function readURL(input, labelSelector) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                $(labelSelector).css("background-image", "url(" + e.target.result + ")");
+            };
+            reader.readAsDataURL(input.files[0]);
         }
-    );
+    }
+
+    // Remove page reload on alert close to match department.js behavior
+    // $(document).on(
+    //     "closed.bs.alert",
+    //     "#addDivisionModal .alert-container .alert, #editDivisionModal .alert-container .alert",
+    //     function () {
+    //         location.reload();
+    //     }
+    // );
 
     // Load departments for dropdowns
     function loadDepartmentsDropdown() {
@@ -38,10 +49,7 @@ $(document).ready(function () {
                 });
                 $("#department_id").html(options);
                 $("#edit_department_id").html(options);
-            },
-            error: function () {
-                alert("Failed to load departments.");
-            },
+            }
         });
     }
 
@@ -75,6 +83,7 @@ $(document).ready(function () {
     loadDepartmentsFilter();
 
     $("#btnAddData").click(function () {
+        $("#imageLabel").css("background-image", "url('/asset/img/background/add-image.png')");
         $("#addDivisionModal .alert-container").empty();
         var form = $("#addDivisionForm")[0];
         form.reset();
@@ -84,32 +93,51 @@ $(document).ready(function () {
         $("#status").removeClass("is-valid is-invalid");
         $("#description").removeClass("is-valid is-invalid");
         $("#image").removeClass("is-valid is-invalid");
+        $("#imageLabel").removeClass("is-valid is-invalid");
+        $("#imageLabel").next(".invalid-feedback").hide();
         addDivisionModal.show();
     });
 
     // Real-time validation for addDivisionForm inputs
-    $("#department_id, #name_division, #description, #status").on(
+    $("#department_id, #name_division, #description, #status, #image").on(
         "input change",
         function () {
             var input = $(this)[0];
             if (input.checkValidity()) {
                 $(this).removeClass("is-invalid").addClass("is-valid");
+                if (this.id === "image") {
+                    $("#imageLabel")
+                        .removeClass("is-invalid")
+                        .addClass("is-valid");
+                    $("#imageLabel").next(".invalid-feedback").hide();
+                }
             } else {
                 $(this).removeClass("is-valid").addClass("is-invalid");
+                if (this.id === "image") {
+                    $("#imageLabel")
+                        .removeClass("is-valid")
+                        .addClass("is-invalid");
+                    $("#imageLabel").next(".invalid-feedback").show();
+                }
             }
             $("#addDivisionForm").removeClass("was-validated");
         }
     );
 
-    $("#image").on("change", function () {
-        var fileInput = $(this)[0];
-        var file = fileInput.files[0];
-        if (file && file.type.startsWith("image/")) {
-            $(this).removeClass("is-invalid").addClass("is-valid");
+    $("#image").change(function () {
+        readURL(this, "#imageLabel");
+        if (this.checkValidity()) {
+            $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
         } else {
-            $(this).removeClass("is-valid").addClass("is-invalid");
+            $("#imageLabel").removeClass("is-valid").addClass("is-invalid");
         }
-        $("#addDivisionForm").removeClass("was-validated");
+    });
+
+    $("#remove_image_btn").on("click", function () {
+        $("#image").val("");
+        $("#image_preview img").hide();
+        $(this).hide();
+        $("#image").removeClass("is-valid is-invalid");
     });
 
     // Real-time validation for editDivisionForm inputs
@@ -126,15 +154,35 @@ $(document).ready(function () {
         }
     );
 
-    $("#edit_image").on("change", function () {
-        var fileInput = $(this)[0];
-        var file = fileInput.files[0];
-        if (!file || (file && file.type.startsWith("image/"))) {
-            $(this).removeClass("is-invalid").addClass("is-valid");
+    $("#editDivisionModal").on("show.bs.modal", function () {
+        $("#editImageLabel").removeClass("is-valid is-invalid");
+        $("#editImageLabel").next(".invalid-feedback").hide();
+    });
+
+    $("#edit_image").change(function () {
+        readURL(this, "#editImageLabel");
+        if (this.checkValidity()) {
+            $("#editImageLabel").removeClass("is-invalid").addClass("is-valid");
+            $("#editImageLabel").next(".invalid-feedback").hide();
         } else {
-            $(this).removeClass("is-valid").addClass("is-invalid");
+            $("#editImageLabel").removeClass("is-valid").addClass("is-invalid");
+            $("#editImageLabel").next(".invalid-feedback").show();
         }
-        $("#editDivisionForm").removeClass("was-validated");
+    });
+
+    $(document).on("click", ".btn-edit", function () {
+        var id = $(this).data("id");
+        $.ajax({
+            url: appUrl + "/divisions/" + id,
+            type: "GET",
+            success: function (division) {
+                if (division.images) {
+                    $("#editImageLabel").css("background-image", "url('/file/division/" + division.images + "')");
+                } else {
+                    $("#editImageLabel").css("background-image", "url('/asset/img/background/add-image.png')");
+                }
+            }
+        });
     });
 
     function showLoader(modalType, show = true) {
@@ -152,7 +200,20 @@ $(document).ready(function () {
         e.preventDefault();
 
         var form = this;
-        if (!form.checkValidity()) {
+        var imageInput = $("#image")[0];
+        var isValid = form.checkValidity();
+
+        // Manual validation for hidden file input
+        if (!imageInput.value) {
+            $("#imageLabel").addClass("is-invalid");
+            $("#imageLabel").next(".invalid-feedback").show();
+            isValid = false;
+        } else {
+            $("#imageLabel").removeClass("is-invalid");
+            $("#imageLabel").next(".invalid-feedback").hide();
+        }
+
+        if (!isValid) {
             e.stopPropagation();
             $(form).addClass("was-validated");
             return false;
@@ -242,10 +303,9 @@ $(document).ready(function () {
         e.preventDefault();
         var id = $("#edit_division_id").val();
         var form = this;
+        var isValid = form.checkValidity();
 
-        // Removed required validation for image input on edit form
-
-        if (!form.checkValidity()) {
+        if (!isValid) {
             e.stopPropagation();
             $(form).addClass("was-validated");
             return false;
