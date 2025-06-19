@@ -16,7 +16,10 @@ $(document).ready(function () {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
             reader.onload = function (e) {
-                $(labelSelector).css("background-image", "url(" + e.target.result + ")");
+                $(labelSelector).css(
+                    "background-image",
+                    "url(" + e.target.result + ")"
+                );
             };
             reader.readAsDataURL(input.files[0]);
         }
@@ -49,7 +52,7 @@ $(document).ready(function () {
                 });
                 $("#department_id").html(options);
                 $("#edit_department_id").html(options);
-            }
+            },
         });
     }
 
@@ -83,7 +86,10 @@ $(document).ready(function () {
     loadDepartmentsFilter();
 
     $("#btnAddData").click(function () {
-        $("#imageLabel").css("background-image", "url('/asset/img/background/add-image.png')");
+        $("#imageLabel").css(
+            "background-image",
+            "url('/asset/img/background/add-image.png')"
+        );
         $("#addDivisionModal .alert-container").empty();
         var form = $("#addDivisionForm")[0];
         form.reset();
@@ -141,18 +147,17 @@ $(document).ready(function () {
     });
 
     // Real-time validation for editDivisionForm inputs
-    $("#edit_department_id, #edit_name_division, #edit_description, #edit_status").on(
-        "input change",
-        function () {
-            var input = $(this)[0];
-            if (input.checkValidity()) {
-                $(this).removeClass("is-invalid").addClass("is-valid");
-            } else {
-                $(this).removeClass("is-valid").addClass("is-invalid");
-            }
-            $("#editDivisionForm").removeClass("was-validated");
+    $(
+        "#edit_department_id, #edit_name_division, #edit_description, #edit_status"
+    ).on("input change", function () {
+        var input = $(this)[0];
+        if (input.checkValidity()) {
+            $(this).removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $(this).removeClass("is-valid").addClass("is-invalid");
         }
-    );
+        $("#editDivisionForm").removeClass("was-validated");
+    });
 
     $("#editDivisionModal").on("show.bs.modal", function () {
         $("#editImageLabel").removeClass("is-valid is-invalid");
@@ -177,11 +182,17 @@ $(document).ready(function () {
             type: "GET",
             success: function (division) {
                 if (division.images) {
-                    $("#editImageLabel").css("background-image", "url('/file/division/" + division.images + "')");
+                    $("#editImageLabel").css(
+                        "background-image",
+                        "url('/file/division/" + division.images + "')"
+                    );
                 } else {
-                    $("#editImageLabel").css("background-image", "url('/asset/img/background/add-image.png')");
+                    $("#editImageLabel").css(
+                        "background-image",
+                        "url('/asset/img/background/add-image.png')"
+                    );
                 }
-            }
+            },
         });
     });
 
