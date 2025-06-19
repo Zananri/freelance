@@ -15,12 +15,9 @@ function readURL(input, labelSelector) {
         var reader = new FileReader();
 
         reader.onload = function (e) {
-            $(labelSelector).css(
-                "background-image",
-                "url(" + e.target.result + ")"
-            ).css(
-                "background-size", "cover"
-            );
+            $(labelSelector)
+                .css("background-image", "url(" + e.target.result + ")")
+                .css("background-size", "cover");
         };
 
         reader.readAsDataURL(input.files[0]);
@@ -165,10 +162,11 @@ $(document).ready(function () {
             $("#imageClearBtn").addClass("d-none");
             // Reset to default icon
             $("#imageLabel").css({
-                "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+                "background-image":
+                    "url('" + appUrl + "/asset/img/background/add-image.png')",
                 "background-position": "center center",
                 "background-repeat": "no-repeat",
-                "background-size": "50%"
+                "background-size": "50%",
             });
         }
         if (this.checkValidity()) {
@@ -185,10 +183,11 @@ $(document).ready(function () {
         $("#image").val("");
         // Reset background label to default icon
         $("#imageLabel").css({
-            "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-image":
+                "url('" + appUrl + "/asset/img/background/add-image.png')",
             "background-position": "center center",
             "background-repeat": "no-repeat",
-            "background-size": "50%"
+            "background-size": "50%",
         });
         $("#imageClearBtn").addClass("d-none");
         // Reset validation classes
@@ -226,10 +225,11 @@ $(document).ready(function () {
             $("#editImageClearBtn").addClass("d-none");
             // Reset to default icon
             $("#editImageLabel").css({
-                "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+                "background-image":
+                    "url('" + appUrl + "/asset/img/background/add-image.png')",
                 "background-position": "center center",
                 "background-repeat": "no-repeat",
-                "background-size": "50%"
+                "background-size": "50%",
             });
         }
         if (this.checkValidity()) {
@@ -246,10 +246,11 @@ $(document).ready(function () {
         e.preventDefault();
         $("#edit_image").val(""); // Reset input file
         $("#editImageLabel").css({
-            "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-image":
+                "url('" + appUrl + "/asset/img/background/add-image.png')",
             "background-position": "center center",
             "background-repeat": "no-repeat",
-            "background-size": "50%"
+            "background-size": "50%",
         });
         $("#editImageClearBtn").addClass("d-none"); // Hide clear button
         $("#edit_image_preview").hide(); // Hide image preview if any
@@ -264,10 +265,11 @@ $(document).ready(function () {
         $("#edit_image").val("");
         // Reset background label to default icon
         $("#editImageLabel").css({
-            "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-image":
+                "url('" + appUrl + "/asset/img/background/add-image.png')",
             "background-position": "center center",
             "background-repeat": "no-repeat",
-            "background-size": "50%"
+            "background-size": "50%",
         });
         // Hide image preview if any
         $("#edit_image_preview img").hide();
@@ -293,18 +295,20 @@ $(document).ready(function () {
                 // Show old image if exists
                 if (division.images) {
                     $("#editImageLabel").css({
-                        "background-image": "url('/file/division/" + division.images + "')",
+                        "background-image":
+                            "url('/file/division/" + division.images + "')",
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
-                        "background-size": "cover"
+                        "background-size": "cover",
                     });
                     $("#editImageClearBtn").removeClass("d-none"); // Show clear button
                 } else {
                     $("#editImageLabel").css({
-                        "background-image": "url('/asset/img/background/add-image.png')",
+                        "background-image":
+                            "url('/asset/img/background/add-image.png')",
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
-                        "background-size": "50%"
+                        "background-size": "50%",
                     });
                     $("#editImageClearBtn").addClass("d-none"); // Hide clear button
                 }
@@ -423,18 +427,20 @@ $(document).ready(function () {
                 // Show old image if exists
                 if (division.images) {
                     $("#editImageLabel").css({
-                        "background-image": "url('/file/division/" + division.images + "')",
+                        "background-image":
+                            "url('/file/division/" + division.images + "')",
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
-                        "background-size": "cover"
+                        "background-size": "cover",
                     });
                     $("#editImageClearBtn").removeClass("d-none"); // Show clear button
                 } else {
                     $("#editImageLabel").css({
-                        "background-image": "url('/asset/img/background/add-image.png')",
+                        "background-image":
+                            "url('/asset/img/background/add-image.png')",
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
-                        "background-size": "50%"
+                        "background-size": "50%",
                     });
                     $("#editImageClearBtn").addClass("d-none"); // Hide clear button
                 }
