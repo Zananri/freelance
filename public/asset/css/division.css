@@ -7,7 +7,6 @@
     background-color: rgba(248, 248, 249, 0) !important;
 }
 
-/* Added CSS for image upload from department.css */
 .input-image {
     display: none;
 }
@@ -23,11 +22,11 @@
     border-radius: 8px;
     cursor: pointer;
     transition: border-color 0.3s ease, opacity 0.3s ease;
-    opacity: 0.5; /* default opacity when no image */
+    opacity: 0.5;
 }
 
 .custom-image-upload.has-image {
-    opacity: 1; /* full opacity when image is present */
+    opacity: 1;
 }
 
 .custom-image-upload:hover {
@@ -64,9 +63,8 @@
     background: #f7f7f7;
 }
 
-/* Adjust spacing between empty th and td with images in division table */
 table.table thead tr th:first-child {
-    width: 80px; /* adjust width to make spacing about 2cm */
+    width: 80px;
     padding-left: 12px;
     padding-right: 12px;
 }
@@ -74,7 +72,7 @@ table.table thead tr th:first-child {
 table.table tbody tr td:first-child {
     padding-left: 12px;
     padding-right: 12px;
-    width: 80px; /* match the th width */
+    width: 80px;
 }
 
 .image-clear-btn {
@@ -212,25 +210,13 @@ table.table tbody tr td:first-child {
     transition: background-color 0.3s ease;
 }
 .status-ACTIVE {
-    background-color: #28a745; /* Bootstrap's green */
+    background-color: #28a745;
     color: white;
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 12px;
     font-size: 10px;
     display: inline-block;
-    text-align: center;
-}
-
-.status-DELETED {
-    background-color: #dc3545; /* Bootstrap's red */
-    color: white;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.875rem;
-    display: inline-block;
-    min-width: 60px;
     text-align: center;
 }
 
@@ -255,7 +241,7 @@ table.table tbody tr td:first-child {
 }
 
 .status-INACTIVE {
-    background-color: #6c757d; /* Bootstrap's gray */
+    background-color: #6c757d;
     color: white;
     font-weight: 600;
     padding: 3px 8px;
@@ -285,7 +271,6 @@ table.table tbody tr td:first-child {
     color: black;
 }
 
-/* Align buttons horizontally with spacing */
 td > .btn-icon-toggle,
 td > .btn-detail,
 td > .btn-edit,
@@ -296,7 +281,6 @@ td > .btn-delete {
     vertical-align: middle;
 }
 
-/* Add bottom borders only below thead and tbody rows */
 table.table > thead > tr {
     border-bottom: 1px solid #ddd;
 }
@@ -305,18 +289,9 @@ table.table > tbody > tr {
     border-bottom: 1px solid #ddd;
 }
 
-/* Set font size for table data cells */
 table.table > tbody > tr > td {
     font-size: 14px;
 }
-
-/* Scrollbar enabled class for body-content */
-/* .body-content.scrollbar-enabled {
-    max-height: 400px;
-    height: 400px;
-    overflow-y: auto;
-    display: block;
-} */
 
 .table-responsive.scrollbar-enabled {
     max-height: 400px;
@@ -325,7 +300,6 @@ table.table > tbody > tr > td {
     display: block;
 }
 
-/* Loader styles */
 .modal-loading-overlay {
     position: absolute;
     top: 0;
@@ -349,14 +323,12 @@ table.table > tbody > tr > td {
     animation: spin 1s linear infinite;
 }
 
-/* Delete modal footer buttons container */
 .modal-footer-delete {
     display: flex;
     justify-content: center !important;
     gap: 10px;
 }
 
-/* Smaller delete button */
 .btn-delete-small {
     padding: 6px 16px;
     font-size: 14px;
@@ -365,7 +337,6 @@ table.table > tbody > tr > td {
     height: 36px;
 }
 
-/* Cancel button style */
 .btn-cancel-small {
     background-color: #6c757d;
     color: white;
@@ -384,7 +355,6 @@ table.table > tbody > tr > td {
     background-color: #5a6268;
 }
 
-/* Red background for delete button */
 .btn-delete-red {
     background-color: #dc3545;
     color: white;
@@ -416,7 +386,6 @@ table.table > tbody > tr > td {
     overflow-y: auto;
 }
 
-/* Add styles for valid and invalid states on the label */
 .custom-image-upload.is-invalid {
     border-color: #dc3545 !important;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);

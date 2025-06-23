@@ -9,9 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class DivisionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+  
 public function index(Request $request)
 {
     $query = $request->input('query', '');
@@ -35,7 +33,6 @@ public function index(Request $request)
         })
         ->get();
 
-    // Add image_url field to each division
     $divisions = $divisions->map(function ($division) {
         $division->image_url = $division->images
             ? url('file/division/' . $division->images)
@@ -46,9 +43,7 @@ public function index(Request $request)
     return response()->json($divisions);
 }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    
     public function store(Request $request)
     {
         try {
@@ -85,9 +80,7 @@ public function index(Request $request)
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
+   
 public function show(string $id)
 {
     $division = Division::with('department')->findOrFail($id);
@@ -96,9 +89,7 @@ public function show(string $id)
     return response()->json($data);
 }
 
-    /**
-     * Update the specified resource in storage.
-     */
+   
     public function update(Request $request, string $id)
     {
         try {
@@ -120,7 +111,6 @@ public function show(string $id)
                 'updated_by' => 1,
             ];
 
-            // Hapus gambar jika remove_image = 1
             if ($request->input('remove_image') == "1") {
                 if ($division->images && file_exists(public_path('file/division/' . $division->images))) {
                     @unlink(public_path('file/division/' . $division->images));
@@ -144,9 +134,7 @@ public function show(string $id)
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+   
     public function destroy(string $id)
     {
         try {

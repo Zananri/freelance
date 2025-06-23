@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Storage;
 
 class DepartmentController extends Controller
 {
-    // Display a listing of the departments
 public function index(Request $request)
 {
     $query = $request->input('query');
@@ -23,19 +22,16 @@ public function index(Request $request)
 
     if ($status) {
         if ($status === 'ALL') {
-            // Exclude DELETED records by default
             $departmentsQuery->where('status', '!=', 'DELETED');
         } else {
             $departmentsQuery->where('status', $status);
         }
     } else {
-        // If no status filter provided, exclude DELETED records
         $departmentsQuery->where('status', '!=', 'DELETED');
     }
 
     $departments = $departmentsQuery->get();
 
-    // Add image_url field to each department
     $departments = $departments->map(function ($department) {
         $department->image_url = $department->images
             ? url('file/department/' . $department->images)
@@ -46,7 +42,6 @@ public function index(Request $request)
     return response()->json($departments);
 }
 
-    // Display the specified department
     public function show($id)
     {
         $department = Department::find($id);
@@ -58,7 +53,6 @@ public function index(Request $request)
         return response()->json($data);
     }
 
-    // Store a newly created department
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -92,7 +86,6 @@ public function index(Request $request)
         return response()->json(['message' => 'Department added successfully', 'department' => $department]);
     }
 
-    // Update the specified department
     public function update(Request $request, $id)
     {
         $department = Department::find($id);
@@ -122,7 +115,6 @@ public function index(Request $request)
             $updateData['description'] = $request->description;
         }
 
-        // Hapus gambar jika remove_image = 1
         if ($request->input('remove_image') == "1") {
             if ($department->images && file_exists(public_path('file/department/' . $department->images))) {
                 @unlink(public_path('file/department/' . $department->images));
@@ -144,7 +136,6 @@ public function index(Request $request)
         return response()->json(['message' => 'Department updated successfully', 'department' => $department]);
     }
 
-    // Remove the specified department
     public function destroy($id)
     {
         $department = Department::find($id);
@@ -152,7 +143,6 @@ public function index(Request $request)
             return response()->json(['message' => 'Department not found'], 404);
         }
 
-        // Instead of deleting, update status to DELETED
         $department->status = 'DELETED';
         $department->deleted_by = 1;
         $department->save();

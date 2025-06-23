@@ -111,7 +111,6 @@
                                 Please enter a description.
                             </div>
                         </div>
-                        <!-- Pindahkan blok image ke sini, setelah description -->
                         <div class="mb-3">
                             <div class="title-label-image">
                                 <span>Upload image</span>

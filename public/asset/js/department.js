@@ -23,12 +23,6 @@ function readURL(input, labelSelector) {
 }
 
 $(document).ready(function () {
-    // Remove reload page on alert close event handler
-    // $(document).on('closed.bs.alert', '#addDepartmentModal .alert-container .alert, #editDepartmentModal .alert-container .alert', function() {
-    //     location.reload();
-    // });
-
-    // Tambahkan input hidden remove_image jika belum ada
     if ($("#editDepartmentForm input[name='remove_image']").length === 0) {
         $("#editDepartmentForm").append(
             '<input type="hidden" name="remove_image" id="edit_remove_image" value="0">'
@@ -39,11 +33,8 @@ $(document).ready(function () {
         document.getElementById("addDepartmentModal")
     );
 
-    // Reset edit modal saat ditutup
     $("#editDepartmentModal").on("hidden.bs.modal", function () {
-        // Reset input file
         $("#edit_image").val("");
-        // Reset background label ke default icon
         $("#editImageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -52,9 +43,7 @@ $(document).ready(function () {
             "background-size": "50%",
             opacity: "0.5",
         });
-        // Hide clear button
         $("#editImageClearBtn").addClass("d-none");
-        // Reset validation classes
         $("#editImageLabel").removeClass("is-valid is-invalid");
         $("#edit_image").removeClass("is-valid is-invalid");
     });
@@ -67,9 +56,7 @@ $(document).ready(function () {
         $("#name_department, #description, #status, #image").removeClass(
             "is-valid is-invalid"
         );
-        // Also remove validation classes from image label
         $("#imageLabel").removeClass("is-valid is-invalid");
-        // Reset image label background to default with full CSS properties
         $("#imageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -78,29 +65,23 @@ $(document).ready(function () {
             "background-size": "50%",
             opacity: "0.5",
         });
-        // Remove has-image class on reset
         $("#imageLabel").removeClass("has-image");
-        // Hide the image clear button (X)
         $("#imageClearBtn").addClass("d-none");
     }
 
-    // Event handler for Add Data button to show addDepartmentModal
     $("#btnAddData").on("click", function () {
         resetAddDepartmentForm();
         addDepartmentModal.show();
     });
 
-    // Clear any existing alert when opening edit modal
     $("#editDepartmentModal").on("show.bs.modal", function () {
         $("#editDepartmentModal .alert-container").empty();
         $("#edit_name_department").removeClass("is-valid is-invalid");
         $("#edit_status").removeClass("is-valid is-invalid");
         $("#edit_description").removeClass("is-valid is-invalid");
         $("#edit_image").removeClass("is-valid is-invalid");
-        // Ensure loader overlay is hidden to allow input
         $("#editModalLoader").addClass("d-none");
 
-        // Set opacity of image label based on whether an image is set
         var bgImage = $("#editImageLabel").css("background-image");
         if (
             !bgImage ||
@@ -108,17 +89,14 @@ $(document).ready(function () {
             bgImage.indexOf("add-image.png") !== -1
         ) {
             $("#editImageLabel").css("opacity", "0.5");
-            // Remove validation classes if no image
             $("#editImageLabel").removeClass("is-valid is-invalid");
         } else {
             $("#editImageLabel").css("opacity", "1");
         }
     });
 
-    // Image input change handlers for preview
     $("#image").change(function () {
         readURL(this, "#imageLabel");
-        // Validation for image input label
         if (this.checkValidity()) {
             $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
         } else {
@@ -128,22 +106,17 @@ $(document).ready(function () {
 
     $("#edit_image").change(function () {
         readURL(this, "#editImageLabel");
-        // Hide the old image preview when new image selected
         $("#edit_image_preview").hide();
-        // Validation for edit image input label
         if (this.checkValidity()) {
             $("#editImageLabel").removeClass("is-invalid").addClass("is-valid");
         } else {
             $("#editImageLabel").removeClass("is-valid").addClass("is-invalid");
         }
-        // Reset flag remove_image jika user memilih gambar baru
         $("#edit_remove_image").val("0");
     });
 
-    // Handler tombol X pada label image (Add Department)
     $("#image").change(function () {
         readURL(this, "#imageLabel");
-        // Tampilkan tombol X jika ada file
         if (this.files && this.files[0]) {
             $("#imageClearBtn").removeClass("d-none");
             $("#imageLabel").css({
@@ -152,7 +125,6 @@ $(document).ready(function () {
             });
         } else {
             $("#imageClearBtn").addClass("d-none");
-            // Kembalikan ke icon default
             $("#imageLabel").css({
                 "background-image":
                     "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -172,9 +144,7 @@ $(document).ready(function () {
 
     $("#imageClearBtn").on("click", function (e) {
         e.preventDefault();
-        // Reset input file
         $("#image").val("");
-        // Reset background label ke default icon
         $("#imageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -184,17 +154,13 @@ $(document).ready(function () {
             opacity: "0.5",
         });
         $("#imageClearBtn").addClass("d-none");
-        // Reset validasi
     });
     $("#image").removeClass("is-valid is-invalid");
     $("#imageLabel").removeClass("is-valid is-invalid");
 
-    // Handler tombol X pada label image (Edit Department)
     $("#editImageClearBtn").on("click", function (e) {
         e.preventDefault();
-        // Reset input file
         $("#edit_image").val("");
-        // Reset background label ke default icon
         $("#editImageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -203,20 +169,15 @@ $(document).ready(function () {
             "background-size": "50%",
             opacity: "0.5",
         });
-        // Hide image preview
         $("#edit_image_preview").hide();
-        // Reset validasi
         $("#editImageLabel").removeClass("is-valid is-invalid");
         $("#edit_image").removeClass("is-valid is-invalid");
-        // Hide the X button after clearing
         $("#editImageClearBtn").addClass("d-none");
-        // Set flag remove_image
         $("#edit_remove_image").val("1");
     });
 
     $("#edit_image").change(function () {
         readURL(this, "#editImageLabel");
-        // Tampilkan tombol X jika ada file
         if (this.files && this.files[0]) {
             $("#editImageClearBtn").removeClass("d-none");
             $("#editImageLabel").css({
@@ -225,7 +186,6 @@ $(document).ready(function () {
             });
         } else {
             $("#editImageClearBtn").addClass("d-none");
-            // Kembalikan ke icon default
             $("#editImageLabel").css({
                 "background-image":
                     "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -235,7 +195,6 @@ $(document).ready(function () {
                 opacity: "0.5",
             });
         }
-        // Validasi
         if (this.checkValidity()) {
             $("#editImageLabel").removeClass("is-invalid").addClass("is-valid");
         } else {
@@ -331,10 +290,8 @@ $(document).ready(function () {
                 $("#edit_name_department").val(department.name_department);
                 $("#edit_status").val(department.status);
                 $("#edit_description").val(department.description);
-                // Show current image only as label background, NOT in <img>
                 if (department.image_url) {
                     var imageUrl = department.image_url;
-                    // Set the background image of the label to the current image
                     $("#editImageLabel").css({
                         "background-image": "url(" + imageUrl + ")",
                         "background-position": "center center",
@@ -342,12 +299,9 @@ $(document).ready(function () {
                         "background-size": "cover",
                         opacity: "1",
                     });
-                    // Tampilkan tombol X
                     $("#editImageClearBtn").removeClass("d-none");
-                    // Hide the <img> preview
                     $("#edit_image_preview").hide();
                 } else {
-                    // Reset label background to default if no image
                     $("#editImageLabel").css({
                         "background-image":
                             "url('" +
@@ -384,7 +338,7 @@ $(document).ready(function () {
         $(form).removeClass("was-validated");
 
         var formData = new FormData(form);
-        formData.append("_method", "PUT"); // Add this line to spoof PUT method
+        formData.append("_method", "PUT");
 
         showLoader("edit", true);
 
@@ -438,7 +392,6 @@ $(document).ready(function () {
         });
     });
 
-    // Real-time validation for editDepartmentForm inputs
     $("#edit_name_department, #edit_status, #edit_description, #edit_image").on(
         "input change",
         function () {
@@ -462,7 +415,6 @@ $(document).ready(function () {
         }
     );
 
-    // Real-time validation for addDepartmentForm inputs
     $("#name_department, #status, #description, #image").on(
         "input change",
         function () {
@@ -488,7 +440,6 @@ $(document).ready(function () {
 
     $(document).on("click", ".btn-delete", function () {
         var id = $(this).data("id");
-        // Fetch department data to show in delete modal
         $.ajax({
             url: appUrl + "/departments/" + id,
             type: "GET",
@@ -555,7 +506,6 @@ $(document).ready(function () {
                 setTimeout(function () {
                     $(".alert-delete-container .alert").alert("close");
                 }, 1500);
-                // Remove the deleted row from the table immediately
                 $('#departmentTableBody tr[data-id="' + id + '"]').remove();
                 var deleteDepartmentModalEl = document.getElementById(
                     "deleteDepartmentModal"
@@ -564,7 +514,6 @@ $(document).ready(function () {
                     deleteDepartmentModalEl
                 );
                 deleteDepartmentModal.hide();
-                // Reload the page after delete to reflect changes
                 location.reload();
             },
             error: function () {
@@ -575,7 +524,6 @@ $(document).ready(function () {
     });
 });
 
-// Remove pagination and scroll loading, revert to loading all data at once
 function loadDepartments(query = "", status = "ALL") {
     $.ajax({
         url: appUrl + "/departments",
@@ -645,16 +593,13 @@ function loadDepartments(query = "", status = "ALL") {
 }
 
 $(document).ready(function () {
-    // Trigger search dynamically as user types
     $("#searchInput").on("input", function () {
         var query = $(this).val();
         loadDepartments(query, selectedStatus);
     });
 
-    // Initial load
     loadDepartments("", selectedStatus);
 
-    // Handle filter option click
     $(".filter-option").click(function (e) {
         e.preventDefault();
         $(".filter-option").removeClass("active");

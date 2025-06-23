@@ -25,7 +25,6 @@ function readURL(input, labelSelector) {
 }
 
 $(document).ready(function () {
-    // Tambahkan input hidden remove_image jika belum ada
     if ($("#editDivisionForm input[name='remove_image']").length === 0) {
         $("#editDivisionForm").append(
             '<input type="hidden" name="remove_image" id="edit_remove_image" value="0">'
@@ -42,11 +41,8 @@ $(document).ready(function () {
         document.getElementById("deleteDivisionModal")
     );
 
-    // Reset edit modal saat ditutup
     $("#editDivisionModal").on("hidden.bs.modal", function () {
-        // Reset input file
         $("#edit_image").val("");
-        // Reset background label ke default icon
         $("#editImageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -55,12 +51,9 @@ $(document).ready(function () {
             "background-size": "50%",
             opacity: "0.5",
         });
-        // Hide clear button
         $("#editImageClearBtn").addClass("d-none");
-        // Reset validation classes
         $("#editImageLabel").removeClass("is-valid is-invalid");
         $("#edit_image").removeClass("is-valid is-invalid");
-        // Reset flag remove_image jika user memilih gambar baru
         $("#edit_remove_image").val("0");
     });
 
@@ -76,7 +69,6 @@ $(document).ready(function () {
         }
     }
 
-    // Function to toggle has-image class based on image input value
     function toggleImageLabelHasImage(inputId, labelId, clearBtnId) {
         const input = document.getElementById(inputId);
         const label = document.getElementById(labelId);
@@ -92,13 +84,10 @@ $(document).ready(function () {
             }
         }
 
-        // Initial check on page load
         updateLabel();
 
-        // Listen for changes on the input
         input.addEventListener("change", updateLabel);
 
-        // Clear button click handler
         clearBtn.addEventListener("click", function (e) {
             e.preventDefault();
             input.value = "";
@@ -106,7 +95,6 @@ $(document).ready(function () {
         });
     }
 
-    // Apply to add and edit modals
     toggleImageLabelHasImage("image", "imageLabel", "imageClearBtn");
     toggleImageLabelHasImage(
         "edit_image",
@@ -114,16 +102,6 @@ $(document).ready(function () {
         "editImageClearBtn"
     );
 
-    // Remove page reload on alert close to match department.js behavior
-    // $(document).on(
-    //     "closed.bs.alert",
-    //     "#addDivisionModal .alert-container .alert, #editDivisionModal .alert-container .alert",
-    //     function () {
-    //         location.reload();
-    //     }
-    // );
-
-    // Load departments for dropdowns
     function loadDepartmentsDropdown() {
         $.ajax({
             url: appUrl + "/departments",
@@ -145,7 +123,6 @@ $(document).ready(function () {
         });
     }
 
-    // Load departments for filter dropdown into #departmentFilterOptions
     function loadDepartmentsFilter() {
         $.ajax({
             url: appUrl + "/departments",
@@ -183,7 +160,7 @@ $(document).ready(function () {
             "background-size": "50%",
             opacity: "0.5",
         });
-        $("#imageClearBtn").addClass("d-none"); // Hide clear button on modal open/reset
+        $("#imageClearBtn").addClass("d-none");
         $("#addDivisionModal .alert-container").empty();
         var form = $("#addDivisionForm")[0];
         form.reset();
@@ -198,7 +175,6 @@ $(document).ready(function () {
         addDivisionModal.show();
     });
 
-    // Real-time validation for addDivisionForm inputs
     $("#department_id, #name_division, #description, #status, #image").on(
         "input change",
         function () {
@@ -226,7 +202,6 @@ $(document).ready(function () {
 
     $("#image").change(function () {
         readURL(this, "#imageLabel");
-        // Show clear button if file selected
         if (this.files && this.files[0]) {
             $("#imageClearBtn").removeClass("d-none");
             $("#imageLabel").css({
@@ -235,7 +210,6 @@ $(document).ready(function () {
             });
         } else {
             $("#imageClearBtn").addClass("d-none");
-            // Reset to default icon
             $("#imageLabel").css({
                 "background-image":
                     "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -252,12 +226,9 @@ $(document).ready(function () {
         }
     });
 
-    // Add missing image clear button handler for add modal
     $("#imageClearBtn").on("click", function (e) {
         e.preventDefault();
-        // Reset input file
         $("#image").val("");
-        // Reset background label to default icon
         $("#imageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -267,12 +238,10 @@ $(document).ready(function () {
             opacity: "0.5",
         });
         $("#imageClearBtn").addClass("d-none");
-        // Reset validation classes
         $("#imageLabel").removeClass("is-valid is-invalid");
         $("#image").removeClass("is-valid is-invalid");
     });
 
-    // Real-time validation for editDivisionForm inputs
     $(
         "#edit_department_id, #edit_name_division, #edit_description, #edit_status"
     ).on("input change", function () {
@@ -288,10 +257,8 @@ $(document).ready(function () {
     $("#editDivisionModal").on("show.bs.modal", function () {
         $("#editImageLabel").removeClass("is-valid is-invalid");
         $("#editImageLabel").next(".invalid-feedback").hide();
-        // Hide the edit image clear button initially
         $("#editImageClearBtn").addClass("d-none");
 
-        // Reset opacity of image label based on whether an image is set
         var bgImage = $("#editImageLabel").css("background-image");
         if (
             !bgImage ||
@@ -306,7 +273,6 @@ $(document).ready(function () {
 
     $("#edit_image").change(function () {
         readURL(this, "#editImageLabel");
-        // Show clear button if file selected
         if (this.files && this.files[0]) {
             $("#editImageClearBtn").removeClass("d-none");
             $("#editImageLabel").css({
@@ -315,7 +281,6 @@ $(document).ready(function () {
             });
         } else {
             $("#editImageClearBtn").addClass("d-none");
-            // Reset to default icon
             $("#editImageLabel").css({
                 "background-image":
                     "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -334,10 +299,9 @@ $(document).ready(function () {
         }
     });
 
-    // Clear button click handler for edit modal to hide X and reset image to default icon
     $("#editImageClearBtn").on("click", function (e) {
         e.preventDefault();
-        $("#edit_image").val(""); // Reset input file
+        $("#edit_image").val("");
         $("#editImageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -346,20 +310,16 @@ $(document).ready(function () {
             "background-size": "50%",
             opacity: "0.5",
         });
-        $("#editImageClearBtn").addClass("d-none"); // Hide clear button
-        $("#edit_image_preview").hide(); // Hide image preview if any
+        $("#editImageClearBtn").addClass("d-none");
+        $("#edit_image_preview").hide();
         $("#editImageLabel").removeClass("is-valid is-invalid");
         $("#edit_image").removeClass("is-valid is-invalid");
-        // Set flag remove_image
         $("#edit_remove_image").val("1");
     });
 
-    // Add clear button click handler for edit modal
     $("#editImageClearBtn").on("click", function (e) {
         e.preventDefault();
-        // Reset input file
         $("#edit_image").val("");
-        // Reset background label to default icon
         $("#editImageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
@@ -367,11 +327,8 @@ $(document).ready(function () {
             "background-repeat": "no-repeat",
             "background-size": "50%",
         });
-        // Hide image preview if any
         $("#edit_image_preview img").hide();
-        // Hide clear button
         $("#editImageClearBtn").addClass("d-none");
-        // Reset validation classes
         $("#editImageLabel").removeClass("is-valid is-invalid");
         $("#edit_image").removeClass("is-valid is-invalid");
     });
@@ -388,7 +345,6 @@ $(document).ready(function () {
                 $("#edit_status").val(division.status);
                 $("#edit_description").val(division.description);
 
-                // Show old image if exists
                 if (division.image_url) {
                     $("#editImageLabel").css({
                         "background-image": "url('" + division.image_url + "')",
@@ -396,7 +352,7 @@ $(document).ready(function () {
                         "background-repeat": "no-repeat",
                         "background-size": "cover",
                     });
-                    $("#editImageClearBtn").removeClass("d-none"); // Show clear button
+                    $("#editImageClearBtn").removeClass("d-none");
                 } else {
                     $("#editImageLabel").css({
                         "background-image":
@@ -405,10 +361,9 @@ $(document).ready(function () {
                         "background-repeat": "no-repeat",
                         "background-size": "50%",
                     });
-                    $("#editImageClearBtn").addClass("d-none"); // Hide clear button
+                    $("#editImageClearBtn").addClass("d-none");
                 }
 
-                // Hide preview image if any
                 $("#edit_image_preview img").hide();
 
                 $("#editDivisionForm").data("id", id);
@@ -437,19 +392,6 @@ $(document).ready(function () {
         var form = this;
         var imageInput = $("#image")[0];
         var isValid = form.checkValidity();
-
-        // Manual validation for hidden file input
-        // Removed image required validation to make image upload not required
-        /*
-        if (!imageInput.value) {
-            $("#imageLabel").addClass("is-invalid");
-            $("#imageLabel").next(".invalid-feedback").show();
-            isValid = false;
-        } else {
-            $("#imageLabel").removeClass("is-invalid");
-            $("#imageLabel").next(".invalid-feedback").hide();
-        }
-        */
 
         if (!isValid) {
             e.stopPropagation();
@@ -522,7 +464,6 @@ $(document).ready(function () {
                 $("#edit_status").val(division.status);
                 $("#edit_description").val(division.description);
 
-                // Show old image if exists
                 if (division.images) {
                     $("#editImageLabel").css({
                         "background-image":
@@ -531,7 +472,7 @@ $(document).ready(function () {
                         "background-repeat": "no-repeat",
                         "background-size": "cover",
                     });
-                    $("#editImageClearBtn").removeClass("d-none"); // Show clear button
+                    $("#editImageClearBtn").removeClass("d-none");
                 } else {
                     $("#editImageLabel").css({
                         "background-image":
@@ -540,10 +481,9 @@ $(document).ready(function () {
                         "background-repeat": "no-repeat",
                         "background-size": "50%",
                     });
-                    $("#editImageClearBtn").addClass("d-none"); // Hide clear button
+                    $("#editImageClearBtn").addClass("d-none");
                 }
 
-                // Hide preview image if any
                 $("#edit_image_preview img").hide();
 
                 $("#editDivisionForm").data("id", id);
@@ -569,7 +509,6 @@ $(document).ready(function () {
         $(form).removeClass("was-validated");
 
         var formData = new FormData(form);
-        // Add _method=PUT to formData to match Laravel route
         formData.append("_method", "PUT");
 
         showLoader("edit", true);
@@ -700,7 +639,6 @@ $(document).ready(function () {
                     deleteDivisionModalEl
                 );
                 deleteDivisionModal.hide();
-                // Reload the page after delete to reflect changes
                 location.reload();
             },
             error: function () {
@@ -710,7 +648,6 @@ $(document).ready(function () {
         });
     });
 
-    // Load divisions with optional search and filter
     function loadDivisions(query = "", status = "ALL", departmentId = "") {
         $.ajax({
             url: appUrl + "/divisions",
@@ -785,7 +722,6 @@ $(document).ready(function () {
         });
     }
 
-    // Trigger search dynamically as user types
     $("#searchInput").on("input", function () {
         var query = $(this).val();
         var filterType = $("#filterTypeSelect").val();
@@ -808,7 +744,6 @@ $(document).ready(function () {
 
     var selectedStatus = "ALL";
 
-    // Handle filter option click for status
     $(document).on("click", ".filter-option", function (e) {
         e.preventDefault();
         $(".filter-option").removeClass("active");
@@ -826,7 +761,6 @@ $(document).ready(function () {
         }
     });
 
-    // Handle filter option click for department
     $(document).on("click", ".department-filter-option", function (e) {
         e.preventDefault();
         $("#departmentFilterOptions a.department-filter-option").removeClass(
@@ -839,28 +773,21 @@ $(document).ready(function () {
         loadDivisions(query, "ALL", selectedDepartmentId);
     });
 
-    // Handle filter type dropdown change
     $("#filterTypeSelect").change(function () {
         var filterType = $(this).val();
         if (filterType === "status") {
             $("#statusFilterOptions").removeClass("d-none");
             $("#departmentFilterOptions").addClass("d-none");
-            // Remove active class from all status filter options
             $("#statusFilterOptions a.filter-option").removeClass("active");
-            // Reset selectedStatus to empty to indicate no selection
             selectedStatus = "";
-            // Do not reload divisions until user selects a status option
         } else if (filterType === "department") {
             $("#departmentFilterOptions").removeClass("d-none");
             $("#statusFilterOptions").addClass("d-none");
-            // Remove active class from all department filter options
             $(
                 "#departmentFilterOptions a.department-filter-option"
             ).removeClass("active");
-            // Do not reload divisions until user selects a department option
         }
     });
 
-    // Initial load
     loadDivisions("", selectedStatus, "");
 });

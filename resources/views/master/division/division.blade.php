@@ -46,7 +46,6 @@
                             <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
                         </li>
                         <li id="departmentFilterOptions" class="d-none">
-                            <!-- Department options will be loaded here dynamically -->
                             <span class="dropdown-item text-muted">Loading departments...</span>
                         </li>
                     </ul>
