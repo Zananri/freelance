@@ -10,33 +10,41 @@ use Illuminate\Support\Facades\Storage;
 class DepartmentController extends Controller
 {
     // Display a listing of the departments
-    public function index(Request $request)
-    {
-        $query = $request->input('query');
-        $status = $request->input('status');
+public function index(Request $request)
+{
+    $query = $request->input('query');
+    $status = $request->input('status');
 
-        $departmentsQuery = Department::query();
+    $departmentsQuery = Department::query();
 
-        if ($query) {
-            $departmentsQuery->where('name_department', 'like', '%' . $query . '%');
-        }
-
-        if ($status) {
-            if ($status === 'ALL') {
-                // Exclude DELETED records by default
-                $departmentsQuery->where('status', '!=', 'DELETED');
-            } else {
-                $departmentsQuery->where('status', $status);
-            }
-        } else {
-            // If no status filter provided, exclude DELETED records
-            $departmentsQuery->where('status', '!=', 'DELETED');
-        }
-
-        $departments = $departmentsQuery->get();
-
-        return response()->json($departments);
+    if ($query) {
+        $departmentsQuery->where('name_department', 'like', '%' . $query . '%');
     }
+
+    if ($status) {
+        if ($status === 'ALL') {
+            // Exclude DELETED records by default
+            $departmentsQuery->where('status', '!=', 'DELETED');
+        } else {
+            $departmentsQuery->where('status', $status);
+        }
+    } else {
+        // If no status filter provided, exclude DELETED records
+        $departmentsQuery->where('status', '!=', 'DELETED');
+    }
+
+    $departments = $departmentsQuery->get();
+
+    // Add image_url field to each department
+    $departments = $departments->map(function ($department) {
+        $department->image_url = $department->images
+            ? url('file/department/' . $department->images)
+            : null;
+        return $department;
+    });
+
+    return response()->json($departments);
+}
 
     // Display the specified department
     public function show($id)
@@ -57,7 +65,7 @@ class DepartmentController extends Controller
             'name_department' => 'required|string|max:255',
             'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
             'description' => 'nullable|string',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -112,6 +120,14 @@ class DepartmentController extends Controller
         }
         if ($request->has('description')) {
             $updateData['description'] = $request->description;
+        }
+
+        // Hapus gambar jika remove_image = 1
+        if ($request->input('remove_image') == "1") {
+            if ($department->images && file_exists(public_path('file/department/' . $department->images))) {
+                @unlink(public_path('file/department/' . $department->images));
+            }
+            $updateData['images'] = null;
         }
 
         if ($request->hasFile('image')) {

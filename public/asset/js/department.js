@@ -1,4 +1,3 @@
-
 var appUrl = $('meta[name="app-url"]').attr("content");
 
 var selectedStatus = "ALL";
@@ -23,15 +22,40 @@ function readURL(input, labelSelector) {
     }
 }
 
-$(document).ready(function () {
-    // Remove reload page on alert close event handler
-    // $(document).on('closed.bs.alert', '#addDepartmentModal .alert-container .alert, #editDepartmentModal .alert-container .alert', function() {
-    //     location.reload();
-    // });
+    $(document).ready(function () {
+        // Remove reload page on alert close event handler
+        // $(document).on('closed.bs.alert', '#addDepartmentModal .alert-container .alert, #editDepartmentModal .alert-container .alert', function() {
+        //     location.reload();
+        // });
 
-    addDepartmentModal = new bootstrap.Modal(
-        document.getElementById("addDepartmentModal")
-    );
+        // Tambahkan input hidden remove_image jika belum ada
+        if ($("#editDepartmentForm input[name='remove_image']").length === 0) {
+            $("#editDepartmentForm").append('<input type="hidden" name="remove_image" id="edit_remove_image" value="0">');
+        }
+
+        addDepartmentModal = new bootstrap.Modal(
+            document.getElementById("addDepartmentModal")
+        );
+
+        // Reset edit modal saat ditutup
+        $("#editDepartmentModal").on("hidden.bs.modal", function () {
+            // Reset input file
+            $("#edit_image").val("");
+            // Reset background label ke default icon
+            $("#editImageLabel").css({
+                "background-image":
+                    "url('" + appUrl + "/asset/img/background/add-image.png')",
+                "background-position": "center center",
+                "background-repeat": "no-repeat",
+                "background-size": "50%",
+                opacity: "0.5",
+            });
+            // Hide clear button
+            $("#editImageClearBtn").addClass("d-none");
+            // Reset validation classes
+            $("#editImageLabel").removeClass("is-valid is-invalid");
+            $("#edit_image").removeClass("is-valid is-invalid");
+        });
 
     function resetAddDepartmentForm() {
         $("#addDepartmentModal .alert-container").empty();
@@ -41,13 +65,21 @@ $(document).ready(function () {
         $("#name_department, #description, #status, #image").removeClass(
             "is-valid is-invalid"
         );
-        // Reset image label background to default
-        $("#imageLabel").css(
-            "background-image",
-            "url('" + appUrl + "/asset/img/background/add-image.png')"
-        );
+        // Also remove validation classes from image label
+        $("#imageLabel").removeClass("is-valid is-invalid");
+        // Reset image label background to default with full CSS properties
+        $("#imageLabel").css({
+            "background-image":
+                "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%",
+            opacity: "0.5",
+        });
         // Remove has-image class on reset
         $("#imageLabel").removeClass("has-image");
+        // Hide the image clear button (X)
+        $("#imageClearBtn").addClass("d-none");
     }
 
     // Event handler for Add Data button to show addDepartmentModal
@@ -65,12 +97,21 @@ $(document).ready(function () {
         $("#edit_image").removeClass("is-valid is-invalid");
         // Ensure loader overlay is hidden to allow input
         $("#editModalLoader").addClass("d-none");
-        // Do not reset edit image label background to default here to preserve current image preview
-        // $('#editImageLabel').css('background-image', "url('/asset/img/background/add-image.png')");
-        // Hide edit image preview - will be shown if image exists when loading data
-        // $('#edit_image_preview').hide();
-    });
 
+        // Set opacity of image label based on whether an image is set
+        var bgImage = $("#editImageLabel").css("background-image");
+        if (
+            !bgImage ||
+            bgImage === "none" ||
+            bgImage.indexOf("add-image.png") !== -1
+        ) {
+            $("#editImageLabel").css("opacity", "0.5");
+            // Remove validation classes if no image
+            $("#editImageLabel").removeClass("is-valid is-invalid");
+        } else {
+            $("#editImageLabel").css("opacity", "1");
+        }
+    });
 
     // Image input change handlers for preview
     $("#image").change(function () {
@@ -93,6 +134,8 @@ $(document).ready(function () {
         } else {
             $("#editImageLabel").removeClass("is-valid").addClass("is-invalid");
         }
+        // Reset flag remove_image jika user memilih gambar baru
+        $("#edit_remove_image").val("0");
     });
 
     // Handler tombol X pada label image (Add Department)
@@ -101,7 +144,10 @@ $(document).ready(function () {
         // Tampilkan tombol X jika ada file
         if (this.files && this.files[0]) {
             $("#imageClearBtn").removeClass("d-none");
-            $("#imageLabel").css("background-size", "cover");
+            $("#imageLabel").css({
+                "background-size": "cover",
+                opacity: "1",
+            });
         } else {
             $("#imageClearBtn").addClass("d-none");
             // Kembalikan ke icon default
@@ -111,6 +157,7 @@ $(document).ready(function () {
                 "background-position": "center center",
                 "background-repeat": "no-repeat",
                 "background-size": "50%",
+                opacity: "0.5",
             });
         }
         // Validasi
@@ -132,6 +179,7 @@ $(document).ready(function () {
             "background-position": "center center",
             "background-repeat": "no-repeat",
             "background-size": "50%",
+            opacity: "0.5",
         });
         $("#imageClearBtn").addClass("d-none");
         // Reset validasi
@@ -151,6 +199,7 @@ $(document).ready(function () {
             "background-position": "center center",
             "background-repeat": "no-repeat",
             "background-size": "50%",
+            opacity: "0.5",
         });
         // Hide image preview
         $("#edit_image_preview").hide();
@@ -159,6 +208,8 @@ $(document).ready(function () {
         $("#edit_image").removeClass("is-valid is-invalid");
         // Hide the X button after clearing
         $("#editImageClearBtn").addClass("d-none");
+        // Set flag remove_image
+        $("#edit_remove_image").val("1");
     });
 
     $("#edit_image").change(function () {
@@ -166,7 +217,10 @@ $(document).ready(function () {
         // Tampilkan tombol X jika ada file
         if (this.files && this.files[0]) {
             $("#editImageClearBtn").removeClass("d-none");
-            $("#editImageLabel").css("background-size", "cover");
+            $("#editImageLabel").css({
+                "background-size": "cover",
+                opacity: "1",
+            });
         } else {
             $("#editImageClearBtn").addClass("d-none");
             // Kembalikan ke icon default
@@ -176,6 +230,7 @@ $(document).ready(function () {
                 "background-position": "center center",
                 "background-repeat": "no-repeat",
                 "background-size": "50%",
+                opacity: "0.5",
             });
         }
         // Validasi
@@ -203,16 +258,6 @@ $(document).ready(function () {
         var form = this;
         var imageInput = $("#image")[0];
         var isValid = form.checkValidity();
-
-        // Manual validation for hidden file input
-        if (!imageInput.value) {
-            $("#imageLabel").addClass("is-invalid");
-            $("#imageLabel").next(".invalid-feedback").show();
-            isValid = false;
-        } else {
-            $("#imageLabel").removeClass("is-invalid");
-            $("#imageLabel").next(".invalid-feedback").hide();
-        }
 
         if (!isValid) {
             e.stopPropagation();
@@ -293,6 +338,7 @@ $(document).ready(function () {
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
                         "background-size": "cover",
+                        opacity: "1",
                     });
                     // Tampilkan tombol X
                     $("#editImageClearBtn").removeClass("d-none");
@@ -300,10 +346,17 @@ $(document).ready(function () {
                     $("#edit_image_preview").hide();
                 } else {
                     // Reset label background to default if no image
-                    $("#editImageLabel").css(
-                        "background-image",
-                        "url('/asset/img/background/add-image.png')"
-                    );
+                    $("#editImageLabel").css({
+                        "background-image":
+                            "url('" +
+                            appUrl +
+                            "/asset/img/background/add-image.png')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "50%",
+                        opacity: "0.5",
+                    });
+                    $("#editImageClearBtn").addClass("d-none");
                     $("#edit_image_preview").hide();
                 }
                 $("#editDepartmentForm").data("id", id);
@@ -439,6 +492,25 @@ $(document).ready(function () {
             type: "GET",
             success: function (department) {
                 $("#delete_name_department").val(department.name_department);
+                $("#delete_status").val(department.status);
+                $("#delete_description").val(department.description);
+                if (department.image_url) {
+                    $("#deleteImageLabel").css({
+                        "background-image": "url(" + department.image_url + ")",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "cover",
+                        "opacity": "1"
+                    });
+                } else {
+                    $("#deleteImageLabel").css({
+                        "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "50%",
+                        "opacity": "0.5"
+                    });
+                }
                 $("#deleteDepartmentForm").data("id", id);
                 var deleteDepartmentModal = new bootstrap.Modal(
                     document.getElementById("deleteDepartmentModal")
@@ -487,6 +559,8 @@ $(document).ready(function () {
                     deleteDepartmentModalEl
                 );
                 deleteDepartmentModal.hide();
+                // Reload the page after delete to reflect changes
+                location.reload();
             },
             error: function () {
                 showLoader("delete", false);
@@ -506,7 +580,7 @@ function loadDepartments(query = "", status = "ALL") {
             var rowHtml = "";
             if (departments.length === 0) {
                 rowHtml =
-                    '<tr><td colspan="3" class="text-center">No Data</td></tr>';
+                    '<tr><td colspan="4" class="text-center">No Data</td></tr>';
             } else {
                 $.each(departments, function (index, department) {
                     var statusText =
@@ -521,27 +595,22 @@ function loadDepartments(query = "", status = "ALL") {
                         statusText = "DELETED";
                         statusClass = "status-DELETED";
                     }
+                    var imageHtml = '';
+                    if (department.image_url) {
+                        imageHtml = '<img src="' + department.image_url + '" alt="Department Image" class="table-image" />';
+                    } else {
+                        imageHtml = 'No image available';
+                    }
                     rowHtml +=
-                        '<tr data-id="' +
-                        department.id +
-                        '">' +
-                        "<td>" +
-                        department.name_department +
-                        "</td>" +
-                        '<td><span class="' +
-                        statusClass +
-                        '">' +
-                        statusText +
-                        "</span></td>" +
+                        '<tr data-id="' + department.id + '">' +
+                        '<td>' + department.name_department + '</td>' +
+                        '<td>' + imageHtml + '</td>' +
+                        '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
                         '<td style="text-align: right;">' +
-                        '<button class="btn-icon-toggle btn-edit" data-id="' +
-                        department.id +
-                        '"><span class="material-symbols-outlined icon">edit</span></button> ' +
-                        '<button class="btn-icon-toggle btn-delete" data-id="' +
-                        department.id +
-                        '"><span class="material-symbols-outlined icon">delete</span></button>' +
-                        "</td>" +
-                        "</tr>";
+                        '<button class="btn-icon-toggle btn-edit" data-id="' + department.id + '"><span class="material-symbols-outlined icon">edit</span></button> ' +
+                        '<button class="btn-icon-toggle btn-delete" data-id="' + department.id + '"><span class="material-symbols-outlined icon">delete</span></button>' +
+                        '</td>' +
+                        '</tr>';
                 });
             }
 

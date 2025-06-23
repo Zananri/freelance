@@ -12,29 +12,39 @@ class DivisionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
-    {
-        $query = $request->input('query', '');
-        $status = $request->input('status', 'ALL');
-        $departmentId = $request->input('department_id', null);
+public function index(Request $request)
+{
+    $query = $request->input('query', '');
+    $status = $request->input('status', 'ALL');
+    $departmentId = $request->input('department_id', null);
 
-        $divisions = Division::with('department')
-            ->when($query, function ($q) use ($query) {
-                $q->where('name_division', 'like', '%' . $query . '%')
-                  ->orWhereHas('department', function ($q2) use ($query) {
-                      $q2->where('name_department', 'like', '%' . $query . '%');
-                  });
-            })
-            ->when($status !== 'ALL', function ($q) use ($status) {
-                $q->where('status', $status);
-            })
-            ->when($departmentId, function ($q) use ($departmentId) {
-                $q->where('department_id', $departmentId);
-            })
-            ->get();
+    $divisions = Division::with('department')
+        ->when($query, function ($q) use ($query) {
+            $q->where('name_division', 'like', '%' . $query . '%')
+              ->orWhereHas('department', function ($q2) use ($query) {
+                  $q2->where('name_department', 'like', '%' . $query . '%');
+              });
+        })
+        ->when($status === 'ALL', function ($q) {
+            $q->where('status', '!=', 'DELETED');
+        }, function ($q) use ($status) {
+            $q->where('status', $status);
+        })
+        ->when($departmentId, function ($q) use ($departmentId) {
+            $q->where('department_id', $departmentId);
+        })
+        ->get();
 
-        return response()->json($divisions);
-    }
+    // Add image_url field to each division
+    $divisions = $divisions->map(function ($division) {
+        $division->image_url = $division->images
+            ? url('file/division/' . $division->images)
+            : null;
+        return $division;
+    });
+
+    return response()->json($divisions);
+}
 
     /**
      * Store a newly created resource in storage.
@@ -47,7 +57,7 @@ class DivisionController extends Controller
                 'name_division' => 'required|string|max:255',
                 'status' => 'required|string|in:ACTIVE,INACTIVE',
                 'description' => 'nullable|string',
-                'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
             $imageName = null;
@@ -78,11 +88,13 @@ class DivisionController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        $division = Division::with('department')->findOrFail($id);
-        return response()->json($division);
-    }
+public function show(string $id)
+{
+    $division = Division::with('department')->findOrFail($id);
+    $data = $division->toArray();
+    $data['image_url'] = $division->images ? url('file/division/' . $division->images) : null;
+    return response()->json($data);
+}
 
     /**
      * Update the specified resource in storage.
@@ -107,6 +119,14 @@ class DivisionController extends Controller
                 'description' => $validated['description'] ?? null,
                 'updated_by' => 1,
             ];
+
+            // Hapus gambar jika remove_image = 1
+            if ($request->input('remove_image') == "1") {
+                if ($division->images && file_exists(public_path('file/division/' . $division->images))) {
+                    @unlink(public_path('file/division/' . $division->images));
+                }
+                $updateData['images'] = null;
+            }
 
             if ($request->hasFile('image')) {
                 $t = time();
