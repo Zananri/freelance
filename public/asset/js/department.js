@@ -603,8 +603,8 @@ function loadDepartments(query = "", status = "ALL") {
                     }
                     rowHtml +=
                         '<tr data-id="' + department.id + '">' +
-                        '<td>' + department.name_department + '</td>' +
                         '<td>' + imageHtml + '</td>' +
+                        '<td>' + department.name_department + '</td>' +
                         '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
                         '<td style="text-align: right;">' +
                         '<button class="btn-icon-toggle btn-edit" data-id="' + department.id + '"><span class="material-symbols-outlined icon">edit</span></button> ' +

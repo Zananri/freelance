@@ -65,8 +65,8 @@
                 <table class="table table-borderless align-middle table-transparent">
                     <thead>
                         <tr>
+                            <th scope="col"></th>
                             <th scope="col">Department Name</th>
-                        <th scope="col">Image</th>
                             <th scope="col">Division Name</th>
                             <th scope="col">Status</th>
                             <th scope="col"></th>
@@ -126,8 +126,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-soft" id="description" name="description" placeholder="Input Description"
-                                ></textarea>
+                            <textarea class="form-control input-soft" id="description" name="description" placeholder="Input Description"></textarea>
                             <div class="invalid-feedback">
                                 Please enter a description.
                             </div>
@@ -136,9 +135,12 @@
                             <div class="title-label-image">
                                 <span>Upload image</span>
                             </div>
-                            <label for="image" class="custom-image-upload position-relative" id="imageLabel" style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('{!! asset('asset/img/background/add-image.png') !!}'); opacity: 0.5;">
-                                <input type="file" class="input-image" id="image" name="image" accept="image/*">
-                                <span class="image-clear-btn d-none" id="imageClearBtn" title="Remove image">&times;</span>
+                            <label for="image" class="custom-image-upload position-relative" id="imageLabel"
+                                style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('{!! asset('asset/img/background/add-image.png') !!}'); opacity: 0.5;">
+                                <input type="file" class="input-image" id="image" name="image"
+                                    accept="image/*">
+                                <span class="image-clear-btn d-none" id="imageClearBtn"
+                                    title="Remove image">&times;</span>
                             </label>
                             <div class="invalid-feedback">
                                 Please select an image file.
@@ -200,8 +202,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="edit_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-soft" id="edit_description" name="description" placeholder="Input Description"
-                                ></textarea>
+                            <textarea class="form-control input-soft" id="edit_description" name="description" placeholder="Input Description"></textarea>
                             <div class="invalid-feedback">
                                 Please enter a description.
                             </div>
@@ -247,7 +248,8 @@
                     <div class="modal-body modal-body-custom">
 
                         <div class="mb-3 mt-4">
-                            <label for="delete_department_name" class="form-label label-custom">Department Name</label>
+                            <label for="delete_department_name" class="form-label label-custom">Department
+                                Name</label>
                             <input type="text" class="form-control input-soft" id="delete_department_name"
                                 name="department_name" readonly disabled />
                         </div>
@@ -258,16 +260,19 @@
                         </div>
                         <div class="mb-3">
                             <label for="delete_status" class="form-label label-custom">Status</label>
-                            <input type="text" class="form-control input-soft" id="delete_status" name="status" readonly disabled />
+                            <input type="text" class="form-control input-soft" id="delete_status" name="status"
+                                readonly disabled />
                         </div>
                         <div class="mb-3">
                             <label for="delete_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-soft" id="delete_description" name="description" rows="3" readonly disabled></textarea>
+                            <textarea class="form-control input-soft" id="delete_description" name="description" rows="3" readonly
+                                disabled></textarea>
                         </div>
                         <span>Image</span>
-                    <div class="mb-3">
-<label for="delete_image" class="custom-image-upload position-relative" id="deleteImageLabel"></label>
-                    </div>
+                        <div class="mb-3">
+                            <label for="delete_image" class="custom-image-upload position-relative"
+                                id="deleteImageLabel"></label>
+                        </div>
                         <div class="mt-3 text-center">
                             <p class="mb-3" style="font-weight: 300; font-size: 16px;">Are you sure you want to
                                 delete this data?</p>

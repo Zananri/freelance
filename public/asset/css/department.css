@@ -396,3 +396,16 @@ table.table > tbody > tr {
     object-position: center center; /* pastikan gambar di tengah */
     background: #f7f7f7; /* opsional: beri background agar gambar kecil tetap terlihat */
 }
+
+/* Adjust spacing between empty th and td with images in department table */
+table.table thead tr th:first-child {
+    width: 140px; /* increase width slightly for a bit more spacing */
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+table.table tbody tr td:first-child {
+    padding-left: 12px;
+    padding-right: 12px;
+    width: 140px; /* match the th width */
+}

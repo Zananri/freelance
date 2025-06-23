@@ -729,8 +729,8 @@ var imageHtml = '';
                     }
 rowHtml +=
     '<tr data-id="' + division.id + '">' +
-    '<td>' + (division.department ? division.department.name_department : '') + '</td>' +
     '<td>' + imageHtml + '</td>' +
+    '<td>' + (division.department ? division.department.name_department : '') + '</td>' +
     '<td>' + division.name_division + '</td>' +
     '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
     '<td class="text-end">' +

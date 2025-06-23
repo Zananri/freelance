@@ -48,14 +48,14 @@
         <div class="table-responsive">
             <div class="table-scroll-wrapper">
                 <table class="table table-borderless align-middle table-transparent">
-                    <thead>
-                        <tr>
-                            <th scope="col">Department Name</th>
-                            <th scope="col">Image</th>
-                            <th scope="col">Status</th>
-                            <th scope="col"></th>
-                        </tr>
-                    </thead>
+<thead>
+    <tr>
+        <th scope="col"></th>
+        <th scope="col">Department Name</th>
+        <th scope="col">Status</th>
+        <th scope="col"></th>
+    </tr>
+</thead>
                     <tbody id="departmentTableBody">
 
                     </tbody>
