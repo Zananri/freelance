@@ -212,7 +212,7 @@
                                 <span>Upload image</span>
                             </div>
                             <label for="edit_image" class="custom-image-upload position-relative" id="editImageLabel"
-                                style="background-image: url('/asset/img/background/add-image.png');">
+                                style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
                                 <input type="file" class="input-image" id="edit_image" name="image"
                                     accept="image/*">
                                 <span class="image-clear-btn d-none" id="editImageClearBtn"
