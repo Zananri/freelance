@@ -207,7 +207,7 @@
                                 Please enter a description.
                             </div>
                         </div>
-                        <div class="mb-3">
+                       <div class="mb-3">
                             <div class="title-label-image">
                                 <span>Upload image</span>
                             </div>
@@ -220,6 +220,10 @@
                             </label>
                             <div class="invalid-feedback">
                                 Please select an image file.
+                            </div>
+                            <div id="edit_image_preview" class="mt-2" style="display:none;">
+                                <img src="" alt="Current Image"
+                                    style="max-width: 100%; max-height: 150px; border-radius: 4px;" />
                             </div>
                         </div>
                     </div>

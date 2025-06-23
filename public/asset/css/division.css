@@ -66,7 +66,7 @@
 
 /* Adjust spacing between empty th and td with images in division table */
 table.table thead tr th:first-child {
-    width: 120px; /* adjust width to make spacing about 3cm */
+    width: 80px; /* adjust width to make spacing about 2cm */
     padding-left: 12px;
     padding-right: 12px;
 }
@@ -74,7 +74,7 @@ table.table thead tr th:first-child {
 table.table tbody tr td:first-child {
     padding-left: 12px;
     padding-right: 12px;
-    width: 120px; /* match the th width */
+    width: 80px; /* match the th width */
 }
 
 .image-clear-btn {
@@ -260,11 +260,10 @@ table.table tbody tr td:first-child {
     background-color: #6c757d; /* Bootstrap's gray */
     color: white;
     font-weight: 600;
-    padding: 2px 8px;
+    padding: 3px 8px;
     border-radius: 12px;
-    font-size: 0.875rem;
+    font-size: 10px;
     display: inline-block;
-    min-width: 60px;
     text-align: center;
 }
 

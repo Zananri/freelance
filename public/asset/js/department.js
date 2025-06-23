@@ -599,7 +599,7 @@ function loadDepartments(query = "", status = "ALL") {
                     if (department.image_url) {
                         imageHtml = '<img src="' + department.image_url + '" alt="Department Image" class="table-image" />';
                     } else {
-                        imageHtml = 'No image available';
+                        imageHtml = '';
                     }
                     rowHtml +=
                         '<tr data-id="' + department.id + '">' +

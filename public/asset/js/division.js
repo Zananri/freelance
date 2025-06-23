@@ -721,11 +721,11 @@ function loadDivisions(query = "", status = "ALL", departmentId = "") {
                         statusText = "DELETED";
                         statusClass = "status-DELETED";
                     }
-var imageHtml = '';
+                    var imageHtml = '';
                     if (division.image_url) {
                         imageHtml = '<img src="' + division.image_url + '" alt="Division Image" class="table-image" />';
                     } else {
-                        imageHtml = 'No image available';
+                        imageHtml = '';
                     }
 rowHtml +=
     '<tr data-id="' + division.id + '">' +
