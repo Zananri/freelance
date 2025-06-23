@@ -207,7 +207,7 @@
                                 Please enter a description.
                             </div>
                         </div>
-                       <div class="mb-3">
+                        <div class="mb-3">
                             <div class="title-label-image">
                                 <span>Upload image</span>
                             </div>

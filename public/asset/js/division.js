@@ -24,36 +24,39 @@ function readURL(input, labelSelector) {
     }
 }
 
-    $(document).ready(function () {
-        // Tambahkan input hidden remove_image jika belum ada
-        if ($("#editDivisionForm input[name='remove_image']").length === 0) {
-            $("#editDivisionForm").append('<input type="hidden" name="remove_image" id="edit_remove_image" value="0">');
-        }
+$(document).ready(function () {
+    // Tambahkan input hidden remove_image jika belum ada
+    if ($("#editDivisionForm input[name='remove_image']").length === 0) {
+        $("#editDivisionForm").append(
+            '<input type="hidden" name="remove_image" id="edit_remove_image" value="0">'
+        );
+    }
 
-        var addDivisionModal = new bootstrap.Modal(
-            document.getElementById("addDivisionModal")
-        );
-        var editDivisionModal = new bootstrap.Modal(
-            document.getElementById("editDivisionModal")
-        );
-        var deleteDivisionModal = new bootstrap.Modal(
-            document.getElementById("deleteDivisionModal")
-        );
+    var addDivisionModal = new bootstrap.Modal(
+        document.getElementById("addDivisionModal")
+    );
+    var editDivisionModal = new bootstrap.Modal(
+        document.getElementById("editDivisionModal")
+    );
+    var deleteDivisionModal = new bootstrap.Modal(
+        document.getElementById("deleteDivisionModal")
+    );
 
-        // Reset edit modal saat ditutup
-        $("#editDivisionModal").on("hidden.bs.modal", function () {
-            // Reset input file
-            $("#edit_image").val("");
-            // Reset background label ke default icon
-            $("#editImageLabel").css({
-                "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
-                "background-position": "center center",
-                "background-repeat": "no-repeat",
-                "background-size": "50%",
-                "opacity": "0.5"
-            });
-            // Hide clear button
-            $("#editImageClearBtn").addClass("d-none");
+    // Reset edit modal saat ditutup
+    $("#editDivisionModal").on("hidden.bs.modal", function () {
+        // Reset input file
+        $("#edit_image").val("");
+        // Reset background label ke default icon
+        $("#editImageLabel").css({
+            "background-image":
+                "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%",
+            opacity: "0.5",
+        });
+        // Hide clear button
+        $("#editImageClearBtn").addClass("d-none");
         // Reset validation classes
         $("#editImageLabel").removeClass("is-valid is-invalid");
         $("#edit_image").removeClass("is-valid is-invalid");
@@ -81,11 +84,11 @@ function readURL(input, labelSelector) {
 
         function updateLabel() {
             if (input.files && input.files.length > 0) {
-                label.classList.add('has-image');
-                clearBtn.classList.remove('d-none');
+                label.classList.add("has-image");
+                clearBtn.classList.remove("d-none");
             } else {
-                label.classList.remove('has-image');
-                clearBtn.classList.add('d-none');
+                label.classList.remove("has-image");
+                clearBtn.classList.add("d-none");
             }
         }
 
@@ -93,19 +96,23 @@ function readURL(input, labelSelector) {
         updateLabel();
 
         // Listen for changes on the input
-        input.addEventListener('change', updateLabel);
+        input.addEventListener("change", updateLabel);
 
         // Clear button click handler
-        clearBtn.addEventListener('click', function (e) {
+        clearBtn.addEventListener("click", function (e) {
             e.preventDefault();
-            input.value = '';
+            input.value = "";
             updateLabel();
         });
     }
 
     // Apply to add and edit modals
-    toggleImageLabelHasImage('image', 'imageLabel', 'imageClearBtn');
-    toggleImageLabelHasImage('edit_image', 'editImageLabel', 'editImageClearBtn');
+    toggleImageLabelHasImage("image", "imageLabel", "imageClearBtn");
+    toggleImageLabelHasImage(
+        "edit_image",
+        "editImageLabel",
+        "editImageClearBtn"
+    );
 
     // Remove page reload on alert close to match department.js behavior
     // $(document).on(
@@ -167,29 +174,29 @@ function readURL(input, labelSelector) {
     loadDepartmentsDropdown();
     loadDepartmentsFilter();
 
-$("#btnAddData").click(function () {
-    $("#imageLabel").css({
-        "background-image":
-            "url('" + appUrl + "/asset/img/background/add-image.png')",
-        "background-position": "center center",
-        "background-repeat": "no-repeat",
-        "background-size": "50%",
-        "opacity": "0.5"
+    $("#btnAddData").click(function () {
+        $("#imageLabel").css({
+            "background-image":
+                "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%",
+            opacity: "0.5",
+        });
+        $("#imageClearBtn").addClass("d-none"); // Hide clear button on modal open/reset
+        $("#addDivisionModal .alert-container").empty();
+        var form = $("#addDivisionForm")[0];
+        form.reset();
+        $(form).removeClass("was-validated");
+        $("#department_id").removeClass("is-valid is-invalid");
+        $("#name_division").removeClass("is-valid is-invalid");
+        $("#status").removeClass("is-valid is-invalid");
+        $("#description").removeClass("is-valid is-invalid");
+        $("#image").removeClass("is-valid is-invalid");
+        $("#imageLabel").removeClass("is-valid is-invalid");
+        $("#imageLabel").next(".invalid-feedback").hide();
+        addDivisionModal.show();
     });
-    $("#imageClearBtn").addClass("d-none"); // Hide clear button on modal open/reset
-    $("#addDivisionModal .alert-container").empty();
-    var form = $("#addDivisionForm")[0];
-    form.reset();
-    $(form).removeClass("was-validated");
-    $("#department_id").removeClass("is-valid is-invalid");
-    $("#name_division").removeClass("is-valid is-invalid");
-    $("#status").removeClass("is-valid is-invalid");
-    $("#description").removeClass("is-valid is-invalid");
-    $("#image").removeClass("is-valid is-invalid");
-    $("#imageLabel").removeClass("is-valid is-invalid");
-    $("#imageLabel").next(".invalid-feedback").hide();
-    addDivisionModal.show();
-});
 
     // Real-time validation for addDivisionForm inputs
     $("#department_id, #name_division, #description, #status, #image").on(
@@ -217,53 +224,53 @@ $("#btnAddData").click(function () {
         }
     );
 
-$("#image").change(function () {
-    readURL(this, "#imageLabel");
-    // Show clear button if file selected
-    if (this.files && this.files[0]) {
-        $("#imageClearBtn").removeClass("d-none");
-        $("#imageLabel").css({
-            "background-size": "cover",
-            "opacity": "1"
-        });
-    } else {
-        $("#imageClearBtn").addClass("d-none");
-        // Reset to default icon
+    $("#image").change(function () {
+        readURL(this, "#imageLabel");
+        // Show clear button if file selected
+        if (this.files && this.files[0]) {
+            $("#imageClearBtn").removeClass("d-none");
+            $("#imageLabel").css({
+                "background-size": "cover",
+                opacity: "1",
+            });
+        } else {
+            $("#imageClearBtn").addClass("d-none");
+            // Reset to default icon
+            $("#imageLabel").css({
+                "background-image":
+                    "url('" + appUrl + "/asset/img/background/add-image.png')",
+                "background-position": "center center",
+                "background-repeat": "no-repeat",
+                "background-size": "50%",
+                opacity: "0.5",
+            });
+        }
+        if (this.checkValidity()) {
+            $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
+        } else {
+            $("#imageLabel").removeClass("is-valid").addClass("is-invalid");
+        }
+    });
+
+    // Add missing image clear button handler for add modal
+    $("#imageClearBtn").on("click", function (e) {
+        e.preventDefault();
+        // Reset input file
+        $("#image").val("");
+        // Reset background label to default icon
         $("#imageLabel").css({
             "background-image":
                 "url('" + appUrl + "/asset/img/background/add-image.png')",
             "background-position": "center center",
             "background-repeat": "no-repeat",
             "background-size": "50%",
-            "opacity": "0.5"
+            opacity: "0.5",
         });
-    }
-    if (this.checkValidity()) {
-        $("#imageLabel").removeClass("is-invalid").addClass("is-valid");
-    } else {
-        $("#imageLabel").removeClass("is-valid").addClass("is-invalid");
-    }
-});
-
-    // Add missing image clear button handler for add modal
-$("#imageClearBtn").on("click", function (e) {
-    e.preventDefault();
-    // Reset input file
-    $("#image").val("");
-    // Reset background label to default icon
-    $("#imageLabel").css({
-        "background-image":
-            "url('" + appUrl + "/asset/img/background/add-image.png')",
-        "background-position": "center center",
-        "background-repeat": "no-repeat",
-        "background-size": "50%",
-        "opacity": "0.5"
+        $("#imageClearBtn").addClass("d-none");
+        // Reset validation classes
+        $("#imageLabel").removeClass("is-valid is-invalid");
+        $("#image").removeClass("is-valid is-invalid");
     });
-    $("#imageClearBtn").addClass("d-none");
-    // Reset validation classes
-    $("#imageLabel").removeClass("is-valid is-invalid");
-    $("#image").removeClass("is-valid is-invalid");
-});
 
     // Real-time validation for editDivisionForm inputs
     $(
@@ -304,7 +311,7 @@ $("#imageClearBtn").on("click", function (e) {
             $("#editImageClearBtn").removeClass("d-none");
             $("#editImageLabel").css({
                 "background-size": "cover",
-                "opacity": "1"
+                opacity: "1",
             });
         } else {
             $("#editImageClearBtn").addClass("d-none");
@@ -315,7 +322,7 @@ $("#imageClearBtn").on("click", function (e) {
                 "background-position": "center center",
                 "background-repeat": "no-repeat",
                 "background-size": "50%",
-                "opacity": "0.5"
+                opacity: "0.5",
             });
         }
         if (this.checkValidity()) {
@@ -337,7 +344,7 @@ $("#imageClearBtn").on("click", function (e) {
             "background-position": "center center",
             "background-repeat": "no-repeat",
             "background-size": "50%",
-            "opacity": "0.5"
+            opacity: "0.5",
         });
         $("#editImageClearBtn").addClass("d-none"); // Hide clear button
         $("#edit_image_preview").hide(); // Hide image preview if any
@@ -382,24 +389,24 @@ $("#imageClearBtn").on("click", function (e) {
                 $("#edit_description").val(division.description);
 
                 // Show old image if exists
-if (division.image_url) {
-    $("#editImageLabel").css({
-        "background-image": "url('" + division.image_url + "')",
-        "background-position": "center center",
-        "background-repeat": "no-repeat",
-        "background-size": "cover",
-    });
-    $("#editImageClearBtn").removeClass("d-none"); // Show clear button
-} else {
-    $("#editImageLabel").css({
-        "background-image":
-            "url('/asset/img/background/add-image.png')",
-        "background-position": "center center",
-        "background-repeat": "no-repeat",
-        "background-size": "50%",
-    });
-    $("#editImageClearBtn").addClass("d-none"); // Hide clear button
-}
+                if (division.image_url) {
+                    $("#editImageLabel").css({
+                        "background-image": "url('" + division.image_url + "')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "cover",
+                    });
+                    $("#editImageClearBtn").removeClass("d-none"); // Show clear button
+                } else {
+                    $("#editImageLabel").css({
+                        "background-image":
+                            "url('/asset/img/background/add-image.png')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "50%",
+                    });
+                    $("#editImageClearBtn").addClass("d-none"); // Hide clear button
+                }
 
                 // Hide preview image if any
                 $("#edit_image_preview img").hide();
@@ -621,7 +628,11 @@ if (division.image_url) {
             url: appUrl + "/divisions/" + id,
             type: "GET",
             success: function (division) {
-                $("#delete_department_name").val(division.department ? division.department.name_department : '');
+                $("#delete_department_name").val(
+                    division.department
+                        ? division.department.name_department
+                        : ""
+                );
                 $("#delete_name_division").val(division.name_division);
                 $("#delete_status").val(division.status);
                 $("#delete_description").val(division.description);
@@ -631,15 +642,18 @@ if (division.image_url) {
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
                         "background-size": "cover",
-                        "opacity": "1"
+                        opacity: "1",
                     });
                 } else {
                     $("#deleteImageLabel").css({
-                        "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+                        "background-image":
+                            "url('" +
+                            appUrl +
+                            "/asset/img/background/add-image.png')",
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
                         "background-size": "50%",
-                        "opacity": "0.5"
+                        opacity: "0.5",
                     });
                 }
                 $("#deleteDivisionForm").data("id", id);
@@ -697,58 +711,79 @@ if (division.image_url) {
     });
 
     // Load divisions with optional search and filter
-function loadDivisions(query = "", status = "ALL", departmentId = "") {
-    $.ajax({
-        url: appUrl + "/divisions",
-        type: "GET",
-        data: { query: query, status: status, department_id: departmentId },
-        success: function (divisions) {
-            var rowHtml = "";
-            if (divisions.length === 0) {
-                rowHtml =
-                    '<tr><td colspan="5" class="text-center">No Data</td></tr>';
-            } else {
-                $.each(divisions, function (index, division) {
-                    var statusText =
-                        division.status === "ACTIVE"
-                            ? "ACTIVE"
-                            : division.status;
-                    var statusClass =
-                        division.status === "ACTIVE"
-                            ? "status-ACTIVE"
-                            : "status-INACTIVE";
-                    if (division.status === "DELETED") {
-                        statusText = "DELETED";
-                        statusClass = "status-DELETED";
-                    }
-                    var imageHtml = '';
-                    if (division.image_url) {
-                        imageHtml = '<img src="' + division.image_url + '" alt="Division Image" class="table-image" />';
-                    } else {
-                        imageHtml = '';
-                    }
-rowHtml +=
-    '<tr data-id="' + division.id + '">' +
-    '<td>' + imageHtml + '</td>' +
-    '<td>' + (division.department ? division.department.name_department : '') + '</td>' +
-    '<td>' + division.name_division + '</td>' +
-    '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
-    '<td class="text-end">' +
-    '<button class="btn btn-sm btn-edit" data-id="' + division.id + '"><span class="material-symbols-outlined">edit</span></button> ' +
-    '<button class="btn btn-sm btn-delete" data-id="' + division.id + '"><span class="material-symbols-outlined">delete</span></button>' +
-    '</td>' +
-    '</tr>';
-                });
-            }
-            $("#divisionTableBody").html(rowHtml);
-        },
-        error: function () {
-            $("#divisionTableBody").html(
-                '<tr><td colspan="5" class="text-center">Failed to load data</td></tr>'
-            );
-        },
-    });
-}
+    function loadDivisions(query = "", status = "ALL", departmentId = "") {
+        $.ajax({
+            url: appUrl + "/divisions",
+            type: "GET",
+            data: { query: query, status: status, department_id: departmentId },
+            success: function (divisions) {
+                var rowHtml = "";
+                if (divisions.length === 0) {
+                    rowHtml =
+                        '<tr><td colspan="5" class="text-center">No Data</td></tr>';
+                } else {
+                    $.each(divisions, function (index, division) {
+                        var statusText =
+                            division.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : division.status;
+                        var statusClass =
+                            division.status === "ACTIVE"
+                                ? "status-ACTIVE"
+                                : "status-INACTIVE";
+                        if (division.status === "DELETED") {
+                            statusText = "DELETED";
+                            statusClass = "status-DELETED";
+                        }
+                        var imageHtml = "";
+                        if (division.image_url) {
+                            imageHtml =
+                                '<img src="' +
+                                division.image_url +
+                                '" alt="Division Image" class="table-image" />';
+                        } else {
+                            imageHtml = "";
+                        }
+                        rowHtml +=
+                            '<tr data-id="' +
+                            division.id +
+                            '">' +
+                            "<td>" +
+                            imageHtml +
+                            "</td>" +
+                            "<td>" +
+                            (division.department
+                                ? division.department.name_department
+                                : "") +
+                            "</td>" +
+                            "<td>" +
+                            division.name_division +
+                            "</td>" +
+                            '<td><span class="' +
+                            statusClass +
+                            '">' +
+                            statusText +
+                            "</span></td>" +
+                            '<td class="text-end">' +
+                            '<button class="btn btn-sm btn-edit" data-id="' +
+                            division.id +
+                            '"><span class="material-symbols-outlined">edit</span></button> ' +
+                            '<button class="btn btn-sm btn-delete" data-id="' +
+                            division.id +
+                            '"><span class="material-symbols-outlined">delete</span></button>' +
+                            "</td>" +
+                            "</tr>";
+                    });
+                }
+                $("#divisionTableBody").html(rowHtml);
+            },
+            error: function () {
+                $("#divisionTableBody").html(
+                    '<tr><td colspan="5" class="text-center">Failed to load data</td></tr>'
+                );
+            },
+        });
+    }
 
     // Trigger search dynamically as user types
     $("#searchInput").on("input", function () {

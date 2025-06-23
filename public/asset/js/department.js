@@ -22,40 +22,42 @@ function readURL(input, labelSelector) {
     }
 }
 
-    $(document).ready(function () {
-        // Remove reload page on alert close event handler
-        // $(document).on('closed.bs.alert', '#addDepartmentModal .alert-container .alert, #editDepartmentModal .alert-container .alert', function() {
-        //     location.reload();
-        // });
+$(document).ready(function () {
+    // Remove reload page on alert close event handler
+    // $(document).on('closed.bs.alert', '#addDepartmentModal .alert-container .alert, #editDepartmentModal .alert-container .alert', function() {
+    //     location.reload();
+    // });
 
-        // Tambahkan input hidden remove_image jika belum ada
-        if ($("#editDepartmentForm input[name='remove_image']").length === 0) {
-            $("#editDepartmentForm").append('<input type="hidden" name="remove_image" id="edit_remove_image" value="0">');
-        }
-
-        addDepartmentModal = new bootstrap.Modal(
-            document.getElementById("addDepartmentModal")
+    // Tambahkan input hidden remove_image jika belum ada
+    if ($("#editDepartmentForm input[name='remove_image']").length === 0) {
+        $("#editDepartmentForm").append(
+            '<input type="hidden" name="remove_image" id="edit_remove_image" value="0">'
         );
+    }
 
-        // Reset edit modal saat ditutup
-        $("#editDepartmentModal").on("hidden.bs.modal", function () {
-            // Reset input file
-            $("#edit_image").val("");
-            // Reset background label ke default icon
-            $("#editImageLabel").css({
-                "background-image":
-                    "url('" + appUrl + "/asset/img/background/add-image.png')",
-                "background-position": "center center",
-                "background-repeat": "no-repeat",
-                "background-size": "50%",
-                opacity: "0.5",
-            });
-            // Hide clear button
-            $("#editImageClearBtn").addClass("d-none");
-            // Reset validation classes
-            $("#editImageLabel").removeClass("is-valid is-invalid");
-            $("#edit_image").removeClass("is-valid is-invalid");
+    addDepartmentModal = new bootstrap.Modal(
+        document.getElementById("addDepartmentModal")
+    );
+
+    // Reset edit modal saat ditutup
+    $("#editDepartmentModal").on("hidden.bs.modal", function () {
+        // Reset input file
+        $("#edit_image").val("");
+        // Reset background label ke default icon
+        $("#editImageLabel").css({
+            "background-image":
+                "url('" + appUrl + "/asset/img/background/add-image.png')",
+            "background-position": "center center",
+            "background-repeat": "no-repeat",
+            "background-size": "50%",
+            opacity: "0.5",
         });
+        // Hide clear button
+        $("#editImageClearBtn").addClass("d-none");
+        // Reset validation classes
+        $("#editImageLabel").removeClass("is-valid is-invalid");
+        $("#edit_image").removeClass("is-valid is-invalid");
+    });
 
     function resetAddDepartmentForm() {
         $("#addDepartmentModal .alert-container").empty();
@@ -500,15 +502,18 @@ function readURL(input, labelSelector) {
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
                         "background-size": "cover",
-                        "opacity": "1"
+                        opacity: "1",
                     });
                 } else {
                     $("#deleteImageLabel").css({
-                        "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+                        "background-image":
+                            "url('" +
+                            appUrl +
+                            "/asset/img/background/add-image.png')",
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
                         "background-size": "50%",
-                        "opacity": "0.5"
+                        opacity: "0.5",
                     });
                 }
                 $("#deleteDepartmentForm").data("id", id);
@@ -595,22 +600,39 @@ function loadDepartments(query = "", status = "ALL") {
                         statusText = "DELETED";
                         statusClass = "status-DELETED";
                     }
-                    var imageHtml = '';
+                    var imageHtml = "";
                     if (department.image_url) {
-                        imageHtml = '<img src="' + department.image_url + '" alt="Department Image" class="table-image" />';
+                        imageHtml =
+                            '<img src="' +
+                            department.image_url +
+                            '" alt="Department Image" class="table-image" />';
                     } else {
-                        imageHtml = '';
+                        imageHtml = "";
                     }
                     rowHtml +=
-                        '<tr data-id="' + department.id + '">' +
-                        '<td>' + imageHtml + '</td>' +
-                        '<td>' + department.name_department + '</td>' +
-                        '<td><span class="' + statusClass + '">' + statusText + '</span></td>' +
+                        '<tr data-id="' +
+                        department.id +
+                        '">' +
+                        "<td>" +
+                        imageHtml +
+                        "</td>" +
+                        "<td>" +
+                        department.name_department +
+                        "</td>" +
+                        '<td><span class="' +
+                        statusClass +
+                        '">' +
+                        statusText +
+                        "</span></td>" +
                         '<td style="text-align: right;">' +
-                        '<button class="btn-icon-toggle btn-edit" data-id="' + department.id + '"><span class="material-symbols-outlined icon">edit</span></button> ' +
-                        '<button class="btn-icon-toggle btn-delete" data-id="' + department.id + '"><span class="material-symbols-outlined icon">delete</span></button>' +
-                        '</td>' +
-                        '</tr>';
+                        '<button class="btn-icon-toggle btn-edit" data-id="' +
+                        department.id +
+                        '"><span class="material-symbols-outlined icon">edit</span></button> ' +
+                        '<button class="btn-icon-toggle btn-delete" data-id="' +
+                        department.id +
+                        '"><span class="material-symbols-outlined icon">delete</span></button>' +
+                        "</td>" +
+                        "</tr>";
                 });
             }
 
