@@ -1,4 +1,8 @@
 <x-office-layout>
+    <x-slot name="head_slot">
+        <meta name="app-url" content="{{ url('') }}">
+    </x-slot>
+
     <div class="title-content">
         <h2>Master Data</h2>
     </div>
@@ -17,9 +21,9 @@
             </a>        
         </div>
         <div class="body-content scrollable-container rounded-4 p-5 w-50 d-flex justify-content-center align-items-center" style="height: 200px;">
-            <a href="{{ url('employee') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">
+            <a href="{{ url('job-page') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">
             
-                <h5>Employee</h5>
+                <h5>Job</h5>
             </a>        
         </div>
     </div>

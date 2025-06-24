@@ -39,7 +39,7 @@ public function index(Request $request)
         return $department;
     });
 
-    return response()->json($departments);
+    return response()->json(['data' => $departments]);
 }
 
     public function show($id)

@@ -529,7 +529,8 @@ function loadDepartments(query = "", status = "ALL") {
         url: appUrl + "/departments",
         type: "GET",
         data: { query: query, status: status },
-        success: function (departments) {
+        success: function (response) {
+            var departments = response.data;
             var rowHtml = "";
             if (departments.length === 0) {
                 rowHtml =

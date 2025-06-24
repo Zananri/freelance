@@ -102,11 +102,12 @@ $(document).ready(function () {
         "editImageClearBtn"
     );
 
-    function loadDepartmentsDropdown() {
+function loadDepartmentsDropdown() {
         $.ajax({
             url: appUrl + "/departments",
             type: "GET",
-            success: function (departments) {
+            success: function (response) {
+                var departments = response.data;
                 var options =
                     '<option value="" disabled selected>Select Department</option>';
                 $.each(departments, function (index, department) {
@@ -127,7 +128,8 @@ $(document).ready(function () {
         $.ajax({
             url: appUrl + "/departments",
             type: "GET",
-            success: function (departments) {
+            success: function (response) {
+                var departments = response.data;
                 var menuHtml =
                     '<a class="dropdown-item department-filter-option active" href="#" data-department="">All Departments</a>';
                 $.each(departments, function (index, department) {
@@ -650,12 +652,13 @@ $(document).ready(function () {
         });
     });
 
-    function loadDivisions(query = "", status = "ALL", departmentId = "") {
+function loadDivisions(query = "", status = "ALL", departmentId = "") {
         $.ajax({
             url: appUrl + "/divisions",
             type: "GET",
             data: { query: query, status: status, department_id: departmentId },
-            success: function (divisions) {
+            success: function (response) {
+                var divisions = response.data;
                 var rowHtml = "";
                 if (divisions.length === 0) {
                     rowHtml =

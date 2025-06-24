@@ -40,7 +40,7 @@ public function index(Request $request)
         return $division;
     });
 
-    return response()->json($divisions);
+    return response()->json(['data' => $divisions]);
 }
 
     
