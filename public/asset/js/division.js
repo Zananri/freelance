@@ -476,7 +476,9 @@ $(document).ready(function () {
                 } else {
                     $("#editImageLabel").css({
                         "background-image":
-                            "url('/asset/img/background/add-image.png')",
+                            "url('" +
+                            appUrl +
+                            "/asset/img/background/add-image.png')",
                         "background-position": "center center",
                         "background-repeat": "no-repeat",
                         "background-size": "50%",
