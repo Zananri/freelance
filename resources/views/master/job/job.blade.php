@@ -22,20 +22,42 @@
 
             <div class="d-flex gap-1" style="margin-left: -5px;">
                 <div class="input-group" style="min-width: 200px; height: 38px;">
-                    <input type="text" id="searchInput" class="form-control input-soft" placeholder="Search Job" style="border: 1px solid #DDDDDD; height: 38px;" />
+                    <input type="text" id="searchInput" class="form-control input-soft" placeholder="Search Job"
+                        style="border: 1px solid #DDDDDD; height: 38px;" />
                 </div>
                 <div class="dropdown">
-                    <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;"
+                        type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="material-symbols-outlined icon">filter_list</span> Filter
                     </button>
-                    <ul class="dropdown-menu" aria-labelledby="filterDropdown" style="min-width: 150px;">
-                        <li><a class="dropdown-item filter-option active" href="#" data-status="ALL">All</a></li>
-                        <li><a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a></li>
-                        <li><a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a></li>
+                    <ul class="dropdown-menu p-2" aria-labelledby="filterDropdown"
+                        style="min-width: 220px; max-height: 300px; overflow-y: auto;">
+                        <li class="mb-2">
+                            <select class="form-select form-select-sm" id="filterTypeSelect"
+                                aria-label="Select filter type">
+                                <option value="" disabled selected>Select Filter Option</option>
+                                <option value="status">Filter by Status</option>
+                                <option value="department">Filter by Department</option>
+                                <option value="division">Filter by Division</option>
+                            </select>
+                        </li>
+                        <li id="statusFilterOptions" class="d-none">
+                            <a class="dropdown-item filter-option" href="#" data-status="ALL">All</a>
+                            <a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a>
+                            <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
+                        </li>
+                        <li id="departmentFilterOptions" class="d-none">
+                            <span class="dropdown-item text-muted">Loading departments...</span>
+                        </li>
+                        <li id="divisionFilterOptions" class="d-none">
+                            <span class="dropdown-item text-muted">Loading divisions...</span>
+                        </li>
                     </ul>
                 </div>
 
-                <button id="btnAddData" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD; min-width: 140px; padding-left: 20px; padding-right: 20px;" data-bs-toggle="modal" data-bs-target="#addJobModal">
+                <button id="btnAddData" class="btn btn-icon-toggle"
+                    style="border: 1px solid #DDDDDD; min-width: 140px; padding-left: 20px; padding-right: 20px;"
+                    data-bs-toggle="modal" data-bs-target="#addJobModal">
                     <span class="material-symbols-outlined icon">add</span> Add Data
                 </button>
             </div>
@@ -62,7 +84,8 @@
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
     <!-- Add Job Modal -->
-    <div class="modal fade" id="addJobModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="addJobModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addJobModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="addJobModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="addModalLoader">
@@ -75,7 +98,8 @@
                 <form id="addJobForm" class="form-custom needs-validation" novalidate>
                     <div class="mb-3 mt-4">
                         <label for="department_id" class="form-label label-custom">Department</label>
-                        <select id="department_id" name="department_id" class="form-select input-soft" required></select>
+                        <select id="department_id" name="department_id" class="form-select input-soft"
+                            required></select>
                     </div>
                     <div class="mb-3">
                         <label for="division_id" class="form-label label-custom">Division</label>
@@ -107,7 +131,8 @@
     </div>
 
     <!-- Edit Job Modal -->
-    <div class="modal fade" id="editJobModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="editJobModalLabel" aria-hidden="true">
+    <div class="modal fade" id="editJobModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="editJobModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="editModalLoader">
@@ -121,15 +146,18 @@
                     <input type="hidden" id="edit_job_id" name="edit_job_id">
                     <div class="mb-3 mt-4">
                         <label for="edit_department_id" class="form-label label-custom">Department</label>
-                        <select id="edit_department_id" name="edit_department_id" class="form-select input-soft" required></select>
+                        <select id="edit_department_id" name="edit_department_id" class="form-select input-soft"
+                            required></select>
                     </div>
                     <div class="mb-3">
                         <label for="edit_division_id" class="form-label label-custom">Division</label>
-                        <select id="edit_division_id" name="edit_division_id" class="form-select input-soft" required></select>
+                        <select id="edit_division_id" name="edit_division_id" class="form-select input-soft"
+                            required></select>
                     </div>
                     <div class="mb-3">
                         <label for="edit_job_name" class="form-label label-custom">Job Name</label>
-                        <input type="text" id="edit_job_name" name="edit_job_name" class="form-control input-soft" required>
+                        <input type="text" id="edit_job_name" name="edit_job_name"
+                            class="form-control input-soft" required>
                     </div>
                     <div class="mb-3">
                         <label for="edit_status" class="form-label label-custom">Status</label>
@@ -153,7 +181,8 @@
     </div>
 
     <!-- Delete Job Modal -->
-    <div class="modal fade" id="deleteJobModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="deleteJobModalLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteJobModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="deleteJobModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="deleteModalLoader">
@@ -179,8 +208,11 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-delete">
-                        <button type="submit" class="btn btn-delete-small btn-delete-red">Delete</button>
-                        <button type="button" class="btn btn-cancel-small" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit"
+                            class="btn-submit-black btn-submit-custom btn-delete-modal btn-delete-small btn-delete-red">Delete</button>
+                        <button type="button"
+                            class="btn-cancel-delete btn-submit-black btn-submit-custom btn-cancel-small"
+                            data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </form>
             </div>

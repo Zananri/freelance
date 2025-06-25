@@ -2,6 +2,10 @@ var appUrl = $('meta[name="app-url"]').attr("content");
 
 var selectedStatus = "ALL";
 
+var selectedDepartmentId = "";
+var selectedDivisionId = "";
+var selectedFilterType = "";
+
 var editJobModal = new bootstrap.Modal(document.getElementById("editJobModal"));
 
 var addJobModal;
@@ -91,10 +95,86 @@ function loadDivisionsDropdown(
     });
 }
 
+function loadFilterOptions(
+    selectedId = null,
+    selector = "#filterOptions",
+    callback = null
+) {
+    $.ajax({
+        url: appUrl + "/filters",
+        type: "GET",
+        success: function (response) {
+            var filters = response.data;
+            var options =
+                '<option value="" disabled selected>Select Filter Option</option>';
+            $.each(filters, function (index, filter) {
+                options +=
+                    '<option value="' +
+                    filter.id +
+                    '"' +
+                    (selectedId == filter.id ? " selected" : "") +
+                    ">" +
+                    filter.name +
+                    "</option>";
+            });
+            $(selector).html(options);
+            if (selectedId) {
+                $(selector).val(selectedId);
+            }
+            if (typeof callback === "function") {
+                callback();
+            }
+        },
+        error: function () {
+            $(selector).html(
+                '<option value="" disabled selected>Failed to load filters</option>'
+            );
+        },
+    });
+}
+
 // Change event handler to use event delegation for dynamic elements
 $(document).on("change", "#department_id", function () {
     var departmentId = $(this).val();
     loadDivisionsDropdown(departmentId);
+});
+
+// Fungsi untuk load division pada filter sesuai department
+function loadDivisionsForFilter(departmentId) {
+    $("#divisionFilterOptions").html('<span class="dropdown-item text-muted">Loading divisions...</span>');
+    $.ajax({
+        url: appUrl + "/divisions",
+        type: "GET",
+        data: departmentId ? { department_id: departmentId } : {},
+        success: function (response) {
+            var divisions = response.data;
+            var menuHtml =
+                '<a class="dropdown-item division-filter-option active" href="#" data-division="">All Divisions</a>';
+            $.each(divisions, function (index, division) {
+                menuHtml +=
+                    '<a class="dropdown-item division-filter-option" href="#" data-division="' +
+                    division.id +
+                    '">' +
+                    division.name_division +
+                    "</a>";
+            });
+            $("#divisionFilterOptions").html(menuHtml);
+        },
+        error: function () {
+            $("#divisionFilterOptions").html(
+                '<span class="dropdown-item text-danger">Failed to load divisions</span>'
+            );
+        },
+    });
+}
+
+// Handler klik division pada filter
+$(document).on("click", "#divisionFilterOptions .division-filter-option", function (e) {
+    e.preventDefault();
+    $("#divisionFilterOptions .division-filter-option").removeClass("active");
+    $(this).addClass("active");
+    selectedDivisionId = $(this).data("division") || "";
+    loadJobs();
 });
 
 function loadJobs() {
@@ -103,7 +183,9 @@ function loadJobs() {
         type: "GET",
         data: {
             query: $("#searchInput").val() || "",
-            status: selectedStatus,
+            status: selectedFilterType === "status" ? selectedStatus : "ALL",
+            department_id: selectedFilterType === "department" || selectedFilterType === "division" ? selectedDepartmentId : "",
+            division_id: selectedFilterType === "division" ? selectedDivisionId : "",
         },
         success: function (response) {
             const jobs = response.data;
@@ -122,26 +204,8 @@ function loadJobs() {
             jobs.forEach((job) => {
                 const statusBadge =
                     job.status === "ACTIVE"
-                        ? `<span class="badge" style="
-            background-color: #28a745;
-            color: white;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            display: inline-block;
-            text-align: center;
-        ">Active</span>`
-                        : `<span class="badge" style="
-            background-color: #6c757d;
-            color: white;
-            font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            display: inline-block;
-            text-align: center;
-        ">Inactive</span>`;
+                        ? `<span class="status-ACTIVE">Active</span>`
+                        : `<span class="status-INACTIVE">Inactive</span>`;
 
                 tbody.append(`
                     <tr data-id="${job.id}">
@@ -150,15 +214,15 @@ function loadJobs() {
                         <td>${job.job_name}</td>
                         <td>${statusBadge}</td>
                         <td class="text-end">
-                            <button class="btn-edit" data-id="${job.id}">
-                                <i class="material-symbols-outlined">edit</i>
+                            <button class="btn-icon-toggle btn-edit" data-id="${job.id}">
+                                <span class="material-symbols-outlined icon">edit</span>
                             </button>
-                            <button class="btn-delete" data-id="${
+                            <button class="btn-icon-toggle btn-delete" data-id="${
                                 job.id
                             }" data-name="${job.job_name}" data-status="${
                     job.status
                 }" data-description="${job.description || ""}">
-                                <i class="material-symbols-outlined">delete</i>
+                                <span class="material-symbols-outlined icon">delete</span>
                             </button>
                         </td>
                     </tr>
@@ -178,6 +242,87 @@ function loadJobs() {
 $(document).ready(function () {
     addJobModal = new bootstrap.Modal(document.getElementById("addJobModal"));
 
+    // Event handler search
+    $("#searchInput").on("input", function () {
+        loadJobs();
+    });
+
+    // Event handler filter type (status/department)
+    $("#filterTypeSelect").on("change", function () {
+        selectedFilterType = $(this).val();
+        $("#statusFilterOptions, #departmentFilterOptions, #divisionFilterOptions").addClass("d-none");
+
+        if (selectedFilterType === "status") {
+            $("#statusFilterOptions").removeClass("d-none");
+        } else if (selectedFilterType === "department") {
+            $("#departmentFilterOptions").removeClass("d-none");
+            // Load department list jika belum ada
+            if ($("#departmentFilterOptions").find("a").length === 0) {
+                $.ajax({
+                    url: appUrl + "/departments",
+                    type: "GET",
+                    success: function (response) {
+                        var departments = response.data;
+                        var menuHtml =
+                            '<a class="dropdown-item department-filter-option disabled selected" href="#" data-department="">Select Department</a>';
+                        $.each(departments, function (index, department) {
+                            menuHtml +=
+                                '<a class="dropdown-item department-filter-option" href="#" data-department="' +
+                                department.id +
+                                '">' +
+                                department.name_department +
+                                "</a>";
+                        });
+                        $("#departmentFilterOptions").html(menuHtml);
+                    },
+                    error: function () {
+                        $("#departmentFilterOptions").html(
+                            '<span class="dropdown-item text-danger">Failed to load departments</span>'
+                        );
+                    },
+                });
+            }
+        } else if (selectedFilterType === "division") {
+            $("#departmentFilterOptions").removeClass("d-none");
+            $("#divisionFilterOptions").removeClass("d-none");
+            // Jika belum ada department, load dulu
+            if ($("#departmentFilterOptions").find("a").length === 0) {
+                $.ajax({
+                    url: appUrl + "/departments",
+                    type: "GET",
+                    success: function (response) {
+                        var departments = response.data;
+                        var menuHtml =
+                            '<a class="dropdown-item department-filter-option disabled selected" href="#" data-department="">Select Department</a>';
+                        $.each(departments, function (index, department) {
+                            menuHtml +=
+                                '<a class="dropdown-item department-filter-option" href="#" data-department="' +
+                                department.id +
+                                '">' +
+                                department.name_department +
+                                "</a>";
+                        });
+                        $("#departmentFilterOptions").html(menuHtml);
+                    },
+                    error: function () {
+                        $("#departmentFilterOptions").html(
+                            '<span class="dropdown-item text-danger">Failed to load departments</span>'
+                        );
+                    },
+                });
+            }
+            // Load all divisions (default)
+            loadDivisionsForFilter(selectedDepartmentId);
+        }
+        loadJobs();
+    });
+
+    // Filter status change handler
+    $("#filterStatus").on("change", function () {
+        selectedStatus = $(this).val() || "ALL";
+        loadJobs();
+    });
+
     loadJobs(); // Load job data on page load
 
     $("#editJobModal").on("hidden.bs.modal", function () {
@@ -186,6 +331,33 @@ $(document).ready(function () {
         $("#editJobModal .alert-container").empty();
         $("#editModalLoader").addClass("d-none");
     });
+
+    // Event handler filter status option click
+    $(document).on("click", "#statusFilterOptions .filter-option", function (e) {
+        e.preventDefault();
+        $("#statusFilterOptions .filter-option").removeClass("active");
+        $(this).addClass("active");
+        selectedStatus = $(this).data("status");
+        loadJobs();
+    });
+
+    // Event handler filter department option click
+    $(document).on("click", "#departmentFilterOptions .department-filter-option", function (e) {
+        e.preventDefault();
+        $("#departmentFilterOptions .department-filter-option").removeClass("active");
+        $(this).addClass("active");
+        selectedDepartmentId = $(this).data("department") || "";
+        // Jika filter by division, reload division list sesuai department
+        if (selectedFilterType === "division") {
+            loadDivisionsForFilter(selectedDepartmentId);
+            selectedDivisionId = ""; // reset division
+        }
+        loadJobs();
+    });
+
+    // Set default filter type
+    // $("#filterTypeSelect").val("status").trigger("change");
+
 
     function resetAddJobForm() {
         $("#addJobModal .alert-container").empty();
@@ -387,6 +559,59 @@ $(document).ready(function () {
                     .show();
             },
         });
+    });
+
+    // Event handler tombol edit
+    $(document).on("click", ".btn-edit", function () {
+        const jobId = $(this).data("id");
+
+        // Tampilkan loader
+        showLoader("edit", true);
+
+        $.ajax({
+            url: `${appUrl}/jobs/${jobId}`,
+            type: "GET",
+            success: function (response) {
+                const job = response;
+
+                // Isi data ke form edit
+                $("#edit_job_id").val(job.id);
+                $("#edit_job_name").val(job.job_name);
+                $("#edit_status").val(job.status);
+                $("#edit_description").val(job.description || "");
+
+                // Load department dan division yang sesuai
+                loadDepartmentsDropdown(job.department_id, "#edit_department_id", function () {
+                    loadDivisionsDropdown(job.department_id, job.division_id, "#edit_division_id");
+                });
+
+                editJobModal.show();
+            },
+            error: function () {
+                alert("Failed to fetch job data.");
+            },
+            complete: function () {
+                showLoader("edit", false);
+            }
+        });
+    });
+
+    // Event handler tombol delete
+    $(document).on("click", ".btn-delete", function () {
+        const jobId = $(this).data("id");
+        const jobName = $(this).data("name");
+        const jobStatus = $(this).data("status");
+        const jobDescription = $(this).data("description");
+
+        // Set data ke form delete
+        $("#deleteJobForm").data("jobId", jobId);
+        $("#delete_job_name").val(jobName);
+        $("#delete_status").val(jobStatus);
+        $("#delete_description").val(jobDescription);
+
+        // Tampilkan modal
+        const deleteJobModal = new bootstrap.Modal(document.getElementById("deleteJobModal"));
+        deleteJobModal.show();
     });
 
     // Delete Job form submit

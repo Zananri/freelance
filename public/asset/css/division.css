@@ -143,6 +143,14 @@ table.table tbody tr td:first-child {
     color: inherit !important;
 }
 
+.input-soft {
+    border: 1px solid #dfe0ec;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+}
+
 .body-content .input-soft {
     border: 1px solid rgb(222, 223, 232);
     background-color: rgb(240, 241, 248);

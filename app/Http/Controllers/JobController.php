@@ -12,6 +12,8 @@ class JobController extends Controller
     {
         $query = $request->input('query');
         $status = $request->input('status');
+        $departmentId = $request->input('department_id');
+        $divisionId = $request->input('division_id');
 
         $jobsQuery = Job::with(['department', 'division']);
 
@@ -27,6 +29,14 @@ class JobController extends Controller
             }
         } else {
             $jobsQuery->where('status', '!=', 'DELETED');
+        }
+
+        if ($departmentId) {
+            $jobsQuery->where('department_id', $departmentId);
+        }
+
+        if ($divisionId) {
+            $jobsQuery->where('division_id', $divisionId);
         }
 
         $jobs = $jobsQuery->get();
