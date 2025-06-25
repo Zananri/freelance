@@ -21,7 +21,7 @@ class CreateEmployeesTable extends Migration
             $table->string('profile_picture')->nullable();
             $table->string('name');
             $table->string('email')->unique();
-            $table->integer('phone')->unique();
+            $table->string('phone', 20)->unique();
             $table->string('status');
             $table->text('address');
             $table->string('photo')->nullable();

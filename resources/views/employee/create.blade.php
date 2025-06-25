@@ -17,7 +17,7 @@
     </div>
 
     <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%;">
-        <form>
+        <form id="employeeCreateForm" enctype="multipart/form-data" novalidate>
             <div class="row">
                 <!-- Left Section -->
                 <div class="col-md-4 d-flex flex-column gap-3">
@@ -41,15 +41,18 @@
                     </div>
                     <div>
                         <label for="employee_name" class="form-label">Employee Name</label>
-                        <input type="text" id="employee_name" name="employee_name" class="form-control" placeholder="Input Employee Name" required />
+                        <input type="text" id="employee_name" name="employee_name" class="form-control"
+                            placeholder="Input Employee Name" required />
                     </div>
                     <div>
                         <label for="employee_email" class="form-label">Employee Email</label>
-                        <input type="email" id="employee_email" name="employee_email" class="form-control" placeholder="Input Employee Email" required />
+                        <input type="email" id="employee_email" name="employee_email" class="form-control"
+                            placeholder="Input Employee Email" required />
                     </div>
                     <div>
                         <label for="employee_phone" class="form-label">Employee Phone</label>
-                        <input type="number" id="employee_phone" name="employee_phone" class="form-control" placeholder="Inpuet Employee Phone" required />
+                        <input type="number" id="employee_phone" name="employee_phone" class="form-control"
+                            placeholder="Inpuet Employee Phone" required />
                     </div>
                 </div>
 
@@ -93,26 +96,39 @@
 
                 <!-- Right Section -->
                 <div class="col-md-4 d-flex flex-column align-items-start gap-3">
-                    <div>
-                        <label for="status" class="form-label">Status</label>
-                        <select id="status" name="status" class="form-select" required>
-                            <option value="" disabled selected>Select Status</option>
-                            <option value="ACTIVE">Active</option>
-                            <option value="INACTIVE">Inactive</option>
-                        </select>
+                    <div class="d-flex gap-3">
+                        <div>
+                            <label for="status" class="form-label">Status</label>
+                            <select id="status" name="status" class="form-select" required>
+                                <option value="" disabled selected>Select Status</option>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="hire_date" class="form-label">Hire Date</label>
+                            <input type="date" id="hire_date" name="hire_date" class="form-control" required />
+                        </div>
                     </div>
                     <div>
                         <div class="title-label-image">
                             <span>Upload Profile Picture</span>
                         </div>
-                        <label for="profile_picture" class="custom-image-upload position-relative profile-picture-upload">
-                            <input type="file" id="profile_picture" name="profile_picture" accept="image/*" class="profile-picture-input" hidden/>
-                            <span class="image-clear-btn d-none" id="profilePictureClearBtn" title="Remove image">&times;</span>
+                        <label for="profile_picture"
+                            class="custom-image-upload position-relative profile-picture-upload">
+                            <input type="file" id="profile_picture" name="profile_picture" accept="image/*"
+                                class="profile-picture-input" hidden />
+                            <span class="image-clear-btn d-none" id="profilePictureClearBtn"
+                                title="Remove image">&times;</span>
                         </label>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-submit-dark">Create Employee</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </form>
+        <div id="formAlert" class="mt-3"></div>
     </div>
 
     <x-slot name="script_slot">

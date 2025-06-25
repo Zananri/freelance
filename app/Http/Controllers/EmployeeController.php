@@ -5,13 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
-        $employees = Employee::all();
-        return response()->json(['data' => $employees]);
+        // Return JSON for API
+        if ($request->wantsJson()) {
+            $employees = Employee::all();
+            return response()->json(['data' => $employees]);
+        }
+        // Return view for listing page
+        return view('employee.employee');
     }
 
     public function show($id)
@@ -33,15 +39,18 @@ class EmployeeController extends Controller
         $validator = Validator::make($request->all(), [
             'department_id' => 'required|exists:departments,id',
             'division_id' => 'required|exists:divisions,id',
-            'job_id' => 'required|exists:jobs,id',
-            'profile_picture' => 'nullable|string',
+            'job_id' => [
+                'required',
+                Rule::exists('job_list', 'id'),
+            ],
+            'profile_picture' => 'nullable|file|image',
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:employees,email',
-            'phone' => 'required|integer|max:14|unique:employees,phone',
+            'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
             'status' => 'required|string',
             'address' => 'required|string',
-            'photo' => 'nullable|string',
-            'ktp' => 'nullable|string',
+            'photo' => 'nullable|file|image',
+            'ktp' => 'nullable|file|image',
             'birth_date' => 'required|date',
             'hire_date' => 'required|date',
             'resign_date' => 'nullable|date',
@@ -53,26 +62,58 @@ class EmployeeController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $profilePicturePath = null;
+        $photoPath = null;
+        $ktpPath = null;
+
+        if ($request->hasFile('profile_picture')) {
+            $file = $request->file('profile_picture');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $destination = public_path('file/profile_picture');
+            if (!file_exists($destination)) mkdir($destination, 0777, true);
+            $file->move($destination, $filename);
+            $profilePicturePath = 'file/profile_picture/' . $filename;
+        }
+
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $destination = public_path('file/photo');
+            if (!file_exists($destination)) mkdir($destination, 0777, true);
+            $file->move($destination, $filename);
+            $photoPath = 'file/photo/' . $filename;
+        }
+
+        if ($request->hasFile('ktp')) {
+            $file = $request->file('ktp');
+            $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name);
+            $filename = 'KTP_' . $employeeName . '.' . $file->getClientOriginalExtension();
+            $destination = public_path('file/ktp');
+            if (!file_exists($destination)) mkdir($destination, 0777, true);
+            $file->move($destination, $filename);
+            $ktpPath = 'file/ktp/' . $filename;
+        }
+
         $employee = Employee::create([
             'department_id' => $request->department_id,
             'division_id' => $request->division_id,
             'job_id' => $request->job_id,
-            'profile_picture' => $request->profile_picture,
+            'profile_picture' => $profilePicturePath,
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'status' => $request->status,
             'address' => $request->address,
-            'photo' => $request->photo,
-            'ktp' => $request->ktp,
+            'photo' => $photoPath,
+            'ktp' => $ktpPath,
             'birth_date' => $request->birth_date,
             'hire_date' => $request->hire_date,
             'resign_date' => $request->resign_date,
             'grade' => $request->grade,
             'office' => $request->office,
-            'created_by' => 1,
-            'updated_by' => 1,
-            'deleted_by' => 1,
+            'created_by' => '1',
+            'updated_by' => '1',
+            'deleted_by' => '1',
         ]);
 
         return response()->json(['message' => 'Employee created successfully', 'data' => $employee]);
@@ -88,7 +129,7 @@ class EmployeeController extends Controller
         $validator = Validator::make($request->all(), [
             'department_id' => 'sometimes|exists:departments,id',
             'division_id' => 'sometimes|exists:divisions,id',
-            'job_id' => 'sometimes|exists:jobs,id',
+            'job_id' => 'sometimes|exists:job_list,id',
             'profile_picture' => 'nullable|string',
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:employees,email,' . $id,
@@ -130,5 +171,14 @@ class EmployeeController extends Controller
         $employee->delete();
 
         return response()->json(['message' => 'Employee deleted successfully']);
+    }
+
+    public function edit($id)
+    {
+        $employee = Employee::find($id);
+        if (!$employee) {
+            abort(404, 'Employee not found');
+        }
+        return view('employee.edit', compact('employee'));
     }
 }
