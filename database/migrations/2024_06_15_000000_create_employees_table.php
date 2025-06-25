@@ -1,0 +1,54 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateEmployeesTable extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('employees', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('department_id');
+            $table->unsignedBigInteger('division_id');
+            $table->unsignedBigInteger('job_id');
+            $table->string('profile_picture')->nullable();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->integer('phone')->unique();
+            $table->string('status');
+            $table->text('address');
+            $table->string('photo')->nullable();
+            $table->string('ktp')->nullable();
+            $table->date('birth_date');
+            $table->date('hire_date');
+            $table->date('resign_date')->nullable();
+            $table->string('grade');
+            $table->string('office');
+            $table->string('created_by')->nullable();
+            $table->string('deleted_by')->nullable();
+            $table->string('updated_by')->nullable();
+            $table->timestamps();
+
+            $table->foreign('department_id')->references('id')->on('departments')->onDelete('cascade');
+            $table->foreign('division_id')->references('id')->on('divisions')->onDelete('cascade');
+            $table->foreign('job_id')->references('id')->on('jobs')->onDelete('cascade');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('employees');
+    }
+}

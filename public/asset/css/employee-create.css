@@ -1,0 +1,192 @@
+.mb-0 {
+    font-size: 20px;
+}
+
+.nav-icon-arrow {
+    display: inline-block;
+    color: #717375;
+    margin-top: 3px;
+    margin-right: 10px;
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    --bs-bg-opacity: 0.3;
+    background-color: rgba(
+        var(--bs-white-rgb),
+        var(--bs-bg-opacity)
+    ) !important;
+    transition: all 0.15s ease-in-out;
+}
+
+.nav-icon-arrow:hover {
+    cursor: pointer;
+    --bs-bg-opacity: 0.7;
+}
+
+.nav-icon-arrow .material-symbols-outlined {
+    color: #808489;
+    font-size: 20px;
+    font-variation-settings: "FILL" 0, "wght" 400;
+    transition: all 0.15s ease-in-out;
+}
+
+.nav-icon-arrow:hover .material-symbols-outlined {
+    color: #111;
+    font-variation-settings: "FILL" 1, "wght" 400;
+}
+
+.nav-icon-arrow .d-flex {
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+}
+
+.profile-picture-upload::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40%;
+    height: 40%;
+    background-image: url('../img/background/add-image.png');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+    transform: translate(-50%, -50%);
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.profile-picture-upload.has-image::before {
+    opacity: 0;
+}
+
+.nav-icon-arrow:hover {
+    --bs-bg-opacity: 0.7;
+}
+
+.nav-icon-arrow .material-symbols-outlined {
+    color: #808489;
+    font-size: 20px;
+    font-variation-settings: "FILL" 0, "wght" 400;
+    transition: all 0.15s ease-in-out;
+}
+
+.nav-icon-arrow:hover .material-symbols-outlined {
+    color: #111;
+    font-variation-settings: "FILL" 1, "wght" 400;
+}
+
+.nav-icon-arrow .d-flex {
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Form layout styling */
+.body-content form .row {
+    gap: 1rem;
+}
+
+.body-content form .col-md-4 {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.body-content form .col-md-4.align-items-center {
+    align-items: center;
+}
+
+/* Profile picture upload styling */
+.profile-picture-upload {
+    width: 240px;
+    height: 320px;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.profile-picture-upload.has-image {
+    opacity: 1;
+}
+
+.profile-picture-upload:hover {
+    opacity: 0.8;
+}
+
+/* Image upload labels with 3:4 aspect ratio */
+.custom-image-upload {
+    position: relative;
+    display: inline-block;
+    width: 240px;
+    height: 320px;
+    background-size: 40% auto;
+    background-position: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5;
+}
+
+.custom-image-upload.has-image {
+    opacity: 1;
+}
+
+.custom-image-upload:hover {
+    border-color: #333;
+}
+
+.custom-image-upload.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.custom-image-upload.is-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.image-clear-btn {
+    position: absolute;
+    top: -13px;
+    right: -13px;
+    background: #dc3545;
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s;
+    opacity: 0.85;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.image-clear-btn:hover {
+    background: #b02a37;
+    opacity: 1;
+}
+
+.title-label-image {
+    display: block;
+    font-size: 16px;
+    color: #222;
+    margin-bottom: 10px;
+    margin-left: 2px;
+    font-family: inherit;
+    line-height: 1.5;
+    margin-top: 8px;
+}

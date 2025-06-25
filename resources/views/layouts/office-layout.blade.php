@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
     <meta charset="UTF-8">
@@ -9,7 +10,7 @@
     <meta name="description" content="Office NSA Performance">
     <meta name="keywords" content="nsaperformance, nsa performance">
     <meta name="author" content="nsaperformance.id">
-    <meta name="robots" content="index, nofollow"> 
+    <meta name="robots" content="index, nofollow">
 
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -17,32 +18,47 @@
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     {{-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" /> --}}
 
-    
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=groups" />
+    <style>
+    .material-symbols-outlined {
+      font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24
+    }
+    </style>
     <link href="{{ asset('asset/css/MaterialSymbolsOutlined.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/app.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/office.css') }}" rel="stylesheet">
-    
+
     <style>
-        body{
-            box-sizing: border-box; /* Pastikan padding tidak menambah ukuran total */
+        body {
+            box-sizing: border-box;
+            /* Pastikan padding tidak menambah ukuran total */
             background-image: url('{{ asset('asset/img/background/light-1.jpg') }}');
         }
 
-        
-        
+
+
 
         .sidebar {
-            width: 225px; /* Sesuaikan sesuai kebutuhan */
-            padding: 20px 0; /* Sesuaikan untuk sudut membulat */
-             /* Tambahkan sedikit margin di sekitar sidebar */
+            width: 225px;
+            /* Sesuaikan sesuai kebutuhan */
+            padding: 20px 0;
+            /* Sesuaikan untuk sudut membulat */
+            /* Tambahkan sedikit margin di sekitar sidebar */
         }
 
-        
+
 
         .sidebar-menu {
             list-style: none;
@@ -51,7 +67,8 @@
         }
 
         .sidebar-menu li {
-            margin-bottom: 5px; /* Spasi antar item menu utama */
+            margin-bottom: 5px;
+            /* Spasi antar item menu utama */
         }
 
         .sidebar-menu li a {
@@ -62,64 +79,73 @@
             color: #777;
             text-decoration: none;
             transition: background-color 0.3s ease;
-            border-radius: 25px; /* Sudut sedikit membulat untuk item menu */
-            margin: 0 8px; /* Agar warna latar belakang tidak memenuhi lebar penuh */
+            border-radius: 25px;
+            /* Sudut sedikit membulat untuk item menu */
+            margin: 0 8px;
+            /* Agar warna latar belakang tidak memenuhi lebar penuh */
         }
-        .sidebar-menu li a.active{
+
+        .sidebar-menu li a.active {
             background-color: #fff;
         }
 
-        .sidebar-menu li a.active .material-symbols-outlined{
+        .sidebar-menu li a.active .material-symbols-outlined {
             color: #000;
             font-variation-settings: 'FILL' 1;
         }
 
-        .sidebar-menu li a .text-menu{
+        .sidebar-menu li a .text-menu {
             margin-left: 5px;
         }
 
-        
+
 
         .sidebar-menu li a:hover {
             background-color: #f8f8f9;
-            color: #000; /* Warna highlight saat di-hover */
+            color: #000;
+            /* Warna highlight saat di-hover */
         }
-        
+
 
         /* Styling untuk ikon Material Icons dalam menu */
         .sidebar-menu li a .material-symbols-outlined {
             margin-right: 10px;
-            font-size: 1.6em; /* Sesuaikan ukuran ikon */
+            font-size: 1.6em;
+            /* Sesuaikan ukuran ikon */
             transition: all 0.2s ease-in-out;
         }
 
         .sidebar-menu li a .arrow {
-            margin-left: auto; /* Mendorong panah ke kanan */
-            font-size: 1em; /* Ukuran panah material icons */
+            margin-left: auto;
+            /* Mendorong panah ke kanan */
+            font-size: 1em;
+            /* Ukuran panah material icons */
         }
 
         /* Submenu styling untuk Projects */
         .sidebar-menu .has-submenu .submenu {
             list-style: none;
             padding: 0;
-            margin-left: 45px; /* Indentasi item submenu */
+            margin-left: 45px;
+            /* Indentasi item submenu */
             padding-left: 10px;
-            border-left: 2px solid #ddd; /* Garis vertikal */
+            border-left: 2px solid #ddd;
+            /* Garis vertikal */
         }
 
-        .has-submenu [aria-expanded="true"] .arrow-more{
+        .has-submenu [aria-expanded="true"] .arrow-more {
             display: inline;
         }
 
-        .has-submenu [aria-expanded="true"] .arrow-hide{
+        .has-submenu [aria-expanded="true"] .arrow-hide {
             display: none;
         }
 
-        .has-submenu [aria-expanded="false"] .arrow-more{
+        .has-submenu [aria-expanded="false"] .arrow-more {
             display: none;
         }
 
-        .has-submenu [aria-expanded="false"] .arrow-hide{
+        .has-submenu [aria-expanded="false"] .arrow-hide {
             display: inline;
         }
 
@@ -127,11 +153,13 @@
             padding: 8px 0;
             font-size: 0.9em;
             color: #555;
-            margin: 0; /* Hapus margin horizontal untuk item submenu */
+            margin: 0;
+            /* Hapus margin horizontal untuk item submenu */
         }
 
         .sidebar-menu .has-submenu .submenu li a:hover {
-            background-color: transparent; /* Tanpa latar belakang saat di-hover untuk item submenu */
+            background-color: transparent;
+            /* Tanpa latar belakang saat di-hover untuk item submenu */
             color: #4A63F8;
         }
 
@@ -144,38 +172,43 @@
         }
 
         .active-project {
-            background-color: #4CAF50; /* Hijau */
+            background-color: #4CAF50;
+            /* Hijau */
         }
 
         .project-done {
-            background-color: #2196F3; /* Biru */
+            background-color: #2196F3;
+            /* Biru */
         }
 
         .project-on-hold {
-            background-color: #F44336; /* Merah */
+            background-color: #F44336;
+            /* Merah */
         }
 
         /* Lencana Notifikasi */
         .notification-badge {
-            background-color: #FF4D4D; /* Merah */
+            background-color: #FF4D4D;
+            /* Merah */
             color: white;
             font-size: 0.7em;
             padding: 3px 7px;
             border-radius: 10px;
-            margin-left: auto; /* Mendorong lencana ke kanan */
+            margin-left: auto;
+            /* Mendorong lencana ke kanan */
         }
 
-        .small-sidebar .left-nav{
+        .small-sidebar .left-nav {
             min-width: 77px;
             width: 77px;
             /* background-color: rgba(255, 255, 255, 0); */
         }
 
-        .small-sidebar .left-nav:hover{
+        .small-sidebar .left-nav:hover {
             background-color: #f7f8f9;
         }
- 
-        .small-sidebar .left-nav:hover .scrollable-container{
+
+        .small-sidebar .left-nav:hover .scrollable-container {
             width: 250px;
         }
 
@@ -186,15 +219,17 @@
 
         /* Hide scrollbar for IE, Edge and Firefox */
         .small-sidebar .scrollable-container {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
         }
 
-        .small-sidebar .sidebar:hover{
+        .small-sidebar .sidebar:hover {
             width: 250px;
         }
 
-        .small-sidebar .sidebar-menu li a{
+        .small-sidebar .sidebar-menu li a {
             padding: 0px 20px;
             width: 55px;
             overflow: hidden;
@@ -202,12 +237,12 @@
             white-space: nowrap;
         }
 
-        .small-sidebar .sidebar a .text-menu{
+        .small-sidebar .sidebar a .text-menu {
             color: rgba(51, 51, 51, 0);
             word-wrap: none;
         }
 
-        .small-sidebar .sidebar a .arrow{
+        .small-sidebar .sidebar a .arrow {
             display: none;
         }
 
@@ -216,24 +251,26 @@
             color: #000000;
         }
 
-        .small-sidebar .sidebar-menu li a:hover{
+        .small-sidebar .sidebar-menu li a:hover {
             width: 220px;
         }
-        .small-sidebar a:hover .text-menu{
+
+        .small-sidebar a:hover .text-menu {
             color: #000000;
         }
 
         .small-sidebar .sidebar-menu li a:hover {
             background-color: rgba(248, 248, 249, 0);
-            color: #000000; /* Warna highlight saat di-hover */
+            color: #000000;
+            /* Warna highlight saat di-hover */
         }
 
-        .sidebar-menu li a:hover .material-symbols-outlined{
+        .sidebar-menu li a:hover .material-symbols-outlined {
             color: #000;
             font-variation-settings: 'FILL' 1;
         }
 
-        .small-sidebar .text-menu{
+        .small-sidebar .text-menu {
             margin-left: 10px;
             padding: 10px 15px 10px 0px;
             border-bottom: 3px solid #e3e8ee;
@@ -244,21 +281,22 @@
             color: #000;
         }
 
-        .small-sidebar .main-content{
+        .small-sidebar .main-content {
             padding-left: 130px;
         }
 
 
-        .small-sidebar .has-submenu:hover a{
+        .small-sidebar .has-submenu:hover a {
             width: 220px;
         }
 
-        .small-sidebar .has-submenu:hover .text-menu{
+        .small-sidebar .has-submenu:hover .text-menu {
             color: #000;
-        } 
-        .small-sidebar .submenu{
+        }
+
+        .small-sidebar .submenu {
             background-color: #f7f8f9;
-        } 
+        }
     </style>
 
     @isset($head_slot)
@@ -296,9 +334,9 @@
             </div>
 
         </div>
-        
+
     </header>
-    
+
     <section class="main-content" style="">
         {{ $slot }}
     </section>
@@ -306,35 +344,35 @@
 
     <aside class="left-nav rounded-4">
         <div class="scrollable-container" style="max-height: calc(100vh - 120px)">
-            
+
             <div class="sidebar">
-                
+
                 <ul class="sidebar-menu">
                     <li>
                         <a href="#" class="active">
-                            <span class="material-symbols-outlined">home</span> 
+                            <span class="material-symbols-outlined">home</span>
                             <span class="text-menu">Dashboard</span>
                         </a>
                     </li>
                     <li>
                         <a href="#" class="">
-                            <span class="material-symbols-outlined">today</span> 
+                            <span class="material-symbols-outlined">today</span>
                             <span class="text-menu">Attendance</span>
                         </a>
                     </li>
                     <li>
                         <a href="#" class="">
-                            <span class="material-symbols-outlined">task</span> 
+                            <span class="material-symbols-outlined">task</span>
                             <span class="text-menu">Task</span>
                         </a>
                     </li>
                     <li>
                         <a href="#" class="">
-                            <span class="material-symbols-outlined">rocket_launch</span> 
+                            <span class="material-symbols-outlined">rocket_launch</span>
                             <span class="text-menu">Project</span>
                         </a>
                     </li>
-                    
+
                     {{-- <li class="has-submenu">
                         <a href="#" data-bs-toggle="collapse" data-bs-toggle="collapse" data-bs-target="#sub-project" aria-expanded="false" aria-controls="sub-project">
                             <span class="material-symbols-outlined">corporate_fare</span>
@@ -359,10 +397,18 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('master') }}" class="{{ request()->routeIs('master') || request()->routeIs('department') ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">database</span> 
+                        <a href="{{ route('master') }}"
+                            class="{{ request()->routeIs('master') || request()->routeIs('department') ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">database</span>
                             <span class="text-menu">Master</span>
                         </a>
+                    </li>
+                    <li>
+<a href="{{ route('employee.page') }}"
+    class="{{ request()->routeIs('employee.page') || request()->routeIs('department') ? 'active' : '' }}">
+    <span class="material-symbols-outlined">groups</span>
+    <span class="text-menu">Employee</span>
+</a>
                     </li>
                     <li>
                         {{-- <a href="#">
@@ -372,7 +418,7 @@
                     </li>
                     <li>
                         <a href="#">
-                            <span class="material-symbols-outlined">settings</span> 
+                            <span class="material-symbols-outlined">settings</span>
                             <span class="text-menu">Settings</span>
                         </a>
                     </li>
@@ -380,21 +426,25 @@
             </div>
 
         </div>
-        
+
     </aside>
 
     <footer>
 
     </footer>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js" integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"
+        integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous">
+    </script>
 
     <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
-    
+
     <script>
-        $('#sidebar-control').on('click',function(){
-             $("body").toggleClass("small-sidebar");
+        $('#sidebar-control').on('click', function() {
+            $("body").toggleClass("small-sidebar");
         });
     </script>
 
