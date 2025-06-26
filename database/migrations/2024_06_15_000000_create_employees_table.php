@@ -38,7 +38,7 @@ class CreateEmployeesTable extends Migration
 
             $table->foreign('department_id')->references('id')->on('departments')->onDelete('cascade');
             $table->foreign('division_id')->references('id')->on('divisions')->onDelete('cascade');
-            $table->foreign('job_id')->references('id')->on('jobs')->onDelete('cascade');
+            $table->foreign('job_id')->references('id')->on('job_list')->onDelete('cascade');
         });
     }
 

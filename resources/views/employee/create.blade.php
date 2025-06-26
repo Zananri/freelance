@@ -16,25 +16,28 @@
         <h2 class="m-0">Employee Create</h2>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%;">
+    <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%; font-size:14px;">
+        <div class="modal-loading-overlay d-none" id="employeeCreateLoader">
+            <div class="loader-spinner"></div>
+        </div>
         <form id="employeeCreateForm" enctype="multipart/form-data" novalidate>
             <div class="row">
                 <!-- Left Section -->
                 <div class="col-md-4 d-flex flex-column gap-3">
                     <div>
-                        <label for="department_id" class="form-label">Select Department</label>
+                        <label for="department_id" class="form-label">Department Name</label>
                         <select id="department_id" name="department_id" class="form-select" required>
                             <option value="" disabled selected>Select Department</option>
                         </select>
                     </div>
                     <div>
-                        <label for="division_id" class="form-label">Select Division</label>
+                        <label for="division_id" class="form-label">Division Name</label>
                         <select id="division_id" name="division_id" class="form-select" required>
                             <option value="" disabled selected>Select Division</option>
                         </select>
                     </div>
                     <div>
-                        <label for="job_id" class="form-label">Select Job</label>
+                        <label for="job_id" class="form-label">Job Name</label>
                         <select id="job_id" name="job_id" class="form-select" required>
                             <option value="" disabled selected>Select Job</option>
                         </select>
@@ -60,7 +63,7 @@
                 <div class="col-md-3 d-flex flex-column gap-3">
                     <div>
                         <label for="address" class="form-label">Address</label>
-                        <input type="text" id="address" name="address" class="form-control" required />
+                        <input type="text" id="address" name="address" class="form-control" placeholder="Input Employee Address" required />
                     </div>
                     <div>
                         <label for="photo" class="form-label">Upload Photo</label>
@@ -111,7 +114,7 @@
                         </div>
                     </div>
                     <div>
-                        <div class="title-label-image">
+                        <div class="title-label-image" style="font-size: 14px;">
                             <span>Upload Profile Picture</span>
                         </div>
                         <label for="profile_picture"
@@ -121,15 +124,15 @@
                             <span class="image-clear-btn d-none" id="profilePictureClearBtn"
                                 title="Remove image">&times;</span>
                         </label>
-                        <div class="mt-3">
-                            <button type="submit" class="btn btn-submit-dark">Create Employee</button>
-                        </div>
+                         <div class="mt-3">
+                        <button type="submit" class="btn-submit-black btn-submit-custom" style="font-size: 14px;">Create Employee</button>
+                    </div>
                     </div>
                 </div>
             </div>
         </form>
-        <div id="formAlert" class="mt-3"></div>
     </div>
+    <div id="formAlert" class="mt-3"></div>
 
     <x-slot name="script_slot">
         <script src="{{ asset('asset/js/employee-create.js') }}"></script>

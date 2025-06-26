@@ -13,11 +13,12 @@ class EmployeeController extends Controller
     {
         // Return JSON for API
         if ($request->wantsJson()) {
-            $employees = Employee::all();
+            $employees = Employee::with(['department', 'division'])->get();
             return response()->json(['data' => $employees]);
         }
-        // Return view for listing page
-        return view('employee.employee');
+        // Return view for listing page with employees data
+        $employees = Employee::with(['department', 'division'])->get();
+        return view('employee.employee', compact('employees'));
     }
 
     public function show($id)
@@ -68,7 +69,7 @@ class EmployeeController extends Controller
 
         if ($request->hasFile('profile_picture')) {
             $file = $request->file('profile_picture');
-            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $filename = 'PROFILE_PICTURE_' . time() . '.' . $file->getClientOriginalExtension();
             $destination = public_path('file/profile_picture');
             if (!file_exists($destination)) mkdir($destination, 0777, true);
             $file->move($destination, $filename);
@@ -77,7 +78,7 @@ class EmployeeController extends Controller
 
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
-            $filename = uniqid() . '.' . $file->getClientOriginalExtension();
+            $filename = 'PHOTO_' . time() . '.' . $file->getClientOriginalExtension();
             $destination = public_path('file/photo');
             if (!file_exists($destination)) mkdir($destination, 0777, true);
             $file->move($destination, $filename);

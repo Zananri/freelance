@@ -52,7 +52,8 @@
                 </div>
 
 
-                <a href="{{ route('employees.create') }}" id="btnAddData" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;">
+                <a href="{{ route('employees.create') }}" id="btnAddData" class="btn btn-icon-toggle"
+                    style="border: 1px solid #DDDDDD;">
                     <span class="material-symbols-outlined icon">add</span> Add Data
                 </a>
             </div>
@@ -63,12 +64,6 @@
                 <table class="table table-borderless align-middle table-transparent">
                     <thead>
                         <tr>
-                            <div class="">
-                                {{-- dalam div iniini nanti diisi dengan profile_picture, Employee Name, dan email, buat dalam bentuk div
-                                jadi nanti fotonya di sebelah kiri, lalu di sebelah kanannya ada Employee name dengan fonstize 14px, dan di bawah Employee name
-                                ada emailnya dalam fontsize 10px--}}
-                            </div>
-
                             <th scope="col">Employee</th>
                             <th scope="col">Department Name</th>
                             <th scope="col">Division Name</th>
@@ -78,24 +73,6 @@
                         </tr>
                     </thead>
                     <tbody id="divisionTableBody">
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <img src="{{ asset('asset/img/default-profile.png') }}" alt="Profile Picture" class="rounded-circle" width="40" height="40" />
-                                    <div>
-                                        <div class="fw-semibold" style="font-size: 14px;">John Doe</div>
-                                        <div style="font-size: 10px; color: #6c757d;">john.doe@example.com</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>Department A</td>
-                            <td>Division B</td>
-                            <td>NSA Performance</td>
-                            <td>Active</td>
-                            <td>
-                                <!-- Actions like edit/delete buttons can go here -->
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
