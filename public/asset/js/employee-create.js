@@ -231,8 +231,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    setupImageInput("photo", 'label[for="photo"]', "photoClearBtn");
-    setupImageInput("ktp", 'label[for="ktp"]', "ktpClearBtn");
     setupImageInput(
         "profile_picture",
         'label[for="profile_picture"]',

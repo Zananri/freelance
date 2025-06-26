@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderEmployees(employees) {
         if (!employees.length) {
-            tableBody.innerHTML = '<tr><td colspan="6">No employees found.</td></tr>';
+            tableBody.innerHTML = '<tr class="no-data-row"><td colspan="6" class="text-center">No employees found.</td></tr>';
             return;
         }
 
