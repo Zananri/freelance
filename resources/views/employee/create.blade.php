@@ -1,8 +1,8 @@
 <x-office-layout>
-    <x-slot name="menu_active">
+    <x-slot name="head_slot">
+          <x-slot name="menu_active">
         {{ __('employee') }}
     </x-slot>
-    <x-slot name="head_slot">
         <link href="{{ asset('asset/css/employee-create.css') }}" rel="stylesheet">
     </x-slot>
 
@@ -90,8 +90,8 @@
                         </div>
                     </div>
                     <div>
-                        <label for="profile_picture" class="form-label">Upload Profile Picture</label>
-                        <input type="file" id="profile_picture" name="profile_picture" class="form-control" accept="image/*" required />
+                        <label for="photo" class="form-label">Upload Photo</label>
+                        <input type="file" id="photo" name="photo" class="form-control" accept="image/*" required />
                         <div class="invalid-feedback">
                             Please upload a photo.
                         </div>
@@ -160,16 +160,16 @@
                     </div>
                     <div>
                         <div class="title-label-image" style="font-size: 14px;">
-                            <span>Upload Photo</span>
+                            <span>Upload Profile Picture</span>
                         </div>
-                        <label for="photo"
+                        <label for="profile_picture"
                             class="custom-image-upload position-relative profile-picture-upload">
-                            <input type="file" id="photo" name="photo" accept="image/*"
-                                class="photo-input" hidden required />
+                            <input type="file" id="profile_picture" name="profile_picture" accept="image/*"
+                                class="profile-picture-input" hidden required />
                             <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
                                 Please upload a profile picture.
                             </div>
-                            <span class="image-clear-btn d-none" id="photoClearBtn"
+                            <span class="image-clear-btn d-none" id="profilePictureClearBtn"
                                 title="Remove image">&times;</span>
                         </label>
                          <div class="mt-3">

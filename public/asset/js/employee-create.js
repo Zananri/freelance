@@ -235,8 +235,8 @@ employeeCreateForm.classList.remove("was-validated");
         label.style.opacity = "0.5";
     }
     const clearBtn = document.getElementById(
-        id === "photo"
-            ? "photoClearBtn"
+        id === "profile_picture"
+            ? "profilePictureClearBtn"
             : id + "ClearBtn"
     );
     if (clearBtn) clearBtn.classList.add("d-none");
@@ -258,7 +258,7 @@ employeeCreateForm.classList.remove("was-validated");
         const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
         inputs.forEach((input) => {
             input.addEventListener("input", () => {
-                if (input.id === "photo" || input.id === "ktp" || input.id === "profile_picture") {
+                if (input.id === "profile_picture") {
                     if (input.checkValidity()) {
                         input.classList.remove("is-invalid");
                         input.classList.add("is-valid");
@@ -286,7 +286,7 @@ employeeCreateForm.classList.remove("was-validated");
                 employeeCreateForm.classList.remove("was-validated");
             });
 input.addEventListener("change", () => {
-    if (input.id === "photo" || input.id === "ktp" || input.id === "profile_picture") {
+    if (input.id === "profile_picture") {
         if (input.checkValidity()) {
             input.classList.remove("is-invalid");
             input.classList.add("is-valid");
@@ -321,9 +321,6 @@ input.addEventListener("change", () => {
         'label[for="profile_picture"]',
         "profilePictureClearBtn"
     );
-
-    setupImageInput("photo", 'label[for="photo"]', "photoClearBtn");
-    setupImageInput("ktp", 'label[for="ktp"]', "ktpClearBtn");
 
 
 });
