@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 $('.alert-delete-container').append(alertHtml).show();
                 setTimeout(() => {
                     $('.alert-delete-container .alert').alert('close');
-                }, 1500);
+                }, 2000);
                 // Hide modal
                 deleteEmployeeModal.hide();
                 // Reload page to reflect changes
