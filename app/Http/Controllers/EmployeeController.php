@@ -13,11 +13,15 @@ class EmployeeController extends Controller
     {
         // Return JSON for API
         if ($request->wantsJson()) {
-            $employees = Employee::with(['department', 'division'])->get();
+            $employees = Employee::with(['department', 'division'])
+                ->where('status', '!=', 'DELETED')
+                ->get();
             return response()->json(['data' => $employees]);
         }
         // Return view for listing page with employees data
-        $employees = Employee::with(['department', 'division'])->get();
+        $employees = Employee::with(['department', 'division'])
+            ->where('status', '!=', 'DELETED')
+            ->get();
         return view('employee.employee', compact('employees'));
     }
 
@@ -168,8 +172,9 @@ class EmployeeController extends Controller
             return response()->json(['message' => 'Employee not found'], 404);
         }
 
+        $employee->status = 'DELETED';
         $employee->deleted_by = 1;
-        $employee->delete();
+        $employee->save();
 
         return response()->json(['message' => 'Employee deleted successfully']);
     }

@@ -56,6 +56,58 @@
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
 
+/* Delete Modal Styles */
+.delete-employee-photo {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    margin: 0 auto 1rem auto;
+    border: 2px solid #dee2e6;
+}
+
+#deleteEmployeeName {
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+}
+
+#deleteEmployeeEmail {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 1rem;
+}
+
+.modal-body p {
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+}
+
+/* Buttons styling consistent with department modal */
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.375rem 1rem;
+    border-radius: 0.25rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+
+.btn-cancel {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.375rem 1rem;
+    border-radius: 0.25rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+
 .table-image {
     width: 40px;
     height: 40px;
@@ -361,10 +413,6 @@ table.table > tbody > tr > td {
     transition: background-color 0.3s ease;
 }
 
-.btn-cancel-small:hover {
-    background-color: #5a6268;
-}
-
 .btn-delete-red {
     background-color: #dc3545;
     color: white;
@@ -379,9 +427,6 @@ table.table > tbody > tr > td {
     transition: background-color 0.3s ease;
 }
 
-.btn-delete-red:hover {
-    background-color: #b02a37;
-}
 @keyframes spin {
     0% {
         transform: rotate(0deg);

@@ -80,6 +80,39 @@
     </div>
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteEmployeeModal" tabindex="-1" aria-labelledby="deleteEmployeeModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <form id="deleteEmployeeForm" class="modal-content">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title" id="deleteEmployeeModalLabel">Confirm Delete Employee</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <div class="delete-employee-photo mb-3 mx-auto"></div>
+            <h5 id="deleteEmployeeName" class="fw-semibold"></h5>
+            <div id="deleteEmployeeEmail" class="text-muted small mb-3"></div>
+            <div class="text-start mx-4">
+              <p class="mb-1"><strong>Department:</strong> <span id="deleteEmployeeDepartment"></span></p>
+              <p class="mb-1"><strong>Division:</strong> <span id="deleteEmployeeDivision"></span></p>
+              <p class="mb-1"><strong>Office:</strong> <span id="deleteEmployeeOffice"></span></p>
+              <p class="mb-1"><strong>Status:</strong> <span id="deleteEmployeeStatus"></span></p>
+            </div>
+          </div>
+        <div class="modal-footer modal-footer-custom modal-footer-delete">
+                        <button type="submit"
+                            class="btn-submit-black btn-submit-custom btn-delete-modal btn-delete-small btn-delete-red">Delete</button>
+                        <button type="button"
+                            class="btn-cancel-delete btn-submit-black btn-submit-custom btn-cancel-small"
+                            data-bs-dismiss="modal">Cancel</button>
+                    </div>
+          <div id="deleteModalLoader" class="modal-loading-overlay d-none">
+            <div class="loader-spinner"></div>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <x-slot name="script_slot">
 
         <script src="{{ asset('asset/js/employee.js') }}"></script>
