@@ -349,7 +349,7 @@
 
                 <ul class="sidebar-menu">
                     <li>
-                        <a href="#" class="active">
+                        <a href="{{ url('dashboard') }}" class="{{ ($menu_active == 'dashboard') ? 'active' : '' }}">
                             <span class="material-symbols-outlined">home</span>
                             <span class="text-menu">Dashboard</span>
                         </a>
@@ -404,11 +404,11 @@
                         </a>
                     </li>
                     <li>
-<a href="{{ route('employee.page') }}"
-    class="{{ request()->routeIs('employee.page') || request()->routeIs('department') ? 'active' : '' }}">
-    <span class="material-symbols-outlined">groups</span>
-    <span class="text-menu">Employee</span>
-</a>
+                        <a href="{{ route('employee.page') }}"
+                            class="{{ request()->routeIs('employee.page') || request()->routeIs('department') ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">groups</span>
+                            <span class="text-menu">Employee</span>
+                        </a>
                     </li>
                     <li>
                         {{-- <a href="#">

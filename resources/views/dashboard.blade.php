@@ -1,5 +1,7 @@
 <x-office-layout>
-
+    <x-slot name="menu_active">
+        {{ __('dashboard') }}
+    </x-slot>
     <div class="title-content">
         <h2>Dashboard</h2>
     </div>

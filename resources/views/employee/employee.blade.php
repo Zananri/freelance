@@ -1,4 +1,7 @@
 <x-office-layout>
+    <x-slot name="menu_active">
+        {{ __('employee') }}
+    </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/employee.css') }}" rel="stylesheet">
     </x-slot>
