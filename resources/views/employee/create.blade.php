@@ -1,8 +1,8 @@
 <x-office-layout>
     <x-slot name="head_slot">
-          <x-slot name="menu_active">
-        {{ __('employee') }}
-    </x-slot>
+        <x-slot name="menu_active">
+            {{ __('employee') }}
+        </x-slot>
         <link href="{{ asset('asset/css/employee-create.css') }}" rel="stylesheet">
     </x-slot>
 
@@ -19,11 +19,12 @@
         <h2 class="m-0">Employee Create</h2>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%; font-size:14px;">
+    <div class="body-content scrollable-container rounded-4 px-3 py-3"
+        style="margin-top: 20px; width: 100%; font-size:14px;">
         <div class="modal-loading-overlay d-none" id="employeeCreateLoader">
             <div class="loader-spinner"></div>
         </div>
-<form id="employeeCreateForm" class="needs-validation" enctype="multipart/form-data" novalidate>
+        <form id="employeeCreateForm" class="needs-validation" enctype="multipart/form-data" novalidate>
             <div class="row">
                 <!-- Left Section -->
                 <div class="col-md-4 d-flex flex-column gap-3">
@@ -84,23 +85,18 @@
                 <div class="col-md-3 d-flex flex-column gap-3">
                     <div>
                         <label for="address" class="form-label">Address</label>
-                        <input type="text" id="address" name="address" class="form-control" placeholder="Input Employee Address" required />
+                        <input type="text" id="address" name="address" class="form-control"
+                            placeholder="Input Employee Address" required />
                         <div class="invalid-feedback">
                             Please enter the address.
                         </div>
                     </div>
                     <div>
-                        <label for="photo" class="form-label">Upload Photo</label>
-                        <input type="file" id="photo" name="photo" class="form-control" accept="image/*" required />
+                        <label for="profile_picture" class="form-label">Upload Profile Picture</label>
+                        <input type="file" id="profile_picture" name="profile_picture" class="form-control"
+                            accept="image/*" required />
                         <div class="invalid-feedback">
                             Please upload a photo.
-                        </div>
-                    </div>
-                    <div>
-                        <label for="ktp" class="form-label">Upload KTP</label>
-                        <input type="file" id="ktp" name="ktp" class="form-control" accept="image/*" required />
-                        <div class="invalid-feedback">
-                            Please upload a KTP.
                         </div>
                     </div>
                     <div>
@@ -134,47 +130,50 @@
                             Please select an office.
                         </div>
                     </div>
-                </div>
-
-                <!-- Right Section -->
-                <div class="col-md-4 d-flex flex-column align-items-start gap-3">
-                    <div class="d-flex gap-3">
-                        <div>
-                            <label for="status" class="form-label">Status</label>
-                            <select id="status" name="status" class="form-select" required>
-                                <option value="" disabled selected>Select Status</option>
-                                <option value="ACTIVE">Active</option>
-                                <option value="INACTIVE">Inactive</option>
-                            </select>
-                            <div class="invalid-feedback">
-                                Please select a status.
-                            </div>
-                        </div>
-                        <div>
+                     <div>
                             <label for="hire_date" class="form-label">Hire Date</label>
                             <input type="date" id="hire_date" name="hire_date" class="form-control" required />
                             <div class="invalid-feedback">
                                 Please enter the hire date.
                             </div>
                         </div>
-                    </div>
-                    <div>
-                        <div class="title-label-image" style="font-size: 14px;">
-                            <span>Upload Profile Picture</span>
-                        </div>
-                        <label for="profile_picture"
-                            class="custom-image-upload position-relative profile-picture-upload">
-                            <input type="file" id="profile_picture" name="profile_picture" accept="image/*"
-                                class="profile-picture-input" hidden required />
-                            <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                Please upload a profile picture.
+                </div>
+
+                <!-- Right Section -->
+                <div class="col-md-4 d-flex flex-column align-items-start gap-3">
+                    <div class="d-flex gap-3">
+                        <div class="flex-fill">
+                            <div class="title-label-image-photo" style="font-size: 14px;">
+                                <span>Upload Photo</span>
                             </div>
-                            <span class="image-clear-btn d-none" id="profilePictureClearBtn"
-                                title="Remove image">&times;</span>
-                        </label>
-                         <div class="mt-3">
-                        <button type="submit" class="btn-submit-black btn-submit-custom" style="font-size: 14px;">Create Employee</button>
-                    </div>
+                            <label for="photo" class="custom-image-upload-photo position-relative photo-upload">
+                                <input type="file" id="photo" name="photo" accept="image/*"
+                                    class="photo-input" hidden required />
+                                <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
+                                    Please upload a profile picture.
+                                </div>
+                                <span class="image-clear-btn d-none" id="photoClearBtn"
+                                    title="Remove image">&times;</span>
+                            </label>
+                            <div class="mt-3">
+                                <button type="submit" class="btn-submit-black btn-submit-custom"
+                                    style="font-size: 14px;">Create Employee</button>
+                            </div>
+                        </div>
+                        <div class="flex-fill">
+                        <div class="title-label-image-ktp" style="font-size: 14px;">
+                            <span>Upload KTP</span>
+                        </div>
+                        <label for="ktp" class="custom-image-upload-ktp position-relative ktp-upload">
+                                <input type="file" id="ktp" name="ktp" accept="image/*"
+                                    class="ktp-input" hidden required />
+                                <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
+                                    Please upload a profile picture.
+                                </div>
+                                <span class="image-clear-btn d-none" id="ktpClearBtn"
+                                    title="Remove image">&times;</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>

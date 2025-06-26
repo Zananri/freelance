@@ -133,7 +133,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const formAlert = document.getElementById("formAlert");
 
     if (employeeCreateForm) {
-        const profilePictureLabel = document.querySelector('label[for="profile_picture"]');
+        const photoLabel = document.querySelector('label[for="photo"]');
         employeeCreateForm.addEventListener("submit", function (e) {
             // Bootstrap validation
             if (!employeeCreateForm.checkValidity()) {
@@ -234,11 +234,14 @@ employeeCreateForm.classList.remove("was-validated");
         label.classList.remove("has-image", "is-valid", "is-invalid");
         label.style.opacity = "0.5";
     }
-    const clearBtn = document.getElementById(
-        id === "profile_picture"
-            ? "profilePictureClearBtn"
+  const clearBtn = document.getElementById(
+    id === "photo"
+        ? "photoClearBtn"
+        : id === "ktp"
+            ? "ktpClearBtn"
             : id + "ClearBtn"
-    );
+);
+    
     if (clearBtn) clearBtn.classList.add("d-none");
 });
                     } else {
@@ -258,7 +261,7 @@ employeeCreateForm.classList.remove("was-validated");
         const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
         inputs.forEach((input) => {
             input.addEventListener("input", () => {
-                if (input.id === "profile_picture") {
+                if (input.id === "photo" || input.id === "ktp") {
                     if (input.checkValidity()) {
                         input.classList.remove("is-invalid");
                         input.classList.add("is-valid");
@@ -286,7 +289,7 @@ employeeCreateForm.classList.remove("was-validated");
                 employeeCreateForm.classList.remove("was-validated");
             });
 input.addEventListener("change", () => {
-    if (input.id === "profile_picture") {
+    if (input.id === "photo" || input.id === "ktp") {
         if (input.checkValidity()) {
             input.classList.remove("is-invalid");
             input.classList.add("is-valid");
@@ -317,9 +320,15 @@ input.addEventListener("change", () => {
     }
 
     setupImageInput(
-        "profile_picture",
-        'label[for="profile_picture"]',
-        "profilePictureClearBtn"
+        "photo",
+        'label[for="photo"]',
+        "photoClearBtn"
+    );
+
+    setupImageInput(
+        "ktp",
+        'label[for="ktp"]',
+        "ktpClearBtn"
     );
 
 
