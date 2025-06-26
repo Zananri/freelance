@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function setupImageInput(inputId, labelSelector, clearBtnId) {
         const input = document.getElementById(inputId);
         const label = document.querySelector(labelSelector);
-        const clearBtn = document.getElementById(clearBtnId);
+        const clearBtn = clearBtnId ? document.getElementById(clearBtnId) : null;
 
         if (!input || !label) return;
 
@@ -121,6 +121,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 label.style.backgroundImage = "";
                 label.classList.remove("has-image");
                 label.style.opacity = "0.5";
+                label.classList.remove("is-valid");
+                label.classList.remove("is-invalid");
                 clearBtn.classList.add("d-none");
             });
         }
@@ -131,7 +133,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const formAlert = document.getElementById("formAlert");
 
     if (employeeCreateForm) {
+        const profilePictureLabel = document.querySelector('label[for="profile_picture"]');
         employeeCreateForm.addEventListener("submit", function (e) {
+            // Bootstrap validation
+            if (!employeeCreateForm.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+                employeeCreateForm.classList.add("was-validated");
+                return;
+            }
+            employeeCreateForm.classList.remove("was-validated");
+
             e.preventDefault();
 
             const employeeCreateLoader = document.getElementById("employeeCreateLoader");
@@ -197,26 +209,38 @@ document.addEventListener("DOMContentLoaded", function () {
                     setTimeout(() => {
                         formAlert.innerHTML = "";
                     }, 1500);
-                    employeeCreateForm.reset();
-                    // Reset image previews
-                    ["photo", "ktp", "profile_picture"].forEach((id) => {
-                        const input = document.getElementById(id);
-                        if (input) input.value = "";
-                        const label = document.querySelector(
-                            `label[for="${id}"]`
-                        );
-                        if (label) {
-                            label.style.backgroundImage = "";
-                            label.classList.remove("has-image");
-                            label.style.opacity = "0.5";
-                        }
-                        const clearBtn = document.getElementById(
-                            id === "profile_picture"
-                                ? "profilePictureClearBtn"
-                                : id + "ClearBtn"
-                        );
-                        if (clearBtn) clearBtn.classList.add("d-none");
-                    });
+employeeCreateForm.reset();
+
+// Remove validation classes from inputs and labels
+const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
+inputs.forEach((input) => {
+    input.classList.remove("is-valid", "is-invalid");
+});
+const labels = employeeCreateForm.querySelectorAll("label");
+labels.forEach((label) => {
+    label.classList.remove("is-valid", "is-invalid");
+});
+employeeCreateForm.classList.remove("was-validated");
+
+// Reset image previews
+["photo", "ktp", "profile_picture"].forEach((id) => {
+    const input = document.getElementById(id);
+    if (input) input.value = "";
+    const label = document.querySelector(
+        `label[for="${id}"]`
+    );
+    if (label) {
+        label.style.backgroundImage = "";
+        label.classList.remove("has-image", "is-valid", "is-invalid");
+        label.style.opacity = "0.5";
+    }
+    const clearBtn = document.getElementById(
+        id === "photo"
+            ? "photoClearBtn"
+            : id + "ClearBtn"
+    );
+    if (clearBtn) clearBtn.classList.add("d-none");
+});
                     } else {
                         formAlert.innerHTML =
                             '<div class="alert alert-danger">Failed to create employee.</div>';
@@ -229,6 +253,67 @@ document.addEventListener("DOMContentLoaded", function () {
                         '<div class="alert alert-danger">Failed to create employee.</div>';
                 });
         });
+
+        // Add input/change event listeners for validation classes
+        const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
+        inputs.forEach((input) => {
+            input.addEventListener("input", () => {
+                if (input.id === "photo" || input.id === "ktp" || input.id === "profile_picture") {
+                    if (input.checkValidity()) {
+                        input.classList.remove("is-invalid");
+                        input.classList.add("is-valid");
+                        if (profilePictureLabel) {
+                            profilePictureLabel.classList.remove("is-invalid");
+                            profilePictureLabel.classList.add("is-valid");
+                        }
+                    } else {
+                        input.classList.remove("is-valid");
+                        input.classList.add("is-invalid");
+                        if (profilePictureLabel) {
+                            profilePictureLabel.classList.add("is-invalid");
+                            profilePictureLabel.classList.remove("is-valid");
+                        }
+                    }
+                } else {
+                    if (input.checkValidity()) {
+                        input.classList.remove("is-invalid");
+                        input.classList.add("is-valid");
+                    } else {
+                        input.classList.remove("is-valid");
+                        input.classList.add("is-invalid");
+                    }
+                }
+                employeeCreateForm.classList.remove("was-validated");
+            });
+input.addEventListener("change", () => {
+    if (input.id === "photo" || input.id === "ktp" || input.id === "profile_picture") {
+        if (input.checkValidity()) {
+            input.classList.remove("is-invalid");
+            input.classList.add("is-valid");
+            if (profilePictureLabel) {
+                profilePictureLabel.classList.remove("is-invalid");
+                profilePictureLabel.classList.add("is-valid");
+            }
+        } else {
+            input.classList.remove("is-valid");
+            input.classList.add("is-invalid");
+            if (profilePictureLabel) {
+                profilePictureLabel.classList.add("is-invalid");
+                profilePictureLabel.classList.remove("is-valid");
+            }
+        }
+    } else {
+        if (input.checkValidity()) {
+            input.classList.remove("is-invalid");
+            input.classList.add("is-valid");
+        } else {
+            input.classList.remove("is-valid");
+            input.classList.add("is-invalid");
+        }
+    }
+    employeeCreateForm.classList.remove("was-validated");
+});
+        });
     }
 
     setupImageInput(
@@ -236,4 +321,9 @@ document.addEventListener("DOMContentLoaded", function () {
         'label[for="profile_picture"]',
         "profilePictureClearBtn"
     );
+
+    setupImageInput("photo", 'label[for="photo"]', "photoClearBtn");
+    setupImageInput("ktp", 'label[for="ktp"]', "ktpClearBtn");
+
+
 });

@@ -185,6 +185,9 @@ class EmployeeController extends Controller
         if (!$employee) {
             abort(404, 'Employee not found');
         }
-        return view('employee.edit', compact('employee'));
+        $departments = \App\Models\Department::all();
+        $divisions = \App\Models\Division::all();
+        $jobs = \App\Models\Job::all();
+        return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs'));
     }
 }

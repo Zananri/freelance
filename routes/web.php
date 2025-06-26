@@ -49,6 +49,7 @@ Route::get('/employee-page', function () {
 
 Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
 Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
+Route::get('/employees/{id}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
 Route::get('/employees/{id}', [EmployeeController::class, 'show'])->name('employees.show');
 Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
 Route::put('/employees/{id}', [EmployeeController::class, 'update'])->name('employees.update');
