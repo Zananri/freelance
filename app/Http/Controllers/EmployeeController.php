@@ -12,27 +12,46 @@ class EmployeeController extends Controller
     public function index(Request $request)
     {
         $query = $request->input('query', '');
+        $departmentIds = $request->input('department', []);
+        $divisionIds = $request->input('division', []);
+        $jobIds = $request->input('job', []);
 
         // Return JSON for API
         if ($request->wantsJson()) {
-            $employees = Employee::with(['department', 'division'])
+            $employees = Employee::with(['department', 'division', 'job'])
                 ->where('status', '!=', 'DELETED')
-                ->where(function ($q) use ($query) {
-                    $q->where('name', 'like', '%' . $query . '%')
-                      ->orWhere('email', 'like', '%' . $query . '%')
-                      ->orWhere('office', 'like', '%' . $query . '%')
-                      ->orWhereHas('department', function ($q2) use ($query) {
-                          $q2->where('name_department', 'like', '%' . $query . '%');
-                      })
-                      ->orWhereHas('division', function ($q3) use ($query) {
-                          $q3->where('name_division', 'like', '%' . $query . '%');
-                      });
+                ->when($query, function ($q) use ($query) {
+                    $q->where(function ($q2) use ($query) {
+                        $q2->where('name', 'like', '%' . $query . '%')
+                          ->orWhere('email', 'like', '%' . $query . '%')
+                          ->orWhere('office', 'like', '%' . $query . '%')
+                          ->orWhereHas('department', function ($q3) use ($query) {
+                              $q3->where('name_department', 'like', '%' . $query . '%');
+                          })
+                          ->orWhereHas('division', function ($q4) use ($query) {
+                              $q4->where('name_division', 'like', '%' . $query . '%');
+                          });
+                    });
                 })
+                ->when(!empty($departmentIds), function ($q) use ($departmentIds, $divisionIds, $jobIds) {
+                    $q->whereIn('department_id', $departmentIds);
+
+                    // Apply division filter only if department filter is present
+                    if (!empty($divisionIds)) {
+                        $q->whereIn('division_id', $divisionIds);
+                    }
+
+                    // Apply job filter only if both department and division filters are present
+                    if (!empty($divisionIds) && !empty($jobIds)) {
+                        $q->whereIn('job_id', $jobIds);
+                    }
+                })
+                // If department filter is empty, do not apply division or job filters
                 ->get();
             return response()->json(['data' => $employees]);
         }
         // Return view for listing page with employees data
-        $employees = Employee::with(['department', 'division'])
+        $employees = Employee::with(['department', 'division', 'job'])
             ->where('status', '!=', 'DELETED')
             ->get();
         return view('employee.employee', compact('employees'));

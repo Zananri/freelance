@@ -3,12 +3,116 @@ var appUrl = $('meta[name="app-url"]').attr("content");
 document.addEventListener('DOMContentLoaded', function () {
     const tableBody = document.getElementById('employeeTableBody');
 
-    function fetchEmployees(query = '') {
+    // Current filter selections
+    let currentFilters = {
+        query: '',
+        department: '',
+        division: '',
+        job: ''
+    };
+
+    const filterDepartmentSelect = document.getElementById('filterDepartment');
+    const filterDivisionSelect = document.getElementById('filterDivision');
+    const filterJobSelect = document.getElementById('filterJob');
+    const searchInput = document.getElementById('searchInput');
+    const applyFilterBtn = document.getElementById('applyFilterBtn');
+    const openFilterModalBtn = document.getElementById('openFilterModalBtn');
+
+    // Load departments for filter select
+    function loadDepartments() {
+        $.ajax({
+            url: appUrl + '/departments',
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                const data = response.data || response;
+                filterDepartmentSelect.innerHTML = '<option value="">Select Department</option>';
+                data.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.id;
+                    option.textContent = dept.name_department;
+                    filterDepartmentSelect.appendChild(option);
+                });
+                filterDivisionSelect.innerHTML = '<option value="">Select Division</option>';
+                filterDivisionSelect.disabled = true;
+                filterJobSelect.innerHTML = '<option value="">Select Job</option>';
+                filterJobSelect.disabled = true;
+            },
+            error: function() {
+                alert('Failed to load departments.');
+            }
+        });
+    }
+
+    // Load divisions based on selected department
+    function loadDivisions(departmentId) {
+        if (!departmentId) {
+            filterDivisionSelect.innerHTML = '<option value="">Select Division</option>';
+            filterDivisionSelect.disabled = true;
+            filterJobSelect.innerHTML = '<option value="">Select Job</option>';
+            filterJobSelect.disabled = true;
+            return;
+        }
+        $.ajax({
+            url: appUrl + '/divisions',
+            method: 'GET',
+            dataType: 'json',
+            data: { department_id: departmentId },
+            success: function(response) {
+                const data = response.data || response;
+                filterDivisionSelect.innerHTML = '<option value="">Select Division</option>';
+                data.forEach(div => {
+                    const option = document.createElement('option');
+                    option.value = div.id;
+                    option.textContent = div.name_division;
+                    filterDivisionSelect.appendChild(option);
+                });
+                filterDivisionSelect.disabled = false;
+                filterJobSelect.innerHTML = '<option value="">Select Job</option>';
+                filterJobSelect.disabled = true;
+            },
+            error: function() {
+                alert('Failed to load divisions.');
+            }
+        });
+    }
+
+    // Load jobs based on selected division
+    function loadJobs(divisionId) {
+        if (!divisionId) {
+            filterJobSelect.innerHTML = '<option value="">Select Job</option>';
+            filterJobSelect.disabled = true;
+            return;
+        }
+        $.ajax({
+            url: appUrl + '/jobs',
+            method: 'GET',
+            dataType: 'json',
+            data: { division_id: divisionId },
+            success: function(response) {
+                const data = response.data || response;
+                filterJobSelect.innerHTML = '<option value="">Select Job</option>';
+                data.forEach(job => {
+                    const option = document.createElement('option');
+                    option.value = job.id;
+                    option.textContent = job.job_name;
+                    filterJobSelect.appendChild(option);
+                });
+                filterJobSelect.disabled = false;
+            },
+            error: function() {
+                alert('Failed to load jobs.');
+            }
+        });
+    }
+
+    // Fetch employees with filters
+    function fetchEmployees(filters = {}) {
         $.ajax({
             url: appUrl + "/employees",
             type: "GET",
             dataType: 'json',
-            data: { query: query },
+            data: filters,
             headers: {
                 'Accept': 'application/json'
             },
@@ -16,11 +120,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 renderEmployees(data.data);
             },
             error: function () {
-                $('#employeeTableBody').html('<tr><td colspan="6">Failed to load employee data.</td></tr>');
+                tableBody.innerHTML = '<tr><td colspan="6">Failed to load employee data.</td></tr>';
             }
         });
     }
 
+    // Render employee rows in table
     function renderEmployees(employees) {
         if (!employees.length) {
             tableBody.innerHTML = '<tr class="no-data-row"><td colspan="6" class="text-center">No employees found.</td></tr>';
@@ -53,20 +158,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     <td>${office}</td>
                     <td><span class="${statusClass}">${status}</span></td>
                     <td class="text-end">
-                        <button class="btn-detail" title="Detail" data-id="${employee.id}">
+                        <button class="btn-icon-toggle btn-detail" data-id="${employee.id}" title="Detail">
                             <span class="material-symbols-outlined icon">visibility</span>
                         </button>
-                        <button class="btn-edit" title="Edit" data-id="${employee.id}" onclick="window.location.href='/employees/${employee.id}/edit'">
+                        <button class="btn-icon-toggle btn-edit" data-id="${employee.id}" title="Edit">
                             <span class="material-symbols-outlined icon">edit</span>
                         </button>
-                        <button class="btn-delete" title="Delete" data-id="${employee.id}">
+                        <button class="btn-icon-toggle btn-delete" data-id="${employee.id}" title="Delete">
                             <span class="material-symbols-outlined icon">delete</span>
                         </button>
                     </td>
                 </tr>
             `;
         });
-
         tableBody.innerHTML = rows;
     }
 
@@ -121,6 +225,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    $(document).on('click', '.btn-edit', function () {
+        const id = $(this).data('id');
+        window.location.href = appUrl + `/employees/${id}/edit`;
+    });
+
     deleteEmployeeForm.addEventListener('submit', function (e) {
         e.preventDefault();
         const id = $(this).data('id');
@@ -157,13 +266,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 alert('Failed to delete employee.');
             }
         });
-    });
-
-    fetchEmployees();
-
-    $('#searchInput').on('input', function () {
-        const query = $(this).val();
-        fetchEmployees(query);
     });
 
     // Employee Detail Modal Logic
@@ -213,4 +315,41 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // Filter modal open button
+    openFilterModalBtn.addEventListener('click', () => {
+        loadDepartments();
+        $('#filterModal').modal('show');
+    });
+
+    // Filter selects change events
+    filterDepartmentSelect.addEventListener('change', () => {
+        const departmentId = filterDepartmentSelect.value;
+        loadDivisions(departmentId);
+    });
+
+    filterDivisionSelect.addEventListener('change', () => {
+        const divisionId = filterDivisionSelect.value;
+        loadJobs(divisionId);
+    });
+
+    // Apply filter button click
+    applyFilterBtn.addEventListener('click', () => {
+        currentFilters.department = filterDepartmentSelect.value ? [filterDepartmentSelect.value] : [];
+        currentFilters.division = filterDivisionSelect.value ? [filterDivisionSelect.value] : [];
+        currentFilters.job = filterJobSelect.value ? [filterJobSelect.value] : [];
+        currentFilters.query = searchInput.value.trim();
+
+        fetchEmployees(currentFilters);
+        $('#filterModal').modal('hide');
+    });
+
+    // Search input event
+    searchInput.addEventListener('input', () => {
+        currentFilters.query = searchInput.value.trim();
+        fetchEmployees(currentFilters);
+    });
+
+    // Initial fetch employees without filters
+    fetchEmployees();
 });

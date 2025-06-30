@@ -27,27 +27,47 @@
                 <div class="input-group min-width-200 height-38">
                     <input type="text" id="searchInput" class="form-control input-soft border-dddd height-38" placeholder="Search" />
                 </div>
-                <div class="dropdown">
-                    <button class="btn btn-icon-toggle dropdown-toggle border-dddd" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span class="material-symbols-outlined icon">filter_list</span> Filter
-                    </button>
-                    <ul class="dropdown-menu p-2" aria-labelledby="filterDropdown" style="min-width: 220px; max-height: 300px; overflow-y: auto;">
-                        <li class="mb-2">
-                            <select class="form-select form-select-sm" id="filterTypeSelect" aria-label="Select filter type">
-                                <option value="" disabled selected>Select Filter Option</option>
-                                <option value="status">Filter by Status</option>
-                                <option value="department">Filter by Department</option>
+                <!-- Replace dropdown filter with button to open modal -->
+                <button class="btn btn-icon-toggle border-dddd" type="button" id="openFilterModalBtn">
+                    <span class="material-symbols-outlined icon">filter_list</span> Filter
+                </button>
+
+                <!-- Filter Modal -->
+                <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="filterModalLabel">Filter Employees</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <form id="filterForm">
+                          <div class="mb-3">
+                            <label for="filterDepartment" class="form-label">Filter by Department</label>
+                            <select id="filterDepartment" class="form-select">
+                              <option value="">Select Department</option>
                             </select>
-                        </li>
-                        <li id="statusFilterOptions" class="d-none">
-                            <a class="dropdown-item filter-option" href="#" data-status="ALL">All</a>
-                            <a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a>
-                            <a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
-                        </li>
-                        <li id="departmentFilterOptions" class="d-none">
-                            <span class="dropdown-item text-muted">Loading departments...</span>
-                        </li>
-                    </ul>
+                          </div>
+                          <div class="mb-3">
+                            <label for="filterDivision" class="form-label">Filter by Division</label>
+                            <select id="filterDivision" class="form-select" disabled>
+                              <option value="">Select Division</option>
+                            </select>
+                          </div>
+                          <div class="mb-3">
+                            <label for="filterJob" class="form-label">Filter by Job</label>
+                            <select id="filterJob" class="form-select" disabled>
+                              <option value="">Select Job</option>
+                            </select>
+                          </div>
+                        </form>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" id="applyFilterBtn">Filter</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <a href="{{ route('employees.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd">

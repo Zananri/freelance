@@ -57,7 +57,6 @@ Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('
 
 
 
-
 Route::get('/', function () {
     return view('welcome');
 });
