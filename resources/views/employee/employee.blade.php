@@ -69,7 +69,7 @@
                             <th scope="col"></th>
                         </tr>
                     </thead>
-                    <tbody id="divisionTableBody">
+                    <tbody id="employeeTableBody">
                     </tbody>
                 </table>
             </div>

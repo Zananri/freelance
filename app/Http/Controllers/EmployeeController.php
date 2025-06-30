@@ -11,10 +11,23 @@ class EmployeeController extends Controller
 {
     public function index(Request $request)
     {
+        $query = $request->input('query', '');
+
         // Return JSON for API
         if ($request->wantsJson()) {
             $employees = Employee::with(['department', 'division'])
                 ->where('status', '!=', 'DELETED')
+                ->where(function ($q) use ($query) {
+                    $q->where('name', 'like', '%' . $query . '%')
+                      ->orWhere('email', 'like', '%' . $query . '%')
+                      ->orWhere('office', 'like', '%' . $query . '%')
+                      ->orWhereHas('department', function ($q2) use ($query) {
+                          $q2->where('name_department', 'like', '%' . $query . '%');
+                      })
+                      ->orWhereHas('division', function ($q3) use ($query) {
+                          $q3->where('name_division', 'like', '%' . $query . '%');
+                      });
+                })
                 ->get();
             return response()->json(['data' => $employees]);
         }

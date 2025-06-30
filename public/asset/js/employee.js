@@ -1,13 +1,14 @@
 var appUrl = $('meta[name="app-url"]').attr("content");
 
 document.addEventListener('DOMContentLoaded', function () {
-    const tableBody = document.getElementById('divisionTableBody');
+    const tableBody = document.getElementById('employeeTableBody');
 
-    function fetchEmployees() {
+    function fetchEmployees(query = '') {
         $.ajax({
             url: appUrl + "/employees",
             type: "GET",
             dataType: 'json',
+            data: { query: query },
             headers: {
                 'Accept': 'application/json'
             },
@@ -15,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 renderEmployees(data.data);
             },
             error: function () {
-                $('#divisionTableBody').html('<tr><td colspan="6">Failed to load employee data.</td></tr>');
+                $('#employeeTableBody').html('<tr><td colspan="6">Failed to load employee data.</td></tr>');
             }
         });
     }
@@ -159,6 +160,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     fetchEmployees();
+
+    $('#searchInput').on('input', function () {
+        const query = $(this).val();
+        fetchEmployees(query);
+    });
 
     // Employee Detail Modal Logic
     const employeeDetailModalEl = document.getElementById('employeeDetailModal');
