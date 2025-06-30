@@ -5,8 +5,12 @@ document.addEventListener("DOMContentLoaded", function () {
     loaderOverlay.innerHTML = '<div class="loader-spinner"></div>';
     form.appendChild(loaderOverlay);
 
-    const profilePictureLabel = document.querySelector('label[for="profile_picture"]');
-    const profilePictureClearBtn = document.getElementById("profilePictureClearBtn");
+    const profilePictureLabel = document.querySelector(
+        'label[for="profile_picture"]'
+    );
+    const profilePictureClearBtn = document.getElementById(
+        "profilePictureClearBtn"
+    );
     const photoLabel = document.querySelector('label[for="photo"]');
     const photoClearBtn = document.getElementById("photoClearBtn");
     const ktpLabel = document.querySelector('label[for="ktp"]');
@@ -25,7 +29,8 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch("/departments", { headers: { Accept: "application/json" } })
             .then((res) => res.json())
             .then((data) => {
-                let options = '<option value="" disabled>Select Department</option>';
+                let options =
+                    '<option value="" disabled>Select Department</option>';
                 (data.data || []).forEach((dept) => {
                     options += `<option value="${dept.id}" ${
                         dept.id == selectedId ? "selected" : ""
@@ -33,19 +38,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 departmentSelect.innerHTML = options;
                 if (selectedId) {
-                    loadDivisions(selectedId, divisionSelect.getAttribute("data-current"));
+                    loadDivisions(
+                        selectedId,
+                        divisionSelect.getAttribute("data-current")
+                    );
                 }
             });
     }
 
     function loadDivisions(departmentId, selectedId) {
-        divisionSelect.innerHTML = '<option value="" disabled>Loading...</option>';
+        divisionSelect.innerHTML =
+            '<option value="" disabled>Loading...</option>';
         fetch(`/divisions?department_id=${departmentId}`, {
             headers: { Accept: "application/json" },
         })
             .then((res) => res.json())
             .then((data) => {
-                let options = '<option value="" disabled>Select Division</option>';
+                let options =
+                    '<option value="" disabled>Select Division</option>';
                 (data.data || []).forEach((div) => {
                     options += `<option value="${div.id}" ${
                         div.id == selectedId ? "selected" : ""
@@ -53,9 +63,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 divisionSelect.innerHTML = options;
                 if (selectedId) {
-                    loadJobs(selectedId, jobSelect.getAttribute("data-current"));
+                    loadJobs(
+                        selectedId,
+                        jobSelect.getAttribute("data-current")
+                    );
                 } else {
-                    jobSelect.innerHTML = '<option value="" disabled>Select Job</option>';
+                    jobSelect.innerHTML =
+                        '<option value="" disabled>Select Job</option>';
                 }
             });
     }
@@ -78,9 +92,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Initialize dropdowns with current employee data
-    const currentDepartmentId = window.currentEmployeeData ? window.currentEmployeeData.departmentId : null;
-    const currentDivisionId = window.currentEmployeeData ? window.currentEmployeeData.divisionId : null;
-    const currentJobId = window.currentEmployeeData ? window.currentEmployeeData.jobId : null;
+    const currentDepartmentId = window.currentEmployeeData
+        ? window.currentEmployeeData.departmentId
+        : null;
+    const currentDivisionId = window.currentEmployeeData
+        ? window.currentEmployeeData.divisionId
+        : null;
+    const currentJobId = window.currentEmployeeData
+        ? window.currentEmployeeData.jobId
+        : null;
 
     loadDepartments(currentDepartmentId);
 
@@ -89,8 +109,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (deptId) {
             loadDivisions(deptId, null);
         } else {
-            divisionSelect.innerHTML = '<option value="" disabled>Select Division</option>';
-            jobSelect.innerHTML = '<option value="" disabled>Select Job</option>';
+            divisionSelect.innerHTML =
+                '<option value="" disabled>Select Division</option>';
+            jobSelect.innerHTML =
+                '<option value="" disabled>Select Job</option>';
         }
     });
 
@@ -99,7 +121,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (divId) {
             loadJobs(divId, null);
         } else {
-            jobSelect.innerHTML = '<option value="" disabled>Select Job</option>';
+            jobSelect.innerHTML =
+                '<option value="" disabled>Select Job</option>';
         }
     });
 
@@ -142,8 +165,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Remove preview for profile picture by not calling setupImageInput for it
-    // setupImageInput(inputProfilePicture, profilePictureLabel, profilePictureClearBtn);
     setupImageInput(inputPhoto, photoLabel, photoClearBtn);
     setupImageInput(inputKtp, ktpLabel, ktpClearBtn);
 
@@ -163,7 +184,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const formData = new FormData(form);
 
         // Add _method=PUT to simulate PUT request
-        formData.append('_method', 'PUT');
+        formData.append("_method", "PUT");
 
         // Map form field names to controller expected names
         formData.set("name", formData.get("employee_name"));
@@ -188,9 +209,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 loaderOverlay.classList.add("d-none");
                 if (data.errors) {
                     // Clear previous errors
-                    form.querySelectorAll(".text-danger").forEach((el) => el.remove());
+                    form.querySelectorAll(".text-danger").forEach((el) =>
+                        el.remove()
+                    );
                     // Show validation errors
-                    for (const [field, messages] of Object.entries(data.errors)) {
+                    for (const [field, messages] of Object.entries(
+                        data.errors
+                    )) {
                         const input = form.querySelector(`[name="${field}"]`);
                         if (input) {
                             const errorDiv = document.createElement("div");
@@ -212,7 +237,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         window.location.href = "/employee-page";
                     }
                     // Remove validation classes after success
-                    const inputs = form.querySelectorAll("input, select, textarea");
+                    const inputs = form.querySelectorAll(
+                        "input, select, textarea"
+                    );
                     inputs.forEach((input) => {
                         input.classList.remove("is-valid", "is-invalid");
                     });

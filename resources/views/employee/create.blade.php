@@ -126,7 +126,6 @@
                             Please select an office.
                         </div>
                     </div>
-
                 </div>
 
                 <!-- Right Section -->
