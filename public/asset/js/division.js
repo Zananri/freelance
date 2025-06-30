@@ -694,12 +694,12 @@ function loadDivisions(query = "", status = "ALL", departmentId = "") {
                             imageHtml +
                             "</td>" +
                             "<td>" +
+                            division.name_division +
+                            "</td>" +
+                            "<td>" +
                             (division.department
                                 ? division.department.name_department
                                 : "") +
-                            "</td>" +
-                            "<td>" +
-                            division.name_division +
                             "</td>" +
                             '<td><span class="' +
                             statusClass +

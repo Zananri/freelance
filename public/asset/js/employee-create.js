@@ -1,3 +1,5 @@
+var appUrl = $('meta[name="app-url"]').attr("content");
+
 document.addEventListener("DOMContentLoaded", function () {
     // --- DYNAMIC DROPDOWN LOGIC ---
     const departmentSelect = document.getElementById("department_id");
@@ -6,9 +8,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load departments on page load
     function loadDepartments() {
-        fetch("/departments", { headers: { Accept: "application/json" } })
-            .then((res) => res.json())
-            .then((data) => {
+        $.ajax({
+            url: appUrl + "/departments",
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
                 let options =
                     '<option value="" disabled selected>Select Department</option>';
                 (data.data || []).forEach((dept) => {
@@ -17,18 +21,23 @@ document.addEventListener("DOMContentLoaded", function () {
                     }</option>`;
                 });
                 departmentSelect.innerHTML = options;
-            });
+            },
+            error: function () {
+                alert("Failed to load departments.");
+            },
+        });
     }
 
     // Load divisions when department changes
     function loadDivisions(departmentId) {
         divisionSelect.innerHTML =
             '<option value="" disabled selected>Loading...</option>';
-        fetch(`/divisions?department_id=${departmentId}`, {
-            headers: { Accept: "application/json" },
-        })
-            .then((res) => res.json())
-            .then((data) => {
+        $.ajax({
+            url: appUrl + "/divisions",
+            type: "GET",
+            data: { department_id: departmentId },
+            dataType: "json",
+            success: function (data) {
                 let options =
                     '<option value="" disabled selected>Select Division</option>';
                 (data.data || []).forEach((div) => {
@@ -38,19 +47,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 divisionSelect.innerHTML = options;
                 jobSelect.innerHTML =
-                    '<option value="" disabled selected>Select Job</option>'; // reset job
-            });
+                    '<option value="" disabled selected>Select Job</option>';
+            },
+            error: function () {
+                alert("Failed to load divisions.");
+            },
+        });
     }
 
     // Load jobs when division changes
     function loadJobs(divisionId) {
         jobSelect.innerHTML =
             '<option value="" disabled selected>Loading...</option>';
-        fetch(`/jobs?division_id=${divisionId}`, {
-            headers: { Accept: "application/json" },
-        })
-            .then((res) => res.json())
-            .then((data) => {
+        $.ajax({
+            url: appUrl + "/jobs",
+            type: "GET",
+            data: { division_id: divisionId },
+            dataType: "json",
+            success: function (data) {
                 let options =
                     '<option value="" disabled selected>Select Job</option>';
                 (data.data || []).forEach((job) => {
@@ -59,7 +73,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     }</option>`;
                 });
                 jobSelect.innerHTML = options;
-            });
+            },
+            error: function () {
+                alert("Failed to load jobs.");
+            },
+        });
     }
 
     if (departmentSelect && divisionSelect && jobSelect) {
@@ -170,91 +188,83 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.set("division_id", formData.get("division_id"));
             formData.set("job_id", formData.get("job_id"));
 
-            fetch("/employees", {
-                method: "POST",
+            $.ajax({
+                url: appUrl + "/employees",
+                type: "POST",
+                data: formData,
+                contentType: false,
+                processData: false,
                 headers: {
-                    "X-CSRF-TOKEN": document
-                        .querySelector('meta[name="csrf-token"]')
-                        .getAttribute("content"),
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
                     Accept: "application/json",
                 },
-                body: formData,
-            })
-                .then((response) =>
-                    response
-                        .json()
-                        .then((data) => ({
-                            status: response.status,
-                            body: data,
-                        }))
-                )
-                .then(({ status, body }) => {
+                success: function (response) {
                     // Hide loader
                     if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
 
-                    if (status === 422) {
+                    formAlert.innerHTML =
+                        '<div class="alert alert-success">Employee created successfully.</div>';
+                    // Hide alert after 1.5 seconds
+                    setTimeout(() => {
+                        formAlert.innerHTML = "";
+                    }, 1500);
+                    employeeCreateForm.reset();
+
+                    // Remove validation classes from inputs and labels
+                    const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
+                    inputs.forEach((input) => {
+                        input.classList.remove("is-valid", "is-invalid");
+                    });
+                    const labels = employeeCreateForm.querySelectorAll("label");
+                    labels.forEach((label) => {
+                        label.classList.remove("is-valid", "is-invalid");
+                    });
+                    employeeCreateForm.classList.remove("was-validated");
+
+                    // Reset image previews
+                    ["photo", "ktp", "profile_picture"].forEach((id) => {
+                        const input = document.getElementById(id);
+                        if (input) input.value = "";
+                        const label = document.querySelector(
+                            `label[for="${id}"]`
+                        );
+                        if (label) {
+                            label.style.backgroundImage = "";
+                            label.classList.remove("has-image", "is-valid", "is-invalid");
+                            label.style.opacity = "0.5";
+                        }
+                        const clearBtn = document.getElementById(
+                            id === "photo"
+                                ? "photoClearBtn"
+                                : id === "ktp"
+                                ? "ktpClearBtn"
+                                : id + "ClearBtn"
+                        );
+
+                        if (clearBtn) clearBtn.classList.add("d-none");
+                    });
+                },
+                error: function (xhr) {
+                    // Hide loader
+                    if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
+
+                    if (xhr.status === 422) {
                         // Validation errors
                         let errorsHtml = '<div class="alert alert-danger"><ul>';
-                        for (const key in body.errors) {
-                            body.errors[key].forEach((msg) => {
+                        const errors = xhr.responseJSON.errors;
+                        for (const key in errors) {
+                            errors[key].forEach((msg) => {
                                 errorsHtml += `<li>${msg}</li>`;
                             });
                         }
                         errorsHtml += "</ul></div>";
                         formAlert.innerHTML = errorsHtml;
-                    } else if (status >= 200 && status < 300) {
-                    formAlert.innerHTML =
-                        '<div class="alert alert-success">Employee created successfully.</div>';
-                    // Hide alert after 2.5 seconds (same as department)
-                    setTimeout(() => {
-                        formAlert.innerHTML = "";
-                    }, 1500);
-employeeCreateForm.reset();
-
-// Remove validation classes from inputs and labels
-const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
-inputs.forEach((input) => {
-    input.classList.remove("is-valid", "is-invalid");
-});
-const labels = employeeCreateForm.querySelectorAll("label");
-labels.forEach((label) => {
-    label.classList.remove("is-valid", "is-invalid");
-});
-employeeCreateForm.classList.remove("was-validated");
-
-// Reset image previews
-["photo", "ktp", "profile_picture"].forEach((id) => {
-    const input = document.getElementById(id);
-    if (input) input.value = "";
-    const label = document.querySelector(
-        `label[for="${id}"]`
-    );
-    if (label) {
-        label.style.backgroundImage = "";
-        label.classList.remove("has-image", "is-valid", "is-invalid");
-        label.style.opacity = "0.5";
-    }
-  const clearBtn = document.getElementById(
-    id === "photo"
-        ? "photoClearBtn"
-        : id === "ktp"
-            ? "ktpClearBtn"
-            : id + "ClearBtn"
-);
-    
-    if (clearBtn) clearBtn.classList.add("d-none");
-});
                     } else {
                         formAlert.innerHTML =
                             '<div class="alert alert-danger">Failed to create employee.</div>';
                     }
-                })
-                .catch(() => {
-                    // Hide loader
-                    if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
-                    formAlert.innerHTML =
-                        '<div class="alert alert-danger">Failed to create employee.</div>';
-                });
+                },
+            });
         });
 
         // Add input/change event listeners for validation classes
@@ -265,16 +275,16 @@ employeeCreateForm.classList.remove("was-validated");
                     if (input.checkValidity()) {
                         input.classList.remove("is-invalid");
                         input.classList.add("is-valid");
-                        if (profilePictureLabel) {
-                            profilePictureLabel.classList.remove("is-invalid");
-                            profilePictureLabel.classList.add("is-valid");
+                        if (photoLabel) {
+                            photoLabel.classList.remove("is-invalid");
+                            photoLabel.classList.add("is-valid");
                         }
                     } else {
                         input.classList.remove("is-valid");
                         input.classList.add("is-invalid");
-                        if (profilePictureLabel) {
-                            profilePictureLabel.classList.add("is-invalid");
-                            profilePictureLabel.classList.remove("is-valid");
+                        if (photoLabel) {
+                            photoLabel.classList.add("is-invalid");
+                            photoLabel.classList.remove("is-valid");
                         }
                     }
                 } else {
@@ -288,34 +298,34 @@ employeeCreateForm.classList.remove("was-validated");
                 }
                 employeeCreateForm.classList.remove("was-validated");
             });
-input.addEventListener("change", () => {
-    if (input.id === "photo" || input.id === "ktp") {
-        if (input.checkValidity()) {
-            input.classList.remove("is-invalid");
-            input.classList.add("is-valid");
-            if (profilePictureLabel) {
-                profilePictureLabel.classList.remove("is-invalid");
-                profilePictureLabel.classList.add("is-valid");
-            }
-        } else {
-            input.classList.remove("is-valid");
-            input.classList.add("is-invalid");
-            if (profilePictureLabel) {
-                profilePictureLabel.classList.add("is-invalid");
-                profilePictureLabel.classList.remove("is-valid");
-            }
-        }
-    } else {
-        if (input.checkValidity()) {
-            input.classList.remove("is-invalid");
-            input.classList.add("is-valid");
-        } else {
-            input.classList.remove("is-valid");
-            input.classList.add("is-invalid");
-        }
-    }
-    employeeCreateForm.classList.remove("was-validated");
-});
+            input.addEventListener("change", () => {
+                if (input.id === "photo" || input.id === "ktp") {
+                    if (input.checkValidity()) {
+                        input.classList.remove("is-invalid");
+                        input.classList.add("is-valid");
+                        if (photoLabel) {
+                            photoLabel.classList.remove("is-invalid");
+                            photoLabel.classList.add("is-valid");
+                        }
+                    } else {
+                        input.classList.remove("is-valid");
+                        input.classList.add("is-invalid");
+                        if (photoLabel) {
+                            photoLabel.classList.add("is-invalid");
+                            photoLabel.classList.remove("is-valid");
+                        }
+                    }
+                } else {
+                    if (input.checkValidity()) {
+                        input.classList.remove("is-invalid");
+                        input.classList.add("is-valid");
+                    } else {
+                        input.classList.remove("is-valid");
+                        input.classList.add("is-invalid");
+                    }
+                }
+                employeeCreateForm.classList.remove("was-validated");
+            });
         });
     }
 
@@ -330,6 +340,4 @@ input.addEventListener("change", () => {
         'label[for="ktp"]',
         "ktpClearBtn"
     );
-
-
 });

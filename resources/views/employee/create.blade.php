@@ -96,7 +96,7 @@
                         <input type="file" id="profile_picture" name="profile_picture" class="form-control"
                             accept="image/*" required />
                         <div class="invalid-feedback">
-                            Please upload a photo.
+                            Please upload a profile picture.
                         </div>
                     </div>
                     <div>
@@ -150,7 +150,7 @@
                                 <input type="file" id="photo" name="photo" accept="image/*"
                                     class="photo-input" hidden required />
                                 <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                    Please upload a profile picture.
+                                    Please upload a photo.
                                 </div>
                                 <span class="image-clear-btn d-none" id="photoClearBtn"
                                     title="Remove image">&times;</span>
@@ -168,7 +168,7 @@
                                 <input type="file" id="ktp" name="ktp" accept="image/*"
                                     class="ktp-input" hidden required />
                                 <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                    Please upload a profile picture.
+                                    Please upload a KTP.
                                 </div>
                                 <span class="image-clear-btn d-none" id="ktpClearBtn"
                                     title="Remove image">&times;</span>

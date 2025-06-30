@@ -26,7 +26,7 @@
             <div class="d-flex gap-1" style="margin-left: -5px;">
                 <div class="input-group" style="min-width: 200px; height: 38px;">
                     <input type="text" id="searchInput" class="form-control input-soft"
-                        placeholder="Search Department" style="border: 1px solid #DDDDDD; height: 38px;" />
+                        placeholder="Search" style="border: 1px solid #DDDDDD; height: 38px;" />
                 </div>
                 <div class="dropdown">
                     <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;"

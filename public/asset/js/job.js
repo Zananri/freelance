@@ -209,9 +209,9 @@ function loadJobs() {
 
                 tbody.append(`
                     <tr data-id="${job.id}">
+                        <td>${job.job_name}</td>
                         <td>${job.department?.name_department || "-"}</td>
                         <td>${job.division?.name_division || "-"}</td>
-                        <td>${job.job_name}</td>
                         <td>${statusBadge}</td>
                         <td class="text-end">
                             <button class="btn-icon-toggle btn-edit" data-id="${job.id}">
@@ -220,8 +220,8 @@ function loadJobs() {
                             <button class="btn-icon-toggle btn-delete" data-id="${
                                 job.id
                             }" data-name="${job.job_name}" data-status="${
-                    job.status
-                }" data-description="${job.description || ""}">
+                                job.status
+                            }" data-description="${job.description || ""}">
                                 <span class="material-symbols-outlined icon">delete</span>
                             </button>
                         </td>
