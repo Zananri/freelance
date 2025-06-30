@@ -57,24 +57,21 @@
                     </div>
                     <div>
                         <label for="employee_name" class="form-label">Employee Name</label>
-                        <input type="text" id="employee_name" name="employee_name" class="form-control"
-                            placeholder="Input Employee Name" required />
+                        <input type="text" id="employee_name" name="employee_name" class="form-control" required />
                         <div class="invalid-feedback">
                             Please enter the employee name.
                         </div>
                     </div>
                     <div>
                         <label for="employee_email" class="form-label">Employee Email</label>
-                        <input type="email" id="employee_email" name="employee_email" class="form-control"
-                            placeholder="Input Employee Email" required />
+                        <input type="email" id="employee_email" name="employee_email" class="form-control" required />
                         <div class="invalid-feedback">
                             Please enter a valid email.
                         </div>
                     </div>
                     <div>
                         <label for="employee_phone" class="form-label">Employee Phone</label>
-                        <input type="number" id="employee_phone" name="employee_phone" class="form-control"
-                            placeholder="Inpuet Employee Phone" required />
+                        <input type="number" id="employee_phone" name="employee_phone" class="form-control" required />
                         <div class="invalid-feedback">
                             Please enter the employee phone.
                         </div>
@@ -85,8 +82,7 @@
                 <div class="col-md-3 d-flex flex-column gap-3">
                     <div>
                         <label for="address" class="form-label">Address</label>
-                        <input type="text" id="address" name="address" class="form-control"
-                            placeholder="Input Employee Address" required />
+                        <input type="text" id="address" name="address" class="form-control" required />
                         <div class="invalid-feedback">
                             Please enter the address.
                         </div>
@@ -130,13 +126,13 @@
                             Please select an office.
                         </div>
                     </div>
-                     <div>
-                            <label for="hire_date" class="form-label">Hire Date</label>
-                            <input type="date" id="hire_date" name="hire_date" class="form-control" required />
-                            <div class="invalid-feedback">
-                                Please enter the hire date.
-                            </div>
+                    <div>
+                        <label for="hire_date" class="form-label">Hire Date</label>
+                        <input type="date" id="hire_date" name="hire_date" class="form-control" required />
+                        <div class="invalid-feedback">
+                            Please enter the hire date.
                         </div>
+                    </div>
                 </div>
 
                 <!-- Right Section -->
@@ -161,10 +157,10 @@
                             </div>
                         </div>
                         <div class="flex-fill">
-                        <div class="title-label-image-ktp" style="font-size: 14px;">
-                            <span>Upload KTP</span>
-                        </div>
-                        <label for="ktp" class="custom-image-upload-ktp position-relative ktp-upload">
+                            <div class="title-label-image-ktp" style="font-size: 14px;">
+                                <span>Upload KTP</span>
+                            </div>
+                            <label for="ktp" class="custom-image-upload-ktp position-relative ktp-upload">
                                 <input type="file" id="ktp" name="ktp" accept="image/*"
                                     class="ktp-input" hidden required />
                                 <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
