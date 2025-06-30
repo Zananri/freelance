@@ -159,4 +159,39 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     fetchEmployees();
+
+    // Employee Detail Modal Logic
+    const employeeDetailModalEl = document.getElementById('employeeDetailModal');
+    const employeeDetailModal = new bootstrap.Modal(employeeDetailModalEl);
+
+    $(document).on('click', '.btn-detail', function () {
+        const id = $(this).data('id');
+        $.ajax({
+            url: appUrl + `/employees/${id}`,
+            method: 'GET',
+            dataType: 'json',
+            success: function (employee) {
+                // Populate modal fields
+                $('#detailName').text(employee.name);
+                const birthDate = new Date(employee.birth_date);
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                $('#detailBirthDate').text(birthDate.toLocaleDateString('en-GB', options));
+                $('#detailEmail').text(employee.email);
+                $('#detailPhone').text(employee.phone);
+                $('#detailAddress').text(employee.address);
+
+                $('#detailDepartment').text(employee.department ? employee.department.name_department : '-');
+                $('#detailDivision').text(employee.division ? employee.division.name_division : '-');
+                $('#detailJob').text(employee.job ? employee.job.job_name : '-');
+
+                const photoUrl = employee.photo ? `/${employee.photo}` : '/asset/img/default-profile.png';
+                $('#detailPhoto').attr('src', photoUrl);
+
+                employeeDetailModal.show();
+            },
+            error: function () {
+                alert('Failed to fetch employee details.');
+            }
+        });
+    });
 });

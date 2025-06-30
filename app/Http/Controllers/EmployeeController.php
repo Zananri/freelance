@@ -27,7 +27,7 @@ class EmployeeController extends Controller
 
     public function show($id)
     {
-        $employee = Employee::with(['department', 'division'])->find($id);
+        $employee = Employee::with(['department', 'division', 'job'])->find($id);
         if (!$employee) {
             return response()->json(['message' => 'Employee not found'], 404);
         }
@@ -134,14 +134,14 @@ class EmployeeController extends Controller
             'department_id' => 'sometimes|exists:departments,id',
             'division_id' => 'sometimes|exists:divisions,id',
             'job_id' => 'sometimes|exists:job_list,id',
-            'profile_picture' => 'nullable|string',
+            'profile_picture' => 'nullable|file|image',
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:employees,email,' . $id,
             'phone' => 'sometimes|string|unique:employees,phone,' . $id,
             'status' => 'sometimes|string',
             'address' => 'sometimes|string',
-            'photo' => 'nullable|string',
-            'ktp' => 'nullable|string',
+            'photo' => 'nullable|file|image',
+            'ktp' => 'nullable|file|image',
             'birth_date' => 'sometimes|date',
             'hire_date' => 'sometimes|date',
             'resign_date' => 'nullable|date',
@@ -154,9 +154,50 @@ class EmployeeController extends Controller
         }
 
         $updateData = $request->only([
-            'department_id', 'division_id', 'job_id', 'profile_picture', 'name', 'email', 'phone', 'status',
-            'address', 'photo', 'ktp', 'birth_date', 'hire_date', 'resign_date', 'grade', 'office'
+            'department_id', 'division_id', 'job_id', 'name', 'email', 'phone', 'status',
+            'address', 'birth_date', 'hire_date', 'resign_date', 'grade', 'office'
         ]);
+
+        if ($request->hasFile('profile_picture')) {
+            // Delete old profile_picture file if exists
+            if ($employee->profile_picture && file_exists(public_path($employee->profile_picture))) {
+                unlink(public_path($employee->profile_picture));
+            }
+            $file = $request->file('profile_picture');
+            $filename = 'PROFILE_PICTURE_' . time() . '.' . $file->getClientOriginalExtension();
+            $destination = public_path('file/profile_picture');
+            if (!file_exists($destination)) mkdir($destination, 0777, true);
+            $file->move($destination, $filename);
+            $updateData['profile_picture'] = 'file/profile_picture/' . $filename;
+        }
+
+        if ($request->hasFile('photo')) {
+            // Delete old photo file if exists
+            if ($employee->photo && file_exists(public_path($employee->photo))) {
+                unlink(public_path($employee->photo));
+            }
+            $file = $request->file('photo');
+            $filename = 'PHOTO_' . time() . '.' . $file->getClientOriginalExtension();
+            $destination = public_path('file/photo');
+            if (!file_exists($destination)) mkdir($destination, 0777, true);
+            $file->move($destination, $filename);
+            $updateData['photo'] = 'file/photo/' . $filename;
+        }
+
+        if ($request->hasFile('ktp')) {
+            // Delete old ktp file if exists
+            if ($employee->ktp && file_exists(public_path($employee->ktp))) {
+                unlink(public_path($employee->ktp));
+            }
+            $file = $request->file('ktp');
+            $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name ?? $employee->name);
+            $filename = 'KTP_' . $employeeName . '.' . $file->getClientOriginalExtension();
+            $destination = public_path('file/ktp');
+            if (!file_exists($destination)) mkdir($destination, 0777, true);
+            $file->move($destination, $filename);
+            $updateData['ktp'] = 'file/ktp/' . $filename;
+        }
+
         $updateData['updated_by'] = 1;
 
         $employee->update($updateData);

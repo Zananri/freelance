@@ -24,9 +24,9 @@
         <div class="modal-loading-overlay d-none" id="employeeEditLoader">
             <div class="loader-spinner"></div>
         </div>
-        <form id="employeeEditForm" class="needs-validation" enctype="multipart/form-data" novalidate action="{{ url('employees/' . $employee->id) }}" method="POST">
-            @csrf
-            @method('POST')
+<form id="employeeEditForm" class="needs-validation" enctype="multipart/form-data" novalidate action="{{ url('employees/' . $employee->id) }}" method="POST">
+    @csrf
+    @method('PUT')
             <div class="row">
                 <!-- Left Section -->
                 <div class="col-md-4 d-flex flex-column gap-3">

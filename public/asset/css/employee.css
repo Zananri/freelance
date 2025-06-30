@@ -450,3 +450,47 @@ table.table > tbody > tr > td {
     border-color: #28a745 !important;
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
+
+/* Employee Detail Modal Styling */
+#employeeDetailModal .modal-content {
+max-width: 900px;
+width: 100%;
+}
+
+#employeeDetailModal .modal-body {
+display: flex;
+gap: 2rem;
+min-height: 320px;
+padding: 1.5rem;
+}
+
+#employeeDetailModal .detail-left,
+#employeeDetailModal .detail-middle {
+flex-grow: 1;
+}
+
+#employeeDetailModal .detail-left h5,
+#employeeDetailModal .detail-middle h5 {
+margin-bottom: 1rem;
+}
+
+#employeeDetailModal .detail-left p,
+#employeeDetailModal .detail-middle p {
+margin-bottom: 0.5rem;
+font-size: 0.95rem;
+color: #333;
+}
+
+#employeeDetailModal .detail-right {
+width: 160px;
+height: 300px;
+}
+
+#employeeDetailModal .detail-right img {
+    width: 160px;
+    height: 300px;
+    object-fit: contain;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+}
+

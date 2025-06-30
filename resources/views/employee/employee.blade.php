@@ -122,4 +122,33 @@
 
         <script></script>
     </x-slot>
+
+    <!-- Employee Detail Modal -->
+    <div class="modal fade" id="employeeDetailModal" tabindex="-1" aria-labelledby="employeeDetailModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 900px;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="employeeDetailModalLabel">Employee Detail</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body d-flex gap-4" style="min-height: 320px;">
+            <div class="detail-left flex-grow-1">
+              <h5 id="detailName" class="fw-bold"></h5>
+              <p id="detailBirthDate" class="mb-1"></p>
+              <p id="detailEmail" class="mb-1"></p>
+              <p id="detailPhone" class="mb-1"></p>
+              <p id="detailAddress" class="mb-1"></p>
+            </div>
+            <div class="detail-middle flex-grow-1">
+              <h5 id="detailDepartment" class="fw-bold"></h5>
+              <p id="detailDivision" class="mb-1"></p>
+              <p id="detailJob" class="mb-1"></p>
+            </div>
+            <div class="detail-right" style="width: 160px; height: 300px;">
+              <img id="detailPhoto" src="" alt="Employee Photo" style="width: 160px; height: 300px; object-fit: cover; border-radius: 8px;">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 </x-office-layout>

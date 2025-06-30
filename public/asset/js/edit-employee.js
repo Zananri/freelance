@@ -159,6 +159,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const formData = new FormData(form);
 
+        // Add _method=PUT to simulate PUT request
+        formData.append('_method', 'PUT');
+
         // Map form field names to controller expected names
         formData.set("name", formData.get("employee_name"));
         formData.delete("employee_name");
