@@ -111,11 +111,13 @@ document.addEventListener("DOMContentLoaded", function () {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
-                    label.style.backgroundImage = `url('${e.target.result}')`;
-                    label.classList.add("has-image");
-                    label.style.backgroundSize = "cover";
-                    label.style.opacity = "1";
-                    if (clearBtn) clearBtn.classList.remove("d-none");
+                    if (input !== inputProfilePicture) {
+                        label.style.backgroundImage = `url('${e.target.result}')`;
+                        label.classList.add("has-image");
+                        label.style.backgroundSize = "cover";
+                        label.style.opacity = "1";
+                        if (clearBtn) clearBtn.classList.remove("d-none");
+                    }
                 };
                 reader.readAsDataURL(input.files[0]);
             } else {
@@ -140,7 +142,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    setupImageInput(inputProfilePicture, profilePictureLabel, profilePictureClearBtn);
+    // Remove preview for profile picture by not calling setupImageInput for it
+    // setupImageInput(inputProfilePicture, profilePictureLabel, profilePictureClearBtn);
     setupImageInput(inputPhoto, photoLabel, photoClearBtn);
     setupImageInput(inputKtp, ktpLabel, ktpClearBtn);
 

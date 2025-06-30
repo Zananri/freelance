@@ -29,6 +29,53 @@
                 <!-- Left Section -->
                 <div class="col-md-4 d-flex flex-column gap-3">
                     <div>
+                        <label for="employee_name" class="form-label">Employee Name</label>
+                        <input type="text" id="employee_name" name="employee_name" class="form-control" required />
+                        <div class="invalid-feedback">
+                            Please enter the employee name.
+                        </div>
+                    </div>
+                    <div>
+                        <label for="employee_email" class="form-label">Employee Email</label>
+                        <input type="email" id="employee_email" name="employee_email" class="form-control" required />
+                        <div class="invalid-feedback">
+                            Please enter a valid email.
+                        </div>
+                    </div>
+                    <div>
+                        <label for="employee_phone" class="form-label">Employee Phone</label>
+                        <input type="number" id="employee_phone" name="employee_phone" class="form-control" required />
+                        <div class="invalid-feedback">
+                            Please enter the employee phone.
+                        </div>
+                    </div>
+                    <div>
+                        <label for="address" class="form-label">Address</label>
+                        <input type="text" id="address" name="address" class="form-control" required />
+                        <div class="invalid-feedback">
+                            Please enter the address.
+                        </div>
+                    </div>
+                    <div>
+                        <label for="birth_date" class="form-label">Birth Date</label>
+                        <input type="date" id="birth_date" name="birth_date" class="form-control" required />
+                        <div class="invalid-feedback">
+                            Please enter the birth date.
+                        </div>
+                    </div>
+                    <div>
+                        <label for="hire_date" class="form-label">Hire Date</label>
+                        <input type="date" id="hire_date" name="hire_date" class="form-control" required />
+                        <div class="invalid-feedback">
+                            Please enter the hire date.
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Middle Section -->
+                <div class="col-md-3 d-flex flex-column gap-3">
+                    <div>
                         <label for="department_id" class="form-label">Department Name</label>
                         <select id="department_id" name="department_id" class="form-select" required>
                             <option value="" disabled selected>Select Department</option>
@@ -56,53 +103,6 @@
                         </div>
                     </div>
                     <div>
-                        <label for="employee_name" class="form-label">Employee Name</label>
-                        <input type="text" id="employee_name" name="employee_name" class="form-control" required />
-                        <div class="invalid-feedback">
-                            Please enter the employee name.
-                        </div>
-                    </div>
-                    <div>
-                        <label for="employee_email" class="form-label">Employee Email</label>
-                        <input type="email" id="employee_email" name="employee_email" class="form-control" required />
-                        <div class="invalid-feedback">
-                            Please enter a valid email.
-                        </div>
-                    </div>
-                    <div>
-                        <label for="employee_phone" class="form-label">Employee Phone</label>
-                        <input type="number" id="employee_phone" name="employee_phone" class="form-control" required />
-                        <div class="invalid-feedback">
-                            Please enter the employee phone.
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Middle Section -->
-                <div class="col-md-3 d-flex flex-column gap-3">
-                    <div>
-                        <label for="address" class="form-label">Address</label>
-                        <input type="text" id="address" name="address" class="form-control" required />
-                        <div class="invalid-feedback">
-                            Please enter the address.
-                        </div>
-                    </div>
-                    <div>
-                        <label for="profile_picture" class="form-label">Upload Profile Picture</label>
-                        <input type="file" id="profile_picture" name="profile_picture" class="form-control"
-                            accept="image/*" required />
-                        <div class="invalid-feedback">
-                            Please upload a profile picture.
-                        </div>
-                    </div>
-                    <div>
-                        <label for="birth_date" class="form-label">Birth Date</label>
-                        <input type="date" id="birth_date" name="birth_date" class="form-control" required />
-                        <div class="invalid-feedback">
-                            Please enter the birth date.
-                        </div>
-                    </div>
-                    <div>
                         <label for="grade" class="form-label">Grade</label>
                         <select id="grade" name="grade" class="form-select" required>
                             <option value="" disabled selected>Select Grade</option>
@@ -126,13 +126,7 @@
                             Please select an office.
                         </div>
                     </div>
-                    <div>
-                        <label for="hire_date" class="form-label">Hire Date</label>
-                        <input type="date" id="hire_date" name="hire_date" class="form-control" required />
-                        <div class="invalid-feedback">
-                            Please enter the hire date.
-                        </div>
-                    </div>
+
                 </div>
 
                 <!-- Right Section -->
