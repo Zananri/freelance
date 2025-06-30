@@ -19,25 +19,21 @@
         <h2 class="m-0">Employee</h2>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 px-3 py-3" style="margin-top: 20px; width: 100%;">
+    <div class="body-content scrollable-container rounded-4 px-3 py-3">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="mb-0 table-title">List Employee</h5>
 
-            <div class="d-flex gap-1" style="margin-left: -5px;">
-                <div class="input-group" style="min-width: 200px; height: 38px;">
-                    <input type="text" id="searchInput" class="form-control input-soft" placeholder="Search"
-                        style="border: 1px solid #DDDDDD; height: 38px;" />
+            <div class="d-flex gap-1 ml-neg-5">
+                <div class="input-group min-width-200 height-38">
+                    <input type="text" id="searchInput" class="form-control input-soft border-dddd height-38" placeholder="Search" />
                 </div>
                 <div class="dropdown">
-                    <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;"
-                        type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-icon-toggle dropdown-toggle border-dddd" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="material-symbols-outlined icon">filter_list</span> Filter
                     </button>
-                    <ul class="dropdown-menu p-2" aria-labelledby="filterDropdown"
-                        style="min-width: 220px; max-height: 300px; overflow-y: auto;">
+                    <ul class="dropdown-menu p-2" aria-labelledby="filterDropdown" style="min-width: 220px; max-height: 300px; overflow-y: auto;">
                         <li class="mb-2">
-                            <select class="form-select form-select-sm" id="filterTypeSelect"
-                                aria-label="Select filter type">
+                            <select class="form-select form-select-sm" id="filterTypeSelect" aria-label="Select filter type">
                                 <option value="" disabled selected>Select Filter Option</option>
                                 <option value="status">Filter by Status</option>
                                 <option value="department">Filter by Department</option>
@@ -54,9 +50,7 @@
                     </ul>
                 </div>
 
-
-                <a href="{{ route('employees.create') }}" id="btnAddData" class="btn btn-icon-toggle"
-                    style="border: 1px solid #DDDDDD;">
+                <a href="{{ route('employees.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd">
                     <span class="material-symbols-outlined icon">add</span> Add Data
                 </a>
             </div>
@@ -125,30 +119,34 @@
 
     <!-- Employee Detail Modal -->
     <div class="modal fade" id="employeeDetailModal" tabindex="-1" aria-labelledby="employeeDetailModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 900px;">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="employeeDetailModalLabel">Employee Detail</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="employeeDetailModalLabel">Employee Detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="detail-left">
+                  <p data-label="Name"><span id="detailName"></span></p>
+                  <p data-label="Birth Date"><span id="detailBirthDate"></span></p>
+                  <p data-label="Email"><span id="detailEmail"></span></p>
+                  <p data-label="Phone"><span id="detailPhone"></span></p>
+                  <p data-label="Address"><span id="detailAddress"></span></p>
+                </div>
+                <div class="detail-middle">
+                    <p data-label="Department"><span id="detailDepartment"></span></p>
+                    <p data-label="Division"><span id="detailDivision"></span></p>
+                    <p data-label="Job"><span id="detailJob"></span></p>
+                  <p data-label="Hire Date"><span id="detailHireDate"></span></p>
+                  <p data-label="Grade"><span id="detailGrade"></span></p>
+                  <p data-label="Office"><span id="detailOffice"></span></p>
+                  <p data-label="Status"><span id="detailStatus"></span></p>
+                </div>
+                <div class="detail-right">
+                  <img id="detailPhoto" src="" alt="Employee Photo">
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="modal-body d-flex gap-4" style="min-height: 320px;">
-            <div class="detail-left flex-grow-1">
-              <h5 id="detailName" class="fw-bold"></h5>
-              <p id="detailBirthDate" class="mb-1"></p>
-              <p id="detailEmail" class="mb-1"></p>
-              <p id="detailPhone" class="mb-1"></p>
-              <p id="detailAddress" class="mb-1"></p>
-            </div>
-            <div class="detail-middle flex-grow-1">
-              <h5 id="detailDepartment" class="fw-bold"></h5>
-              <p id="detailDivision" class="mb-1"></p>
-              <p id="detailJob" class="mb-1"></p>
-            </div>
-            <div class="detail-right" style="width: 160px; height: 300px;">
-              <img id="detailPhoto" src="" alt="Employee Photo" style="width: 160px; height: 300px; object-fit: cover; border-radius: 8px;">
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 </x-office-layout>

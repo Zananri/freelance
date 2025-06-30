@@ -184,6 +184,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 $('#detailDivision').text(employee.division ? employee.division.name_division : '-');
                 $('#detailJob').text(employee.job ? employee.job.job_name : '-');
 
+                // Set new fields
+                const hireDate = new Date(employee.hire_date);
+                $('#detailHireDate').text(hireDate.toLocaleDateString('en-GB', options));
+                $('#detailGrade').text(employee.grade || '-');
+                $('#detailOffice').text(employee.office || '-');
+                $('#detailStatus').text(employee.status || '-');
+                $('#detailStatus').removeClass('status-ACTIVE status-INACTIVE');
+                if(employee.status === 'ACTIVE') {
+                    $('#detailStatus').addClass('status-ACTIVE');
+                } else if(employee.status === 'INACTIVE') {
+                    $('#detailStatus').addClass('status-INACTIVE');
+                }
+
                 const photoUrl = employee.photo ? `/${employee.photo}` : '/asset/img/default-profile.png';
                 $('#detailPhoto').attr('src', photoUrl);
 

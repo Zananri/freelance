@@ -452,45 +452,130 @@ table.table > tbody > tr > td {
 }
 
 /* Employee Detail Modal Styling */
+#employeeDetailModal .modal-dialog {
+    max-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 #employeeDetailModal .modal-content {
-max-width: 900px;
-width: 100%;
+    max-width: 800px;
+    max-height: 600px;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+#employeeDetailModal .modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.5rem;
 }
 
 #employeeDetailModal .modal-body {
-display: flex;
-gap: 2rem;
-min-height: 320px;
-padding: 1.5rem;
+    flex-grow: 1;
+    display: flex;
+    gap: 2rem;
+    padding-top: 1rem;
+    overflow-y: auto;
 }
 
 #employeeDetailModal .detail-left,
 #employeeDetailModal .detail-middle {
-flex-grow: 1;
-}
-
-#employeeDetailModal .detail-left h5,
-#employeeDetailModal .detail-middle h5 {
-margin-bottom: 1rem;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 #employeeDetailModal .detail-left p,
 #employeeDetailModal .detail-middle p {
-margin-bottom: 0.5rem;
-font-size: 0.95rem;
-color: #333;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    color: #333;
+}
+
+#employeeDetailModal .detail-left p::before,
+#employeeDetailModal .detail-middle p::before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: #555;
 }
 
 #employeeDetailModal .detail-right {
-width: 160px;
-height: 300px;
+    width: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #employeeDetailModal .detail-right img {
-    width: 160px;
-    height: 300px;
-    object-fit: contain;
-    border-radius: 8px;
-    background-color: #f0f0f0;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Scrollbar styling for modal body */
+#employeeDetailModal .modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+#employeeDetailModal .modal-body::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #employeeDetailModal .modal-content {
+        width: 95vw;
+        height: 95vh;
+        padding: 1rem;
+    }
+    #employeeDetailModal .modal-body {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    #employeeDetailModal .detail-right {
+        width: 100%;
+        height: 200px;
+    }
+    #employeeDetailModal .detail-right img {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+/* Additional styles for removed inline styles */
+.body-content {
+    margin-top: 20px;
+    width: 100%;
+}
+
+.ml-neg-5 {
+    margin-left: -5px;
+}
+
+.min-width-200 {
+    min-width: 200px;
+}
+
+.height-38 {
+    height: 38px;
+}
+
+.border-dddd {
+    border: 1px solid #DDDDDD;
 }
 
