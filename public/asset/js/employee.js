@@ -1,10 +1,12 @@
+var appUrl = $('meta[name="app-url"]').attr("content");
+
 document.addEventListener('DOMContentLoaded', function () {
     const tableBody = document.getElementById('divisionTableBody');
 
     function fetchEmployees() {
         $.ajax({
-            url: '/employees',
-            method: 'GET',
+            url: appUrl + "/employees",
+            type: "GET",
             dataType: 'json',
             headers: {
                 'Accept': 'application/json'
@@ -83,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const id = $(this).data('id');
         // Fetch employee details
         $.ajax({
-            url: `/employees/${id}`,
+            url: appUrl + `/employees/${id}`,
             method: 'GET',
             dataType: 'json',
             success: function (employee) {
@@ -125,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
         loaderOverlay.classList.remove('d-none');
 
         $.ajax({
-            url: `/employees/${id}`,
+            url: appUrl + `/employees/${id}`,
             method: 'DELETE',
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
