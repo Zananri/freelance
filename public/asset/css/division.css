@@ -231,7 +231,7 @@ table.table tbody tr td:first-child {
 .btn-detail,
 .btn-edit,
 .btn-delete {
-    border: 1px solid #dddddd;
+    border: none;
     background-color: transparent;
     color: inherit;
     padding: 0.375rem 0.75rem;

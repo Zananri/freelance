@@ -125,46 +125,6 @@ table.table tbody tr td:last-child {
     transition: background-color 0.3s ease;
 }
 
-/* Button Styling for edit and delete buttons to match department and division */
-.btn-icon-toggle,
-.btn-detail,
-.btn-edit,
-.btn-delete {
-    border: 1px solid #dddddd;
-    background-color: transparent;
-    color: #555;
-    padding: 0.375rem 0.75rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    box-sizing: border-box;
-    height: 38px;
-    min-width: 38px;
-    font-size: 14px;
-    border-radius: 4px;
-}
-
-.btn-icon-toggle .icon,
-.btn-detail .icon,
-.btn-edit .icon,
-.btn-delete .icon {
-    color: inherit;
-    transition: color 0.3s ease;
-    font-size: 20px;
-}
-
-.btn-icon-toggle:hover,
-.btn-detail:hover,
-.btn-edit:hover,
-.btn-delete:hover {
-    background-color: white;
-    color: black;
-    border-color: #ddd;
-}
-
 td > .btn-icon-toggle,
 td > .btn-detail,
 td > .btn-edit,
@@ -178,7 +138,7 @@ td > .btn-delete {
 .btn-detail,
 .btn-edit,
 .btn-delete {
-    border: 1px solid #dddddd;
+    border: none;
     background-color: transparent;
     color: #555;
     padding: 0.375rem 0.75rem;
@@ -206,9 +166,24 @@ td > .btn-delete {
 .btn-detail:hover,
 .btn-edit:hover,
 .btn-delete:hover {
-    background-color: white;
-    color: black;
-    border-color: #ddd;
+    background-color: white !important;
+    color: black !important;
+    border-color: #ddd !important;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    border-radius: 4px;
+}
+
+/* Match hover style from employee.css for buttons */
+.btn-detail:hover,
+.btn-edit:hover,
+.btn-delete:hover {
+    background-color: white !important;
+}
+
+.btn-detail:hover .icon,
+.btn-edit:hover .icon,
+.btn-delete:hover .icon {
+    color: black !important;
 }
 .btn-delete-small {
     background-color: #e74c3c;
@@ -333,7 +308,7 @@ td > .btn-delete {
 #btnAddData {
     background-color: transparent !important;
     color: #555 !important;
-    border: 1px solid #ddd !important;
+    border: none !important;
     transition: background-color 0.3s ease;
 }
 

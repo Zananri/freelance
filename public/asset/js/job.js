@@ -214,6 +214,9 @@ function loadJobs() {
                         <td>${job.division?.name_division || "-"}</td>
                         <td>${statusBadge}</td>
                         <td class="text-end">
+<button class="btn-icon-toggle btn-detail" data-id="${job.id}">
+    <span class="material-symbols-outlined icon">visibility</span>
+</button>
                             <button class="btn-icon-toggle btn-edit" data-id="${job.id}">
                                 <span class="material-symbols-outlined icon">edit</span>
                             </button>
