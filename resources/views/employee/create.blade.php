@@ -114,10 +114,13 @@
                             <label for="grade" class="form-label">Grade</label>
                             <select id="grade" name="grade" class="form-select" required>
                                 <option value="" disabled selected>Select Grade</option>
-                                <option value="General Manager">General Manager</option>
                                 <option value="Manager">Manager</option>
-                                <option value="Leader">Leader</option>
-                                <option value="Employee">Employee</option>
+                                <option value="Analyst">Analyst</option>
+                                <option value="Senior Analyst">Senior Analyst</option>
+                                <option value="Associate">Associate</option>
+                                <option value="Junior Manager">Junior Manager</option>
+                                <option value="Junior Analyst">Junior Analyst</option>
+                                <option value="Junior Associate">Junior Associate</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a grade.

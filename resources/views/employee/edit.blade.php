@@ -119,11 +119,14 @@
                         <div>
                             <label for="grade" class="form-label">Grade</label>
                             <select id="grade" name="grade" class="form-select" required>
-                                <option value="" disabled>Select Grade</option>
-                                <option value="General Manager" {{ $employee->grade == 'General Manager' ? 'selected' : '' }}>General Manager</option>
+                                <option value="" disabled selected>Select Grade</option>
                                 <option value="Manager" {{ $employee->grade == 'Manager' ? 'selected' : '' }}>Manager</option>
-                                <option value="Leader" {{ $employee->grade == 'Leader' ? 'selected' : '' }}>Leader</option>
-                                <option value="Employee" {{ $employee->grade == 'Employee' ? 'selected' : '' }}>Employee</option>
+                                <option value="Analyst" {{ $employee->grade == 'Analyst' ? 'selected' : '' }}>Analyst</option>
+                                <option value="Senior Analyst" {{ $employee->grade == 'Senior Analyst' ? 'selected' : '' }}>Senior Analyst</option>
+                                <option value="Associate" {{ $employee->grade == 'Associate' ? 'selected' : '' }}>Associate</option>
+                                <option value="Junior Manager" {{ $employee->grade == 'Junior Manager' ? 'selected' : '' }}>Junior Manager</option>
+                                <option value="Junior Analyst" {{ $employee->grade == 'Junior Analyst' ? 'selected' : '' }}>Junior Analyst</option>
+                                <option value="Junior Associate" {{ $employee->grade == 'Junior Associate' ? 'selected' : '' }}>Junior Associate</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a grade.
