@@ -77,6 +77,20 @@
     transition: opacity 0.3s ease;
 }
 
+@media (max-width: 576px) { 
+
+    .photo-upload.custom-image-upload-photo{
+         width: 40vw;
+         height: 60vw;
+    }
+
+    .ktp-upload.custom-image-upload-ktp {
+        width: 50vw;
+        height: 70vw;
+    }
+}
+
+
 .photo-upload.has-image {
     opacity: 1;
 }

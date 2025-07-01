@@ -397,15 +397,13 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('master') }}"
-                            class="{{ request()->routeIs('master') || request()->routeIs('department') ? 'active' : '' }}">
+                        <a href="{{ route('master') }}" class="{{ ($menu_active == 'master') ? 'active' : '' }}">
                             <span class="material-symbols-outlined">database</span>
                             <span class="text-menu">Master</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('employee.page') }}"
-                            class="{{ request()->routeIs('employee.page') || request()->routeIs('department') ? 'active' : '' }}">
+                        <a href="{{ route('employee.page') }}"  class="{{ ($menu_active == 'employee') ? 'active' : '' }}">
                             <span class="material-symbols-outlined">groups</span>
                             <span class="text-menu">Employee</span>
                         </a>
