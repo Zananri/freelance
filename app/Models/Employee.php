@@ -10,6 +10,7 @@ class Employee extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'department_id',
         'division_id',
         'job_id',
@@ -60,5 +61,10 @@ class Employee extends Model
     public function updatedBy()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -99,6 +100,12 @@ class EmployeeController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+
+        DB::beginTransaction();
+
+        try {
+
+            
         $profilePicturePath = null;
         $photoPath = null;
         $ktpPath = null;
@@ -130,11 +137,25 @@ class EmployeeController extends Controller
             $file->move($destination, $filename);
             $ktpPath = 'file/ktp/' . $filename;
         }
+            $existingUser = User::where('email', $request->email_work)->first();
+            
+            if ($existingUser) {
+                throw new \Exception('User with this email_work already exists');
+                return response()->json(['error' => 'User with this email_work already exists'], 422);
+            }
 
-        \DB::beginTransaction();
+            $user = new User();
+            $user->user_type = 'REGULAR';
+            $user->user_role = 'EMPLOYEE';
+            $user->photo = $photoPath;
+            $user->name = $request->name;
+            $user->email = $request->email_work;
+            $user->email_verified_at = now();
+            $user->password = bcrypt('NSA_2025');
+            $user->save();
 
-        try {
             $employee = Employee::create([
+                'user_id' => $user->id,
                 'department_id' => $request->department_id,
                 'division_id' => $request->division_id,
                 'job_id' => $request->job_id,
@@ -157,27 +178,11 @@ class EmployeeController extends Controller
                 'deleted_by' => '1',
             ]);
 
-            $existingUser = \App\Models\User::where('email', $employee->email_work)->first();
-            if ($existingUser) {
-                \DB::rollBack();
-                return response()->json(['error' => 'User with this email_work already exists'], 422);
-            }
+            DB::commit();
 
-            $user = new \App\Models\User();
-            $user->user_type = 'REGULAR';
-            $user->user_role = 'EMPLOYEE';
-            $user->photo = $employee->photo;
-            $user->name = $employee->name;
-            $user->email = $employee->email_work;
-            $user->email_verified_at = $employee->created_at;
-            $user->password = 'NSA_2025'; // Will be hashed automatically by User model
-            $user->save();
-
-            \DB::commit();
-
-            return response()->json(['message' => 'Employee created successfully', 'data' => $employee]);
+            return response()->json(['message' => 'Employee and user created successfully', 'data' => $employee]);
         } catch (\Exception $e) {
-            \DB::rollBack();
+            DB::rollBack();
             return response()->json(['error' => 'Failed to create employee and user', 'details' => $e->getMessage()], 500);
         }
     }
@@ -263,7 +268,7 @@ class EmployeeController extends Controller
         $employee->update($updateData);
 
         // Update corresponding user record
-        $user = \App\Models\User::where('email', $employee->email_work)->first();
+        $user = User::where('email', $employee->email_work)->first();
         if ($user) {
             $user->name = $employee->name;
             $user->photo = $employee->photo;
