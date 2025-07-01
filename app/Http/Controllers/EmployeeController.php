@@ -83,6 +83,7 @@ class EmployeeController extends Controller
             'profile_picture' => 'nullable|file|image',
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:employees,email',
+            'email_work' => 'nullable|email|unique:employees,email_work',
             'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
             'address' => 'required|string',
             'photo' => 'nullable|file|image',
@@ -137,6 +138,7 @@ class EmployeeController extends Controller
             'profile_picture' => $profilePicturePath,
             'name' => $request->name,
             'email' => $request->email,
+            'email_work' => $request->email_work,
             'phone' => $request->phone,
             'status' => 'ACTIVE',
             'address' => $request->address,
@@ -169,6 +171,7 @@ class EmployeeController extends Controller
             'profile_picture' => 'nullable|file|image',
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:employees,email,' . $id,
+            'email_work' => 'nullable|email|unique:employees,email_work,' . $id,
             'phone' => 'sometimes|string|unique:employees,phone,' . $id,
             'status' => 'sometimes|string',
             'address' => 'sometimes|string',
@@ -186,7 +189,7 @@ class EmployeeController extends Controller
         }
 
         $updateData = $request->only([
-            'department_id', 'division_id', 'job_id', 'name', 'email', 'phone', 'status',
+            'department_id', 'division_id', 'job_id', 'name', 'email', 'email_work', 'phone', 'status', 'address',
             'address', 'birth_date', 'hire_date', 'resign_date', 'grade', 'office'
         ]);
 

@@ -37,10 +37,17 @@
                             </div>
                         </div>
                         <div>
-                            <label for="employee_email" class="form-label">Employee Email</label>
+                            <label for="employee_email" class="form-label">Email</label>
                             <input type="email" id="employee_email" name="employee_email" class="form-control" required />
                             <div class="invalid-feedback">
                                 Please enter a valid email.
+                            </div>
+                        </div>
+                        <div>
+                            <label for="employee_email_work" class="form-label">Email Work</label>
+                            <input type="email" id="employee_email_work" name="employee_email_work" class="form-control" />
+                            <div class="invalid-feedback">
+                                Please enter a valid email work.
                             </div>
                         </div>
                         <div>

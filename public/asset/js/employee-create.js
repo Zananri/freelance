@@ -176,6 +176,8 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.delete("employee_name");
             formData.set("email", formData.get("employee_email"));
             formData.delete("employee_email");
+            formData.set("email_work", formData.get("employee_email_work"));
+            formData.delete("employee_email_work");
             formData.set("phone", formData.get("employee_phone"));
             formData.delete("employee_phone");
             formData.set("status", formData.get("status"));

@@ -46,6 +46,13 @@
                             </div>
                         </div>
                         <div>
+                            <label for="employee_email_work" class="form-label">Email Work</label>
+                            <input type="email" id="employee_email_work" name="employee_email_work" class="form-control" value="{{ $employee->email_work }}" />
+                            <div class="invalid-feedback">
+                                Please enter a valid email work.
+                            </div>
+                        </div>
+                        <div>
                             <label for="employee_phone" class="form-label">Employee Phone</label>
                             <input type="number" id="employee_phone" name="employee_phone" class="form-control" value="{{ $employee->phone }}" required />
                             <div class="invalid-feedback">
