@@ -131,30 +131,55 @@ class EmployeeController extends Controller
             $ktpPath = 'file/ktp/' . $filename;
         }
 
-        $employee = Employee::create([
-            'department_id' => $request->department_id,
-            'division_id' => $request->division_id,
-            'job_id' => $request->job_id,
-            'profile_picture' => $profilePicturePath,
-            'name' => $request->name,
-            'email' => $request->email,
-            'email_work' => $request->email_work,
-            'phone' => $request->phone,
-            'status' => 'ACTIVE',
-            'address' => $request->address,
-            'photo' => $photoPath,
-            'ktp' => $ktpPath,
-            'birth_date' => $request->birth_date,
-            'hire_date' => $request->hire_date,
-            'resign_date' => $request->resign_date,
-            'grade' => $request->grade,
-            'office' => $request->office,
-            'created_by' => '1',
-            'updated_by' => '1',
-            'deleted_by' => '1',
-        ]);
+        \DB::beginTransaction();
 
-        return response()->json(['message' => 'Employee created successfully', 'data' => $employee]);
+        try {
+            $employee = Employee::create([
+                'department_id' => $request->department_id,
+                'division_id' => $request->division_id,
+                'job_id' => $request->job_id,
+                'profile_picture' => $profilePicturePath,
+                'name' => $request->name,
+                'email' => $request->email,
+                'email_work' => $request->email_work,
+                'phone' => $request->phone,
+                'status' => 'ACTIVE',
+                'address' => $request->address,
+                'photo' => $photoPath,
+                'ktp' => $ktpPath,
+                'birth_date' => $request->birth_date,
+                'hire_date' => $request->hire_date,
+                'resign_date' => $request->resign_date,
+                'grade' => $request->grade,
+                'office' => $request->office,
+                'created_by' => '1',
+                'updated_by' => '1',
+                'deleted_by' => '1',
+            ]);
+
+            $existingUser = \App\Models\User::where('email', $employee->email_work)->first();
+            if ($existingUser) {
+                \DB::rollBack();
+                return response()->json(['error' => 'User with this email_work already exists'], 422);
+            }
+
+            $user = new \App\Models\User();
+            $user->user_type = 'REGULAR';
+            $user->user_role = 'EMPLOYEE';
+            $user->photo = $employee->photo;
+            $user->name = $employee->name;
+            $user->email = $employee->email_work;
+            $user->email_verified_at = $employee->created_at;
+            $user->password = 'NSA_2025'; // Will be hashed automatically by User model
+            $user->save();
+
+            \DB::commit();
+
+            return response()->json(['message' => 'Employee created successfully', 'data' => $employee]);
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return response()->json(['error' => 'Failed to create employee and user', 'details' => $e->getMessage()], 500);
+        }
     }
 
     public function update(Request $request, $id)
@@ -236,6 +261,15 @@ class EmployeeController extends Controller
         $updateData['updated_by'] = 1;
 
         $employee->update($updateData);
+
+        // Update corresponding user record
+        $user = \App\Models\User::where('email', $employee->email_work)->first();
+        if ($user) {
+            $user->name = $employee->name;
+            $user->photo = $employee->photo;
+            $user->email = $employee->email_work;
+            $user->save();
+        }
 
         return response()->json(['message' => 'Employee updated successfully', 'data' => $employee]);
     }

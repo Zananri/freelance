@@ -7,15 +7,6 @@
     </x-slot>
 
     <div class="title-content d-flex align-items-center gap-2">
-        <div class="nav-item d-inline-block">
-            <div class="nav-icon-arrow">
-                <a href="{{ url('master') }}" class="text-decoration-none text-dark d-flex align-items-center">
-                    <div class="d-flex">
-                        <span class="material-symbols-outlined">arrow_back</span>
-                    </div>
-                </a>
-            </div>
-        </div>
         <h2 class="m-0">Employee</h2>
     </div>
 
