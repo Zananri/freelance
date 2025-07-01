@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -81,7 +82,6 @@ class EmployeeController extends Controller
                 'required',
                 Rule::exists('job_list', 'id'),
             ],
-            'profile_picture' => 'nullable|file|image',
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:employees,email',
             'email_work' => 'nullable|email|unique:employees,email_work',
@@ -105,40 +105,35 @@ class EmployeeController extends Controller
 
         try {
 
-            
-        $profilePicturePath = null;
-        $photoPath = null;
-        $ktpPath = null;
+            $photoPath = null;
+            $ktpPath = null;
 
-        if ($request->hasFile('profile_picture')) {
-            $file = $request->file('profile_picture');
-            $filename = 'PROFILE_PICTURE_' . time() . '.' . $file->getClientOriginalExtension();
-            $destination = public_path('file/profile_picture');
-            if (!file_exists($destination)) mkdir($destination, 0777, true);
-            $file->move($destination, $filename);
-            $profilePicturePath = 'file/profile_picture/' . $filename;
-        }
+            if ($request->hasFile('photo')) {
+                $file = $request->file('photo');
+                $photoFilename = 'PHOTO_' . time() . '.' . $file->getClientOriginalExtension();
+                $profilePictureFilename = 'PROFILE_PICTURE_' . time() . '.' . $file->getClientOriginalExtension();
+                $photoDestination = public_path('file/photo');
+                $profilePictureDestination = public_path('file/profile_picture');
+                if (!file_exists($photoDestination)) mkdir($photoDestination, 0777, true);
+                if (!file_exists($profilePictureDestination)) mkdir($profilePictureDestination, 0777, true);
+                $file->move($photoDestination, $photoFilename);
+                $photoPath = 'file/photo/' . $photoFilename;
+                // Copy photo file to profile_picture with different name
+                copy($photoDestination . '/' . $photoFilename, $profilePictureDestination . '/' . $profilePictureFilename);
+                $profilePicturePath = 'file/profile_picture/' . $profilePictureFilename;
+            }
 
-        if ($request->hasFile('photo')) {
-            $file = $request->file('photo');
-            $filename = 'PHOTO_' . time() . '.' . $file->getClientOriginalExtension();
-            $destination = public_path('file/photo');
-            if (!file_exists($destination)) mkdir($destination, 0777, true);
-            $file->move($destination, $filename);
-            $photoPath = 'file/photo/' . $filename;
-        }
-
-        if ($request->hasFile('ktp')) {
-            $file = $request->file('ktp');
-            $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name);
-            $filename = 'KTP_' . $employeeName . '.' . $file->getClientOriginalExtension();
-            $destination = public_path('file/ktp');
-            if (!file_exists($destination)) mkdir($destination, 0777, true);
-            $file->move($destination, $filename);
-            $ktpPath = 'file/ktp/' . $filename;
-        }
+            if ($request->hasFile('ktp')) {
+                $file = $request->file('ktp');
+                $employeeName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $request->name);
+                $filename = 'KTP_' . $employeeName . '.' . $file->getClientOriginalExtension();
+                $destination = public_path('file/ktp');
+                if (!file_exists($destination)) mkdir($destination, 0777, true);
+                $file->move($destination, $filename);
+                $ktpPath = 'file/ktp/' . $filename;
+            }
             $existingUser = User::where('email', $request->email_work)->first();
-            
+
             if ($existingUser) {
                 throw new \Exception('User with this email_work already exists');
                 return response()->json(['error' => 'User with this email_work already exists'], 422);
@@ -159,7 +154,7 @@ class EmployeeController extends Controller
                 'department_id' => $request->department_id,
                 'division_id' => $request->division_id,
                 'job_id' => $request->job_id,
-                'profile_picture' => $profilePicturePath,
+                'profile_picture' => $profilePicturePath ?? null,
                 'name' => $request->name,
                 'email' => $request->email,
                 'email_work' => $request->email_work,
@@ -223,18 +218,7 @@ class EmployeeController extends Controller
             'address', 'birth_date', 'hire_date', 'resign_date', 'grade', 'office'
         ]);
 
-        if ($request->hasFile('profile_picture')) {
-            // Delete old profile_picture file if exists
-            if ($employee->profile_picture && file_exists(public_path($employee->profile_picture))) {
-                unlink(public_path($employee->profile_picture));
-            }
-            $file = $request->file('profile_picture');
-            $filename = 'PROFILE_PICTURE_' . time() . '.' . $file->getClientOriginalExtension();
-            $destination = public_path('file/profile_picture');
-            if (!file_exists($destination)) mkdir($destination, 0777, true);
-            $file->move($destination, $filename);
-            $updateData['profile_picture'] = 'file/profile_picture/' . $filename;
-        }
+        // Removed profile_picture update handling to keep it unchanged on edit
 
         if ($request->hasFile('photo')) {
             // Delete old photo file if exists
