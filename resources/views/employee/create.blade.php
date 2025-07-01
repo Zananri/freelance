@@ -52,7 +52,7 @@
                         </div>
                         <div>
                             <label for="address" class="form-label">Address</label>
-                            <input type="text" id="address" name="address" class="form-control" required />
+                            <textarea id="address" name="address" class="form-control" required></textarea>
                             <div class="invalid-feedback">
                                 Please enter the address.
                             </div>
@@ -132,7 +132,7 @@
                     <!-- Right Section -->
                     <div class="col-md-3">
                         <div class="mb-3">
-                            <div class="title-label-image-photo" style="font-size: 14px;">
+                            <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
                                 <span>Upload Photo</span>
                             </div>
                             <label for="photo" class="custom-image-upload-photo position-relative photo-upload">
@@ -146,7 +146,7 @@
                             </label>
                         </div>
                         <div>
-                            <div class="title-label-image-ktp" style="font-size: 14px;">
+                            <div class="title-label-image-ktp" style="font-size: 14px; color: #555;">
                                 <span>Upload KTP</span>
                             </div>
                             <label for="ktp" class="custom-image-upload-ktp position-relative ktp-upload">

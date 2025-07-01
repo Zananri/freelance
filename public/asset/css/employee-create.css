@@ -395,7 +395,7 @@
     border: 1px solid #000;
     padding: 0.375rem 0.75rem;
     font-size: 1rem;
-    border-radius: 0.25rem;
+    border-radius: 8px !important;
     cursor: pointer;
     transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
 }
@@ -456,5 +456,18 @@
 @keyframes spin {
     0% { transform: rotate(0deg);}
     100% { transform: rotate(360deg);}
+}
+
+.body-content label.form-label,
+.body-content select.form-select,
+.body-content input.form-control,
+.body-content textarea.form-control {
+    font-size: 14px !important;
+    color: #555 !important;
+}
+
+.body-content input.form-control,
+.body-content select.form-select {
+    height: 38px !important;
 }
 
