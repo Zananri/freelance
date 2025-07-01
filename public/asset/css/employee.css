@@ -220,6 +220,7 @@ table.table tbody tr td:first-child {
     border: none;
     padding: 10px 24px;
     border-radius: 8px;
+    font-size: 14px;
     font-weight: 500;
     transition: background-color 0.3s ease;
 }
