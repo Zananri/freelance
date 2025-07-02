@@ -8,9 +8,10 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Employee;
 
 Route::get('/master', function () {
-    return view('master/master');
+    return view('master/master', compact('photo'));
 })->name('master');
 
 
@@ -46,8 +47,9 @@ Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
 Route::put('/jobs/{id}', [JobController::class, 'update'])->name('jobs.update');
 Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->name('jobs.destroy');
 
+
 Route::get('/employee-page', function () {
-    return view('/employee/employee');
+    return view('employee/employee', compact('photo'));
 })->name('employee.page');
 
 Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');

@@ -1,4 +1,4 @@
-<x-office-layout>
+<x-office-layout :photo="$photo">
     <x-slot name="menu_active">
         {{ __('master') }}
     </x-slot>
@@ -19,15 +19,13 @@
         </div>
         <div class="body-content scrollable-container rounded-4 p-5 w-50 d-flex justify-content-center align-items-center" style="height: 200px;">
             <a href="{{ url('division') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">
-            
                 <h5>Division</h5>
             </a>        
         </div>
         <div class="body-content scrollable-container rounded-4 p-5 w-50 d-flex justify-content-center align-items-center" style="height: 200px;">
-            <a href="{{ url('job-page') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">
-            
-                <h5>Job</h5>
-            </a>        
+              <a href="{{ url('job') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">
+                    <h5>Job</h5>
+                </a>    
         </div>
         <div class="body-content scrollable-container rounded-4 p-5 w-50 d-flex justify-content-center align-items-center" style="height: 200px;">
             <a href="{{ url('users') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">

@@ -113,7 +113,6 @@ header .img-avatar {
 }
 
 .body-content {
-    z-index: -1;
     background-color: rgb(240, 241, 248);
     min-height: 50vh;
     max-height: calc(100vh - 160px);

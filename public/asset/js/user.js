@@ -27,7 +27,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         users.forEach((user) => {
-            const photo = user.photo ? user.photo : "asset/img/default-profile.png";
+            const photo = user.photo ? user.photo : "url('" + appUrl + "/asset/img/background/add-image.png')";
+            
 
             rows += `
                 <tr data-id="${user.id}">

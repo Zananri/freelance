@@ -48,6 +48,10 @@
             background-image: url('{{ asset('asset/img/background/light-1.jpg') }}');
         }
 
+        header {
+            position: relative;
+        }
+
         .btn-sidebar-style {
             background-color: transparent;
             color: #777;
@@ -357,49 +361,41 @@
 
             <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
                 style="width: 48px; height: 48px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
-                @if (isset($photo) && $photo)
-                    <img src="{{ $photo }}" alt="User Avatar" class="rounded-circle"
-                        style="width: 48px; height: 48px; object-fit: cover;">
-                @else
-                    <img src="{{ asset('asset/img/default-avatar.png') }}" alt="Default Avatar" class="rounded-circle"
-                        style="width: 48px; height: 48px; object-fit: cover; margin-bottom: 4px;">
-                @endif
 
-<div id="avatarDropdownCard" class="card shadow-sm"
-                    style="width: 280px; position: fixed; top: 75px; right: 32px; border-radius: 12px; display: none; z-index: 1050;">
-<button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+                <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
+                    style="width: 48px; height: 48px; object-fit: cover;">
+
+                <div id="avatarDropdownCard" class="card shadow-sm"
+                    style="width: 280px; position: fixed; top: 75px; right: 32px; border-radius: 12px; display: none;">
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
                         aria-label="Close"></button>
-                    <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center" style="min-height: 220px;">
+                    <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center"
+                        style="min-height: 220px;">
                         <div class="mb-2">
-                            @if (isset($photo) && $photo)
-                                <img src="{{ $photo }}" alt="User Photo" class="rounded-circle mx-auto d-block"
-                                    style="width:100px; height:100px; object-fit: cover;">
-                            @else
-                                <img src="{{ asset('asset/img/default-avatar.png') }}" alt="Default Photo"
-                                    class="rounded-circle mx-auto d-block"
-                                    style="width:100px; height:100px; object-fit: cover;">
-                            @endif
+                            <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
+                    style="width: 48px; height: 48px; object-fit: cover;">
                         </div>
-                        <div class="fw-semibold" style="font-size: 16px; color: #212529;">{{ auth()->user()->name }}
+                        <div class="fw-semibold" style="font-size: 16px; color: #212529;">{{ Auth::user()->name }}
                         </div>
                         <div class="text-muted" style="font-size: 12px; margin-bottom: 12px;">
-                            {{ auth()->user()->email }}</div>
+                            {{ Auth::user()->email }}</div>
 
-                         <div class="d-flex flex-column align-items-center gap-2" style="width: 85%;">
-                             <button type="button" class="btn btn-detail btn-sidebar-style mb-2"
-                                 style="font-size: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
-                                 onclick="window.location.href='{{ route('profiles.index') }}'">
-                                 <span class="material-symbols-outlined" style="font-size: 16px;">account_circle</span>
-                                 Profile
-                             </button>
-                             <form method="POST" action="{{ route('logout') }}" style="width: 100%;">
-                                 @csrf
-                                 <button type="submit" class="btn btn-detail btn-sidebar-style"
-                                     style="font-size: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                     <span class="material-symbols-outlined" style="font-size: 16px;">logout</span> Logout
-                                 </button>
-                             </form>
-                         </div>
+                        <div class="d-flex flex-column align-items-center gap-2" style="width: 85%;">
+                            <button type="button" class="btn btn-detail btn-sidebar-style mb-2"
+                                style="font-size: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                                onclick="window.location.href='{{ route('profiles.index') }}'">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">account_circle</span>
+                                Profile
+                            </button>
+                            <form method="POST" action="{{ route('logout') }}" style="width: 100%;">
+                                @csrf
+                                <button type="submit" class="btn btn-detail btn-sidebar-style"
+                                    style="font-size: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                    <span class="material-symbols-outlined" style="font-size: 16px;">logout</span>
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -425,8 +421,7 @@
 
                 <ul class="sidebar-menu">
                     <li>
-                        <a href="{{ url('dashboard') }}"
-                            class="{{ $menu_active == 'dashboard' ? 'active' : '' }}">
+                        <a href="{{ url('dashboard') }}" class="{{ $menu_active == 'dashboard' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">home</span>
                             <span class="text-menu">Dashboard</span>
                         </a>
@@ -534,8 +529,6 @@
             event.stopPropagation();
             $('#avatarDropdownCard').hide();
         });
-
-
     </script>
 
     @isset($script_slot)
