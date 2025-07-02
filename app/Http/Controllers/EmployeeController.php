@@ -249,10 +249,12 @@ class EmployeeController extends Controller
 
         $updateData['updated_by'] = 1;
 
+        $oldUserId = $employee->user_id;
+
         $employee->update($updateData);
 
         // Update corresponding user record
-        $user = User::where('email', $employee->email_work)->first();
+        $user = User::find($oldUserId);
         if ($user) {
             $user->name = $employee->name;
             $user->photo = $employee->photo;
