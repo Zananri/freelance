@@ -5,6 +5,20 @@ body {
     background-attachment: fixed;
 }
 
+#avatarDropdownCard {
+    position: fixed;
+    top: 75px;
+    right: 32px;
+    width: 280px;
+    border-radius: 12px;
+    z-index: 1050;
+}
+
+#avatarDropdownCard .btn-close.position-absolute {
+    cursor: pointer;
+    z-index: 1060;
+}
+
 #sidebar-control {
     color: #a7a7a7;
     margin-right: 15px;
@@ -101,6 +115,7 @@ header .img-avatar {
 }
 
 .body-content {
+    z-index: -1;
     background-color: rgb(240, 241, 248);
     min-height: 50vh;
     max-height: calc(100vh - 160px);

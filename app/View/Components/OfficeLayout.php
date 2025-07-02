@@ -11,9 +11,11 @@ class OfficeLayout extends Component
     /**
      * Create a new component instance.
      */
-    public function __construct()
+    public $photo;
+
+    public function __construct($photo = null)
     {
-        //
+        $this->photo = $photo;
     }
 
     /**

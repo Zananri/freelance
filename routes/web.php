@@ -6,6 +6,8 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 Route::get('/master', function () {
     return view('master/master');
@@ -67,6 +69,9 @@ Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.de
 // AJAX route for fetching users data
 Route::get('/users/ajax/data', [UserController::class, 'getUsersAjax'])->name('users.ajax.data');
 
+Route::get('/profiles', [ProfileController::class, 'index'])->name('profiles.index');
+
+
 
 
 Route::get('/', function () {
@@ -77,6 +82,7 @@ Route::get('/login', function () {
     return view('auth.login');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-});
+Route::post('/login', [App\Http\Controllers\UserController::class, 'login'])->name('login');
+Route::post('/logout', [App\Http\Controllers\UserController::class, 'logout'])->name('logout');
+
+Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');

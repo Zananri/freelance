@@ -26,15 +26,16 @@
     {{-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" /> --}}
 
 
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=groups" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=groups" />
     <style>
-    .material-symbols-outlined {
-      font-variation-settings:
-      'FILL' 0,
-      'wght' 400,
-      'GRAD' 0,
-      'opsz' 24
-    }
+        .material-symbols-outlined {
+            font-variation-settings:
+                'FILL' 0,
+                'wght' 400,
+                'GRAD' 0,
+                'opsz' 24
+        }
     </style>
     <link href="{{ asset('asset/css/MaterialSymbolsOutlined.css') }}" rel="stylesheet">
     <link href="{{ asset('asset/css/app.css') }}" rel="stylesheet">
@@ -45,6 +46,36 @@
             box-sizing: border-box;
             /* Pastikan padding tidak menambah ukuran total */
             background-image: url('{{ asset('asset/img/background/light-1.jpg') }}');
+        }
+
+        .btn-sidebar-style {
+            background-color: transparent;
+            color: #777;
+            border-radius: 25px;
+            padding: 12px 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-sidebar-style:hover {
+            background-color: #f8f8f9;
+            color: #000;
+        }
+
+        .btn-sidebar-style .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0;
+            transition: font-variation-settings 0.3s ease;
+        }
+
+        .btn-sidebar-style:hover .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
         }
 
 
@@ -324,13 +355,58 @@
                 </div>
             </div>
 
-            <div class="nav-item img-avatar rounded-circle d-inline-block p-3 bg-black me-2" style="">
+            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
+                style="width: 48px; height: 48px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
+                @if (isset($photo) && $photo)
+                    <img src="{{ $photo }}" alt="User Avatar" class="rounded-circle"
+                        style="width: 48px; height: 48px; object-fit: cover;">
+                @else
+                    <img src="{{ asset('asset/img/default-avatar.png') }}" alt="Default Avatar" class="rounded-circle"
+                        style="width: 48px; height: 48px; object-fit: cover; margin-bottom: 4px;">
+                @endif
 
+<div id="avatarDropdownCard" class="card shadow-sm"
+                    style="width: 280px; position: fixed; top: 75px; right: 32px; border-radius: 12px; display: none; z-index: 1050;">
+<button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+                        aria-label="Close"></button>
+                    <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center" style="min-height: 220px;">
+                        <div class="mb-2">
+                            @if (isset($photo) && $photo)
+                                <img src="{{ $photo }}" alt="User Photo" class="rounded-circle mx-auto d-block"
+                                    style="width:100px; height:100px; object-fit: cover;">
+                            @else
+                                <img src="{{ asset('asset/img/default-avatar.png') }}" alt="Default Photo"
+                                    class="rounded-circle mx-auto d-block"
+                                    style="width:100px; height:100px; object-fit: cover;">
+                            @endif
+                        </div>
+                        <div class="fw-semibold" style="font-size: 16px; color: #212529;">{{ auth()->user()->name }}
+                        </div>
+                        <div class="text-muted" style="font-size: 12px; margin-bottom: 12px;">
+                            {{ auth()->user()->email }}</div>
+
+                         <div class="d-flex flex-column align-items-center gap-2" style="width: 85%;">
+                             <button type="button" class="btn btn-detail btn-sidebar-style mb-2"
+                                 style="font-size: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                                 onclick="window.location.href='{{ route('profiles.index') }}'">
+                                 <span class="material-symbols-outlined" style="font-size: 16px;">account_circle</span>
+                                 Profile
+                             </button>
+                             <form method="POST" action="{{ route('logout') }}" style="width: 100%;">
+                                 @csrf
+                                 <button type="submit" class="btn btn-detail btn-sidebar-style"
+                                     style="font-size: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                     <span class="material-symbols-outlined" style="font-size: 16px;">logout</span> Logout
+                                 </button>
+                             </form>
+                         </div>
+                    </div>
+                </div>
             </div>
 
             <div class="nav-item d-inline-block pt-1" style="">
-                <div class="fs-14 fw-medium">User Name</div>
-                <div class="fs-12 fw-normal text-body text-opacity-75">Marketplace</div>
+                <div class="fs-14 fw-medium">Hi, {{ auth()->user()->name }}</div>
+                <div class="fs-12 fw-normal text-body text-opacity-75">{{ auth()->user()->user_role }}</div>
             </div>
 
         </div>
@@ -349,7 +425,8 @@
 
                 <ul class="sidebar-menu">
                     <li>
-                        <a href="{{ url('dashboard') }}" class="{{ ($menu_active == 'dashboard') ? 'active' : '' }}">
+                        <a href="{{ url('dashboard') }}"
+                            class="{{ $menu_active == 'dashboard' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">home</span>
                             <span class="text-menu">Dashboard</span>
                         </a>
@@ -397,13 +474,14 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('master') }}" class="{{ ($menu_active == 'master') ? 'active' : '' }}">
+                        <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">database</span>
                             <span class="text-menu">Master</span>
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('employee.page') }}"  class="{{ ($menu_active == 'employee') ? 'active' : '' }}">
+                        <a href="{{ route('employee.page') }}"
+                            class="{{ $menu_active == 'employee' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">groups</span>
                             <span class="text-menu">Employee</span>
                         </a>
@@ -444,6 +522,20 @@
         $('#sidebar-control').on('click', function() {
             $("body").toggleClass("small-sidebar");
         });
+
+        // Toggle avatar dropdown card
+        $('#avatarDropdownToggle').on('click', function(event) {
+            event.stopPropagation();
+            $('#avatarDropdownCard').toggle();
+        });
+
+        // Close dropdown card on close button click
+        $('#avatarDropdownCard .btn-close').on('click', function(event) {
+            event.stopPropagation();
+            $('#avatarDropdownCard').hide();
+        });
+
+
     </script>
 
     @isset($script_slot)
