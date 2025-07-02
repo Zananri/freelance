@@ -5,6 +5,7 @@ use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\UserController;
 
 Route::get('/master', function () {
     return view('master/master');
@@ -54,6 +55,17 @@ Route::get('/employees/{id}', [EmployeeController::class, 'show'])->name('employ
 Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
 Route::put('/employees/{id}', [EmployeeController::class, 'update'])->name('employees.update');
 Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+
+Route::get('/users', [UserController::class, 'index'])->name('users.index');
+Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+// Route::get('/users/{id}/edit', [UserController::class, 'edit'])->name('users.edit');
+Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
+Route::post('/users', [UserController::class, 'store'])->name('users.store');
+Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
+Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
+
+// AJAX route for fetching users data
+Route::get('/users/ajax/data', [UserController::class, 'getUsersAjax'])->name('users.ajax.data');
 
 
 

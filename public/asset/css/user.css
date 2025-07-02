@@ -1,0 +1,82 @@
+/* Cleaned user.css: Only necessary styles for user blade */
+
+.table-transparent th,
+.table-transparent td {
+    background-color: rgba(248, 248, 249, 0) !important;
+}
+
+.title-content a {
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+.table-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center center;
+    background: #f7f7f7;
+}
+
+table.table > thead > tr {
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+    font-weight: normal;
+}
+
+table.table > tbody > tr {
+    border-bottom: 1px solid #ddd;
+}
+
+/* Add body-content spacing similar to employee.css */
+.body-content {
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* New styles to make User, User Type, User Role columns equal width and action column minimal width */
+table.table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* Set font size and color for all table headers and cells */
+table.table thead th,
+table.table tbody td {
+    font-size: 14px;
+    color: #555;
+}
+
+/* Reset password button styling similar to employee buttons */
+.btn-reset {
+    border: none;
+    background-color: transparent;
+    color: #555;
+    padding: 0.375rem 0.75rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-sizing: border-box;
+    height: 38px;
+    min-width: 38px;
+    font-size: 14px;
+    border-radius: 4px;
+}
+
+.btn-reset .material-symbols-outlined {
+    color: inherit;
+    transition: color 0.3s ease;
+    font-size: 20px;
+}
+
+.btn-reset:hover {
+    background-color: white;
+}
+
+.btn-reset:hover .material-symbols-outlined {
+    color: black;
+}
