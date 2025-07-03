@@ -9,7 +9,7 @@
     <div class="title-content d-flex align-items-center gap-2">
         <div class="nav-item d-inline-block">
             <div class="nav-icon-arrow">
-                <a href="{{ url('employee-page') }}" class="text-decoration-none text-dark d-flex align-items-center">
+                <a href="{{ url('employee') }}" class="text-decoration-none text-dark d-flex align-items-center">
                     <div class="d-flex">
                         <span class="material-symbols-outlined">arrow_back</span>
                     </div>
