@@ -232,11 +232,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             '<div class="alert alert-success">Employee updated successfully.</div>';
                         setTimeout(() => {
                             formAlert.innerHTML = "";
-                            window.location.href = "/employee-page";
+                            window.location.href = "/employee";
                         }, 1500);
                     } else {
                         alert(data.message);
-                        window.location.href = "/employee-page";
+                        window.location.href = "/employee";
                     }
                     // Remove validation classes after success
                     const inputs = form.querySelectorAll(

@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             error: function () {
                 tableBody.innerHTML =
-                    '<tr><td colspan="4">Failed to load user data.</td></tr>';
+                    '<tr><td colspan="5">Failed to load user data.</td></tr>';
             },
         });
     }
@@ -21,14 +21,13 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderUsers(users) {
         if (!users.length) {
             tableBody.innerHTML =
-                '<tr class="no-data-row"><td colspan="4" class="text-center">No users found.</td></tr>';
+                '<tr class="no-data-row"><td colspan="5" class="text-center">No users found.</td></tr>';
             return;
         }
 
         let rows = "";
         users.forEach((user) => {
-            const photo = user.photo ? user.photo : "url('" + appUrl + "/asset/img/background/add-image.png')";
-            
+            const photo = user.photo ? user.photo : "url('" + appUrl + "/asset/img/default-profile.png')";
 
             rows += `
                 <tr data-id="${user.id}">
@@ -44,8 +43,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     <td>${user.user_type}</td>
                     <td>${user.user_role}</td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-reset" data-user-id="${user.id}" title="Reset Password">
-                            <span class="material-symbols-outlined">autorenew</span> Reset Password
+                        <button class="btn btn-sm btn-reset btn-detail" data-id="${user.id}" title="View Detail">
+                            <span class="material-symbols-outlined">visibility</span> View Detail
                         </button>
                     </td>
                 </tr>
@@ -53,6 +52,62 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         tableBody.innerHTML = rows;
     }
+
+    // User Detail Modal Logic
+    const userDetailModalEl = document.getElementById("userDetailModal");
+    const userDetailModal = new bootstrap.Modal(userDetailModalEl);
+
+    $(document).on("click", ".btn-detail", function () {
+        const id = $(this).data("id");
+        $.ajax({
+            url: appUrl + `/users/${id}`,
+            method: "GET",
+            dataType: "json",
+                success: function (user) {
+                    $("#detailUserName").text(user.name);
+                    $("#detailUserEmail").text(user.email);
+                    $("#detailUserType").text(user.user_type);
+                    $("#detailUserRole").text(user.user_role);
+
+                    const photoUrl = user.photo ? `/${user.photo}` : "url('" + appUrl + "/asset/img/default-profile.png')";
+                    $("#detailUserPhoto").attr("src", photoUrl);
+
+                    if (user.employee) {
+                        const birthDate = user.employee.birth_date ? new Date(user.employee.birth_date) : null;
+                        const hireDate = user.employee.hire_date ? new Date(user.employee.hire_date) : null;
+                        const options = { year: "numeric", month: "long", day: "numeric" };
+
+                        $("#detailBirthDate").text(birthDate ? birthDate.toLocaleDateString("en-GB", options) : "-");
+                        $("#detailPhone").text(user.employee.phone || "-");
+                        $("#detailAddress").text(user.employee.address || "-");
+
+                        $("#detailEmployeeDepartment").text(user.employee.department ? user.employee.department.name_department : "-");
+                        $("#detailEmployeeDivision").text(user.employee.division ? user.employee.division.name_division : "-");
+                        $("#detailEmployeeJob").text(user.employee.job ? user.employee.job.job_name : "-");
+                        $("#detailHireDate").text(hireDate ? hireDate.toLocaleDateString("en-GB", options) : "-");
+                        $("#detailGrade").text(user.employee.grade || "-");
+                        $("#detailEmployeeOffice").text(user.employee.office || "-");
+                        $("#detailEmployeeStatus").text(user.employee.status || "-");
+                    } else {
+                        $("#detailBirthDate").text("-");
+                        $("#detailPhone").text("-");
+                        $("#detailAddress").text("-");
+                        $("#detailEmployeeDepartment").text("-");
+                        $("#detailEmployeeDivision").text("-");
+                        $("#detailEmployeeJob").text("-");
+                        $("#detailHireDate").text("-");
+                        $("#detailGrade").text("-");
+                        $("#detailEmployeeOffice").text("-");
+                        $("#detailEmployeeStatus").text("-");
+                    }
+
+                    userDetailModal.show();
+                },
+            error: function () {
+                alert("Failed to fetch user details.");
+            },
+        });
+    });
 
     fetchUsers();
 });

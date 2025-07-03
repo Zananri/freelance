@@ -73,7 +73,11 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $user = User::with('employee.department', 'employee.division', 'employee.job')->find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+        return response()->json($user);
     }
 
     /**

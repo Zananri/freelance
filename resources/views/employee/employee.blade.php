@@ -137,29 +137,33 @@
         aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="employeeDetailModalLabel">Employee Detail</h5>
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="employeeDetailModalLabel">Employee Detail</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="detail-left">
-                        <p data-label="Name"><span id="detailName"></span></p>
-                        <p data-label="Birth Date"><span id="detailBirthDate"></span></p>
-                        <p data-label="Email"><span id="detailEmail"></span></p>
-                        <p data-label="Phone"><span id="detailPhone"></span></p>
-                        <p data-label="Address"><span id="detailAddress"></span></p>
-                    </div>
-                    <div class="detail-middle">
-                        <p data-label="Department"><span id="detailDepartment"></span></p>
-                        <p data-label="Division"><span id="detailDivision"></span></p>
-                        <p data-label="Job"><span id="detailJob"></span></p>
-                        <p data-label="Hire Date"><span id="detailHireDate"></span></p>
-                        <p data-label="Grade"><span id="detailGrade"></span></p>
-                        <p data-label="Office"><span id="detailOffice"></span></p>
-                        <p data-label="Status"><span id="detailStatus"></span></p>
-                    </div>
-                    <div class="detail-right">
-                        <img id="detailPhoto" src="" alt="Employee Photo">
+                    <div class="employee-detail-modal">
+                        <div class="employee-photo-name-email">
+                            <img id="detailPhoto" src="" alt="Employee Photo" class="employee-photo">
+                            <p class="employee-name" id="detailName"></p>
+                            <p class="employee-email" id="detailEmail"></p>
+                        </div>
+                        <div class="employee-detail-columns">
+                            <div class="employee-detail-left">
+                                <p><strong>Birth Date:</strong> <span id="detailBirthDate"></span></p>
+                                <p><strong>Phone:</strong> <span id="detailPhone"></span></p>
+                                <p><strong>Address:</strong> <span id="detailAddress"></span></p>
+                            </div>
+                            <div class="employee-detail-right">
+                                <p><strong>Department:</strong> <span id="detailDepartment"></span></p>
+                                <p><strong>Division:</strong> <span id="detailDivision"></span></p>
+                                <p><strong>Job:</strong> <span id="detailJob"></span></p>
+                                <p><strong>Hire Date:</strong> <span id="detailHireDate"></span></p>
+                                <p><strong>Grade:</strong> <span id="detailGrade"></span></p>
+                                <p><strong>Office:</strong> <span id="detailOffice"></span></p>
+                                <p><strong>Status:</strong> <span id="detailStatus"></span></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
