@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
 
 Route::get('/master', function () {
-    return view('master/master', compact('photo'));
+    return view('master/master');
 })->name('master');
 
 
@@ -49,7 +49,7 @@ Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->name('jobs.destr
 
 
 Route::get('/employee-page', function () {
-    return view('employee/employee', compact('photo'));
+    return view('employee/employee');
 })->name('employee.page');
 
 Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');

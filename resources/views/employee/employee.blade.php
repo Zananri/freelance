@@ -1,4 +1,4 @@
-<x-office-layout :photo="$photo">
+<x-office-layout>
     <x-slot name="menu_active">
         {{ __('employee') }}
     </x-slot>
