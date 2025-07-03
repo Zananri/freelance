@@ -11,6 +11,10 @@ use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
+    public function showEmployeePage()
+    {
+        return view('employee/employee');
+    }
     public function index(Request $request)
     {
         $query = $request->input('query', '');
@@ -56,7 +60,6 @@ class EmployeeController extends Controller
         $employees = Employee::with(['department', 'division', 'job'])
             ->where('status', '!=', 'DELETED')
             ->get();
-        return view('employee.employee', compact('employees'));
     }
 
     public function show($id)

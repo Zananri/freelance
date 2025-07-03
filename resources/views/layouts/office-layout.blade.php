@@ -475,7 +475,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('employee.page') }}"
+                        <a href="{{ route('employee') }}"
                             class="{{ $menu_active == 'employee' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">groups</span>
                             <span class="text-menu">Employee</span>

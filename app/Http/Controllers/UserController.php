@@ -9,9 +9,12 @@ use App\Models\Employee;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+   
+    public function showUserPage()
+    {
+        return view('master.user.user');
+    }
+    
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -22,9 +25,7 @@ class UserController extends Controller
         return view('master.user.user');
     }
 
-    /**
-     * Handle login request.
-     */
+   
     public function login(Request $request)
     {
         $request->validate([

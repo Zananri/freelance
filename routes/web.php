@@ -15,32 +15,24 @@ Route::get('/master', function () {
 })->name('master');
 
 
-Route::get('/department', function () {
-    return view('/master/department/department');
-})->name('department');
-
-// Department CRUD routes
+Route::get('/department', [DepartmentController::class, 'showDepartmentPage'])->name('department');
 Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
 Route::get('/departments/{id}', [DepartmentController::class, 'show'])->name('departments.show');
 Route::post('/departments', [DepartmentController::class, 'store'])->name('departments.store');
 Route::put('/departments/{id}', [DepartmentController::class, 'update'])->name('departments.update');
 Route::delete('/departments/{id}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
 
-Route::get('/division', function () {
-    return view('/master/division/division');
-})->name('division');
 
 // Division CRUD routes
+Route::get('/division', [DivisionController::class, 'showDivisionPage'])->name('division');
 Route::get('/divisions', [DivisionController::class, 'index'])->name('divisions.index');
 Route::get('/divisions/{id}', [DivisionController::class, 'show'])->name('divisions.show');
 Route::post('/divisions', [DivisionController::class, 'store'])->name('divisions.store');
 Route::put('/divisions/{id}', [DivisionController::class, 'update'])->name('divisions.update');
 Route::delete('/divisions/{id}', [DivisionController::class, 'destroy'])->name('divisions.destroy');
 
-Route::get('/job-page', function () {
-    return view('/master/job/job');
-})->name('job.page');
-
+// Job CRUD routes
+Route::get('/job', [JobController::class, 'showJobPage'])->name('job');
 Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
 Route::get('/jobs/{id}', [JobController::class, 'show'])->name('jobs.show');
 Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
@@ -48,10 +40,7 @@ Route::put('/jobs/{id}', [JobController::class, 'update'])->name('jobs.update');
 Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->name('jobs.destroy');
 
 
-Route::get('/employee-page', function () {
-    return view('employee/employee');
-})->name('employee.page');
-
+Route::get('/employee', [EmployeeController::class, 'showEmployeePage'])->name('employee');
 Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
 Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
 Route::get('/employees/{id}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
@@ -60,6 +49,7 @@ Route::post('/employees', [EmployeeController::class, 'store'])->name('employees
 Route::put('/employees/{id}', [EmployeeController::class, 'update'])->name('employees.update');
 Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
 
+Route::get('/user', [UserController::class, 'showUserPage'])->name('user');
 Route::get('/users', [UserController::class, 'index'])->name('users.index');
 Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
 // Route::get('/users/{id}/edit', [UserController::class, 'edit'])->name('users.edit');
@@ -67,7 +57,6 @@ Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
 Route::post('/users', [UserController::class, 'store'])->name('users.store');
 Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
 Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
-
 // AJAX route for fetching users data
 Route::get('/users/ajax/data', [UserController::class, 'getUsersAjax'])->name('users.ajax.data');
 

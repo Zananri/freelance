@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\Validator;
 
 class JobController extends Controller
 {
+      public function showJobPage()
+    {
+        return view('master/job/job');
+    }
+
     public function index(Request $request)
     {
         $query = $request->input('query');

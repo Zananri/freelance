@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Storage;
 
 class DepartmentController extends Controller
 {
+
+
+public function showDepartmentPage()
+{
+        return view('master/department/department');
+}
+
+
 public function index(Request $request)
 {
     $query = $request->input('query');
@@ -149,4 +157,6 @@ public function index(Request $request)
 
         return response()->json(['message' => 'Department deleted successfully']);
     }
+
+   
 }

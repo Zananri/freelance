@@ -149,4 +149,9 @@ public function show(string $id)
             return response()->json(['message' => 'Error deleting division', 'error' => $e->getMessage()], 500);
         }
     }
+
+    public function showDivisionPage()
+    {
+        return view('master/division/division');
+    }
 }
