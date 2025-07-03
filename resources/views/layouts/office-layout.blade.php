@@ -366,14 +366,16 @@
                     style="width: 48px; height: 48px; object-fit: cover;">
 
                 <div id="avatarDropdownCard" class="card shadow-sm"
-                    style="width: 280px; position: fixed; top: 75px; right: 32px; border-radius: 12px; display: none;">
+                    style="width: 350px; height:400px; position: fixed; top: 75px; right: 32px; border-radius: 12px; display: none;
+                    background-color: rgb(240, 241, 248);
+                    ">
                     <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
                         aria-label="Close"></button>
                     <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center"
                         style="min-height: 220px;">
                         <div class="mb-2">
                             <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
-                    style="width: 48px; height: 48px; object-fit: cover;">
+                                style="width: 120px; height: 120px; object-fit: cover;">
                         </div>
                         <div class="fw-semibold" style="font-size: 16px; color: #212529;">{{ Auth::user()->name }}
                         </div>
@@ -382,16 +384,16 @@
 
                         <div class="d-flex flex-column align-items-center gap-2" style="width: 85%;">
                             <button type="button" class="btn btn-detail btn-sidebar-style mb-2"
-                                style="font-size: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                                style="font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
                                 onclick="window.location.href='{{ route('profiles.index') }}'">
-                                <span class="material-symbols-outlined" style="font-size: 16px;">account_circle</span>
+                                <span class="material-symbols-outlined" style="font-size: 25px;">account_circle</span>
                                 Profile
                             </button>
                             <form method="POST" action="{{ route('logout') }}" style="width: 100%;">
                                 @csrf
                                 <button type="submit" class="btn btn-detail btn-sidebar-style"
-                                    style="font-size: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                                    <span class="material-symbols-outlined" style="font-size: 16px;">logout</span>
+                                    style="font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                    <span class="material-symbols-outlined" style="font-size: 25px;">logout</span>
                                     Logout
                                 </button>
                             </form>
@@ -402,7 +404,7 @@
 
             <div class="nav-item d-inline-block pt-1" style="">
                 <div class="fs-14 fw-medium">Hi, {{ auth()->user()->name }}</div>
-                <div class="fs-12 fw-normal text-body text-opacity-75">{{ auth()->user()->user_role }}</div>
+                <div class="fs-12 fw-normal text-body text-opacity-75">{{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}</div>
             </div>
 
         </div>
@@ -475,8 +477,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('employee') }}"
-                            class="{{ $menu_active == 'employee' ? 'active' : '' }}">
+                        <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">groups</span>
                             <span class="text-menu">Employee</span>
                         </a>

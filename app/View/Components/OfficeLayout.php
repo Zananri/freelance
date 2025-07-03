@@ -12,10 +12,12 @@ class OfficeLayout extends Component
      * Create a new component instance.
      */
     public $photo;
+    public $user;
 
     public function __construct($photo = null)
     {
         $this->photo = $photo;
+        $this->user = auth()->user()->load('employee.division');
     }
 
     /**
@@ -23,6 +25,6 @@ class OfficeLayout extends Component
      */
     public function render(): View|Closure|string
     {
-        return view('layouts.office-layout');
+        return view('layouts.office-layout', ['user' => $this->user]);
     }
 }

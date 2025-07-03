@@ -37,14 +37,6 @@
                     </div>
                     <button type="submit" class="btn btn-submit w-100 ">Submit</button>
                 </form>
-                <div class="p-5 mb-5">
-                    @if (session('success'))
-                        <div class="alert alert-success alert-dismissible fade show w-100" role="alert">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                </div>
             </div>
 
 
