@@ -229,3 +229,38 @@ table.table tbody td {
         gap: 1rem;
     }
 }
+
+/* Button styling for autorenew button in user detail modal, copied from department.css */
+.btn-submit-black {
+    background-color: black;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.btn-submit-black:hover {
+    background-color: #333;
+}
+
+.btn-submit-custom {
+    width: auto;
+    min-width: auto;
+    height: 36px;
+    font-weight: normal;
+    padding: 6px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Align icon and text horizontally with spacing in the button */
+.btn-submit-black.btn-submit-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+}
