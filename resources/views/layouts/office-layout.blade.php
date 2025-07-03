@@ -365,34 +365,37 @@
                 <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
                     style="width: 48px; height: 48px; object-fit: cover;">
 
-                <div id="avatarDropdownCard" class="card shadow-sm"
-                    style="width: 350px; height:400px; position: fixed; top: 75px; right: 32px; border-radius: 12px; display: none;
-                    background-color: rgb(240, 241, 248);
-                    ">
+                <div id="avatarDropdownCard" class="card shadow-sm rounded-5"
+                    style="width: 350px; position: fixed; top: 75px; right: 32px;  display: none;
+                    background-color: rgb(240, 241, 248); border:0;">
                     <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
                         aria-label="Close"></button>
                     <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center"
                         style="min-height: 220px;">
-                        <div class="mb-2">
+                        <div class="mb-2 mt-3">
                             <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
-                                style="width: 120px; height: 120px; object-fit: cover;">
+                                style="width: 70px; height: 70px; object-fit: cover;">
                         </div>
                         <div class="fw-semibold" style="font-size: 16px; color: #212529;">{{ Auth::user()->name }}
                         </div>
-                        <div class="text-muted" style="font-size: 12px; margin-bottom: 12px;">
-                            {{ Auth::user()->email }}</div>
+                        <div class="text-muted mb-2" style="font-size: 12px;">
+                            {{ Auth::user()->email }}
+                        </div>
+                        <div class="text-muted mb-4" style="font-size: 11px; color: #6c757d;">
+                            {{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}
+                        </div>
 
-                        <div class="d-flex flex-column align-items-center gap-2" style="width: 85%;">
-                            <button type="button" class="btn btn-detail btn-sidebar-style mb-2"
-                                style="font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;"
-                                onclick="window.location.href='{{ route('profiles.index') }}'">
+                        <div class="d-flex flex-row align-items-center" style="width: 85%;">
+                            <button type="button" class="btn btn-detail btn-sidebar-style"
+                                style="font-size: 16px; min-height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; border-top-right-radius: 0; border-bottom-right-radius: 0; background-color: #ffffff; border-right: 1px solid #ccc;"
+                                onclick="window.location.href='{{ route('profile') }}'">
                                 <span class="material-symbols-outlined" style="font-size: 25px;">account_circle</span>
                                 Profile
                             </button>
-                            <form method="POST" action="{{ route('logout') }}" style="width: 100%;">
+                            <form method="POST" action="{{ route('logout') }}" style="flex: 1; margin: 0;">
                                 @csrf
                                 <button type="submit" class="btn btn-detail btn-sidebar-style"
-                                    style="font-size: 16px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                    style="font-size: 16px; min-height: 44px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; border-top-left-radius: 0; border-bottom-left-radius: 0; background-color: #ffffff;">
                                     <span class="material-symbols-outlined" style="font-size: 25px;">logout</span>
                                     Logout
                                 </button>
@@ -404,7 +407,9 @@
 
             <div class="nav-item d-inline-block pt-1" style="">
                 <div class="fs-14 fw-medium">Hi, {{ auth()->user()->name }}</div>
-                <div class="fs-12 fw-normal text-body text-opacity-75">{{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}</div>
+                <div class="fs-12 fw-normal text-body text-opacity-75">
+                    {{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}
+                </div>
             </div>
 
         </div>
@@ -465,7 +470,7 @@
                         </ul>
                     </li> --}}
                     <li>
-                        <a href="#">
+                        <a href="{{ route('profile') }}" class="{{ $menu_active == 'profile' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">account_circle</span>
                             <span class="text-menu">Profile</span>
                         </a>

@@ -3,15 +3,43 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+ use Illuminate\Support\Facades\Hash;
+    use Illuminate\Support\Facades\Storage;
+    use App\Models\Employee;
 
 class ProfileController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
+    public function showprofilePage()
+    {
+        return view('profile/profile');
+    }
+
     public function index()
     {
-        //
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $user->load('employee.department', 'employee.division', 'employee.job');
+
+        if ($user->employee) {
+            $photo = $user->employee->profile_picture ?? $user->employee->photo;
+            if ($photo) {
+                if (str_starts_with($photo, 'file/profile_picture')) {
+                    $user->employee->photo_url = asset($photo);
+                } else {
+                    $user->employee->photo_url = asset('file/profile_picture/' . $photo);
+                }
+            } else {
+                $user->employee->photo_url = null;
+            }
+        }
+
+        return response()->json($user);
     }
 
     /**
@@ -46,12 +74,56 @@ class ProfileController extends Controller
         //
     }
 
+   
     /**
-     * Update the specified resource in storage.
+     * Handle profile update including password and profile photo.
      */
-    public function update(Request $request, string $id)
+    public function updateProfile(Request $request)
     {
-        //
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'password' => 'nullable|string|min:6',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Update password if provided
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        // Handle profile photo upload
+        if ($request->hasFile('profile_photo')) {
+            $file = $request->file('profile_photo');
+
+            // Delete old images if exist
+            if ($user->photo) {
+                $oldUserPhotoPath = public_path($user->photo);
+                if (file_exists($oldUserPhotoPath)) {
+                    unlink($oldUserPhotoPath);
+                }
+            }
+
+            $extension = $file->getClientOriginalExtension();
+            $filename = 'PROFILE_PICTURE_' . time() . '.' . $extension;
+            $destinationPath = public_path('file/profile_picture');
+            $file->move($destinationPath, $filename);
+
+            // Update user photo field only
+            $user->photo = 'file/profile_picture/' . $filename;
+
+            if ($user->employee) {
+                $user->employee->profile_picture = 'file/profile_picture/' . $filename;
+                $user->employee->save();
+            }
+        }
+
+        $user->save();
+
+        return response()->json(['message' => 'Profile updated successfully']);
     }
 
     /**

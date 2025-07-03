@@ -237,7 +237,7 @@ table.table > tbody > tr > td {
 }
 
 .btn-icon-toggle:hover {
-    background-color: white; /* updated to match division.css hover background */
+    background-color: white; 
 }
 
 .btn-icon-toggle:hover .icon {

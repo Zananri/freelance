@@ -6,6 +6,7 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
@@ -57,11 +58,17 @@ Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
 Route::post('/users', [UserController::class, 'store'])->name('users.store');
 Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
 Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
-// AJAX route for fetching users data
 Route::get('/users/ajax/data', [UserController::class, 'getUsersAjax'])->name('users.ajax.data');
 
+Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
+Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
 Route::get('/profiles', [ProfileController::class, 'index'])->name('profiles.index');
-
+Route::get('/profiles/create', [ProfileController::class, 'create'])->name('profiles.create');
+Route::get('/profiles/{id}/edit', [ProfileController::class, 'edit'])->name('profiles.edit');
+Route::get('/profiles/{id}', [ProfileController::class, 'show'])->name('profiles.show');
+Route::post('/profiles', [ProfileController::class, 'store'])->name('profiles.store');
+Route::put('/profiles/{id}', [ProfileController::class, 'update'])->name('profiles.update');
+Route::delete('/profiles/{id}', [ProfileController::class, 'destroy'])->name('profiles.destroy');
 
 
 
