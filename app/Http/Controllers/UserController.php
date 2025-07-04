@@ -148,4 +148,20 @@ class UserController extends Controller
 
         return redirect('/login')->with('success', 'Logout successful!');
     }
+
+    /**
+     * Reset the password of a user to the default "NSA_2025".
+     */
+    public function resetPassword($id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        $user->password = \Illuminate\Support\Facades\Hash::make('NSA_2025');
+        $user->save();
+
+        return response()->json(['message' => 'Password has been reset to default successfully']);
+    }
 }

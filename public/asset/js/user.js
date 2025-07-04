@@ -18,6 +18,62 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Reset Password button click handler
+    $("#btnResetPassword").on("click", function () {
+        const userId = $("#userDetailModal").data("userId") || null;
+        if (!userId) {
+            alert("User ID not found. Please open user detail modal from the user list.");
+            return;
+        }
+
+        const loader = $("#resetPasswordLoader");
+        const alertContainer = $("#userDetailModal .alert-container");
+
+        // Show loading overlay
+        loader.removeClass("d-none");
+
+        $.ajax({
+            url: appUrl + `/users/${userId}/reset-password`,
+            type: "POST",
+            headers: {
+                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+            },
+            success: function (response) {
+                // Hide loading overlay
+                loader.addClass("d-none");
+
+                // Show success alert
+                alertContainer.empty();
+                const alertHtml =
+                    '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
+                    "<div>" +
+                    response.message +
+                    "</div>" +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    "</div>";
+                alertContainer.append(alertHtml);
+                alertContainer.show();
+
+                // Auto close alert after 1.5 seconds
+                setTimeout(() => {
+                    alertContainer.find(".alert").alert("close");
+                    // Close the modal
+                    const userDetailModalEl = document.getElementById("userDetailModal");
+                    const userDetailModal = bootstrap.Modal.getInstance(userDetailModalEl);
+                    if (userDetailModal) {
+                        userDetailModal.hide();
+                    }
+                    // Reload the page
+                    location.reload();
+                }, 1500);
+            },
+            error: function (xhr) {
+                loader.addClass("d-none");
+                alert("Failed to reset password. Please try again.");
+            },
+        });
+    });
+
     function renderUsers(users) {
         if (!users.length) {
             tableBody.innerHTML =
@@ -100,6 +156,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         $("#detailEmployeeOffice").text("-");
                         $("#detailEmployeeStatus").text("-");
                     }
+
+                    $("#userDetailModal").data("userId", id);
 
                     userDetailModal.show();
                 },

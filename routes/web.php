@@ -83,4 +83,6 @@ Route::get('/login', function () {
 Route::post('/login', [App\Http\Controllers\UserController::class, 'login'])->name('login');
 Route::post('/logout', [App\Http\Controllers\UserController::class, 'logout'])->name('logout');
 
+Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.resetPassword')->middleware('auth');
+
 Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
