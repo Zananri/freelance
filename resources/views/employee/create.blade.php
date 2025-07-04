@@ -51,7 +51,7 @@
                             </div>
                         </div>
                         <div>
-                            <label for="employee_phone" class="form-label">Employee Phone</label>
+                            <label for="employee_phone" class="form-label">Phone</label>
                             <input type="number" id="employee_phone" name="employee_phone" class="form-control" required />
                             <div class="invalid-feedback">
                                 Please enter the employee phone.
