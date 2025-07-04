@@ -207,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function () {
             body: formData,
         })
             .then((response) => response.json())
-            .then((data) => {
+.then((data) => {
                 loaderOverlay.classList.add("d-none");
                 if (data.errors) {
                     // Clear previous errors
@@ -232,10 +232,30 @@ document.addEventListener("DOMContentLoaded", function () {
                             '<div class="alert alert-success">Employee updated successfully.</div>';
                         setTimeout(() => {
                             formAlert.innerHTML = "";
+                            // Save updated photo URL and employee ID in localStorage if photo updated
+                            if (data.updatedPhotoUrl && data.employeeId) {
+                                localStorage.setItem(
+                                    "updatedEmployeePhoto",
+                                    JSON.stringify({
+                                        employeeId: data.employeeId,
+                                        photoUrl: data.updatedPhotoUrl,
+                                    })
+                                );
+                            }
                             window.location.href = "/employee";
                         }, 1500);
                     } else {
                         alert(data.message);
+                        // Save updated photo URL and employee ID in localStorage if photo updated
+                        if (data.updatedPhotoUrl && data.employeeId) {
+                            localStorage.setItem(
+                                "updatedEmployeePhoto",
+                                JSON.stringify({
+                                    employeeId: data.employeeId,
+                                    photoUrl: data.updatedPhotoUrl,
+                                })
+                            );
+                        }
                         window.location.href = "/employee";
                     }
                     // Remove validation classes after success

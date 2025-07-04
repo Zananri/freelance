@@ -303,8 +303,25 @@ document.addEventListener("DOMContentLoaded", function () {
     );
     const employeeDetailModal = new bootstrap.Modal(employeeDetailModalEl);
 
-    $(document).on("click", ".btn-detail", function () {
+$(document).on("click", ".btn-detail", function () {
         const id = $(this).data("id");
+
+        // Check localStorage for updated photo for this employee
+        const updatedPhotoData = localStorage.getItem("updatedEmployeePhoto");
+        let updatedPhoto = null;
+        if (updatedPhotoData) {
+            try {
+                const parsedData = JSON.parse(updatedPhotoData);
+                if (parsedData.employeeId === id) {
+                    updatedPhoto = parsedData.photoUrl;
+                    // Clear localStorage after use
+                    localStorage.removeItem("updatedEmployeePhoto");
+                }
+            } catch (e) {
+                console.error("Failed to parse updatedEmployeePhoto from localStorage", e);
+            }
+        }
+
         $.ajax({
             url: appUrl + `/employees/${id}`,
             method: "GET",
@@ -352,7 +369,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     $("#detailStatus").addClass("status-INACTIVE");
                 }
 
-                const photoUrl = employee.profile_picture
+                // Use updated photo if available, else use employee profile_picture
+                const photoUrl = updatedPhoto
+                    ? updatedPhoto
+                    : employee.profile_picture
                     ? `/${employee.profile_picture}`
                     : "/asset/img/default-profile.png";
                 $("#detailPhoto").attr("src", photoUrl);

@@ -241,12 +241,22 @@ class EmployeeController extends Controller
             if ($employee->photo && file_exists(public_path($employee->photo))) {
                 unlink(public_path($employee->photo));
             }
+            // Delete old profile_picture file if exists
+            if ($employee->profile_picture && file_exists(public_path($employee->profile_picture))) {
+                unlink(public_path($employee->profile_picture));
+            }
             $file = $request->file('photo');
-            $filename = 'PHOTO_' . time() . '.' . $file->getClientOriginalExtension();
-            $destination = public_path('file/photo');
-            if (!file_exists($destination)) mkdir($destination, 0777, true);
-            $file->move($destination, $filename);
-            $updateData['photo'] = 'file/photo/' . $filename;
+            $photoFilename = 'PHOTO_' . time() . '.' . $file->getClientOriginalExtension();
+            $profilePictureFilename = 'PROFILE_PICTURE_' . time() . '.' . $file->getClientOriginalExtension();
+            $photoDestination = public_path('file/photo');
+            $profilePictureDestination = public_path('file/profile_picture');
+            if (!file_exists($photoDestination)) mkdir($photoDestination, 0777, true);
+            if (!file_exists($profilePictureDestination)) mkdir($profilePictureDestination, 0777, true);
+            $file->move($photoDestination, $photoFilename);
+            // Copy photo file to profile_picture with different name
+            copy($photoDestination . '/' . $photoFilename, $profilePictureDestination . '/' . $profilePictureFilename);
+            $updateData['photo'] = 'file/photo/' . $photoFilename;
+            $updateData['profile_picture'] = 'file/profile_picture/' . $profilePictureFilename;
         }
 
         if ($request->hasFile('ktp')) {
@@ -273,12 +283,20 @@ class EmployeeController extends Controller
         $user = User::find($oldUserId);
         if ($user) {
             $user->name = $employee->name;
-            $user->photo = $employee->photo;
+            // Do not update user photo to prevent affecting profile, user, office layout images
+            // $user->photo = $employee->photo;
             $user->email = $employee->email_work;
             $user->save();
         }
 
-        return response()->json(['message' => 'Employee updated successfully', 'data' => $employee]);
+        $updatedPhotoUrl = $employee->photo ? asset($employee->photo) : null;
+
+        return response()->json([
+            'message' => 'Employee updated successfully',
+            'data' => $employee,
+            'updatedPhotoUrl' => $updatedPhotoUrl,
+            'employeeId' => $employee->id,
+        ]);
     }
 
     public function destroy($id)
