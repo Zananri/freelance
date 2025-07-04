@@ -45,7 +45,7 @@
                         </div>
                         <div>
                             <label for="employee_email_work" class="form-label">Email Work</label>
-                            <input type="email" id="employee_email_work" name="employee_email_work" class="form-control" />
+                            <input type="email" id="employee_email_work" name="employee_email_work" class="form-control" readonly />
                             <div class="invalid-feedback">
                                 Please enter a valid email work.
                             </div>

@@ -106,6 +106,29 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // New code to auto-fill email_work based on employee_name
+    const employeeNameInput = document.getElementById("employee_name");
+    const employeeEmailWorkInput = document.getElementById("employee_email_work");
+
+    if (employeeNameInput && employeeEmailWorkInput) {
+        employeeNameInput.addEventListener("input", function () {
+            const fullName = employeeNameInput.value.trim();
+            if (fullName.length > 0) {
+                const firstName = fullName.split(" ")[0].toLowerCase();
+                employeeEmailWorkInput.value = firstName + "@nsaperformance.id";
+                employeeEmailWorkInput.readOnly = true;
+                // Remove disabled attribute to ensure value is submitted
+                employeeEmailWorkInput.removeAttribute("disabled");
+            } else {
+                // Prevent clearing email_work to avoid validation error
+                // Optionally, set to a default or keep previous value
+                employeeEmailWorkInput.value = "";
+                employeeEmailWorkInput.readOnly = false;
+                employeeEmailWorkInput.removeAttribute("disabled");
+            }
+        });
+    }
+
     function setupImageInput(inputId, labelSelector, clearBtnId) {
         const input = document.getElementById(inputId);
         const label = document.querySelector(labelSelector);
@@ -180,7 +203,8 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.delete("employee_email_work");
             formData.set("phone", formData.get("employee_phone"));
             formData.delete("employee_phone");
-            formData.set("status", formData.get("status"));
+            // Removed setting status as it is not present in the form
+            // formData.set("status", formData.get("status"));
             formData.set("address", formData.get("address"));
             formData.set("birth_date", formData.get("birth_date"));
             formData.set("hire_date", formData.get("hire_date"));

@@ -31,7 +31,7 @@
                         </label>
                         <div>
                             <label for="password" class="form-label">New Password</label>
-                            <input type="text" id="password" name="password" class="form-control" required />
+                            <input type="password" id="password" name="password" class="form-control" required />
                             <div class="invalid-feedback">
                                 Please select a department.
                             </div>
