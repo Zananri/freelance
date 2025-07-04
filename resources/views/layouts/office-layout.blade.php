@@ -362,12 +362,13 @@
             <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
                 style="width: 48px; height: 48px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
 
-                @if(Auth::check())
-                <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
-                    style="width: 48px; height: 48px; object-fit: cover;">
+                @if (Auth::check())
+                    <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
+                        style="width: 48px; height: 48px; object-fit: cover;">
                 @else
-                <img src="{{ asset('asset/img/default-avatar.png') }}" alt="Default Avatar" class="rounded-circle"
-                    style="width: 48px; height: 48px; object-fit: cover;">
+                    <span class="material-symbols-outlined">
+                        person
+                    </span>
                 @endif
 
                 <div id="avatarDropdownCard" class="card shadow-sm rounded-5"
@@ -378,54 +379,56 @@
                     <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center"
                         style="min-height: 220px;">
                         <div class="mb-2 mt-3">
-                            @if(Auth::check())
-                            <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
-                                style="width: 70px; height: 70px; object-fit: cover;">
+                            @if (Auth::check())
+                                <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
+                                    style="width: 70px; height: 70px; object-fit: cover;">
                             @else
-                            <img src="{{ asset('asset/img/default-avatar.png') }}" alt="Default Avatar" class="rounded-circle"
-                                style="width: 70px; height: 70px; object-fit: cover;">
+                                <span class="material-symbols-outlined">
+                                    person
+                                </span>
                             @endif
                         </div>
-                        <div class="fw-semibold" style="font-size: 16px; color: #212529;">{{ Auth::check() ? Auth::user()->name : 'Guest' }}
+                        <div class="fw-semibold" style="font-size: 16px; color: #555;">
+                            Hi, {{ Auth::check() ? Auth::user()->name : 'Guest' }}
                         </div>
-                        <div class="text-muted mb-2" style="font-size: 12px;">
+                        <div class="text-muted mb-2" style="font-size: 12px; color: #555;">
                             {{ Auth::check() ? Auth::user()->email : '' }}
                         </div>
-                        <div class="text-muted mb-4" style="font-size: 11px; color: #6c757d;">
-                            {{ Auth::check() ? (optional(auth()->user()->employee->division)->name_division ?? 'No Division') : '' }}
+                        <div class="text-muted mb-4" style="font-size: 11px; color: #555;">
+                            {{ Auth::check() ? optional(auth()->user()->employee->division)->name_division ?? 'No Division' : '' }}
                         </div>
 
                         <div class="d-flex flex-row align-items-center" style="width: 85%;">
-                            <button type="button" class="btn btn-detail btn-sidebar-style"
-                                style="font-size: 16px; min-height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; border-top-right-radius: 0; border-bottom-right-radius: 0; background-color: #ffffff; border-right: 1px solid #ccc;"
-                                onclick="window.location.href='{{ route('profile') }}'">
-                                <span class="material-symbols-outlined" style="font-size: 25px;">account_circle</span>
-                                Profile
-                            </button>
-                            <form method="POST" action="{{ route('logout') }}" style="flex: 1; margin: 0;">
-                                @csrf
-                                <button type="submit" class="btn btn-detail btn-sidebar-style"
-                                    style="font-size: 16px; min-height: 44px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; border-top-left-radius: 0; border-bottom-left-radius: 0; background-color: #ffffff;">
-                                    <span class="material-symbols-outlined" style="font-size: 25px;">logout</span>
-                                    Logout
-                                </button>
-                            </form>
+<button type="button" class="btn btn-detail btn-sidebar-style btn-profile-left"
+    style="font-size: 16px; min-height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #ffffff; border-right: 1px solid #ccc;"
+    onclick="window.location.href='{{ route('profile') }}'">
+    <span class="material-symbols-outlined" style="font-size: 25px;">account_circle</span>
+    Profile
+</button>
+<form method="POST" action="{{ route('logout') }}" style="flex: 1; margin: 0;">
+    @csrf
+    <button type="submit" class="btn btn-detail btn-sidebar-style btn-logout-right"
+        style="font-size: 16px; min-height: 44px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #ffffff;">
+        <span class="material-symbols-outlined" style="font-size: 25px;">logout</span>
+        Logout
+    </button>
+</form>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="nav-item d-inline-block pt-1" style="">
-                @if(Auth::check())
-                <div class="fs-14 fw-medium">Hi, {{ auth()->user()->name }}</div>
-                <div class="fs-12 fw-normal text-body text-opacity-75">
-                    {{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}
-                </div>
+                @if (Auth::check())
+                    <div class="fs-14 fw-medium">Welcome, {{ auth()->user()->name }}</div>
+                    <div class="fs-12 fw-normal text-body text-opacity-75">
+                        {{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}
+                    </div>
                 @else
-                <div class="fs-14 fw-medium">Hi, Guest</div>
-                <div class="fs-12 fw-normal text-body text-opacity-75">
-                    No Division
-                </div>
+                    <div class="fs-14 fw-medium">Welcome, Guest</div>
+                    <div class="fs-12 fw-normal text-body text-opacity-75">
+                        No Division
+                    </div>
                 @endif
             </div>
 

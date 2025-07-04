@@ -37,12 +37,37 @@ header {
 header .box-user-nav {
     vertical-align: top;
 }
+
+header .box-user-nav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
 header .nav-item {
     vertical-align: top;
+}
+
+header .nav-item.d-inline-block.pt-1 {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 header .img-avatar {
     height: 45px;
     width: 45px;
+}
+
+header .img-avatar span.material-symbols-outlined {
+    width: 48px;
+    height: 48px;
+    font-size: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
 }
 
 .nav-icon {
@@ -242,4 +267,65 @@ table.table > tbody > tr > td {
 
 .btn-icon-toggle:hover .icon {
     color: black;
+}
+
+.btn-profile-left {
+    border-top-left-radius: 22px !important;
+    border-bottom-left-radius: 22px !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    height: 44px;
+    background-color: white;
+    color: #555;
+    border-right: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.btn-profile-left span.material-symbols-outlined,
+.btn-profile-left {
+    color: #555;
+}
+
+.btn-profile-left:hover {
+    background-color: #555 !important;
+    color: white !important;
+}
+
+.btn-profile-left:hover span.material-symbols-outlined {
+    color: white !important;
+}
+
+.btn-logout-right {
+    border-top-right-radius: 22px !important;
+    border-bottom-right-radius: 22px !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    height: 44px;
+    background-color: white;
+    color: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.btn-logout-right span.material-symbols-outlined,
+.btn-logout-right {
+    color: #555;
+}
+
+.btn-logout-right:hover {
+    background-color: #555 !important;
+    color: white !important;
+}
+
+.btn-logout-right:hover span.material-symbols-outlined {
+    color: white !important;
 }
