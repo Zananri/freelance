@@ -19,8 +19,8 @@
             <div id="formAlert" class="mb-3"></div>
 
             <!-- Loader overlay -->
-            <div id="profileLoaderOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-none" style="background: rgba(255,255,255,0.7); z-index: 10; display: flex; align-items: center; justify-content: center;">
-                <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+            <div id="profileLoaderOverlay" class="modal-loading-overlay d-none">
+                <div class="loader-spinner"></div>
             </div>
 
             <div class="px-3 py-3">
