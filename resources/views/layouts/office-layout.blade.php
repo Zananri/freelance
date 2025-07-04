@@ -362,8 +362,13 @@
             <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
                 style="width: 48px; height: 48px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
 
+                @if(Auth::check())
                 <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
                     style="width: 48px; height: 48px; object-fit: cover;">
+                @else
+                <img src="{{ asset('asset/img/default-avatar.png') }}" alt="Default Avatar" class="rounded-circle"
+                    style="width: 48px; height: 48px; object-fit: cover;">
+                @endif
 
                 <div id="avatarDropdownCard" class="card shadow-sm rounded-5"
                     style="width: 350px; position: fixed; top: 75px; right: 32px;  display: none;
@@ -373,16 +378,21 @@
                     <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center"
                         style="min-height: 220px;">
                         <div class="mb-2 mt-3">
+                            @if(Auth::check())
                             <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
                                 style="width: 70px; height: 70px; object-fit: cover;">
+                            @else
+                            <img src="{{ asset('asset/img/default-avatar.png') }}" alt="Default Avatar" class="rounded-circle"
+                                style="width: 70px; height: 70px; object-fit: cover;">
+                            @endif
                         </div>
-                        <div class="fw-semibold" style="font-size: 16px; color: #212529;">{{ Auth::user()->name }}
+                        <div class="fw-semibold" style="font-size: 16px; color: #212529;">{{ Auth::check() ? Auth::user()->name : 'Guest' }}
                         </div>
                         <div class="text-muted mb-2" style="font-size: 12px;">
-                            {{ Auth::user()->email }}
+                            {{ Auth::check() ? Auth::user()->email : '' }}
                         </div>
                         <div class="text-muted mb-4" style="font-size: 11px; color: #6c757d;">
-                            {{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}
+                            {{ Auth::check() ? (optional(auth()->user()->employee->division)->name_division ?? 'No Division') : '' }}
                         </div>
 
                         <div class="d-flex flex-row align-items-center" style="width: 85%;">
@@ -406,10 +416,17 @@
             </div>
 
             <div class="nav-item d-inline-block pt-1" style="">
+                @if(Auth::check())
                 <div class="fs-14 fw-medium">Hi, {{ auth()->user()->name }}</div>
                 <div class="fs-12 fw-normal text-body text-opacity-75">
                     {{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}
                 </div>
+                @else
+                <div class="fs-14 fw-medium">Hi, Guest</div>
+                <div class="fs-12 fw-normal text-body text-opacity-75">
+                    No Division
+                </div>
+                @endif
             </div>
 
         </div>

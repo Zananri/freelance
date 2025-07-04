@@ -11,9 +11,18 @@
     </div>
 
     <div class="body-content scrollable-container rounded-4" style="margin-top: 20px; width: 100%; font-size:14px;">
-        <form id="profileForm" class="needs-validation" enctype="multipart/form-data" novalidate method="POST"
+        <form id="profileForm" class="needs-validation position-relative" enctype="multipart/form-data" novalidate method="POST"
             action="#">
             @csrf
+
+            <!-- Alert container for Bootstrap alerts -->
+            <div id="formAlert" class="mb-3"></div>
+
+            <!-- Loader overlay -->
+            <div id="profileLoaderOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-none" style="background: rgba(255,255,255,0.7); z-index: 10; display: flex; align-items: center; justify-content: center;">
+                <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+            </div>
+
             <div class="px-3 py-3">
                 <div class="row">
                     <!-- Left Section: Profile Image -->

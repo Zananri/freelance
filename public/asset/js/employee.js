@@ -143,7 +143,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         employees.forEach((employee) => {
-            const profilePicture = employee.profile_picture
+            const profilePicture = employee.user_photo
+                ? employee.user_photo
+                : employee.profile_picture
                 ? employee.profile_picture
                 : "asset/img/default-profile.png";
             const departmentName = employee.department
@@ -350,8 +352,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     $("#detailStatus").addClass("status-INACTIVE");
                 }
 
-                const photoUrl = employee.photo
-                    ? `/${employee.photo}`
+                const photoUrl = employee.profile_picture
+                    ? `/${employee.profile_picture}`
                     : "/asset/img/default-profile.png";
                 $("#detailPhoto").attr("src", photoUrl);
 

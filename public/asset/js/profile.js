@@ -18,6 +18,11 @@ $(document).ready(function () {
     var office = $('#office');
     var hireDate = $('#hire_date');
 
+    var formAlert = $('#formAlert');
+    var profileForm = $('#profileForm');
+    var submitButton = profileForm.find('button[type="submit"]');
+    var loaderOverlay = $('#profileLoaderOverlay');
+
     // Function to set profile photo background
     function setProfilePhoto(url) {
         if (url) {
@@ -81,10 +86,16 @@ $(document).ready(function () {
     });
 
     // Handle form submission with AJAX
-    $('#profileForm').on('submit', function (e) {
+    profileForm.on('submit', function (e) {
         e.preventDefault();
 
         var formData = new FormData(this);
+
+        // Clear previous alerts
+        formAlert.html('');
+        // Show loader and disable submit button
+        loaderOverlay.removeClass('d-none');
+        submitButton.prop('disabled', true);
 
         $.ajax({
             url: appUrl + '/profile/update',
@@ -96,12 +107,22 @@ $(document).ready(function () {
                 'X-CSRF-TOKEN': $('input[name="_token"]').val()
             },
             success: function (response) {
-                alert(response.message);
-                // Optionally, refresh the profile data or page
-                location.reload();
+                // Show success alert
+                formAlert.html('<div class="alert alert-success" role="alert">' + response.message + '</div>');
+                // Hide alert after 1.5 seconds and reload page
+                setTimeout(function () {
+                    formAlert.html('');
+                    location.reload();
+                }, 1500);
             },
             error: function (xhr, status, error) {
-                alert('Error updating profile: ' + (xhr.responseJSON?.error || error));
+                var errorMessage = xhr.responseJSON?.error || error || 'Error updating profile.';
+                formAlert.html('<div class="alert alert-danger" role="alert">Error updating profile: ' + errorMessage + '</div>');
+            },
+            complete: function () {
+                // Hide loader and enable submit button
+                loaderOverlay.addClass('d-none');
+                submitButton.prop('disabled', false);
             }
         });
     });

@@ -24,7 +24,7 @@ class EmployeeController extends Controller
 
         // Return JSON for API
         if ($request->wantsJson()) {
-            $employees = Employee::with(['department', 'division', 'job'])
+            $employees = Employee::with(['department', 'division', 'job', 'user'])
                 ->where('status', '!=', 'DELETED')
                 ->when($query, function ($q) use ($query) {
                     $q->where(function ($q2) use ($query) {
@@ -54,6 +54,15 @@ class EmployeeController extends Controller
                 })
                 // If department filter is empty, do not apply division or job filters
                 ->get();
+
+            // Append user photo to each employee
+            $employees->transform(function ($employee) {
+                $employee->user_photo = $employee->user && $employee->user->photo
+                    ? $employee->user->photo
+                    : null;
+                return $employee;
+            });
+
             return response()->json(['data' => $employees]);
         }
         // Return view for listing page with employees data
@@ -178,7 +187,11 @@ class EmployeeController extends Controller
 
             DB::commit();
 
-            return response()->json(['message' => 'Employee and user created successfully', 'data' => $employee]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Employee and user created successfully',
+                'redirect_url' => route('employee')
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Failed to create employee and user', 'details' => $e->getMessage()], 500);

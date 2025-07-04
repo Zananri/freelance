@@ -177,8 +177,8 @@
                                 <span>Upload Photo</span>
                             </div>
                             <label for="photo"
-                                class="custom-image-upload-photo position-relative photo-upload {{ $employee->photo ? 'has-image' : '' }}"
-                                style="background-image: url('{{ $employee->photo ? asset($employee->photo) : '' }}'); opacity: {{ $employee->photo ? '1' : '0.5' }};">
+                                class="custom-image-upload-photo position-relative photo-upload {{ $employee->profile_picture ? 'has-image' : '' }}"
+                                style="background-image: url('{{ $employee->profile_picture ? asset($employee->profile_picture) : '' }}'); opacity: {{ $employee->profile_picture ? '1' : '0.5' }};">
                                 <input type="file" id="photo" name="photo" accept="image/*"
                                     class="photo-input" hidden />
                                 <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">

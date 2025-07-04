@@ -17,7 +17,8 @@ class OfficeLayout extends Component
     public function __construct($photo = null)
     {
         $this->photo = $photo;
-        $this->user = auth()->user()->load('employee.division');
+        $user = auth()->user();
+        $this->user = $user ? $user->load('employee.division') : null;
     }
 
     /**

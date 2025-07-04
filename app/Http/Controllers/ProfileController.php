@@ -96,30 +96,33 @@ class ProfileController extends Controller
         }
 
         // Handle profile photo upload
-        if ($request->hasFile('profile_photo')) {
-            $file = $request->file('profile_photo');
+            if ($request->hasFile('profile_photo')) {
+                $file = $request->file('profile_photo');
 
-            // Delete old images if exist
-            if ($user->photo) {
-                $oldUserPhotoPath = public_path($user->photo);
-                if (file_exists($oldUserPhotoPath)) {
-                    unlink($oldUserPhotoPath);
+                // Delete old images if exist
+                if ($user->photo) {
+                    $oldUserPhotoPath = public_path($user->photo);
+                    if (file_exists($oldUserPhotoPath)) {
+                        unlink($oldUserPhotoPath);
+                    }
                 }
+
+                $extension = $file->getClientOriginalExtension();
+                $filename = 'PROFILE_PICTURE_' . time() . '.' . $extension;
+                $destinationPath = public_path('file/profile_picture');
+                $file->move($destinationPath, $filename);
+
+                // Update user photo field only
+                $user->photo = 'file/profile_picture/' . $filename;
+
+                // Removed updating employee profile_picture to keep it unchanged on profile update
+                /*
+                if ($user->employee) {
+                    $user->employee->profile_picture = 'file/profile_picture/' . $filename;
+                    $user->employee->save();
+                }
+                */
             }
-
-            $extension = $file->getClientOriginalExtension();
-            $filename = 'PROFILE_PICTURE_' . time() . '.' . $extension;
-            $destinationPath = public_path('file/profile_picture');
-            $file->move($destinationPath, $filename);
-
-            // Update user photo field only
-            $user->photo = 'file/profile_picture/' . $filename;
-
-            if ($user->employee) {
-                $user->employee->profile_picture = 'file/profile_picture/' . $filename;
-                $user->employee->save();
-            }
-        }
 
         $user->save();
 

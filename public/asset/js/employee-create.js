@@ -228,47 +228,58 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Hide loader
                     if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
 
+                if (response.redirect_url) {
                     formAlert.innerHTML =
                         '<div class="alert alert-success">Employee created successfully.</div>';
-                    // Hide alert after 1.5 seconds
+                    // Hide alert after 1.5 seconds and then redirect
                     setTimeout(() => {
                         formAlert.innerHTML = "";
+                        window.location.href = response.redirect_url;
                     }, 1500);
                     employeeCreateForm.reset();
+                    return;
+                }
+                formAlert.innerHTML =
+                    '<div class="alert alert-success">Employee created successfully.</div>';
+                // Hide alert after 1.5 seconds
+                setTimeout(() => {
+                    formAlert.innerHTML = "";
+                }, 1500);
+                employeeCreateForm.reset();
 
-                    // Remove validation classes from inputs and labels
-                    const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
-                    inputs.forEach((input) => {
-                        input.classList.remove("is-valid", "is-invalid");
-                    });
-                    const labels = employeeCreateForm.querySelectorAll("label");
-                    labels.forEach((label) => {
-                        label.classList.remove("is-valid", "is-invalid");
-                    });
-                    employeeCreateForm.classList.remove("was-validated");
+                // Remove validation classes from inputs and labels
+                const inputs = employeeCreateForm.querySelectorAll("input, select, textarea");
+                inputs.forEach((input) => {
+                    input.classList.remove("is-valid", "is-invalid");
+                });
+                const labels = employeeCreateForm.querySelectorAll("label");
+                labels.forEach((label) => {
+                    label.classList.remove("is-valid", "is-invalid");
+                });
+                employeeCreateForm.classList.remove("was-validated");
 
-                    // Reset image previews
-                    ["photo", "ktp", "profile_picture"].forEach((id) => {
-                        const input = document.getElementById(id);
-                        if (input) input.value = "";
-                        const label = document.querySelector(
-                            `label[for="${id}"]`
-                        );
-                        if (label) {
-                            label.style.backgroundImage = "";
-                            label.classList.remove("has-image", "is-valid", "is-invalid");
-                            label.style.opacity = "0.5";
-                        }
-                        const clearBtn = document.getElementById(
-                            id === "photo"
-                                ? "photoClearBtn"
-                                : id === "ktp"
-                                ? "ktpClearBtn"
-                                : id + "ClearBtn"
-                        );
+                // Reset image previews
+                ["photo", "ktp", "profile_picture"].forEach((id) => {
+                    const input = document.getElementById(id);
+                    if (input) input.value = "";
+                    const label = document.querySelector(
+                        `label[for="${id}"]`
+                    );
+                    if (label) {
+                        label.style.backgroundImage = "";
+                        label.classList.remove("has-image", "is-valid", "is-invalid");
+                        label.style.opacity = "0.5";
+                    }
+                    const clearBtn = document.getElementById(
+                        id === "photo"
+                            ? "photoClearBtn"
+                            : id === "ktp"
+                            ? "ktpClearBtn"
+                            : id + "ClearBtn"
+                    );
 
-                        if (clearBtn) clearBtn.classList.add("d-none");
-                    });
+                    if (clearBtn) clearBtn.classList.add("d-none");
+                });
                 },
                 error: function (xhr) {
                     // Hide loader
