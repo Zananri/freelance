@@ -55,11 +55,13 @@ class EmployeeController extends Controller
                 // If department filter is empty, do not apply division or job filters
                 ->get();
 
-            // Append user photo to each employee
+            // Append user photo and first_name, last_name to each employee
             $employees->transform(function ($employee) {
                 $employee->user_photo = $employee->user && $employee->user->photo
                     ? $employee->user->photo
                     : null;
+                $employee->first_name = $employee->first_name;
+                $employee->last_name = $employee->last_name;
                 return $employee;
             });
 

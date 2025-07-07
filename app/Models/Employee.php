@@ -67,4 +67,18 @@ class Employee extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    // Accessor for first name
+    public function getFirstNameAttribute()
+    {
+        $parts = explode(' ', trim($this->name));
+        return $parts[0] ?? '';
+    }
+
+    // Accessor for last name
+    public function getLastNameAttribute()
+    {
+        $parts = explode(' ', trim($this->name));
+        return count($parts) > 1 ? $parts[count($parts) - 1] : '';
+    }
 }

@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div class="d-flex align-items-center gap-3">
                             <img src="/${profilePicture}" alt="Profile Picture" class="table-image rounded-circle" width="40" height="40" />
                             <div>
-                                <div class="fw-semibold" style="font-size: 14px;">${employee.name}</div>
+                                <div class="fw-semibold" style="font-size: 14px;">${employee.first_name} ${employee.last_name}</div>
                                 <div style="font-size: 10px; color: #6c757d;">${employee.email}</div>
                             </div>
                         </div>
