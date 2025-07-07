@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
+   
     public function showEmployeePage()
     {
         return view('employee/employee');
@@ -188,9 +189,9 @@ class EmployeeController extends Controller
                 'resign_date' => $request->resign_date,
                 'grade' => $request->grade,
                 'office' => $request->office,
-                'created_by' => '1',
-                'updated_by' => '1',
-                'deleted_by' => '1',
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+                'deleted_by' => auth()->id(),
             ]);
 
             DB::commit();
@@ -283,6 +284,8 @@ class EmployeeController extends Controller
 
         $updateData['updated_by'] = 1;
 
+        $updateData['updated_by'] = auth()->id();
+
         $oldUserId = $employee->user_id;
 
         $employee->update($updateData);
@@ -315,7 +318,7 @@ class EmployeeController extends Controller
         }
 
         $employee->status = 'DELETED';
-        $employee->deleted_by = 1;
+        $employee->deleted_by = auth()->id();
         $employee->save();
 
         return response()->json(['message' => 'Employee deleted successfully']);

@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Log;
 
 class DivisionController extends Controller
 {
-  
 public function index(Request $request)
 {
     $query = $request->input('query', '');
@@ -68,9 +67,9 @@ public function index(Request $request)
                 'status' => $validated['status'],
                 'description' => $validated['description'] ?? null,
                 'images' => $imageName,
-                'created_by' => 1,
-                'updated_by' => 1,
-                'deleted_by' => 1,
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+                'deleted_by' => auth()->id(),
             ]);
 
             return response()->json(['message' => 'Division created successfully', 'division' => $division]);
@@ -108,7 +107,7 @@ public function show(string $id)
                 'name_division' => $validated['name_division'],
                 'status' => $validated['status'],
                 'description' => $validated['description'] ?? null,
-                'updated_by' => 1,
+                'updated_by' => auth()->id(),
             ];
 
             if ($request->input('remove_image') == "1") {
@@ -140,7 +139,7 @@ public function show(string $id)
         try {
             $division = Division::findOrFail($id);
             $division->status = 'DELETED';
-            $division->deleted_by = 1;
+            $division->deleted_by = auth()->id();
             $division->save();
 
             return response()->json(['message' => 'Division deleted successfully']);

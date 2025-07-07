@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 
 class JobController extends Controller
 {
+  
       public function showJobPage()
     {
         return view('master/job/job');
@@ -78,9 +79,9 @@ class JobController extends Controller
             'job_name' => $request->job_name,
             'status' => $request->status,
             'description' => $request->description,
-            'created_by' => 1,
-            'updated_by' => 1,
-            'deleted_by' => 1,
+            'created_by' => auth()->id(),
+            'updated_by' => auth()->id(),
+            'deleted_by' => auth()->id(),
         ]);
 
         return response()->json(['message' => 'Job created successfully', 'data' => $job]);
@@ -106,7 +107,7 @@ class JobController extends Controller
         }
 
         $updateData = $request->only(['department_id', 'division_id', 'job_name', 'status', 'description']);
-        $updateData['updated_by'] = 1;
+        $updateData['updated_by'] = auth()->id();
 
         $job->update($updateData);
 
@@ -121,7 +122,7 @@ class JobController extends Controller
         }
 
         $job->status = 'DELETED';
-        $job->deleted_by = 1;
+        $job->deleted_by = auth()->id();
         $job->save();
 
         return response()->json(['message' => 'Job deleted successfully']);

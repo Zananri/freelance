@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 
 class DepartmentController extends Controller
 {
-
+   
 
 public function showDepartmentPage()
 {
@@ -81,15 +81,15 @@ public function index(Request $request)
             $request->image->move(public_path('file/department'), $imageName);
         }
 
-        $department = Department::create([
-            'name_department' => $request->name_department,
-            'status' => $request->status,
-            'description' => $request->description,
-            'images' => $imageName,
-            'created_by' => 1,
-            'updated_by' => 1,
-            'deleted_by' => 1,
-        ]);
+            $department = Department::create([
+                'name_department' => $request->name_department,
+                'status' => $request->status,
+                'description' => $request->description,
+                'images' => $imageName,
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+                'deleted_by' => auth()->id(),
+            ]);
 
         return response()->json(['message' => 'Department added successfully', 'department' => $department]);
     }
@@ -139,6 +139,8 @@ public function index(Request $request)
 
         $updateData['updated_by'] = 1;
 
+        $updateData['updated_by'] = auth()->id();
+
         $department->update($updateData);
 
         return response()->json(['message' => 'Department updated successfully', 'department' => $department]);
@@ -153,6 +155,9 @@ public function index(Request $request)
 
         $department->status = 'DELETED';
         $department->deleted_by = 1;
+
+        $department->deleted_by = auth()->id();
+
         $department->save();
 
         return response()->json(['message' => 'Department deleted successfully']);
