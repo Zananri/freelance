@@ -12,7 +12,7 @@
 
     <div class="body-content scrollable-container rounded-4" style="margin-top: 20px; width: 100%; font-size:14px;">
         <form id="profileForm" class="needs-validation position-relative" enctype="multipart/form-data" novalidate method="POST"
-            action="#">
+            action="{{ route('profile.update') }}">
             @csrf
 
             <!-- Alert container for Bootstrap alerts -->
@@ -39,15 +39,24 @@
                                 title="Remove image">&times;</span>
                         </label>
                         <div>
-                            <label for="password" class="form-label">New Password</label>
-                            <input type="password" id="password" name="password" class="form-control input-text" required />
+                            <label for="current_password" class="form-label">Current Password</label>
+                            <input type="password" id="current_password" name="current_password" class="form-control input-text" required />
+                            <div class="valid-feedback">
+                                Current password is correct.
+                            </div>
                             <div class="invalid-feedback">
-                                Please select a department.
+                                Current password is incorrect.
+                            </div>
+                        </div>
+                        <div>
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" id="new_password" name="password" class="form-control input-text" required disabled />
+                            <div class="invalid-feedback">
+                                Please enter a new password.
                             </div>
                         </div>
                         <div class="text-center px-2 py-3">
-                            <button type="submit" class="btn-submit-black btn-submit-custom"
-                                style="font-size: 14px;">Update Data</button>
+                            <button type="submit" class="btn-submit-black btn-submit-custom" style="font-size: 14px;" disabled>Update</button>
                         </div>
                     </div>
 

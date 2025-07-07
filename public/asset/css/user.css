@@ -101,6 +101,7 @@ table.table tbody td {
     display: flex;
     align-items: center;
     justify-content: center;
+    
 }
 
 #userDetailModal .modal-content {
@@ -113,6 +114,7 @@ table.table tbody td {
     display: flex;
     flex-direction: column;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    background-color: rgb(240, 241, 248);
 }
 
 #userDetailModal .modal-header {
@@ -228,6 +230,32 @@ table.table tbody td {
         flex-direction: column;
         gap: 1rem;
     }
+}
+
+/* Custom modal header to position close button top right */
+.custom-modal-header {
+    position: relative;
+    padding: 0;
+    height: 40px;
+    border-bottom: none !important;
+}
+
+/* Position close button absolutely at top right corner */
+.custom-modal-header .btn-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+/* Adjust modal body padding to move content higher */
+#userDetailModal .modal-body {
+    padding-top: 0.5rem;
+}
+
+/* Reduce margin-top of user name to move content higher */
+.user-photo-name-email .user-name {
+    margin-top: 0.5rem !important;
 }
 
 /* Button styling for autorenew button in user detail modal, copied from department.css */

@@ -86,9 +86,15 @@ class ProfileController extends Controller
         }
 
         $request->validate([
+            'current_password' => 'required|string',
             'password' => 'nullable|string|min:6',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Verify current password before updating
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['error' => 'Current password is incorrect'], 422);
+        }
 
         // Update password if provided
         if ($request->filled('password')) {
@@ -96,37 +102,55 @@ class ProfileController extends Controller
         }
 
         // Handle profile photo upload
-            if ($request->hasFile('profile_photo')) {
-                $file = $request->file('profile_photo');
+        if ($request->hasFile('profile_photo')) {
+            $file = $request->file('profile_photo');
 
-                // Delete old images if exist
-                if ($user->photo) {
-                    $oldUserPhotoPath = public_path($user->photo);
-                    if (file_exists($oldUserPhotoPath)) {
-                        unlink($oldUserPhotoPath);
-                    }
+            // Delete old images if exist
+            if ($user->photo) {
+                $oldUserPhotoPath = public_path($user->photo);
+                if (file_exists($oldUserPhotoPath)) {
+                    unlink($oldUserPhotoPath);
                 }
-
-                $extension = $file->getClientOriginalExtension();
-                $filename = 'PROFILE_PICTURE_' . time() . '.' . $extension;
-                $destinationPath = public_path('file/profile_picture');
-                $file->move($destinationPath, $filename);
-
-                // Update user photo field only
-                $user->photo = 'file/profile_picture/' . $filename;
-
-                // Removed updating employee profile_picture to keep it unchanged on profile update
-                /*
-                if ($user->employee) {
-                    $user->employee->profile_picture = 'file/profile_picture/' . $filename;
-                    $user->employee->save();
-                }
-                */
             }
+
+            $extension = $file->getClientOriginalExtension();
+            $filename = 'PROFILE_PICTURE_' . time() . '.' . $extension;
+            $destinationPath = public_path('file/profile_picture');
+            $file->move($destinationPath, $filename);
+
+            // Update user photo field only
+            $user->photo = 'file/profile_picture/' . $filename;
+
+            // Removed updating employee profile_picture to keep it unchanged on profile update
+            /*
+            if ($user->employee) {
+                $user->employee->profile_picture = 'file/profile_picture/' . $filename;
+                $user->employee->save();
+            }
+            */
+        }
 
         $user->save();
 
         return response()->json(['message' => 'Profile updated successfully']);
+    }
+
+    public function verifyCurrentPassword(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'current_password' => 'required|string',
+        ]);
+
+        if (Hash::check($request->current_password, $user->password)) {
+            return response()->json(['valid' => true]);
+        } else {
+            return response()->json(['valid' => false]);
+        }
     }
 
     /**

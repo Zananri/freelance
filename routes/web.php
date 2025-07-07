@@ -63,6 +63,7 @@ Route::get('/users/ajax/data', [UserController::class, 'getUsersAjax'])->name('u
 
 Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
 Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
+Route::post('/profile/verify-current-password', [ProfileController::class, 'verifyCurrentPassword'])->name('profile.verifyCurrentPassword');
 Route::get('/profiles', [ProfileController::class, 'index'])->name('profiles.index');
 Route::get('/profiles/create', [ProfileController::class, 'create'])->name('profiles.create');
 Route::get('/profiles/{id}/edit', [ProfileController::class, 'edit'])->name('profiles.edit');

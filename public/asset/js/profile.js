@@ -85,6 +85,70 @@ $(document).ready(function () {
         setProfilePhoto(null); // Reset background and hide clear button
     });
 
+    // Current password and new password inputs
+    var currentPasswordInput = $('#current_password');
+    var newPasswordInput = $('#new_password');
+
+    // Disable new password input and submit button initially
+    newPasswordInput.prop('disabled', true);
+    submitButton.prop('disabled', true);
+
+    // Debounce function to limit the rate of function calls
+    function debounce(func, wait) {
+        var timeout;
+        return function () {
+            var context = this, args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(function () {
+                func.apply(context, args);
+            }, wait);
+        };
+    }
+
+    // Function to validate current password via AJAX
+    function validateCurrentPassword() {
+        var currentPassword = currentPasswordInput.val().trim();
+        if (currentPassword.length === 0) {
+            currentPasswordInput.removeClass('is-valid is-invalid');
+            newPasswordInput.prop('disabled', true);
+            submitButton.prop('disabled', true);
+            return;
+        }
+
+        $.ajax({
+            url: appUrl + '/profile/verify-current-password',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ current_password: currentPassword }),
+            headers: {
+                'X-CSRF-TOKEN': $('input[name="_token"]').val()
+            },
+            success: function (data) {
+                if (data.valid) {
+                    currentPasswordInput.removeClass('is-invalid').addClass('is-valid');
+                    newPasswordInput.prop('disabled', false);
+                    submitButton.prop('disabled', false);
+                } else {
+                    currentPasswordInput.removeClass('is-valid').addClass('is-invalid');
+                    newPasswordInput.prop('disabled', true);
+                    submitButton.prop('disabled', true);
+                }
+            },
+            error: function () {
+                currentPasswordInput.removeClass('is-valid').addClass('is-invalid');
+                newPasswordInput.prop('disabled', true);
+                submitButton.prop('disabled', true);
+            }
+        });
+    }
+
+    // Use debounced version of validateCurrentPassword on input event
+    var debouncedValidateCurrentPassword = debounce(validateCurrentPassword, 300);
+
+    currentPasswordInput.on('input', function () {
+        debouncedValidateCurrentPassword();
+    });
+
     // Handle form submission with AJAX
     profileForm.on('submit', function (e) {
         e.preventDefault();

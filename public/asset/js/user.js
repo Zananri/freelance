@@ -2,6 +2,8 @@ var appUrl = document.querySelector('meta[name="app-url"]').getAttribute("conten
 
 document.addEventListener("DOMContentLoaded", function () {
     const tableBody = document.getElementById("userTableBody");
+    const userDetailModalEl = document.getElementById("userDetailModal");
+    const userDetailModal = new bootstrap.Modal(userDetailModalEl);
 
     function fetchUsers() {
         $.ajax({
@@ -18,62 +20,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Reset Password button click handler
-    $("#btnResetPassword").on("click", function () {
-        const userId = $("#userDetailModal").data("userId") || null;
-        if (!userId) {
-            alert("User ID not found. Please open user detail modal from the user list.");
-            return;
-        }
-
-        const loader = $("#resetPasswordLoader");
-        const alertContainer = $("#userDetailModal .alert-container");
-
-        // Show loading overlay
-        loader.removeClass("d-none");
-
-        $.ajax({
-            url: appUrl + `/users/${userId}/reset-password`,
-            type: "POST",
-            headers: {
-                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
-            },
-            success: function (response) {
-                // Hide loading overlay
-                loader.addClass("d-none");
-
-                // Show success alert
-                alertContainer.empty();
-                const alertHtml =
-                    '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
-                    "<div>" +
-                    response.message +
-                    "</div>" +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                    "</div>";
-                alertContainer.append(alertHtml);
-                alertContainer.show();
-
-                // Auto close alert after 1.5 seconds
-                setTimeout(() => {
-                    alertContainer.find(".alert").alert("close");
-                    // Close the modal
-                    const userDetailModalEl = document.getElementById("userDetailModal");
-                    const userDetailModal = bootstrap.Modal.getInstance(userDetailModalEl);
-                    if (userDetailModal) {
-                        userDetailModal.hide();
-                    }
-                    // Reload the page
-                    location.reload();
-                }, 1500);
-            },
-            error: function (xhr) {
-                loader.addClass("d-none");
-                alert("Failed to reset password. Please try again.");
-            },
-        });
-    });
-
     function renderUsers(users) {
         if (!users.length) {
             tableBody.innerHTML =
@@ -83,13 +29,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         users.forEach((user) => {
-            const photo = user.photo ? user.photo : "url('" + appUrl + "/asset/img/default-profile.png')";
+            const photo = user.photo ? user.photo : appUrl + "/asset/img/default-profile.png";
 
             rows += `
                 <tr data-id="${user.id}">
                     <td>
                         <div class="d-flex align-items-center gap-3">
-                            <img src="/${photo}" alt="Profile Picture" class="table-image rounded-circle" width="40" height="40" />
+                            <img src="${photo}" alt="Profile Picture" class="table-image rounded-circle" width="40" height="40" />
                             <div>
                                 <div class="fw-semibold" style="font-size: 14px;">${user.name}</div>
                                 <div style="font-size: 10px; color: #6c757d;">${user.email}</div>
@@ -109,58 +55,27 @@ document.addEventListener("DOMContentLoaded", function () {
         tableBody.innerHTML = rows;
     }
 
-    // User Detail Modal Logic
-    const userDetailModalEl = document.getElementById("userDetailModal");
-    const userDetailModal = new bootstrap.Modal(userDetailModalEl);
-
     $(document).on("click", ".btn-detail", function () {
         const id = $(this).data("id");
         $.ajax({
             url: appUrl + `/users/${id}`,
             method: "GET",
             dataType: "json",
-                success: function (user) {
-                    $("#detailUserName").text(user.name);
-                    $("#detailUserEmail").text(user.email);
-                    $("#detailUserType").text(user.user_type);
-                    $("#detailUserRole").text(user.user_role);
+            success: function (user) {
+                $("#detailUserName").text(user.name);
+                $("#detailUserEmail").text(user.email);
 
-                    const photoUrl = user.photo ? `/${user.photo}` : "url('" + appUrl + "/asset/img/default-profile.png')";
-                    $("#detailUserPhoto").attr("src", photoUrl);
+                const photoUrl = user.photo ? user.photo : appUrl + "/asset/img/default-profile.png";
+                $("#detailUserPhoto").attr("src", photoUrl);
 
-                    if (user.employee) {
-                        const birthDate = user.employee.birth_date ? new Date(user.employee.birth_date) : null;
-                        const hireDate = user.employee.hire_date ? new Date(user.employee.hire_date) : null;
-                        const options = { year: "numeric", month: "long", day: "numeric" };
+                if (user.employee && user.employee.division) {
+                    $("#detailEmployeeDivision").text(user.employee.division.name_division);
+                } else {
+                    $("#detailEmployeeDivision").text("No Division");
+                }
 
-                        $("#detailBirthDate").text(birthDate ? birthDate.toLocaleDateString("en-GB", options) : "-");
-                        $("#detailPhone").text(user.employee.phone || "-");
-                        $("#detailAddress").text(user.employee.address || "-");
-
-                        $("#detailEmployeeDepartment").text(user.employee.department ? user.employee.department.name_department : "-");
-                        $("#detailEmployeeDivision").text(user.employee.division ? user.employee.division.name_division : "-");
-                        $("#detailEmployeeJob").text(user.employee.job ? user.employee.job.job_name : "-");
-                        $("#detailHireDate").text(hireDate ? hireDate.toLocaleDateString("en-GB", options) : "-");
-                        $("#detailGrade").text(user.employee.grade || "-");
-                        $("#detailEmployeeOffice").text(user.employee.office || "-");
-                        $("#detailEmployeeStatus").text(user.employee.status || "-");
-                    } else {
-                        $("#detailBirthDate").text("-");
-                        $("#detailPhone").text("-");
-                        $("#detailAddress").text("-");
-                        $("#detailEmployeeDepartment").text("-");
-                        $("#detailEmployeeDivision").text("-");
-                        $("#detailEmployeeJob").text("-");
-                        $("#detailHireDate").text("-");
-                        $("#detailGrade").text("-");
-                        $("#detailEmployeeOffice").text("-");
-                        $("#detailEmployeeStatus").text("-");
-                    }
-
-                    $("#userDetailModal").data("userId", id);
-
-                    userDetailModal.show();
-                },
+                userDetailModal.show();
+            },
             error: function () {
                 alert("Failed to fetch user details.");
             },
