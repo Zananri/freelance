@@ -119,17 +119,20 @@ class UserController extends Controller
     public function dashboard()
     {
         $user = auth()->user();
-        $employee = Employee::where('user_id', $user->id)->first();
-
         $photo = null;
-        if ($employee) {
-            // Prefer profile_picture if available, else photo
-            $photo = $employee->profile_picture ?? $employee->photo;
-        }
 
-        // If photo is a relative path, convert to asset URL
-        if ($photo) {
-            $photo = asset($photo);
+        if ($user) {
+            $employee = Employee::where('user_id', $user->id)->first();
+
+            if ($employee) {
+                // Prefer profile_picture if available, else photo
+                $photo = $employee->profile_picture ?? $employee->photo;
+            }
+
+            // If photo is a relative path, convert to asset URL
+            if ($photo) {
+                $photo = asset($photo);
+            }
         }
 
         return view('dashboard', compact('photo'));

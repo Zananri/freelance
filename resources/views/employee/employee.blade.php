@@ -101,7 +101,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center">
-                    <div class="delete-employee-photo mb-3 mx-auto"></div>
+                    <div class="delete-employee-photo mb-3 mt-4 mx-auto"></div>
                     <h5 id="deleteEmployeeName" class="fw-semibold"></h5>
                     <div id="deleteEmployeeEmail" class="text-muted small mb-3"></div>
                     <div class="text-start mx-4">
