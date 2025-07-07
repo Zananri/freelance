@@ -466,7 +466,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="">
+                        <a href="{{ url('project') }}" class="{{ $menu_active == 'project' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">rocket_launch</span>
                             <span class="text-menu">Project</span>
                         </a>

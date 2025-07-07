@@ -1,0 +1,150 @@
+.custom-card .card-body {
+    padding: 1rem;
+}
+
+.row.justify-content-start > .col-md-2 {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.col-md-4 {
+    margin-bottom: 1.5rem;
+}
+
+.btn-submit-black {
+    background-color: black;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-submit-black:hover {
+    background-color: #333;
+}
+
+.custom-card {
+    background-color: rgb(240, 241, 248);
+    margin-right: 15px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.card-image img {
+    border-radius: 8px;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.project-name {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.author {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.card-icons {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.icon-item {
+    display: flex;
+    align-items: center;
+}
+
+.icon-format_list_bulleted {
+    color: #555; /* blue */
+    font-size: 18px;
+}
+
+.icon-av-timer {
+    color: #555; /* orange */
+    font-size: 18px;
+}
+
+.icon-checklist {
+    color: #555; /* green */
+    font-size: 18px;
+}
+
+.icon-number {
+    margin-left: 0.25rem;
+    font-weight: 600;
+    font-size: 14px;
+    color: #555;
+}
+
+
+
+/* New class for icon container below project name */
+.icon-container-inline {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.icon-container-inline .d-flex.align-items-center {
+    margin-right: 1rem;
+}
+
+.card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.card-link:hover {
+    transform: translateY(-4px);
+    border-radius: 8px;
+}
+
+.status-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-circle.not-started {
+    background-color: #808080; /* gray */
+    margin-right: 5px;
+}
+
+.status-circle.in-progress {
+    background-color: #ff7f00; /* orange */
+    margin-right: 5px;
+}
+
+.status-circle.completed {
+    background-color: #28a745; /* green */
+    margin-right: 5px;
+}
+
+.status-circle.late {
+    background-color: #ff0000; /* red */
+    margin-right: 5px;
+}

@@ -8,6 +8,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\ProjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
@@ -81,6 +82,16 @@ Route::get('/attendances/{id}', [AttendanceController::class, 'show'])->name('at
 Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
 Route::put('/attendances/{id}', [AttendanceController::class, 'update'])->name('attendances.update');
 Route::delete('/attendances/{id}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');
+
+Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
+Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update');
+Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
+Route::get('/projects/{id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
+Route::get('/projects/{id}', [ProjectController::class, 'show'])->name('projects.show');
+Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+Route::put('/projects/{id}', [ProjectController::class, 'update'])->name('projects.update');
+Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
 
 Route::get('/', function () {
