@@ -31,49 +31,49 @@
                     <div class="col-md-4 d-flex flex-column gap-3">
                         <div>
                             <label for="employee_name" class="form-label">Employee Name</label>
-                            <input type="text" id="employee_name" name="employee_name" class="form-control" required />
+                            <input type="text" id="employee_name" name="employee_name" class="form-control input-text" required />
                             <div class="invalid-feedback">
                                 Please enter the employee name.
                             </div>
                         </div>
                         <div>
                             <label for="employee_email" class="form-label">Email</label>
-                            <input type="email" id="employee_email" name="employee_email" class="form-control" required />
+                            <input type="email" id="employee_email" name="employee_email" class="form-control input-text" required />
                             <div class="invalid-feedback">
                                 Please enter a valid email.
                             </div>
                         </div>
                         <div>
                             <label for="employee_email_work" class="form-label">Email Work</label>
-                            <input type="email" id="employee_email_work" name="employee_email_work" class="form-control" readonly />
+                            <input type="email" id="employee_email_work" name="employee_email_work" class="form-control input-text" required />
                             <div class="invalid-feedback">
                                 Please enter a valid email work.
                             </div>
                         </div>
                         <div>
                             <label for="employee_phone" class="form-label">Phone</label>
-                            <input type="number" id="employee_phone" name="employee_phone" class="form-control" required />
+                            <input type="number" id="employee_phone" name="employee_phone" class="form-control input-text" required />
                             <div class="invalid-feedback">
                                 Please enter the employee phone.
                             </div>
                         </div>
                         <div>
                             <label for="address" class="form-label">Address</label>
-                            <textarea id="address" name="address" class="form-control" required></textarea>
+                            <textarea id="address" name="address" class="form-control input-text" required></textarea>
                             <div class="invalid-feedback">
                                 Please enter the address.
                             </div>
                         </div>
                         <div>
                             <label for="birth_date" class="form-label">Birth Date</label>
-                            <input type="date" id="birth_date" name="birth_date" class="form-control" required />
+                            <input type="date" id="birth_date" name="birth_date" class="form-control input-text" required />
                             <div class="invalid-feedback">
                                 Please enter the birth date.
                             </div>
                         </div>
                         <div>
                             <label for="hire_date" class="form-label">Hire Date</label>
-                            <input type="date" id="hire_date" name="hire_date" class="form-control" required />
+                            <input type="date" id="hire_date" name="hire_date" class="form-control input-text" required />
                             <div class="invalid-feedback">
                                 Please enter the hire date.
                             </div>
@@ -85,7 +85,7 @@
                     <div class="col-md-4 d-flex flex-column gap-3">
                         <div>
                             <label for="department_id" class="form-label">Department Name</label>
-                            <select id="department_id" name="department_id" class="form-select" required>
+                            <select id="department_id" name="department_id" class="form-select input-select" required>
                                 <option value="" disabled selected>Select Department</option>
                             </select>
                             <div class="invalid-feedback">
@@ -94,7 +94,7 @@
                         </div>
                         <div>
                             <label for="division_id" class="form-label">Division Name</label>
-                            <select id="division_id" name="division_id" class="form-select" required>
+                            <select id="division_id" name="division_id" class="form-select input-select" required>
                                 <option value="" disabled selected>Select Division</option>
                             </select>
                             <div class="invalid-feedback">
@@ -103,7 +103,7 @@
                         </div>
                         <div>
                             <label for="job_id" class="form-label">Job Name</label>
-                            <select id="job_id" name="job_id" class="form-select" required>
+                            <select id="job_id" name="job_id" class="form-select input-select" required>
                                 <option value="" disabled selected>Select Job</option>
                             </select>
                             <div class="invalid-feedback">
@@ -112,14 +112,14 @@
                         </div>
                         <div>
                             <label for="grade" class="form-label">Grade</label>
-                            <select id="grade" name="grade" class="form-select" required>
+                            <select id="grade" name="grade" class="form-select input-select" required>
                                 <option value="" disabled selected>Select Grade</option>
                                 <option value="Manager">Manager</option>
                                 <option value="Analyst">Analyst</option>
                                 <option value="Senior Analyst">Senior Analyst</option>
                                 <option value="Associate">Associate</option>
                                 <option value="Junior Manager">Junior Manager</option>
-                                <option value="Junior Analyst">Junior Analyst</option>
+                                <option value="Junior Analyst">Junior Analyst</option>`
                                 <option value="Junior Associate">Junior Associate</option>
                             </select>
                             <div class="invalid-feedback">
@@ -128,7 +128,7 @@
                         </div>
                         <div>
                             <label for="office" class="form-label">Office</label>
-                            <select id="office" name="office" class="form-select" required>
+                            <select id="office" name="office" class="form-select input-select" required>
                                 <option value="" disabled selected>Select Office</option>
                                 <option value="NSA Performance">NSA Performance</option>
                                 <option value="Gudang SEHA">Gudang SEHA</option>

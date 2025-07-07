@@ -33,7 +33,7 @@
                     <div class="col-md-4 d-flex flex-column gap-3">
                         <div>
                             <label for="employee_name" class="form-label">Employee Name</label>
-                            <input type="text" id="employee_name" name="employee_name" class="form-control"
+                            <input type="text" id="employee_name" name="employee_name" class="form-control input-text"
                                 value="{{ $employee->name }}" required />
                             <div class="invalid-feedback">
                                 Please enter the employee name.
@@ -41,7 +41,7 @@
                         </div>
                         <div>
                             <label for="employee_email" class="form-label">Employee Email</label>
-                            <input type="email" id="employee_email" name="employee_email" class="form-control"
+                            <input type="email" id="employee_email" name="employee_email" class="form-control input-text"
                                 value="{{ $employee->email }}" required />
                             <div class="invalid-feedback">
                                 Please enter a valid email.
@@ -50,14 +50,14 @@
                         <div>
                             <label for="employee_email_work" class="form-label">Email Work</label>
                             <input type="email" id="employee_email_work" name="employee_email_work"
-                                class="form-control" value="{{ $employee->email_work }}" />
+                                class="form-control input-text" value="{{ $employee->email_work }}" />
                             <div class="invalid-feedback">
                                 Please enter a valid email work.
                             </div>
                         </div>
                         <div>
                             <label for="employee_phone" class="form-label">Employee Phone</label>
-                            <input type="number" id="employee_phone" name="employee_phone" class="form-control"
+                            <input type="number" id="employee_phone" name="employee_phone" class="form-control input-text"
                                 value="{{ $employee->phone }}" required />
                             <div class="invalid-feedback">
                                 Please enter the employee phone.
@@ -65,14 +65,14 @@
                         </div>
                         <div>
                             <label for="address" class="form-label">Address</label>
-                            <textarea id="address" name="address" class="form-control" required>{{ $employee->address }}</textarea>
+                            <textarea id="address" name="address" class="form-control input-text" required>{{ $employee->address }}</textarea>
                             <div class="invalid-feedback">
                                 Please enter the address.
                             </div>
                         </div>
                         <div>
                             <label for="birth_date" class="form-label">Birth Date</label>
-                            <input type="date" id="birth_date" name="birth_date" class="form-control"
+                            <input type="date" id="birth_date" name="birth_date" class="form-control input-text"
                                 value="{{ $employee->birth_date }}" required />
                             <div class="invalid-feedback">
                                 Please enter the birth date.
@@ -80,7 +80,7 @@
                         </div>
                         <div>
                             <label for="hire_date" class="form-label">Hire Date</label>
-                            <input type="date" id="hire_date" name="hire_date" class="form-control"
+                            <input type="date" id="hire_date" name="hire_date" class="form-control input-text"
                                 value="{{ $employee->hire_date }}" required />
                             <div class="invalid-feedback">
                                 Please enter the hire date.
@@ -92,7 +92,7 @@
                     <div class="col-md-4 d-flex flex-column gap-3">
                         <div>
                             <label for="department_id" class="form-label">Department Name</label>
-                            <select id="department_id" name="department_id" class="form-select" required
+                            <select id="department_id" name="department_id" class="form-select input-select" required
                                 data-current="{{ $employee->department_id }}">
                                 <option value="" disabled>Select Department</option>
                                 @foreach ($departments as $department)
@@ -108,7 +108,7 @@
                         </div>
                         <div>
                             <label for="division_id" class="form-label">Division Name</label>
-                            <select id="division_id" name="division_id" class="form-select" required
+                            <select id="division_id" name="division_id" class="form-select input-select" required
                                 data-current="{{ $employee->division_id }}">
                                 <option value="" disabled>Select Division</option>
                             </select>
@@ -118,7 +118,7 @@
                         </div>
                         <div>
                             <label for="job_id" class="form-label">Job Name</label>
-                            <select id="job_id" name="job_id" class="form-select" required
+                            <select id="job_id" name="job_id" class="form-select input-select" required
                                 data-current="{{ $employee->job_id }}">
                                 <option value="" disabled>Select Job</option>
                             </select>
@@ -128,7 +128,7 @@
                         </div>
                         <div>
                             <label for="grade" class="form-label">Grade</label>
-                            <select id="grade" name="grade" class="form-select" required>
+                            <select id="grade" name="grade" class="form-select input-select" required>
                                 <option value="" disabled selected>Select Grade</option>
                                 <option value="Manager" {{ $employee->grade == 'Manager' ? 'selected' : '' }}>Manager
                                 </option>
@@ -155,7 +155,7 @@
                         </div>
                         <div>
                             <label for="office" class="form-label">Office</label>
-                            <select id="office" name="office" class="form-select" required>
+                            <select id="office" name="office" class="form-select input-select" required>
                                 <option value="" disabled>Select Office</option>
                                 <option value="NSA Performance"
                                     {{ $employee->office == 'NSA Performance' ? 'selected' : '' }}>NSA Performance

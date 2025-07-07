@@ -40,7 +40,7 @@
                         </label>
                         <div>
                             <label for="password" class="form-label">New Password</label>
-                            <input type="password" id="password" name="password" class="form-control" required />
+                            <input type="password" id="password" name="password" class="form-control input-text" required />
                             <div class="invalid-feedback">
                                 Please select a department.
                             </div>
@@ -55,7 +55,7 @@
                     <div class="col-md-4 d-flex flex-column gap-3">
                         <div>
                             <label for="employee_name" class="form-label">Employee Name</label>
-                            <input type="text" id="employee_name" name="employee_name" class="form-control" required
+                            <input type="text" id="employee_name" name="employee_name" class="form-control input-text" required
                                 readonly disabled />
                             <div class="invalid-feedback">
                                 Please enter the employee name.
@@ -63,7 +63,7 @@
                         </div>
                         <div>
                             <label for="employee_email" class="form-label">Employee Email</label>
-                            <input type="email" id="employee_email" name="employee_email" class="form-control"
+                            <input type="email" id="employee_email" name="employee_email" class="form-control input-text"
                                 required readonly disabled />
                             <div class="invalid-feedback">
                                 Please enter a valid email.
@@ -72,14 +72,14 @@
                         <div>
                             <label for="employee_email_work" class="form-label">Email Work</label>
                             <input type="email" id="employee_email_work" name="employee_email_work"
-                                class="form-control" readonly disabled />
+                                class="form-control input-text" readonly disabled />
                             <div class="invalid-feedback">
                                 Please enter a valid email work.
                             </div>
                         </div>
                         <div>
                             <label for="employee_phone" class="form-label">Employee Phone</label>
-                            <input type="number" id="employee_phone" name="employee_phone" class="form-control"
+                            <input type="number" id="employee_phone" name="employee_phone" class="form-control input-text"
                                 required readonly disabled />
                             <div class="invalid-feedback">
                                 Please enter the employee phone.
@@ -87,14 +87,14 @@
                         </div>
                         <div>
                             <label for="address" class="form-label">Address</label>
-                            <textarea id="address" name="address" class="form-control" required readonly disabled></textarea>
+                            <textarea id="address" name="address" class="form-control input-text" required readonly disabled></textarea>
                             <div class="invalid-feedback">
                                 Please enter the address.
                             </div>
                         </div>
                         <div>
                             <label for="birth_date" class="form-label">Birth Date</label>
-                            <input type="date" id="birth_date" name="birth_date" class="form-control" required
+                            <input type="date" id="birth_date" name="birth_date" class="form-control input-text" required
                                 readonly disabled />
                             <div class="invalid-feedback">
                                 Please enter the birth date.
@@ -107,7 +107,7 @@
                     <div class="col-md-4 d-flex flex-column gap-3">
                         <div>
                             <label for="department_id" class="form-label">Department Name</label>
-                            <input type="text" id="department_id" name="department_id" class="form-control" required
+                            <input type="text" id="department_id" name="department_id" class="form-control input-text" required
                                 readonly disabled />
                             <div class="invalid-feedback">
                                 Please select a department.
@@ -115,7 +115,7 @@
                         </div>
                         <div>
                             <label for="division_id" class="form-label">Division Name</label>
-                            <input type="text" id="division_id" name="division_id" class="form-control" required
+                            <input type="text" id="division_id" name="division_id" class="form-control input-text" required
                                 readonly disabled />
                             <div class="invalid-feedback">
                                 Please select a division.
@@ -123,7 +123,7 @@
                         </div>
                         <div>
                             <label for="job_id" class="form-label">Job Name</label>
-                            <input type="text" id="job_id" name="job_id" class="form-control" required
+                            <input type="text" id="job_id" name="job_id" class="form-control input-text" required
                                 readonly disabled />
                             <div class="invalid-feedback">
                                 Please select a job.
@@ -131,7 +131,7 @@
                         </div>
                         <div>
                             <label for="grade" class="form-label">Grade</label>
-                            <input type="text" id="grade" name="grade" class="form-control" required
+                            <input type="text" id="grade" name="grade" class="form-control input-text" required
                                 readonly disabled />
                             <div class="invalid-feedback">
                                 Please select a grade.
@@ -139,7 +139,7 @@
                         </div>
                         <div>
                             <label for="office" class="form-label">Office</label>
-                            <input type="text" id="office" name="office" class="form-control" required
+                            <input type="text" id="office" name="office" class="form-control input-text" required
                                 readonly disabled />
                             <div class="invalid-feedback">
                                 Please select an office.
@@ -147,7 +147,7 @@
                         </div>
                         <div>
                             <label for="hire_date" class="form-label">Hire Date</label>
-                            <input type="date" id="hire_date" name="hire_date" class="form-control" required
+                            <input type="date" id="hire_date" name="hire_date" class="form-control input-text" required
                                 readonly disabled />
                             <div class="invalid-feedback">
                                 Please enter the hire date.

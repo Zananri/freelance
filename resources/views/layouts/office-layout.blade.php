@@ -399,20 +399,20 @@
                         </div>
 
                         <div class="d-flex flex-row align-items-center" style="width: 85%;">
-<button type="button" class="btn btn-detail btn-sidebar-style btn-profile-left"
-    style="font-size: 16px; min-height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #ffffff; border-right: 1px solid #ccc;"
-    onclick="window.location.href='{{ route('profile') }}'">
-    <span class="material-symbols-outlined" style="font-size: 25px;">account_circle</span>
-    Profile
-</button>
-<form method="POST" action="{{ route('logout') }}" style="flex: 1; margin: 0;">
-    @csrf
-    <button type="submit" class="btn btn-detail btn-sidebar-style btn-logout-right"
-        style="font-size: 16px; min-height: 44px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #ffffff;">
-        <span class="material-symbols-outlined" style="font-size: 25px;">logout</span>
-        Logout
-    </button>
-</form>
+                            <button type="button" class="btn btn-detail btn-sidebar-style btn-profile-left"
+                                style="font-size: 16px; min-height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #ffffff; border-right: 1px solid #ccc;"
+                                onclick="window.location.href='{{ route('profile') }}'">
+                                <span class="material-symbols-outlined" style="font-size: 25px;">account_circle</span>
+                                Profile
+                            </button>
+                            <form method="POST" action="{{ route('logout') }}" style="flex: 1; margin: 0;">
+                                @csrf
+                                <button type="submit" class="btn btn-detail btn-sidebar-style btn-logout-right"
+                                    style="font-size: 16px; min-height: 44px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #ffffff;">
+                                    <span class="material-symbols-outlined" style="font-size: 25px;">logout</span>
+                                    Logout
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -454,7 +454,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="">
+                        <a href="{{ url('attendance') }}" class="{{ $menu_active == 'attendance' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">today</span>
                             <span class="text-menu">Attendance</span>
                         </a>

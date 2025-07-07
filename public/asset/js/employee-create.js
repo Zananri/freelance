@@ -114,18 +114,26 @@ document.addEventListener("DOMContentLoaded", function () {
         employeeNameInput.addEventListener("input", function () {
             const fullName = employeeNameInput.value.trim();
             if (fullName.length > 0) {
-                const firstName = fullName.split(" ")[0].toLowerCase();
-                employeeEmailWorkInput.value = firstName + "@nsaperformance.id";
-                employeeEmailWorkInput.readOnly = true;
-                // Remove disabled attribute to ensure value is submitted
+                // Only auto-fill if email_work is empty or matches previous auto-fill pattern
+                const currentEmailWork = employeeEmailWorkInput.value.trim();
+                const generatedEmailWork = fullName.replace(/\s+/g, "_").toLowerCase() + "@nsaperformance.id";
+                if (currentEmailWork === "" || currentEmailWork === employeeEmailWorkInput.getAttribute("data-auto-filled")) {
+                    employeeEmailWorkInput.value = generatedEmailWork;
+                    employeeEmailWorkInput.setAttribute("data-auto-filled", generatedEmailWork);
+                }
+                employeeEmailWorkInput.readOnly = false; // allow editing
                 employeeEmailWorkInput.removeAttribute("disabled");
             } else {
-                // Prevent clearing email_work to avoid validation error
-                // Optionally, set to a default or keep previous value
                 employeeEmailWorkInput.value = "";
                 employeeEmailWorkInput.readOnly = false;
                 employeeEmailWorkInput.removeAttribute("disabled");
+                employeeEmailWorkInput.removeAttribute("data-auto-filled");
             }
+        });
+
+        // Remove data-auto-filled attribute if user manually edits email_work
+        employeeEmailWorkInput.addEventListener("input", function () {
+            employeeEmailWorkInput.removeAttribute("data-auto-filled");
         });
     }
 

@@ -25,7 +25,7 @@
 
             <div class="d-flex gap-1" style="margin-left: -5px;">
                 <div class="input-group" style="min-width: 200px; height: 38px;">
-                    <input type="text" id="searchInput" class="form-control input-soft" placeholder="Search"
+                    <input type="text" id="searchInput" class="form-control input-text" placeholder="Search"
                         style="border: 1px solid #DDDDDD; height: 38px;" />
                 </div>
                 <div class="dropdown">
@@ -101,20 +101,20 @@
                 <form id="addJobForm" class="form-custom needs-validation" novalidate>
                     <div class="mb-3 mt-4">
                         <label for="department_id" class="form-label label-custom">Department</label>
-                        <select id="department_id" name="department_id" class="form-select input-soft"
+                        <select id="department_id" name="department_id" class="form-select input-select"
                             required></select>
                     </div>
                     <div class="mb-3">
                         <label for="division_id" class="form-label label-custom">Division</label>
-                        <select id="division_id" name="division_id" class="form-select input-soft" required></select>
+                        <select id="division_id" name="division_id" class="form-select input-select" required></select>
                     </div>
                     <div class="mb-3">
                         <label for="job_name" class="form-label label-custom">Job Name</label>
-                        <input type="text" id="job_name" name="job_name" class="form-control input-soft" required>
+                        <input type="text" id="job_name" name="job_name" class="form-control input-text" required>
                     </div>
                     <div class="mb-3">
                         <label for="status" class="form-label label-custom">Status</label>
-                        <select id="status" name="status" class="form-select input-soft" required>
+                        <select id="status" name="status" class="form-select input-select" required>
                             <option value="" disabled selected>Select Status</option>
                             <option value="ACTIVE">Active</option>
                             <option value="INACTIVE">Inactive</option>
@@ -122,7 +122,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label label-custom">Description</label>
-                        <textarea id="description" name="description" class="form-control input-soft" rows="2"></textarea>
+                        <textarea id="description" name="description" class="form-control input-text" rows="2"></textarea>
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="submit" class="btn-submit-black btn-submit-custom">Submit</button>
@@ -149,22 +149,22 @@
                     <input type="hidden" id="edit_job_id" name="edit_job_id">
                     <div class="mb-3 mt-4">
                         <label for="edit_department_id" class="form-label label-custom">Department</label>
-                        <select id="edit_department_id" name="edit_department_id" class="form-select input-soft"
+                        <select id="edit_department_id" name="edit_department_id" class="form-select input-select"
                             required></select>
                     </div>
                     <div class="mb-3">
                         <label for="edit_division_id" class="form-label label-custom">Division</label>
-                        <select id="edit_division_id" name="edit_division_id" class="form-select input-soft"
+                        <select id="edit_division_id" name="edit_division_id" class="form-select input-select"
                             required></select>
                     </div>
                     <div class="mb-3">
                         <label for="edit_job_name" class="form-label label-custom">Job Name</label>
                         <input type="text" id="edit_job_name" name="edit_job_name"
-                            class="form-control input-soft" required>
+                            class="form-control input-text" required>
                     </div>
                     <div class="mb-3">
                         <label for="edit_status" class="form-label label-custom">Status</label>
-                        <select id="edit_status" name="edit_status" class="form-select input-soft" required>
+                        <select id="edit_status" name="edit_status" class="form-select input-select" required>
                             <option value="" disabled selected>Select Status</option>
                             <option value="ACTIVE">Active</option>
                             <option value="INACTIVE">Inactive</option>
@@ -172,7 +172,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="edit_description" class="form-label label-custom">Description</label>
-                        <textarea id="edit_description" name="edit_description" class="form-control input-soft" rows="2"></textarea>
+                        <textarea id="edit_description" name="edit_description" class="form-control input-text" rows="2"></textarea>
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="submit" class="btn-submit-black btn-submit-custom">Update</button>
@@ -199,15 +199,15 @@
                     <div class="modal-body modal-body-custom">
                         <div class="mb-3 mt-4">
                             <label class="form-label label-custom">Job Name</label>
-                            <input type="text" id="delete_job_name" class="form-control input-soft" readonly>
+                            <input type="text" id="delete_job_name" class="form-control input-text" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label label-custom">Status</label>
-                            <input type="text" id="delete_status" class="form-control input-soft" readonly>
+                            <input type="text" id="delete_status" class="form-control input-text" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label label-custom">Description</label>
-                            <textarea id="delete_description" class="form-control input-soft" rows="2" readonly></textarea>
+                            <textarea id="delete_description" class="form-control input-text" rows="2" readonly></textarea>
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-delete">

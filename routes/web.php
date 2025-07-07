@@ -7,6 +7,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AttendanceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
@@ -40,7 +41,7 @@ Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
 Route::put('/jobs/{id}', [JobController::class, 'update'])->name('jobs.update');
 Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->name('jobs.destroy');
 
-
+// Employee CRUD routes
 Route::get('/employee', [EmployeeController::class, 'showEmployeePage'])->name('employee');
 Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
 Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
@@ -70,6 +71,15 @@ Route::post('/profiles', [ProfileController::class, 'store'])->name('profiles.st
 Route::put('/profiles/{id}', [ProfileController::class, 'update'])->name('profiles.update');
 Route::delete('/profiles/{id}', [ProfileController::class, 'destroy'])->name('profiles.destroy');
 
+Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
+Route::post('/attendance/update', [AttendanceController::class, 'updateAttendance'])->name('attendance.update');
+Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
+Route::get('/attendances/create', [AttendanceController::class, 'create'])->name('attendances.create');
+Route::get('/attendances/{id}/edit', [AttendanceController::class, 'edit'])->name('attendances.edit');
+Route::get('/attendances/{id}', [AttendanceController::class, 'show'])->name('attendances.show');
+Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
+Route::put('/attendances/{id}', [AttendanceController::class, 'update'])->name('attendances.update');
+Route::delete('/attendances/{id}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');
 
 
 Route::get('/', function () {

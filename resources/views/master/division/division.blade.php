@@ -25,7 +25,7 @@
 
             <div class="d-flex gap-1" style="margin-left: -5px;">
                 <div class="input-group" style="min-width: 200px; height: 38px;">
-                    <input type="text" id="searchInput" class="form-control input-soft" placeholder="Search"
+                    <input type="text" id="searchInput" class="form-control input-text" placeholder="Search"
                         style="border: 1px solid #DDDDDD; height: 38px;" />
                 </div>
                 <div class="dropdown">
@@ -100,7 +100,7 @@
                     <div class="modal-body modal-body-custom">
                         <div class="mb-3 mt-4">
                             <label for="department_id" class="form-label label-custom">Department</label>
-                            <select class="form-select input-soft" id="department_id" name="department_id" required>
+                            <select class="form-select input-select" id="department_id" name="department_id" required>
                                 <option value="" disabled selected>Select Department</option>
                             </select>
                             <div class="invalid-feedback">
@@ -109,7 +109,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="name_division" class="form-label label-custom">Division Name</label>
-                            <input type="text" class="form-control input-soft" id="name_division"
+                            <input type="text" class="form-control input-text" id="name_division"
                                 name="name_division" placeholder="Input Division Name" required>
                             <div class="invalid-feedback">
                                 Please enter the division name.
@@ -117,7 +117,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="status" class="form-label label-custom">Status</label>
-                            <select class="form-select input-soft" id="status" name="status" required>
+                            <select class="form-select input-select" id="status" name="status" required>
                                 <option value="" disabled selected>Select Status</option>
                                 <option value="ACTIVE">Active</option>
                                 <option value="INACTIVE">Inactive</option>
@@ -128,7 +128,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-soft" id="description" name="description" placeholder="Input Description"></textarea>
+                            <textarea class="form-control input-text" id="description" name="description" placeholder="Input Description"></textarea>
                             <div class="invalid-feedback">
                                 Please enter a description.
                             </div>
@@ -176,7 +176,7 @@
                         <input type="hidden" id="edit_division_id" name="division_id">
                         <div class="mb-3 mt-4">
                             <label for="edit_department_id" class="form-label label-custom">Department</label>
-                            <select class="form-select input-soft" id="edit_department_id" name="department_id"
+                            <select class="form-select input-select" id="edit_department_id" name="department_id"
                                 required>
                                 <option value="" disabled selected>Select Department</option>
                             </select>
@@ -186,7 +186,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="edit_name_division" class="form-label label-custom">Division Name</label>
-                            <input type="text" class="form-control input-soft" id="edit_name_division"
+                            <input type="text" class="form-control input-text" id="edit_name_division"
                                 name="name_division" placeholder="Input Division Name" required>
                             <div class="invalid-feedback">
                                 Please enter the division name.
@@ -194,7 +194,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="edit_status" class="form-label label-custom">Status</label>
-                            <select class="form-select input-soft" id="edit_status" name="status" required>
+                            <select class="form-select input-select" id="edit_status" name="status" required>
                                 <option value="ACTIVE">Active</option>
                                 <option value="INACTIVE">Inactive</option>
                             </select>
@@ -204,7 +204,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="edit_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-soft" id="edit_description" name="description" placeholder="Input Description"></textarea>
+                            <textarea class="form-control input-text" id="edit_description" name="description" placeholder="Input Description"></textarea>
                             <div class="invalid-feedback">
                                 Please enter a description.
                             </div>
@@ -256,22 +256,22 @@
                         <div class="mb-3 mt-4">
                             <label for="delete_department_name" class="form-label label-custom">Department
                                 Name</label>
-                            <input type="text" class="form-control input-soft" id="delete_department_name"
+                            <input type="text" class="form-control input-text" id="delete_department_name"
                                 name="department_name" readonly disabled />
                         </div>
                         <div class="mb-3">
                             <label for="delete_name_division" class="form-label label-custom">Division Name</label>
-                            <input type="text" class="form-control input-soft" id="delete_name_division"
+                            <input type="text" class="form-control input-text" id="delete_name_division"
                                 name="name_division" readonly disabled />
                         </div>
                         <div class="mb-3">
                             <label for="delete_status" class="form-label label-custom">Status</label>
-                            <input type="text" class="form-control input-soft" id="delete_status" name="status"
+                            <input type="text" class="form-control input-text" id="delete_status" name="status"
                                 readonly disabled />
                         </div>
                         <div class="mb-3">
                             <label for="delete_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-soft" id="delete_description" name="description" rows="3" readonly
+                            <textarea class="form-control input-text" id="delete_description" name="description" rows="3" readonly
                                 disabled></textarea>
                         </div>
                         <span>Image</span>

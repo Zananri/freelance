@@ -1,20 +1,3 @@
-/* Profile page CSS adapted from edit-employee.css with modifications */
-
-/* Form controls styling */
-.form-control, .form-select, textarea {
-    font-size: 14px;
-    padding: 6px 12px;
-    border-radius: 10px;
-    border: 1px solid #ced4da;
-    height: 45px!important;
-}
-
-/* Textarea height for address */
-textarea#address {
-    min-height: 100px;
-    resize: vertical;
-}
-
 /* Profile photo upload container */
 .profile-photo-upload {
     display: block;

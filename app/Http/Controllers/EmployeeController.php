@@ -114,13 +114,18 @@ class EmployeeController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Generate email_work from full name by replacing spaces with underscores if email_work is empty
+        $emailWork = $request->input('email_work');
+        if (empty($emailWork)) {
+            $emailWork = str_replace(' ', '_', trim($request->name));
+        }
 
         DB::beginTransaction();
 
         try {
-
             $photoPath = null;
             $ktpPath = null;
+            $profilePicturePath = null;
 
             if ($request->hasFile('photo')) {
                 $file = $request->file('photo');
@@ -146,7 +151,8 @@ class EmployeeController extends Controller
                 $file->move($destination, $filename);
                 $ktpPath = 'file/ktp/' . $filename;
             }
-            $existingUser = User::where('email', $request->email_work)->first();
+
+            $existingUser = User::where('email', $emailWork)->first();
 
             if ($existingUser) {
                 throw new \Exception('User with this email_work already exists');
@@ -158,7 +164,7 @@ class EmployeeController extends Controller
             $user->user_role = 'EMPLOYEE';
             $user->photo = $photoPath;
             $user->name = $request->name;
-            $user->email = $request->email_work;
+            $user->email = $emailWork;
             $user->email_verified_at = now();
             $user->password = bcrypt('NSA_2025');
             $user->save();
@@ -171,7 +177,7 @@ class EmployeeController extends Controller
                 'profile_picture' => $profilePicturePath ?? null,
                 'name' => $request->name,
                 'email' => $request->email,
-                'email_work' => $request->email_work,
+                'email_work' => $emailWork,
                 'phone' => $request->phone,
                 'status' => 'ACTIVE',
                 'address' => $request->address,
