@@ -17,7 +17,9 @@ document.addEventListener("DOMContentLoaded", function () {
             type: "GET",
             dataType: "json",
             success: function (data) {
-                let container = document.getElementById("project-cards-container");
+                let container = document.getElementById(
+                    "project-cards-container"
+                );
                 container.innerHTML = ""; // Clear existing cards
 
                 if (data.project_titles && data.project_titles.length > 0) {
@@ -26,23 +28,35 @@ document.addEventListener("DOMContentLoaded", function () {
                         let taskCount = data.task || 0;
                         let inProgressCount = data.in_progress || 0;
                         let completedCount = data.completed || 0;
-                        let imageUrl = data.project_images && data.project_images[index]
-                            ? appUrl + "/file/project/" + data.project_images[index]
-                            : "{{ asset('asset/img/background/add-image.png') }}";
+                        let imageUrl =
+                            data.project_images && data.project_images[index]
+                                ? appUrl +
+                                  "/file/project/" +
+                                  data.project_images[index]
+                                : "{{ asset('asset/img/background/add-image.png') }}";
 
                         rowHtml += `
                             <div class="col-md-4 mb-4 position-relative">
                                 <a href="#" class="card-link">
-                                    <div class="card shadow-sm rounded-4 p-3" style="background-color: rgb(240, 241, 248); border:0;">
+                                    <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0;">
                                         <div class="card-body">
+                                         <div class="card-menu position-absolute top-0 end-0 m-2">
+                                    <div class="menu-dot" tabindex="0">&#8942;</div>
+                                        <ul class="menu-options">
+                                            <li class="menu-option">Detail Project</li>
+                                            <li class="menu-option">Task</li>
+                                            <li class="menu-option">Project Feedback</li>
+                                            <li class="menu-option">Project Assignment</li>
+                                            <li class="menu-option">Delete</li>
+                                        </ul>
+                                    </div>
                                             <div class="d-flex">
                                                 <div class="me-3">
-                                                    <img src="${imageUrl}" alt="Project Image" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;">
+                                                    <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
                                                 </div>
                                                 <div class="flex-grow-1">
-                                                    <div class="d-flex align-items-center mb-1">
-                                                        <div class="status-circle not-started"></div>
-                                                        <h5 class="mb-0 ms-2">${title}</h5>
+                                                    <div class="d-flex align-items-started mb-1">
+                                                        <h6 class="mb-0 title-project">${title}</h6>
                                                     </div>
                                                     <div class="d-flex justify-content-start mt-2">
                                                         <div class="d-flex align-items-center me-3">
@@ -63,22 +77,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                         </div>
                                     </div>
                                 </a>
-                                <div class="card-menu position-absolute top-0 end-0 m-2">
-                                    <div class="menu-dot" tabindex="0">&#8942;</div>
-                                    <ul class="menu-options">
-                                        <li class="menu-option">Detail Project</li>
-                                        <li class="menu-option">Task</li>
-                                        <li class="menu-option">Project Feedback</li>
-                                    </ul>
-                                </div>
+                               
                             </div>
                         `;
 
-                        if ((index + 1) % 3 === 0 && index !== data.project_titles.length - 1) {
+                        if (
+                            (index + 1) % 3 === 0 &&
+                            index !== data.project_titles.length - 1
+                        ) {
                             rowHtml += '</div><div class="row">';
                         }
                     });
-                    rowHtml += '</div>';
+                    rowHtml += "</div>";
                     container.innerHTML = rowHtml;
                 } else {
                     container.innerHTML = "<p>No projects available.</p>";
@@ -91,26 +101,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Add document level event listener for menu toggle
-    document.addEventListener('click', function (e) {
-        const menuDot = e.target.closest('.menu-dot');
+    document.addEventListener("click", function (e) {
+        const menuDot = e.target.closest(".menu-dot");
         if (menuDot) {
             e.stopPropagation();
             // Close other open menus
-            document.querySelectorAll('.card-menu .menu-options.show').forEach(menu => {
-                if (menu !== menuDot.nextElementSibling) {
-                    menu.classList.remove('show');
-                }
-            });
+            document
+                .querySelectorAll(".card-menu .menu-options.show")
+                .forEach((menu) => {
+                    if (menu !== menuDot.nextElementSibling) {
+                        menu.classList.remove("show");
+                    }
+                });
             // Toggle current menu
             const menuOptions = menuDot.nextElementSibling;
             if (menuOptions) {
-                menuOptions.classList.toggle('show');
+                menuOptions.classList.toggle("show");
             }
         } else {
             // Close all menus if click outside
-            document.querySelectorAll('.card-menu .menu-options.show').forEach(menu => {
-                menu.classList.remove('show');
-            });
+            document
+                .querySelectorAll(".card-menu .menu-options.show")
+                .forEach((menu) => {
+                    menu.classList.remove("show");
+                });
         }
     });
 

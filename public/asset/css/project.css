@@ -2,6 +2,11 @@
     padding: 1rem;
 }
 
+.title-project {
+    color: #555;
+    font-size: 16px;
+}
+
 .row.justify-content-start > .col-md-2 {
     padding-left: 0;
     padding-right: 0;
@@ -75,17 +80,17 @@
 
 .icon-format_list_bulleted {
     color: #555; /* blue */
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .icon-av-timer {
     color: #555; /* orange */
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .icon-checklist {
     color: #555; /* green */
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .icon-number {
@@ -114,7 +119,7 @@
     text-decoration: none;
     cursor: pointer;
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible;
     transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
@@ -129,28 +134,6 @@
     border-radius: 50%;
     flex-shrink: 0;
 }
-
-.status-circle.not-started {
-    background-color: #808080; /* gray */
-    margin-right: 5px;
-}
-
-.status-circle.in-progress {
-    background-color: #ff7f00; /* orange */
-    margin-right: 5px;
-}
-
-.status-circle.completed {
-    background-color: #28a745; /* green */
-    margin-right: 5px;
-}
-
-.status-circle.late {
-    background-color: #ff0000; /* red */
-    margin-right: 5px;
-}
-
-/* Modal and button styles copied from department.css for project modal styling consistency */
 
 .custom-image-upload {
     position: relative;
@@ -268,6 +251,7 @@
     top: 10px;
     right: 18px !important;
     z-index: 10;
+    background-color: rgb(240, 241, 248);
 }
 
 .card-menu .menu-dot {
@@ -291,6 +275,8 @@
     width: 160px;
     display: none;
     z-index: 20;
+    background-color: rgb(240, 241, 248);
+
 }
 
 .card-menu .menu-options.show {
