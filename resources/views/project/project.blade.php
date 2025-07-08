@@ -40,52 +40,52 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="title" class="form-label">Title</label>
+                            <label for="title" class="form-label label-custom">Title</label>
                             <input type="text" class="form-control input-text" id="title" name="title"
                                 required>
                         </div>
                         <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
+                            <label for="description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="description" name="description" rows="3"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label for="department" class="form-label">Department</label>
+                            <label for="department" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="department" name="department" required>
                                 <option value="">Select Department</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="division" class="form-label">Division</label>
+                            <label for="division" class="form-label label-custom">Division</label>
                             <select class="form-select input-select" id="division" name="division" required>
                                 <option value="">Select Division</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="reference_url" class="form-label">Reference URL</label>
+                            <label for="reference_url" class="form-label label-custom">Reference URL</label>
                             <input type="text" class="form-control input-text" id="reference_url"
                                 name="reference_url">
                         </div>
                         <div class="mb-3">
-                            <label for="reference_file" class="form-label">Reference File</label>
+                            <label for="reference_file" class="form-label label-custom">Reference File</label>
                             <input type="file" class="form-control input-text" id="reference_file"
                                 name="reference_file" accept=".pdf,.doc,.docx">
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;">
-                                <label for="start_date" class="form-label">Start Date</label>
+                                <label for="start_date" class="form-label label-custom">Start Date</label>
                                 <input type="date" class="form-control input-text" id="start_date" name="start_date"
                                     required>
                             </div>
                             <div style="width: 48%;">
-                                <label for="due_date" class="form-label">Due Date</label>
+                                <label for="due_date" class="form-label label-custom">Due Date</label>
                                 <input type="date" class="form-control input-text" id="due_date" name="due_date"
                                     required>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="part_of_project" class="form-label">Part of Project</label>
+                            <label for="part_of_project" class="form-label label-custom">Part of Project</label>
                             <select class="form-select input-select" id="part_of_project" name="part_of_project">
                                 <option value="">Select Project</option>
                                 <!-- Options to be populated dynamically -->
@@ -100,159 +100,14 @@
         </div>
     </div>
 
-    <div class="container my-4">
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <a href="#" class="card-link">
-                    <div class="card shadow-sm rounded-4 p-3 position-relative"
-                        style="background-color: rgb(240, 241, 248); border:0;">
-                        <div class="card-body">
-                            <div class="d-flex">
-                                <div class="me-3">
-                                    <img src="{{ asset('asset/img/background/add-image.png') }}" alt="Project Image"
-                                        style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;">
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <div class="status-circle not-started"></div>
-                                        <h5 class="mb-0 ms-2">Project now</h5>
-                                    </div>
-                                    <div class="d-flex justify-content-start mt-2">
-                                        <div class="d-flex align-items-center me-3">
-                                            <span
-                                                class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                        <div class="d-flex align-items-center me-3">
-                                            <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4 mb-4">
-                <a href="#" class="card-link">
-                    <div class="card shadow-sm rounded-4 p-3 position-relative"
-                        style="background-color: rgb(240, 241, 248); border:0;">
-                        <div class="card-body">
-                            <div class="d-flex">
-                                <div class="me-3">
-                                    <img src="{{ asset('asset/img/background/add-image.png') }}" alt="Project Image"
-                                        style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;">
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <div class="status-circle in-progress"></div>
-                                        <h5 class="mb-0 ms-2">Project now</h5>
-                                    </div>
-                                    <div class="d-flex justify-content-start mt-2">
-                                        <div class="d-flex align-items-center me-3">
-                                            <span
-                                                class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                        <div class="d-flex align-items-center me-3">
-                                            <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4 mb-4">
-                <a href="#" class="card-link">
-                    <div class="card shadow-sm rounded-4 p-3 position-relative"
-                        style="background-color: rgb(240, 241, 248); border:0;">
-                        <div class="card-body">
-                            <div class="d-flex">
-                                <div class="me-3">
-                                    <img src="{{ asset('asset/img/background/add-image.png') }}" alt="Project Image"
-                                        style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;">
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <div class="status-circle completed"></div>
-                                        <h5 class="mb-0 ms-2">Project now</h5>
-                                    </div>
-                                    <div class="d-flex justify-content-start mt-2">
-                                        <div class="d-flex align-items-center me-3">
-                                            <span
-                                                class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                        <div class="d-flex align-items-center me-3">
-                                            <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4 mb-4">
-                <a href="#" class="card-link">
-                    <div class="card shadow-sm rounded-4 p-3 position-relative"
-                        style="background-color: rgb(240, 241, 248); border:0;">
-                        <div class="card-body">
-                            <div class="d-flex">
-                                <div class="me-3">
-                                    <img src="{{ asset('asset/img/background/add-image.png') }}" alt="Project Image"
-                                        style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;">
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <div class="status-circle late"></div>
-                                        <h5 class="mb-0 ms-2">Project now</h5>
-                                    </div>
-                                    <div class="d-flex justify-content-start mt-2">
-                                        <div class="d-flex align-items-center me-3">
-                                            <span
-                                                class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                        <div class="d-flex align-items-center me-3">
-                                            <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                            <span class="icon-number">3</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
+    <div id="project-cards-container" class="container my-4">
+        <!-- Project cards will be dynamically generated here -->
+    </div>
 
-        </div>
+    <x-slot name="script_slot">
 
-        <x-slot name="script_slot">
+        <script src="{{ asset('asset/js/project.js') }}"></script>
 
-            <script src="{{ asset('asset/js/project.js') }}"></script>
-
-            <script></script>
-        </x-slot>
+        <script></script>
+    </x-slot>
 </x-office-layout>

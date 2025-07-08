@@ -18,6 +18,25 @@ class ProjectController extends Controller
     }
 
     /**
+     * Return JSON data for project cards with counts zero.
+     */
+    public function getCardData()
+    {
+        $projects = Project::all(['title', 'image']);
+        $projectTitles = $projects->pluck('title')->toArray();
+        $projectImages = $projects->pluck('image')->toArray();
+
+        $data = [
+            'task' => 0,
+            'in_progress' => 0,
+            'completed' => 0,
+            'project_titles' => $projectTitles,
+            'project_images' => $projectImages,
+        ];
+        return response()->json($data);
+    }
+
+    /**
      * Display a listing of the projects.
      */
     public function index()
@@ -38,7 +57,7 @@ class ProjectController extends Controller
     /**
      * Store a newly created project in storage.
      */
-    public function store(Request $request)
+public function store(Request $request)
     {
         try {
             $request->validate([
@@ -87,8 +106,20 @@ class ProjectController extends Controller
 
             $project->save();
 
+            // Insert into project_assignments
+            if (auth()->check() && auth()->user()->employee) {
+                \DB::table('project_assignments')->insert([
+                    'project_id' => $project->id,
+                    'employee_id' => auth()->user()->employee->id,
+                    'role' => 'author',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
             return response()->json(['message' => 'Project created successfully', 'project' => $project]);
         } catch (\Exception $e) {
+            \Log::error('Project creation failed: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to create project', 'error' => $e->getMessage()], 500);
         }
     }

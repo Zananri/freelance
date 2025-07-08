@@ -23,6 +23,7 @@
     cursor: pointer;
 }
 
+
 .btn-submit-black:hover {
     background-color: #333;
 }
@@ -260,4 +261,49 @@
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+}
+
+.card-menu {
+    position: absolute !important;
+    top: 10px;
+    right: 18px !important;
+    z-index: 10;
+}
+
+.card-menu .menu-dot {
+    font-size: 28px;
+    cursor: pointer;
+    color: #333;
+    user-select: none;
+}
+
+.card-menu .menu-options {
+    position: absolute;
+    top: 32px;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    list-style: none;
+    padding: 4px 0;
+    margin: 0;
+    width: 160px;
+    display: none;
+    z-index: 20;
+}
+
+.card-menu .menu-options.show {
+    display: block;
+}
+
+.card-menu .menu-option {
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+}
+
+.card-menu .menu-option:hover {
+    background-color: #f0f0f0;
 }

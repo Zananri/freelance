@@ -93,6 +93,8 @@ Route::post('/projects', [ProjectController::class, 'store'])->name('projects.st
 Route::put('/projects/{id}', [ProjectController::class, 'update'])->name('projects.update');
 Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
+Route::get('/project/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
+
 
 Route::get('/', function () {
     return view('welcome');
