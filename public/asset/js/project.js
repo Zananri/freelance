@@ -234,16 +234,48 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupImageInput(imageInput, imageLabel, imageClearBtn);
 
-    // Form submission via AJAX
-    addProjectForm.addEventListener("submit", function (e) {
+    // Show loading overlay
+    function showLoading() {
+        document.getElementById('addModalLoader').classList.remove('d-none');
+    }
+
+    // Hide loading overlay
+    function hideLoading() {
+        document.getElementById('addModalLoader').classList.add('d-none');
+    }
+
+    // Show alert message below modal
+    function showAlert(message, type = 'success') {
+        let alertContainer = document.querySelector('#addProjectModal').parentElement.querySelector('.alert-container');
+        if (!alertContainer) {
+            alertContainer = document.createElement('div');
+            alertContainer.className = 'alert-container mt-2';
+            alertContainer.style.width = '100%';
+            document.querySelector('#addProjectModal').parentElement.appendChild(alertContainer);
+        }
+        alertContainer.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
+        alertContainer.style.display = 'block';
+        setTimeout(() => {
+            alertContainer.style.display = 'none';
+            // Reload the page after alert disappears
+            location.reload();
+        }, 1500);
+    }
+
+    addProjectForm.addEventListener('submit', function (e) {
         e.preventDefault();
 
         if (!addProjectForm.checkValidity()) {
             e.stopPropagation();
-            addProjectForm.classList.add("was-validated");
+            addProjectForm.classList.add('was-validated');
             return;
         }
-        addProjectForm.classList.remove("was-validated");
+        addProjectForm.classList.remove('was-validated');
+
+        // Show loading overlay and disable submit button
+        showLoading();
+        const submitBtn = addProjectForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
 
         const formData = new FormData(addProjectForm);
 
@@ -257,7 +289,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
             },
             success: function (response) {
-                alert(response.message);
+                // Show success alert
+                showAlert(response.message || "Project added successfully!", "success");
+
                 // Reset form and preview
                 addProjectForm.reset();
                 imageLabel.style.backgroundImage = "";
@@ -268,25 +302,34 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<option value="" disabled selected>Select Division</option>';
                 loadDepartments();
                 loadProjects();
-                // Close modal
-                var addProjectModalEl =
-                    document.getElementById("addProjectModal");
-                var addProjectModal =
-                    bootstrap.Modal.getInstance(addProjectModalEl);
-                if (addProjectModal) addProjectModal.hide();
+
+                // Close modal after short delay to show alert
+                setTimeout(() => {
+                    var addProjectModalEl =
+                        document.getElementById("addProjectModal");
+                    var addProjectModal =
+                        bootstrap.Modal.getInstance(addProjectModalEl);
+                    if (addProjectModal) addProjectModal.hide();
+                }, 1500);
             },
             error: function (xhr) {
                 if (xhr.status === 422) {
                     let errors = xhr.responseJSON.errors;
                     let errorMessages = "";
                     for (let key in errors) {
-                        errorMessages += errors[key].join("\\n") + "\\n";
+                        errorMessages += errors[key].join("\n") + "\n";
                     }
                     alert(errorMessages);
                 } else {
                     alert("Failed to create project.");
                 }
             },
+            complete: function () {
+                // Hide loading overlay and enable submit button
+                hideLoading();
+                const submitBtn = addProjectForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = false;
+            }
         });
     });
 

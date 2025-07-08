@@ -18,12 +18,18 @@
         aria-labelledby="addProjectModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
+                <div class="modal-loading-overlay d-none" id="addModalLoader">
+                    <div class="loader-spinner"></div>
+                </div>
                 <div class="modal-header modal-header-custom">
                     <h5 class="modal-title modal-title-custom" id="addProjectModalLabel">Add Project</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="addProjectForm" enctype="multipart/form-data">
                     <div class="modal-body modal-body-custom">
+                        <div id="addProjectAlert" class="alert alert-success d-none" role="alert" style="margin-bottom: 1rem; display:none;">
+                            Project added successfully!
+                        </div>
                         <div class="mb-3">
                             <div class="title-label-image">
                                 <span>Upload image</span>
@@ -93,10 +99,13 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black btn-submit-custom">Submit</button>
+                        <button type="submit" class="btn-submit-black btn-submit-custom">
+                            Submit
+                        </button>
                     </div>
                 </form>
             </div>
+            <div class="alert-container mt-2" style="width: 100%;"></div>
         </div>
     </div>
 
