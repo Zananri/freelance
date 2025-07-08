@@ -1,4 +1,4 @@
-<?php
+g<?php
 
 namespace App\Http\Controllers;
 
@@ -50,7 +50,7 @@ class ProjectController extends Controller
                 'reference_url' => 'nullable|url',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
-                'part_of_project' => 'nullable|string|max:255',
+                'part_of_project' => 'nullable|exists:projects,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
@@ -127,7 +127,7 @@ class ProjectController extends Controller
             'reference_url' => 'nullable|url',
             'start_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:start_date',
-            'part_of_project' => 'nullable|string|max:255',
+            'part_of_project' => 'nullable|exists:projects,id',
             'complete_date' => 'nullable|date',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',

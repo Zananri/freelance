@@ -15,17 +15,18 @@ class CreateProjectsTable extends Migration
     {
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('department_id');
+            $table->unsignedBigInteger('division_id');
+            $table->unsignedBigInteger('part_of_project')->nullable();
+            $table->foreign('part_of_project')->references('id')->on('projects')->onDelete('set null');
             $table->string('image')->nullable();
             $table->string('title');
             $table->text('description')->nullable();
-            $table->unsignedBigInteger('department_id');
-            $table->unsignedBigInteger('division_id');
             $table->string('status');
             $table->string('reference_url')->nullable();
             $table->string('reference_file')->nullable();
             $table->date('start_date');
             $table->date('due_date');
-            $table->string('part_of_project')->nullable();
             $table->date('complete_date')->nullable();
             $table->string('created_by')->nullable();
             $table->string('updated_by')->nullable();
