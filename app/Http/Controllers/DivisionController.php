@@ -61,15 +61,17 @@ public function index(Request $request)
                 $request->image->move(public_path('file/division'), $imageName);
             }
 
+            $userId = auth()->check() ? auth()->id() : null;
+
             $division = Division::create([
                 'department_id' => $validated['department_id'],
                 'name_division' => $validated['name_division'],
                 'status' => $validated['status'],
                 'description' => $validated['description'] ?? null,
                 'images' => $imageName,
-                'created_by' => auth()->id(),
-                'updated_by' => auth()->id(),
-                'deleted_by' => auth()->id(),
+                'created_by' => $userId,
+                'updated_by' => $userId,
+                'deleted_by' => $userId,
             ]);
 
             return response()->json(['message' => 'Division created successfully', 'division' => $division]);

@@ -61,8 +61,9 @@ public function index(Request $request)
         return response()->json($data);
     }
 
-    public function store(Request $request)
-    {
+public function store(Request $request)
+{
+    try {
         $validator = Validator::make($request->all(), [
             'name_department' => 'required|string|max:255',
             'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
@@ -81,18 +82,24 @@ public function index(Request $request)
             $request->image->move(public_path('file/department'), $imageName);
         }
 
-            $department = Department::create([
-                'name_department' => $request->name_department,
-                'status' => $request->status,
-                'description' => $request->description,
-                'images' => $imageName,
-                'created_by' => auth()->id(),
-                'updated_by' => auth()->id(),
-                'deleted_by' => auth()->id(),
-            ]);
+        $userId = auth()->check() ? auth()->id() : 1;
+
+        $department = Department::create([
+            'name_department' => $request->name_department,
+            'status' => $request->status,
+            'description' => $request->description,
+            'images' => $imageName,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+            'deleted_by' => $userId,
+        ]);
 
         return response()->json(['message' => 'Department added successfully', 'department' => $department]);
+    } catch (\Exception $e) {
+        \Log::error('Error creating department: ' . $e->getMessage());
+        return response()->json(['message' => 'Error creating department', 'error' => $e->getMessage()], 500);
     }
+}
 
     public function update(Request $request, $id)
     {

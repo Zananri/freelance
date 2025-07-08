@@ -73,15 +73,17 @@ class JobController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $userId = auth()->check() ? auth()->id() : 1;
+
         $job = Job::create([
             'department_id' => $request->department_id,
             'division_id' => $request->division_id,
             'job_name' => $request->job_name,
             'status' => $request->status,
             'description' => $request->description,
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
-            'deleted_by' => auth()->id(),
+            'created_by' => $userId,
+            'updated_by' => $userId,
+            'deleted_by' => $userId,
         ]);
 
         return response()->json(['message' => 'Job created successfully', 'data' => $job]);
@@ -106,8 +108,10 @@ class JobController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $userId = auth()->check() ? auth()->id() : 1;
+
         $updateData = $request->only(['department_id', 'division_id', 'job_name', 'status', 'description']);
-        $updateData['updated_by'] = auth()->id();
+        $updateData['updated_by'] = $userId;
 
         $job->update($updateData);
 
@@ -121,8 +125,10 @@ class JobController extends Controller
             return response()->json(['message' => 'Job not found'], 404);
         }
 
+        $userId = auth()->check() ? auth()->id() : 1;
+
         $job->status = 'DELETED';
-        $job->deleted_by = auth()->id();
+        $job->deleted_by = $userId;
         $job->save();
 
         return response()->json(['message' => 'Job deleted successfully']);

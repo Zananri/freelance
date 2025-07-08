@@ -5,16 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Division extends Model
+class Project extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'department_id',
-        'name_division',
-        'status',
+        'image',
+        'title',
         'description',
-        'images',
+        'department_id',
+        'division_id',
+        'status',
+        'reference_url',
+        'reference_file',
+        'start_date',
+        'due_date',
+        'part_of_project',
+        'complete_date',
         'created_by',
         'updated_by',
         'deleted_by',
@@ -25,8 +32,8 @@ class Division extends Model
         return $this->belongsTo(Department::class);
     }
 
-    public function projects()
+    public function division()
     {
-        return $this->hasMany(Project::class);
+        return $this->belongsTo(Division::class);
     }
 }

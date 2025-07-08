@@ -18,4 +18,14 @@ class Department extends Model
         'updated_by',
         'deleted_by',
     ];
+
+    public function divisions()
+    {
+        return $this->hasMany(Division::class);
+    }
+
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    }
 }
