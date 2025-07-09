@@ -22,7 +22,8 @@ class ProjectController extends Controller
      */
     public function getCardData()
     {
-        $projects = Project::all(['title', 'image']);
+        $projects = Project::where('status', '!=', 'DELETED')->get(['id', 'title', 'image']);
+        $projectIds = $projects->pluck('id')->toArray();
         $projectTitles = $projects->pluck('title')->toArray();
         $projectImages = $projects->pluck('image')->toArray();
 
@@ -30,6 +31,7 @@ class ProjectController extends Controller
             'task' => 0,
             'in_progress' => 0,
             'completed' => 0,
+            'project_ids' => $projectIds,
             'project_titles' => $projectTitles,
             'project_images' => $projectImages,
         ];
@@ -212,18 +214,10 @@ public function store(Request $request)
     {
         $project = Project::findOrFail($id);
 
-        // Delete image file if exists
-        if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
-            unlink(public_path('file/project/' . $project->image));
-        }
+        // Instead of deleting, update status to DELETED
+        $project->status = 'DELETED';
+        $project->save();
 
-        // Delete reference file if exists
-        if ($project->reference_file && file_exists(public_path('file/project/' . $project->reference_file))) {
-            unlink(public_path('file/project/' . $project->reference_file));
-        }
-
-        $project->delete();
-
-        return response()->json(['message' => 'Project deleted successfully']);
+        return response()->json(['message' => 'Project marked as deleted successfully']);
     }
 }

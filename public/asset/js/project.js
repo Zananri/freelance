@@ -35,51 +35,54 @@ document.addEventListener("DOMContentLoaded", function () {
                                   data.project_images[index]
                                 : "{{ asset('asset/img/background/add-image.png') }}";
 
-                        rowHtml += `
-                            <div class="col-md-4 mb-4 position-relative">
-                                <a href="#" class="card-link">
-                                    <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
-                                        <div class="dropdown-icon-container">
-                                            <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-                                            <div class="dropdown-menu d-none">
-                                                <div class="dropdown-item">Detail Project</div>
-                                                <div class="dropdown-item">Task</div>
-                                                <div class="dropdown-item">Project Feedback</div>
-                                                <div class="dropdown-item">Project Assignment</div>
-                                                <div class="dropdown-item text-danger">Delete</div>
+                        // Get project ID from data.project_ids if available
+                        let projectId = data.project_ids && data.project_ids[index] ? data.project_ids[index] : null;
+
+                            rowHtml += `
+                                <div class="col-md-4 mb-4 position-relative" data-project-id="${projectId}">
+                                    <a href="#" class="card-link">
+                                        <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
+                                            <div class="dropdown-icon-container">
+                                                <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+                    <div class="dropdown-menu d-none">
+                        <div class="dropdown-item">Detail Project</div>
+                        <div class="dropdown-item">Task</div>
+                        <div class="dropdown-item">Project Feedback</div>
+                        <div class="dropdown-item">Project Assignment</div>
+                        <div class="dropdown-item text-danger delete-project">Delete</div>
+                    </div>
+                </div>
+                                            <div class="card-body">
+                                                <div class="d-flex">
+                                                    <div class="me-3">
+                                                        <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex align-items-started mb-1">
+                                                            <h6 class="mb-0 title-project">${title}</h6>
+                                                        </div>
+                                                        <div class="d-flex justify-content-start mt-2">
+                                                            <div class="d-flex align-items-center me-3">
+                                                                <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
+                                                                <span class="icon-number">${taskCount}</span>
+                                                            </div>
+                                                            <div class="d-flex align-items-center me-3">
+                                                                <span class="material-symbols-outlined icon-av-timer">av_timer</span>
+                                                                <span class="icon-number">${inProgressCount}</span>
+                                                            </div>
+                                                            <div class="d-flex align-items-center">
+                                                                <span class="material-symbols-outlined icon-checklist">checklist</span>
+                                                                <span class="icon-number">${completedCount}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="card-body">
-                                            <div class="d-flex">
-                                                <div class="me-3">
-                                                    <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <div class="d-flex align-items-started mb-1">
-                                                        <h6 class="mb-0 title-project">${title}</h6>
-                                                    </div>
-                                                    <div class="d-flex justify-content-start mt-2">
-                                                        <div class="d-flex align-items-center me-3">
-                                                            <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                                            <span class="icon-number">${taskCount}</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center me-3">
-                                                            <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                                            <span class="icon-number">${inProgressCount}</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center">
-                                                            <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                                            <span class="icon-number">${completedCount}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                               
-                            </div>
-                        `;
+                                    </a>
+                                   
+                                </div>
+                            `;
 
                         if (
                             (index + 1) % 3 === 0 &&
@@ -105,6 +108,60 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (!isVisible) {
                                 dropdownMenu.classList.remove('d-none');
                             }
+                        });
+                    });
+
+                    // Add event listener for delete project
+                    document.querySelectorAll('.delete-project').forEach(item => {
+                        item.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            if (!confirm('Are you sure you want to delete this project?')) {
+                                return;
+                            }
+                            const card = this.closest('.col-md-4');
+                            const projectId = card.getAttribute('data-project-id');
+                            if (!projectId) {
+                                alert('Project ID not found.');
+                                return;
+                            }
+                            // Send AJAX DELETE request
+                            $.ajax({
+                                url: appUrl + '/projects/' + projectId,
+                                type: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                success: function (response) {
+                                    // Remove card from UI
+                                    card.remove();
+
+                                    // Show success alert below Add Project button
+                                    let addProjectButtonContainer = document.querySelector('.d-flex.justify-content-end.mb-3');
+                                    let projectCardsContainer = document.getElementById('project-cards-container');
+                                    let alertContainer = document.querySelector('.alert alert-success');
+
+                                    if (!alertContainer) {
+                                        alertContainer = document.createElement('div');
+                                        alertContainer.className = 'alert alert-success';
+                                      
+                                        addProjectButtonContainer.parentNode.insertBefore(alertContainer, projectCardsContainer);
+                                    }
+                                    alertContainer.textContent = response.message || 'Project deleted successfully';
+                                    alertContainer.style.opacity = '1';
+
+                                    // After 1.5 seconds, fade out alert and reload page
+                                    setTimeout(() => {
+                                        alertContainer.style.opacity = '0';
+                                        setTimeout(() => {
+                                            alertContainer.remove();
+                                            location.reload();
+                                        }, 500);
+                                    }, 1500);
+                                },
+                                error: function () {
+                                    alert('Failed to delete project.');
+                                }
+                            });
                         });
                     });
 
