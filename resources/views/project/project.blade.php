@@ -97,6 +97,17 @@
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
+                        <div class="mb-3">
+                            <label for="co_author_select" class="form-label label-custom">Co-Author</label>
+                            <select class="form-select input-select" id="co_author_select" name="co_author_select">
+                                <option value="" disabled selected>Select Co-Author</option>
+                                <!-- Options to be populated dynamically -->
+                            </select>
+                            <div id="selected_co_authors" class="mt-2">
+                                <!-- Selected co-authors will appear here -->
+                            </div>
+                            <input type="hidden" id="co_author" name="co_author" value="">
+                        </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="submit" class="btn-submit-black btn-submit-custom">

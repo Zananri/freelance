@@ -39,49 +39,49 @@ document.addEventListener("DOMContentLoaded", function () {
                         let projectId = data.project_ids && data.project_ids[index] ? data.project_ids[index] : null;
 
                             rowHtml += `
-                                <div class="col-md-4 mb-4 position-relative" data-project-id="${projectId}">
-                                    <a href="#" class="card-link">
-                                        <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
-                                            <div class="dropdown-icon-container">
-                                                <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-                    <div class="dropdown-menu d-none">
-                        <div class="dropdown-item">Detail Project</div>
-                        <div class="dropdown-item">Task</div>
-                        <div class="dropdown-item">Project Feedback</div>
-                        <div class="dropdown-item">Project Assignment</div>
-                        <div class="dropdown-item text-danger delete-project">Delete</div>
-                    </div>
+                            <div class="col-md-4 mb-4 position-relative" data-project-id="${projectId}">
+                                <a href="#" class="card-link">
+                                    <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
+                                        <div class="dropdown-icon-container">
+                                            <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+                <div class="dropdown-menu d-none">
+                    <div class="dropdown-item">Detail Project</div>
+                    <div class="dropdown-item">Task</div>
+                    <div class="dropdown-item">Project Feedback</div>
+                    <div class="dropdown-item">Project Assignment</div>
+                    <div class="dropdown-item text-danger delete-project">Delete</div>
                 </div>
-                                            <div class="card-body">
-                                                <div class="d-flex">
-                                                    <div class="me-3">
-                                                        <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+            </div>
+                                        <div class="card-body">
+                                            <div class="d-flex">
+                                                <div class="me-3">
+                                                    <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex align-items-started mb-1">
+                                                        <h6 class="mb-0 title-project">${title}</h6>
                                                     </div>
-                                                    <div class="flex-grow-1">
-                                                        <div class="d-flex align-items-started mb-1">
-                                                            <h6 class="mb-0 title-project">${title}</h6>
+                                                    <div class="d-flex justify-content-start mt-2">
+                                                        <div class="d-flex align-items-center me-3">
+                                                            <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
+                                                            <span class="icon-number">${taskCount}</span>
                                                         </div>
-                                                        <div class="d-flex justify-content-start mt-2">
-                                                            <div class="d-flex align-items-center me-3">
-                                                                <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                                                <span class="icon-number">${taskCount}</span>
-                                                            </div>
-                                                            <div class="d-flex align-items-center me-3">
-                                                                <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                                                <span class="icon-number">${inProgressCount}</span>
-                                                            </div>
-                                                            <div class="d-flex align-items-center">
-                                                                <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                                                <span class="icon-number">${completedCount}</span>
-                                                            </div>
+                                                        <div class="d-flex align-items-center me-3">
+                                                            <span class="material-symbols-outlined icon-av-timer">av_timer</span>
+                                                            <span class="icon-number">${inProgressCount}</span>
+                                                        </div>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="material-symbols-outlined icon-checklist">checklist</span>
+                                                            <span class="icon-number">${completedCount}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </a>
-                                   
-                                </div>
+                                    </div>
+                                </a>
+                               
+                            </div>
                             `;
 
                         if (
@@ -248,6 +248,87 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Load employees for "co_author" single select
+    function loadEmployees() {
+        $.ajax({
+            url: appUrl + "/employees",
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                let options = '<option value="">Select Co-Author</option>';
+                (data.data || []).forEach((emp) => {
+                    options += `<option value="${emp.id}">${emp.name}</option>`;
+                });
+                const coAuthorSelect = document.getElementById("co_author_select");
+                if (coAuthorSelect) {
+                    coAuthorSelect.innerHTML = options;
+                }
+            },
+            error: function () {
+                alert("Failed to load employees.");
+            },
+        });
+    }
+
+    // Manage selected co-authors list and hidden input
+    function setupCoAuthorSelection() {
+        const coAuthorSelect = document.getElementById("co_author_select");
+        const selectedContainer = document.getElementById("selected_co_authors");
+        const hiddenInput = document.getElementById("co_author");
+
+        let selectedCoAuthors = [];
+
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedCoAuthors.map(e => e.id));
+        }
+
+        function renderSelectedCoAuthors() {
+            selectedContainer.innerHTML = '';
+            selectedCoAuthors.forEach(emp => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary me-2 mb-2 d-inline-flex align-items-center';
+                badge.textContent = emp.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
+                removeBtn.setAttribute('aria-label', 'Remove');
+                removeBtn.addEventListener('click', () => {
+                    selectedCoAuthors = selectedCoAuthors.filter(e => e.id !== emp.id);
+                    renderSelectedCoAuthors();
+                    updateHiddenInput();
+                });
+
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        coAuthorSelect.addEventListener('change', () => {
+            const selectedId = coAuthorSelect.value;
+            if (selectedId && !selectedCoAuthors.some(e => e.id == selectedId)) {
+                const selectedOption = coAuthorSelect.options[coAuthorSelect.selectedIndex];
+                selectedCoAuthors.push({ id: selectedId, name: selectedOption.text });
+                renderSelectedCoAuthors();
+                updateHiddenInput();
+            }
+            coAuthorSelect.value = '';
+        });
+
+        // Function to clear selected co-authors
+        function clearSelectedCoAuthors() {
+            selectedCoAuthors = [];
+            renderSelectedCoAuthors();
+            updateHiddenInput();
+            if (coAuthorSelect) {
+                coAuthorSelect.value = '';
+            }
+        }
+
+        // Expose clearSelectedCoAuthors function to global scope for use in modal close event
+        window.clearSelectedCoAuthors = clearSelectedCoAuthors;
+    }
+
     // Image preview and clear button logic for image input
     function setupImageInput(input, label, clearBtn) {
         input.addEventListener("change", function () {
@@ -390,6 +471,8 @@ document.addEventListener("DOMContentLoaded", function () {
     loadDepartments();
     loadProjects();
     loadProjectCardData();
+    loadEmployees();
+    setupCoAuthorSelection();
 
     // Load divisions when department changes
     departmentSelect.addEventListener("change", function () {
@@ -405,17 +488,31 @@ document.addEventListener("DOMContentLoaded", function () {
     // Clear form and reset image preview when modal is closed
     var addProjectModalEl = document.getElementById("addProjectModal");
     addProjectModalEl.addEventListener("hidden.bs.modal", function () {
+        // Reset the form
         addProjectForm.reset();
+
+        // Reset image preview
         imageLabel.style.backgroundImage =
             "url('" + appUrl + "/asset/img/background/add-image.png')";
         imageLabel.style.backgroundPosition = "center center";
         imageLabel.style.backgroundRepeat = "no-repeat";
         imageLabel.style.backgroundSize = "50%";
-        imageLabel.classList.remove("has-image");and
+        imageLabel.classList.remove("has-image");
         imageLabel.style.opacity = "0.5";
         imageClearBtn.classList.add("d-none");
-        divisionSelect.innerHTML =
-            '<option value="" disabled selected>Select Division</option>';
+
+        // Reload departments, divisions, projects to reset selects
+        loadDepartments();
+        divisionSelect.innerHTML = '<option value="" disabled selected>Select Division</option>';
+        loadProjects();
+
+        // Reload employees to reset co_author_select options
+        loadEmployees();
+
+        // Clear selected co-authors display and hidden input using the global function
+        if (window.clearSelectedCoAuthors) {
+            window.clearSelectedCoAuthors();
+        }
     });
 });
 

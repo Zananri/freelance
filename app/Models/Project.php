@@ -15,6 +15,7 @@ class Project extends Model
         'description',
         'department_id',
         'division_id',
+        'co_author',
         'status',
         'reference_url',
         'reference_file',
@@ -35,5 +36,10 @@ class Project extends Model
     public function division()
     {
         return $this->belongsTo(Division::class);
+    }
+
+    public function projectAssignments()
+    {
+        return $this->hasMany(ProjectAssignment::class);
     }
 }

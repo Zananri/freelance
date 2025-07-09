@@ -18,6 +18,27 @@ class ProjectController extends Controller
     }
 
     /**
+     * Return JSON data for project assignments with employee names and project titles.
+     */
+    public function getProjectAssignments()
+    {
+        $assignments = \App\Models\ProjectAssignment::with(['employee', 'project'])->get();
+
+        $assignmentsTransformed = $assignments->map(function ($assignment) {
+            return [
+                'id' => $assignment->id,
+                'role' => $assignment->role,
+                'employee_id' => $assignment->employee_id,
+                'employee_name' => $assignment->employee ? $assignment->employee->name : null,
+                'project_id' => $assignment->project_id,
+                'project_title' => $assignment->project ? $assignment->project->title : null,
+            ];
+        });
+
+        return response()->json(['data' => $assignmentsTransformed]);
+    }
+
+    /**
      * Return JSON data for project cards with counts zero.
      */
     public function getCardData()
@@ -43,8 +64,37 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        $projects = Project::with(['department', 'division'])->get();
-        return response()->json(['data' => $projects]);
+        $projects = Project::with([
+            'department',
+            'division',
+            'projectAssignments.employee',
+            'projectAssignments.project'
+        ])->get();
+
+        $projectsTransformed = $projects->map(function ($project) {
+            $projectAssignments = $project->projectAssignments->map(function ($assignment) {
+                return [
+                    'id' => $assignment->id,
+                    'role' => $assignment->role,
+                    'employee_id' => $assignment->employee_id,
+                    'employee_name' => $assignment->employee ? $assignment->employee->name : null,
+                    'project_id' => $assignment->project_id,
+                    'project_title' => $assignment->project ? $assignment->project->title : null,
+                ];
+            });
+
+            return [
+                'id' => $project->id,
+                'title' => $project->title,
+                'description' => $project->description,
+                'department' => $project->department,
+                'division' => $project->division,
+                'status' => $project->status,
+                'project_assignments' => $projectAssignments,
+            ];
+        });
+
+        return response()->json(['data' => $projectsTransformed]);
     }
 
     /**
@@ -59,8 +109,14 @@ class ProjectController extends Controller
     /**
      * Store a newly created project in storage.
      */
-public function store(Request $request)
+    public function store(Request $request)
     {
+        \Log::info('Project creation request data:', $request->all());
+
+        if ($request->has('co_author') && is_string($request->co_author)) {
+            $request->merge(['co_author' => json_decode($request->co_author, true)]);
+        }
+
         try {
             $request->validate([
                 'title' => 'required|string|max:255',
@@ -72,6 +128,8 @@ public function store(Request $request)
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'part_of_project' => 'nullable|exists:projects,id',
+                'co_author' => 'nullable|array',
+                'co_author.*' => 'exists:employees,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
@@ -87,43 +145,125 @@ public function store(Request $request)
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
             $project->part_of_project = $request->part_of_project;
+
+            // Convert co_author employee IDs to names and store as JSON array string
+            $coAuthorNames = null;
+            if ($request->co_author && is_array($request->co_author)) {
+                $coAuthorNamesArray = \DB::table('employees')
+                    ->whereIn('id', $request->co_author)
+                    ->pluck('name')
+                    ->toArray();
+                $coAuthorNames = json_encode($coAuthorNamesArray);
+            }
+            $project->co_author = $coAuthorNames;
+
             $project->complete_date = $request->complete_date;
             $project->created_by = auth()->user() ? auth()->user()->name : null;
 
             // Handle image upload
             if ($request->hasFile('image')) {
-                $image = $request->file('image');
-                $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
-                $image->move(public_path('file/project'), $imageName);
-                $project->image = $imageName;
+                try {
+                    $image = $request->file('image');
+                    $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
+                    $image->move(public_path('file/project'), $imageName);
+                    $project->image = $imageName;
+                } catch (\Exception $ex) {
+                    \Log::error('Image upload failed: ' . $ex->getMessage());
+                }
             }
 
             // Handle reference file upload
             if ($request->hasFile('reference_file')) {
-                $file = $request->file('reference_file');
-                $fileName = 'PROJECT_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('file/project'), $fileName);
-                $project->reference_file = $fileName;
+                try {
+                    $file = $request->file('reference_file');
+                    $fileName = 'PROJECT_' . time() . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/project'), $fileName);
+                    $project->reference_file = $fileName;
+                } catch (\Exception $ex) {
+                    \Log::error('Reference file upload failed: ' . $ex->getMessage());
+                }
             }
 
             $project->save();
 
-            // Insert into project_assignments
-            if (auth()->check() && auth()->user()->employee) {
-                \DB::table('project_assignments')->insert([
-                    'project_id' => $project->id,
-                    'employee_id' => auth()->user()->employee->id,
-                    'role' => 'author',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            // Insert into project_assignments for author (authenticated user)
+            if (auth()->check()) {
+                $employee = auth()->user()->employee;
+                if ($employee) {
+                    try {
+                        \DB::table('project_assignments')->insert([
+                            'project_id' => $project->id,
+                            'employee_id' => $employee->id,
+                            'role' => 'author',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    } catch (\Exception $ex) {
+                        \Log::error('Failed to insert author assignment: ' . $ex->getMessage());
+                    }
+                } else {
+                    \Log::warning('Project creation: Authenticated user has no employee relation.');
+                }
+            } else {
+                \Log::warning('Project creation: User not authenticated.');
+            }
+
+            // Insert co_author assignments into project_assignments
+            if ($request->co_author && is_array($request->co_author)) {
+                $coAuthorAssignments = [];
+                foreach ($request->co_author as $employeeId) {
+                    // Check if employee exists before inserting
+                    $employeeExists = \DB::table('employees')->where('id', $employeeId)->exists();
+                    if ($employeeExists) {
+                        $coAuthorAssignments[] = [
+                            'project_id' => $project->id,
+                            'employee_id' => $employeeId,
+                            'role' => 'co_author',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    } else {
+                        \Log::warning("Project creation: Co-author employee ID {$employeeId} does not exist.");
+                    }
+                }
+                if (!empty($coAuthorAssignments)) {
+                    try {
+                        \DB::table('project_assignments')->insert($coAuthorAssignments);
+                    } catch (\Exception $ex) {
+                        \Log::error('Failed to insert co_author assignments: ' . $ex->getMessage());
+                    }
+                }
             }
 
             return response()->json(['message' => 'Project created successfully', 'project' => $project]);
         } catch (\Exception $e) {
-            \Log::error('Project creation failed: ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to create project', 'error' => $e->getMessage()], 500);
+            \Log::error('Project creation failed: ' . $e->getMessage(), [
+                'exception' => $e,
+                'request_data' => $request->all(),
+                'request_files' => $request->files->all(),
+            ]);
+            return response()->json([
+                'message' => 'Failed to create project',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
         }
+
+        // After saving project and assignments, return project assignments with names
+        $assignments = \App\Models\ProjectAssignment::with(['employee', 'project'])->where('project_id', $project->id)->get();
+
+        $assignmentsTransformed = $assignments->map(function ($assignment) {
+            return [
+                'id' => $assignment->id,
+                'role' => $assignment->role,
+                'employee_id' => $assignment->employee_id,
+                'employee_name' => $assignment->employee ? $assignment->employee->name : null,
+                'project_id' => $assignment->project_id,
+                'project_title' => $assignment->project ? $assignment->project->title : null,
+            ];
+        });
+
+        return response()->json(['message' => 'Project created successfully', 'project' => $project, 'assignments' => $assignmentsTransformed]);
     }
 
     /**

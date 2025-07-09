@@ -95,6 +95,7 @@ Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->name('pr
 
 Route::get('/project/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
 
+Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignments'])->name('project.assignments');
 
 Route::get('/', function () {
     return view('welcome');
