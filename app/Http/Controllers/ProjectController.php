@@ -146,17 +146,6 @@ class ProjectController extends Controller
             $project->due_date = $request->due_date;
             $project->part_of_project = $request->part_of_project;
 
-            // Convert co_author employee IDs to names and store as JSON array string
-            $coAuthorNames = null;
-            if ($request->co_author && is_array($request->co_author)) {
-                $coAuthorNamesArray = \DB::table('employees')
-                    ->whereIn('id', $request->co_author)
-                    ->pluck('name')
-                    ->toArray();
-                $coAuthorNames = json_encode($coAuthorNamesArray);
-            }
-            $project->co_author = $coAuthorNames;
-
             $project->complete_date = $request->complete_date;
             $project->created_by = auth()->user() ? auth()->user()->name : null;
 
@@ -304,6 +293,8 @@ class ProjectController extends Controller
             'complete_date' => 'nullable|date',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            'co_author' => 'nullable|array',
+            'co_author.*' => 'exists:employees,id',
         ]);
 
         $project->title = $request->title;
@@ -343,6 +334,44 @@ class ProjectController extends Controller
         }
 
         $project->save();
+
+        // Update project_assignments for author and co_author
+        if (auth()->check()) {
+            $employee = auth()->user()->employee;
+            if ($employee) {
+                // Update or insert author assignment
+                \DB::table('project_assignments')->updateOrInsert(
+                    ['project_id' => $project->id, 'employee_id' => $employee->id],
+                    ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
+                );
+            }
+        }
+
+        // Remove existing co_author assignments
+        \DB::table('project_assignments')
+            ->where('project_id', $project->id)
+            ->where('role', 'co_author')
+            ->delete();
+
+        // Insert new co_author assignments
+        if ($request->co_author && is_array($request->co_author)) {
+            $coAuthorAssignments = [];
+            foreach ($request->co_author as $employeeId) {
+                $employeeExists = \DB::table('employees')->where('id', $employeeId)->exists();
+                if ($employeeExists) {
+                    $coAuthorAssignments[] = [
+                        'project_id' => $project->id,
+                        'employee_id' => $employeeId,
+                        'role' => 'co_author',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+            if (!empty($coAuthorAssignments)) {
+                \DB::table('project_assignments')->insert($coAuthorAssignments);
+            }
+        }
 
         return response()->json(['message' => 'Project updated successfully', 'project' => $project]);
     }

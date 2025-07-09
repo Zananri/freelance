@@ -15,7 +15,6 @@ class Project extends Model
         'description',
         'department_id',
         'division_id',
-        'co_author',
         'status',
         'reference_url',
         'reference_file',

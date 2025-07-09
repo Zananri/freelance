@@ -22,7 +22,6 @@ class CreateProjectsTable extends Migration
             $table->string('image')->nullable();
             $table->string('title');
             $table->text('description')->nullable();
-            $table->string('co_author')->nullable();
             $table->string('status');
             $table->string('reference_url')->nullable();
             $table->string('reference_file')->nullable();

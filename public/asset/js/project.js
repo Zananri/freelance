@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div class="dropdown-icon-container">
                                             <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
                 <div class="dropdown-menu d-none">
-                    <div class="dropdown-item">Detail Project</div>
+                    <div class="dropdown-item">View Project</div>
                     <div class="dropdown-item">Task</div>
                     <div class="dropdown-item">Project Feedback</div>
                     <div class="dropdown-item">Project Assignment</div>
