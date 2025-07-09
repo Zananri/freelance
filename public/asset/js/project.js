@@ -165,12 +165,86 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
                     });
 
-                    // Close dropdown when clicking outside
-                    document.addEventListener('click', function () {
-                        document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                            menu.classList.add('d-none');
-                        });
-                    });
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function () {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.add('d-none');
+        });
+    });
+
+    // Event listener for "View Project" dropdown item click
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.classList.contains('dropdown-item') && e.target.textContent.trim() === 'View Project') {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const card = e.target.closest('.col-md-4');
+            if (!card) return;
+
+            const projectId = card.getAttribute('data-project-id');
+            if (!projectId) {
+                alert('Project ID not found.');
+                return;
+            }
+
+            // Fetch project details via AJAX
+            $.ajax({
+                url: appUrl + '/projects/' + projectId,
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    // Populate modal fields
+                    const baseFileUrl = appUrl + '/file/project/';
+
+                    $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
+                    $('#projectDetailTitle').text(data.title || '');
+                    $('#projectDetailAuthor').text(data.author ? 'Author: ' + data.author.name : 'Author: N/A');
+                    $('#projectDetailDepartment').text(data.department || '');
+                    $('#projectDetailDivision').text(data.division || '');
+                    $('#projectDetailDescription').text(data.description || '');
+
+                    if (data.reference_url) {
+                        $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
+                    } else {
+                        $('#projectDetailReferenceUrl').hide();
+                    }
+
+                    if (data.reference_file) {
+                        $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
+                    } else {
+                        $('#projectDetailReferenceFile').hide();
+                    }
+
+                    // Format dates as "day month year"
+                    function formatDate(dateStr) {
+                        if (!dateStr) return '';
+                        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                        const dateObj = new Date(dateStr);
+                        return dateObj.toLocaleDateString(undefined, options);
+                    }
+
+                    $('#projectDetailStartDate').text(formatDate(data.start_date));
+                    $('#projectDetailDueDate').text(formatDate(data.due_date));
+
+                    // Co-authors list
+                    if (data.co_authors && data.co_authors.length > 0) {
+                        const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
+                        $('#projectDetailCoAuthors').text(coAuthorNames);
+                    } else {
+                        $('#projectDetailCoAuthors').text('None');
+                    }
+
+                    // Show modal
+                    const projectDetailModalEl = document.getElementById('projectDetailModal');
+                    const projectDetailModal = new bootstrap.Modal(projectDetailModalEl);
+                    projectDetailModal.show();
+                },
+                error: function () {
+                    alert('Failed to load project details.');
+                }
+            });
+        }
+    });
                 } else {
                     container.innerHTML = "<p>No projects available.</p>";
                 }

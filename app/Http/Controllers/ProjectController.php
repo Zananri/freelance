@@ -260,8 +260,38 @@ class ProjectController extends Controller
      */
     public function show(string $id)
     {
-        $project = Project::with(['department', 'division'])->findOrFail($id);
-        return response()->json($project);
+        $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
+
+        // Extract author and co_authors
+        $author = null;
+        $coAuthors = [];
+
+        foreach ($project->projectAssignments as $assignment) {
+            if ($assignment->role === 'author' && $assignment->employee) {
+                $author = $assignment->employee;
+            } elseif ($assignment->role === 'co_author' && $assignment->employee) {
+                $coAuthors[] = $assignment->employee;
+            }
+        }
+
+        $response = [
+            'id' => $project->id,
+            'title' => $project->title,
+            'description' => $project->description,
+            'image' => $project->image,
+            'department' => $project->department ? $project->department->name_department ?? $project->department->name : null,
+            'division' => $project->division ? $project->division->name_division ?? $project->division->name : null,
+            'reference_url' => $project->reference_url,
+            'reference_file' => $project->reference_file,
+            'start_date' => $project->start_date,
+            'due_date' => $project->due_date,
+            'author' => $author ? ['id' => $author->id, 'name' => $author->name] : null,
+            'co_authors' => array_map(function ($emp) {
+                return ['id' => $emp->id, 'name' => $emp->name];
+            }, $coAuthors),
+        ];
+
+        return response()->json($response);
     }
 
     /**
