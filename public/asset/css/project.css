@@ -617,3 +617,85 @@
     display: flex;
     justify-content: flex-end;
 }
+
+/* Dropdown list for co-author input */
+#co_author_dropdown {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Dropdown item */
+#co_author_dropdown .dropdown-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+/* Disabled dropdown item */
+#co_author_dropdown .dropdown-item.disabled {
+    color: #999;
+    cursor: default;
+}
+
+/* Checkbox styles */
+#co_author_dropdown input[type="checkbox"].co-author-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #fff;
+    border: 1.5px solid #ccc;
+    border-radius: 4px;
+    position: relative;
+    outline: none;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#co_author_dropdown input[type="checkbox"].co-author-checkbox:checked {
+    background-color: #0d6efd; /* Bootstrap primary blue */
+    border-color: #0d6efd;
+}
+
+#co_author_dropdown input[type="checkbox"].co-author-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    width: 4px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Selected co-author badges */
+#selected_co_authors .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35em 0.65em;
+    font-size: 0.875em;
+    border-radius: 0.375rem;
+    background-color: #0d6efd;
+    color: white;
+    user-select: none;
+}
+
+#selected_co_authors .badge .btn-close {
+    margin-left: 0.5em;
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+#selected_co_authors .badge .btn-close:hover {
+    opacity: 1;
+}

@@ -25,6 +25,8 @@ class EmployeeController extends Controller
 
         // Return JSON for API
         if ($request->wantsJson()) {
+            $excludeEmployeeId = $request->input('exclude_employee_id', null);
+
             $employees = Employee::with(['department', 'division', 'job', 'user'])
                 ->where('status', '!=', 'DELETED')
                 ->when($query, function ($q) use ($query) {
@@ -54,6 +56,9 @@ class EmployeeController extends Controller
                     }
                 })
                 // If department filter is empty, do not apply division or job filters
+                ->when($excludeEmployeeId, function ($q) use ($excludeEmployeeId) {
+                    $q->where('id', '!=', $excludeEmployeeId);
+                })
                 ->get();
 
             // Append user photo and first_name, last_name to each employee

@@ -98,15 +98,22 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="co_author_select" class="form-label label-custom">Co-Author</label>
-                            <select class="form-select input-select" id="co_author_select" name="co_author_select">
-                                <option value="" disabled selected>Select Co-Author</option>
-                                <!-- Options to be populated dynamically -->
-                            </select>
-                            <div id="selected_co_authors" class="mt-2">
-                                <!-- Selected co-authors will appear here -->
-                            </div>
-                            <input type="hidden" id="co_author" name="co_author" value="">
+                        <label for="co_author_input" class="form-label label-custom">Co-Author</label>
+                        <input type="text" class="form-control input-text" id="co_author_input" name="co_author_input" autocomplete="off" placeholder="Search employees...">
+                        <div id="co_author_dropdown" class="dropdown-list mt-1" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;"></div>
+                        <div id="selected_co_authors" class="mt-2 d-flex flex-wrap gap-2">
+                            <!-- Selected co-authors will appear here -->
+                        </div>
+                        <input type="hidden" id="co_author" name="co_author" value="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contributor_input" class="form-label label-custom">Contributor</label>
+                        <input type="text" class="form-control input-text" id="contributor_input" name="contributor_input" autocomplete="off" placeholder="Search employees...">
+                        <div id="contributor_dropdown" class="dropdown-list mt-1" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;"></div>
+                        <div id="selected_contributors" class="mt-2 d-flex flex-wrap gap-2">
+                            <!-- Selected contributors will appear here -->
+                        </div>
+                        <input type="hidden" id="contributors" name="contributors" value="">
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
@@ -159,6 +166,7 @@
                                 <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
                                 <p><strong>Due Date:</strong> <span id="projectDetailDueDate"></span></p>
                                 <p><strong>Co-Authors:</strong> <span id="projectDetailCoAuthors"></span></p>
+                                <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
                             </div>
                         </div>
                     </div>

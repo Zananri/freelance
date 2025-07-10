@@ -12,6 +12,23 @@ use Illuminate\Support\Str;
 class ProjectController extends Controller
 {
     /**
+     * Return JSON data for employees filtered by search query.
+     */
+    public function getEmployees(Request $request)
+    {
+        $query = $request->input('q', '');
+
+        $employees = \App\Models\Employee::query();
+
+        if ($query !== '') {
+            $employees = $employees->where('name', 'like', '%' . $query . '%');
+        }
+
+        $employees = $employees->orderBy('name')->get(['id', 'name']);
+
+        return response()->json(['data' => $employees]);
+    }
+    /**
      * Display the project main page.
      */
     public function showProjectPage()
@@ -118,6 +135,9 @@ class ProjectController extends Controller
         if ($request->has('co_author') && is_string($request->co_author)) {
             $request->merge(['co_author' => json_decode($request->co_author, true)]);
         }
+        if ($request->has('contributors') && is_string($request->contributors)) {
+            $request->merge(['contributors' => json_decode($request->contributors, true)]);
+        }
 
         try {
             $request->validate([
@@ -132,6 +152,8 @@ class ProjectController extends Controller
                 'part_of_project' => 'nullable|exists:projects,id',
                 'co_author' => 'nullable|array',
                 'co_author.*' => 'exists:employees,id',
+                'contributors' => 'nullable|array',
+                'contributors.*' => 'exists:employees,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
@@ -226,6 +248,32 @@ class ProjectController extends Controller
                 }
             }
 
+            // Insert contributor assignments into project_assignments
+            if ($request->contributors && is_array($request->contributors)) {
+                $contributorAssignments = [];
+                foreach ($request->contributors as $employeeId) {
+                    $employeeExists = \DB::table('employees')->where('id', $employeeId)->exists();
+                    if ($employeeExists) {
+                        $contributorAssignments[] = [
+                            'project_id' => $project->id,
+                            'employee_id' => $employeeId,
+                            'role' => 'contributor',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    } else {
+                        \Log::warning("Project creation: Contributor employee ID {$employeeId} does not exist.");
+                    }
+                }
+                if (!empty($contributorAssignments)) {
+                    try {
+                        \DB::table('project_assignments')->insert($contributorAssignments);
+                    } catch (\Exception $ex) {
+                        \Log::error('Failed to insert contributor assignments: ' . $ex->getMessage());
+                    }
+                }
+            }
+
             return response()->json(['message' => 'Project created successfully', 'project' => $project]);
         } catch (\Exception $e) {
             \Log::error('Project creation failed: ' . $e->getMessage(), [
@@ -267,12 +315,15 @@ class ProjectController extends Controller
         // Extract author and co_authors
         $author = null;
         $coAuthors = [];
+        $contributors = [];
 
         foreach ($project->projectAssignments as $assignment) {
             if ($assignment->role === 'author' && $assignment->employee) {
                 $author = $assignment->employee;
             } elseif ($assignment->role === 'co_author' && $assignment->employee) {
                 $coAuthors[] = $assignment->employee;
+            } elseif ($assignment->role === 'contributor' && $assignment->employee) {
+                $contributors[] = $assignment->employee;
             }
         }
 
@@ -291,6 +342,9 @@ class ProjectController extends Controller
             'co_authors' => array_map(function ($emp) {
                 return ['id' => $emp->id, 'name' => $emp->name];
             }, $coAuthors),
+            'contributors' => array_map(function ($emp) {
+                return ['id' => $emp->id, 'name' => $emp->name];
+            }, $contributors),
         ];
 
         return response()->json($response);
@@ -312,6 +366,13 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($id);
 
+        if ($request->has('co_author') && is_string($request->co_author)) {
+            $request->merge(['co_author' => json_decode($request->co_author, true)]);
+        }
+        if ($request->has('contributors') && is_string($request->contributors)) {
+            $request->merge(['contributors' => json_decode($request->contributors, true)]);
+        }
+
         $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
@@ -327,6 +388,8 @@ class ProjectController extends Controller
             'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'co_author' => 'nullable|array',
             'co_author.*' => 'exists:employees,id',
+            'contributors' => 'nullable|array',
+            'contributors.*' => 'exists:employees,id',
         ]);
 
         $project->title = $request->title;
@@ -383,6 +446,12 @@ class ProjectController extends Controller
         \DB::table('project_assignments')
             ->where('project_id', $project->id)
             ->where('role', 'co_author')
+            ->delete();
+
+        // Remove existing contributor assignments
+        \DB::table('project_assignments')
+            ->where('project_id', $project->id)
+            ->where('role', 'contributor')
             ->delete();
 
         // Insert new co_author assignments

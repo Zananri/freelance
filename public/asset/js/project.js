@@ -556,13 +556,21 @@ function showImageModal(imageSrc) {
                         $('#projectDetailStartDate').text(formatDate(data.start_date));
                         $('#projectDetailDueDate').text(formatDate(data.due_date));
 
-                        // Co-authors list
-                        if (data.co_authors && data.co_authors.length > 0) {
-                            const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
-                            $('#projectDetailCoAuthors').text(coAuthorNames);
-                        } else {
-                            $('#projectDetailCoAuthors').text('None');
-                        }
+                                // Co-authors list
+                                if (data.co_authors && data.co_authors.length > 0) {
+                                    const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
+                                    $('#projectDetailCoAuthors').text(coAuthorNames);
+                                } else {
+                                    $('#projectDetailCoAuthors').text('None');
+                                }
+
+                                // Contributors list
+                                if (data.contributors && data.contributors.length > 0) {
+                                    const contributorNames = data.contributors.map(c => c.name).join(', ');
+                                    $('#projectDetailContributors').text(contributorNames);
+                                } else {
+                                    $('#projectDetailContributors').text('None');
+                                }
 
                         // Show modal
                         const projectDetailModalEl = document.getElementById('projectDetailModal');
@@ -954,6 +962,8 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
                     }</option>`;
                 });
                 divisionSelect.innerHTML = options;
+                divisionSelect.disabled = false; // Ensure select is enabled
+                divisionSelect.style.display = 'block'; // Ensure visible
             },
             error: function () {
                 alert("Failed to load divisions.");
@@ -981,85 +991,324 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
         });
     }
 
-    // Load employees for "co_author" single select
-    function loadEmployees() {
-        $.ajax({
-            url: appUrl + "/employees",
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                let options = '<option value="">Select Co-Author</option>';
-                (data.data || []).forEach((emp) => {
-                    options += `<option value="${emp.id}">${emp.name}</option>`;
-                });
-                const coAuthorSelect = document.getElementById("co_author_select");
-                if (coAuthorSelect) {
-                    coAuthorSelect.innerHTML = options;
+    // New implementation for co-author input with checkbox multi-select and search
+    function setupCoAuthorInput() {
+        const input = document.getElementById('co_author_input');
+        const dropdown = document.getElementById('co_author_dropdown');
+        const selectedContainer = document.getElementById('selected_co_authors');
+        const hiddenInput = document.getElementById('co_author');
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        // Fetch employees from API with optional search query
+        function fetchEmployees(query = '') {
+            // Get current logged-in employee ID from modal data attribute
+            const currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '';
+
+            $.ajax({
+                url: appUrl + '/employees',
+                type: 'GET',
+                data: { query: query, exclude_employee_id: currentEmployeeId },
+                dataType: 'json',
+                success: function (data) {
+                    employees = data.data || [];
+                    filteredEmployees = employees;
+                    renderDropdown();
+                },
+                error: function () {
+                    alert('Failed to load employees.');
                 }
-            },
-            error: function () {
-                alert("Failed to load employees.");
-            },
-        });
-    }
-
-    // Manage selected co-authors list and hidden input
-    function setupCoAuthorSelection() {
-        const coAuthorSelect = document.getElementById("co_author_select");
-        const selectedContainer = document.getElementById("selected_co_authors");
-        const hiddenInput = document.getElementById("co_author");
-
-        let selectedCoAuthors = [];
-
-        function updateHiddenInput() {
-            hiddenInput.value = JSON.stringify(selectedCoAuthors.map(e => e.id));
+            });
         }
 
-        function renderSelectedCoAuthors() {
+        // Render dropdown list with checkboxes
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            const html = filteredEmployees.map(emp => {
+                const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            <span>${emp.name}</span>
+                        </div>
+                        <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>
+                `;
+            }).join('');
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+
+            // Add event listeners for checkboxes
+            dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const name = this.getAttribute('data-name');
+                    // Find the employee object from employees array to get user_photo
+                    const employeeObj = employees.find(emp => emp.id === id);
+                    if (this.checked) {
+                        if (!selectedEmployees.some(e => e.id === id)) {
+                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                });
+            });
+        }
+
+        // Render selected employees as badges with remove buttons
+        function renderSelected() {
             selectedContainer.innerHTML = '';
-            selectedCoAuthors.forEach(emp => {
+            selectedEmployees.forEach(emp => {
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+
                 const badge = document.createElement('span');
-                badge.className = 'badge bg-primary me-2 mb-2 d-inline-flex align-items-center';
-                badge.textContent = emp.name;
+                badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+
+                const img = document.createElement('img');
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = 'rounded-circle me-2';
+                img.style.width = '24px';
+                img.style.height = '24px';
+                img.style.objectFit = 'cover';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = emp.name;
 
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
                 removeBtn.setAttribute('aria-label', 'Remove');
                 removeBtn.addEventListener('click', () => {
-                    selectedCoAuthors = selectedCoAuthors.filter(e => e.id !== emp.id);
-                    renderSelectedCoAuthors();
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
                     updateHiddenInput();
+                    renderDropdown(); // Update checkboxes
                 });
 
+                badge.appendChild(img);
+                badge.appendChild(nameSpan);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
         }
 
-        coAuthorSelect.addEventListener('change', () => {
-            const selectedId = coAuthorSelect.value;
-            if (selectedId && !selectedCoAuthors.some(e => e.id == selectedId)) {
-                const selectedOption = coAuthorSelect.options[coAuthorSelect.selectedIndex];
-                selectedCoAuthors.push({ id: selectedId, name: selectedOption.text });
-                renderSelectedCoAuthors();
-                updateHiddenInput();
-            }
-            coAuthorSelect.value = '';
-        });
-
-        // Function to clear selected co-authors
-        function clearSelectedCoAuthors() {
-            selectedCoAuthors = [];
-            renderSelectedCoAuthors();
-            updateHiddenInput();
-            if (coAuthorSelect) {
-                coAuthorSelect.value = '';
-            }
+        // Update hidden input with JSON string of selected employee IDs
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
         }
 
+        // Filter employees based on input value
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            if (val === '') {
+                filteredEmployees = employees;
+            } else {
+                filteredEmployees = employees.filter(emp => emp.name.toLowerCase().includes(val));
+            }
+            renderDropdown();
+        }
+
+        // Event listeners
+        input.addEventListener('input', function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener('focus', function () {
+            filterEmployees(this.value);
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Initial fetch of employees
+        fetchEmployees();
+
         // Expose clearSelectedCoAuthors function to global scope for use in modal close event
-        window.clearSelectedCoAuthors = clearSelectedCoAuthors;
+        window.clearSelectedCoAuthors = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = 'none';
+            input.value = '';
+        };
+    }
+    
+    // New implementation for contributor input with checkbox multi-select and search
+    function setupContributorInput() {
+        const input = document.getElementById('contributor_input');
+        const dropdown = document.getElementById('contributor_dropdown');
+        const selectedContainer = document.getElementById('selected_contributors');
+        const hiddenInput = document.getElementById('contributors');
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        // Fetch employees from API with optional search query
+        function fetchEmployees(query = '') {
+            // Get current logged-in employee ID from modal data attribute
+            const currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '';
+
+            $.ajax({
+                url: appUrl + '/employees',
+                type: 'GET',
+                data: { query: query, exclude_employee_id: currentEmployeeId },
+                dataType: 'json',
+                success: function (data) {
+                    // Exclude employees already selected as co-authors
+                    const coAuthorIds = window.selectedCoAuthorIds || [];
+                    employees = (data.data || []).filter(emp => !coAuthorIds.includes(emp.id));
+                    filteredEmployees = employees;
+                    renderDropdown();
+                },
+                error: function () {
+                    alert('Failed to load employees.');
+                }
+            });
+        }
+
+        // Render dropdown list with checkboxes
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            const html = filteredEmployees.map(emp => {
+                const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            <span>${emp.name}</span>
+                        </div>
+                        <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>
+                `;
+            }).join('');
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+
+            // Add event listeners for checkboxes
+            dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const name = this.getAttribute('data-name');
+                    // Find the employee object from employees array to get user_photo
+                    const employeeObj = employees.find(emp => emp.id === id);
+                    if (this.checked) {
+                        if (!selectedEmployees.some(e => e.id === id)) {
+                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                });
+            });
+        }
+
+        // Render selected employees as badges with remove buttons
+        function renderSelected() {
+            selectedContainer.innerHTML = '';
+            selectedEmployees.forEach(emp => {
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+
+                const img = document.createElement('img');
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = 'rounded-circle me-2';
+                img.style.width = '24px';
+                img.style.height = '24px';
+                img.style.objectFit = 'cover';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = emp.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
+                removeBtn.setAttribute('aria-label', 'Remove');
+                removeBtn.addEventListener('click', () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown(); // Update checkboxes
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameSpan);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        // Update hidden input with JSON string of selected employee IDs
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
+        }
+
+        // Filter employees based on input value
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            if (val === '') {
+                filteredEmployees = employees;
+            } else {
+                filteredEmployees = employees.filter(emp => emp.name.toLowerCase().includes(val));
+            }
+            renderDropdown();
+        }
+
+        // Event listeners
+        input.addEventListener('input', function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener('focus', function () {
+            filterEmployees(this.value);
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Initial fetch of employees
+        fetchEmployees();
+
+        // Expose clearSelectedContributors function to global scope for use in modal close event
+        window.clearSelectedContributors = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = 'none';
+            input.value = '';
+        };
     }
 
     // Image preview and clear button logic for image input
@@ -1204,12 +1453,205 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
     loadDepartments();
     loadProjects();
     loadProjectCardData();
-    loadEmployees();
-    setupCoAuthorSelection();
+    // loadEmployees(); // Removed obsolete function call
+    setupCoAuthorInput();
+
+    // Global array to track selected co-author IDs for exclusion in contributor input
+    window.selectedCoAuthorIds = [];
+
+    // Wrap original setupCoAuthorInput to update global selectedCoAuthorIds and refresh contributor dropdown
+    function wrappedSetupCoAuthorInput() {
+        const input = document.getElementById('co_author_input');
+        const dropdown = document.getElementById('co_author_dropdown');
+        const selectedContainer = document.getElementById('selected_co_authors');
+        const hiddenInput = document.getElementById('co_author');
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        function fetchEmployees(query = '') {
+            const currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '';
+
+            $.ajax({
+                url: appUrl + '/employees',
+                type: 'GET',
+                data: { query: query, exclude_employee_id: currentEmployeeId },
+                dataType: 'json',
+                success: function (data) {
+                    employees = data.data || [];
+                    filteredEmployees = employees;
+                    renderDropdown();
+                },
+                error: function () {
+                    alert('Failed to load employees.');
+                }
+            });
+        }
+
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            const html = filteredEmployees.map(emp => {
+                const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            <span>${emp.name}</span>
+                        </div>
+                        <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>
+                `;
+            }).join('');
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+
+            dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const name = this.getAttribute('data-name');
+                    const employeeObj = employees.find(emp => emp.id === id);
+                    if (this.checked) {
+                        if (!selectedEmployees.some(e => e.id === id)) {
+                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                    // Update global selectedCoAuthorIds
+                    window.selectedCoAuthorIds = selectedEmployees.map(e => e.id);
+                    // Refresh contributor dropdown
+                    if (window.refreshContributorDropdown) {
+                        window.refreshContributorDropdown();
+                    }
+                });
+            });
+        }
+
+        function renderSelected() {
+            selectedContainer.innerHTML = '';
+            selectedEmployees.forEach(emp => {
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+
+                const img = document.createElement('img');
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = 'rounded-circle me-2';
+                img.style.width = '24px';
+                img.style.height = '24px';
+                img.style.objectFit = 'cover';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = emp.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
+                removeBtn.setAttribute('aria-label', 'Remove');
+                removeBtn.addEventListener('click', () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                    // Update global selectedCoAuthorIds
+                    window.selectedCoAuthorIds = selectedEmployees.map(e => e.id);
+                    if (window.refreshContributorDropdown) {
+                        window.refreshContributorDropdown();
+                    }
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameSpan);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
+        }
+
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            if (val === '') {
+                filteredEmployees = employees;
+            } else {
+                filteredEmployees = employees.filter(emp => emp.name.toLowerCase().includes(val));
+            }
+            renderDropdown();
+        }
+
+        input.addEventListener('input', function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener('focus', function () {
+            filterEmployees(this.value);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        fetchEmployees();
+
+        window.clearSelectedCoAuthors = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = 'none';
+            input.value = '';
+            window.selectedCoAuthorIds = [];
+            if (window.refreshContributorDropdown) {
+                window.refreshContributorDropdown();
+            }
+        };
+    }
+
+    wrappedSetupCoAuthorInput();
+
+    // Initialize contributor input
+    setupContributorInput();
+
+    // Function to refresh contributor dropdown when co-author selection changes
+    window.refreshContributorDropdown = function () {
+        // Clear contributor input and selected contributors
+        const contributorInput = document.getElementById('contributor_input');
+        const contributorDropdown = document.getElementById('contributor_dropdown');
+        const selectedContributorsContainer = document.getElementById('selected_contributors');
+        const hiddenContributorsInput = document.getElementById('contributors');
+
+        if (!contributorInput || !contributorDropdown || !selectedContributorsContainer || !hiddenContributorsInput) {
+            return;
+        }
+
+        // Clear current selections
+        contributorInput.value = '';
+        contributorDropdown.style.display = 'none';
+        selectedContributorsContainer.innerHTML = '';
+        hiddenContributorsInput.value = '';
+
+        // Re-initialize contributor input to fetch updated employee list excluding current co-authors
+        setupContributorInput();
+    };
 
     // Load divisions when department changes
     departmentSelect.addEventListener("change", function () {
         const deptId = this.value;
+        console.log("Department changed to:", deptId);
         if (deptId) {
             loadDivisions(deptId);
         } else {
@@ -1240,7 +1682,7 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
         loadProjects();
 
         // Reload employees to reset co_author_select options
-        loadEmployees();
+        // loadEmployees(); // Removed obsolete function call
 
         // Clear selected co-authors display and hidden input using the global function
         if (window.clearSelectedCoAuthors) {
