@@ -40,15 +40,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
                             rowHtml += `
                             <div class="col-md-4 mb-4 position-relative" data-project-id="${projectId}">
-                                <a href="#" class="card-link">
                                     <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
                                         <div class="dropdown-icon-container">
                                             <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
                 <div class="dropdown-menu d-none">
                     <div class="dropdown-item">View Project</div>
                     <div class="dropdown-item">Task</div>
-                    <div class="dropdown-item">Project Feedback</div>
-                    <div class="dropdown-item">Project Assignment</div>
+                    <div class="dropdown-item">Feedback</div>
+                    <div class="dropdown-item">Assignment</div>
                     <div class="dropdown-item text-danger delete-project">Delete</div>
                 </div>
             </div>
@@ -79,7 +78,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </div>
                                         </div>
                                     </div>
-                                </a>
                                
                             </div>
                             `;
@@ -110,6 +108,323 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                         });
                     });
+
+// Feedback modal elements
+var projectFeedbackModalEl = document.getElementById("projectFeedbackModal");
+var modalTitle = projectFeedbackModalEl.querySelector(".feedback-modal-title");
+var modalBody = projectFeedbackModalEl.querySelector(".feedback-modal-body");
+var feedbackModalCloseBtn = projectFeedbackModalEl.querySelector(".btn-close");
+
+// Function to load feedback data with loading spinner
+function loadFeedbackData(projectId) {
+    modalTitle.textContent = "Feedback";
+    modalBody.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+    fetch(appUrl + '/project-feedbacks/' + projectId)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch feedback data');
+            }
+            return response.json();
+        })
+        .then(data => {
+            modalBody.innerHTML = ''; // Clear loading spinner
+
+            if (!data.data || data.data.length === 0) {
+                modalBody.innerHTML = '<p>No feedback available for this project.</p>';
+                return;
+            }
+
+            // Render feedback items
+            data.data.forEach(feedback => {
+                const feedbackItem = document.createElement('div');
+                feedbackItem.className = 'feedback-item mb-3 p-3 border-bottom';
+
+                // Header with employee info
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'd-flex align-items-center mb-2';
+
+                const img = document.createElement('img');
+                // Adjust employee_photo path to avoid duplicate segments
+                let employeePhotoPath = feedback.employee_photo || '';
+                if (employeePhotoPath.startsWith('/file/photo') || employeePhotoPath.startsWith('/file/profile_picture')) {
+                    // already full relative path, use as is
+                } else if (employeePhotoPath.startsWith('file/photo') || employeePhotoPath.startsWith('file/profile_picture')) {
+                    employeePhotoPath = '/' + employeePhotoPath;
+                } else if (employeePhotoPath.length > 0) {
+                    employeePhotoPath = '/file/profile_picture/' + employeePhotoPath;
+                }
+                img.src = employeePhotoPath.length > 0 ? window.location.origin + employeePhotoPath : window.location.origin + '/asset/img/profile_picture/default.png';
+                img.alt = 'Employee Photo';
+                img.className = 'feedback-employee-photo me-2 rounded-circle';
+                img.style.width = '40px';
+                img.style.height = '40px';
+                img.style.objectFit = 'cover';
+
+                const infoDiv = document.createElement('div');
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'fw-bold';
+                nameDiv.textContent = feedback.employee_name || 'Unknown';
+
+                const roleDiv = document.createElement('div');
+                roleDiv.className = 'text-muted small';
+                roleDiv.textContent = (feedback.division ? feedback.division + ' | ' : '') + (feedback.role || '');
+
+                infoDiv.appendChild(nameDiv);
+                infoDiv.appendChild(roleDiv);
+                headerDiv.appendChild(img);
+                headerDiv.appendChild(infoDiv);
+
+                // Comment
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'feedback-comment mb-2';
+                commentDiv.textContent = feedback.feedback_comment || '';
+
+                // Media attachments
+                const mediaDiv = document.createElement('div');
+                mediaDiv.className = 'feedback-media mt-2';
+
+                if (feedback.image) {
+                    const feedbackImage = document.createElement('img');
+                    feedbackImage.src = window.location.origin + '/file/project/' + feedback.image;
+                    feedbackImage.alt = 'Feedback Image';
+                    feedbackImage.className = 'feedback-image me-2 mb-2';
+                    feedbackImage.style.maxWidth = '150px';
+                    feedbackImage.style.maxHeight = '150px';
+                    feedbackImage.style.borderRadius = '8px';
+                    feedbackImage.style.cursor = 'pointer';
+                    feedbackImage.addEventListener('click', () => {
+                        showImageModal(feedbackImage.src);
+                    });
+                    mediaDiv.appendChild(feedbackImage);
+                }
+
+                if (feedback.reference_url) {
+                    const refUrlDiv = document.createElement('div');
+                    const refUrlLink = document.createElement('a');
+                    refUrlLink.href = feedback.reference_url;
+                    refUrlLink.target = '_blank';
+                    refUrlLink.className = 'd-block mb-1';
+                    refUrlLink.innerHTML = `<i class="fas fa-link me-1"></i> ${feedback.reference_url}`;
+                    refUrlDiv.appendChild(refUrlLink);
+                    mediaDiv.appendChild(refUrlDiv);
+                }
+
+                if (feedback.reference_file) {
+                    const refFileDiv = document.createElement('div');
+                    const refFileLink = document.createElement('a');
+                    refFileLink.href = window.location.origin + '/file/project/' + feedback.reference_file;
+                    refFileLink.download = '';
+                    refFileLink.className = 'd-block mb-1';
+                    refFileLink.innerHTML = `<i class="fas fa-file-download me-1"></i> Download Reference File`;
+                    refFileDiv.appendChild(refFileLink);
+                    mediaDiv.appendChild(refFileDiv);
+                }
+
+                feedbackItem.appendChild(headerDiv);
+                feedbackItem.appendChild(commentDiv);
+                feedbackItem.appendChild(mediaDiv);
+
+                modalBody.appendChild(feedbackItem);
+            });
+
+            })
+            .catch(error => {
+                modalBody.innerHTML = '<div class="alert alert-danger">Error loading feedback data. Please try again.</div>';
+                console.error('Error fetching feedback data:', error);
+            });
+}
+
+// Function to show add feedback form
+function showAddFeedbackForm(projectId) {
+    modalTitle.textContent = 'Add Feedback';
+
+    modalBody.innerHTML = `
+        <form id="addFeedbackForm" enctype="multipart/form-data">
+            <input type="hidden" name="project_id" value="${projectId}">
+            <input type="hidden" name="employee_id" value="${projectFeedbackModalEl.getAttribute('data-employee-id') || ''}">
+            
+            <div class="mb-3">
+                <label for="feedback_comment" class="form-label">Comment</label>
+                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Image (Optional)</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="image-upload-label">
+                        <img id="imagePreview" src="${window.location.origin}/asset/img/background/add-image.png" alt="Preview" class="img-thumbnail">
+                        <span class="image-upload-text">Click to upload image</span>
+                    </label>
+                    <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                    <button type="button" id="clearImageBtn" class="btn btn-sm btn-danger mt-2 d-none">Remove Image</button>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+            </div>
+            
+            <div class="mb-3">
+                <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx,.xls,.xlsx">
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <button type="button" class="btn btn-secondary" id="cancelFeedbackBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Submit Feedback</button>
+            </div>
+        </form>
+    `;
+
+    // Setup image preview logic
+    const imageInput = modalBody.querySelector('#feedback_image');
+    const imagePreview = modalBody.querySelector('#imagePreview');
+    const clearImageBtn = modalBody.querySelector('#clearImageBtn');
+
+    imageInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                clearImageBtn.classList.remove('d-none');
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    clearImageBtn.addEventListener('click', function() {
+        imageInput.value = '';
+        imagePreview.src = window.location.origin + '/asset/img/background/add-image.png';
+        clearImageBtn.classList.add('d-none');
+    });
+
+    // Cancel button handler
+    modalBody.querySelector('#cancelFeedbackBtn').addEventListener('click', function() {
+        loadFeedbackData(projectFeedbackModalEl.getAttribute('data-project-id'));
+    });
+
+    // Form submission handler
+    modalBody.querySelector('#addFeedbackForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitFeedbackForm(this, projectFeedbackModalEl.getAttribute('data-project-id'));
+    });
+}
+
+// Function to submit feedback form
+function submitFeedbackForm(form, projectId) {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+    submitBtn.disabled = true;
+
+    const formData = new FormData(form);
+
+    fetch(appUrl + '/project-feedbacks', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Show success message
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            ${data.message || 'Feedback submitted successfully!'}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        modalBody.prepend(alertDiv);
+
+        // Reset form
+        form.reset();
+        const imagePreview = modalBody.querySelector('#imagePreview');
+        if (imagePreview) {
+            imagePreview.src = window.location.origin + '/asset/img/background/add-image.png';
+        }
+        modalBody.querySelector('#clearImageBtn').classList.add('d-none');
+
+        // Reload feedback list after 1.5 seconds
+        setTimeout(() => {
+            loadFeedbackData(projectFeedbackModalEl.getAttribute('data-project-id'));
+        }, 1500);
+    })
+    .catch(error => {
+        let errorMessage = 'Failed to submit feedback. Please try again.';
+        if (error.errors) {
+            errorMessage = Object.values(error.errors).join('<br>');
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            ${errorMessage}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        modalBody.prepend(alertDiv);
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalBtnText;
+        submitBtn.disabled = false;
+    });
+}
+
+// Modal hidden event to reset modal title and clear modal body
+projectFeedbackModalEl.addEventListener('hidden.bs.modal', function() {
+    modalTitle.textContent = 'Feedback';
+    modalBody.innerHTML = '';
+
+    // Remove any leftover modal backdrop elements to fix background remaining dark issue
+    const backdrops = document.querySelectorAll('.modal-backdrop');
+    backdrops.forEach(backdrop => backdrop.parentNode.removeChild(backdrop));
+});
+
+// Event listener for "Feedback" dropdown item click
+document.addEventListener('click', function (e) {
+    if (e.target && e.target.classList.contains('dropdown-item')) {
+        const text = e.target.textContent.trim();
+        if (text === 'Feedback') {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const card = e.target.closest('.col-md-4');
+            if (!card) {
+                alert('Project card not found.');
+                return;
+            }
+
+            const projectId = card.getAttribute('data-project-id');
+            if (!projectId) {
+                alert('Project ID not found.');
+                return;
+            }
+
+            // Set the project id on the modal data attribute
+            projectFeedbackModalEl.setAttribute('data-project-id', projectId);
+
+            // Load feedback data and show modal
+            loadFeedbackData(projectId);
+            const projectFeedbackModal = new bootstrap.Modal(projectFeedbackModalEl);
+            projectFeedbackModal.show();
+        }
+    }
+});
+
+// Helper function to show image in modal (for lightbox effect)
+function showImageModal(imageSrc) {
+    window.open(imageSrc, '_blank');
+}
+
 
                     // Add event listener for delete project
                     document.querySelectorAll('.delete-project').forEach(item => {
@@ -172,81 +487,412 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
-    // Event listener for "View Project" dropdown item click
+    // Event listener for "View Project" dropdown item click and "Feedback";" dropdown item click
     document.addEventListener('click', function (e) {
-        if (e.target && e.target.classList.contains('dropdown-item') && e.target.textContent.trim() === 'View Project') {
-            e.preventDefault();
-            e.stopPropagation();
+        if (e.target && e.target.classList.contains('dropdown-item')) {
+            const text = e.target.textContent.trim();
+            if (text === 'View Project') {
+                e.preventDefault();
+                e.stopPropagation();
 
-            const card = e.target.closest('.col-md-4');
-            if (!card) return;
+                const card = e.target.closest('.col-md-4');
+                if (!card) return;
 
-            const projectId = card.getAttribute('data-project-id');
-            if (!projectId) {
-                alert('Project ID not found.');
-                return;
-            }
-
-            // Fetch project details via AJAX
-            $.ajax({
-                url: appUrl + '/projects/' + projectId,
-                type: 'GET',
-                dataType: 'json',
-                success: function (data) {
-                    // Populate modal fields
-                    const baseFileUrl = appUrl + '/file/project/';
-
-                    $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
-                    $('#projectDetailTitle').text(data.title || '');
-                    $('#projectDetailAuthor').text(data.author ? 'Author: ' + data.author.name : 'Author: N/A');
-                    $('#projectDetailDepartment').text(data.department || '');
-                    $('#projectDetailDivision').text(data.division || '');
-                    $('#projectDetailDescription').text(data.description || '');
-
-                    if (data.reference_url) {
-                        $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
-                    } else {
-                        $('#projectDetailReferenceUrl').hide();
-                    }
-
-                    if (data.reference_file) {
-                        $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
-                    } else {
-                        $('#projectDetailReferenceFile').hide();
-                    }
-
-                    // Format dates as "day month year"
-                    function formatDate(dateStr) {
-                        if (!dateStr) return '';
-                        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-                        const dateObj = new Date(dateStr);
-                        return dateObj.toLocaleDateString(undefined, options);
-                    }
-
-                    $('#projectDetailStartDate').text(formatDate(data.start_date));
-                    $('#projectDetailDueDate').text(formatDate(data.due_date));
-
-                    // Co-authors list
-                    if (data.co_authors && data.co_authors.length > 0) {
-                        const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
-                        $('#projectDetailCoAuthors').text(coAuthorNames);
-                    } else {
-                        $('#projectDetailCoAuthors').text('None');
-                    }
-
-                    // Show modal
-                    const projectDetailModalEl = document.getElementById('projectDetailModal');
-                    const projectDetailModal = new bootstrap.Modal(projectDetailModalEl);
-                    projectDetailModal.show();
-                },
-                error: function () {
-                    alert('Failed to load project details.');
+                const projectId = card.getAttribute('data-project-id');
+                if (!projectId) {
+                    alert('Project ID not found.');
+                    return;
                 }
-            });
+
+                // Fetch project details via AJAX
+                $.ajax({
+                    url: appUrl + '/projects/' + projectId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        // Populate modal fields
+                        const baseFileUrl = appUrl + '/file/project/';
+
+                        $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
+                        $('#projectDetailTitle').text(data.title || '');
+                        $('#projectDetailAuthor').text(data.author ? 'Author: ' + data.author.name : 'Author: N/A');
+                        $('#projectDetailDepartment').text(data.department || '');
+                        $('#projectDetailDivision').text(data.division || '');
+                        $('#projectDetailDescription').text(data.description || '');
+
+                        if (data.reference_url) {
+                            $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
+                        } else {
+                            $('#projectDetailReferenceUrl').hide();
+                        }
+
+                        if (data.reference_file) {
+                            $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
+                        } else {
+                            $('#projectDetailReferenceFile').hide();
+                        }
+
+                        // Format dates as "day month year"
+                        function formatDate(dateStr) {
+                            if (!dateStr) return '';
+                            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                            const dateObj = new Date(dateStr);
+                            return dateObj.toLocaleDateString(undefined, options);
+                        }
+
+                        $('#projectDetailStartDate').text(formatDate(data.start_date));
+                        $('#projectDetailDueDate').text(formatDate(data.due_date));
+
+                        // Co-authors list
+                        if (data.co_authors && data.co_authors.length > 0) {
+                            const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
+                            $('#projectDetailCoAuthors').text(coAuthorNames);
+                        } else {
+                            $('#projectDetailCoAuthors').text('None');
+                        }
+
+                        // Show modal
+                        const projectDetailModalEl = document.getElementById('projectDetailModal');
+                        const projectDetailModal = new bootstrap.Modal(projectDetailModalEl);
+                        projectDetailModal.show();
+                    },
+                    error: function () {
+                        alert('Failed to load project details.');
+                    }
+                });
+            } else if (text === 'Feedback') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const card = e.target.closest('.col-md-4');
+                if (!card) {
+                    alert('Project card not found.');
+                    return;
+                }
+
+                const projectId = card.getAttribute('data-project-id');
+                if (!projectId) {
+                    alert('Project ID not found.');
+                    return;
+                }
+
+                // Set the project id on the modal data attribute dynamically
+                const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                projectFeedbackModalEl.setAttribute('data-project-id', projectId);
+
+                // Clear existing modal body content
+                const modalBody = projectFeedbackModalEl.querySelector('.feedback-modal-body');
+                modalBody.innerHTML = '';
+
+            // Remove direct fetch call to avoid duplication
+            // Instead, just call loadFeedbackData and show modal
+            loadFeedbackData(projectId);
+            const projectFeedbackModal = new bootstrap.Modal(projectFeedbackModalEl);
+            projectFeedbackModal.show();
+            }
         }
     });
-                } else {
-                    container.innerHTML = "<p>No projects available.</p>";
+    
+    // Add Feedback button click handler (no logic yet)
+document.getElementById('addFeedbackButton').addEventListener('click', function () {
+    const feedbackModal = document.getElementById('projectFeedbackModal');
+    const modalTitle = feedbackModal.querySelector('.feedback-modal-title');
+    const modalContent = feedbackModal.querySelector('.feedback-modal-content');
+    const modalBody = feedbackModal.querySelector('.feedback-modal-body');
+
+    // Change modal title
+    modalTitle.textContent = 'Add Feedback';
+
+    // Clear existing modal body content
+    modalBody.innerHTML = '';
+
+    // Create form element
+    const form = document.createElement('form');
+    form.id = 'addFeedbackForm';
+    form.enctype = 'multipart/form-data';
+
+    // Hidden inputs for project_id and employee_id (assumed to be set dynamically)
+    const projectIdInput = document.createElement('input');
+    projectIdInput.type = 'hidden';
+    projectIdInput.name = 'project_id';
+    projectIdInput.value = feedbackModal.getAttribute('data-project-id') || '';
+
+    const employeeIdInput = document.createElement('input');
+    employeeIdInput.type = 'hidden';
+    employeeIdInput.name = 'employee_id';
+    employeeIdInput.value = feedbackModal.getAttribute('data-employee-id') || '';
+
+    form.appendChild(projectIdInput);
+    form.appendChild(employeeIdInput);
+
+    // Image input section
+    const imageDiv = document.createElement('div');
+    imageDiv.className = 'mb-3';
+
+    const imageLabelTitle = document.createElement('div');
+    imageLabelTitle.className = 'title-label-image';
+    imageLabelTitle.textContent = 'Input Image';
+    imageDiv.appendChild(imageLabelTitle);
+
+    const imageLabel = document.createElement('label');
+    imageLabel.className = 'custom-image-upload position-relative';
+    imageLabel.style.backgroundPosition = 'center center';
+    imageLabel.style.backgroundRepeat = 'no-repeat';
+    imageLabel.style.backgroundSize = '50%';
+    imageLabel.style.backgroundImage = "url('"+window.location.origin+"/asset/img/background/add-image.png')";
+    imageLabel.htmlFor = 'feedback_image';
+
+    const imageInput = document.createElement('input');
+    imageInput.type = 'file';
+    imageInput.className = 'input-image';
+    imageInput.id = 'feedback_image';
+    imageInput.name = 'feedback_image';
+    imageInput.accept = 'image/*';
+    imageInput.hidden = true;
+
+    const imageClearBtn = document.createElement('span');
+    imageClearBtn.className = 'image-clear-btn d-none';
+    imageClearBtn.id = 'feedbackImageClearBtn';
+    imageClearBtn.title = 'Remove image';
+    imageClearBtn.textContent = '×';
+
+    imageLabel.appendChild(imageInput);
+    imageLabel.appendChild(imageClearBtn);
+    imageDiv.appendChild(imageLabel);
+
+    // Invalid feedback div
+    const invalidFeedback = document.createElement('div');
+    invalidFeedback.className = 'invalid-feedback';
+    invalidFeedback.textContent = 'Please select an image file.';
+    imageDiv.appendChild(invalidFeedback);
+
+    form.appendChild(imageDiv);
+
+    // Feedback comment textarea
+    const commentDiv = document.createElement('div');
+    commentDiv.className = 'mb-3';
+
+    const commentLabel = document.createElement('label');
+    commentLabel.htmlFor = 'feedback_comment';
+    commentLabel.className = 'form-label label-custom';
+    commentLabel.textContent = 'Feedback Comment';
+    commentDiv.appendChild(commentLabel);
+
+    const commentTextarea = document.createElement('textarea');
+    commentTextarea.className = 'form-control input-text';
+    commentTextarea.id = 'feedback_comment';
+    commentTextarea.name = 'feedback_comment';
+    commentTextarea.rows = 3;
+    commentDiv.appendChild(commentTextarea);
+
+    form.appendChild(commentDiv);
+
+    // Reference URL input
+    const refUrlDiv = document.createElement('div');
+    refUrlDiv.className = 'mb-3';
+
+    const refUrlLabel = document.createElement('label');
+    refUrlLabel.htmlFor = 'reference_url';
+    refUrlLabel.className = 'form-label label-custom';
+    refUrlLabel.textContent = 'Reference URL';
+    refUrlDiv.appendChild(refUrlLabel);
+
+    const refUrlInput = document.createElement('input');
+    refUrlInput.type = 'text';
+    refUrlInput.className = 'form-control input-text';
+    refUrlInput.id = 'reference_url';
+    refUrlInput.name = 'reference_url';
+    refUrlDiv.appendChild(refUrlInput);
+
+    form.appendChild(refUrlDiv);
+
+    // Reference file input
+    const refFileDiv = document.createElement('div');
+    refFileDiv.className = 'mb-3';
+
+    const refFileLabel = document.createElement('label');
+    refFileLabel.htmlFor = 'reference_file';
+    refFileLabel.className = 'form-label label-custom';
+    refFileLabel.textContent = 'Reference File';
+    refFileDiv.appendChild(refFileLabel);
+
+    const refFileInput = document.createElement('input');
+    refFileInput.type = 'file';
+    refFileInput.className = 'form-control input-text';
+    refFileInput.id = 'reference_file';
+    refFileInput.name = 'reference_file';
+    refFileInput.accept = '.pdf,.doc,.docx';
+    refFileDiv.appendChild(refFileInput);
+
+    form.appendChild(refFileDiv);
+
+    // Submit button
+    const submitDiv = document.createElement('div');
+    submitDiv.className = 'modal-footer modal-footer-custom';
+
+    const submitBtn = document.createElement('button');
+    submitBtn.type = 'submit';
+    submitBtn.className = 'btn-submit-black btn-submit-custom';
+    submitBtn.textContent = 'Submit';
+
+    submitDiv.appendChild(submitBtn);
+    form.appendChild(submitDiv);
+
+    // Append form to modal body
+    modalBody.appendChild(form);
+
+    // Image clear button logic
+    imageInput.addEventListener('change', function () {
+        if (imageInput.files && imageInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                imageLabel.classList.add('has-image');
+                imageLabel.style.backgroundSize = 'cover';
+                imageLabel.style.opacity = '1';
+                imageClearBtn.classList.remove('d-none');
+            };
+            reader.readAsDataURL(imageInput.files[0]);
+        } else {
+            imageLabel.style.backgroundImage = "url('"+window.location.origin+"/asset/img/background/add-image.png')";
+            imageLabel.classList.remove('has-image');
+            imageLabel.style.opacity = '0.5';
+            imageClearBtn.classList.add('d-none');
+        }
+    });
+
+    imageClearBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        imageInput.value = '';
+        imageLabel.style.backgroundPosition = 'center center';
+        imageLabel.style.backgroundRepeat = 'no-repeat';
+        imageLabel.style.backgroundSize = '50%';
+        imageLabel.style.backgroundImage = "url('"+window.location.origin+"/asset/img/background/add-image.png')";
+        imageLabel.classList.remove('has-image');
+        imageLabel.style.opacity = '0.5';
+        imageClearBtn.classList.add('d-none');
+    });
+
+    // File renaming logic on form submit
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        // Client-side validation for employee_id
+        const feedbackModal = document.getElementById('projectFeedbackModal');
+        const employeeId = feedbackModal.getAttribute('data-employee-id');
+        if (!employeeId) {
+            alert('You must be logged in to submit feedback.');
+            return;
+        }
+
+        // Rename files with FEEDBACK_(timestamp) prefix
+        const timestamp = Date.now();
+
+        // Rename image file if exists
+        if (imageInput.files.length > 0) {
+            const imageFile = imageInput.files[0];
+            const imageExtension = imageFile.name.split('.').pop();
+            const newImageName = `FEEDBACK_${timestamp}.${imageExtension}`;
+            const newImageFile = new File([imageFile], newImageName, { type: imageFile.type });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(newImageFile);
+            imageInput.files = dataTransfer.files;
+        }
+
+        // Rename reference file if exists
+        if (refFileInput.files.length > 0) {
+            const refFile = refFileInput.files[0];
+            const refExtension = refFile.name.split('.').pop();
+            const newRefName = `FEEDBACK_${timestamp}.${refExtension}`;
+            const newRefFile = new File([refFile], newRefName, { type: refFile.type });
+            const dataTransferRef = new DataTransfer();
+            dataTransferRef.items.add(newRefFile);
+            refFileInput.files = dataTransferRef.files;
+        }
+
+        // Show loading overlay
+        const loaderOverlay = feedbackModal.querySelector('.modal-loading-overlay');
+        if (loaderOverlay) {
+            loaderOverlay.classList.remove('d-none');
+        }
+
+        // Prepare form data
+        const formData = new FormData(form);
+
+        // Submit form via AJAX
+        // Use absolute URL for fetch
+        const feedbackUrl = appUrl + '/project-feedbacks';
+
+        // Client-side validation for project_id and employee_id
+        const projectId = feedbackModal.getAttribute('data-project-id');
+        const employeeIdCheck = feedbackModal.getAttribute('data-employee-id');
+        if (!projectId || !employeeIdCheck) {
+            alert('You must be logged in and have a valid project to submit feedback.');
+            return;
+        }
+
+        // Set hidden inputs explicitly before submit
+        form.querySelector('input[name="project_id"]').value = projectId;
+        form.querySelector('input[name="employee_id"]').value = employeeIdCheck;
+
+        fetch(feedbackUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(text);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Hide loading overlay
+            if (loaderOverlay) {
+                loaderOverlay.classList.add('d-none');
+            }
+
+            if (data.message) {
+                // Show success alert outside modal content in alert container below modal
+                let modalDialog = feedbackModal.querySelector('.modal-dialog');
+                let alertContainer = modalDialog.querySelector('.alert-container');
+                if (!alertContainer) {
+                    alertContainer = document.createElement('div');
+                    alertContainer.className = 'alert-container mt-2';
+                    modalDialog.appendChild(alertContainer);
+                }
+                alertContainer.innerHTML = `<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">
+                    <div>${data.message}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
+                alertContainer.style.display = 'block';
+
+                // Close modal after short delay
+                setTimeout(() => {
+                    // Instead of closing modal, reload feedback list and reset modal title
+                    alertContainer.style.display = 'none';
+                    alertContainer.innerHTML = '';
+                    loadFeedbackData(feedbackModal.getAttribute('data-project-id'));
+                    const modalTitle = feedbackModal.querySelector('.feedback-modal-title');
+                    modalTitle.textContent = 'Project Feedback';
+                }, 1500);
+            } else {
+                alert('Feedback added, but no confirmation message received.');
+            }
+        })
+        .catch(error => {
+            if (loaderOverlay) {
+                loaderOverlay.classList.add('d-none');
+            }
+            alert('Failed to submit feedback. Please try again.');
+            console.error('Error submitting feedback:', error);
+        });
+    });
+});
                 }
             },
             error: function () {

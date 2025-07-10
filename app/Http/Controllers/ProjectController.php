@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Project;
+use App\Models\ProjectFeedback;
+use App\Models\ProjectAssignment;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -418,5 +420,108 @@ class ProjectController extends Controller
         $project->save();
 
         return response()->json(['message' => 'Project marked as deleted successfully']);
+    }
+
+    /**
+     * Get project feedbacks for a given project.
+     */
+    public function getProjectFeedbacks($projectId)
+    {
+        try {
+            $feedbacks = \App\Models\ProjectFeedback::with(['employee.division'])
+                ->where('project_id', $projectId)
+                ->get();
+
+            $feedbacksTransformed = $feedbacks->map(function ($feedback) {
+                $employee = $feedback->employee;
+                $divisionName = $employee && $employee->division ? ($employee->division->name_division ?? $employee->division->name) : null;
+
+                // Determine role from project assignments
+                $role = null;
+                if ($employee) {
+                    $assignment = \App\Models\ProjectAssignment::where('project_id', $feedback->project_id)
+                        ->where('employee_id', $employee->id)
+                        ->first();
+                    if ($assignment) {
+                        $role = $assignment->role;
+                    }
+                }
+
+                return [
+                    'id' => $feedback->id,
+                    'employee_id' => $employee ? $employee->id : null,
+                    'employee_name' => $employee ? $employee->name : null,
+                    'employee_photo' => $employee ? $employee->photo : null,
+                    'division' => $divisionName,
+                    'role' => $role,
+                    'feedback_comment' => $feedback->feedback_comment,
+                    'image' => $feedback->image,
+                    'reference_url' => $feedback->reference_url,
+                    'reference_file' => $feedback->reference_file,
+                ];
+            });
+
+            // Debug: return raw feedbacks data for inspection
+            // return response()->json(['data' => $feedbacks, 'transformed' => $feedbacksTransformed]);
+
+            return response()->json(['data' => $feedbacksTransformed]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching project feedbacks: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Failed to fetch project feedbacks', 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+        }
+    }
+
+    /**
+     * Store a newly created project feedback in storage.
+     */
+    public function storeFeedback(Request $request)
+    {
+        try {
+            $request->validate([
+                'project_id' => 'required|exists:projects,id',
+                'employee_id' => 'required|exists:employees,id',
+                'feedback_comment' => 'nullable|string',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'reference_url' => 'nullable|url',
+                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            ]);
+
+            $feedback = new ProjectFeedback();
+            $feedback->project_id = $request->project_id;
+            $feedback->employee_id = $request->employee_id;
+            $feedback->feedback_comment = $request->feedback_comment;
+            $feedback->reference_url = $request->reference_url;
+
+            // Handle feedback image upload
+            if ($request->hasFile('feedback_image')) {
+                try {
+                    $image = $request->file('feedback_image');
+                    $imageName = 'FEEDBACK_' . time() . '.' . $image->getClientOriginalExtension();
+                    $image->move(public_path('file/project'), $imageName);
+                    $feedback->image = $imageName;
+                } catch (\Exception $ex) {
+                    \Log::error('Feedback image upload failed: ' . $ex->getMessage());
+                }
+            }
+
+            // Handle reference file upload
+            if ($request->hasFile('reference_file')) {
+                try {
+                    $file = $request->file('reference_file');
+                    $fileName = 'FEEDBACK_' . time() . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/project'), $fileName);
+                    $feedback->reference_file = $fileName;
+                } catch (\Exception $ex) {
+                    \Log::error('Feedback reference file upload failed: ' . $ex->getMessage());
+                }
+            }
+
+            $feedback->save();
+
+            return response()->json(['message' => 'Feedback added successfully', 'feedback' => $feedback]);
+        } catch (\Exception $e) {
+            \Log::error('Error storing feedback: ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['error' => 'Failed to add feedback', 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
+        }
     }
 }

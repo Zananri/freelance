@@ -41,4 +41,9 @@ class Project extends Model
     {
         return $this->hasMany(ProjectAssignment::class);
     }
+
+    public function projectFeedbacks()
+    {
+        return $this->hasMany(ProjectFeedback::class);
+    }
 }

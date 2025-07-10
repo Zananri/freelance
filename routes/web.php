@@ -90,6 +90,8 @@ Route::get('/projects/create', [ProjectController::class, 'create'])->name('proj
 Route::get('/projects/{id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
 Route::get('/projects/{id}', [ProjectController::class, 'show'])->name('projects.show');
 Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
+Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
 Route::put('/projects/{id}', [ProjectController::class, 'update'])->name('projects.update');
 Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
