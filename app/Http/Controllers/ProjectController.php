@@ -425,35 +425,21 @@ class ProjectController extends Controller
     /**
      * Get project feedbacks for a given project.
      */
-    public function getProjectFeedbacks($projectId)
+public function getProjectFeedbacks($projectId)
     {
         try {
-            $feedbacks = \App\Models\ProjectFeedback::with(['employee.division'])
+            $feedbacks = \App\Models\ProjectFeedback::with(['employee'])
                 ->where('project_id', $projectId)
                 ->get();
 
             $feedbacksTransformed = $feedbacks->map(function ($feedback) {
                 $employee = $feedback->employee;
-                $divisionName = $employee && $employee->division ? ($employee->division->name_division ?? $employee->division->name) : null;
-
-                // Determine role from project assignments
-                $role = null;
-                if ($employee) {
-                    $assignment = \App\Models\ProjectAssignment::where('project_id', $feedback->project_id)
-                        ->where('employee_id', $employee->id)
-                        ->first();
-                    if ($assignment) {
-                        $role = $assignment->role;
-                    }
-                }
 
                 return [
                     'id' => $feedback->id,
                     'employee_id' => $employee ? $employee->id : null,
                     'employee_name' => $employee ? $employee->name : null,
                     'employee_photo' => $employee ? $employee->photo : null,
-                    'division' => $divisionName,
-                    'role' => $role,
                     'feedback_comment' => $feedback->feedback_comment,
                     'image' => $feedback->image,
                     'reference_url' => $feedback->reference_url,
