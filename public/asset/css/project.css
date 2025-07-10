@@ -576,22 +576,33 @@
     display: block;
 }
 
-.feedback-reference-url,
-.feedback-reference-file {
-    margin-top: 0.25rem;
+.feedback-reference-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
     font-size: 0.9rem;
 }
 
-.feedback-reference-url a,
-.feedback-reference-file a {
+.feedback-reference-url,
+.feedback-reference-file {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
     color: #007bff;
     text-decoration: none;
 }
 
-
-.feedback-reference-url a:hover,
-.feedback-reference-file a:hover {
+.feedback-reference-url:hover,
+.feedback-reference-file:hover {
     text-decoration: underline;
+}
+
+.feedback-reference-url .material-symbols-outlined,
+.feedback-reference-file .material-symbols-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+    color: #007bff;
 }
 
 /* Override Bootstrap modal backdrop opacity for lighter background */

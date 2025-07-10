@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div class="dropdown-icon-container">
                                             <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
                 <div class="dropdown-menu d-none">
-                    <div class="dropdown-item">View Project</div>
+                    <div class="dropdown-item">Detail</div>
                     <div class="dropdown-item">Task</div>
                     <div class="dropdown-item">Feedback</div>
                     <div class="dropdown-item">Assignment</div>
@@ -199,27 +199,40 @@ function loadFeedbackData(projectId) {
                     mediaDiv.appendChild(feedbackImage);
                 }
 
-                if (feedback.reference_url) {
-                    const refUrlDiv = document.createElement('div');
-                    const refUrlLink = document.createElement('a');
-                    refUrlLink.href = feedback.reference_url;
-                    refUrlLink.target = '_blank';
-                    refUrlLink.className = 'd-block mb-1';
-                    refUrlLink.innerHTML = `<i class="fas fa-link me-1"></i> ${feedback.reference_url}`;
-                    refUrlDiv.appendChild(refUrlLink);
-                    mediaDiv.appendChild(refUrlDiv);
-                }
+if (feedback.reference_url || feedback.reference_file) {
+    const refContainer = document.createElement('div');
+    refContainer.className = 'feedback-reference-container';
 
-                if (feedback.reference_file) {
-                    const refFileDiv = document.createElement('div');
-                    const refFileLink = document.createElement('a');
-                    refFileLink.href = window.location.origin + '/file/project/' + feedback.reference_file;
-                    refFileLink.download = '';
-                    refFileLink.className = 'd-block mb-1';
-                    refFileLink.innerHTML = `<i class="fas fa-file-download me-1"></i> Download Reference File`;
-                    refFileDiv.appendChild(refFileLink);
-                    mediaDiv.appendChild(refFileDiv);
-                }
+    if (feedback.reference_url) {
+        const refUrlLink = document.createElement('a');
+        refUrlLink.href = feedback.reference_url;
+        refUrlLink.target = '_blank';
+        refUrlLink.className = 'feedback-reference-url';
+
+        refUrlLink.innerHTML = `<span class="material-symbols-outlined">link</span> Reference Link`;
+        refContainer.appendChild(refUrlLink);
+    }
+
+    if (feedback.reference_file) {
+        const refFileLink = document.createElement('a');
+        refFileLink.href = window.location.origin + '/file/project/' + feedback.reference_file;
+        refFileLink.download = '';
+        refFileLink.className = 'feedback-reference-file';
+
+        // Extract file extension/type from filename
+        const fileName = feedback.reference_file;
+        let fileType = '';
+        const extMatch = fileName.match(/\.(\w+)$/);
+        if (extMatch) {
+            fileType = extMatch[1].toUpperCase();
+        }
+
+        refFileLink.innerHTML = `<span class="material-symbols-outlined">draft</span> FEEDBACK_${fileType}`;
+        refContainer.appendChild(refFileLink);
+    }
+
+    mediaDiv.appendChild(refContainer);
+}
 
                 feedbackItem.appendChild(headerDiv);
                 feedbackItem.appendChild(commentDiv);
@@ -487,11 +500,11 @@ function showImageModal(imageSrc) {
         });
     });
 
-    // Event listener for "View Project" dropdown item click and "Feedback";" dropdown item click
+    // Event listener for "Detail" dropdown item click and "Feedback";" dropdown item click
     document.addEventListener('click', function (e) {
         if (e.target && e.target.classList.contains('dropdown-item')) {
             const text = e.target.textContent.trim();
-            if (text === 'View Project') {
+            if (text === 'Detail') {
                 e.preventDefault();
                 e.stopPropagation();
 
