@@ -47,7 +47,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="dropdown-item">Detail</div>
                     <div class="dropdown-item">Task</div>
                     <div class="dropdown-item">Feedback</div>
-                    <div class="dropdown-item">Assignment</div>
                     <div class="dropdown-item text-danger delete-project">Delete</div>
                 </div>
             </div>
@@ -102,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             document.querySelectorAll('.dropdown-menu').forEach(menu => {
                                 menu.classList.add('d-none');
                             });
-                            // Toggle current dropdown
+                            // Toggle current dropdownz
                             if (!isVisible) {
                                 dropdownMenu.classList.remove('d-none');
                             }
@@ -184,21 +183,6 @@ function loadFeedbackData(projectId) {
                 const mediaDiv = document.createElement('div');
                 mediaDiv.className = 'feedback-media mt-2';
 
-                if (feedback.image) {
-                    const feedbackImage = document.createElement('img');
-                    feedbackImage.src = window.location.origin + '/file/project/' + feedback.image;
-                    feedbackImage.alt = 'Feedback Image';
-                    feedbackImage.className = 'feedback-image me-2 mb-2';
-                    feedbackImage.style.maxWidth = '150px';
-                    feedbackImage.style.maxHeight = '150px';
-                    feedbackImage.style.borderRadius = '8px';
-                    feedbackImage.style.cursor = 'pointer';
-                    feedbackImage.addEventListener('click', () => {
-                        showImageModal(feedbackImage.src);
-                    });
-                    mediaDiv.appendChild(feedbackImage);
-                }
-
 if (feedback.reference_url || feedback.reference_file) {
     const refContainer = document.createElement('div');
     refContainer.className = 'feedback-reference-container';
@@ -232,6 +216,21 @@ if (feedback.reference_url || feedback.reference_file) {
     }
 
     mediaDiv.appendChild(refContainer);
+}
+
+if (feedback.image) {
+    const feedbackImage = document.createElement('img');
+    feedbackImage.src = window.location.origin + '/file/project/' + feedback.image;
+    feedbackImage.alt = 'Feedback Image';
+    feedbackImage.className = 'feedback-image me-2 mb-2';
+    feedbackImage.style.maxWidth = '150px';
+    feedbackImage.style.maxHeight = '150px';
+    feedbackImage.style.borderRadius = '8px';
+    feedbackImage.style.cursor = 'pointer';
+    feedbackImage.addEventListener('click', () => {
+        showImageModal(feedbackImage.src);
+    });
+    mediaDiv.appendChild(feedbackImage);
 }
 
                 feedbackItem.appendChild(headerDiv);
@@ -325,12 +324,14 @@ function showAddFeedbackForm(projectId) {
     });
 }
 
-// Function to submit feedback form
 function submitFeedbackForm(form, projectId) {
     const submitBtn = form.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
-    submitBtn.disabled = true;
+    let originalBtnText = '';
+    if (submitBtn) {
+        originalBtnText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+        submitBtn.disabled = true;
+    }
 
     const formData = new FormData(form);
 
@@ -363,7 +364,10 @@ function submitFeedbackForm(form, projectId) {
         if (imagePreview) {
             imagePreview.src = window.location.origin + '/asset/img/background/add-image.png';
         }
-        modalBody.querySelector('#clearImageBtn').classList.add('d-none');
+        const clearImageBtn = modalBody.querySelector('#clearImageBtn');
+        if (clearImageBtn) {
+            clearImageBtn.classList.add('d-none');
+        }
 
         // Reload feedback list after 1.5 seconds
         setTimeout(() => {
@@ -387,8 +391,10 @@ function submitFeedbackForm(form, projectId) {
         modalBody.prepend(alertDiv);
     })
     .finally(() => {
-        submitBtn.innerHTML = originalBtnText;
-        submitBtn.disabled = false;
+        if (submitBtn) {
+            submitBtn.innerHTML = originalBtnText;
+            submitBtn.disabled = false;
+        }
     });
 }
 
@@ -614,25 +620,19 @@ function showImageModal(imageSrc) {
         }
     });
     
-    // Add Feedback button click handler (no logic yet)
 document.getElementById('addFeedbackButton').addEventListener('click', function () {
     const feedbackModal = document.getElementById('projectFeedbackModal');
     const modalTitle = feedbackModal.querySelector('.feedback-modal-title');
-    const modalContent = feedbackModal.querySelector('.feedback-modal-content');
     const modalBody = feedbackModal.querySelector('.feedback-modal-body');
+    const addFeedbackButton = document.getElementById('addFeedbackButton');
 
-    // Change modal title
     modalTitle.textContent = 'Add Feedback';
-
-    // Clear existing modal body content
     modalBody.innerHTML = '';
 
-    // Create form element
     const form = document.createElement('form');
     form.id = 'addFeedbackForm';
     form.enctype = 'multipart/form-data';
 
-    // Hidden inputs for project_id and employee_id (assumed to be set dynamically)
     const projectIdInput = document.createElement('input');
     projectIdInput.type = 'hidden';
     projectIdInput.name = 'project_id';
@@ -646,7 +646,6 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
     form.appendChild(projectIdInput);
     form.appendChild(employeeIdInput);
 
-    // Image input section
     const imageDiv = document.createElement('div');
     imageDiv.className = 'mb-3';
 
@@ -681,7 +680,6 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
     imageLabel.appendChild(imageClearBtn);
     imageDiv.appendChild(imageLabel);
 
-    // Invalid feedback div
     const invalidFeedback = document.createElement('div');
     invalidFeedback.className = 'invalid-feedback';
     invalidFeedback.textContent = 'Please select an image file.';
@@ -689,7 +687,6 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
 
     form.appendChild(imageDiv);
 
-    // Feedback comment textarea
     const commentDiv = document.createElement('div');
     commentDiv.className = 'mb-3';
 
@@ -708,7 +705,6 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
 
     form.appendChild(commentDiv);
 
-    // Reference URL input
     const refUrlDiv = document.createElement('div');
     refUrlDiv.className = 'mb-3';
 
@@ -727,7 +723,6 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
 
     form.appendChild(refUrlDiv);
 
-    // Reference file input
     const refFileDiv = document.createElement('div');
     refFileDiv.className = 'mb-3';
 
@@ -747,22 +742,8 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
 
     form.appendChild(refFileDiv);
 
-    // Submit button
-    const submitDiv = document.createElement('div');
-    submitDiv.className = 'modal-footer modal-footer-custom';
-
-    const submitBtn = document.createElement('button');
-    submitBtn.type = 'submit';
-    submitBtn.className = 'btn-submit-black btn-submit-custom';
-    submitBtn.textContent = 'Submit';
-
-    submitDiv.appendChild(submitBtn);
-    form.appendChild(submitDiv);
-
-    // Append form to modal body
     modalBody.appendChild(form);
 
-    // Image clear button logic
     imageInput.addEventListener('change', function () {
         if (imageInput.files && imageInput.files[0]) {
             const reader = new FileReader();
@@ -794,125 +775,32 @@ document.getElementById('addFeedbackButton').addEventListener('click', function 
         imageClearBtn.classList.add('d-none');
     });
 
-    // File renaming logic on form submit
-    form.addEventListener('submit', function (e) {
+    // Change footer button text to "Submit"
+    addFeedbackButton.textContent = 'Submit';
+
+    // Remove any previous click event listeners on footer button to avoid duplicates
+    const newButton = addFeedbackButton.cloneNode(true);
+    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+
+    // Add click event listener to footer button to submit the form
+    newButton.addEventListener('click', function (e) {
         e.preventDefault();
-
-        // Client-side validation for employee_id
-        const feedbackModal = document.getElementById('projectFeedbackModal');
-        const employeeId = feedbackModal.getAttribute('data-employee-id');
-        if (!employeeId) {
-            alert('You must be logged in to submit feedback.');
-            return;
+        const form = document.getElementById('addFeedbackForm');
+        if (form) {
+            submitFeedbackForm(form, form.querySelector('input[name="project_id"]').value);
         }
-
-        // Rename files with FEEDBACK_(timestamp) prefix
-        const timestamp = Date.now();
-
-        // Rename image file if exists
-        if (imageInput.files.length > 0) {
-            const imageFile = imageInput.files[0];
-            const imageExtension = imageFile.name.split('.').pop();
-            const newImageName = `FEEDBACK_${timestamp}.${imageExtension}`;
-            const newImageFile = new File([imageFile], newImageName, { type: imageFile.type });
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(newImageFile);
-            imageInput.files = dataTransfer.files;
-        }
-
-        // Rename reference file if exists
-        if (refFileInput.files.length > 0) {
-            const refFile = refFileInput.files[0];
-            const refExtension = refFile.name.split('.').pop();
-            const newRefName = `FEEDBACK_${timestamp}.${refExtension}`;
-            const newRefFile = new File([refFile], newRefName, { type: refFile.type });
-            const dataTransferRef = new DataTransfer();
-            dataTransferRef.items.add(newRefFile);
-            refFileInput.files = dataTransferRef.files;
-        }
-
-        // Show loading overlay
-        const loaderOverlay = feedbackModal.querySelector('.modal-loading-overlay');
-        if (loaderOverlay) {
-            loaderOverlay.classList.remove('d-none');
-        }
-
-        // Prepare form data
-        const formData = new FormData(form);
-
-        // Submit form via AJAX
-        // Use absolute URL for fetch
-        const feedbackUrl = appUrl + '/project-feedbacks';
-
-        // Client-side validation for project_id and employee_id
-        const projectId = feedbackModal.getAttribute('data-project-id');
-        const employeeIdCheck = feedbackModal.getAttribute('data-employee-id');
-        if (!projectId || !employeeIdCheck) {
-            alert('You must be logged in and have a valid project to submit feedback.');
-            return;
-        }
-
-        // Set hidden inputs explicitly before submit
-        form.querySelector('input[name="project_id"]').value = projectId;
-        form.querySelector('input[name="employee_id"]').value = employeeIdCheck;
-
-        fetch(feedbackUrl, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error(text);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Hide loading overlay
-            if (loaderOverlay) {
-                loaderOverlay.classList.add('d-none');
-            }
-
-            if (data.message) {
-                // Show success alert outside modal content in alert container below modal
-                let modalDialog = feedbackModal.querySelector('.modal-dialog');
-                let alertContainer = modalDialog.querySelector('.alert-container');
-                if (!alertContainer) {
-                    alertContainer = document.createElement('div');
-                    alertContainer.className = 'alert-container mt-2';
-                    modalDialog.appendChild(alertContainer);
-                }
-                alertContainer.innerHTML = `<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">
-                    <div>${data.message}</div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>`;
-                alertContainer.style.display = 'block';
-
-                // Close modal after short delay
-                setTimeout(() => {
-                    // Instead of closing modal, reload feedback list and reset modal title
-                    alertContainer.style.display = 'none';
-                    alertContainer.innerHTML = '';
-                    loadFeedbackData(feedbackModal.getAttribute('data-project-id'));
-                    const modalTitle = feedbackModal.querySelector('.feedback-modal-title');
-                    modalTitle.textContent = 'Project Feedback';
-                }, 1500);
-            } else {
-                alert('Feedback added, but no confirmation message received.');
-            }
-        })
-        .catch(error => {
-            if (loaderOverlay) {
-                loaderOverlay.classList.add('d-none');
-            }
-            alert('Failed to submit feedback. Please try again.');
-            console.error('Error submitting feedback:', error);
-        });
     });
+});
+
+// Reset footer button text and remove submit handler when modal is closed
+const feedbackModalEl = document.getElementById('projectFeedbackModal');
+feedbackModalEl.addEventListener('hidden.bs.modal', function () {
+    const addFeedbackButton = document.getElementById('addFeedbackButton');
+    addFeedbackButton.textContent = 'Add Feedback';
+
+    // Remove any click event listeners by cloning the button
+    const newButton = addFeedbackButton.cloneNode(true);
+    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
 });
                 }
             },
