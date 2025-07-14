@@ -36,7 +36,7 @@ Route::delete('/division/{id}', [DivisionController::class, 'destroy'])->name('d
 
 // Job CRUD routes
 Route::get('/job', [JobController::class, 'showJobPage'])->name('job');
-Route::get('/jobi/ndex', [JobController::class, 'index'])->name('job.index');
+Route::get('/job/index', [JobController::class, 'index'])->name('job.index');
 Route::get('/job/{id}', [JobController::class, 'show'])->name('job.show');
 Route::post('/job/store', [JobController::class, 'store'])->name('job.store');
 Route::put('/job/{id}', [JobController::class, 'update'])->name('job.update');

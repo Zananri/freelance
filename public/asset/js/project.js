@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="dropdown-item">Detail</div>
                     <div class="dropdown-item">Task</div>
                     <div class="dropdown-item">Feedback</div>
+                    <div class="dropdown-item">Edit</div>
                     <div class="dropdown-item text-danger delete-project">Delete</div>
                 </div>
             </div>
@@ -158,7 +159,6 @@ function loadFeedbackData(projectId) {
                 img.className = 'feedback-employee-photo me-2 rounded-circle';
                 img.style.width = '40px';
                 img.style.height = '40px';
-                img.style.objectFit = 'cover';
 
                 const infoDiv = document.createElement('div');
                 const nameDiv = document.createElement('div');
