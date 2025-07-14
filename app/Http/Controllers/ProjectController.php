@@ -513,6 +513,7 @@ public function getProjectFeedbacks($projectId)
                     'image' => $feedback->image,
                     'reference_url' => $feedback->reference_url,
                     'reference_file' => $feedback->reference_file,
+                    'created_at' => $feedback->created_at,  // Added created_at field
                 ];
             });
 

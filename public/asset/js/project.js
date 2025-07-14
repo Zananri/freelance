@@ -165,11 +165,45 @@ function loadFeedbackData(projectId) {
                 nameDiv.className = 'fw-bold';
                 nameDiv.textContent = feedback.employee_name || 'Unknown';
 
+                // Add creation date below employee name
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'text-muted small';
+                if (feedback.created_at) {
+                    const dateObj = new Date(feedback.created_at);
+                    const now = new Date();
+
+                    // Helper function to check if two dates are the same day
+                    function isSameDay(d1, d2) {
+                        return d1.getFullYear() === d2.getFullYear() &&
+                            d1.getMonth() === d2.getMonth() &&
+                            d1.getDate() === d2.getDate();
+                    }
+
+                    // Helper function to check if d1 is yesterday of d2
+                    function isYesterday(d1, d2) {
+                        const yesterday = new Date(d2);
+                        yesterday.setDate(d2.getDate() - 1);
+                        return isSameDay(d1, yesterday);
+                    }
+
+                    if (isSameDay(dateObj, now)) {
+                        // Show time only
+                        dateDiv.textContent = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                    } else if (isYesterday(dateObj, now)) {
+                        dateDiv.textContent = 'yesterday';
+                    } else {
+                        dateDiv.textContent = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                    }
+                } else {
+                    dateDiv.textContent = '';
+                }
+
                 const roleDiv = document.createElement('div');
                 roleDiv.className = 'text-muted small';
                 roleDiv.textContent = (feedback.division ? feedback.division + ' | ' : '') + (feedback.role || '');
 
                 infoDiv.appendChild(nameDiv);
+                infoDiv.appendChild(dateDiv);
                 infoDiv.appendChild(roleDiv);
                 headerDiv.appendChild(img);
                 headerDiv.appendChild(infoDiv);
@@ -445,57 +479,86 @@ function showImageModal(imageSrc) {
 }
 
 
-                    // Add event listener for delete project
+                    // Remove old confirm dialog and use modal instead
                     document.querySelectorAll('.delete-project').forEach(item => {
                         item.addEventListener('click', function (e) {
                             e.stopPropagation();
-                            if (!confirm('Are you sure you want to delete this project?')) {
-                                return;
-                            }
+
                             const card = this.closest('.col-md-4');
                             const projectId = card.getAttribute('data-project-id');
                             if (!projectId) {
                                 alert('Project ID not found.');
                                 return;
                             }
-                            // Send AJAX DELETE request
-                            $.ajax({
-                                url: appUrl + '/projects/' + projectId,
-                                type: 'DELETE',
-                                headers: {
-                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                },
-                                success: function (response) {
-                                    // Remove card from UI
-                                    card.remove();
 
-                                    // Show success alert below Add Project button
-                                    let addProjectButtonContainer = document.querySelector('.d-flex.justify-content-end.mb-3');
-                                    let projectCardsContainer = document.getElementById('project-cards-container');
-                                    let alertContainer = document.querySelector('.alert alert-success');
+                            // Open delete confirmation modal and populate data
+                            const deleteModalEl = document.getElementById('deleteProjectModal');
+                            const deleteModal = new bootstrap.Modal(deleteModalEl);
 
-                                    if (!alertContainer) {
-                                        alertContainer = document.createElement('div');
-                                        alertContainer.className = 'alert alert-success';
-                                      
-                                        addProjectButtonContainer.parentNode.insertBefore(alertContainer, projectCardsContainer);
-                                    }
-                                    alertContainer.textContent = response.message || 'Project deleted successfully';
-                                    alertContainer.style.opacity = '1';
+                            // Set project image and title in modal
+                            const projectImage = card.querySelector('img');
+                            const projectTitle = card.querySelector('.title-project');
 
-                                    // After 1.5 seconds, fade out alert and reload page
-                                    setTimeout(() => {
-                                        alertContainer.style.opacity = '0';
+                            const deleteProjectImage = document.getElementById('deleteProjectImage');
+                            const deleteProjectTitle = document.getElementById('deleteProjectTitle');
+
+                            deleteProjectImage.src = projectImage ? projectImage.src : '';
+                            deleteProjectTitle.textContent = projectTitle ? projectTitle.textContent : '';
+
+                            // Store projectId and card element on modal for use in delete
+                            deleteModalEl.dataset.projectId = projectId;
+                            deleteModalEl.dataset.cardId = card.getAttribute('data-project-id');
+
+                            deleteModal.show();
+
+                            // Delete button click handler
+                            const confirmDeleteBtn = document.getElementById('confirmDeleteProjectBtn');
+                            confirmDeleteBtn.onclick = function () {
+                                $.ajax({
+                                    url: appUrl + '/projects/' + projectId,
+                                    type: 'DELETE',
+                                    headers: {
+                                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                    },
+                                    success: function (response) {
+                                        // Remove card from UI
+                                        card.remove();
+
+                                        // Hide modal
+                                        deleteModal.hide();
+
+                                        // Show success alert fixed at bottom right corner
+                                        let alertContainer = document.createElement('div');
+                                        alertContainer.className = 'alert alert-success d-flex align-items-center project-delete-alert';
+                                        alertContainer.setAttribute('role', 'alert');
+                                        alertContainer.style.opacity = '1';
+
+                                        alertContainer.innerHTML = `
+                                            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
+                                                <use xlink:href="#check-circle-fill"/>
+                                            </svg>
+                                            <div>
+                                                ${response.message || 'Project deleted successfully'}
+                                            </div>
+                                        `;
+
+                                        document.body.appendChild(alertContainer);
+
+                                        // After 1.5 seconds, fade out alert and reload page
                                         setTimeout(() => {
-                                            alertContainer.remove();
-                                            location.reload();
-                                        }, 500);
-                                    }, 1500);
-                                },
-                                error: function () {
-                                    alert('Failed to delete project.');
-                                }
-                            });
+                                            alertContainer.style.opacity = '0';
+                                            setTimeout(() => {
+                                                alertContainer.remove();
+                                                location.reload();
+                                            }, 500);
+                                        }, 1500);
+                                    },
+                                    error: function () {
+                                        alert('Failed to delete project.');
+                                    }
+                                });
+                            };
+
                         });
                     });
 

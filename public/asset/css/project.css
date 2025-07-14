@@ -236,6 +236,10 @@
     left: 24px;
     color: rgb(103, 111, 122);
 }
+
+#deleteProjectTitle {
+    font-weight: 300 !important;
+}
 .form-custom {
     margin-top: -12px;
 }
@@ -698,4 +702,34 @@
 
 #selected_co_authors .badge .btn-close:hover {
     opacity: 1;
+}
+
+/* Added styles for project delete success alert */
+.project-delete-alert {
+    position: fixed;
+    bottom: 60px;
+    right: 20px;
+    z-index: 1050;
+    min-width: 300px;
+    max-width: 350px;
+    box-shadow: 0 0.125rem 0.25rem rgb(0 0 0 / 0.075);
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.project-delete-alert svg.bi {
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    color: #198754; /* Bootstrap success green */
+}
+
+#deleteProjectTitle {
+    font-weight: 300 !important;
 }
