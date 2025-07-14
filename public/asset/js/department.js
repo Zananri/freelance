@@ -232,7 +232,7 @@ $(document).ready(function () {
         var formData = new FormData(form);
 
         $.ajax({
-            url: appUrl + "/departments",
+            url: appUrl + "/department/store",
             type: "POST",
             data: formData,
             contentType: false,
@@ -284,7 +284,7 @@ $(document).ready(function () {
     $(document).on("click", ".btn-edit", function () {
         var id = $(this).data("id");
         $.ajax({
-            url: appUrl + "/departments/" + id,
+            url: appUrl + "/department/" + id,
             type: "GET",
             success: function (department) {
                 $("#edit_name_department").val(department.name_department);
@@ -343,7 +343,7 @@ $(document).ready(function () {
         showLoader("edit", true);
 
         $.ajax({
-            url: appUrl + "/departments/" + id,
+            url: appUrl + "/department/" + id,
             type: "POST",
             data: formData,
             contentType: false,
@@ -441,7 +441,7 @@ $(document).ready(function () {
     $(document).on("click", ".btn-delete", function () {
         var id = $(this).data("id");
         $.ajax({
-            url: appUrl + "/departments/" + id,
+            url: appUrl + "/department/" + id,
             type: "GET",
             success: function (department) {
                 $("#delete_name_department").val(department.name_department);
@@ -486,7 +486,7 @@ $(document).ready(function () {
         showLoader("delete", true);
 
         $.ajax({
-            url: appUrl + "/departments/" + id,
+            url: appUrl + "/department/" + id,
             type: "DELETE",
             headers: {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
@@ -524,74 +524,74 @@ $(document).ready(function () {
     });
 });
 
-function loadDepartments(query = "", status = "ALL") {
-    $.ajax({
-        url: appUrl + "/departments",
-        type: "GET",
-        data: { query: query, status: status },
-        success: function (response) {
-            var departments = response.data;
-            var rowHtml = "";
-            if (departments.length === 0) {
-                rowHtml =
-                    '<tr><td colspan="4" class="text-center">No Data</td></tr>';
-            } else {
-                $.each(departments, function (index, department) {
-                    var statusText =
-                        department.status === "ACTIVE"
-                            ? "ACTIVE"
-                            : department.status;
-                    var statusClass =
-                        department.status === "ACTIVE"
-                            ? "status-ACTIVE"
-                            : "status-INACTIVE";
-                    if (department.status === "DELETED") {
-                        statusText = "DELETED";
-                        statusClass = "status-DELETED";
-                    }
-                    var imageHtml = "";
-                    if (department.image_url) {
-                        imageHtml =
-                            '<img src="' +
-                            department.image_url +
-                            '" alt="Department Image" class="table-image" />';
-                    } else {
-                        imageHtml = "";
-                    }
-                    rowHtml +=
-                        '<tr data-id="' +
-                        department.id +
-                        '">' +
-                        "<td>" +
-                        imageHtml +
-                        "</td>" +
-                        "<td>" +
-                        department.name_department +
-                        "</td>" +
-                        '<td><span class="' +
-                        statusClass +
-                        '">' +
-                        statusText +
-                        "</span></td>" +
-                        '<td style="text-align: right;">' +
-                        '<button class="btn-icon-toggle btn-edit" data-id="' +
-                        department.id +
-                        '"><span class="material-symbols-outlined icon">edit</span></button> ' +
-                        '<button class="btn-icon-toggle btn-delete" data-id="' +
-                        department.id +
-                        '"><span class="material-symbols-outlined icon">delete</span></button>' +
-                        "</td>" +
-                        "</tr>";
-                });
-            }
+    function loadDepartments(query = "", status = "ALL") {
+        $.ajax({
+            url: appUrl + "/department/index",
+            type: "GET",
+            data: { query: query, status: status },
+            success: function (response) {
+                var departments = response.data;
+                var rowHtml = "";
+                if (departments.length === 0) {
+                    rowHtml =
+                        '<tr><td colspan="4" class="text-center">No Data</td></tr>';
+                } else {
+                    $.each(departments, function (index, department) {
+                        var statusText =
+                            department.status === "ACTIVE"
+                                ? "ACTIVE"
+                                : department.status;
+                        var statusClass =
+                            department.status === "ACTIVE"
+                                ? "status-ACTIVE"
+                                : "status-INACTIVE";
+                        if (department.status === "DELETED") {
+                            statusText = "DELETED";
+                            statusClass = "status-DELETED";
+                        }
+                        var imageHtml = "";
+                        if (department.image_url) {
+                            imageHtml =
+                                '<img src="' +
+                                department.image_url +
+                                '" alt="Department Image" class="table-image" />';
+                        } else {
+                            imageHtml = "";
+                        }
+                        rowHtml +=
+                            '<tr data-id="' +
+                            department.id +
+                            '">' +
+                            "<td>" +
+                            imageHtml +
+                            "</td>" +
+                            "<td>" +
+                            department.name_department +
+                            "</td>" +
+                            '<td><span class="' +
+                            statusClass +
+                            '">' +
+                            statusText +
+                            "</span></td>" +
+                            '<td style="text-align: right;">' +
+                            '<button class="btn-icon-toggle btn-edit" data-id="' +
+                            department.id +
+                            '"><span class="material-symbols-outlined icon">edit</span></button> ' +
+                            '<button class="btn-icon-toggle btn-delete" data-id="' +
+                            department.id +
+                            '"><span class="material-symbols-outlined icon">delete</span></button>' +
+                            "</td>" +
+                            "</tr>";
+                    });
+                }
 
-            $("#departmentTableBody").html(rowHtml);
-        },
-        error: function () {
-            alert("Failed to load departments.");
-        },
-    });
-}
+                $("#departmentTableBody").html(rowHtml);
+            },
+            error: function () {
+                alert("Failed to load departments.");
+            },
+        });
+    }
 
 $(document).ready(function () {
     $("#searchInput").on("input", function () {

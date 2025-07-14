@@ -38,10 +38,11 @@ $(document).ready(function () {
 
     // Fetch user data from API using AJAX
     $.ajax({
-        url: appUrl + '/profiles',
+        url: appUrl + '/profile/index',
         method: 'GET',
         dataType: 'json',
         success: function (user) {
+            console.log('Profile data fetched:', user);
             employeeName.val(user.name || '');
             employeeEmail.val(user.employee?.email || '');
             employeeEmailWork.val(user.employee?.email_work || '');
@@ -72,6 +73,8 @@ $(document).ready(function () {
                 profilePhotoLabel.addClass('has-image');
                 profilePhotoLabel.css('background-image', 'url(' + e.target.result + ')');
                 profilePhotoClearBtn.removeClass('d-none');
+                // Enable submit button when new photo is selected
+                submitButton.prop('disabled', false);
             };
             reader.readAsDataURL(file);
         }
@@ -108,6 +111,7 @@ $(document).ready(function () {
     // Function to validate current password via AJAX
     function validateCurrentPassword() {
         var currentPassword = currentPasswordInput.val().trim();
+        console.log('Validating current password:', currentPassword);
         if (currentPassword.length === 0) {
             currentPasswordInput.removeClass('is-valid is-invalid');
             newPasswordInput.prop('disabled', true);
@@ -124,6 +128,7 @@ $(document).ready(function () {
                 'X-CSRF-TOKEN': $('input[name="_token"]').val()
             },
             success: function (data) {
+                console.log('Current password validation response:', data);
                 if (data.valid) {
                     currentPasswordInput.removeClass('is-invalid').addClass('is-valid');
                     newPasswordInput.prop('disabled', false);
@@ -135,6 +140,7 @@ $(document).ready(function () {
                 }
             },
             error: function () {
+                console.error('Error validating current password');
                 currentPasswordInput.removeClass('is-valid').addClass('is-invalid');
                 newPasswordInput.prop('disabled', true);
                 submitButton.prop('disabled', true);
@@ -152,6 +158,7 @@ $(document).ready(function () {
     // Handle form submission with AJAX
     profileForm.on('submit', function (e) {
         e.preventDefault();
+        console.log('Submitting profile update form');
 
         var formData = new FormData(this);
 
@@ -171,6 +178,7 @@ $(document).ready(function () {
                 'X-CSRF-TOKEN': $('input[name="_token"]').val()
             },
             success: function (response) {
+                console.log('Profile update success:', response);
                 // Show success alert
                 formAlert.html('<div class="alert alert-success" role="alert">' + response.message + '</div>');
                 // Hide alert after 1.5 seconds and reload page
@@ -180,6 +188,7 @@ $(document).ready(function () {
                 }, 1500);
             },
             error: function (xhr, status, error) {
+                console.error('Profile update error:', error);
                 var errorMessage = xhr.responseJSON?.error || error || 'Error updating profile.';
                 formAlert.html('<div class="alert alert-danger" role="alert">Error updating profile: ' + errorMessage + '</div>');
             },

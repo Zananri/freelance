@@ -410,6 +410,7 @@
 }
 
 .project-photo-title-author .project-title {
+    text-align: center;
     font-weight: 600;
     color: #555;
     margin: 0;

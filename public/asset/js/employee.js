@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load departments for filter select
     function loadDepartments() {
         $.ajax({
-            url: appUrl + "/departments",
+            url: appUrl + "/department/index",
             method: "GET",
             dataType: "json",
             success: function (response) {
@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
         $.ajax({
-            url: appUrl + "/divisions",
+            url: appUrl + "/division/index",
             method: "GET",
             dataType: "json",
             data: { department_id: departmentId },
@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
         $.ajax({
-            url: appUrl + "/jobs",
+            url: appUrl + "/job/index",
             method: "GET",
             dataType: "json",
             data: { division_id: divisionId },
@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Fetch employees with filters
     function fetchEmployees(filters = {}) {
         $.ajax({
-            url: appUrl + "/employees",
+            url: appUrl + "/employee/index",
             type: "GET",
             dataType: "json",
             data: filters,
@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const id = $(this).data("id");
         // Fetch employee details
         $.ajax({
-            url: appUrl + `/employees/${id}`,
+            url: appUrl + `/employee/${id}`,
             method: "GET",
             dataType: "json",
             success: function (employee) {
@@ -256,7 +256,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     $(document).on("click", ".btn-edit", function () {
         const id = $(this).data("id");
-        window.location.href = appUrl + `/employees/${id}/edit`;
+        window.location.href = appUrl + `/employee/${id}/edit`;
     });
 
     deleteEmployeeForm.addEventListener("submit", function (e) {
@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", function () {
         loaderOverlay.classList.remove("d-none");
 
         $.ajax({
-            url: appUrl + `/employees/${id}`,
+            url: appUrl + `/employee/${id}`,
             method: "DELETE",
             headers: {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
@@ -323,7 +323,7 @@ $(document).on("click", ".btn-detail", function () {
         }
 
         $.ajax({
-            url: appUrl + `/employees/${id}`,
+            url: appUrl + `/employee/${id}`,
             method: "GET",
             dataType: "json",
             success: function (employee) {

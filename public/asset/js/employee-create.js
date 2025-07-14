@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load departments on page load
     function loadDepartments() {
         $.ajax({
-            url: appUrl + "/departments",
+            url: appUrl + "/department/index",
             type: "GET",
             dataType: "json",
             success: function (data) {
@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function () {
         divisionSelect.innerHTML =
             '<option value="" disabled selected>Loading...</option>';
         $.ajax({
-            url: appUrl + "/divisions",
+            url: appUrl + "/division/index",
             type: "GET",
             data: { department_id: departmentId },
             dataType: "json",
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", function () {
         jobSelect.innerHTML =
             '<option value="" disabled selected>Loading...</option>';
         $.ajax({
-            url: appUrl + "/jobs",
+            url: appUrl + "/job/index",
             type: "GET",
             data: { division_id: divisionId },
             dataType: "json",
@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.set("job_id", formData.get("job_id"));
 
             $.ajax({
-                url: appUrl + "/employees",
+                url: appUrl + "/employee",
                 type: "POST",
                 data: formData,
                 contentType: false,

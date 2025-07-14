@@ -12,7 +12,7 @@
 
     <div class="body-content scrollable-container rounded-4" style="margin-top: 20px; width: 100%; font-size:14px;">
         <form id="profileForm" class="needs-validation position-relative" enctype="multipart/form-data" novalidate method="POST"
-            action="{{ route('profile.update') }}">
+            action="{{ route('profile.update', ['id' => $id]) }}">
             @csrf
 
             <!-- Alert container for Bootstrap alerts -->

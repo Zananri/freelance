@@ -104,7 +104,7 @@ $(document).ready(function () {
 
 function loadDepartmentsDropdown() {
         $.ajax({
-            url: appUrl + "/departments",
+            url: appUrl + "/department/index",
             type: "GET",
             success: function (response) {
                 var departments = response.data;
@@ -126,7 +126,7 @@ function loadDepartmentsDropdown() {
 
     function loadDepartmentsFilter() {
         $.ajax({
-            url: appUrl + "/departments",
+            url: appUrl + "/department/index",
             type: "GET",
             success: function (response) {
                 var departments = response.data;
@@ -338,7 +338,7 @@ function loadDepartmentsDropdown() {
     $(document).on("click", ".btn-edit", function () {
         var id = $(this).data("id");
         $.ajax({
-            url: appUrl + "/divisions/" + id,
+            url: appUrl + "/division/" + id,
             type: "GET",
             success: function (division) {
                 $("#edit_division_id").val(division.id);
@@ -407,7 +407,7 @@ function loadDepartmentsDropdown() {
         var formData = new FormData(form);
 
         $.ajax({
-            url: appUrl + "/divisions",
+            url: appUrl + "/division/store",
             type: "POST",
             data: formData,
             contentType: false,
@@ -457,7 +457,7 @@ function loadDepartmentsDropdown() {
     $(document).on("click", ".btn-edit", function () {
         var id = $(this).data("id");
         $.ajax({
-            url: appUrl + "/divisions/" + id,
+            url: appUrl + "/division/" + id,
             type: "GET",
             success: function (division) {
                 $("#edit_division_id").val(division.id);
@@ -518,7 +518,7 @@ function loadDepartmentsDropdown() {
         showLoader("edit", true);
 
         $.ajax({
-            url: appUrl + "/divisions/" + id,
+            url: appUrl + "/division/" + id,
             type: "POST",
             data: formData,
             contentType: false,
@@ -568,7 +568,7 @@ function loadDepartmentsDropdown() {
     $(document).on("click", ".btn-delete", function () {
         var id = $(this).data("id");
         $.ajax({
-            url: appUrl + "/divisions/" + id,
+            url: appUrl + "/division/" + id,
             type: "GET",
             success: function (division) {
                 $("#delete_department_name").val(
@@ -615,7 +615,7 @@ function loadDepartmentsDropdown() {
         showLoader("delete", true);
 
         $.ajax({
-            url: appUrl + "/divisions/" + id,
+            url: appUrl + "/division/" + id,
             type: "DELETE",
             headers: {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
@@ -653,8 +653,8 @@ function loadDepartmentsDropdown() {
     });
 
 function loadDivisions(query = "", status = "ALL", departmentId = "") {
-        $.ajax({
-            url: appUrl + "/divisions",
+$.ajax({
+            url: appUrl + "/division/index",
             type: "GET",
             data: { query: query, status: status, department_id: departmentId },
             success: function (response) {

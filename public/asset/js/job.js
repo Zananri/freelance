@@ -27,7 +27,7 @@ function loadDepartmentsDropdown(
     callback = null
 ) {
     $.ajax({
-        url: appUrl + "/departments",
+        url: appUrl + "/department/index",
         type: "GET",
         success: function (response) {
             var departments = response.data;
@@ -72,7 +72,7 @@ function loadDivisionsDropdown(
         return;
     }
     $.ajax({
-        url: appUrl + "/divisions",
+        url: appUrl + "/division/index",
         type: "GET",
         data: { department_id: departmentId },
         success: function (response) {
@@ -143,7 +143,7 @@ $(document).on("change", "#department_id", function () {
 function loadDivisionsForFilter(departmentId) {
     $("#divisionFilterOptions").html('<span class="dropdown-item text-muted">Loading divisions...</span>');
     $.ajax({
-        url: appUrl + "/divisions",
+        url: appUrl + "/division/index",
         type: "GET",
         data: departmentId ? { department_id: departmentId } : {},
         success: function (response) {
@@ -179,7 +179,7 @@ $(document).on("click", "#divisionFilterOptions .division-filter-option", functi
 
 function loadJobs() {
     $.ajax({
-        url: appUrl + "/jobs",
+        url: appUrl + "/job/index",
         type: "GET",
         data: {
             query: $("#searchInput").val() || "",
@@ -262,7 +262,7 @@ $(document).ready(function () {
             // Load department list jika belum ada
             if ($("#departmentFilterOptions").find("a").length === 0) {
                 $.ajax({
-                    url: appUrl + "/departments",
+                    url: appUrl + "/department/index",
                     type: "GET",
                     success: function (response) {
                         var departments = response.data;
@@ -291,7 +291,7 @@ $(document).ready(function () {
             // Jika belum ada department, load dulu
             if ($("#departmentFilterOptions").find("a").length === 0) {
                 $.ajax({
-                    url: appUrl + "/departments",
+                    url: appUrl + "/department/index",
                     type: "GET",
                     success: function (response) {
                         var departments = response.data;
@@ -446,7 +446,7 @@ $(document).ready(function () {
         };
 
         $.ajax({
-            url: appUrl + "/jobs",
+            url: appUrl + "/job/store",
             type: "POST",
             data: formData,
             headers: {
@@ -518,7 +518,7 @@ $(document).ready(function () {
         };
 
         $.ajax({
-            url: appUrl + "/jobs/" + jobId,
+            url: appUrl + "/job/" + jobId,
             type: "PUT",
             data: formData,
             headers: {
@@ -572,7 +572,7 @@ $(document).ready(function () {
         showLoader("edit", true);
 
         $.ajax({
-            url: `${appUrl}/jobs/${jobId}`,
+            url: `${appUrl}/job/${jobId}`,
             type: "GET",
             success: function (response) {
                 const job = response;
@@ -625,7 +625,7 @@ $(document).ready(function () {
         showLoader("delete", true);
 
         $.ajax({
-            url: appUrl + "/jobs/" + jobId,
+            url: appUrl + "/job/" + jobId,
             type: "DELETE",
             headers: {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),

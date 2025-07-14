@@ -64,7 +64,7 @@
                     </div>
                 </div>
 
-                <a href="{{ route('employees.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd">
+                <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd">
                     <span class="material-symbols-outlined icon">add</span> Add Data
                 </a>
             </div>

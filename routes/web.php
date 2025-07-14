@@ -19,83 +19,83 @@ Route::get('/master', function () {
 
 
 Route::get('/department', [DepartmentController::class, 'showDepartmentPage'])->name('department');
-Route::get('/departments', [DepartmentController::class, 'index'])->name('departments.index');
-Route::get('/departments/{id}', [DepartmentController::class, 'show'])->name('departments.show');
-Route::post('/departments', [DepartmentController::class, 'store'])->name('departments.store');
-Route::put('/departments/{id}', [DepartmentController::class, 'update'])->name('departments.update');
-Route::delete('/departments/{id}', [DepartmentController::class, 'destroy'])->name('departments.destroy');
+Route::get('/department/index', [DepartmentController::class, 'index'])->name('department.index');
+Route::get('/department/{id}', [DepartmentController::class, 'show'])->name('department.show');
+Route::post('/department/store', [DepartmentController::class, 'store'])->name('department.store');
+Route::put('/department/{id}', [DepartmentController::class, 'update'])->name('department.update');
+Route::delete('/department/{id}', [DepartmentController::class, 'destroy'])->name('department.destroy');
 
 
 // Division CRUD routes
 Route::get('/division', [DivisionController::class, 'showDivisionPage'])->name('division');
-Route::get('/divisions', [DivisionController::class, 'index'])->name('divisions.index');
-Route::get('/divisions/{id}', [DivisionController::class, 'show'])->name('divisions.show');
-Route::post('/divisions', [DivisionController::class, 'store'])->name('divisions.store');
-Route::put('/divisions/{id}', [DivisionController::class, 'update'])->name('divisions.update');
-Route::delete('/divisions/{id}', [DivisionController::class, 'destroy'])->name('divisions.destroy');
+Route::get('/division/index', [DivisionController::class, 'index'])->name('division.index');
+Route::get('/division/{id}', [DivisionController::class, 'show'])->name('division.show');
+Route::post('/division/store', [DivisionController::class, 'store'])->name('division.store');
+Route::put('/division/{id}', [DivisionController::class, 'update'])->name('division.update');
+Route::delete('/division/{id}', [DivisionController::class, 'destroy'])->name('division.destroy');
 
 // Job CRUD routes
 Route::get('/job', [JobController::class, 'showJobPage'])->name('job');
-Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
-Route::get('/jobs/{id}', [JobController::class, 'show'])->name('jobs.show');
-Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
-Route::put('/jobs/{id}', [JobController::class, 'update'])->name('jobs.update');
-Route::delete('/jobs/{id}', [JobController::class, 'destroy'])->name('jobs.destroy');
+Route::get('/jobi/ndex', [JobController::class, 'index'])->name('job.index');
+Route::get('/job/{id}', [JobController::class, 'show'])->name('job.show');
+Route::post('/job/store', [JobController::class, 'store'])->name('job.store');
+Route::put('/job/{id}', [JobController::class, 'update'])->name('job.update');
+Route::delete('/job/{id}', [JobController::class, 'destroy'])->name('job.destroy');
 
 // Employee CRUD routes
 Route::get('/employee', [EmployeeController::class, 'showEmployeePage'])->name('employee');
-Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index');
-Route::get('/employees/create', [EmployeeController::class, 'create'])->name('employees.create');
-Route::get('/employees/{id}/edit', [EmployeeController::class, 'edit'])->name('employees.edit');
-Route::get('/employees/{id}', [EmployeeController::class, 'show'])->name('employees.show');
-Route::post('/employees', [EmployeeController::class, 'store'])->name('employees.store');
-Route::put('/employees/{id}', [EmployeeController::class, 'update'])->name('employees.update');
-Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('employees.destroy');
+Route::get('/employee/index', [EmployeeController::class, 'index'])->name('employee.index');
+Route::get('/employee/create', [EmployeeController::class, 'create'])->name('employee.create');
+Route::get('/employee/{id}/edit', [EmployeeController::class, 'edit'])->name('employee.edit');
+Route::get('/employee/{id}', [EmployeeController::class, 'show'])->name('employee.show');
+Route::post('/employee', [EmployeeController::class, 'store'])->name('employee.store');
+Route::put('/employee/{id}', [EmployeeController::class, 'update'])->name('employee.update');
+Route::delete('/employee/{id}', [EmployeeController::class, 'destroy'])->name('employee.destroy');
 
 Route::get('/user', [UserController::class, 'showUserPage'])->name('user');
-Route::get('/users', [UserController::class, 'index'])->name('users.index');
-Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
-// Route::get('/users/{id}/edit', [UserController::class, 'edit'])->name('users.edit');
-Route::get('/users/{id}', [UserController::class, 'show'])->name('users.show');
-Route::post('/users', [UserController::class, 'store'])->name('users.store');
-Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
-Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
-Route::get('/users/ajax/data', [UserController::class, 'getUsersAjax'])->name('users.ajax.data');
+Route::get('/user/index', [UserController::class, 'index'])->name('user.index');
+Route::get('/user/create', [UserController::class, 'create'])->name('user.create');
+// Route::get('/user/{id}/edit', [UserController::class, 'edit'])->name('user.edit');
+Route::get('/user/{id}', [UserController::class, 'show'])->name('user.show');
+Route::post('/user/store', [UserController::class, 'store'])->name('user.store');
+Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
+Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('user.destroy');
+Route::get('/user/ajax/data', [UserController::class, 'getUsersAjax'])->name('user.ajax.data');
 
 Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
-Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.update');
+Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
 Route::post('/profile/verify-current-password', [ProfileController::class, 'verifyCurrentPassword'])->name('profile.verifyCurrentPassword');
-Route::get('/profiles', [ProfileController::class, 'index'])->name('profiles.index');
-Route::get('/profiles/create', [ProfileController::class, 'create'])->name('profiles.create');
-Route::get('/profiles/{id}/edit', [ProfileController::class, 'edit'])->name('profiles.edit');
-Route::get('/profiles/{id}', [ProfileController::class, 'show'])->name('profiles.show');
-Route::post('/profiles', [ProfileController::class, 'store'])->name('profiles.store');
-Route::put('/profiles/{id}', [ProfileController::class, 'update'])->name('profiles.update');
-Route::delete('/profiles/{id}', [ProfileController::class, 'destroy'])->name('profiles.destroy');
+Route::get('/profile/index', [ProfileController::class, 'index'])->name('profile.index');
+Route::get('/profile/create', [ProfileController::class, 'create'])->name('profile.create');
+Route::get('/profile/{id}/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+Route::get('/profile/{id}', [ProfileController::class, 'show'])->name('profile.show');
+Route::post('/profile/store', [ProfileController::class, 'store'])->name('profile.store');
+Route::put('/profile/{id}', [ProfileController::class, 'update'])->name('profile.update');
+Route::delete('/profile/{id}', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
-Route::post('/attendance/update', [AttendanceController::class, 'updateAttendance'])->name('attendance.update');
-Route::get('/attendances', [AttendanceController::class, 'index'])->name('attendances.index');
-Route::get('/attendances/create', [AttendanceController::class, 'create'])->name('attendances.create');
-Route::get('/attendances/{id}/edit', [AttendanceController::class, 'edit'])->name('attendances.edit');
-Route::get('/attendances/{id}', [AttendanceController::class, 'show'])->name('attendances.show');
-Route::post('/attendances', [AttendanceController::class, 'store'])->name('attendances.store');
-Route::put('/attendances/{id}', [AttendanceController::class, 'update'])->name('attendances.update');
-Route::delete('/attendances/{id}', [AttendanceController::class, 'destroy'])->name('attendances.destroy');
+// Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
+// Route::post('/attendance/update', [AttendanceController::class, 'updateAttendance'])->name('attendance.update');
+// Route::get('/attendance/index', [AttendanceController::class, 'index'])->name('attendance.index');
+// Route::get('/attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
+// Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
+// Route::get('/attendance/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
+// Route::post('/attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
+// Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
+// Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
 
 Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
-Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update');
-Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
-Route::get('/projects/create', [ProjectController::class, 'create'])->name('projects.create');
-Route::get('/projects/{id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
-Route::get('/projects/{id}', [ProjectController::class, 'show'])->name('projects.show');
-Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
+Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
+Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
+Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
+Route::get('/project/{id}', [ProjectController::class, 'show'])->name('project.show');
+Route::post('/project/store', [ProjectController::class, 'store'])->name('project.store');
 Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
 Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
-Route::put('/projects/{id}', [ProjectController::class, 'update'])->name('projects.update');
-Route::delete('/projects/{id}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+Route::put('/project/{id}', [ProjectController::class, 'update'])->name('project.update');
+Route::delete('/project/{id}', [ProjectController::class, 'destroy'])->name('project.destroy');
 
-Route::get('/project/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
+Route::get('/project/index/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
 
 Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignments'])->name('project.assignments');
 
@@ -110,6 +110,6 @@ Route::get('/login', function () {
 Route::post('/login', [App\Http\Controllers\UserController::class, 'login'])->name('login');
 Route::post('/logout', [App\Http\Controllers\UserController::class, 'logout'])->name('logout');
 
-Route::post('/users/{id}/reset-password', [UserController::class, 'resetPassword'])->name('users.resetPassword')->middleware('auth');
+Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword')->middleware('auth');
 
 Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');

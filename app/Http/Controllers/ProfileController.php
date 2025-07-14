@@ -5,16 +5,17 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
- use Illuminate\Support\Facades\Hash;
-    use Illuminate\Support\Facades\Storage;
-    use App\Models\Employee;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Employee;
 
 class ProfileController extends Controller
 {
 
     public function showprofilePage()
     {
-        return view('profile/profile');
+        $user = auth()->user();
+        return view('profile/profile', ['id' => $user->id]);
     }
 
     public function index()
@@ -85,19 +86,19 @@ class ProfileController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+        // Validate only profile_photo and optional password fields, current_password is optional now
         $request->validate([
-            'current_password' => 'required|string',
+            'current_password' => 'nullable|string',
             'password' => 'nullable|string|min:6',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Verify current password before updating
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json(['error' => 'Current password is incorrect'], 422);
-        }
-
-        // Update password if provided
+        // If password is provided, verify current password
         if ($request->filled('password')) {
+            if (!$request->filled('current_password') || !Hash::check($request->current_password, $user->password)) {
+                return response()->json(['error' => 'Current password is incorrect or missing'], 422);
+            }
+            // Update password
             $user->password = Hash::make($request->password);
         }
 

@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load project card data and generate cards dynamically
     function loadProjectCardData() {
         $.ajax({
-            url: appUrl + "/project/card-data",
+            url: appUrl + "/project/index/card-data",
             type: "GET",
             dataType: "json",
             success: function (data) {
@@ -588,7 +588,7 @@ function showImageModal(imageSrc) {
 
                 // Fetch project details via AJAX
 $.ajax({
-    url: appUrl + '/projects/' + projectId,
+    url: appUrl + '/project/' + projectId,
     type: 'GET',
     dataType: 'json',
     success: function (data) {
@@ -600,10 +600,10 @@ $.ajax({
         $('#projectDetailImage').attr('style', 'border-radius: 8px;');
 
         // Update title as h2 with text-align: justify
-        $('#projectDetailTitle').replaceWith(`<h2 class="project-title" id="projectDetailTitle" style="text-align: justify;">${data.title || ''}</h2>`);
+        $('#projectDetailTitle').replaceWith(`<h2 class="project-title" id="projectDetailTitle">${data.title || ''}</h2>`);
 
         // Update author as p with text-align: justify
-``
+        $('#projectDetailAuthor').text(data.author ? data.author.name : 'Unknown').css('text-align', 'justify');
         $('#projectDetailDepartment').text(data.department || '');
         $('#projectDetailDivision').text(data.division || '');
         $('#projectDetailDescription').text(data.description || '');
@@ -630,13 +630,6 @@ $.ajax({
 
         $('#projectDetailStartDate').text(formatDate(data.start_date));
         $('#projectDetailDueDate').text(formatDate(data.due_date));
-
-        // Author display
-        if (data.author && data.author.name) {
-            $('#projectDetailAuthor').text(data.author.name);
-        } else {
-            $('#projectDetailAuthor').text('None');
-        }
 
         // Co-authors list
         if (data.co_authors && data.co_authors.length > 0) {
@@ -889,7 +882,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
     // Load departments dynamically
     function loadDepartments() {
         $.ajax({
-            url: appUrl + "/departments",
+            url: appUrl + "/department/index",
             type: "GET",
             dataType: "json",
             success: function (data) {
@@ -913,7 +906,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
         divisionSelect.innerHTML =
             '<option value="" disabled selected>Loading...</option>';
         $.ajax({
-            url: appUrl + "/divisions",
+            url: appUrl + "/division/index",
             type: "GET",
             data: { department_id: departmentId },
             dataType: "json",
@@ -938,7 +931,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
     // Load projects for "part_of_project" select
     function loadProjects() {
         $.ajax({
-            url: appUrl + "/projects",
+            url: appUrl + "/project/index",
             type: "GET",
             dataType: "json",
             success: function (data) {
@@ -972,7 +965,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
             const currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '';
 
             $.ajax({
-                url: appUrl + '/employees',
+                url: appUrl + '/employee/index',
                 type: 'GET',
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: 'json',
@@ -1131,7 +1124,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
             const currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '';
 
             $.ajax({
-                url: appUrl + '/employees',
+                url: appUrl + '/employee/index',
                 type: 'GET',
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: 'json',
@@ -1360,7 +1353,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
         const formData = new FormData(addProjectForm);
 
         $.ajax({
-            url: appUrl + "/projects",
+            url: appUrl + "/project/store",
             type: "POST",
             data: formData,
             contentType: false,
@@ -1420,6 +1413,17 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
     // loadEmployees(); // Removed obsolete function call
     setupCoAuthorInput();
 
+    // Add event listener to department select to load divisions on change
+    departmentSelect.addEventListener('change', function () {
+        const selectedDepartmentId = this.value;
+        if (selectedDepartmentId) {
+            loadDivisions(selectedDepartmentId);
+        } else {
+            divisionSelect.innerHTML = '<option value="" disabled selected>Select Division</option>';
+            divisionSelect.disabled = true;
+        }
+    });
+
     // Global array to track selected co-author IDs for exclusion in contributor input
     window.selectedCoAuthorIds = [];
 
@@ -1438,7 +1442,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
             const currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '';
 
             $.ajax({
-                url: appUrl + '/employees',
+                url: appUrl + '/employee/index',
                 type: 'GET',
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: 'json',
@@ -1634,7 +1638,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
             const currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '';
 
             $.ajax({
-                url: appUrl + '/employees',
+                url: appUrl + '/employee/index',
                 type: 'GET',
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: 'json',

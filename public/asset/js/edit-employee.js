@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const jobSelect = document.getElementById("job_id");
 
     function loadDepartments(selectedId) {
-        fetch("/departments", { headers: { Accept: "application/json" } })
+        fetch("/department/index", { headers: { Accept: "application/json" } })
             .then((res) => res.json())
             .then((data) => {
                 let options =
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadDivisions(departmentId, selectedId) {
         divisionSelect.innerHTML =
             '<option value="" disabled>Loading...</option>';
-        fetch(`/divisions?department_id=${departmentId}`, {
+        fetch(`/division/index?department_id=${departmentId}`, {
             headers: { Accept: "application/json" },
         })
             .then((res) => res.json())
@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function loadJobs(divisionId, selectedId) {
         jobSelect.innerHTML = '<option value="" disabled>Loading...</option>';
-        fetch(`/jobs?division_id=${divisionId}`, {
+        fetch(`/job/index?division_id=${divisionId}`, {
             headers: { Accept: "application/json" },
         })
             .then((res) => res.json())

@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\Department;
+use App\Models\Division;
+use App\Models\Job;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -335,9 +338,9 @@ class EmployeeController extends Controller
         if (!$employee) {
             abort(404, 'Employee not found');
         }
-        $departments = \App\Models\Department::all();
-        $divisions = \App\Models\Division::all();
-        $jobs = \App\Models\Job::all();
+        $departments = Department::all();
+        $divisions = Division::all();
+        $jobs = Job::all();
         return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs'));
     }
 }
