@@ -11,6 +11,5 @@
     </div>
     <script>
     </script>
-    @endif
 
 </x-office-layout>

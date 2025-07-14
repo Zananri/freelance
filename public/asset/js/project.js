@@ -587,69 +587,82 @@ function showImageModal(imageSrc) {
                 }
 
                 // Fetch project details via AJAX
-                $.ajax({
-                    url: appUrl + '/projects/' + projectId,
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function (data) {
-                        // Populate modal fields
-                        const baseFileUrl = appUrl + '/file/project/';
+$.ajax({
+    url: appUrl + '/projects/' + projectId,
+    type: 'GET',
+    dataType: 'json',
+    success: function (data) {
+        // Populate modal fields
+        const baseFileUrl = appUrl + '/file/project/';
 
-                        $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
-                        $('#projectDetailTitle').text(data.title || '');
-                        $('#projectDetailAuthor').text(data.author ? 'Author: ' + data.author.name : 'Author: N/A');
-                        $('#projectDetailDepartment').text(data.department || '');
-                        $('#projectDetailDivision').text(data.division || '');
-                        $('#projectDetailDescription').text(data.description || '');
+        // Update image with only border-radius style, remove width and height inline styles
+        $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
+        $('#projectDetailImage').attr('style', 'border-radius: 8px;');
 
-                        if (data.reference_url) {
-                            $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
-                        } else {
-                            $('#projectDetailReferenceUrl').hide();
-                        }
+        // Update title as h2 with text-align: justify
+        $('#projectDetailTitle').replaceWith(`<h2 class="project-title" id="projectDetailTitle" style="text-align: justify;">${data.title || ''}</h2>`);
 
-                        if (data.reference_file) {
-                            $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
-                        } else {
-                            $('#projectDetailReferenceFile').hide();
-                        }
+        // Update author as p with text-align: justify
+``
+        $('#projectDetailDepartment').text(data.department || '');
+        $('#projectDetailDivision').text(data.division || '');
+        $('#projectDetailDescription').text(data.description || '');
 
-                        // Format dates as "day month year"
-                        function formatDate(dateStr) {
-                            if (!dateStr) return '';
-                            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-                            const dateObj = new Date(dateStr);
-                            return dateObj.toLocaleDateString(undefined, options);
-                        }
+        if (data.reference_url) {
+            $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
+        } else {
+            $('#projectDetailReferenceUrl').hide();
+        }
 
-                        $('#projectDetailStartDate').text(formatDate(data.start_date));
-                        $('#projectDetailDueDate').text(formatDate(data.due_date));
+        if (data.reference_file) {
+            $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
+        } else {
+            $('#projectDetailReferenceFile').hide();
+        }
 
-                                // Co-authors list
-                                if (data.co_authors && data.co_authors.length > 0) {
-                                    const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
-                                    $('#projectDetailCoAuthors').text(coAuthorNames);
-                                } else {
-                                    $('#projectDetailCoAuthors').text('None');
-                                }
+        // Format dates as "day month year"
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const dateObj = new Date(dateStr);
+            return dateObj.toLocaleDateString(undefined, options);
+        }
 
-                                // Contributors list
-                                if (data.contributors && data.contributors.length > 0) {
-                                    const contributorNames = data.contributors.map(c => c.name).join(', ');
-                                    $('#projectDetailContributors').text(contributorNames);
-                                } else {
-                                    $('#projectDetailContributors').text('None');
-                                }
+        $('#projectDetailStartDate').text(formatDate(data.start_date));
+        $('#projectDetailDueDate').text(formatDate(data.due_date));
 
-                        // Show modal
-                        const projectDetailModalEl = document.getElementById('projectDetailModal');
-                        const projectDetailModal = new bootstrap.Modal(projectDetailModalEl);
-                        projectDetailModal.show();
-                    },
-                    error: function () {
-                        alert('Failed to load project details.');
-                    }
-                });
+        // Author display
+        if (data.author && data.author.name) {
+            $('#projectDetailAuthor').text(data.author.name);
+        } else {
+            $('#projectDetailAuthor').text('None');
+        }
+
+        // Co-authors list
+        if (data.co_authors && data.co_authors.length > 0) {
+            const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
+            $('#projectDetailCoAuthors').text(coAuthorNames);
+        } else {
+            $('#projectDetailCoAuthors').text('None');
+        }
+
+        // Contributors list
+        if (data.contributors && data.contributors.length > 0) {
+            const contributorNames = data.contributors.map(c => c.name).join(', ');
+            $('#projectDetailContributors').text(contributorNames);
+        } else {
+            $('#projectDetailContributors').text('None');
+        }
+
+        // Show modal
+        const projectDetailModalEl = document.getElementById('projectDetailModal');
+        const projectDetailModal = new bootstrap.Modal(projectDetailModalEl);
+        projectDetailModal.show();
+    },
+    error: function () {
+        alert('Failed to load project details.');
+    }
+});
             } else if (text === 'Feedback') {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1430,7 +1443,9 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: 'json',
                 success: function (data) {
-                    employees = data.data || [];
+                    // Exclude employees already selected as contributors
+                    const contributorIds = window.selectedContributorIds || [];
+                    employees = (data.data || []).filter(emp => !contributorIds.includes(emp.id));
                     filteredEmployees = employees;
                     renderDropdown();
                 },
@@ -1599,17 +1614,208 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
         setupContributorInput();
     };
 
-    // Load divisions when department changes
-    departmentSelect.addEventListener("change", function () {
-        const deptId = this.value;
-        console.log("Department changed to:", deptId);
-        if (deptId) {
-            loadDivisions(deptId);
-        } else {
-            divisionSelect.innerHTML =
-                '<option value="" disabled selected>Select Division</option>';
+    // Add global array to track selected contributors
+    window.selectedContributorIds = [];
+
+    // Wrap original setupContributorInput to update global selectedContributorIds and refresh co-author dropdown
+    function wrappedSetupContributorInput() {
+        const input = document.getElementById('contributor_input');
+        const dropdown = document.getElementById('contributor_dropdown');
+        const selectedContainer = document.getElementById('selected_contributors');
+        const hiddenInput = document.getElementById('contributors');
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        // Fetch employees from API with optional search query
+        function fetchEmployees(query = '') {
+            // Get current logged-in employee ID from modal data attribute
+            const currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '';
+
+            $.ajax({
+                url: appUrl + '/employees',
+                type: 'GET',
+                data: { query: query, exclude_employee_id: currentEmployeeId },
+                dataType: 'json',
+                success: function (data) {
+                    // Exclude employees already selected as co-authors
+                    const coAuthorIds = window.selectedCoAuthorIds || [];
+                    employees = (data.data || []).filter(emp => !coAuthorIds.includes(emp.id));
+                    filteredEmployees = employees;
+                    renderDropdown();
+                },
+                error: function () {
+                    alert('Failed to load employees.');
+                }
+            });
         }
-    });
+
+        // Render dropdown list with checkboxes
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            const html = filteredEmployees.map(emp => {
+                const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            <span>${emp.name}</span>
+                        </div>
+                        <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>
+                `;
+            }).join('');
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+
+            // Add event listeners for checkboxes
+            dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const name = this.getAttribute('data-name');
+                    // Find the employee object from employees array to get user_photo
+                    const employeeObj = employees.find(emp => emp.id === id);
+                    if (this.checked) {
+                        if (!selectedEmployees.some(e => e.id === id)) {
+                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                    // Update global selectedContributorIds
+                    window.selectedContributorIds = selectedEmployees.map(e => e.id);
+                    // Refresh co-author dropdown
+                    if (window.refreshCoAuthorDropdown) {
+                        window.refreshCoAuthorDropdown();
+                    }
+                });
+            });
+        }
+
+        // Render selected employees as badges with remove buttons
+        function renderSelected() {
+            selectedContainer.innerHTML = '';
+            selectedEmployees.forEach(emp => {
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+
+                const img = document.createElement('img');
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = 'rounded-circle me-2';
+                img.style.width = '24px';
+                img.style.height = '24px';
+                img.style.objectFit = 'cover';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = emp.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
+                removeBtn.setAttribute('aria-label', 'Remove');
+                removeBtn.addEventListener('click', () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                    // Update global selectedContributorIds
+                    window.selectedContributorIds = selectedEmployees.map(e => e.id);
+                    if (window.refreshCoAuthorDropdown) {
+                        window.refreshCoAuthorDropdown();
+                    }
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameSpan);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        // Update hidden input with JSON string of selected employee IDs
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
+        }
+
+        // Filter employees based on input value
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            if (val === '') {
+                filteredEmployees = employees;
+            } else {
+                filteredEmployees = employees.filter(emp => emp.name.toLowerCase().includes(val));
+            }
+            renderDropdown();
+        }
+
+        // Event listeners
+        input.addEventListener('input', function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener('focus', function () {
+            filterEmployees(this.value);
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        // Initial fetch of employees
+        fetchEmployees();
+
+        // Expose clearSelectedContributors function to global scope for use in modal close event
+        window.clearSelectedContributors = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = 'none';
+            input.value = '';
+            window.selectedContributorIds = [];
+            if (window.refreshCoAuthorDropdown) {
+                window.refreshCoAuthorDropdown();
+            }
+        };
+    }
+
+    wrappedSetupContributorInput();
+
+    // Function to refresh co-author dropdown when contributor selection changes
+    window.refreshCoAuthorDropdown = function () {
+        // Clear co-author input and selected co-authors
+        const coAuthorInput = document.getElementById('co_author_input');
+        const coAuthorDropdown = document.getElementById('co_author_dropdown');
+        const selectedCoAuthorsContainer = document.getElementById('selected_co_authors');
+        const hiddenCoAuthorsInput = document.getElementById('co_author');
+
+        if (!coAuthorInput || !coAuthorDropdown || !selectedCoAuthorsContainer || !hiddenCoAuthorsInput) {
+            return;
+        }
+
+        // Clear current selections
+        coAuthorInput.value = '';
+        coAuthorDropdown.style.display = 'none';
+        selectedCoAuthorsContainer.innerHTML = '';
+        hiddenCoAuthorsInput.value = '';
+
+        // Re-initialize co-author input to fetch updated employee list excluding current contributors
+        wrappedSetupCoAuthorInput();
+    };
 
     // Clear form and reset image preview when modal is closed
     var addProjectModalEl = document.getElementById("addProjectModal");

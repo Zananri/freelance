@@ -149,39 +149,36 @@
         <script></script>
     </x-slot>
 
-    <!-- View Project Detail Modal -->
-    <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-            <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="projectDetailModalLabel">Project Detail</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body modal-body-custom">
-                    <div class="project-detail-modal">
-                        <div class="project-photo-title-author">
-                            <img id="projectDetailImage" src="" alt="Project Image" class="project-photo" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px;">
-                            <p class="project-title" id="projectDetailTitle"></p>
-                            <p class="project-author" id="projectDetailAuthor"></p>
+<!-- View Project Detail Modal -->
+<div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
+        <div class="modal-content modal-content-custom" style="box-shadow: none;">
+            <div class="modal-body modal-body-custom">
+                <button type="button" class="btn-close float-end" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="project-detail-modal">
+                    <div class="project-photo-title-author">
+                        <img id="projectDetailImage" src="" alt="Project Image" class="project-photo" style="border-radius: 8px;">
+                        <h2 class="project-title" id="projectDetailTitle" style="text-align: justify;"></h2>
+                        <p class="project-description" id="projectDetailDescription" ></p>
+
+                    </div>
+                    <div class="project-detail-columns">
+                        <div class="project-detail-left">
+                            <p><strong>Department:</strong> <span id="projectDetailDepartment"></span></p>
+                            <p><strong>Division:</strong> <span id="projectDetailDivision"></span></p>
+                            <p><strong>Author:</strong> <span id="projectDetailAuthor"></span></p>
+                            <p><strong>Co-Authors:</strong> <span id="projectDetailCoAuthors"></span></p>
+                            <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
                         </div>
-                        <div class="project-detail-columns">
-                            <div class="project-detail-left">
-                                <p><strong>Department:</strong> <span id="projectDetailDepartment"></span></p>
-                                <p><strong>Division:</strong> <span id="projectDetailDivision"></span></p>
-                                <p><strong>Description:</strong> <span id="projectDetailDescription"></span></p>
-                             
-                            </div>
-                            <div class="project-detail-right">
-                                <p><strong>Reference URL:</strong> <a href="#" target="_blank" id="projectDetailReferenceUrl"></a></p>
-                                <p><strong>Reference File:</strong> <a href="#" id="projectDetailReferenceFile" download>Download</a></p>
-                                <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
-                                <p><strong>Due Date:</strong> <span id="projectDetailDueDate"></span></p>
-                                <p><strong>Co-Authors:</strong> <span id="projectDetailCoAuthors"></span></p>
-                                <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
-                            </div>
+                        <div class="project-detail-right">
+                            <p><strong>Reference URL:</strong> <a href="#" target="_blank" id="projectDetailReferenceUrl"></a></p>
+                            <p><strong>Reference File:</strong> <a href="#" id="projectDetailReferenceFile" download>Download</a></p>
+                            <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
+                            <p><strong>Due Date:</strong> <span id="projectDetailDueDate"></span></p>
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     </div>

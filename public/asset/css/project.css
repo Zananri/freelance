@@ -407,18 +407,17 @@
     height: 150px;
     border-radius: 50%;
     object-fit: cover;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .project-photo-title-author .project-title {
-    font-size: 16px;
     font-weight: 600;
     color: #555;
     margin: 0;
 }
 
-.project-photo-title-author .project-author {
-    font-size: 12px;
+.project-photo-title-author .project-description {
+    text-align: justify;
+    font-size: 14px;
     color: #555;
     margin: 0;
 }
