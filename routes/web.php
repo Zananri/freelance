@@ -107,8 +107,8 @@ Route::get('/login', function () {
     return view('auth.login');
 });
 
-Route::post('/login', [App\Http\Controllers\UserController::class, 'login'])->name('login');
-Route::post('/logout', [App\Http\Controllers\UserController::class, 'logout'])->name('logout');
+Route::post('/login', [UserController::class, 'login'])->name('login');
+Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
 Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword')->middleware('auth');
 
