@@ -92,22 +92,520 @@ document.addEventListener("DOMContentLoaded", function () {
                     rowHtml += "</div>";
                     container.innerHTML = rowHtml;
 
-                    // Add event listeners for dropdown toggle
-                    document.querySelectorAll('.dropdown-icon').forEach(icon => {
-                        icon.addEventListener('click', function (e) {
-                            e.stopPropagation();
-                            const dropdownMenu = this.nextElementSibling;
-                            const isVisible = !dropdownMenu.classList.contains('d-none');
-                            // Close all dropdowns
-                            document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                                menu.classList.add('d-none');
-                            });
-                            // Toggle current dropdownz
-                            if (!isVisible) {
-                                dropdownMenu.classList.remove('d-none');
-                            }
-                        });
-                    });
+    // Add event listeners for dropdown toggle
+    document.querySelectorAll('.dropdown-icon').forEach(icon => {
+        icon.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const dropdownMenu = this.nextElementSibling;
+            const isVisible = !dropdownMenu.classList.contains('d-none');
+            // Close all dropdowns
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.add('d-none');
+            });
+            // Toggle current dropdownz
+            if (!isVisible) {
+                dropdownMenu.classList.remove('d-none');
+            }
+        });
+    });
+
+    // Event listener for "Edit" dropdown item click
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.classList.contains('dropdown-item')) {
+            const text = e.target.textContent.trim();
+            if (text === 'Edit') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const card = e.target.closest('.col-md-4');
+                if (!card) {
+                    alert('Project card not found.');
+                    return;
+                }
+
+                const projectId = card.getAttribute('data-project-id');
+                if (!projectId) {
+                    alert('Project ID not found.');
+                    return;
+                }
+
+                // Fetch project data for editing
+                $.ajax({
+                    url: appUrl + '/project/' + projectId + '/edit',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                console.log('Edit project data loaded:', data); // Debug log
+                // Populate edit modal form fields
+                $('#edit_project_id').val(data.id);
+                $('#edit_title').val(data.title);
+                $('#edit_description').val(data.description);
+                $('#edit_reference_url').val(data.reference_url);
+                $('#edit_start_date').val(data.start_date);
+                $('#edit_due_date').val(data.due_date);
+                $('#edit_part_of_project').val(data.part_of_project);
+
+                    // Load departments and set selected department
+                    loadDepartments(function() {
+                        $('#edit_department').val(data.department_id).trigger('change');
+
+                        // After department is set, load divisions and set selected division
+                        loadDivisions(data.department_id, function() {
+                            $('#edit_division').val(data.division_id);
+                            // Force refresh select display if needed
+                            $('#edit_division').trigger('change');
+                        }, document.getElementById('edit_division'));
+                        // Force refresh select display if needed
+                        $('#edit_department').trigger('change');
+                    }, document.getElementById('edit_department'));
+
+                // Reset image preview
+                if (data.image) {
+                    $('#editImageLabel').css('background-image', 'url(' + appUrl + '/file/project/' + data.image + ')');
+                    $('#editImageLabel').addClass('has-image');
+                    $('#editImageLabel').css('background-size', 'cover');
+                    $('#editImageLabel').css('opacity', '1');
+                    $('#editImageClearBtn').removeClass('d-none');
+                } else {
+                    $('#editImageLabel').css('background-image', "url('" + appUrl + "/asset/img/background/add-image.png')");
+                    $('#editImageLabel').removeClass('has-image');
+                    $('#editImageLabel').css('opacity', '0.5');
+                    $('#editImageClearBtn').addClass('d-none');
+                }
+
+            // Clear file input for reference file
+            $('#edit_reference_file').val('');
+
+            // Populate co-author and contributor inputs
+            // Clear previous selections
+            window.clearSelectedCoAuthorsEdit && window.clearSelectedCoAuthorsEdit();
+            window.clearSelectedContributorsEdit && window.clearSelectedContributorsEdit();
+
+            // Set co-authors
+            if (data.project_assignments) {
+                const coAuthors = data.project_assignments.filter(a => a.role === 'co_author').map(a => ({ id: a.employee_id, name: a.employee_name }));
+                window.setSelectedCoAuthorsEdit && window.setSelectedCoAuthorsEdit(coAuthors);
+            }
+
+            // Set contributors
+            if (data.project_assignments) {
+                const contributors = data.project_assignments.filter(a => a.role === 'contributor').map(a => ({ id: a.employee_id, name: a.employee_name }));
+                window.setSelectedContributorsEdit && window.setSelectedContributorsEdit(contributors);
+            }
+
+            // Show edit modal
+            const editProjectModalEl = document.getElementById('editProjectModal');
+            if (!editProjectModalEl) {
+                console.error('Edit Project Modal element not found');
+                alert('Edit Project Modal element not found');
+                return;
+            }
+            const editProjectModal = new bootstrap.Modal(editProjectModalEl);
+            editProjectModal.show();
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Failed to load project data for editing:', status, error);
+                        alert('Failed to load project data for editing.');
+                    }
+                });
+            }
+        }
+    });
+
+    // Handle edit project form submission
+    $('#editProjectForm').on('submit', function (e) {
+        e.preventDefault();
+
+        const projectId = $('#edit_project_id').val();
+        if (!projectId) {
+            alert('Project ID is missing.');
+            return;
+        }
+
+        const formData = new FormData(this);
+
+        // Add _method to FormData for Laravel PUT request
+        formData.append('_method', 'PUT');
+
+        // Append co_author and contributors JSON strings from hidden inputs
+        formData.set('co_author', $('#edit_co_author').val());
+        formData.set('contributors', $('#edit_contributors').val());
+
+        $.ajax({
+            url: appUrl + '/project/' + projectId,
+            type: 'POST', // Laravel expects POST with _method=PUT for PUT requests
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function (response) {
+                // Show success alert
+                $('#editProjectAlert').removeClass('d-none').show().text(response.message || 'Project updated successfully!');
+
+                // Close modal after short delay
+                setTimeout(() => {
+                    var editProjectModalEl = document.getElementById('editProjectModal');
+                    var editProjectModal = bootstrap.Modal.getInstance(editProjectModalEl);
+                    if (editProjectModal) editProjectModal.hide();
+
+                    // Reload project cards
+                    loadProjectCardData();
+                }, 1500);
+            },
+            error: function (xhr) {
+                if (xhr.status === 422) {
+                    let errors = xhr.responseJSON.errors;
+                    let errorMessages = '';
+                    for (let key in errors) {
+                        errorMessages += errors[key].join('\n') + '\n';
+                    }
+                    alert(errorMessages);
+                } else {
+                    alert('Failed to update project.');
+                }
+            }
+        });
+    });
+
+    // Image preview and clear button logic for edit image input
+    setupImageInput(document.getElementById('edit_image'), document.getElementById('editImageLabel'), document.getElementById('editImageClearBtn'));
+
+    // Clear form and reset image preview when edit modal is closed
+    var editProjectModalEl = document.getElementById('editProjectModal');
+    editProjectModalEl.addEventListener('hidden.bs.modal', function () {
+        $('#editProjectForm')[0].reset();
+
+        $('#editImageLabel').css('background-image', "url('" + appUrl + "/asset/img/background/add-image.png')");
+        $('#editImageLabel').removeClass('has-image');
+        $('#editImageLabel').css('opacity', '0.5');
+        $('#editImageClearBtn').addClass('d-none');
+
+        // Reload departments, divisions, projects to reset selects
+        loadDepartments();
+        $('#edit_division').html('<option value="" disabled selected>Select Division</option>');
+        loadProjects();
+
+        // Clear selected co-authors and contributors display and hidden inputs
+        window.clearSelectedCoAuthorsEdit && window.clearSelectedCoAuthorsEdit();
+        window.clearSelectedContributorsEdit && window.clearSelectedContributorsEdit();
+
+        $('#editProjectAlert').addClass('d-none').hide();
+    });
+
+    // Setup co-author and contributor inputs for edit modal (similar to add modal)
+    function setupCoAuthorInputEdit() {
+        const input = document.getElementById('edit_co_author_input');
+        const dropdown = document.getElementById('edit_co_author_dropdown');
+        const selectedContainer = document.getElementById('edit_selected_co_authors');
+        const hiddenInput = document.getElementById('edit_co_author');
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        function fetchEmployees(query = '') {
+            $.ajax({
+                url: appUrl + '/employee/index',
+                type: 'GET',
+                data: { query: query },
+                dataType: 'json',
+                success: function (data) {
+                    employees = data.data || [];
+                    filteredEmployees = employees;
+                    renderDropdown();
+                },
+                error: function () {
+                    alert('Failed to load employees.');
+                }
+            });
+        }
+
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            const html = filteredEmployees.map(emp => {
+                const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            <span>${emp.name}</span>
+                        </div>
+                        <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>
+                `;
+            }).join('');
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+
+            dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const name = this.getAttribute('data-name');
+                    const employeeObj = employees.find(emp => emp.id === id);
+                    if (this.checked) {
+                        if (!selectedEmployees.some(e => e.id === id)) {
+                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                });
+            });
+        }
+
+        function renderSelected() {
+            selectedContainer.innerHTML = '';
+            selectedEmployees.forEach(emp => {
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+
+                const img = document.createElement('img');
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = 'rounded-circle me-2';
+                img.style.width = '24px';
+                img.style.height = '24px';
+                img.style.objectFit = 'cover';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = emp.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
+                removeBtn.setAttribute('aria-label', 'Remove');
+                removeBtn.addEventListener('click', () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameSpan);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
+        }
+
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            if (val === '') {
+                filteredEmployees = employees;
+            } else {
+                filteredEmployees = employees.filter(emp => emp.name.toLowerCase().includes(val));
+            }
+            renderDropdown();
+        }
+
+        input.addEventListener('input', function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener('focus', function () {
+            filterEmployees(this.value);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        fetchEmployees();
+
+        window.clearSelectedCoAuthorsEdit = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = 'none';
+            input.value = '';
+        };
+
+        window.setSelectedCoAuthorsEdit = function (coAuthors) {
+            selectedEmployees = coAuthors.map(ca => ({
+                id: ca.id,
+                name: ca.name,
+                user_photo: null
+            }));
+            renderSelected();
+            updateHiddenInput();
+        };
+    }
+
+    function setupContributorInputEdit() {
+        const input = document.getElementById('edit_contributor_input');
+        const dropdown = document.getElementById('edit_contributor_dropdown');
+        const selectedContainer = document.getElementById('edit_selected_contributors');
+        const hiddenInput = document.getElementById('edit_contributors');
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        function fetchEmployees(query = '') {
+            $.ajax({
+                url: appUrl + '/employee/index',
+                type: 'GET',
+                data: { query: query },
+                dataType: 'json',
+                success: function (data) {
+                    employees = data.data || [];
+                    filteredEmployees = employees;
+                    renderDropdown();
+                },
+                error: function () {
+                    alert('Failed to load employees.');
+                }
+            });
+        }
+
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = 'block';
+                return;
+            }
+
+            const html = filteredEmployees.map(emp => {
+                const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            <span>${emp.name}</span>
+                        </div>
+                        <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>
+                `;
+            }).join('');
+            dropdown.innerHTML = html;
+            dropdown.style.display = 'block';
+
+            dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const name = this.getAttribute('data-name');
+                    const employeeObj = employees.find(emp => emp.id === id);
+                    if (this.checked) {
+                        if (!selectedEmployees.some(e => e.id === id)) {
+                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                });
+            });
+        }
+
+        function renderSelected() {
+            selectedContainer.innerHTML = '';
+            selectedEmployees.forEach(emp => {
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+
+                const img = document.createElement('img');
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = 'rounded-circle me-2';
+                img.style.width = '24px';
+                img.style.height = '24px';
+                img.style.objectFit = 'cover';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = emp.name;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
+                removeBtn.setAttribute('aria-label', 'Remove');
+                removeBtn.addEventListener('click', () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameSpan);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
+        }
+
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            if (val === '') {
+                filteredEmployees = employees;
+            } else {
+                filteredEmployees = employees.filter(emp => emp.name.toLowerCase().includes(val));
+            }
+            renderDropdown();
+        }
+
+        input.addEventListener('input', function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener('focus', function () {
+            filterEmployees(this.value);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        fetchEmployees();
+
+        window.clearSelectedContributorsEdit = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = 'none';
+            input.value = '';
+        };
+
+        window.setSelectedContributorsEdit = function (contributors) {
+            selectedEmployees = contributors.map(c => ({
+                id: c.id,
+                name: c.name,
+                user_photo: null
+            }));
+            renderSelected();
+            updateHiddenInput();
+        };
+    }
+
+    setupCoAuthorInputEdit();
+    setupContributorInputEdit();
 
 // Feedback modal elements
 var projectFeedbackModalEl = document.getElementById("projectFeedbackModal");
@@ -880,7 +1378,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
     }
 
     // Load departments dynamically
-    function loadDepartments() {
+    function loadDepartments(callback, targetSelect = departmentSelect) {
         $.ajax({
             url: appUrl + "/department/index",
             type: "GET",
@@ -893,17 +1391,19 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
                         dept.name_department || dept.name
                     }</option>`;
                 });
-                departmentSelect.innerHTML = options;
+                targetSelect.innerHTML = options;
+                if (typeof callback === 'function') callback();
             },
             error: function () {
                 alert("Failed to load departments.");
+                if (typeof callback === 'function') callback();
             },
         });
     }
 
     // Load divisions based on selected department
-    function loadDivisions(departmentId) {
-        divisionSelect.innerHTML =
+    function loadDivisions(departmentId, callback, targetSelect = divisionSelect) {
+        targetSelect.innerHTML =
             '<option value="" disabled selected>Loading...</option>';
         $.ajax({
             url: appUrl + "/division/index",
@@ -918,12 +1418,14 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
                         div.name_division || div.name
                     }</option>`;
                 });
-                divisionSelect.innerHTML = options;
-                divisionSelect.disabled = false; // Ensure select is enabled
-                divisionSelect.style.display = 'block'; // Ensure visible
+                targetSelect.innerHTML = options;
+                targetSelect.disabled = false; // Ensure select is enabled
+                targetSelect.style.display = 'block'; // Ensure visible
+                if (typeof callback === 'function') callback();
             },
             error: function () {
                 alert("Failed to load divisions.");
+                if (typeof callback === 'function') callback();
             },
         });
     }

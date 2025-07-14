@@ -138,6 +138,121 @@
         </div>
     </div>
 
+    <!-- Edit Project Modal -->
+    <div class="modal fade" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="editProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-loading-overlay d-none" id="editModalLoader">
+                    <div class="loader-spinner"></div>
+                </div>
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="editProjectModalLabel">Edit Project</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editProjectForm" enctype="multipart/form-data">
+                    <input type="hidden" id="edit_project_id" name="edit_project_id" value="">
+                    <div class="modal-body modal-body-custom">
+                        <div id="editProjectAlert" class="alert alert-success d-none" role="alert" style="margin-bottom: 1rem; display:none;">
+                            Project updated successfully!
+                        </div>
+                        <div class="mb-3">
+                            <div class="title-label-image">
+                                <span>Upload image</span>
+                            </div>
+                            <label for="edit_image" class="custom-image-upload position-relative" id="editImageLabel"
+                                style=" background-position: center center; background-repeat: no-repeat; background-size: 50%;  background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
+                                <input type="file" class="input-image" id="edit_image" name="edit_image" accept="image/*"
+                                hidden>
+                                <span class="image-clear-btn d-none" id="editImageClearBtn"
+                                    title="Remove image">&times;</span>
+                            </label>
+                            <div class="invalid-feedback">
+                                Please select an image file.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_title" class="form-label label-custom">Title</label>
+                            <input type="text" class="form-control input-text" id="edit_title" name="edit_title"
+                                required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_description" class="form-label label-custom">Description</label>
+                            <textarea class="form-control input-text" id="edit_description" name="edit_description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_department" class="form-label label-custom">Department</label>
+                            <select class="form-select input-select" id="edit_department" name="edit_department" required>
+                                <option value="">Select Department</option>
+                                <!-- Options to be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_division" class="form-label label-custom">Division</label>
+                            <select class="form-select input-select" id="edit_division" name="edit_division" required>
+                                <option value="">Select Division</option>
+                                <!-- Options to be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_reference_url" class="form-label label-custom">Reference URL</label>
+                            <input type="text" class="form-control input-text" id="edit_reference_url"
+                                name="edit_reference_url">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_reference_file" class="form-label label-custom">Reference File</label>
+                            <input type="file" class="form-control input-text" id="edit_reference_file"
+                                name="edit_reference_file" accept=".pdf,.doc,.docx">
+                        </div>
+                        <div class="mb-3 d-flex justify-content-between">
+                            <div style="width: 48%;">
+                                <label for="edit_start_date" class="form-label label-custom">Start Date</label>
+                                <input type="date" class="form-control input-text" id="edit_start_date" name="edit_start_date"
+                                    required>
+                            </div>
+                            <div style="width: 48%;">
+                                <label for="edit_due_date" class="form-label label-custom">Due Date</label>
+                                <input type="date" class="form-control input-text" id="edit_due_date" name="edit_due_date"
+                                    required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_part_of_project" class="form-label label-custom">Part of Project</label>
+                            <select class="form-select input-select" id="edit_part_of_project" name="edit_part_of_project">
+                                <option value="">Select Project</option>
+                                <!-- Options to be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                        <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
+                        <input type="text" class="form-control input-text" id="edit_co_author_input" name="edit_co_author_input" autocomplete="off" placeholder="Search employees...">
+                        <div id="edit_co_author_dropdown" class="dropdown-list mt-1" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;"></div>
+                        <div id="edit_selected_co_authors" class="mt-2 d-flex flex-wrap gap-2">
+                            <!-- Selected co-authors will appear here -->
+                        </div>
+                        <input type="hidden" id="edit_co_author" name="edit_co_author" value="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_contributor_input" class="form-label label-custom">Contributor</label>
+                        <input type="text" class="form-control input-text" id="edit_contributor_input" name="edit_contributor_input" autocomplete="off" placeholder="Search employees...">
+                        <div id="edit_contributor_dropdown" class="dropdown-list mt-1" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;"></div>
+                        <div id="edit_selected_contributors" class="mt-2 d-flex flex-wrap gap-2">
+                            <!-- Selected contributors will appear here -->
+                        </div>
+                        <input type="hidden" id="edit_contributors" name="edit_contributors" value="">
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="submit" class="btn-submit-black btn-submit-custom">
+                            Update
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="alert-container mt-2" style="width: 100%;"></div>
+        </div>
+    </div>
+
     <div id="project-cards-container" class="container my-4">
         <!-- Project cards will be dynamically generated here -->
     </div>
