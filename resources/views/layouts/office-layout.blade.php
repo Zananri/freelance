@@ -360,13 +360,15 @@
                 </div>
             </div>
 
-            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative" style="width: 40px; height: 40px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
+            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
+                style="width: 40px; height: 40px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
 
                 @if (Auth::check())
                     <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
                         style="width: 40px; height: 40px; object-fit: cover;">
                 @else
-                    <div class="d-inline-block rounded-circle bg-secondary opacity-50" style="width: 40px; height: 40px;"></div>
+                    <div class="d-inline-block rounded-circle bg-secondary opacity-50"
+                        style="width: 40px; height: 40px;"></div>
                 @endif
 
                 <div id="avatarDropdownCard" class="card shadow-sm rounded-5"
@@ -381,7 +383,8 @@
                                 <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
                                     style="width: 70px; height: 70px; object-fit: cover;">
                             @else
-                                <div class="d-inline-block rounded-circle bg-secondary opacity-50" style="width: 70px; height: 70px;"></div>
+                                <div class="d-inline-block rounded-circle bg-secondary opacity-50"
+                                    style="width: 70px; height: 70px;"></div>
                             @endif
                         </div>
                         <div class="fw-semibold" style="font-size: 16px; color: #555;">
@@ -450,13 +453,14 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ url('attendance') }}" class="{{ $menu_active == 'attendance' ? 'active' : '' }}">
+                        <a href="{{ url('attendance') }}"
+                            class="{{ $menu_active == 'attendance' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">today</span>
                             <span class="text-menu">Attendance</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="">
+                        <a href="{{ url('task') }}" class="{{ $menu_active == 'task' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">task</span>
                             <span class="text-menu">Task</span>
                         </a>
