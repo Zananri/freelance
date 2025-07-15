@@ -17,6 +17,7 @@ class ProjectController extends Controller
     public function getEmployees(Request $request)
     {
         $query = $request->input('q', '');
+        $excludeEmployeeId = $request->input('exclude_employee_id');
 
         $employees = \App\Models\Employee::query();
 
@@ -24,12 +25,16 @@ class ProjectController extends Controller
             $employees = $employees->where('name', 'like', '%' . $query . '%');
         }
 
-        $employees = $employees->orderBy('name')->get(['id', 'name']);
+        if ($excludeEmployeeId) {
+            $employees = $employees->where('id', '!=', $excludeEmployeeId);
+        }
+
+        $employees = $employees->orderBy('name')->get(['id', 'name', 'photo']);
 
         return response()->json(['data' => $employees]);
     }
     /**
-     * Display the project main page.
+     * Display the project main page.ea
      */
     public function showProjectPage()
     {
@@ -355,8 +360,52 @@ class ProjectController extends Controller
      */
     public function edit(string $id)
     {
-        $project = Project::with(['department', 'division'])->findOrFail($id);
-        return response()->json($project);
+        $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
+
+        $coAuthors = [];
+        $contributors = [];
+
+        foreach ($project->projectAssignments as $assignment) {
+                if ($assignment->role === 'co_author' && $assignment->employee) {
+                    $photo = $assignment->employee->photo ?? null;
+                    if ($photo) {
+                        if (strpos($photo, 'file/photo/') === 0 || strpos($photo, 'file/profile_picture/') === 0) {
+                            $userPhoto = $photo;
+                        } else {
+                            $userPhoto = 'file/profile_picture/' . $photo;
+                        }
+                    } else {
+                        $userPhoto = null;
+                    }
+                    $coAuthors[] = [
+                        'id' => $assignment->employee->id,
+                        'name' => $assignment->employee->name,
+                        'user_photo' => $userPhoto,
+                    ];
+                } elseif ($assignment->role === 'contributor' && $assignment->employee) {
+                    $photo = $assignment->employee->photo ?? null;
+                    if ($photo) {
+                        if (strpos($photo, 'file/photo/') === 0 || strpos($photo, 'file/profile_picture/') === 0) {
+                            $userPhoto = $photo;
+                        } else {
+                            $userPhoto = 'file/profile_picture/' . $photo;
+                        }
+                    } else {
+                        $userPhoto = null;
+                    }
+                    $contributors[] = [
+                        'id' => $assignment->employee->id,
+                        'name' => $assignment->employee->name,
+                        'user_photo' => $userPhoto,
+                    ];
+                }
+        }
+
+        $response = $project->toArray();
+        $response['co_authors'] = $coAuthors;
+        $response['contributors'] = $contributors;
+
+        return response()->json($response);
     }
 
     /**

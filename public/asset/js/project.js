@@ -181,93 +181,112 @@ document.addEventListener("DOMContentLoaded", function () {
             window.clearSelectedCoAuthorsEdit && window.clearSelectedCoAuthorsEdit();
             window.clearSelectedContributorsEdit && window.clearSelectedContributorsEdit();
 
-            // Set co-authors
-            if (data.project_assignments) {
-                const coAuthors = data.project_assignments.filter(a => a.role === 'co_author').map(a => ({ id: a.employee_id, name: a.employee_name }));
-                window.setSelectedCoAuthorsEdit && window.setSelectedCoAuthorsEdit(coAuthors);
+                // Set co-authors
+                if (data.co_authors) {
+                    var coAuthors = data.co_authors.map(function(a) {
+                        return {
+                            id: a.id,
+                            name: a.name,
+                            user_photo: a.user_photo || null
+                        };
+                    });
+                    window.setSelectedCoAuthorsEdit && window.setSelectedCoAuthorsEdit(coAuthors);
+                }
+
+                // Set contributors
+                if (data.contributors) {
+                    var contributors = data.contributors.map(function(a) {
+                        return {
+                            id: a.id,
+                            name: a.name,
+                            user_photo: a.user_photo || null
+                        };
+                    });
+                    window.setSelectedContributorsEdit && window.setSelectedContributorsEdit(contributors);
+                }
+
+                // Show edit modal after data is set
+                const editProjectModalEl = document.getElementById('editProjectModal');
+                if (!editProjectModalEl) {
+                    console.error('Edit Project Modal element not found');
+                    alert('Edit Project Modal element not found');
+                    return;
+                }
+                const editProjectModal = new bootstrap.Modal(editProjectModalEl);
+                editProjectModal.show();
             }
 
-            // Set contributors
-            if (data.project_assignments) {
-                const contributors = data.project_assignments.filter(a => a.role === 'contributor').map(a => ({ id: a.employee_id, name: a.employee_name }));
-                window.setSelectedContributorsEdit && window.setSelectedContributorsEdit(contributors);
-            }
-
-            // Show edit modal
-            const editProjectModalEl = document.getElementById('editProjectModal');
-            if (!editProjectModalEl) {
-                console.error('Edit Project Modal element not found');
-                alert('Edit Project Modal element not found');
-                return;
-            }
-            const editProjectModal = new bootstrap.Modal(editProjectModalEl);
-            editProjectModal.show();
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('Failed to load project data for editing:', status, error);
-                        alert('Failed to load project data for editing.');
-                    }
-                });
+          });
             }
         }
     });
 
     // Handle edit project form submission
-    $('#editProjectForm').on('submit', function (e) {
-        e.preventDefault();
+$('#editProjectForm').on('submit', function (e) {
+    e.preventDefault();
 
-        const projectId = $('#edit_project_id').val();
-        if (!projectId) {
-            alert('Project ID is missing.');
-            return;
-        }
+    const projectId = $('#edit_project_id').val();
+    if (!projectId) {
+        alert('Project ID is missing.');
+        return;
+    }
 
-        const formData = new FormData(this);
+    const formData = new FormData(this);
 
-        // Add _method to FormData for Laravel PUT request
-        formData.append('_method', 'PUT');
+    // Add _method to FormData for Laravel PUT request
+    formData.append('_method', 'PUT');
 
-        // Append co_author and contributors JSON strings from hidden inputs
-        formData.set('co_author', $('#edit_co_author').val());
-        formData.set('contributors', $('#edit_contributors').val());
+    // Append co_author and contributors JSON strings from hidden inputs
+    formData.set('co_author', $('#edit_co_author').val());
+    formData.set('contributors', $('#edit_contributors').val());
 
-        $.ajax({
-            url: appUrl + '/project/' + projectId,
-            type: 'POST', // Laravel expects POST with _method=PUT for PUT requests
-            data: formData,
-            contentType: false,
-            processData: false,
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function (response) {
-                // Show success alert
-                $('#editProjectAlert').removeClass('d-none').show().text(response.message || 'Project updated successfully!');
+    // Show loading overlay and disable submit button
+    $('#editModalLoader').removeClass('d-none');
+    const submitBtn = $('#editProjectForm button[type="submit"]');
+    submitBtn.prop('disabled', true);
 
-                // Close modal after short delay
-                setTimeout(() => {
-                    var editProjectModalEl = document.getElementById('editProjectModal');
-                    var editProjectModal = bootstrap.Modal.getInstance(editProjectModalEl);
-                    if (editProjectModal) editProjectModal.hide();
+    $.ajax({
+        url: appUrl + '/project/' + projectId,
+        type: 'POST', // Laravel expects POST with _method=PUT for PUT requests
+        data: formData,
+        contentType: false,
+        processData: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function (response) {
+            // Show success alert
+            $('#editProjectAlert').removeClass('d-none').show().text(response.message || 'Project updated successfully!');
 
-                    // Reload project cards
-                    loadProjectCardData();
-                }, 1500);
-            },
-            error: function (xhr) {
-                if (xhr.status === 422) {
-                    let errors = xhr.responseJSON.errors;
-                    let errorMessages = '';
-                    for (let key in errors) {
-                        errorMessages += errors[key].join('\n') + '\n';
-                    }
-                    alert(errorMessages);
-                } else {
-                    alert('Failed to update project.');
+            // Close modal after short delay
+            setTimeout(() => {
+                var editProjectModalEl = document.getElementById('editProjectModal');
+                var editProjectModal = bootstrap.Modal.getInstance(editProjectModalEl);
+                if (editProjectModal) editProjectModal.hide();
+
+                // Reload project cards
+                loadProjectCardData();
+            }, 1500);
+        },
+        error: function (xhr) {
+            if (xhr.status === 422) {
+                let errors = xhr.responseJSON.errors;
+                let errorMessages = '';
+                for (let key in errors) {
+                    errorMessages += errors[key].join('\n') + '\n';
                 }
+                alert(errorMessages);
+            } else {
+                alert('Failed to update project.');
             }
-        });
+        },
+        complete: function () {
+            // Hide loading overlay and enable submit button
+            $('#editModalLoader').addClass('d-none');
+            submitBtn.prop('disabled', false);
+        }
     });
+});
 
     // Image preview and clear button logic for edit image input
     setupImageInput(document.getElementById('edit_image'), document.getElementById('editImageLabel'), document.getElementById('editImageClearBtn'));
@@ -305,22 +324,23 @@ document.addEventListener("DOMContentLoaded", function () {
         let filteredEmployees = [];
         let selectedEmployees = [];
 
-        function fetchEmployees(query = '') {
-            $.ajax({
-                url: appUrl + '/employee/index',
-                type: 'GET',
-                data: { query: query },
-                dataType: 'json',
-                success: function (data) {
-                    employees = data.data || [];
-                    filteredEmployees = employees;
-                    renderDropdown();
-                },
-                error: function () {
-                    alert('Failed to load employees.');
-                }
-            });
-        }
+    function fetchEmployees(query = '') {
+        const currentEmployeeId = document.getElementById('editProjectModal')?.getAttribute('data-employee-id') || '';
+        $.ajax({
+            url: appUrl + '/employee/index',
+            type: 'GET',
+            data: { query: query, exclude_employee_id: currentEmployeeId },
+            dataType: 'json',
+            success: function (data) {
+                employees = data.data || [];
+                filteredEmployees = employees;
+                renderDropdown();
+            },
+            error: function () {
+                alert('Failed to load employees.');
+            }
+        });
+    }
 
         function renderDropdown() {
             if (filteredEmployees.length === 0) {
@@ -442,7 +462,7 @@ document.addEventListener("DOMContentLoaded", function () {
             selectedEmployees = coAuthors.map(ca => ({
                 id: ca.id,
                 name: ca.name,
-                user_photo: null
+                user_photo: ca.user_photo || null
             }));
             renderSelected();
             updateHiddenInput();
@@ -459,22 +479,23 @@ document.addEventListener("DOMContentLoaded", function () {
         let filteredEmployees = [];
         let selectedEmployees = [];
 
-        function fetchEmployees(query = '') {
-            $.ajax({
-                url: appUrl + '/employee/index',
-                type: 'GET',
-                data: { query: query },
-                dataType: 'json',
-                success: function (data) {
-                    employees = data.data || [];
-                    filteredEmployees = employees;
-                    renderDropdown();
-                },
-                error: function () {
-                    alert('Failed to load employees.');
-                }
-            });
-        }
+    function fetchEmployees(query = '') {
+        const currentEmployeeId = document.getElementById('editProjectModal')?.getAttribute('data-employee-id') || '';
+        $.ajax({
+            url: appUrl + '/employee/index',
+            type: 'GET',
+            data: { query: query, exclude_employee_id: currentEmployeeId },
+            dataType: 'json',
+            success: function (data) {
+                employees = data.data || [];
+                filteredEmployees = employees;
+                renderDropdown();
+            },
+            error: function () {
+                alert('Failed to load employees.');
+            }
+        });
+    }
 
         function renderDropdown() {
             if (filteredEmployees.length === 0) {
@@ -597,7 +618,7 @@ document.addEventListener("DOMContentLoaded", function () {
             selectedEmployees = contributors.map(c => ({
                 id: c.id,
                 name: c.name,
-                user_photo: null
+                user_photo: c.user_photo || null
             }));
             renderSelected();
             updateHiddenInput();
