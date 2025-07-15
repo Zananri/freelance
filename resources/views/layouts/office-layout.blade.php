@@ -233,6 +233,7 @@
             /* Mendorong lencana ke kanan */
         }
 
+
         .small-sidebar .left-nav {
             min-width: 77px;
             width: 77px;
@@ -359,16 +360,13 @@
                 </div>
             </div>
 
-            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
-                style="width: 48px; height: 48px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
+            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative" style="width: 40px; height: 40px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
 
                 @if (Auth::check())
                     <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
-                        style="width: 48px; height: 48px; object-fit: cover;">
+                        style="width: 40px; height: 40px; object-fit: cover;">
                 @else
-                    <span class="material-symbols-outlined">
-                        person
-                    </span>
+                    <div class="d-inline-block rounded-circle bg-secondary opacity-50" style="width: 40px; height: 40px;"></div>
                 @endif
 
                 <div id="avatarDropdownCard" class="card shadow-sm rounded-5"
@@ -383,9 +381,7 @@
                                 <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
                                     style="width: 70px; height: 70px; object-fit: cover;">
                             @else
-                                <span class="material-symbols-outlined">
-                                    person
-                                </span>
+                                <div class="d-inline-block rounded-circle bg-secondary opacity-50" style="width: 70px; height: 70px;"></div>
                             @endif
                         </div>
                         <div class="fw-semibold" style="font-size: 16px; color: #555;">
@@ -418,7 +414,7 @@
                 </div>
             </div>
 
-            <div class="nav-item d-inline-block pt-1" style="">
+            <div class="nav-item d-none d-sm-inline-block pt-1" style="">
                 @if (Auth::check())
                     <div class="fs-14 fw-medium">Welcome, {{ auth()->user()->name }}</div>
                     <div class="fs-12 fw-normal text-body text-opacity-75">
@@ -541,7 +537,7 @@
 
     <script>
         $('#sidebar-control').on('click', function() {
-            $("body").toggleClass("small-sidebar");
+            $("body").toggleClass("hide-sidebar");
         });
 
         // Toggle avatar dropdown card
