@@ -17,6 +17,7 @@ class ProjectController extends Controller
     public function getEmployees(Request $request)
     {
         $query = $request->input('q', '');
+        $excludeEmployeeId = $request->input('exclude_employee_id');
 
         $employees = \App\Models\Employee::query();
 
@@ -24,12 +25,16 @@ class ProjectController extends Controller
             $employees = $employees->where('name', 'like', '%' . $query . '%');
         }
 
-        $employees = $employees->orderBy('name')->get(['id', 'name']);
+        if ($excludeEmployeeId) {
+            $employees = $employees->where('id', '!=', $excludeEmployeeId);
+        }
+
+        $employees = $employees->orderBy('name')->get(['id', 'name', 'photo']);
 
         return response()->json(['data' => $employees]);
     }
     /**
-     * Display the project main page.
+     * Display the project main page.ea
      */
     public function showProjectPage()
     {
@@ -83,7 +88,18 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        $projects = Project::with([
+        $user = auth()->user();
+        if (!$user || !$user->employee) {
+            // If no authenticated user or no employee relation, return empty list
+            return response()->json(['data' => []]);
+        }
+        $employeeId = $user->employee->id;
+
+        // Get projects where the employee is author, co_author, or contributor
+        $projects = Project::whereHas('projectAssignments', function ($query) use ($employeeId) {
+            $query->where('employee_id', $employeeId)
+                  ->whereIn('role', ['author', 'co_author', 'contributor']);
+        })->with([
             'department',
             'division',
             'projectAssignments.employee',
@@ -106,6 +122,7 @@ class ProjectController extends Controller
                 'id' => $project->id,
                 'title' => $project->title,
                 'description' => $project->description,
+                'image' => $project->image,
                 'department' => $project->department,
                 'division' => $project->division,
                 'status' => $project->status,
@@ -355,8 +372,52 @@ class ProjectController extends Controller
      */
     public function edit(string $id)
     {
-        $project = Project::with(['department', 'division'])->findOrFail($id);
-        return response()->json($project);
+        $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
+
+        $coAuthors = [];
+        $contributors = [];
+
+        foreach ($project->projectAssignments as $assignment) {
+                if ($assignment->role === 'co_author' && $assignment->employee) {
+                    $photo = $assignment->employee->photo ?? null;
+                    if ($photo) {
+                        if (strpos($photo, 'file/photo/') === 0 || strpos($photo, 'file/profile_picture/') === 0) {
+                            $userPhoto = $photo;
+                        } else {
+                            $userPhoto = 'file/profile_picture/' . $photo;
+                        }
+                    } else {
+                        $userPhoto = null;
+                    }
+                    $coAuthors[] = [
+                        'id' => $assignment->employee->id,
+                        'name' => $assignment->employee->name,
+                        'user_photo' => $userPhoto,
+                    ];
+                } elseif ($assignment->role === 'contributor' && $assignment->employee) {
+                    $photo = $assignment->employee->photo ?? null;
+                    if ($photo) {
+                        if (strpos($photo, 'file/photo/') === 0 || strpos($photo, 'file/profile_picture/') === 0) {
+                            $userPhoto = $photo;
+                        } else {
+                            $userPhoto = 'file/profile_picture/' . $photo;
+                        }
+                    } else {
+                        $userPhoto = null;
+                    }
+                    $contributors[] = [
+                        'id' => $assignment->employee->id,
+                        'name' => $assignment->employee->name,
+                        'user_photo' => $userPhoto,
+                    ];
+                }
+        }
+
+        $response = $project->toArray();
+        $response['co_authors'] = $coAuthors;
+        $response['contributors'] = $contributors;
+
+        return response()->json($response);
     }
 
     /**

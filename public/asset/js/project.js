@@ -13,84 +13,70 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load project card data and generate cards dynamically
     function loadProjectCardData() {
         $.ajax({
-            url: appUrl + "/project/index/card-data",
+            url: appUrl + "/project/index",
             type: "GET",
             dataType: "json",
             success: function (data) {
-                let container = document.getElementById(
-                    "project-cards-container"
-                );
+                let container = document.getElementById("project-cards-container");
                 container.innerHTML = ""; // Clear existing cards
 
-                if (data.project_titles && data.project_titles.length > 0) {
+                if (data.data && data.data.length > 0) {
                     let rowHtml = '<div class="row">';
-                    data.project_titles.forEach((title, index) => {
-                        let taskCount = data.task || 0;
-                        let inProgressCount = data.in_progress || 0;
-                        let completedCount = data.completed || 0;
-                        let imageUrl =
-                            data.project_images && data.project_images[index]
-                                ? appUrl +
-                                  "/file/project/" +
-                                  data.project_images[index]
-                                : "{{ asset('asset/img/background/add-image.png') }}";
+                    data.data.forEach((project, index) => {
+                        let imageUrl = project.image
+                            ? appUrl + "/file/project/" + project.image
+                            : appUrl + "/asset/img/background/add-image.png";
 
-                        // Get project ID from data.project_ids if available
-                        let projectId = data.project_ids && data.project_ids[index] ? data.project_ids[index] : null;
-
-                            rowHtml += `
-                            <div class="col-md-4 mb-4 position-relative" data-project-id="${projectId}">
-                                    <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
-                                        <div class="dropdown-icon-container">
-                                            <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-                <div class="dropdown-menu d-none">
-                    <div class="dropdown-item">Detail</div>
-                    <div class="dropdown-item">Task</div>
-                    <div class="dropdown-item">Feedback</div>
-                    <div class="dropdown-item">Edit</div>
-                    <div class="dropdown-item text-danger delete-project">Delete</div>
-                </div>
-            </div>
-                                        <div class="card-body">
-                                            <div class="d-flex">
-                                                <div class="me-3">
-                                                    <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                        rowHtml += `
+                            <div class="col-md-4 mb-4 position-relative" data-project-id="${project.id}">
+                                <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
+                                    <div class="dropdown-icon-container">
+                                        <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+                                        <div class="dropdown-menu d-none">
+                                            <div class="dropdown-item">Detail</div>
+                                            <div class="dropdown-item">Task</div>
+                                            <div class="dropdown-item">Feedback</div>
+                                            <div class="dropdown-item">Edit</div>
+                                            <div class="dropdown-item text-danger delete-project">Delete</div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-flex">
+                                            <div class="me-3">
+                                                <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex align-items-started mb-1">
+                                                    <h6 class="mb-0 title-project">${project.title}</h6>
                                                 </div>
-                                                <div class="flex-grow-1">
-                                                    <div class="d-flex align-items-started mb-1">
-                                                        <h6 class="mb-0 title-project">${title}</h6>
+                                                <div class="d-flex justify-content-start mt-2">
+                                                    <div class="d-flex align-items-center me-3">
+                                                        <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
+                                                        <span class="icon-number">0</span>
                                                     </div>
-                                                    <div class="d-flex justify-content-start mt-2">
-                                                        <div class="d-flex align-items-center me-3">
-                                                            <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                                            <span class="icon-number">${taskCount}</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center me-3">
-                                                            <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                                            <span class="icon-number">${inProgressCount}</span>
-                                                        </div>
-                                                        <div class="d-flex align-items-center">
-                                                            <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                                            <span class="icon-number">${completedCount}</span>
-                                                        </div>
+                                                    <div class="d-flex align-items-center me-3">
+                                                        <span class="material-symbols-outlined icon-av-timer">av_timer</span>
+                                                        <span class="icon-number">0</span>
+                                                    </div>
+                                                    <div class="d-flex align-items-center">
+                                                        <span class="material-symbols-outlined icon-checklist">checklist</span>
+                                                        <span class="icon-number">0</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                               
+                                </div>
                             </div>
-                            `;
+                        `;
 
-                        if (
-                            (index + 1) % 3 === 0 &&
-                            index !== data.project_titles.length - 1
-                        ) {
+                        if ((index + 1) % 3 === 0 && index !== data.data.length - 1) {
                             rowHtml += '</div><div class="row">';
                         }
                     });
                     rowHtml += "</div>";
                     container.innerHTML = rowHtml;
+
 
     // Add event listeners for dropdown toggle
     document.querySelectorAll('.dropdown-icon').forEach(icon => {
@@ -181,93 +167,112 @@ document.addEventListener("DOMContentLoaded", function () {
             window.clearSelectedCoAuthorsEdit && window.clearSelectedCoAuthorsEdit();
             window.clearSelectedContributorsEdit && window.clearSelectedContributorsEdit();
 
-            // Set co-authors
-            if (data.project_assignments) {
-                const coAuthors = data.project_assignments.filter(a => a.role === 'co_author').map(a => ({ id: a.employee_id, name: a.employee_name }));
-                window.setSelectedCoAuthorsEdit && window.setSelectedCoAuthorsEdit(coAuthors);
+                // Set co-authors
+                if (data.co_authors) {
+                    var coAuthors = data.co_authors.map(function(a) {
+                        return {
+                            id: a.id,
+                            name: a.name,
+                            user_photo: a.user_photo || null
+                        };
+                    });
+                    window.setSelectedCoAuthorsEdit && window.setSelectedCoAuthorsEdit(coAuthors);
+                }
+
+                // Set contributors
+                if (data.contributors) {
+                    var contributors = data.contributors.map(function(a) {
+                        return {
+                            id: a.id,
+                            name: a.name,
+                            user_photo: a.user_photo || null
+                        };
+                    });
+                    window.setSelectedContributorsEdit && window.setSelectedContributorsEdit(contributors);
+                }
+
+                // Show edit modal after data is set
+                const editProjectModalEl = document.getElementById('editProjectModal');
+                if (!editProjectModalEl) {
+                    console.error('Edit Project Modal element not found');
+                    alert('Edit Project Modal element not found');
+                    return;
+                }
+                const editProjectModal = new bootstrap.Modal(editProjectModalEl);
+                editProjectModal.show();
             }
 
-            // Set contributors
-            if (data.project_assignments) {
-                const contributors = data.project_assignments.filter(a => a.role === 'contributor').map(a => ({ id: a.employee_id, name: a.employee_name }));
-                window.setSelectedContributorsEdit && window.setSelectedContributorsEdit(contributors);
-            }
-
-            // Show edit modal
-            const editProjectModalEl = document.getElementById('editProjectModal');
-            if (!editProjectModalEl) {
-                console.error('Edit Project Modal element not found');
-                alert('Edit Project Modal element not found');
-                return;
-            }
-            const editProjectModal = new bootstrap.Modal(editProjectModalEl);
-            editProjectModal.show();
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('Failed to load project data for editing:', status, error);
-                        alert('Failed to load project data for editing.');
-                    }
-                });
+          });
             }
         }
     });
 
     // Handle edit project form submission
-    $('#editProjectForm').on('submit', function (e) {
-        e.preventDefault();
+$('#editProjectForm').on('submit', function (e) {
+    e.preventDefault();
 
-        const projectId = $('#edit_project_id').val();
-        if (!projectId) {
-            alert('Project ID is missing.');
-            return;
-        }
+    const projectId = $('#edit_project_id').val();
+    if (!projectId) {
+        alert('Project ID is missing.');
+        return;
+    }
 
-        const formData = new FormData(this);
+    const formData = new FormData(this);
 
-        // Add _method to FormData for Laravel PUT request
-        formData.append('_method', 'PUT');
+    // Add _method to FormData for Laravel PUT request
+    formData.append('_method', 'PUT');
 
-        // Append co_author and contributors JSON strings from hidden inputs
-        formData.set('co_author', $('#edit_co_author').val());
-        formData.set('contributors', $('#edit_contributors').val());
+    // Append co_author and contributors JSON strings from hidden inputs
+    formData.set('co_author', $('#edit_co_author').val());
+    formData.set('contributors', $('#edit_contributors').val());
 
-        $.ajax({
-            url: appUrl + '/project/' + projectId,
-            type: 'POST', // Laravel expects POST with _method=PUT for PUT requests
-            data: formData,
-            contentType: false,
-            processData: false,
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function (response) {
-                // Show success alert
-                $('#editProjectAlert').removeClass('d-none').show().text(response.message || 'Project updated successfully!');
+    // Show loading overlay and disable submit button
+    $('#editModalLoader').removeClass('d-none');
+    const submitBtn = $('#editProjectForm button[type="submit"]');
+    submitBtn.prop('disabled', true);
 
-                // Close modal after short delay
-                setTimeout(() => {
-                    var editProjectModalEl = document.getElementById('editProjectModal');
-                    var editProjectModal = bootstrap.Modal.getInstance(editProjectModalEl);
-                    if (editProjectModal) editProjectModal.hide();
+    $.ajax({
+        url: appUrl + '/project/' + projectId,
+        type: 'POST', // Laravel expects POST with _method=PUT for PUT requests
+        data: formData,
+        contentType: false,
+        processData: false,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function (response) {
+            // Show success alert
+            $('#editProjectAlert').removeClass('d-none').show().text(response.message || 'Project updated successfully!');
 
-                    // Reload project cards
-                    loadProjectCardData();
-                }, 1500);
-            },
-            error: function (xhr) {
-                if (xhr.status === 422) {
-                    let errors = xhr.responseJSON.errors;
-                    let errorMessages = '';
-                    for (let key in errors) {
-                        errorMessages += errors[key].join('\n') + '\n';
-                    }
-                    alert(errorMessages);
-                } else {
-                    alert('Failed to update project.');
+            // Close modal after short delay
+            setTimeout(() => {
+                var editProjectModalEl = document.getElementById('editProjectModal');
+                var editProjectModal = bootstrap.Modal.getInstance(editProjectModalEl);
+                if (editProjectModal) editProjectModal.hide();
+
+                // Reload project cards
+                loadProjectCardData();
+            }, 1500);
+        },
+        error: function (xhr) {
+            if (xhr.status === 422) {
+                let errors = xhr.responseJSON.errors;
+                let errorMessages = '';
+                for (let key in errors) {
+                    errorMessages += errors[key].join('\n') + '\n';
                 }
+                alert(errorMessages);
+            } else {
+                alert('Failed to update project.');
             }
-        });
+        },
+        complete: function () {
+            // Hide loading overlay and enable submit button
+            $('#editModalLoader').addClass('d-none');
+            submitBtn.prop('disabled', false);
+        }
     });
+});
 
     // Image preview and clear button logic for edit image input
     setupImageInput(document.getElementById('edit_image'), document.getElementById('editImageLabel'), document.getElementById('editImageClearBtn'));
@@ -305,22 +310,23 @@ document.addEventListener("DOMContentLoaded", function () {
         let filteredEmployees = [];
         let selectedEmployees = [];
 
-        function fetchEmployees(query = '') {
-            $.ajax({
-                url: appUrl + '/employee/index',
-                type: 'GET',
-                data: { query: query },
-                dataType: 'json',
-                success: function (data) {
-                    employees = data.data || [];
-                    filteredEmployees = employees;
-                    renderDropdown();
-                },
-                error: function () {
-                    alert('Failed to load employees.');
-                }
-            });
-        }
+    function fetchEmployees(query = '') {
+        const currentEmployeeId = document.getElementById('editProjectModal')?.getAttribute('data-employee-id') || '';
+        $.ajax({
+            url: appUrl + '/employee/index',
+            type: 'GET',
+            data: { query: query, exclude_employee_id: currentEmployeeId },
+            dataType: 'json',
+            success: function (data) {
+                employees = data.data || [];
+                filteredEmployees = employees;
+                renderDropdown();
+            },
+            error: function () {
+                alert('Failed to load employees.');
+            }
+        });
+    }
 
         function renderDropdown() {
             if (filteredEmployees.length === 0) {
@@ -442,7 +448,7 @@ document.addEventListener("DOMContentLoaded", function () {
             selectedEmployees = coAuthors.map(ca => ({
                 id: ca.id,
                 name: ca.name,
-                user_photo: null
+                user_photo: ca.user_photo || null
             }));
             renderSelected();
             updateHiddenInput();
@@ -459,22 +465,23 @@ document.addEventListener("DOMContentLoaded", function () {
         let filteredEmployees = [];
         let selectedEmployees = [];
 
-        function fetchEmployees(query = '') {
-            $.ajax({
-                url: appUrl + '/employee/index',
-                type: 'GET',
-                data: { query: query },
-                dataType: 'json',
-                success: function (data) {
-                    employees = data.data || [];
-                    filteredEmployees = employees;
-                    renderDropdown();
-                },
-                error: function () {
-                    alert('Failed to load employees.');
-                }
-            });
-        }
+    function fetchEmployees(query = '') {
+        const currentEmployeeId = document.getElementById('editProjectModal')?.getAttribute('data-employee-id') || '';
+        $.ajax({
+            url: appUrl + '/employee/index',
+            type: 'GET',
+            data: { query: query, exclude_employee_id: currentEmployeeId },
+            dataType: 'json',
+            success: function (data) {
+                employees = data.data || [];
+                filteredEmployees = employees;
+                renderDropdown();
+            },
+            error: function () {
+                alert('Failed to load employees.');
+            }
+        });
+    }
 
         function renderDropdown() {
             if (filteredEmployees.length === 0) {
@@ -597,7 +604,7 @@ document.addEventListener("DOMContentLoaded", function () {
             selectedEmployees = contributors.map(c => ({
                 id: c.id,
                 name: c.name,
-                user_photo: null
+                user_photo: c.user_photo || null
             }));
             renderSelected();
             updateHiddenInput();
