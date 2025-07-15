@@ -143,6 +143,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         employees.forEach((employee) => {
+            // Jangan pernah ambil foto dari localStorage di tabel, hanya dari API/database
             const profilePicture = employee.user_photo
                 ? employee.user_photo
                 : employee.profile_picture
@@ -306,16 +307,15 @@ document.addEventListener("DOMContentLoaded", function () {
 $(document).on("click", ".btn-detail", function () {
         const id = $(this).data("id");
 
-        // Check localStorage for updated photo for this employee
-        const updatedPhotoData = localStorage.getItem("updatedEmployeePhoto");
+        // Check localStorage for updated photo for this employee (only for modal detail)
         let updatedPhoto = null;
+        const updatedPhotoData = localStorage.getItem("editEmployeeUpdatedPhoto");
         if (updatedPhotoData) {
             try {
                 const parsedData = JSON.parse(updatedPhotoData);
-                if (parsedData.employeeId === id) {
+                // id dari data-attribute adalah number, employeeId bisa string/number
+                if (String(parsedData.employeeId) === String(id)) {
                     updatedPhoto = parsedData.photoUrl;
-                    // Clear localStorage after use
-                    localStorage.removeItem("updatedEmployeePhoto");
                 }
             } catch (e) {
                 console.error("Failed to parse updatedEmployeePhoto from localStorage", e);
@@ -369,11 +369,12 @@ $(document).on("click", ".btn-detail", function () {
                     $("#detailStatus").addClass("status-INACTIVE");
                 }
 
-                // Use updated photo if available, else use employee profile_picture
+
+                // Use updated photo if available, else use employee.photo
                 const photoUrl = updatedPhoto
                     ? updatedPhoto
-                    : employee.profile_picture
-                    ? `/${employee.profile_picture}`
+                    : employee.photo
+                    ? `/${employee.photo}`
                     : "/asset/img/default-profile.png";
                 $("#detailPhoto").attr("src", photoUrl);
 

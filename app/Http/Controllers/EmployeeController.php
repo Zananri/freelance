@@ -254,26 +254,12 @@ class EmployeeController extends Controller
         // Removed profile_picture update handling to keep it unchanged on edit
 
         if ($request->hasFile('photo')) {
-            // Delete old photo file if exists
-            if ($employee->photo && file_exists(public_path($employee->photo))) {
-                unlink(public_path($employee->photo));
-            }
-            // Delete old profile_picture file if exists
-            if ($employee->profile_picture && file_exists(public_path($employee->profile_picture))) {
-                unlink(public_path($employee->profile_picture));
-            }
             $file = $request->file('photo');
             $photoFilename = 'PHOTO_' . time() . '.' . $file->getClientOriginalExtension();
-            $profilePictureFilename = 'PROFILE_PICTURE_' . time() . '.' . $file->getClientOriginalExtension();
             $photoDestination = public_path('file/photo');
-            $profilePictureDestination = public_path('file/profile_picture');
             if (!file_exists($photoDestination)) mkdir($photoDestination, 0777, true);
-            if (!file_exists($profilePictureDestination)) mkdir($profilePictureDestination, 0777, true);
             $file->move($photoDestination, $photoFilename);
-            // Copy photo file to profile_picture with different name
-            copy($photoDestination . '/' . $photoFilename, $profilePictureDestination . '/' . $profilePictureFilename);
             $updateData['photo'] = 'file/photo/' . $photoFilename;
-            $updateData['profile_picture'] = 'file/profile_picture/' . $profilePictureFilename;
         }
 
         if ($request->hasFile('ktp')) {

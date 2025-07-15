@@ -127,6 +127,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Image input preview and clear button handlers
+    // This function handles image preview and clear button only for the edit employee modal inputs.
+    // It does NOT affect images in employee table, office layout, user, or profile pages.
     function setupImageInput(input, label, clearBtn) {
         if (!input || !label) return;
 
@@ -166,6 +168,123 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     setupImageInput(inputPhoto, photoLabel, photoClearBtn);
+
+    // On successful form submission, save updated photo URL and employee ID in localStorage
+    // Use a specific key to avoid conflicts with other pages.
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (!form.checkValidity()) {
+            e.stopPropagation();
+            form.classList.add("was-validated");
+            return;
+        }
+        form.classList.remove("was-validated");
+
+        loaderOverlay.classList.remove("d-none");
+        if (formAlert) formAlert.innerHTML = "";
+
+        const formData = new FormData(form);
+
+        // Add _method=PUT to simulate PUT request
+        formData.append("_method", "PUT");
+
+        // Map form field names to controller expected names
+        formData.set("name", formData.get("employee_name"));
+        formData.delete("employee_name");
+        formData.set("email", formData.get("employee_email"));
+        formData.delete("employee_email");
+        formData.set("email_work", formData.get("employee_email_work"));
+        formData.delete("employee_email_work");
+        formData.set("phone", formData.get("employee_phone"));
+        formData.delete("employee_phone");
+
+        fetch(form.action, {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: formData,
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                loaderOverlay.classList.add("d-none");
+                if (data.errors) {
+                    // Clear previous errors
+                    form.querySelectorAll(".text-danger").forEach((el) =>
+                        el.remove()
+                    );
+                    // Show validation errors
+                    for (const [field, messages] of Object.entries(
+                        data.errors
+                    )) {
+                        const input = form.querySelector(`[name="${field}"]`);
+                        if (input) {
+                            const errorDiv = document.createElement("div");
+                            errorDiv.className = "text-danger small";
+                            errorDiv.textContent = messages.join(", ");
+                            input.parentNode.appendChild(errorDiv);
+                        }
+                    }
+                } else if (data.message) {
+                    if (formAlert) {
+                        formAlert.innerHTML =
+                            '<div class="alert alert-success">Employee updated successfully.</div>';
+                        setTimeout(() => {
+                            formAlert.innerHTML = "";
+                            // Save updated photo URL and employee ID in localStorage if photo updated
+                            if (data.updatedPhotoUrl && data.employeeId) {
+                                localStorage.setItem(
+                                    "editEmployeeUpdatedPhoto",
+                                    JSON.stringify({
+                                        employeeId: data.employeeId,
+                                        photoUrl: data.updatedPhotoUrl,
+                                    })
+                                );
+                            }
+                            window.location.href = "/employee";
+                        }, 1500);
+                    } else {
+                        alert(data.message);
+                        // Save updated photo URL and employee ID in localStorage if photo updated
+                        if (data.updatedPhotoUrl && data.employeeId) {
+                            localStorage.setItem(
+                                "editEmployeeUpdatedPhoto",
+                                JSON.stringify({
+                                    employeeId: data.employeeId,
+                                    photoUrl: data.updatedPhotoUrl,
+                                })
+                            );
+                        }
+                        window.location.href = "/employee";
+                    }
+                    // Remove validation classes after success
+                    const inputs = form.querySelectorAll(
+                        "input, select, textarea"
+                    );
+                    inputs.forEach((input) => {
+                        input.classList.remove("is-valid", "is-invalid");
+                    });
+                    const labels = form.querySelectorAll("label");
+                    labels.forEach((label) => {
+                        label.classList.remove("is-valid", "is-invalid");
+                    });
+                    form.classList.remove("was-validated");
+                }
+            })
+            .catch((error) => {
+                loaderOverlay.classList.add("d-none");
+                if (formAlert) {
+                    formAlert.innerHTML =
+                        '<div class="alert alert-danger">An error occurred while updating the employee.</div>';
+                } else {
+                    alert("An error occurred while updating the employee.");
+                }
+                console.error(error);
+            });
+    });
     setupImageInput(inputKtp, ktpLabel, ktpClearBtn);
 
     // Form validation and submission

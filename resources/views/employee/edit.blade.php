@@ -24,7 +24,7 @@
             <div class="loader-spinner"></div>
         </div>
         <form id="employeeEditForm" class="needs-validation" enctype="multipart/form-data" novalidate
-            action="{{ url('employees/' . $employee->id) }}" method="POST">
+            action="{{ url('employee/' . $employee->id) }}" method="POST">
             @csrf
             @method('PUT')
             <div class="px-3 py-3" style="">
@@ -176,9 +176,9 @@
                             <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
                                 <span>Upload Photo</span>
                             </div>
-                            <label for="photo"
-                                class="custom-image-upload-photo position-relative photo-upload {{ $employee->profile_picture ? 'has-image' : '' }}"
-                                style="background-image: url('{{ $employee->profile_picture ? asset($employee->profile_picture) : '' }}'); opacity: {{ $employee->profile_picture ? '1' : '0.5' }}; background-size: cover;">
+<label for="photo"
+    class="custom-image-upload-photo position-relative photo-upload {{ $employee->photo ? 'has-image' : '' }}"
+    style="background-image: url('{{ $employee->photo ? asset($employee->photo) : '' }}'); opacity: {{ $employee->photo ? '1' : '0.5' }}; background-size: cover;">
                                 <input type="file" id="photo" name="photo" accept="image/*"
                                     class="photo-input" hidden />
                                 <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
