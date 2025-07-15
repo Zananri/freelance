@@ -28,7 +28,7 @@
                 </a>    
         </div>
         <div class="body-content scrollable-container rounded-4 p-5 w-50 d-flex justify-content-center align-items-center" style="height: 200px;">
-            <a href="{{ url('users') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">
+            <a href="{{ url('user') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center">
             
                 <h5>User</h5>
             </a>        

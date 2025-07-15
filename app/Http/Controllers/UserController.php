@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-
+use Illuminate\Support\Facades\Hash;
 use App\Models\Employee;
 
 class UserController extends Controller
@@ -162,7 +162,7 @@ class UserController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        $user->password = \Illuminate\Support\Facades\Hash::make('NSA_2025');
+        $user->password = Hash::make('NSA_2025');
         $user->save();
 
         return response()->json(['message' => 'Password has been reset to default successfully']);
