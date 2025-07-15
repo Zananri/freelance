@@ -88,7 +88,18 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        $projects = Project::with([
+        $user = auth()->user();
+        if (!$user || !$user->employee) {
+            // If no authenticated user or no employee relation, return empty list
+            return response()->json(['data' => []]);
+        }
+        $employeeId = $user->employee->id;
+
+        // Get projects where the employee is author, co_author, or contributor
+        $projects = Project::whereHas('projectAssignments', function ($query) use ($employeeId) {
+            $query->where('employee_id', $employeeId)
+                  ->whereIn('role', ['author', 'co_author', 'contributor']);
+        })->with([
             'department',
             'division',
             'projectAssignments.employee',
@@ -111,6 +122,7 @@ class ProjectController extends Controller
                 'id' => $project->id,
                 'title' => $project->title,
                 'description' => $project->description,
+                'image' => $project->image,
                 'department' => $project->department,
                 'division' => $project->division,
                 'status' => $project->status,
