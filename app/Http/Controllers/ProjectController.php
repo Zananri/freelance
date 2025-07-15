@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Project;
 use App\Models\ProjectFeedback;
 use App\Models\ProjectAssignment;
+use App\Models\Employee;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -19,7 +20,7 @@ class ProjectController extends Controller
         $query = $request->input('q', '');
         $excludeEmployeeId = $request->input('exclude_employee_id');
 
-        $employees = \App\Models\Employee::query();
+        $employees = Employee::query();
 
         if ($query !== '') {
             $employees = $employees->where('name', 'like', '%' . $query . '%');
@@ -46,7 +47,7 @@ class ProjectController extends Controller
      */
     public function getProjectAssignments()
     {
-        $assignments = \App\Models\ProjectAssignment::with(['employee', 'project'])->get();
+        $assignments = ProjectAssignment::with(['employee', 'project'])->get();
 
         $assignmentsTransformed = $assignments->map(function ($assignment) {
             return [
@@ -221,7 +222,7 @@ class ProjectController extends Controller
                 $employee = auth()->user()->employee;
                 if ($employee) {
                     try {
-                        \DB::table('project_assignments')->insert([
+                        ProjectAssignment::create([
                             'project_id' => $project->id,
                             'employee_id' => $employee->id,
                             'role' => 'author',
@@ -243,22 +244,22 @@ class ProjectController extends Controller
                 $coAuthorAssignments = [];
                 foreach ($request->co_author as $employeeId) {
                     // Check if employee exists before inserting
-                    $employeeExists = \DB::table('employees')->where('id', $employeeId)->exists();
-                    if ($employeeExists) {
-                        $coAuthorAssignments[] = [
-                            'project_id' => $project->id,
-                            'employee_id' => $employeeId,
-                            'role' => 'co_author',
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ];
-                    } else {
-                        \Log::warning("Project creation: Co-author employee ID {$employeeId} does not exist.");
-                    }
+                $employeeExists = Employee::where('id', $employeeId)->exists();
+                if ($employeeExists) {
+                    $coAuthorAssignments[] = [
+                        'project_id' => $project->id,
+                        'employee_id' => $employeeId,
+                        'role' => 'co_author',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                } else {
+                    \Log::warning("Project creation: Co-author employee ID {$employeeId} does not exist.");
+                }
                 }
                 if (!empty($coAuthorAssignments)) {
                     try {
-                        \DB::table('project_assignments')->insert($coAuthorAssignments);
+                        ProjectAssignment::insert($coAuthorAssignments);
                     } catch (\Exception $ex) {
                         \Log::error('Failed to insert co_author assignments: ' . $ex->getMessage());
                     }
@@ -269,22 +270,22 @@ class ProjectController extends Controller
             if ($request->contributors && is_array($request->contributors)) {
                 $contributorAssignments = [];
                 foreach ($request->contributors as $employeeId) {
-                    $employeeExists = \DB::table('employees')->where('id', $employeeId)->exists();
-                    if ($employeeExists) {
-                        $contributorAssignments[] = [
-                            'project_id' => $project->id,
-                            'employee_id' => $employeeId,
-                            'role' => 'contributor',
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ];
-                    } else {
-                        \Log::warning("Project creation: Contributor employee ID {$employeeId} does not exist.");
-                    }
+                $employeeExists = Employee::where('id', $employeeId)->exists();
+                if ($employeeExists) {
+                    $contributorAssignments[] = [
+                        'project_id' => $project->id,
+                        'employee_id' => $employeeId,
+                        'role' => 'contributor',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                } else {
+                    \Log::warning("Project creation: Contributor employee ID {$employeeId} does not exist.");
+                }
                 }
                 if (!empty($contributorAssignments)) {
                     try {
-                        \DB::table('project_assignments')->insert($contributorAssignments);
+                        ProjectAssignment::insert($contributorAssignments);
                     } catch (\Exception $ex) {
                         \Log::error('Failed to insert contributor assignments: ' . $ex->getMessage());
                     }
@@ -306,7 +307,7 @@ class ProjectController extends Controller
         }
 
         // After saving project and assignments, return project assignments with names
-        $assignments = \App\Models\ProjectAssignment::with(['employee', 'project'])->where('project_id', $project->id)->get();
+        $assignments = ProjectAssignment::with(['employee', 'project'])->where('project_id', $project->id)->get();
 
         $assignmentsTransformed = $assignments->map(function ($assignment) {
             return [
@@ -494,46 +495,44 @@ class ProjectController extends Controller
         // Update project_assignments for author and co_author
         if (auth()->check()) {
             $employee = auth()->user()->employee;
-            if ($employee) {
-                // Update or insert author assignment
-                \DB::table('project_assignments')->updateOrInsert(
-                    ['project_id' => $project->id, 'employee_id' => $employee->id],
-                    ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
-                );
-            }
+        if ($employee) {
+            // Update or insert author assignment
+            ProjectAssignment::updateOrCreate(
+                ['project_id' => $project->id, 'employee_id' => $employee->id],
+                ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
+            );
+        }
         }
 
         // Remove existing co_author assignments
-        \DB::table('project_assignments')
-            ->where('project_id', $project->id)
+        ProjectAssignment::where('project_id', $project->id)
             ->where('role', 'co_author')
             ->delete();
 
         // Remove existing contributor assignments
-        \DB::table('project_assignments')
-            ->where('project_id', $project->id)
+        ProjectAssignment::where('project_id', $project->id)
             ->where('role', 'contributor')
             ->delete();
 
         // Insert new co_author assignments
-        if ($request->co_author && is_array($request->co_author)) {
-            $coAuthorAssignments = [];
-            foreach ($request->co_author as $employeeId) {
-                $employeeExists = \DB::table('employees')->where('id', $employeeId)->exists();
-                if ($employeeExists) {
-                    $coAuthorAssignments[] = [
-                        'project_id' => $project->id,
-                        'employee_id' => $employeeId,
-                        'role' => 'co_author',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+            if ($request->co_author && is_array($request->co_author)) {
+                $coAuthorAssignments = [];
+                foreach ($request->co_author as $employeeId) {
+                    $employeeExists = Employee::where('id', $employeeId)->exists();
+                    if ($employeeExists) {
+                        $coAuthorAssignments[] = [
+                            'project_id' => $project->id,
+                            'employee_id' => $employeeId,
+                            'role' => 'co_author',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+                if (!empty($coAuthorAssignments)) {
+                    ProjectAssignment::insert($coAuthorAssignments);
                 }
             }
-            if (!empty($coAuthorAssignments)) {
-                \DB::table('project_assignments')->insert($coAuthorAssignments);
-            }
-        }
 
         return response()->json(['message' => 'Project updated successfully', 'project' => $project]);
     }
@@ -558,7 +557,7 @@ class ProjectController extends Controller
 public function getProjectFeedbacks($projectId)
     {
         try {
-            $feedbacks = \App\Models\ProjectFeedback::with(['employee'])
+            $feedbacks = ProjectFeedback::with(['employee'])
                 ->where('project_id', $projectId)
                 ->get();
 
