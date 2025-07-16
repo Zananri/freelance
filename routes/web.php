@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\TaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
@@ -73,15 +74,7 @@ Route::post('/profile/store', [ProfileController::class, 'store'])->name('profil
 Route::put('/profile/{id}', [ProfileController::class, 'update'])->name('profile.update');
 Route::delete('/profile/{id}', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-// Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
-// Route::post('/attendance/update', [AttendanceController::class, 'updateAttendance'])->name('attendance.update');
-// Route::get('/attendance/index', [AttendanceController::class, 'index'])->name('attendance.index');
-// Route::get('/attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
-// Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
-// Route::get('/attendance/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
-// Route::post('/attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
-// Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
-// Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+
 
 Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
 Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
@@ -98,6 +91,22 @@ Route::delete('/project/{id}', [ProjectController::class, 'destroy'])->name('pro
 Route::get('/project/index/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
 
 Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignments'])->name('project.assignments');
+
+Route::get('/task', [TaskController::class, 'showTaskPage'])->name('task');
+Route::post('/task/update', [TaskController::class, 'updatetask'])->name('task.update.post');
+Route::get('/task/index', [TaskController::class, 'index'])->name('task.index');
+Route::get('/task/create', [TaskController::class, 'create'])->name('task.create');
+Route::get('/task/{id}/edit', [TaskController::class, 'edit'])->name('task.edit');
+Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
+Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
+Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
+Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks'])->name('task-feedbacks.get');
+Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
+Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
+
+Route::get('/task/index/card-data', [TaskController::class, 'getCardData'])->name('task.cardData');
+
+Route::get('/task-assignments', [TaskController::class, 'getTaskAssignments'])->name('task.assignments');
 
 Route::get('/', function () {
     return view('welcome');

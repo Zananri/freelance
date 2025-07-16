@@ -4,10 +4,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const tableBody = document.getElementById("userTableBody");
     const userDetailModalEl = document.getElementById("userDetailModal");
     const userDetailModal = new bootstrap.Modal(userDetailModalEl);
+    const alertContainer = document.getElementById("resetPasswordAlertContainer");
+    let currentUserId = null;
 
     function fetchUsers() {
         $.ajax({
-            url: appUrl + "/users",
+            url: appUrl + "/user/index",
             type: "GET",
             dataType: "json",
             success: function (response) {
@@ -57,8 +59,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     $(document).on("click", ".btn-detail", function () {
         const id = $(this).data("id");
+        currentUserId = id;
         $.ajax({
-            url: appUrl + `/users/${id}`,
+            url: appUrl + `/user/${id}`,
             method: "GET",
             dataType: "json",
             success: function (user) {
@@ -78,6 +81,56 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             error: function () {
                 alert("Failed to fetch user details.");
+            },
+        });
+    });
+
+    function showResetPasswordAlert(message) {
+        alertContainer.innerHTML = `
+            <div class="alert alert-success alert-dismissible fade show text-truncate" role="alert" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+        alertContainer.style.display = "block";
+        const alertElement = alertContainer.querySelector(".alert");
+        setTimeout(() => {
+            const bsAlert = bootstrap.Alert.getOrCreateInstance(alertElement);
+            bsAlert.close();
+            alertContainer.style.display = "none";
+            location.reload();
+        }, 1500);
+    }
+
+    $("#btnResetPassword").on("click", function () {
+        if (!currentUserId) {
+            alert("User ID not found.");
+            return;
+        }
+
+        const $btn = $(this);
+        $btn.prop("disabled", true);
+        const originalHtml = $btn.html();
+        $btn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Resetting...');
+
+        $.ajax({
+            url: appUrl + `/user/${currentUserId}/reset-password`,
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+            },
+            success: function (response) {
+                showResetPasswordAlert(response.message || "Password has been reset successfully.");
+            },
+            error: function (xhr) {
+                alert(
+                    xhr.responseJSON?.error ||
+                        "Failed to reset password. Please try again."
+                );
+            },
+            complete: function () {
+                $btn.prop("disabled", false);
+                $btn.html(originalHtml);
             },
         });
     });

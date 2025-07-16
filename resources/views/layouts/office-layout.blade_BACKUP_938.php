@@ -70,7 +70,12 @@
                 </div>
             </div>
 
+<<<<<<< HEAD
             <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative" style="width: 40px; height: 40px; overflow: visible;" id="avatarDropdownToggle">
+=======
+            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
+                style="width: 40px; height: 40px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
+>>>>>>> aa79a83c4cbceb7b7823482d590d9efc7b167423
 
                 @if (Auth::check())
                     <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"

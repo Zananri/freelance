@@ -1,0 +1,308 @@
+.custom-card .card-body {
+    padding: 1rem;
+}
+
+.title-project {
+    color: #555;
+    font-size: 16px;
+}
+
+.row.justify-content-start > .col-md-2 {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.col-md-4 {
+    margin-bottom: 1.5rem;
+}
+
+.btn-submit-black {
+    background-color: black;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-submit-black:hover {
+    background-color: #333;
+}
+
+/* Spinner inside submit button */
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+    margin-left: 0.5rem;
+}
+
+/* Success alert styling */
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 14px;
+    text-align: center;
+}
+
+.custom-card {
+    background-color: rgb(240, 241, 248);
+    margin-right: 15px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.card-image img {
+    border-radius: 8px;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.project-name {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.author {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.card-icons {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.icon-item {
+    display: flex;
+    align-items: center;
+}
+
+.icon-format_list_bulleted {
+    color: #555; /* blue */
+    font-size: 14px;
+}
+
+.icon-av-timer {
+    color: #555; /* orange */
+    font-size: 14px;
+}
+
+.icon-checklist {
+    color: #555; /* green */
+    font-size: 14px;
+}
+
+.icon-number {
+    margin-left: 0.25rem;
+    font-weight: 600;
+    font-size: 14px;
+    color: #555;
+}
+
+
+
+/* New class for icon container below project name */
+.icon-container-inline {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.icon-container-inline .d-flex.align-items-center {
+    margin-right: 1rem;
+}
+
+.card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: visible;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.status-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.custom-image-upload {
+    position: relative;
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5;
+}
+
+.custom-image-upload.has-image {
+    opacity: 1;
+}
+
+.custom-image-upload:hover {
+    border-color: #333;
+}
+
+.custom-image-upload.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.custom-image-upload.is-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.image-clear-btn {
+    position: absolute;
+    top: -13px;
+    right: -13px;
+    background: #dc3545;
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s;
+    opacity: 0.85;
+}
+.image-clear-btn:hover {
+    background: #b02a37;
+    opacity: 1;
+}
+
+.title-label-image {
+    display: block;
+    font-size: 14px;
+    color: #222;
+    margin-bottom: 6px;
+    margin-left: 2px;
+    font-family: inherit;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 24px;
+    background: #f7f7f8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+.modal-header-custom {
+    border: 0;
+}
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: rgb(103, 111, 122);
+}
+
+#deleteProjectTitle {
+    font-weight: 300 !important;
+}
+.form-custom {
+    margin-top: -12px;
+}
+.modal-body-custom {
+    padding: 0;
+}
+
+.label-custom {
+    font-size: 14px;
+    font-weight: 400;
+}
+.modal-footer-custom {
+    border: 0;
+    justify-content: center;
+}
+.btn-submit-custom {
+    width: auto;
+    min-width: auto;
+    height: 36px;
+    padding: 6px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.form-label {
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.form-control {
+    font-size: 14px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    height: 45px !important;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-select {
+    font-size: 14px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    height: 45px !important;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s ease;
+}
+
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.input-text {
+    width: 100%;
+}
+
+.input-select {
+    width: 100%;
+}
