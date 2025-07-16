@@ -38,301 +38,11 @@
         }
     </style>
     <link href="{{ asset('asset/css/MaterialSymbolsOutlined.css') }}" rel="stylesheet">
-    <link href="{{ asset('asset/css/app.css') }}" rel="stylesheet">
-    <link href="{{ asset('asset/css/office.css') }}" rel="stylesheet">
+    <link href="{{ asset('asset/css/app.css?v='.time()) }}" rel="stylesheet">
+    <link href="{{ asset('asset/css/office.css?v='.time()) }}" rel="stylesheet">
+    <link href="{{ asset('asset/css/sidebar.css?v='.time()) }}" rel="stylesheet">
 
     <style>
-        body {
-            box-sizing: border-box;
-            /* Pastikan padding tidak menambah ukuran total */
-            background-image: url('{{ asset('asset/img/background/light-1.jpg') }}');
-        }
-
-        header {
-            position: relative;
-        }
-
-        .btn-sidebar-style {
-            background-color: transparent;
-            color: #777;
-            border-radius: 25px;
-            padding: 12px 20px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: background-color 0.3s ease, color 0.3s ease;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .btn-sidebar-style:hover {
-            background-color: #f8f8f9;
-            color: #000;
-        }
-
-        .btn-sidebar-style .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0;
-            transition: font-variation-settings 0.3s ease;
-        }
-
-        .btn-sidebar-style:hover .material-symbols-outlined {
-            font-variation-settings: 'FILL' 1;
-        }
-
-
-
-
-        .sidebar {
-            width: 225px;
-            /* Sesuaikan sesuai kebutuhan */
-            padding: 20px 0;
-            /* Sesuaikan untuk sudut membulat */
-            /* Tambahkan sedikit margin di sekitar sidebar */
-        }
-
-
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar-menu li {
-            margin-bottom: 5px;
-            /* Spasi antar item menu utama */
-        }
-
-        .sidebar-menu li a {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            font-size: 14px;
-            color: #777;
-            text-decoration: none;
-            transition: background-color 0.3s ease;
-            border-radius: 25px;
-            /* Sudut sedikit membulat untuk item menu */
-            margin: 0 8px;
-            /* Agar warna latar belakang tidak memenuhi lebar penuh */
-        }
-
-        .sidebar-menu li a.active {
-            background-color: #fff;
-        }
-
-        .sidebar-menu li a.active .material-symbols-outlined {
-            color: #000;
-            font-variation-settings: 'FILL' 1;
-        }
-
-        .sidebar-menu li a .text-menu {
-            margin-left: 5px;
-        }
-
-
-
-        .sidebar-menu li a:hover {
-            background-color: #f8f8f9;
-            color: #000;
-            /* Warna highlight saat di-hover */
-        }
-
-
-        /* Styling untuk ikon Material Icons dalam menu */
-        .sidebar-menu li a .material-symbols-outlined {
-            margin-right: 10px;
-            font-size: 1.6em;
-            /* Sesuaikan ukuran ikon */
-            transition: all 0.2s ease-in-out;
-        }
-
-        .sidebar-menu li a .arrow {
-            margin-left: auto;
-            /* Mendorong panah ke kanan */
-            font-size: 1em;
-            /* Ukuran panah material icons */
-        }
-
-        /* Submenu styling untuk Projects */
-        .sidebar-menu .has-submenu .submenu {
-            list-style: none;
-            padding: 0;
-            margin-left: 45px;
-            /* Indentasi item submenu */
-            padding-left: 10px;
-            border-left: 2px solid #ddd;
-            /* Garis vertikal */
-        }
-
-        .has-submenu [aria-expanded="true"] .arrow-more {
-            display: inline;
-        }
-
-        .has-submenu [aria-expanded="true"] .arrow-hide {
-            display: none;
-        }
-
-        .has-submenu [aria-expanded="false"] .arrow-more {
-            display: none;
-        }
-
-        .has-submenu [aria-expanded="false"] .arrow-hide {
-            display: inline;
-        }
-
-        .sidebar-menu .has-submenu .submenu li a {
-            padding: 8px 0;
-            font-size: 0.9em;
-            color: #555;
-            margin: 0;
-            /* Hapus margin horizontal untuk item submenu */
-        }
-
-        .sidebar-menu .has-submenu .submenu li a:hover {
-            background-color: transparent;
-            /* Tanpa latar belakang saat di-hover untuk item submenu */
-            color: #4A63F8;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-
-        .active-project {
-            background-color: #4CAF50;
-            /* Hijau */
-        }
-
-        .project-done {
-            background-color: #2196F3;
-            /* Biru */
-        }
-
-        .project-on-hold {
-            background-color: #F44336;
-            /* Merah */
-        }
-
-        /* Lencana Notifikasi */
-        .notification-badge {
-            background-color: #FF4D4D;
-            /* Merah */
-            color: white;
-            font-size: 0.7em;
-            padding: 3px 7px;
-            border-radius: 10px;
-            margin-left: auto;
-            /* Mendorong lencana ke kanan */
-        }
-
-
-        .small-sidebar .left-nav {
-            min-width: 77px;
-            width: 77px;
-            /* background-color: rgba(255, 255, 255, 0); */
-        }
-
-        .small-sidebar .left-nav:hover {
-            background-color: #f7f8f9;
-        }
-
-        .small-sidebar .left-nav:hover .scrollable-container {
-            width: 250px;
-        }
-
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .small-sidebar .scrollable-container::-webkit-scrollbar {
-            display: none;
-        }
-
-        /* Hide scrollbar for IE, Edge and Firefox */
-        .small-sidebar .scrollable-container {
-            -ms-overflow-style: none;
-            /* IE and Edge */
-            scrollbar-width: none;
-            /* Firefox */
-        }
-
-        .small-sidebar .sidebar:hover {
-            width: 250px;
-        }
-
-        .small-sidebar .sidebar-menu li a {
-            padding: 0px 20px;
-            width: 55px;
-            overflow: hidden;
-            word-wrap: none;
-            white-space: nowrap;
-        }
-
-        .small-sidebar .sidebar a .text-menu {
-            color: rgba(51, 51, 51, 0);
-            word-wrap: none;
-        }
-
-        .small-sidebar .sidebar a .arrow {
-            display: none;
-        }
-
-        .small-sidebar .sidebar-menu li a.active {
-            background-color: rgba(255, 255, 255, 0);
-            color: #000000;
-        }
-
-        .small-sidebar .sidebar-menu li a:hover {
-            width: 220px;
-        }
-
-        .small-sidebar a:hover .text-menu {
-            color: #000000;
-        }
-
-        .small-sidebar .sidebar-menu li a:hover {
-            background-color: rgba(248, 248, 249, 0);
-            color: #000000;
-            /* Warna highlight saat di-hover */
-        }
-
-        .sidebar-menu li a:hover .material-symbols-outlined {
-            color: #000;
-            font-variation-settings: 'FILL' 1;
-        }
-
-        .small-sidebar .text-menu {
-            margin-left: 10px;
-            padding: 10px 15px 10px 0px;
-            border-bottom: 3px solid #e3e8ee;
-            border-right: 3px solid #e3e8ee;
-            background-color: #f7f8f9;
-            border-top-right-radius: 20px;
-            border-bottom-right-radius: 20px;
-            color: #000;
-        }
-
-        .small-sidebar .main-content {
-            padding-left: 130px;
-        }
-
-
-        .small-sidebar .has-submenu:hover a {
-            width: 220px;
-        }
-
-        .small-sidebar .has-submenu:hover .text-menu {
-            color: #000;
-        }
-
-        .small-sidebar .submenu {
-            background-color: #f7f8f9;
-        }
     </style>
 
     @isset($head_slot)
@@ -360,37 +70,34 @@
                 </div>
             </div>
 
-            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative" style="width: 40px; height: 40px; overflow: visible; cursor: pointer;" id="avatarDropdownToggle">
+            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative" style="width: 40px; height: 40px; overflow: visible;" id="avatarDropdownToggle">
 
                 @if (Auth::check())
                     <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
-                        style="width: 40px; height: 40px; object-fit: cover;">
+                        style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;">
                 @else
                     <div class="d-inline-block rounded-circle bg-secondary opacity-50" style="width: 40px; height: 40px;"></div>
                 @endif
 
-                <div id="avatarDropdownCard" class="card shadow-sm rounded-5"
-                    style="width: 350px; position: fixed; top: 75px; right: 32px;  display: none;
-                    background-color: rgb(240, 241, 248); border:0;">
+                <div id="avatarDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
                     <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
                         aria-label="Close"></button>
                     <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center"
                         style="min-height: 220px;">
-                        <div class="mb-2 mt-3">
+                        <div class="mb-3 mt-3">
                             @if (Auth::check())
                                 <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
-                                    style="width: 70px; height: 70px; object-fit: cover;">
+                                    style="width: 70px; height: 70px; object-fit: cover; ">
                             @else
                                 <div class="d-inline-block rounded-circle bg-secondary opacity-50" style="width: 70px; height: 70px;"></div>
                             @endif
                         </div>
-                        <div class="fw-semibold" style="font-size: 16px; color: #555;">
-                            Hi, {{ Auth::check() ? Auth::user()->name : 'Guest' }}
+                        <div class="fw-semibold text-body mb-1" >{{ Auth::check() ? Auth::user()->name : 'Guest' }}
                         </div>
-                        <div class="text-muted mb-2" style="font-size: 12px; color: #555;">
+                        <div class="mb-1 text-body-secondary fs-12">
                             {{ Auth::check() ? Auth::user()->email : '' }}
                         </div>
-                        <div class="text-muted mb-4" style="font-size: 11px; color: #555;">
+                        <div class="mb-4 text-body-secondary fs-12">
                             {{ Auth::check() ? optional(auth()->user()->employee->division)->name_division ?? 'No Division' : '' }}
                         </div>
 
