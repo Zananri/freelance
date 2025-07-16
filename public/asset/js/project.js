@@ -335,19 +335,19 @@ $('#editProjectForm').on('submit', function (e) {
                 return;
             }
 
-            const html = filteredEmployees.map(emp => {
-                const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
-                return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
-                        </div>
-                        <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                    </label>
-                `;
-            }).join('');
+                const html = filteredEmployees.map(emp => {
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
+                    return `
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <span>${emp.name}</span>
+                            </div>
+                            <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                        </label>
+                    `;
+                }).join('');
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
 
@@ -372,7 +372,7 @@ $('#editProjectForm').on('submit', function (e) {
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
 
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
@@ -445,11 +445,28 @@ $('#editProjectForm').on('submit', function (e) {
         };
 
         window.setSelectedCoAuthorsEdit = function (coAuthors) {
-            selectedEmployees = coAuthors.map(ca => ({
-                id: ca.id,
-                name: ca.name,
-                user_photo: ca.user_photo || null
-            }));
+            selectedEmployees = coAuthors.map(ca => {
+                let photoUrl = '';
+                let userPhoto = ca.user_photo;
+                if (userPhoto) {
+                    if (userPhoto.startsWith('http')) {
+                        photoUrl = userPhoto;
+                    } else if (userPhoto.startsWith('/file/photo') || userPhoto.startsWith('/file/profile_picture')) {
+                        photoUrl = appUrl + userPhoto;
+                    } else if (userPhoto.startsWith('file/photo') || userPhoto.startsWith('file/profile_picture')) {
+                        photoUrl = appUrl + '/' + userPhoto;
+                    } else {
+                        photoUrl = appUrl + '/file/profile_picture/' + userPhoto;
+                    }
+                } else {
+                    photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+                }
+                return {
+                    id: ca.id,
+                    name: ca.name,
+                    user_photo: photoUrl
+                };
+            });
             renderSelected();
             updateHiddenInput();
         };
@@ -490,19 +507,19 @@ $('#editProjectForm').on('submit', function (e) {
                 return;
             }
 
-            const html = filteredEmployees.map(emp => {
-                const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
-                return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
-                        </div>
-                        <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                    </label>
-                `;
-            }).join('');
+                const html = filteredEmployees.map(emp => {
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
+                    return `
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <span>${emp.name}</span>
+                            </div>
+                            <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                        </label>
+                    `;
+                }).join('');
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
 
@@ -528,7 +545,7 @@ $('#editProjectForm').on('submit', function (e) {
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
 
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
@@ -601,11 +618,24 @@ $('#editProjectForm').on('submit', function (e) {
         };
 
         window.setSelectedContributorsEdit = function (contributors) {
-            selectedEmployees = contributors.map(c => ({
-                id: c.id,
-                name: c.name,
-                user_photo: c.user_photo || null
-            }));
+            selectedEmployees = contributors.map(ca => {
+                let photoUrl = '';
+                let userPhoto = ca.user_photo;
+                if (userPhoto) {
+                    if (userPhoto.startsWith('http')) {
+                        photoUrl = userPhoto;
+                    } else {
+                        photoUrl = appUrl + '/file/profile_picture/' + userPhoto;
+                    }
+                } else {
+                    photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+                }
+                return {
+                    id: ca.id,
+                    name: ca.name,
+                    user_photo: photoUrl
+                };
+            });
             renderSelected();
             updateHiddenInput();
         };
@@ -659,7 +689,7 @@ function loadFeedbackData(projectId) {
                 } else if (employeePhotoPath.length > 0) {
                     employeePhotoPath = '/file/profile_picture/' + employeePhotoPath;
                 }
-                img.src = employeePhotoPath.length > 0 ? window.location.origin + employeePhotoPath : window.location.origin + '/asset/img/profile_picture/default.png';
+img.src = employeePhotoPath.length > 0 ? appUrl + employeePhotoPath : appUrl + '/asset/img/profile_picture/default.png';
                 img.alt = 'Employee Photo';
                 img.className = 'feedback-employee-photo me-2 rounded-circle';
                 img.style.width = '40px';
@@ -738,7 +768,7 @@ if (feedback.reference_url || feedback.reference_file) {
 
     if (feedback.reference_file) {
         const refFileLink = document.createElement('a');
-        refFileLink.href = window.location.origin + '/file/project/' + feedback.reference_file;
+refFileLink.href = appUrl + '/file/project/' + feedback.reference_file;
         refFileLink.download = '';
         refFileLink.className = 'feedback-reference-file';
 
@@ -759,7 +789,7 @@ if (feedback.reference_url || feedback.reference_file) {
 
 if (feedback.image) {
     const feedbackImage = document.createElement('img');
-    feedbackImage.src = window.location.origin + '/file/project/' + feedback.image;
+feedbackImage.src = appUrl + '/file/project/' + feedback.image;
     feedbackImage.alt = 'Feedback Image';
     feedbackImage.className = 'feedback-image me-2 mb-2';
     feedbackImage.style.maxWidth = '150px';
@@ -1452,7 +1482,8 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
                 partOfProjectSelect.innerHTML = options;
             },
             error: function () {
-                alert("Failed to load projects.");
+                // Suppress alert on failed projects load
+                // Do nothing
             },
         });
     }
@@ -1497,19 +1528,19 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
                 return;
             }
 
-            const html = filteredEmployees.map(emp => {
-                const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
-                return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
-                        </div>
-                        <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                    </label>
-                `;
-            }).join('');
+                const html = filteredEmployees.map(emp => {
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
+                    return `
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <span>${emp.name}</span>
+                            </div>
+                            <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                        </label>
+                    `;
+                }).join('');
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
 
@@ -1537,7 +1568,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + (emp.user_photo.startsWith('/') ? emp.user_photo : '/file/profile_picture/' + emp.user_photo)) : appUrl + '/asset/img/profile_picture/default.png';
 
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
@@ -1658,19 +1689,19 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
                 return;
             }
 
-            const html = filteredEmployees.map(emp => {
-                const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
-                return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
-                        </div>
-                        <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                    </label>
-                `;
-            }).join('');
+                const html = filteredEmployees.map(emp => {
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
+                    return `
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <span>${emp.name}</span>
+                            </div>
+                            <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                        </label>
+                    `;
+                }).join('');
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
 
@@ -1698,7 +1729,7 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + (emp.user_photo.startsWith('/') ? emp.user_photo : '/file/profile_picture/' + emp.user_photo)) : appUrl + '/asset/img/profile_picture/default.png';
 
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';

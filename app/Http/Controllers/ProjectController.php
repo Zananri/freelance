@@ -379,39 +379,26 @@ class ProjectController extends Controller
         $contributors = [];
 
         foreach ($project->projectAssignments as $assignment) {
-                if ($assignment->role === 'co_author' && $assignment->employee) {
-                    $photo = $assignment->employee->photo ?? null;
-                    if ($photo) {
-                        if (strpos($photo, 'file/photo/') === 0 || strpos($photo, 'file/profile_picture/') === 0) {
-                            $userPhoto = $photo;
-                        } else {
-                            $userPhoto = 'file/profile_picture/' . $photo;
-                        }
-                    } else {
-                        $userPhoto = null;
-                    }
-                    $coAuthors[] = [
-                        'id' => $assignment->employee->id,
-                        'name' => $assignment->employee->name,
-                        'user_photo' => $userPhoto,
-                    ];
-                } elseif ($assignment->role === 'contributor' && $assignment->employee) {
-                    $photo = $assignment->employee->photo ?? null;
-                    if ($photo) {
-                        if (strpos($photo, 'file/photo/') === 0 || strpos($photo, 'file/profile_picture/') === 0) {
-                            $userPhoto = $photo;
-                        } else {
-                            $userPhoto = 'file/profile_picture/' . $photo;
-                        }
-                    } else {
-                        $userPhoto = null;
-                    }
-                    $contributors[] = [
-                        'id' => $assignment->employee->id,
-                        'name' => $assignment->employee->name,
-                        'user_photo' => $userPhoto,
-                    ];
-                }
+            $employee = $assignment->employee;
+            if (!$employee) continue;
+            $userPhoto = null;
+            // Ambil dari relasi user
+            if ($employee->user && $employee->user->photo) {
+                $userPhoto = $employee->user->photo;
+            }
+            if ($assignment->role === 'co_author') {
+                $coAuthors[] = [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'user_photo' => $userPhoto,
+                ];
+            } elseif ($assignment->role === 'contributor') {
+                $contributors[] = [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'user_photo' => $userPhoto,
+                ];
+            }
         }
 
         $response = $project->toArray();
