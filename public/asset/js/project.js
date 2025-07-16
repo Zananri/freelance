@@ -335,19 +335,32 @@ $('#editProjectForm').on('submit', function (e) {
                 return;
             }
 
-                const html = filteredEmployees.map(emp => {
-                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                    const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
-                    return `
-                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                            <div class="d-flex align-items-center">
-                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                                <span>${emp.name}</span>
-                            </div>
-                            <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                        </label>
-                    `;
-                }).join('');
+            const html = filteredEmployees.map(emp => {
+                const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                let photoUrl;
+                if (emp.user_photo) {
+                    if (emp.user_photo.startsWith('http')) {
+                        photoUrl = emp.user_photo;
+                    } else if (emp.user_photo.startsWith('/')) {
+                        photoUrl = appUrl + emp.user_photo;
+                    } else if (emp.user_photo.includes('/')) {
+                        photoUrl = appUrl + '/' + emp.user_photo;
+                    } else {
+                        photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
+                    }
+                } else {
+                    photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+                }
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            <span>${emp.name}</span>
+                        </div>
+                        <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>
+                `;
+            }).join('');
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
 
@@ -507,19 +520,32 @@ $('#editProjectForm').on('submit', function (e) {
                 return;
             }
 
-                const html = filteredEmployees.map(emp => {
-                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                    const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
-                    return `
-                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                            <div class="d-flex align-items-center">
-                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                                <span>${emp.name}</span>
-                            </div>
-                            <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                        </label>
-                    `;
-                }).join('');
+            const html = filteredEmployees.map(emp => {
+                const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                let photoUrl;
+                if (emp.user_photo) {
+                    if (emp.user_photo.startsWith('http')) {
+                        photoUrl = emp.user_photo;
+                    } else if (emp.user_photo.startsWith('/')) {
+                        photoUrl = appUrl + emp.user_photo;
+                    } else if (emp.user_photo.includes('/')) {
+                        photoUrl = appUrl + '/' + emp.user_photo;
+                    } else {
+                        photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
+                    }
+                } else {
+                    photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+                }
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                            <span>${emp.name}</span>
+                        </div>
+                        <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>
+                `;
+            }).join('');
             dropdown.innerHTML = html;
             dropdown.style.display = 'block';
 
