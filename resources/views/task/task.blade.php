@@ -27,8 +27,26 @@
         <button class="btn-submit-black" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add Task</button>
     </div>
 
-    <div id="project-cards-container" class="container my-4">
-        <!-- Project cards will be dynamically generated here -->
+    <div id="task-cards-container" class="container my-4">
+        <div class="row">
+            <!-- New Request Section -->
+            <div class="col-md-4">
+                <h4 class="task-section-title">New Request</h4>
+                <div id="new-request-tasks" class="task-list"></div>
+            </div>
+
+            <!-- In Progress Section -->
+            <div class="col-md-4">
+                <h4 class="task-section-title">In Progress</h4>
+                <div id="in-progress-tasks" class="task-list"></div>
+            </div>
+
+            <!-- Completed Section -->
+            <div class="col-md-4">
+                <h4 class="task-section-title">Completed</h4>
+                <div id="completed-tasks" class="task-list"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Add Task Modal -->

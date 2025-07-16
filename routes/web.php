@@ -104,9 +104,6 @@ Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks
 Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
 Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
 
-Route::get('/task/index/card-data', [TaskController::class, 'getCardData'])->name('task.cardData');
-
-Route::get('/task-assignments', [TaskController::class, 'getTaskAssignments'])->name('task.assignments');
 
 Route::get('/', function () {
     return view('welcome');

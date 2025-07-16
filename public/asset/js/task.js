@@ -111,22 +111,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const formData = new FormData(addTaskForm);
 
-            fetch(appUrl + "/task/store", {
-                method: "POST",
+            $.ajax({
+                url: appUrl + "/task/store",
+                type: "POST",
                 headers: {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                 },
-                body: formData,
-            })
-                .then((response) => {
-                    if (!response.ok) {
-                        return response.json().then((err) => {
-                            throw err;
-                        });
-                    }
-                    return response.json();
-                })
-                .then((data) => {
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(data) {
                     // Show success alert
                     let alertContainer = document.querySelector("#addTaskModal").parentElement.querySelector(".alert-container");
                     if (!alertContainer) {
@@ -152,20 +146,21 @@ document.addEventListener("DOMContentLoaded", function () {
                         alertContainer.style.display = "none";
                         // Optionally reload or update task list here
                     }, 1500);
-                })
-                .catch((error) => {
+                },
+                error: function(xhr) {
                     let errorMessage = "Failed to create task.";
-                    if (error.errors) {
-                        errorMessage = Object.values(error.errors).flat().join("\n");
-                    } else if (error.message) {
-                        errorMessage = error.message;
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
                     }
                     alert(errorMessage);
-                })
-                .finally(() => {
+                },
+                complete: function() {
                     if (loader) loader.classList.add("d-none");
                     if (submitBtn) submitBtn.disabled = false;
-                });
+                }
+            });
         });
     }
 
@@ -345,4 +340,73 @@ document.addEventListener("DOMContentLoaded", function () {
     setupExecutorInput();
 
     loadProjects();
+
+    // Function to create task card HTML
+    function createTaskCard(task) {
+        // Combine PIC and executors into one array for uniform rendering
+        const allExecutors = [];
+        if (task.pic) {
+            allExecutors.push(task.pic);
+        }
+        if (task.executors && task.executors.length > 0) {
+            allExecutors.push(...task.executors);
+        }
+        const executorsHtml = allExecutors.map((executor, index) => {
+            const overlapClass = index === 0 ? '' : 'executor-image-overlap';
+            const zIndexStyle = `style="z-index: ${index + 1};"`;
+            return `<img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" title="${executor.name}" ${zIndexStyle}>`;
+        }).join('');
+
+        return `
+            <div class="custom-card mb-3 rounded-4">
+                <div class="d-flex align-items-center mb-2">
+                    <img src="${task.project_image}" alt="Project Image" class="project-image me-3">
+                    <h5 class="mb-0 task-title">${task.title}</h5>
+                </div>
+                <p class="task-description">${task.description}</p>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center pic-executor-container">
+                        ${task.pic ? `<img src="${task.pic.image}" alt="${task.pic.name}" class="pic-executor-image" title="${task.pic.name}">` : ''}
+                        ${executorsHtml}
+                    </div>
+                    <div class="d-flex">
+                        <span class="material-symbols-outlined task-icon">mode_comment</span>
+                        <span class="material-symbols-outlined task-icon ms-3">attach_file</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Function to fetch and render tasks
+    function fetchAndRenderTasks() {
+        $.ajax({
+            url: appUrl + '/task/index',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                // Clear existing task lists
+                document.getElementById('new-request-tasks').innerHTML = '';
+                document.getElementById('in-progress-tasks').innerHTML = '';
+                document.getElementById('completed-tasks').innerHTML = '';
+
+                // Render tasks in respective sections
+                data.new_request.forEach(task => {
+                    document.getElementById('new-request-tasks').insertAdjacentHTML('beforeend', createTaskCard(task));
+                });
+                data.in_progress.forEach(task => {
+                    document.getElementById('in-progress-tasks').insertAdjacentHTML('beforeend', createTaskCard(task));
+                });
+                data.completed.forEach(task => {
+                    document.getElementById('completed-tasks').insertAdjacentHTML('beforeend', createTaskCard(task));
+                });
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching tasks:', error);
+            }
+        });
+    }
+
+    // Fetch and render tasks on page load
+    fetchAndRenderTasks();
 });

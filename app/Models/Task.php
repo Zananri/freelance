@@ -31,4 +31,10 @@ class Task extends Model
     {
         return $this->belongsTo(Project::class);
     }
+
+    // Define relationship to TaskAssignment
+    public function assignments()
+    {
+        return $this->hasMany(TaskAssignment::class);
+    }
 }

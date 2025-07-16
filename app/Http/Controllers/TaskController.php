@@ -21,7 +21,68 @@ class TaskController extends Controller
 
     public function index()
     {
-        //
+        // Fetch tasks with related project and assignments
+        $tasks = Task::with(['project', 'assignments.employee'])
+            ->get()
+            ->groupBy('status');
+
+        // Prepare response data grouped by status
+        $response = [
+            'new_request' => [],
+            'in_progress' => [],
+            'completed' => [],
+        ];
+
+        foreach ($tasks as $status => $tasksGroup) {
+            foreach ($tasksGroup as $task) {
+                // Get PIC and executors
+                $pic = $task->assignments->firstWhere('role', 'PIC');
+                $executors = $task->assignments->where('role', 'executor');
+
+                $responseKey = '';
+                switch (strtolower($status)) {
+                    case 'new request':
+                    case 'new_request':
+                        $responseKey = 'new_request';
+                        break;
+                    case 'in progress':
+                    case 'in_progress':
+                        $responseKey = 'in_progress';
+                        break;
+                    case 'completed':
+                        $responseKey = 'completed';
+                        break;
+                    default:
+                        $responseKey = 'new_request';
+                }
+
+                // Merge PIC into executors array as first element
+                $allExecutors = collect();
+                if ($pic) {
+                    $allExecutors->push([
+                        'name' => $pic->employee->name ?? '',
+                        'image' => $pic->employee && $pic->employee->user && $pic->employee->user->photo ? asset($pic->employee->user->photo) : asset('asset/img/profile_picture/default.png'),
+                    ]);
+                }
+                $executorsMapped = $executors->map(function ($executor) {
+                    return [
+                        'name' => $executor->employee->name ?? '',
+                        'image' => $executor->employee && $executor->employee->user && $executor->employee->user->photo ? asset($executor->employee->user->photo) : asset('asset/img/profile_picture/default.png'),
+                    ];
+                })->values();
+                $allExecutors = $allExecutors->merge($executorsMapped);
+
+                $response[$responseKey][] = [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'project_image' => ($task->project && $task->project->image) ? asset('file/project/' . $task->project->image) : asset('asset/img/profile_picture/sample_project.png'),
+                    'executors' => $allExecutors,
+                ];
+            }
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -65,7 +126,7 @@ class TaskController extends Controller
             $imageFile = $request->file('image');
             $imageExtension = $imageFile->getClientOriginalExtension();
             $imageName = 'TASK_' . time() . '.' . $imageExtension;
-            $imagePath = $imageFile->storeAs('task_images', $imageName, 'public');
+            $imageFile->move(public_path('file/task'), $imageName);
             $data['image'] = $imageName;
         }
 
@@ -74,7 +135,7 @@ class TaskController extends Controller
             $referenceFile = $request->file('reference_file');
             $referenceExtension = $referenceFile->getClientOriginalExtension();
             $referenceName = 'TASK_' . time() . '.' . $referenceExtension;
-            $referenceFilePath = $referenceFile->storeAs('task_reference_files', $referenceName, 'public');
+            $referenceFile->move(public_path('file/task_reference_files'), $referenceName);
             $data['reference_file'] = $referenceName;
         }
 

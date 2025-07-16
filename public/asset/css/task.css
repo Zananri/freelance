@@ -394,3 +394,60 @@
 .input-select {
     width: 100%;
 }
+
+/* Added styles for task sections and cards */
+
+.task-section-title {
+    font-weight: 300;
+    color: #222;
+    margin-bottom: 1rem;
+}
+
+.project-image {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.task-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.task-description {
+    margin-top: 0.25rem;
+    font-size: 0.95rem;
+    color: #555;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-icon {
+    color: #555;
+    font-size: 20px;
+    cursor: default;
+}
+
+.pic-executor-container {
+    position: relative;
+    margin-top: 1rem;
+}
+
+
+.pic-executor-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 0 3px rgba(0,0,0,0.15);
+}
+
+/* New class for executor image overlap */
+.executor-image-overlap {
+    margin-left: -10px; /* 1/4 of 40px image width */
+}
