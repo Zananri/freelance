@@ -17,13 +17,17 @@ class Task extends Model
         'image',
         'priority',
         'reference_url',
-        'reference_file',
+        'reference_files',
         'start_date',
         'due_date',
         'complete_date',
         'created_by',
         'updated_by',
         'deleted_by',
+    ];
+
+    protected $casts = [
+        'reference_files' => 'array',
     ];
 
     // Define relationship to Project

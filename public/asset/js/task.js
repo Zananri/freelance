@@ -111,6 +111,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const formData = new FormData(addTaskForm);
 
+            // Append all selected reference files to formData
+            selectedFiles.forEach((file) => {
+                formData.append('reference_files[]', file);
+            });
+
             $.ajax({
                 url: appUrl + "/task/store",
                 type: "POST",
@@ -144,6 +149,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         imageLabel.classList.remove("has-image");
                         imageLabel.style.opacity = "0.5";
                         imageClearBtn.classList.add("d-none");
+
+                        // Reset selected files array
+                        selectedFiles = [];
+                        displaySelectedFiles();
 
                         // Close modal after short delay to show alert
                         setTimeout(() => {
@@ -351,6 +360,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupExecutorInput();
     setupEditExecutorInput();
+    setupReferenceFilesInput();
+    setupEditReferenceFilesInput();
 
     loadProjects();
 
@@ -384,6 +395,13 @@ document.addEventListener("DOMContentLoaded", function () {
             const formData = new FormData(editTaskForm);
             // Add _method to FormData for Laravel PUT request
             formData.append('_method', 'PUT');
+
+            // Append all selected reference files from global array to formData
+            if (window.editSelectedFiles && window.editSelectedFiles.length > 0) {
+                window.editSelectedFiles.forEach(file => {
+                    formData.append('reference_files[]', file);
+                });
+            }
 
             $.ajax({
                 url: appUrl + "/task/" + taskId,
@@ -865,10 +883,17 @@ document.addEventListener("DOMContentLoaded", function () {
                     $('#taskDetailReferenceUrl').hide();
                 }
 
-                if (data.reference_file) {
-                    $('#taskDetailReferenceFile').attr('href', appUrl + '/file/task_reference_files/' + data.reference_file).show();
+                // Reference Files
+                if (data.reference_files && Array.isArray(data.reference_files) && data.reference_files.length > 0) {
+                    const referenceFilesHtml = data.reference_files.map(fileName => {
+                        return `<a href="${appUrl}/file/task_reference_files/${fileName}" target="_blank" class="d-block text-decoration-none mb-1">
+                            <span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span>
+                            ${fileName}
+                        </a>`;
+                    }).join('');
+                    $('#taskDetailReferenceFiles').html(referenceFilesHtml);
                 } else {
-                    $('#taskDetailReferenceFile').hide();
+                    $('#taskDetailReferenceFiles').text('No files');
                 }
 
                 // Format dates
@@ -934,8 +959,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         $('#editTaskImageClearBtn').addClass('d-none');
                     }
 
-                    // Clear file input for reference file
-                    $('#edit_task_reference_file').val('');
+                    // Clear file input for reference files
+                    $('#edit_task_reference_files').val('');
+                    
+                    // Display existing reference files
+                    if (data.reference_files) {
+                        window.displayExistingReferenceFiles(data.reference_files);
+                    }
 
                     // Set executors
                     if (data.executors) {
@@ -993,15 +1023,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const deleteModalEl = document.getElementById('deleteTaskModal');
         const deleteModal = new bootstrap.Modal(deleteModalEl);
 
-        // Set task image and title in modal
-        const taskImage = taskCard.querySelector('img');
-        const taskTitle = taskCard.querySelector('.task-title');
-
-        const deleteTaskImage = document.getElementById('deleteTaskImage');
-        const deleteTaskTitle = document.getElementById('deleteTaskTitle');
-
-        deleteTaskImage.src = taskImage ? taskImage.src : '';
-        deleteTaskTitle.textContent = taskTitle ? taskTitle.textContent : '';
 
         // Store taskId on modal for use in delete
         deleteModalEl.dataset.taskId = taskId;
@@ -1055,6 +1076,224 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         };
     }
+
+    // Array untuk menyimpan file yang sudah dipilih
+    let selectedFiles = [];
+
+    // Function untuk menampilkan file yang sudah dipilih
+    function displaySelectedFiles() {
+        const preview = document.getElementById('reference_files_preview');
+        preview.innerHTML = '';
+
+        if (selectedFiles.length > 0) {
+            const fileList = document.createElement('div');
+            fileList.className = 'selected-files-list mt-2';
+
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'd-flex align-items-center flex-grow-1';
+                
+                const fileIcon = document.createElement('span');
+                fileIcon.className = 'material-symbols-outlined me-2';
+                fileIcon.textContent = 'description';
+                
+                const fileName = document.createElement('span');
+                fileName.textContent = file.name;
+                fileName.className = 'file-name';
+                
+                const fileSize = document.createElement('small');
+                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileSize.className = 'text-muted ms-1';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.onclick = function() {
+                    selectedFiles.splice(index, 1);
+                    displaySelectedFiles();
+                };
+                
+                fileInfo.appendChild(fileIcon);
+                fileInfo.appendChild(fileName);
+                fileInfo.appendChild(fileSize);
+                
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(removeBtn);
+                fileList.appendChild(fileItem);
+            });
+            
+            preview.appendChild(fileList);
+        }
+    }
+
+    // Function to setup reference files input for add modal
+    function setupReferenceFilesInput() {
+        const input = document.getElementById('task_reference_files');
+        const preview = document.getElementById('reference_files_preview');
+        
+        if (!input || !preview) return;
+        
+        input.addEventListener('change', function() {
+            const files = Array.from(this.files);
+            selectedFiles = [...selectedFiles, ...files];
+            displaySelectedFiles();
+            
+            // Kosongkan input file untuk memungkinkan upload berikutnya
+            this.value = '';
+        });
+    }
+
+    // Function to setup reference files input for edit modal
+    function setupEditReferenceFilesInput() {
+        const input = document.getElementById('edit_task_reference_files');
+        const preview = document.getElementById('edit_reference_files_preview');
+        const existing = document.getElementById('existing_reference_files');
+        
+        if (!input || !preview) return;
+        
+        // Use a global variable to track selected files for edit modal
+        window.editSelectedFiles = [];
+        
+        input.addEventListener('change', function() {
+            const files = Array.from(this.files);
+            window.editSelectedFiles = [...window.editSelectedFiles, ...files];
+            displayEditSelectedFiles();
+            
+            // Clear input for next selection
+            this.value = '';
+        });
+        
+        function displayEditSelectedFiles() {
+            preview.innerHTML = '';
+            
+            if (window.editSelectedFiles.length > 0) {
+                const fileList = document.createElement('div');
+                fileList.className = 'selected-files-list mt-2';
+                
+                window.editSelectedFiles.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                    
+                    const fileInfo = document.createElement('div');
+                    fileInfo.className = 'd-flex align-items-center flex-grow-1';
+                    
+                    const fileIcon = document.createElement('span');
+                    fileIcon.className = 'material-symbols-outlined me-2';
+                    fileIcon.textContent = 'description';
+                    
+                    const fileName = document.createElement('span');
+                    fileName.textContent = file.name;
+                    fileName.className = 'file-name';
+                    
+                    const fileSize = document.createElement('small');
+                    fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                    fileSize.className = 'text-muted ms-1';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-sm btn-outline-danger';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.onclick = function() {
+                        window.editSelectedFiles.splice(index, 1);
+                        displayEditSelectedFiles();
+                    };
+                    
+                    fileInfo.appendChild(fileIcon);
+                    fileInfo.appendChild(fileName);
+                    fileInfo.appendChild(fileSize);
+                    
+                    fileItem.appendChild(fileInfo);
+                    fileItem.appendChild(removeBtn);
+                    fileList.appendChild(fileItem);
+                });
+                
+                preview.appendChild(fileList);
+            }
+        }
+        
+        // Function to display existing files
+        window.displayExistingReferenceFiles = function(files) {
+            if (!existing || !files || !Array.isArray(files)) return;
+            
+            existing.innerHTML = '';
+            
+            if (files.length > 0) {
+                const title = document.createElement('div');
+                title.className = 'fw-bold mb-2';
+                title.textContent = 'Current Files:';
+                existing.appendChild(title);
+                
+                const fileList = document.createElement('div');
+                fileList.className = 'existing-files-list';
+                
+                files.forEach(fileName => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                    
+                    const fileInfo = document.createElement('div');
+                    fileInfo.className = 'd-flex align-items-center flex-grow-1';
+                    
+                    const fileIcon = document.createElement('span');
+                    fileIcon.className = 'material-symbols-outlined me-2';
+                    fileIcon.textContent = 'description';
+                    
+                    const fileLink = document.createElement('a');
+                    fileLink.href = appUrl + '/file/task_reference_files/' + fileName;
+                    fileLink.textContent = fileName;
+                    fileLink.className = 'text-decoration-none';
+                    fileLink.target = '_blank';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-sm btn-outline-danger';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.onclick = function() {
+                        fileItem.remove();
+                        updateExistingFiles();
+                    };
+                    
+                    fileInfo.appendChild(fileIcon);
+                    fileInfo.appendChild(fileLink);
+                    
+                    fileItem.appendChild(fileInfo);
+                    fileItem.appendChild(removeBtn);
+                    fileList.appendChild(fileItem);
+                });
+                
+                existing.appendChild(fileList);
+            }
+        };
+        
+        // Function to update existing files array
+        function updateExistingFiles() {
+            const existingItems = document.querySelectorAll('#existing_reference_files .existing-file-item');
+            const existingFiles = [];
+            
+            existingItems.forEach(item => {
+                const fileName = item.querySelector('a').textContent;
+                existingFiles.push(fileName);
+            });
+            
+            // Update hidden input
+            let existingFilesInput = document.getElementById('existing_reference_files_input');
+            if (!existingFilesInput) {
+                existingFilesInput = document.createElement('input');
+                existingFilesInput.type = 'hidden';
+                existingFilesInput.id = 'existing_reference_files_input';
+                existingFilesInput.name = 'existing_reference_files';
+                document.getElementById('editTaskForm').appendChild(existingFilesInput);
+            }
+            existingFilesInput.value = JSON.stringify(existingFiles);
+        }
+        
+        // Initialize
+        updateExistingFiles();
+    }
+
 
     // Fetch and render tasks on page load
     fetchAndRenderTasks();

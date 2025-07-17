@@ -118,9 +118,11 @@
                                 name="reference_url">
                         </div>
                         <div class="mb-3">
-                            <label for="task_reference_file" class="form-label label-custom">Reference File</label>
-                            <input type="file" class="form-control input-text" id="task_reference_file"
-                                name="reference_file" accept=".pdf,.doc,.docx">
+                            <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
+                            <input type="file" class="form-control input-text" id="task_reference_files"
+                                name="reference_files[]" accept=".pdf,.doc,.docx" multiple>
+                            <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
+                            <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;">
@@ -224,10 +226,15 @@
                                 name="reference_url">
                         </div>
                         <div class="mb-3">
-                            <label for="edit_task_reference_file" class="form-label label-custom">Reference File</label>
-                            <input type="file" class="form-control input-text" id="edit_task_reference_file"
-                                name="reference_file" accept=".pdf,.doc,.docx">
-                        </div>
+                            <label for="edit_task_reference_files" class="form-label label-custom">Reference Files</label>
+                        <input type="file" class="form-control input-text" id="edit_task_reference_files"
+                            name="reference_files[]" accept=".pdf,.doc,.docx" multiple>
+                        <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
+                        <div id="edit_reference_files_preview" class="mt-2"></div>
+                        <div id="existing_reference_files" class="mt-2"></div>
+                        <input type="hidden" id="existing_reference_files_input" name="existing_reference_files" value="">
+                    </div>
+
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;">
                                 <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
@@ -290,8 +297,7 @@
                             <div class="task-detail-right">
                                 <p><strong>Reference URL:</strong> <a href="#" target="_blank"
                                         id="taskDetailReferenceUrl"></a></p>
-                                <p><strong>Reference File:</strong> <a href="#" id="taskDetailReferenceFile"
-                                        download>Download</a></p>
+                                <p><strong>Reference Files:</strong> <span id="taskDetailReferenceFiles"></span></p>
                                 <p><strong>Point:</strong> <span id="taskDetailPoint"></span></p>
                                 <p><strong>Priority:</strong> <span id="taskDetailPriority"></span></p>
                                 <p><strong>Start Date:</strong> <span id="taskDetailStartDate"></span></p>

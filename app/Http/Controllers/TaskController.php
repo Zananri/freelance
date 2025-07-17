@@ -106,7 +106,8 @@ class TaskController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'priority' => 'required|in:HIGH,MEDIUM,LOW',
             'reference_url' => 'nullable|url|max:255',
-            'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            'reference_files' => 'nullable|array',
+            'reference_files.*' => 'file|mimes:pdf,doc,docx|max:5120',
             'start_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:start_date',
             'complete_date' => 'nullable|date|after_or_equal:start_date',
@@ -130,13 +131,18 @@ class TaskController extends Controller
             $data['image'] = $imageName;
         }
 
-        // Handle reference file upload
-        if ($request->hasFile('reference_file')) {
-            $referenceFile = $request->file('reference_file');
-            $referenceExtension = $referenceFile->getClientOriginalExtension();
-            $referenceName = 'TASK_' . time() . '.' . $referenceExtension;
-            $referenceFile->move(public_path('file/task_reference_files'), $referenceName);
-            $data['reference_file'] = $referenceName;
+        // Handle multiple reference files upload
+        if ($request->hasFile('reference_files')) {
+            $newFiles = [];
+            
+            foreach ($request->file('reference_files') as $index => $file) {
+                $referenceExtension = $file->getClientOriginalExtension();
+                $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
+                $file->move(public_path('file/task_reference_files'), $referenceName);
+                $newFiles[] = $referenceName;
+            }
+            
+            $data['reference_files'] = $newFiles;
         }
 
         // Set created_by if user is authenticated
@@ -203,7 +209,7 @@ class TaskController extends Controller
             'priority' => $task->priority,
             'status' => $task->status,
             'reference_url' => $task->reference_url,
-            'reference_file' => $task->reference_file,
+            'reference_files' => $task->reference_files,
             'start_date' => $task->start_date,
             'due_date' => $task->due_date,
             'image' => $task->image,
@@ -251,7 +257,7 @@ class TaskController extends Controller
             'point' => $task->point,
             'priority' => $task->priority,
             'reference_url' => $task->reference_url,
-            'reference_file' => $task->reference_file,
+            'reference_files' => $task->reference_files,
             'start_date' => $task->start_date,
             'due_date' => $task->due_date,
             'image' => $task->image,
@@ -282,7 +288,8 @@ class TaskController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'priority' => 'required|in:HIGH,MEDIUM,LOW',
             'reference_url' => 'nullable|url|max:255',
-            'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            'reference_files' => 'nullable|array',
+            'reference_files.*' => 'file|mimes:pdf,doc,docx|max:5120',
             'start_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:start_date',
         ]);
@@ -310,19 +317,40 @@ class TaskController extends Controller
             $data['image'] = $imageName;
         }
 
-        // Handle reference file upload
-        if ($request->hasFile('reference_file')) {
-            // Delete old reference file if exists
-            if ($task->reference_file && file_exists(public_path('file/task_reference_files/' . $task->reference_file))) {
-                unlink(public_path('file/task_reference_files/' . $task->reference_file));
+        // Handle multiple reference files upload and existing files
+        $existingFilesToKeep = $request->input('existing_reference_files');
+        if ($existingFilesToKeep) {
+            $existingFilesToKeep = json_decode($existingFilesToKeep, true);
+            if (!is_array($existingFilesToKeep)) {
+                $existingFilesToKeep = [];
             }
-
-            $referenceFile = $request->file('reference_file');
-            $referenceExtension = $referenceFile->getClientOriginalExtension();
-            $referenceName = 'TASK_' . time() . '.' . $referenceExtension;
-            $referenceFile->move(public_path('file/task_reference_files'), $referenceName);
-            $data['reference_file'] = $referenceName;
+        } else {
+            $existingFilesToKeep = [];
         }
+
+        // Delete files removed by user
+        if ($task->reference_files && is_array($task->reference_files)) {
+            foreach ($task->reference_files as $oldFile) {
+                if (!in_array($oldFile, $existingFilesToKeep)) {
+                    if (file_exists(public_path('file/task_reference_files/' . $oldFile))) {
+                        unlink(public_path('file/task_reference_files/' . $oldFile));
+                    }
+                }
+            }
+        }
+
+        $referenceFiles = $existingFilesToKeep;
+
+        if ($request->hasFile('reference_files')) {
+            foreach ($request->file('reference_files') as $index => $file) {
+                $referenceExtension = $file->getClientOriginalExtension();
+                $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
+                $file->move(public_path('file/task_reference_files'), $referenceName);
+                $referenceFiles[] = $referenceName;
+            }
+        }
+
+        $data['reference_files'] = $referenceFiles;
 
         $task->update($data);
 
@@ -366,8 +394,12 @@ class TaskController extends Controller
             unlink(public_path('file/task/' . $task->image));
         }
 
-        if ($task->reference_file && file_exists(public_path('file/task_reference_files/' . $task->reference_file))) {
-            unlink(public_path('file/task_reference_files/' . $task->reference_file));
+        if ($task->reference_files && is_array($task->reference_files)) {
+            foreach ($task->reference_files as $referenceFile) {
+                if (file_exists(public_path('file/task_reference_files/' . $referenceFile))) {
+                    unlink(public_path('file/task_reference_files/' . $referenceFile));
+                }
+            }
         }
 
         // Delete task assignments

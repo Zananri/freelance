@@ -22,7 +22,7 @@ class CreateTasksTable extends Migration
             $table->string('image')->nullable();
             $table->enum('priority', ['HIGH', 'MEDIUM', 'LOW']);
             $table->string('reference_url')->nullable();
-            $table->string('reference_file')->nullable();
+            $table->json('reference_files')->nullable();
             $table->date('start_date');
             $table->date('due_date');
             $table->date('complete_date')->nullable();
