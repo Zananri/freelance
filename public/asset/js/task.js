@@ -742,6 +742,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <h5 class="mb-0 task-title">${task.title}</h5>
                 </div>
                 <p class="task-description">${task.description}</p>
+                <hr class="task-separator rounded-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <div class="d-flex align-items-center pic-executor-container">
                         ${task.pic ? `<img src="${task.pic.image}" alt="${task.pic.name}" class="pic-executor-image" title="${task.pic.name}">` : ''}

@@ -631,6 +631,14 @@
     display: block;
 }
 
+/* Separator line between description and image/icons */
+.task-separator {
+    border: none;
+    height: 3px;
+    background-color: #555;
+    margin: 0.75rem 0;
+}
+
 /* Modal loading overlay styling */
 .modal-loading-overlay {
     position: absolute;
