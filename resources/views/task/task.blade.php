@@ -158,35 +158,30 @@
         </div>
     </div>
 
-    <!-- Edit Project Modal -->
-    <div class="modal fade" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="editProjectModalLabel" aria-hidden="true"
-        data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
+    <!-- Edit Task Modal -->
+    <div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="editTaskModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
-                <div class="modal-loading-overlay d-none" id="editModalLoader">
+                <div class="modal-loading-overlay d-none" id="editTaskModalLoader">
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="editProjectModalLabel">Edit Project</h5>
+                    <h5 class="modal-title modal-title-custom" id="editTaskModalLabel">Edit Task</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="editProjectForm" enctype="multipart/form-data">
-                    <input type="hidden" id="edit_project_id" name="id" value="">
+                <form id="editTaskForm" enctype="multipart/form-data">
+                    <input type="hidden" id="edit_task_id" name="id" value="">
                     <div class="modal-body modal-body-custom">
-                        <div id="editProjectAlert" class="alert alert-success d-none" role="alert"
-                            style="margin-bottom: 1rem; display:none;">
-                            Project updated successfully!
-                        </div>
                         <div class="mb-3">
                             <div class="title-label-image">
                                 <span>Upload image</span>
                             </div>
-                            <label for="edit_image" class="custom-image-upload position-relative" id="editImageLabel"
+                            <label for="edit_task_image" class="custom-image-upload position-relative" id="editTaskImageLabel"
                                 style=" background-position: center center; background-repeat: no-repeat; background-size: 50%;  background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
-                                <input type="file" class="input-image" id="edit_image" name="image"
+                                <input type="file" class="input-image" id="edit_task_image" name="image"
                                     accept="image/*" hidden>
-                                <span class="image-clear-btn d-none" id="editImageClearBtn"
+                                <span class="image-clear-btn d-none" id="editTaskImageClearBtn"
                                     title="Remove image">&times;</span>
                             </label>
                             <div class="invalid-feedback">
@@ -194,81 +189,68 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_title" class="form-label label-custom">Title</label>
-                            <input type="text" class="form-control input-text" id="edit_title" name="title"
+                            <label for="edit_task_title" class="form-label label-custom">Title</label>
+                            <input type="text" class="form-control input-text" id="edit_task_title" name="title"
                                 required>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="edit_description" name="description" rows="3"></textarea>
+                            <label for="edit_task_description" class="form-label label-custom">Description</label>
+                            <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_department" class="form-label label-custom">Department</label>
-                            <select class="form-select input-select" id="edit_department" name="department" required>
-                                <option value="">Select Department</option>
-                                <!-- Options to be populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_division" class="form-label label-custom">Division</label>
-                            <select class="form-select input-select" id="edit_division" name="division" required>
-                                <option value="">Select Division</option>
-                                <!-- Options to be populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="edit_reference_url"
-                                name="reference_url">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_reference_file" class="form-label label-custom">Reference File</label>
-                            <input type="file" class="form-control input-text" id="edit_reference_file"
-                                name="reference_file" accept=".pdf,.doc,.docx">
-                        </div>
-                        <div class="mb-3 d-flex justify-content-between">
-                            <div style="width: 48%;">
-                                <label for="edit_start_date" class="form-label label-custom">Start Date</label>
-                                <input type="date" class="form-control input-text" id="edit_start_date"
-                                    name="start_date" required>
-                            </div>
-                            <div style="width: 48%;">
-                                <label for="edit_due_date" class="form-label label-custom">Due Date</label>
-                                <input type="date" class="form-control input-text" id="edit_due_date"
-                                    name="due_date" required>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_part_of_project" class="form-label label-custom">Part of Project</label>
-                            <select class="form-select input-select" id="edit_part_of_project"
-                                name="part_of_project">
+                            <label for="edit_task_project_id" class="form-label label-custom">Project</label>
+                            <select class="form-select input-select" id="edit_task_project_id" name="project_id" required>
                                 <option value="">Select Project</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
-                            <input type="text" class="form-control input-text" id="edit_co_author_input"
-                                name="edit_co_author_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_co_author_dropdown" class="dropdown-list mt-1"
-                                style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
-                            </div>
-                            <div id="edit_selected_co_authors" class="mt-2 d-flex flex-wrap gap-2">
-                                <!-- Selected co-authors will appear here -->
-                            </div>
-                            <input type="hidden" id="edit_co_author" name="co_author" value="">
+                            <label for="edit_task_point" class="form-label label-custom">Point</label>
+                            <input type="number" class="form-control input-text" id="edit_task_point" name="point"
+                                value="1" min="1" required>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_contributor_input" class="form-label label-custom">Contributor</label>
-                            <input type="text" class="form-control input-text" id="edit_contributor_input"
-                                name="edit_contributor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_contributor_dropdown" class="dropdown-list mt-1"
+                            <label for="edit_task_priority" class="form-label label-custom">Priority</label>
+                            <select class="form-select input-select" id="edit_task_priority" name="priority" required>
+                                <option value="">Select Priority</option>
+                                <option value="HIGH">HIGH</option>
+                                <option value="MEDIUM">MEDIUM</option>
+                                <option value="LOW">LOW</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_task_reference_url" class="form-label label-custom">Reference URL</label>
+                            <input type="text" class="form-control input-text" id="edit_task_reference_url"
+                                name="reference_url">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_task_reference_file" class="form-label label-custom">Reference File</label>
+                            <input type="file" class="form-control input-text" id="edit_task_reference_file"
+                                name="reference_file" accept=".pdf,.doc,.docx">
+                        </div>
+                        <div class="mb-3 d-flex justify-content-between">
+                            <div style="width: 48%;">
+                                <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
+                                <input type="date" class="form-control input-text" id="edit_task_start_date"
+                                    name="start_date" required>
+                            </div>
+                            <div style="width: 48%;">
+                                <label for="edit_task_due_date" class="form-label label-custom">Due Date</label>
+                                <input type="date" class="form-control input-text" id="edit_task_due_date"
+                                    name="due_date" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_executor_input" class="form-label label-custom">Executor</label>
+                            <input type="text" class="form-control input-text" id="edit_executor_input"
+                                name="edit_executor_input" autocomplete="off" placeholder="Search employees...">
+                            <div id="edit_executor_dropdown" class="dropdown-list mt-1"
                                 style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
                             </div>
-                            <div id="edit_selected_contributors" class="mt-2 d-flex flex-wrap gap-2">
-                                <!-- Selected contributors will appear here -->
+                            <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2">
+                                <!-- Selected executors will appear here -->
                             </div>
-                            <input type="hidden" id="edit_contributors" name="contributors" value="">
+                            <input type="hidden" id="edit_executors" name="executors" value="">
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
@@ -282,38 +264,38 @@
         </div>
     </div>
 
-
-    <!-- View Project Detail Modal -->
-    <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel"
+    <!-- Task Detail Modal -->
+    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
             <div class="modal-content modal-content-custom" style="box-shadow: none;">
                 <div class="modal-body modal-body-custom">
                     <button type="button" class="btn-close float-end" data-bs-dismiss="modal"
                         aria-label="Close"></button>
-                    <div class="project-detail-modal">
-                        <div class="project-photo-title-author">
-                            <img id="projectDetailImage" src="" alt="Project Image" class="project-photo"
+                    <div class="task-detail-modal">
+                        <div class="task-photo-title-author">
+                            <img id="taskDetailImage" src="" alt="Task Image" class="task-photo"
                                 style="border-radius: 8px;">
-                            <h2 class="project-title" id="projectDetailTitle" style="text-align: justify;"></h2>
-                            <p class="project-description" id="projectDetailDescription"></p>
-
+                            <h2 class="task-title" id="taskDetailTitle" style="text-align: justify;"></h2>
+                            <p class="task-description" id="taskDetailDescription"></p>
                         </div>
-                        <div class="project-detail-columns">
-                            <div class="project-detail-left">
-                                <p><strong>Department:</strong> <span id="projectDetailDepartment"></span></p>
-                                <p><strong>Division:</strong> <span id="projectDetailDivision"></span></p>
-                                <p><strong>Author:</strong> <span id="projectDetailAuthor"></span></p>
-                                <p><strong>Co-Authors:</strong> <span id="projectDetailCoAuthors"></span></p>
-                                <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
+                        <div class="task-detail-columns">
+                            <div class="task-detail-left">
+                                <p><strong>Department:</strong> <span id="taskDetailDepartment"></span></p>
+                                <p><strong>Division:</strong> <span id="taskDetailDivision"></span></p>
+                                <p><strong>Project:</strong> <span id="taskDetailProject"></span></p>
+                                <p><strong>PIC:</strong> <span id="taskDetailPIC"></span></p>
+                                <p><strong>Executors:</strong> <span id="taskDetailExecutors"></span></p>
                             </div>
-                            <div class="project-detail-right">
+                            <div class="task-detail-right">
                                 <p><strong>Reference URL:</strong> <a href="#" target="_blank"
-                                        id="projectDetailReferenceUrl"></a></p>
-                                <p><strong>Reference File:</strong> <a href="#" id="projectDetailReferenceFile"
+                                        id="taskDetailReferenceUrl"></a></p>
+                                <p><strong>Reference File:</strong> <a href="#" id="taskDetailReferenceFile"
                                         download>Download</a></p>
-                                <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
-                                <p><strong>Due Date:</strong> <span id="projectDetailDueDate"></span></p>
+                                <p><strong>Point:</strong> <span id="taskDetailPoint"></span></p>
+                                <p><strong>Priority:</strong> <span id="taskDetailPriority"></span></p>
+                                <p><strong>Start Date:</strong> <span id="taskDetailStartDate"></span></p>
+                                <p><strong>Due Date:</strong> <span id="taskDetailDueDate"></span></p>
                             </div>
                         </div>
                     </div>
@@ -321,46 +303,22 @@
             </div>
         </div>
     </div>
-    <!-- Project Feedback Modal -->
-    <div class="modal fade" id="projectFeedbackModal" tabindex="-1" aria-labelledby="projectFeedbackModalLabel"
-        aria-hidden="true" data-project-id="{{ $projectId ?? '' }}"
-        data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
-            <div class="modal-content feedback-modal-content">
-                <div
-                    class="modal-header feedback-modal-header d-flex align-items-center position-relative flex-nowrap">
-                    <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate"
-                        id="projectFeedbackModalLabel">Project Feedback</h5>
-                    <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
 
-                <div class="modal-body feedback-modal-body" id="projectFeedbackList">
-                </div>
-                <div class="modal-footer feedback-modal-footer">
-                    <button type="button" class="btn btn-submit-black btn-submit-custom" id="addFeedbackButton"
-                        style="width: 120px; white-space: nowrap;">Add Feedback</button>
-                </div>
-            </div>
-            <div class="alert-container mt-2" style="width: 100%;"></div>
-        </div>
-    </div>
-
-    <!-- Delete Project Confirmation Modal -->
-    <div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel"
+    <!-- Delete Task Confirmation Modal -->
+    <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="deleteProjectModalLabel">Delete Project</h5>
+                    <h5 class="modal-title modal-title-custom" id="deleteTaskModalLabel">Delete Task</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <img id="deleteProjectImage" src="" alt="Project Image"
+                    <img id="deleteTaskImage" src="" alt="Task Image"
                         style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
-                    <p id="deleteProjectTitle" class="fw-bold fs-5 text-center mb-4"></p>
+                    <p id="deleteTaskTitle" class="fw-bold fs-5 text-center mb-4"></p>
                     <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-danger" id="confirmDeleteProjectBtn">Delete</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteTaskBtn">Delete</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>

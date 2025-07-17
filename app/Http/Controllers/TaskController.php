@@ -185,7 +185,49 @@ class TaskController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $task = Task::with([
+            'project.department', 
+            'project.division',
+            'assignments.employee.user'
+        ])->findOrFail($id);
+
+        // Get PIC and executors
+        $pic = $task->assignments->firstWhere('role', 'PIC');
+        $executors = $task->assignments->where('role', 'executor');
+
+        $response = [
+            'id' => $task->id,
+            'title' => $task->title,
+            'description' => $task->description,
+            'point' => $task->point,
+            'priority' => $task->priority,
+            'status' => $task->status,
+            'reference_url' => $task->reference_url,
+            'reference_file' => $task->reference_file,
+            'start_date' => $task->start_date,
+            'due_date' => $task->due_date,
+            'image' => $task->image,
+            'project' => [
+                'id' => $task->project->id,
+                'title' => $task->project->title,
+                'department' => $task->project->department->name_department ?? '',
+                'division' => $task->project->division->name_division ?? '',
+            ],
+            'pic' => $pic ? [
+                'id' => $pic->employee->id,
+                'name' => $pic->employee->name,
+                'user_photo' => $pic->employee->user->photo ?? null,
+            ] : null,
+            'executors' => $executors->map(function ($executor) {
+                return [
+                    'id' => $executor->employee->id,
+                    'name' => $executor->employee->name,
+                    'user_photo' => $executor->employee->user->photo ?? null,
+                ];
+            })->values(),
+        ];
+
+        return response()->json($response);
     }
 
     /**
@@ -193,7 +235,36 @@ class TaskController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        $task = Task::with([
+            'project',
+            'assignments.employee.user'
+        ])->findOrFail($id);
+
+        // Get executors (excluding PIC)
+        $executors = $task->assignments->where('role', 'executor');
+
+        $response = [
+            'id' => $task->id,
+            'title' => $task->title,
+            'description' => $task->description,
+            'project_id' => $task->project_id,
+            'point' => $task->point,
+            'priority' => $task->priority,
+            'reference_url' => $task->reference_url,
+            'reference_file' => $task->reference_file,
+            'start_date' => $task->start_date,
+            'due_date' => $task->due_date,
+            'image' => $task->image,
+            'executors' => $executors->map(function ($executor) {
+                return [
+                    'id' => $executor->employee->id,
+                    'name' => $executor->employee->name,
+                    'user_photo' => $executor->employee->user->photo ?? null,
+                ];
+            })->values(),
+        ];
+
+        return response()->json($response);
     }
 
     /**
@@ -201,7 +272,86 @@ class TaskController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $task = Task::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'project_id' => 'required|exists:projects,id',
+            'point' => 'required|integer|min:1',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'priority' => 'required|in:HIGH,MEDIUM,LOW',
+            'reference_url' => 'nullable|url|max:255',
+            'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            'start_date' => 'required|date',
+            'due_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($task->image && file_exists(public_path('file/task/' . $task->image))) {
+                unlink(public_path('file/task/' . $task->image));
+            }
+
+            $imageFile = $request->file('image');
+            $imageExtension = $imageFile->getClientOriginalExtension();
+            $imageName = 'TASK_' . time() . '.' . $imageExtension;
+            $imageFile->move(public_path('file/task'), $imageName);
+            $data['image'] = $imageName;
+        }
+
+        // Handle reference file upload
+        if ($request->hasFile('reference_file')) {
+            // Delete old reference file if exists
+            if ($task->reference_file && file_exists(public_path('file/task_reference_files/' . $task->reference_file))) {
+                unlink(public_path('file/task_reference_files/' . $task->reference_file));
+            }
+
+            $referenceFile = $request->file('reference_file');
+            $referenceExtension = $referenceFile->getClientOriginalExtension();
+            $referenceName = 'TASK_' . time() . '.' . $referenceExtension;
+            $referenceFile->move(public_path('file/task_reference_files'), $referenceName);
+            $data['reference_file'] = $referenceName;
+        }
+
+        $task->update($data);
+
+        // Update executor assignments
+        if ($request->has('executors')) {
+            // Delete existing executor assignments (keep PIC)
+            TaskAssignment::where('task_id', $task->id)
+                ->where('role', 'executor')
+                ->delete();
+
+            // Add new executor assignments
+            $executorIds = json_decode($request->input('executors'), true);
+            if (is_array($executorIds)) {
+                foreach ($executorIds as $executorId) {
+                    TaskAssignment::create([
+                        'task_id' => $task->id,
+                        'employee_id' => $executorId,
+                        'role' => 'executor',
+                        'is_receive' => false,
+                        'date_receive' => null,
+                    ]);
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => 'Task updated successfully',
+            'task' => $task,
+        ]);
     }
 
     /**
@@ -209,6 +359,25 @@ class TaskController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $task = Task::findOrFail($id);
+
+        // Delete associated files
+        if ($task->image && file_exists(public_path('file/task/' . $task->image))) {
+            unlink(public_path('file/task/' . $task->image));
+        }
+
+        if ($task->reference_file && file_exists(public_path('file/task_reference_files/' . $task->reference_file))) {
+            unlink(public_path('file/task_reference_files/' . $task->reference_file));
+        }
+
+        // Delete task assignments
+        TaskAssignment::where('task_id', $task->id)->delete();
+
+        // Delete task
+        $task->delete();
+
+        return response()->json([
+            'message' => 'Task deleted successfully',
+        ]);
     }
 }

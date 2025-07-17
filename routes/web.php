@@ -93,14 +93,11 @@ Route::get('/project/index/card-data', [ProjectController::class, 'getCardData']
 Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignments'])->name('project.assignments');
 
 Route::get('/task', [TaskController::class, 'showTaskPage'])->name('task');
-Route::post('/task/update', [TaskController::class, 'updatetask'])->name('task.update.post');
 Route::get('/task/index', [TaskController::class, 'index'])->name('task.index');
 Route::get('/task/create', [TaskController::class, 'create'])->name('task.create');
 Route::get('/task/{id}/edit', [TaskController::class, 'edit'])->name('task.edit');
 Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
 Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
-Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
-Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks'])->name('task-feedbacks.get');
 Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
 Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
 
