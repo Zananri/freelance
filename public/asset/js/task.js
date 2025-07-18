@@ -787,6 +787,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Add event listeners for dropdown functionality after rendering
                 setupTaskDropdownListeners();
+
+                // Add event listener for attach_file icon click to show reference files modal
+                addAttachFileIconListeners();
             },
             error: function(xhr, status, error) {
                 console.error('Error fetching tasks:', error);
@@ -856,6 +859,63 @@ document.addEventListener("DOMContentLoaded", function () {
                         handleTaskDelete(taskId, taskCard);
                         break;
                 }
+            }
+        });
+    }
+
+    // Function to add event listeners for attach_file icon click
+    function addAttachFileIconListeners() {
+        // Use event delegation on the container to handle dynamically added cards
+        const container = document.getElementById('task-cards-container');
+        if (!container) return;
+
+        container.addEventListener('click', function(event) {
+            const target = event.target;
+            if (target && target.classList.contains('task-icon') && target.textContent.trim() === 'attach_file') {
+                // Find the closest task card element
+                const taskCard = target.closest('.custom-card');
+                if (!taskCard) return;
+
+                const taskId = taskCard.getAttribute('data-task-id');
+                if (!taskId) {
+                    alert('Task ID not found.');
+                    return;
+                }
+
+                // Fetch task details to get reference_files
+                $.ajax({
+                    url: appUrl + '/task/' + taskId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        const referenceFiles = data.reference_files;
+                        const referenceFilesList = document.getElementById('referenceFilesList');
+                        if (!referenceFilesList) return;
+
+                        // Clear previous content
+                        referenceFilesList.innerHTML = '';
+
+                        if (referenceFiles && Array.isArray(referenceFiles) && referenceFiles.length > 0) {
+                            referenceFiles.forEach(fileName => {
+                                const link = document.createElement('a');
+                                link.href = appUrl + '/file/task_reference_files/' + fileName;
+                                link.target = '_blank';
+                                link.className = 'd-block text-decoration-none mb-1';
+                                link.innerHTML = `<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ${fileName}`;
+                                referenceFilesList.appendChild(link);
+                            });
+                        } else {
+                            referenceFilesList.textContent = 'No reference files available.';
+                        }
+
+                        // Show the modal
+                        const referenceFilesModal = new bootstrap.Modal(document.getElementById('referenceFilesModal'));
+                        referenceFilesModal.show();
+                    },
+                    error: function() {
+                        alert('Failed to load reference files.');
+                    }
+                });
             }
         });
     }
