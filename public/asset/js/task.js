@@ -448,6 +448,10 @@ document.addEventListener("DOMContentLoaded", function () {
                             window.clearSelectedExecutorsEdit();
                         }
 
+                        // Clear selected files after successful update
+                        window.editSelectedFiles = [];
+                        displayEditSelectedFiles();
+
                         // Close modal after short delay to show alert
                         setTimeout(() => {
                             var editTaskModalInstance = bootstrap.Modal.getInstance(editTaskModalEl);
@@ -1162,14 +1166,17 @@ document.addEventListener("DOMContentLoaded", function () {
         
         input.addEventListener('change', function() {
             const files = Array.from(this.files);
+            // Add debug log to check files selected
+            console.log('Files selected in edit modal:', files);
             window.editSelectedFiles = [...window.editSelectedFiles, ...files];
             displayEditSelectedFiles();
             
-            // Clear input for next selection
+            // Clear input for next selection AFTER adding files to array
+            // (already done here, but keep for clarity)
             this.value = '';
         });
         
-        function displayEditSelectedFiles() {
+        window.displayEditSelectedFiles = function() {
             preview.innerHTML = '';
             
             if (window.editSelectedFiles.length > 0) {
@@ -1201,7 +1208,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     removeBtn.innerHTML = '&times;';
                     removeBtn.onclick = function() {
                         window.editSelectedFiles.splice(index, 1);
-                        displayEditSelectedFiles();
+                        window.displayEditSelectedFiles();
                     };
                     
                     fileInfo.appendChild(fileIcon);
@@ -1268,6 +1275,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 existing.appendChild(fileList);
             }
+            // Initialize or update hidden input with all existing files on display
+            let existingFilesInput = document.getElementById('existing_reference_files_input');
+            if (!existingFilesInput) {
+                existingFilesInput = document.createElement('input');
+                existingFilesInput.type = 'hidden';
+                existingFilesInput.id = 'existing_reference_files_input';
+                existingFilesInput.name = 'existing_reference_files';
+                document.getElementById('editTaskForm').appendChild(existingFilesInput);
+            }
+            existingFilesInput.value = JSON.stringify(files);
+            console.log('Initialized existing_reference_files_input:', existingFilesInput.value);
         };
         
         // Function to update existing files array
@@ -1290,10 +1308,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 document.getElementById('editTaskForm').appendChild(existingFilesInput);
             }
             existingFilesInput.value = JSON.stringify(existingFiles);
+            console.log('Updated existing_reference_files_input:', existingFilesInput.value);
         }
         
         // Initialize
         updateExistingFiles();
+
+        // Ensure updateExistingFiles is called when removing existing files
+        document.getElementById('existing_reference_files')?.addEventListener('click', function(e) {
+            if (e.target && e.target.matches('button.btn-outline-danger')) {
+                setTimeout(() => {
+                    updateExistingFiles();
+                }, 10);
+            }
+        });
     }
 
 

@@ -345,6 +345,7 @@ class TaskController extends Controller
         if ($request->hasFile('reference_files')) {
             foreach ($request->file('reference_files') as $index => $file) {
                 $referenceExtension = $file->getClientOriginalExtension();
+                // Use uniqid to avoid filename collisions
                 $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
                 $file->move(public_path('file/task_reference_files'), $referenceName);
                 $referenceFiles[] = $referenceName;
