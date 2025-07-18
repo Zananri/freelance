@@ -95,7 +95,13 @@ Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignm
 Route::get('/task', [TaskController::class, 'showTaskPage'])->name('task');
 Route::get('/task/index', [TaskController::class, 'index'])->name('task.index');
 Route::get('/task/create', [TaskController::class, 'create'])->name('task.create');
+Route::get('/task/employees-for-executor', [TaskController::class, 'getEmployeesForTaskExecutor'])->name('task.employees-for-executor');
 Route::get('/task/{id}/edit', [TaskController::class, 'edit'])->name('task.edit');
+Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
+Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
+Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
+Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
+
 Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
 Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
 Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');

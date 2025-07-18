@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Models\TaskAssignment;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use App\Models\Employee;
 
 class TaskController extends Controller
 {
@@ -383,6 +384,35 @@ class TaskController extends Controller
             'task' => $task,
         ]);
     }
+
+    /**
+     * Get employees for task executor dropdown, excluding logged-in user
+     */
+    public function getEmployeesForTaskExecutor(Request $request)
+    {
+        try {
+            $query = $request->input('q', '');
+
+            // Use null-safe operator to get employee id
+            $excludeEmployeeId = auth()->user()?->employee?->id;
+
+            $employees = Employee::query()
+                ->when($query !== '', function ($q) use ($query) {
+                    return $q->where('name', 'like', '%' . $query . '%');
+                })
+                ->when($excludeEmployeeId, function ($q) use ($excludeEmployeeId) {
+                    return $q->where('id', '!=', $excludeEmployeeId);
+                })
+                ->orderBy('name')
+                ->get(['id', 'name', 'photo as user_photo']);
+
+            return response()->json(['data' => $employees]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getEmployeesForTaskExecutor: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch employees'], 500);
+        }
+    }
+
 
     /**
      * Remove the specified resource from storage.

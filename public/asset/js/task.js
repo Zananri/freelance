@@ -200,9 +200,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function fetchEmployees(query = '') {
             $.ajax({
-                url: appUrl + '/employee/index',
+                url: appUrl + '/task/employees-for-executor',
                 type: 'GET',
-                data: { query: query },
+                data: { q: query },
                 dataType: 'json',
                 success: function (data) {
                     employees = data.data || [];
@@ -530,9 +530,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function fetchEmployees(query = '') {
             $.ajax({
-                url: appUrl + '/employee/index',
+                url: appUrl + '/task/employees-for-executor',
                 type: 'GET',
-                data: { query: query },
+                data: { q: query },
                 dataType: 'json',
                 success: function (data) {
                     employees = data.data || [];
