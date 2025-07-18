@@ -738,7 +738,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="dropdown-menu d-none">
                         <div class="dropdown-item">Detail</div>
                         <div class="dropdown-item">Edit</div>
-                        <div class="dropdown-item text-danger delete-task">Delete</div>
+                        <div class="dropdown-item delete-task">Delete</div>
                     </div>
                 </div>
                 <div class="d-flex align-items-center mb-2">
