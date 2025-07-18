@@ -78,6 +78,7 @@ class TaskController extends Controller
                     'description' => $task->description,
                     'project_image' => ($task->project && $task->project->image) ? asset('file/project/' . $task->project->image) : asset('asset/img/profile_picture/sample_project.png'),
                     'executors' => $allExecutors,
+                    'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                 ];
             }
         }

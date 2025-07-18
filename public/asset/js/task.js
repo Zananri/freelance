@@ -750,11 +750,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                     <div class="d-flex">
                         <span class="material-symbols-outlined task-icon">mode_comment</span>
-                        <span class="material-symbols-outlined task-icon ms-3">attach_file</span>
-                    </div>
+                    <span class="material-symbols-outlined task-icon ms-3">attach_file</span>
+                    ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>` : ''}
                 </div>
             </div>
         `;
+
     }
 
     // Function to fetch and render tasks
