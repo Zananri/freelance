@@ -1064,50 +1064,80 @@ document.addEventListener("DOMContentLoaded", function () {
         feedbackModal.show();
     }
 
-    // Function to load task feedback data
-    function loadTaskFeedbackData(taskId) {
-        const modalTitle = document.getElementById("taskFeedbackModalLabel");
-        const modalBody = document.getElementById("taskFeedbackList");
-        
-        modalTitle.textContent = "Task Feedback";
-        modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-        
-        // Fetch existing feedbacks
-        $.ajax({
-            url: appUrl + "/task-feedbacks/" + taskId,
-            type: "GET",
-            dataType: "json",
-            success: function(response) {
-                if (response.data && response.data.length > 0) {
-                    let feedbackHtml = '';
-                    response.data.forEach(function(feedback) {
-                        feedbackHtml += `
-                            <div class="feedback-item mb-3 p-3 border rounded">
-                                <div class="d-flex align-items-center mb-2">
-                                    <img src="${feedback.employee.photo}" alt="${feedback.employee.name}" 
-                                         class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                    <div>
-                                        <strong>${feedback.employee.name}</strong>
-                                        <small class="text-muted d-block">${feedback.created_at}</small>
-                                    </div>
+  // Fungsi untuk memuat data feedback
+function loadTaskFeedbackData(taskId) {
+    const modalBody = document.getElementById("taskFeedbackList");
+    modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
+    $.ajax({
+        url: appUrl + "/task-feedbacks/" + taskId,
+        type: "GET",
+        dataType: "json",
+        success: function(response) {
+            if (response.data && response.data.length > 0) {
+                let feedbackHtml = '';
+                response.data.forEach(function(feedback) {
+                    // Format the date with the requested format
+                    let formattedDate = '';
+                    if (feedback.created_at) {
+                        const dateObj = new Date(feedback.created_at);
+                        const now = new Date();
+
+                        // Helper function to check if two dates are the same day
+                        function isSameDay(d1, d2) {
+                            return d1.getFullYear() === d2.getFullYear() &&
+                                d1.getMonth() === d2.getMonth() &&
+                                d1.getDate() === d2.getDate();
+                        }
+
+                        // Helper function to check if d1 is yesterday of d2
+                        function isYesterday(d1, d2) {
+                            const yesterday = new Date(d2);
+                            yesterday.setDate(d2.getDate() - 1);
+                            return isSameDay(d1, yesterday);
+                        }
+
+                        if (isSameDay(dateObj, now)) {
+                            // Show time only
+                            formattedDate = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                        } else if (isYesterday(dateObj, now)) {
+                            formattedDate = 'yesterday';
+                        } else {
+                            formattedDate = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                        }
+                    }
+
+                    feedbackHtml += `
+                        <div class="feedback-item mb-3 p-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="${feedback.employee.photo}" alt="${feedback.employee.name}" 
+                                     class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                <div>
+                                    <strong>${feedback.employee.name}</strong>
+                                    <small class="text-muted d-block">${formattedDate}</small>
                                 </div>
-                                <p class="mb-2">${feedback.feedback_comment}</p>
-                                ${feedback.image ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="max-height: 200px;">` : ''}
-                                ${feedback.reference_url ? `<a href="${feedback.reference_url}" target="_blank" class="d-block mb-1"><small>Reference URL</small></a>` : ''}
-                                ${feedback.reference_file ? `<a href="${feedback.reference_file}" target="_blank" class="d-block"><small>Reference File</small></a>` : ''}
                             </div>
-                        `;
-                    });
-                    modalBody.innerHTML = feedbackHtml;
-                } else {
-                    modalBody.innerHTML = '<p class="text-center text-muted">No feedback available for this task.</p>';
-                }
-            },
-            error: function() {
-                modalBody.innerHTML = '<p class="text-center text-danger">Failed to load feedback.</p>';
+                            <p class="mb-2">${feedback.feedback_comment}</p>
+                            ${(feedback.reference_url || feedback.reference_file) ? `
+                                <div class="feedback-reference-container">
+                                    ${feedback.reference_url ? `<a href="${feedback.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : ''}
+                                    ${feedback.reference_file ? `<a href="${feedback.reference_file}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>` : ''}
+                                </div>
+                            ` : ''}
+                            ${feedback.image ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+                        </div>
+                    `;
+                });
+                modalBody.innerHTML = feedbackHtml;
+            } else {
+                modalBody.innerHTML = '<p class="text-center text-muted">No feedback available for this task.</p>';
             }
-        });
-    }
+        },
+        error: function() {
+            modalBody.innerHTML = '<p class="text-center text-danger">Failed to load feedback.</p>';
+        }
+    });
+}
 
     // Function to show add task feedback form
     function showAddTaskFeedbackForm(taskId) {
@@ -1339,27 +1369,12 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Function to handle task feedback
-    function handleTaskFeedback(taskId) {
-        // Show the feedback modal
-        const feedbackModal = new bootstrap.Modal(
-            document.getElementById("taskFeedbackModal")
-        );
-        
-        // Set task ID on modal
-        document.getElementById("taskFeedbackModal").dataset.taskId = taskId;
-        
-        // Clear the feedback list area (kosongan)
-        const feedbackList = document.getElementById("taskFeedbackList");
-        feedbackList.innerHTML = '';
-        
-        feedbackModal.show();
-    }
-    // Function to handle task feedback
-    function handleTaskFeedback(taskId) {
-        // Show the feedback modal
-        const feedbackModalEl = document.getElementById("taskFeedbackModal");
-        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+
+// Function to handle task feedback
+function handleTaskFeedback(taskId) {
+    // Show the feedback modal
+    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+    const feedbackModal = new bootstrap.Modal(feedbackModalEl);
         
         // Set task ID on modal
         feedbackModalEl.dataset.taskId = taskId;
@@ -1381,6 +1396,8 @@ document.addEventListener("DOMContentLoaded", function () {
         newButton.addEventListener("click", function () {
             showAddFeedbackForm(taskId);
         });
+
+    loadTaskFeedbackData(taskId);
 
         feedbackModal.show();
     }
@@ -1404,7 +1421,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="image-upload-container">
                         <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
                             style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                            <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                            <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
                             <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
                         </label>
                     </div>

@@ -864,7 +864,7 @@ function showAddFeedbackForm(projectId) {
                 <label class="form-label">Image (Optional)</label>
                 <div class="image-upload-container">
                     <label for="feedback_image" class="image-upload-label">
-                        <img id="imagePreview" src="${window.location.origin}/asset/img/background/add-image.png" alt="Preview" class="img-thumbnail">
+                        <img id="imagePreview" src="${appUrl}/asset/img/background/add-image.png" alt="Preview" class="img-thumbnail">
                         <span class="image-upload-text">Click to upload image</span>
                     </label>
                     <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
@@ -1441,7 +1441,8 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
     addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
 });
 
-// Reset button text to "Add Feedback" when showing feedback list
+// Reset button text to "Add Feedback" when 
+// ing feedback list
 feedbackModalEl.addEventListener('shown.bs.modal', function () {
     const addFeedbackButton = document.getElementById('addFeedbackButton');
     addFeedbackButton.textContent = 'Add Feedback';

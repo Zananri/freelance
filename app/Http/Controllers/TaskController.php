@@ -525,7 +525,7 @@ class TaskController extends Controller
                     'image' => $feedback->image ? asset('file/task/' . $feedback->image) : null,
                     'reference_url' => $feedback->reference_url,
                     'reference_file' => $feedback->reference_file ? asset('file/task_reference_files/' . $feedback->reference_file) : null,
-                    'created_at' => $feedback->created_at->format('Y-m-d H:i:s'),
+                    'created_at' => $feedback->created_at,
                     'employee' => [
                         'id' => $feedback->employee->id,
                         'name' => $feedback->employee->name,

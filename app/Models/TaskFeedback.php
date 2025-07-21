@@ -9,6 +9,8 @@ class TaskFeedback extends Model
 {
     use HasFactory;
 
+    protected $table = 'task_feedbacks';
+
     protected $fillable = [
         'project_id',
         'task_id',
