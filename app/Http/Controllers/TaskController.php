@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Task;
 use App\Models\TaskAssignment;
+use App\Models\TaskFeedback;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Employee;
@@ -442,6 +443,98 @@ class TaskController extends Controller
 
         return response()->json([
             'message' => 'Task deleted successfully',
+        ]);
+    }
+
+    /**
+     * Store task feedback
+     */
+    public function storeFeedback(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'task_id' => 'required|exists:tasks,id',
+                'employee_id' => 'required|exists:employees,id',
+                'feedback_comment' => 'required|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'reference_url' => 'nullable|url|max:255',
+                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $data = $validator->validated();
+
+            // Get task to determine project_id
+            $task = Task::findOrFail($data['task_id']);
+            $data['project_id'] = $task->project_id;
+
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                $imageFile = $request->file('image');
+                $imageExtension = $imageFile->getClientOriginalExtension();
+                $imageName = 'TASK_FEEDBACK_' . time() . '.' . $imageExtension;
+                $imageFile->move(public_path('file/task'), $imageName);
+                $data['image'] = $imageName;
+            }
+
+            // Handle reference file upload
+            if ($request->hasFile('reference_file')) {
+                $referenceFile = $request->file('reference_file');
+                $referenceExtension = $referenceFile->getClientOriginalExtension();
+                $referenceName = 'TASK_FEEDBACK_' . time() . '.' . $referenceExtension;
+                $referenceFile->move(public_path('file/task_reference_files'), $referenceName);
+                $data['reference_file'] = $referenceName;
+            }
+
+            // Create task feedback
+            $feedback = TaskFeedback::create($data);
+
+            return response()->json([
+                'message' => 'Task feedback submitted successfully',
+                'feedback' => $feedback,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error storing task feedback: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to submit feedback: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get task feedbacks for a specific task
+     */
+    public function getTaskFeedbacks($taskId)
+    {
+        $feedbacks = TaskFeedback::with(['employee.user'])
+            ->where('task_id', $taskId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'data' => $feedbacks->map(function ($feedback) {
+                return [
+                    'id' => $feedback->id,
+                    'feedback_comment' => $feedback->feedback_comment,
+                    'image' => $feedback->image ? asset('file/task/' . $feedback->image) : null,
+                    'reference_url' => $feedback->reference_url,
+                    'reference_file' => $feedback->reference_file ? asset('file/task_reference_files/' . $feedback->reference_file) : null,
+                    'created_at' => $feedback->created_at->format('Y-m-d H:i:s'),
+                    'employee' => [
+                        'id' => $feedback->employee->id,
+                        'name' => $feedback->employee->name,
+                        'photo' => $feedback->employee->user && $feedback->employee->user->photo 
+                            ? asset($feedback->employee->user->photo) 
+                            : asset('asset/img/profile_picture/default.png'),
+                    ],
+                ];
+            }),
         ]);
     }
 }

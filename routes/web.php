@@ -102,10 +102,9 @@ Route::post('/task/store', [TaskController::class, 'store'])->name('task.store')
 Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
 Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
 
-Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
-Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
-Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
-Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
+// Task Feedback routes
+Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
+Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks'])->name('task-feedbacks.get');
 
 
 Route::get('/', function () {

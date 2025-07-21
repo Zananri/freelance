@@ -1064,13 +1064,49 @@ document.addEventListener("DOMContentLoaded", function () {
         feedbackModal.show();
     }
 
-    // Function to load task feedback data (kosongan)
+    // Function to load task feedback data
     function loadTaskFeedbackData(taskId) {
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
         
         modalTitle.textContent = "Task Feedback";
-        modalBody.innerHTML = '<p>No feedback available for this task.</p>';
+        modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+        
+        // Fetch existing feedbacks
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function(response) {
+                if (response.data && response.data.length > 0) {
+                    let feedbackHtml = '';
+                    response.data.forEach(function(feedback) {
+                        feedbackHtml += `
+                            <div class="feedback-item mb-3 p-3 border rounded">
+                                <div class="d-flex align-items-center mb-2">
+                                    <img src="${feedback.employee.photo}" alt="${feedback.employee.name}" 
+                                         class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                    <div>
+                                        <strong>${feedback.employee.name}</strong>
+                                        <small class="text-muted d-block">${feedback.created_at}</small>
+                                    </div>
+                                </div>
+                                <p class="mb-2">${feedback.feedback_comment}</p>
+                                ${feedback.image ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="max-height: 200px;">` : ''}
+                                ${feedback.reference_url ? `<a href="${feedback.reference_url}" target="_blank" class="d-block mb-1"><small>Reference URL</small></a>` : ''}
+                                ${feedback.reference_file ? `<a href="${feedback.reference_file}" target="_blank" class="d-block"><small>Reference File</small></a>` : ''}
+                            </div>
+                        `;
+                    });
+                    modalBody.innerHTML = feedbackHtml;
+                } else {
+                    modalBody.innerHTML = '<p class="text-center text-muted">No feedback available for this task.</p>';
+                }
+            },
+            error: function() {
+                modalBody.innerHTML = '<p class="text-center text-danger">Failed to load feedback.</p>';
+            }
+        });
     }
 
     // Function to show add task feedback form
@@ -1451,72 +1487,69 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const formData = new FormData(form);
 
-        fetch('/task-feedbacks', {
-            method: 'POST',
+        $.ajax({
+            url: appUrl + "/task-feedbacks",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
             },
-            body: formData
-        })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw err; });
-                }
-                return response.json();
-            })
-            .then(data => {
+            success: function(response) {
                 // Show success alert
                 const feedbackModalEl = document.getElementById("taskFeedbackModal");
                 const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
                 const alertDiv = document.createElement("div");
                 alertDiv.className = "alert alert-success alert-dismissible fade show";
                 alertDiv.innerHTML = `
-                    ${data.message || "Feedback submitted successfully!"}
+                    ${response.message || "Feedback submitted successfully!"}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 modalBody.prepend(alertDiv);
 
-                // Reset form
-                form.reset();
-                const imageLabel = modalBody.querySelector("#feedbackImageLabel");
-                if (imageLabel) {
-                    imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-                    imageLabel.classList.remove("has-image");
-                    imageLabel.style.opacity = "0.5";
-                }
-                const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
-                if (imageClearBtn) {
-                    imageClearBtn.classList.add("d-none");
-                }
-
-                // Reload feedback list or clear modal body (for now clear)
-                modalBody.innerHTML = "";
-
-                // Reset Add Feedback button text
-                const addFeedbackButton = document.getElementById("addFeedbackButton");
-                addFeedbackButton.textContent = "Add Feedback";
-
-                // Remove submit event listener
-                const newButton = addFeedbackButton.cloneNode(true);
-                addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-            })
-            .catch(error => {
+                // Reset form and reload feedback list
+                setTimeout(() => {
+                    loadTaskFeedbackData(taskId);
+                    
+                    // Reset Add Feedback button text
+                    const addFeedbackButton = document.getElementById("addFeedbackButton");
+                    addFeedbackButton.textContent = "Add Feedback";
+                    
+                    // Re-attach event listener
+                    const newButton = addFeedbackButton.cloneNode(true);
+                    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+                    newButton.addEventListener("click", function() {
+                        showAddTaskFeedbackForm(taskId);
+                    });
+                }, 1500);
+            },
+            error: function(xhr) {
                 const feedbackModalEl = document.getElementById("taskFeedbackModal");
                 const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
                 const alertDiv = document.createElement("div");
                 alertDiv.className = "alert alert-danger alert-dismissible fade show";
+                
+                let errorMessage = "Failed to submit feedback. Please try again.";
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                
                 alertDiv.innerHTML = `
-                    ${error.message || "Failed to submit feedback. Please try again."}
+                    ${errorMessage}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 modalBody.prepend(alertDiv);
-            })
-            .finally(() => {
+            },
+            complete: function() {
                 if (submitBtn) {
                     submitBtn.innerHTML = originalBtnText;
                     submitBtn.disabled = false;
                 }
-            });
+            }
+        });
     }
 
     // Function to add event listeners for attach_file icon click

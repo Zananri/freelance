@@ -681,6 +681,10 @@ function loadFeedbackData(projectId) {
     modalTitle.textContent = "Feedback";
     modalBody.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 
+    // Reset button text to "Add Feedback" when loading feedback list
+    const addFeedbackButton = document.getElementById('addFeedbackButton');
+    addFeedbackButton.textContent = 'Add Feedback';
+
     fetch(appUrl + '/project-feedbacks/' + projectId)
         .then(response => {
             if (!response.ok) {
@@ -953,21 +957,25 @@ function submitFeedbackForm(form, projectId) {
         `;
         modalBody.prepend(alertDiv);
 
-        // Reset form
-        form.reset();
-        const imagePreview = modalBody.querySelector('#imagePreview');
-        if (imagePreview) {
-            imagePreview.src = window.location.origin + '/asset/img/background/add-image.png';
-        }
-        const clearImageBtn = modalBody.querySelector('#clearImageBtn');
-        if (clearImageBtn) {
-            clearImageBtn.classList.add('d-none');
-        }
+            // Reset form
+            form.reset();
+            const imagePreview = modalBody.querySelector('#imagePreview');
+            if (imagePreview) {
+                imagePreview.src = window.location.origin + '/asset/img/background/add-image.png';
+            }
+            const clearImageBtn = modalBody.querySelector('#clearImageBtn');
+            if (clearImageBtn) {
+                clearImageBtn.classList.add('d-none');
+            }
 
-        // Reload feedback list after 1.5 seconds
-        setTimeout(() => {
-            loadFeedbackData(projectFeedbackModalEl.getAttribute('data-project-id'));
-        }, 1500);
+            // Reset button text to "Add Feedback"
+            const addFeedbackButton = document.getElementById('addFeedbackButton');
+            addFeedbackButton.textContent = 'Add Feedback';
+
+            // Reload feedback list after 1.5 seconds
+            setTimeout(() => {
+                loadFeedbackData(projectFeedbackModalEl.getAttribute('data-project-id'));
+            }, 1500);
     })
     .catch(error => {
         let errorMessage = 'Failed to submit feedback. Please try again.';
@@ -1431,6 +1439,12 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
     // Remove any click event listeners by cloning the button
     const newButton = addFeedbackButton.cloneNode(true);
     addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+});
+
+// Reset button text to "Add Feedback" when showing feedback list
+feedbackModalEl.addEventListener('shown.bs.modal', function () {
+    const addFeedbackButton = document.getElementById('addFeedbackButton');
+    addFeedbackButton.textContent = 'Add Feedback';
 });
                 }
             },
