@@ -175,8 +175,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (addTaskModalInstance)
                                 addTaskModalInstance.hide();
                             alertContainer.style.display = "none";
-                            // Reload page after adding task
-                            window.location.reload();
+                        // Reload page after adding task
+                        window.location.href = appUrl + '/task';
                         }, 1500);
                     }, 800); // Show loading for 800ms before showing success alert
                 },
@@ -1364,10 +1364,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
                 
                 <div class="mb-3">
-                    <label class="form-label">Image (Optional)</label>
+                    <label class="form-label">Upload Image</label>
                     <div class="image-upload-container">
                         <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
-                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${window.location.origin}/asset/img/background/add-image.png'); cursor: pointer;">
+                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
                             <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
                             <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
                         </label>
@@ -1413,10 +1413,14 @@ document.addEventListener("DOMContentLoaded", function () {
         imageClearBtn.addEventListener("click", function (e) {
             e.preventDefault();
             imageInput.value = "";
-            imageLabel.style.backgroundImage = `url('${window.location.origin}/asset/img/background/add-image.png')`;
-            imageLabel.classList.remove("has-image");
-            imageLabel.style.opacity = "0.5";
-            imageClearBtn.classList.add("d-none");
+          imageLabel.style.backgroundImage =
+                    "url('" + appUrl + "/asset/img/background/add-image.png')";
+                imageLabel.style.backgroundPosition = "center center";
+                imageLabel.style.backgroundRepeat = "no-repeat";
+                imageLabel.style.backgroundSize = "50%";
+                imageLabel.classList.remove("has-image");
+                imageLabel.style.opacity = "0.5";
+                imageClearBtn.classList.add("d-none");
         });
 
         // Change Add Feedback button text to Submit
@@ -1476,7 +1480,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 form.reset();
                 const imageLabel = modalBody.querySelector("#feedbackImageLabel");
                 if (imageLabel) {
-                    imageLabel.style.backgroundImage = `url('${window.location.origin}/asset/img/background/add-image.png')`;
+                    imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
                     imageLabel.classList.remove("has-image");
                     imageLabel.style.opacity = "0.5";
                 }
