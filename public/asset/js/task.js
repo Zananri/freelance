@@ -897,6 +897,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="dropdown-menu d-none">
                         <div class="dropdown-item">Detail</div>
                         <div class="dropdown-item">Edit</div>
+                        <div class="dropdown-item">Feedback</div>
                         <div class="dropdown-item delete-task">Delete</div>
                     </div>
                 </div>
@@ -1036,12 +1037,482 @@ document.addEventListener("DOMContentLoaded", function () {
                     case "Edit":
                         handleTaskEdit(taskId);
                         break;
+                    case "Feedback":
+                        handleTaskFeedback(taskId);
+                        break;
                     case "Delete":
                         handleTaskDelete(taskId, taskCard);
                         break;
                 }
             }
         });
+    }
+
+    // Function to handle task feedback
+    function handleTaskFeedback(taskId) {
+        // Show the feedback modal
+        const feedbackModal = new bootstrap.Modal(
+            document.getElementById("taskFeedbackModal")
+        );
+        
+        // Set task ID on modal
+        document.getElementById("taskFeedbackModal").dataset.taskId = taskId;
+        
+        // Load feedback data (kosongan dulu)
+        loadTaskFeedbackData(taskId);
+        
+        feedbackModal.show();
+    }
+
+    // Function to load task feedback data (kosongan)
+    function loadTaskFeedbackData(taskId) {
+        const modalTitle = document.getElementById("taskFeedbackModalLabel");
+        const modalBody = document.getElementById("taskFeedbackList");
+        
+        modalTitle.textContent = "Task Feedback";
+        modalBody.innerHTML = '<p>No feedback available for this task.</p>';
+    }
+
+    // Function to show add task feedback form
+    function showAddTaskFeedbackForm(taskId) {
+        const modalTitle = document.getElementById("taskFeedbackModalLabel");
+        const modalBody = document.getElementById("taskFeedbackList");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        modalTitle.textContent = "Add Feedback";
+        modalBody.innerHTML = "";
+
+        const form = document.createElement("form");
+        form.id = "addTaskFeedbackForm";
+        form.enctype = "multipart/form-data";
+
+        const taskIdInput = document.createElement("input");
+        taskIdInput.type = "hidden";
+        taskIdInput.name = "task_id";
+        taskIdInput.value = taskId;
+
+        const employeeIdInput = document.createElement("input");
+        employeeIdInput.type = "hidden";
+        employeeIdInput.name = "employee_id";
+        employeeIdInput.value = document.getElementById("taskFeedbackModal").getAttribute("data-employee-id") || "";
+
+        form.appendChild(taskIdInput);
+        form.appendChild(employeeIdInput);
+
+        // Comment field
+        const commentDiv = document.createElement("div");
+        commentDiv.className = "mb-3";
+
+        const commentLabel = document.createElement("label");
+        commentLabel.htmlFor = "feedback_comment";
+        commentLabel.className = "form-label label-custom";
+        commentLabel.textContent = "Comment";
+        commentDiv.appendChild(commentLabel);
+
+        const commentTextarea = document.createElement("textarea");
+        commentTextarea.className = "form-control input-text";
+        commentTextarea.id = "feedback_comment";
+        commentTextarea.name = "feedback_comment";
+        commentTextarea.rows = 3;
+        commentTextarea.required = true;
+        commentDiv.appendChild(commentTextarea);
+
+        form.appendChild(commentDiv);
+
+        // Image upload
+        const imageDiv = document.createElement("div");
+        imageDiv.className = "mb-3";
+
+        const imageLabelTitle = document.createElement("div");
+        imageLabelTitle.className = "title-label-image";
+        imageLabelTitle.textContent = "Upload Image";
+        imageDiv.appendChild(imageLabelTitle);
+
+        const imageLabel = document.createElement("label");
+        imageLabel.className = "custom-image-upload position-relative";
+        imageLabel.style.backgroundPosition = "center center";
+        imageLabel.style.backgroundRepeat = "no-repeat";
+        imageLabel.style.backgroundSize = "50%";
+        imageLabel.style.backgroundImage = "url('" + appUrl + "/asset/img/background/add-image.png')";
+        imageLabel.htmlFor = "feedback_image";
+
+        const imageInput = document.createElement("input");
+        imageInput.type = "file";
+        imageInput.className = "input-image";
+        imageInput.id = "feedback_image";
+        imageInput.name = "feedback_image";
+        imageInput.accept = "image/*";
+        imageInput.hidden = true;
+
+        const imageClearBtn = document.createElement("span");
+        imageClearBtn.className = "image-clear-btn d-none";
+        imageClearBtn.id = "feedbackImageClearBtn";
+        imageClearBtn.title = "Remove image";
+        imageClearBtn.textContent = "×";
+
+        imageLabel.appendChild(imageInput);
+        imageLabel.appendChild(imageClearBtn);
+        imageDiv.appendChild(imageLabel);
+
+        form.appendChild(imageDiv);
+
+        // Reference URL
+        const refUrlDiv = document.createElement("div");
+        refUrlDiv.className = "mb-3";
+
+        const refUrlLabel = document.createElement("label");
+        refUrlLabel.htmlFor = "reference_url";
+        refUrlLabel.className = "form-label label-custom";
+        refUrlLabel.textContent = "Reference URL";
+        refUrlDiv.appendChild(refUrlLabel);
+
+        const refUrlInput = document.createElement("input");
+        refUrlInput.type = "text";
+        refUrlInput.className = "form-control input-text";
+        refUrlInput.id = "reference_url";
+        refUrlInput.name = "reference_url";
+        refUrlDiv.appendChild(refUrlInput);
+
+        form.appendChild(refUrlDiv);
+
+        // Reference File
+        const refFileDiv = document.createElement("div");
+        refFileDiv.className = "mb-3";
+
+        const refFileLabel = document.createElement("label");
+        refFileLabel.htmlFor = "reference_file";
+        refFileLabel.className = "form-label label-custom";
+        refFileLabel.textContent = "Reference File";
+        refFileDiv.appendChild(refFileLabel);
+
+        const refFileInput = document.createElement("input");
+        refFileInput.type = "file";
+        refFileInput.className = "form-control input-text";
+        refFileInput.id = "reference_file";
+        refFileInput.name = "reference_file";
+        refFileInput.accept = ".pdf,.doc,.docx";
+        refFileDiv.appendChild(refFileInput);
+
+        form.appendChild(refFileDiv);
+
+        // Buttons
+        const buttonDiv = document.createElement("div");
+        buttonDiv.className = "d-flex justify-content-between mt-4";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.className = "btn btn-secondary";
+        cancelBtn.textContent = "Cancel";
+        cancelBtn.addEventListener("click", function() {
+            loadTaskFeedbackData(taskId);
+            document.getElementById("addFeedbackButton").textContent = "Add Feedback";
+        });
+
+        const submitBtn = document.createElement("button");
+        submitBtn.type = "submit";
+        submitBtn.className = "btn btn-primary";
+        submitBtn.textContent = "Submit";
+
+        buttonDiv.appendChild(cancelBtn);
+        buttonDiv.appendChild(submitBtn);
+
+        form.appendChild(buttonDiv);
+        modalBody.appendChild(form);
+
+        // Setup image preview
+        setupImageInput(imageInput, imageLabel, imageClearBtn);
+
+        // Form submission handler
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            submitTaskFeedbackForm(this, taskId);
+        });
+
+        // Change button text to Submit
+        addFeedbackButton.textContent = "Submit";
+
+        // Remove previous click handler
+        const newButton = addFeedbackButton.cloneNode(true);
+        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+
+        // Add new click handler for submit
+        newButton.addEventListener("click", function(e) {
+            e.preventDefault();
+            const form = document.getElementById("addTaskFeedbackForm");
+            if (form) {
+                submitTaskFeedbackForm(form, taskId);
+            }
+        });
+    }
+
+    // Function to submit task feedback form
+    function submitTaskFeedbackForm(form, taskId) {
+        const submitBtn = form.querySelector("button[type='submit']");
+        const originalText = submitBtn.textContent;
+        
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+        submitBtn.disabled = true;
+
+        const formData = new FormData(form);
+        formData.append("task_id", taskId);
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+            },
+            success: function(response) {
+                // Show success message
+                const alertDiv = document.createElement("div");
+                alertDiv.className = "alert alert-success alert-dismissible fade show";
+                alertDiv.innerHTML = `
+                    ${response.message || 'Feedback submitted successfully!'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                const modalBody = document.getElementById("taskFeedbackList");
+                modalBody.prepend(alertDiv);
+
+                // Reset form and reload feedback
+                setTimeout(() => {
+                    feedbackModal.hide();
+                    loadTaskFeedbackData(taskId);
+                }, 2000);
+            },
+            error: function(xhr, status, error) {
+                const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+                const alertDiv = document.createElement("div");
+                alertDiv.className = "alert alert-danger alert-dismissible fade show";
+                alertDiv.innerHTML = `
+                    ${error.message || "Failed to submit feedback. Please try again."}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                modalBody.prepend(alertDiv);
+            },
+            complete: function() {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+            }
+        });
+    }
+
+    // Function to handle task feedback
+    function handleTaskFeedback(taskId) {
+        // Show the feedback modal
+        const feedbackModal = new bootstrap.Modal(
+            document.getElementById("taskFeedbackModal")
+        );
+        
+        // Set task ID on modal
+        document.getElementById("taskFeedbackModal").dataset.taskId = taskId;
+        
+        // Clear the feedback list area (kosongan)
+        const feedbackList = document.getElementById("taskFeedbackList");
+        feedbackList.innerHTML = '';
+        
+        feedbackModal.show();
+    }
+    // Function to handle task feedback
+    function handleTaskFeedback(taskId) {
+        // Show the feedback modal
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+        
+        // Set task ID on modal
+        feedbackModalEl.dataset.taskId = taskId;
+        
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        // Reset modal title and body to show existing feedback list (empty for now)
+        modalTitle.textContent = "Task Feedback";
+        modalBody.innerHTML = '';
+
+        // Reset Add Feedback button text and remove previous event listeners
+        addFeedbackButton.textContent = "Add Feedback";
+        const newButton = addFeedbackButton.cloneNode(true);
+        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+
+        // Add event listener for Add Feedback button to show add feedback form
+        newButton.addEventListener("click", function () {
+            showAddFeedbackForm(taskId);
+        });
+
+        feedbackModal.show();
+    }
+
+    // Function to show add feedback form in the modal
+    function showAddFeedbackForm(taskId) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        modalTitle.textContent = "Add Feedback";
+
+        modalBody.innerHTML = `
+            <form id="addFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
+                
+                <div class="mb-3">
+                    <label class="form-label">Image (Optional)</label>
+                    <div class="image-upload-container">
+                        <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
+                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${window.location.origin}/asset/img/background/add-image.png'); cursor: pointer;">
+                            <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                            <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+                </div>
+            </form>
+        `;
+
+        // Setup image preview and clear button logic
+        const imageInput = modalBody.querySelector("#feedback_image");
+        const imageLabel = modalBody.querySelector("#feedbackImageLabel");
+        const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
+
+        imageInput.addEventListener("change", function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                    imageLabel.classList.add("has-image");
+                    imageLabel.style.backgroundSize = "cover";
+                    imageLabel.style.opacity = "1";
+                    imageClearBtn.classList.remove("d-none");
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        imageClearBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            imageInput.value = "";
+            imageLabel.style.backgroundImage = `url('${window.location.origin}/asset/img/background/add-image.png')`;
+            imageLabel.classList.remove("has-image");
+            imageLabel.style.opacity = "0.5";
+            imageClearBtn.classList.add("d-none");
+        });
+
+        // Change Add Feedback button text to Submit
+        addFeedbackButton.textContent = "Submit";
+
+        // Remove previous event listeners and add submit handler
+        const newButton = addFeedbackButton.cloneNode(true);
+        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+
+        newButton.addEventListener("click", function (e) {
+            e.preventDefault();
+            const form = document.getElementById("addFeedbackForm");
+            if (form) {
+                submitFeedbackForm(form, taskId);
+            }
+        });
+    }
+
+    // Function to submit feedback form via AJAX
+    function submitFeedbackForm(form, taskId) {
+        const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
+        const originalBtnText = submitBtn ? submitBtn.innerHTML : "";
+
+        if (submitBtn) {
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+            submitBtn.disabled = true;
+        }
+
+        const formData = new FormData(form);
+
+        fetch('/task-feedbacks', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Show success alert
+                const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+                const alertDiv = document.createElement("div");
+                alertDiv.className = "alert alert-success alert-dismissible fade show";
+                alertDiv.innerHTML = `
+                    ${data.message || "Feedback submitted successfully!"}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                modalBody.prepend(alertDiv);
+
+                // Reset form
+                form.reset();
+                const imageLabel = modalBody.querySelector("#feedbackImageLabel");
+                if (imageLabel) {
+                    imageLabel.style.backgroundImage = `url('${window.location.origin}/asset/img/background/add-image.png')`;
+                    imageLabel.classList.remove("has-image");
+                    imageLabel.style.opacity = "0.5";
+                }
+                const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
+                if (imageClearBtn) {
+                    imageClearBtn.classList.add("d-none");
+                }
+
+                // Reload feedback list or clear modal body (for now clear)
+                modalBody.innerHTML = "";
+
+                // Reset Add Feedback button text
+                const addFeedbackButton = document.getElementById("addFeedbackButton");
+                addFeedbackButton.textContent = "Add Feedback";
+
+                // Remove submit event listener
+                const newButton = addFeedbackButton.cloneNode(true);
+                addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+            })
+            .catch(error => {
+                const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+                const alertDiv = document.createElement("div");
+                alertDiv.className = "alert alert-danger alert-dismissible fade show";
+                alertDiv.innerHTML = `
+                    ${error.message || "Failed to submit feedback. Please try again."}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                modalBody.prepend(alertDiv);
+            })
+            .finally(() => {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+            });
     }
 
     // Function to add event listeners for attach_file icon click

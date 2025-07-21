@@ -350,6 +350,31 @@
         </div>
     </div>
 
+     <!-- Task Feedback Modal -->
+    <div class="modal fade" id="taskFeedbackModal" tabindex="-1" aria-labelledby="taskFeedbackModalLabel"
+        aria-hidden="true" data-task-id="{{ $taskId ?? '' }}"
+        data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
+            <div class="modal-content feedback-modal-content">
+                <div
+                    class="modal-header feedback-modal-header d-flex align-items-center position-relative flex-nowrap">
+                    <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate"
+                        id="taskFeedbackModalLabel">Task Feedback</h5>
+                    <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body feedback-modal-body" id="taskFeedbackList">
+                </div>
+                <div class="modal-footer feedback-modal-footer">
+                    <button type="button" class="btn btn-submit-black btn-submit-custom" id="addFeedbackButton"
+                        style="width: 120px; white-space: nowrap;">Add Feedback</button>
+                </div>
+            </div>
+            <div class="alert-container mt-2" style="width: 100%;"></div>
+        </div>
+    </div>
+
     <x-slot name="script_slot">
 
         <script src="{{ asset('asset/js/task.js') }}"></script>
