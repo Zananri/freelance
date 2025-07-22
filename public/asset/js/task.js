@@ -1140,7 +1140,7 @@ function loadTaskFeedbackData(taskId) {
 }
 
     // Function to show add task feedback form
-    function showAddTaskFeedbackForm(taskId) {
+    function showAddFeedbackForm(taskId) {
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
         const addFeedbackButton = document.getElementById("addFeedbackButton");
@@ -1149,7 +1149,7 @@ function loadTaskFeedbackData(taskId) {
         modalBody.innerHTML = "";
 
         const form = document.createElement("form");
-        form.id = "addTaskFeedbackForm";
+        form.id = "addFeedbackForm";
         form.enctype = "multipart/form-data";
 
         const taskIdInput = document.createElement("input");
@@ -1274,14 +1274,6 @@ function loadTaskFeedbackData(taskId) {
             document.getElementById("addFeedbackButton").textContent = "Add Feedback";
         });
 
-        const submitBtn = document.createElement("button");
-        submitBtn.type = "submit";
-        submitBtn.className = "btn btn-primary";
-        submitBtn.textContent = "Submit";
-
-        buttonDiv.appendChild(cancelBtn);
-        buttonDiv.appendChild(submitBtn);
-
         form.appendChild(buttonDiv);
         modalBody.appendChild(form);
 
@@ -1304,7 +1296,7 @@ function loadTaskFeedbackData(taskId) {
         // Add new click handler for submit
         newButton.addEventListener("click", function(e) {
             e.preventDefault();
-            const form = document.getElementById("addTaskFeedbackForm");
+            const form = document.getElementById("addFeedbackForm");
             if (form) {
                 submitTaskFeedbackForm(form, taskId);
             }
@@ -1537,7 +1529,7 @@ function handleTaskFeedback(taskId) {
                     const newButton = addFeedbackButton.cloneNode(true);
                     addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
                     newButton.addEventListener("click", function() {
-                        showAddTaskFeedbackForm(taskId);
+                        showAddFeedbackForm(taskId);
                     });
                 }, 1500);
             },
