@@ -175,8 +175,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (addTaskModalInstance)
                                 addTaskModalInstance.hide();
                             alertContainer.style.display = "none";
-                        // Reload page after adding task
-                        window.location.href = appUrl + '/task';
+                            // Reload page after adding task
+                            window.location.href = appUrl + "/task";
                         }, 1500);
                     }, 800); // Show loading for 800ms before showing success alert
                 },
@@ -889,50 +889,52 @@ document.addEventListener("DOMContentLoaded", function () {
             .join("");
 
         return `
-            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
-                task.id
-            }">
-                <div class="dropdown-icon-container">
-                    <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-                    <div class="dropdown-menu d-none">
-                        <div class="dropdown-item">Detail</div>
-                        <div class="dropdown-item">Edit</div>
-                        <div class="dropdown-item">Feedback</div>
-                        <div class="dropdown-item delete-task">Delete</div>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center mb-2">
-                    <img src="${
-                        task.project_image
-                    }" alt="Project Image" class="project-image me-3">
-                    <h5 class="mb-0 task-title">${task.title}</h5>
-                </div>
-                <p class="task-description">${task.description}</p>
-                <hr class="task-separator rounded-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="d-flex align-items-center pic-executor-container">
-                        ${
-                            task.pic
-                                ? `<img src="${task.pic.image}" alt="${task.pic.name}" class="pic-executor-image" title="${task.pic.name}">`
-                                : ""
-                        }
-                        ${executorsHtml}
-                    </div>
-                    <div class="d-flex">
-                    <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                        <span class="material-symbols-outlined task-icon">mode_comment</span>
-                       
-                    </div>
-                    <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                        <span class="material-symbols-outlined task-icon">attach_file</span>
-                        ${
-                            task.reference_files_count > 0
-                                ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
-                                : ""
-                        }
-                    </div>
-                </div>
+           <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
+               task.id
+           }">
+    <div class="dropdown-icon-container">
+        <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+        <div class="dropdown-menu d-none">
+            <div class="dropdown-item">Detail</div>
+            <div class="dropdown-item">Edit</div>
+            <div class="dropdown-item">Feedback</div>
+            <div class="dropdown-item delete-task">Delete</div>
+        </div>
+    </div>
+    <div class="d-flex align-items-center mb-2">
+        <img src="${task.project_image}" alt="Project Image"
+            class="project-image me-3">
+        <h5 class="mb-0 task-title">${task.title}</h5>
+    </div>
+    <p class="task-description">${task.description}</p>
+    <hr class="task-separator rounded-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex align-items-center pic-executor-container">
+            ${
+                task.pic
+                    ? `<img src="${task.pic.image}" alt="${task.pic.name}" class="pic-executor-image"
+                title="${task.pic.name}">`
+                    : ""
+            }
+            ${executorsHtml}
+        </div>
+        <div class="d-flex">
+            <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                <span class="material-symbols-outlined task-icon mode_comment"
+                    data-task-id="${task.id}">mode_comment</span>
+
+
             </div>
+            <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                <span class="material-symbols-outlined task-icon">attach_file</span>
+                ${
+                    task.reference_files_count > 0
+                        ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
+                        : ""
+                }
+            </div>
+        </div>
+    </div>
         `;
     }
 
@@ -1003,6 +1005,14 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
 
+        // Open Modal from mode_comment icon click
+        document.querySelectorAll(".task-icon.mode_comment").forEach((icon) => {
+            icon.addEventListener("click", function () {
+                const taskId = this.dataset.taskId;
+                handleTaskFeedback(taskId);
+            });
+        });
+
         // Event listener for dropdown item clicks
         document.addEventListener("click", function (e) {
             if (e.target && e.target.classList.contains("dropdown-item")) {
@@ -1040,6 +1050,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     case "Feedback":
                         handleTaskFeedback(taskId);
                         break;
+                    case "mode_comment":
+                        handleTaskFeedback(taskId);
+                        break;
                     case "Delete":
                         handleTaskDelete(taskId, taskCard);
                         break;
@@ -1054,63 +1067,78 @@ document.addEventListener("DOMContentLoaded", function () {
         const feedbackModal = new bootstrap.Modal(
             document.getElementById("taskFeedbackModal")
         );
-        
+
         // Set task ID on modal
         document.getElementById("taskFeedbackModal").dataset.taskId = taskId;
-        
+
         // Load feedback data (kosongan dulu)
         loadTaskFeedbackData(taskId);
-        
+
         feedbackModal.show();
     }
 
-  // Fungsi untuk memuat data feedback
-function loadTaskFeedbackData(taskId) {
-    const modalBody = document.getElementById("taskFeedbackList");
-    modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    
-    $.ajax({
-        url: appUrl + "/task-feedbacks/" + taskId,
-        type: "GET",
-        dataType: "json",
-        success: function(response) {
-            if (response.data && response.data.length > 0) {
-                let feedbackHtml = '';
-                response.data.forEach(function(feedback) {
-                    // Format the date with the requested format
-                    let formattedDate = '';
-                    if (feedback.created_at) {
-                        const dateObj = new Date(feedback.created_at);
-                        const now = new Date();
+    // Fungsi untuk memuat data feedback
+    function loadTaskFeedbackData(taskId) {
+        const modalBody = document.getElementById("taskFeedbackList");
+        modalBody.innerHTML =
+            '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 
-                        // Helper function to check if two dates are the same day
-                        function isSameDay(d1, d2) {
-                            return d1.getFullYear() === d2.getFullYear() &&
-                                d1.getMonth() === d2.getMonth() &&
-                                d1.getDate() === d2.getDate();
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (response) {
+                if (response.data && response.data.length > 0) {
+                    let feedbackHtml = "";
+                    response.data.forEach(function (feedback) {
+                        // Format the date with the requested format
+                        let formattedDate = "";
+                        if (feedback.created_at) {
+                            const dateObj = new Date(feedback.created_at);
+                            const now = new Date();
+
+                            // Helper function to check if two dates are the same day
+                            function isSameDay(d1, d2) {
+                                return (
+                                    d1.getFullYear() === d2.getFullYear() &&
+                                    d1.getMonth() === d2.getMonth() &&
+                                    d1.getDate() === d2.getDate()
+                                );
+                            }
+
+                            // Helper function to check if d1 is yesterday of d2
+                            function isYesterday(d1, d2) {
+                                const yesterday = new Date(d2);
+                                yesterday.setDate(d2.getDate() - 1);
+                                return isSameDay(d1, yesterday);
+                            }
+
+                            if (isSameDay(dateObj, now)) {
+                                // Show time only
+                                formattedDate = dateObj.toLocaleTimeString(
+                                    undefined,
+                                    { hour: "2-digit", minute: "2-digit" }
+                                );
+                            } else if (isYesterday(dateObj, now)) {
+                                formattedDate = "yesterday";
+                            } else {
+                                formattedDate = dateObj.toLocaleDateString(
+                                    undefined,
+                                    {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                    }
+                                );
+                            }
                         }
 
-                        // Helper function to check if d1 is yesterday of d2
-                        function isYesterday(d1, d2) {
-                            const yesterday = new Date(d2);
-                            yesterday.setDate(d2.getDate() - 1);
-                            return isSameDay(d1, yesterday);
-                        }
-
-                        if (isSameDay(dateObj, now)) {
-                            // Show time only
-                            formattedDate = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                        } else if (isYesterday(dateObj, now)) {
-                            formattedDate = 'yesterday';
-                        } else {
-                            formattedDate = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                        }
-                    }
-
-                    feedbackHtml += `
+                        feedbackHtml += `
                         <div class="feedback-item mb-3 p-3">
                             <div class="d-flex align-items-center mb-2">
-                                <img src="${feedback.employee.photo}" alt="${feedback.employee.name}" 
+                                <img src="${feedback.employee.photo}" alt="${
+                            feedback.employee.name
+                        }" 
                                      class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                                 <div>
                                     <strong>${feedback.employee.name}</strong>
@@ -1118,26 +1146,45 @@ function loadTaskFeedbackData(taskId) {
                                 </div>
                             </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
-                            ${(feedback.reference_url || feedback.reference_file) ? `
+                            ${
+                                feedback.reference_url ||
+                                feedback.reference_file
+                                    ? `
                                 <div class="feedback-reference-container">
-                                    ${feedback.reference_url ? `<a href="${feedback.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : ''}
-                                    ${feedback.reference_file ? `<a href="${feedback.reference_file}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>` : ''}
+                                    ${
+                                        feedback.reference_url
+                                            ? `<a href="${feedback.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>`
+                                            : ""
+                                    }
+                                    ${
+                                        feedback.reference_file
+                                            ? `<a href="${feedback.reference_file}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>`
+                                            : ""
+                                    }
                                 </div>
-                            ` : ''}
-                            ${feedback.image ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+                            `
+                                    : ""
+                            }
+                            ${
+                                feedback.image
+                                    ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
+                                    : ""
+                            }
                         </div>
                     `;
-                });
-                modalBody.innerHTML = feedbackHtml;
-            } else {
-                modalBody.innerHTML = '<p class="text-center text-muted">No feedback available for this task.</p>';
-            }
-        },
-        error: function() {
-            modalBody.innerHTML = '<p class="text-center text-danger">Failed to load feedback.</p>';
-        }
-    });
-}
+                    });
+                    modalBody.innerHTML = feedbackHtml;
+                } else {
+                    modalBody.innerHTML =
+                        '<p class="text-center text-muted">No feedback available for this task.</p>';
+                }
+            },
+            error: function () {
+                modalBody.innerHTML =
+                    '<p class="text-center text-danger">Failed to load feedback.</p>';
+            },
+        });
+    }
 
     // Function to show add task feedback form
     function showAddFeedbackForm(taskId) {
@@ -1160,7 +1207,10 @@ function loadTaskFeedbackData(taskId) {
         const employeeIdInput = document.createElement("input");
         employeeIdInput.type = "hidden";
         employeeIdInput.name = "employee_id";
-        employeeIdInput.value = document.getElementById("taskFeedbackModal").getAttribute("data-employee-id") || "";
+        employeeIdInput.value =
+            document
+                .getElementById("taskFeedbackModal")
+                .getAttribute("data-employee-id") || "";
 
         form.appendChild(taskIdInput);
         form.appendChild(employeeIdInput);
@@ -1199,7 +1249,8 @@ function loadTaskFeedbackData(taskId) {
         imageLabel.style.backgroundPosition = "center center";
         imageLabel.style.backgroundRepeat = "no-repeat";
         imageLabel.style.backgroundSize = "50%";
-        imageLabel.style.backgroundImage = "url('" + appUrl + "/asset/img/background/add-image.png')";
+        imageLabel.style.backgroundImage =
+            "url('" + appUrl + "/asset/img/background/add-image.png')";
         imageLabel.htmlFor = "feedback_image";
 
         const imageInput = document.createElement("input");
@@ -1269,9 +1320,10 @@ function loadTaskFeedbackData(taskId) {
         cancelBtn.type = "button";
         cancelBtn.className = "btn btn-secondary";
         cancelBtn.textContent = "Cancel";
-        cancelBtn.addEventListener("click", function() {
+        cancelBtn.addEventListener("click", function () {
             loadTaskFeedbackData(taskId);
-            document.getElementById("addFeedbackButton").textContent = "Add Feedback";
+            document.getElementById("addFeedbackButton").textContent =
+                "Add Feedback";
         });
 
         form.appendChild(buttonDiv);
@@ -1281,7 +1333,7 @@ function loadTaskFeedbackData(taskId) {
         setupImageInput(imageInput, imageLabel, imageClearBtn);
 
         // Form submission handler
-        form.addEventListener("submit", function(e) {
+        form.addEventListener("submit", function (e) {
             e.preventDefault();
             submitTaskFeedbackForm(this, taskId);
         });
@@ -1294,7 +1346,7 @@ function loadTaskFeedbackData(taskId) {
         addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
 
         // Add new click handler for submit
-        newButton.addEventListener("click", function(e) {
+        newButton.addEventListener("click", function (e) {
             e.preventDefault();
             const form = document.getElementById("addFeedbackForm");
             if (form) {
@@ -1307,8 +1359,9 @@ function loadTaskFeedbackData(taskId) {
     function submitTaskFeedbackForm(form, taskId) {
         const submitBtn = form.querySelector("button[type='submit']");
         const originalText = submitBtn.textContent;
-        
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+
+        submitBtn.innerHTML =
+            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
         submitBtn.disabled = true;
 
         const formData = new FormData(form);
@@ -1321,17 +1374,20 @@ function loadTaskFeedbackData(taskId) {
             contentType: false,
             processData: false,
             headers: {
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
             },
-            success: function(response) {
+            success: function (response) {
                 // Show success message
                 const alertDiv = document.createElement("div");
-                alertDiv.className = "alert alert-success alert-dismissible fade show";
+                alertDiv.className =
+                    "alert alert-success alert-dismissible fade show";
                 alertDiv.innerHTML = `
-                    ${response.message || 'Feedback submitted successfully!'}
+                    ${response.message || "Feedback submitted successfully!"}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
-                
+
                 const modalBody = document.getElementById("taskFeedbackList");
                 modalBody.prepend(alertDiv);
 
@@ -1341,43 +1397,51 @@ function loadTaskFeedbackData(taskId) {
                     loadTaskFeedbackData(taskId);
                 }, 2000);
             },
-            error: function(xhr, status, error) {
-                const feedbackModalEl = document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+            error: function (xhr, status, error) {
+                const feedbackModalEl =
+                    document.getElementById("taskFeedbackModal");
+                const modalBody = feedbackModalEl.querySelector(
+                    ".feedback-modal-body"
+                );
                 const alertDiv = document.createElement("div");
-                alertDiv.className = "alert alert-danger alert-dismissible fade show";
+                alertDiv.className =
+                    "alert alert-danger alert-dismissible fade show";
                 alertDiv.innerHTML = `
-                    ${error.message || "Failed to submit feedback. Please try again."}
+                    ${
+                        error.message ||
+                        "Failed to submit feedback. Please try again."
+                    }
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 modalBody.prepend(alertDiv);
             },
-            complete: function() {
+            complete: function () {
                 if (submitBtn) {
                     submitBtn.innerHTML = originalBtnText;
                     submitBtn.disabled = false;
                 }
-            }
+            },
         });
     }
 
+    // Function to handle task feedback
+    function handleTaskFeedback(taskId) {
+        // Show the feedback modal
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
 
-// Function to handle task feedback
-function handleTaskFeedback(taskId) {
-    // Show the feedback modal
-    const feedbackModalEl = document.getElementById("taskFeedbackModal");
-    const feedbackModal = new bootstrap.Modal(feedbackModalEl);
-        
         // Set task ID on modal
         feedbackModalEl.dataset.taskId = taskId;
-        
-        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+
+        const modalTitle = feedbackModalEl.querySelector(
+            ".feedback-modal-title"
+        );
         const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
         const addFeedbackButton = document.getElementById("addFeedbackButton");
 
         // Reset modal title and body to show existing feedback list (empty for now)
         modalTitle.textContent = "Task Feedback";
-        modalBody.innerHTML = '';
+        modalBody.innerHTML = "";
 
         // Reset Add Feedback button text and remove previous event listeners
         addFeedbackButton.textContent = "Add Feedback";
@@ -1389,7 +1453,7 @@ function handleTaskFeedback(taskId) {
             showAddFeedbackForm(taskId);
         });
 
-    loadTaskFeedbackData(taskId);
+        loadTaskFeedbackData(taskId);
 
         feedbackModal.show();
     }
@@ -1397,7 +1461,9 @@ function handleTaskFeedback(taskId) {
     // Function to show add feedback form in the modal
     function showAddFeedbackForm(taskId) {
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
-        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+        const modalTitle = feedbackModalEl.querySelector(
+            ".feedback-modal-title"
+        );
         const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
         const addFeedbackButton = document.getElementById("addFeedbackButton");
 
@@ -1406,7 +1472,9 @@ function handleTaskFeedback(taskId) {
         modalBody.innerHTML = `
             <form id="addFeedbackForm" enctype="multipart/form-data">
                 <input type="hidden" name="task_id" value="${taskId}">
-                <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
+                <input type="hidden" name="employee_id" value="${
+                    feedbackModalEl.dataset.employeeId || ""
+                }">
                 
                 <div class="mb-3">
                     <label class="form-label">Upload Image</label>
@@ -1458,14 +1526,14 @@ function handleTaskFeedback(taskId) {
         imageClearBtn.addEventListener("click", function (e) {
             e.preventDefault();
             imageInput.value = "";
-          imageLabel.style.backgroundImage =
-                    "url('" + appUrl + "/asset/img/background/add-image.png')";
-                imageLabel.style.backgroundPosition = "center center";
-                imageLabel.style.backgroundRepeat = "no-repeat";
-                imageLabel.style.backgroundSize = "50%";
-                imageLabel.classList.remove("has-image");
-                imageLabel.style.opacity = "0.5";
-                imageClearBtn.classList.add("d-none");
+            imageLabel.style.backgroundImage =
+                "url('" + appUrl + "/asset/img/background/add-image.png')";
+            imageLabel.style.backgroundPosition = "center center";
+            imageLabel.style.backgroundRepeat = "no-repeat";
+            imageLabel.style.backgroundSize = "50%";
+            imageLabel.classList.remove("has-image");
+            imageLabel.style.opacity = "0.5";
+            imageClearBtn.classList.add("d-none");
         });
 
         // Change Add Feedback button text to Submit
@@ -1486,11 +1554,14 @@ function handleTaskFeedback(taskId) {
 
     // Function to submit feedback form via AJAX
     function submitFeedbackForm(form, taskId) {
-        const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
+        const submitBtn =
+            form.querySelector("button[type='submit']") ||
+            document.getElementById("addFeedbackButton");
         const originalBtnText = submitBtn ? submitBtn.innerHTML : "";
 
         if (submitBtn) {
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+            submitBtn.innerHTML =
+                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
             submitBtn.disabled = true;
         }
 
@@ -1503,14 +1574,20 @@ function handleTaskFeedback(taskId) {
             contentType: false,
             processData: false,
             headers: {
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
             },
-            success: function(response) {
+            success: function (response) {
                 // Show success alert
-                const feedbackModalEl = document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+                const feedbackModalEl =
+                    document.getElementById("taskFeedbackModal");
+                const modalBody = feedbackModalEl.querySelector(
+                    ".feedback-modal-body"
+                );
                 const alertDiv = document.createElement("div");
-                alertDiv.className = "alert alert-success alert-dismissible fade show";
+                alertDiv.className =
+                    "alert alert-success alert-dismissible fade show";
                 alertDiv.innerHTML = `
                     ${response.message || "Feedback submitted successfully!"}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -1520,44 +1597,55 @@ function handleTaskFeedback(taskId) {
                 // Reset form and reload feedback list
                 setTimeout(() => {
                     loadTaskFeedbackData(taskId);
-                    
+
                     // Reset Add Feedback button text
-                    const addFeedbackButton = document.getElementById("addFeedbackButton");
+                    const addFeedbackButton =
+                        document.getElementById("addFeedbackButton");
                     addFeedbackButton.textContent = "Add Feedback";
-                    
+
                     // Re-attach event listener
                     const newButton = addFeedbackButton.cloneNode(true);
-                    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-                    newButton.addEventListener("click", function() {
+                    addFeedbackButton.parentNode.replaceChild(
+                        newButton,
+                        addFeedbackButton
+                    );
+                    newButton.addEventListener("click", function () {
                         showAddFeedbackForm(taskId);
                     });
                 }, 1500);
             },
-            error: function(xhr) {
-                const feedbackModalEl = document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+            error: function (xhr) {
+                const feedbackModalEl =
+                    document.getElementById("taskFeedbackModal");
+                const modalBody = feedbackModalEl.querySelector(
+                    ".feedback-modal-body"
+                );
                 const alertDiv = document.createElement("div");
-                alertDiv.className = "alert alert-danger alert-dismissible fade show";
-                
-                let errorMessage = "Failed to submit feedback. Please try again.";
+                alertDiv.className =
+                    "alert alert-danger alert-dismissible fade show";
+
+                let errorMessage =
+                    "Failed to submit feedback. Please try again.";
                 if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                    errorMessage = Object.values(xhr.responseJSON.errors)
+                        .flat()
+                        .join("\n");
                 } else if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
                 }
-                
+
                 alertDiv.innerHTML = `
                     ${errorMessage}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 modalBody.prepend(alertDiv);
             },
-            complete: function() {
+            complete: function () {
                 if (submitBtn) {
                     submitBtn.innerHTML = originalBtnText;
                     submitBtn.disabled = false;
                 }
-            }
+            },
         });
     }
 

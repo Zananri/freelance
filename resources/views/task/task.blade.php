@@ -179,7 +179,8 @@
                             <div class="title-label-image">
                                 <span>Upload image</span>
                             </div>
-                            <label for="edit_task_image" class="custom-image-upload position-relative" id="editTaskImageLabel"
+                            <label for="edit_task_image" class="custom-image-upload position-relative"
+                                id="editTaskImageLabel"
                                 style=" background-position: center center; background-repeat: no-repeat; background-size: 50%;  background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
                                 <input type="file" class="input-image" id="edit_task_image" name="image"
                                     accept="image/*" hidden>
@@ -192,8 +193,8 @@
                         </div>
                         <div class="mb-3">
                             <label for="edit_task_title" class="form-label label-custom">Title</label>
-                            <input type="text" class="form-control input-text" id="edit_task_title" name="title"
-                                required>
+                            <input type="text" class="form-control input-text" id="edit_task_title"
+                                name="title" required>
                         </div>
                         <div class="mb-3">
                             <label for="edit_task_description" class="form-label label-custom">Description</label>
@@ -201,19 +202,21 @@
                         </div>
                         <div class="mb-3">
                             <label for="edit_task_project_id" class="form-label label-custom">Project</label>
-                            <select class="form-select input-select" id="edit_task_project_id" name="project_id" required>
+                            <select class="form-select input-select" id="edit_task_project_id" name="project_id"
+                                required>
                                 <option value="">Select Project</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="edit_task_point" class="form-label label-custom">Point</label>
-                            <input type="number" class="form-control input-text" id="edit_task_point" name="point"
-                                value="1" min="1" required>
+                            <input type="number" class="form-control input-text" id="edit_task_point"
+                                name="point" value="1" min="1" required>
                         </div>
                         <div class="mb-3">
                             <label for="edit_task_priority" class="form-label label-custom">Priority</label>
-                            <select class="form-select input-select" id="edit_task_priority" name="priority" required>
+                            <select class="form-select input-select" id="edit_task_priority" name="priority"
+                                required>
                                 <option value="">Select Priority</option>
                                 <option value="HIGH">HIGH</option>
                                 <option value="MEDIUM">MEDIUM</option>
@@ -226,14 +229,16 @@
                                 name="reference_url">
                         </div>
                         <div class="mb-3">
-                            <label for="edit_task_reference_files" class="form-label label-custom">Reference Files</label>
-                        <input type="file" class="form-control input-text" id="edit_task_reference_files"
-                            name="reference_files[]" accept=".pdf,.doc,.docx" multiple>
-                        <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
-                        <div id="edit_reference_files_preview" class="mt-2"></div>
-                        <div id="existing_reference_files" class="mt-2"></div>
-                        <input type="hidden" id="existing_reference_files_input" name="existing_reference_files" value="">
-                    </div>
+                            <label for="edit_task_reference_files" class="form-label label-custom">Reference
+                                Files</label>
+                            <input type="file" class="form-control input-text" id="edit_task_reference_files"
+                                name="reference_files[]" accept=".pdf,.doc,.docx" multiple>
+                            <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
+                            <div id="edit_reference_files_preview" class="mt-2"></div>
+                            <div id="existing_reference_files" class="mt-2"></div>
+                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"
+                                value="">
+                        </div>
 
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;">
@@ -333,7 +338,8 @@
     </div>
 
     <!-- Reference Files Modal -->
-    <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel" aria-hidden="true">
+    <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
             <div class="modal-content modal-content-custom" style="box-shadow: none;">
                 <div class="modal-header modal-header-custom">
@@ -350,7 +356,7 @@
         </div>
     </div>
 
-     <!-- Task Feedback Modal -->
+    <!-- Task Feedback Modal -->
     <div class="modal fade" id="taskFeedbackModal" tabindex="-1" aria-labelledby="taskFeedbackModalLabel"
         aria-hidden="true" data-task-id="{{ $taskId ?? '' }}"
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
