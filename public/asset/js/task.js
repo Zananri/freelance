@@ -888,16 +888,25 @@ document.addEventListener("DOMContentLoaded", function () {
             })
             .join("");
 
+        // Determine status-based menu items
+        let statusMenuItem = '';
+        if (task.status === 'new_request' || task.status === 'new request') {
+            statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
+        } else if (task.status === 'in_progress' || task.status === 'in progress') {
+            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
+        }
+
         return `
            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
                task.id
-           }">
+           }" data-task-status="${task.status}">
     <div class="dropdown-icon-container">
         <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
         <div class="dropdown-menu d-none">
             <div class="dropdown-item">Detail</div>
             <div class="dropdown-item">Edit</div>
             <div class="dropdown-item">Feedback</div>
+            ${statusMenuItem}
             <div class="dropdown-item delete-task">Delete</div>
         </div>
     </div>
@@ -1056,6 +1065,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     case "mode_comment":
                         handleTaskFeedback(taskId);
                         break;
+                    case "Progress":
+                        handleTaskProgress(taskId, taskCard);
+                        break;
+                    case "Set to Complete":
+                        handleTaskComplete(taskId, taskCard);
+                        break;
                     case "Delete":
                         handleTaskDelete(taskId, taskCard);
                         break;
@@ -1064,15 +1079,119 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Function to handle task progress (new request -> in progress)
+    function handleTaskProgress(taskId, taskCard) {
+        if (confirm("Are you sure you want to move this task to In Progress?")) {
+            updateTaskStatus(taskId, 'in_progress', taskCard);
+        }
+    }
+
+    // Function to handle task complete (in progress -> completed)
+    function handleTaskComplete(taskId, taskCard) {
+        if (confirm("Are you sure you want to mark this task as Completed?")) {
+            updateTaskStatus(taskId, 'completed', taskCard);
+        }
+    }
+
+    // Function to update task status via AJAX
+    function updateTaskStatus(taskId, newStatus, taskCard) {
+        $.ajax({
+            url: appUrl + "/task/" + taskId + "/status",
+            type: "PUT",
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            data: {
+                status: newStatus,
+            },
+            success: function (response) {
+                // Remove the task card from current section
+                taskCard.remove();
+                
+                // Refresh task cards to show in new section
+                fetchAndRenderTasks();
+                
+                // Show success message
+                showStatusUpdateAlert(response.message || "Task status updated successfully");
+            },
+            error: function (xhr) {
+                let errorMessage = "Failed to update task status.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+                }
+                alert(errorMessage);
+            },
+        });
+    }
+
+    // Function to show status update alert
+    function showStatusUpdateAlert(message) {
+        // Create alert div untuk pojok kanan bawah
+        const alertDiv = document.createElement("div");
+        alertDiv.className = "alert alert-success d-flex align-items-center task-status-alert";
+        alertDiv.setAttribute("role", "alert");
+        alertDiv.style.opacity = "1";
+        alertDiv.style.position = "fixed";
+        alertDiv.style.bottom = "20px";
+        alertDiv.style.right = "20px";
+        alertDiv.style.zIndex = "9999";
+        alertDiv.style.minWidth = "300px";
+        alertDiv.style.margin = "0";
+
+        alertDiv.innerHTML = `
+            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
+                <use xlink:href="#check-circle-fill"/>
+            </svg>
+            <div>
+                ${message}
+            </div>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        // After 1.5 seconds, fade out alert
+        setTimeout(() => {
+            alertDiv.style.opacity = "0";
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 500);
+        }, 1500);
+    }
+
+    // Track whether feedback was submitted
+    let feedbackSubmitted = false;
+
+    // Add event listener for modal close to handle conditional reload
+    document.addEventListener('DOMContentLoaded', function () {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        if (feedbackModalEl) {
+            feedbackModalEl.addEventListener('hidden.bs.modal', function () {
+                if (feedbackSubmitted) {
+                    // Reload the page only if feedback was submitted
+                    window.location.reload();
+                }
+                // Reset feedback submission state
+                feedbackSubmitted = false;
+            });
+        }
+    });
+
     // Function to handle task feedback
     function handleTaskFeedback(taskId) {
+        // Reset feedback submission state
+        feedbackSubmitted = false;
+        
         // Show the feedback modal
-        const feedbackModal = new bootstrap.Modal(
-            document.getElementById("taskFeedbackModal")
-        );
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
 
         // Set task ID on modal
-        document.getElementById("taskFeedbackModal").dataset.taskId = taskId;
+        feedbackModalEl.dataset.taskId = taskId;
 
         // Load feedback data (kosongan dulu)
         loadTaskFeedbackData(taskId);
@@ -1582,6 +1701,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     .getAttribute("content"),
             },
             success: function (response) {
+                // Mark feedback as submitted
+                feedbackSubmitted = true;
+                
                 // Show success alert
                 const feedbackModalEl =
                     document.getElementById("taskFeedbackModal");
@@ -1596,6 +1718,43 @@ document.addEventListener("DOMContentLoaded", function () {
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 modalBody.prepend(alertDiv);
+
+                // Update feedback count dynamically on task card
+                $.ajax({
+                    url: appUrl + "/task-feedbacks/count/" + taskId,
+                    type: "GET",
+                    dataType: "json",
+                    success: function (countResponse) {
+                        const count = countResponse.count || 0;
+                        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                        if (taskCard) {
+                            let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
+                            if (count > 0) {
+                                if (feedbackCountSpan) {
+                                    feedbackCountSpan.textContent = count;
+                                } else {
+                                    // Create span if not exists
+                                    feedbackCountSpan = document.createElement("span");
+                                    feedbackCountSpan.className = "feedback-comments-count ms-1";
+                                    feedbackCountSpan.style.color = "#555";
+                                    feedbackCountSpan.textContent = count;
+                                    const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
+                                    if (modeCommentIcon && modeCommentIcon.parentNode) {
+                                        modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
+                                    }
+                                }
+                            } else {
+                                // Remove span if count is zero
+                                if (feedbackCountSpan) {
+                                    feedbackCountSpan.remove();
+                                }
+                            }
+                        }
+                    },
+                    error: function () {
+                        console.error("Failed to update feedback count");
+                    }
+                });
 
                 // Reset form and reload feedback list
                 setTimeout(() => {

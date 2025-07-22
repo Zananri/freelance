@@ -16,6 +16,7 @@ class Task extends Model
         'description',
         'image',
         'priority',
+        'status',
         'reference_url',
         'reference_files',
         'start_date',

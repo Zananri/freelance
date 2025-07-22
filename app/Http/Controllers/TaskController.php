@@ -82,6 +82,7 @@ class TaskController extends Controller
                     'executors' => $allExecutors,
                     'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                     'feedback_comments_count' => $task->feedback_comments ? $task->feedback_comments->count() : 0,
+                    'status' => $task->status,
                 ];
             }
         }
@@ -448,6 +449,45 @@ class TaskController extends Controller
     }
 
     /**
+     * Update task status
+     */
+    public function updateStatus(Request $request, string $id)
+    {
+        $task = Task::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:new request,in progress,completed,new_request,in_progress',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation errors',
+                'errors' => $validator->errors(),
+                'received_status' => $request->status,
+                'expected_values' => ['new request', 'in progress', 'completed', 'new_request', 'in_progress']
+            ], 422);
+        }
+
+        // Map frontend status to database enum values
+        $statusMap = [
+            'new request' => 'new_request',
+            'in progress' => 'in_progress',
+            'completed' => 'completed',
+            'new_request' => 'new_request',
+            'in_progress' => 'in_progress',
+        ];
+
+        $dbStatus = $statusMap[$request->status] ?? $request->status;
+        $task->update(['status' => $dbStatus]);
+
+        return response()->json([
+            'message' => 'Task status updated successfully',
+            'task' => $task,
+            'updated_status' => $dbStatus
+        ]);
+    }
+
+    /**
      * Store task feedback
      */
     public function storeFeedback(Request $request)
@@ -536,6 +576,18 @@ class TaskController extends Controller
                     ],
                 ];
             }),
+        ]);
+    }
+
+    /**
+     * Get count of feedbacks for a specific task
+     */
+    public function getTaskFeedbackCount($taskId)
+    {
+        $count = TaskFeedback::where('task_id', $taskId)->count();
+
+        return response()->json([
+            'count' => $count,
         ]);
     }
 }
