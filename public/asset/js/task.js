@@ -919,11 +919,14 @@ document.addEventListener("DOMContentLoaded", function () {
             ${executorsHtml}
         </div>
         <div class="d-flex">
-            <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+           <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
                 <span class="material-symbols-outlined task-icon mode_comment"
                     data-task-id="${task.id}">mode_comment</span>
-
-
+                ${
+                    task.feedback_comments_count > 0
+                        ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
+                        : ""
+                }
             </div>
             <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
                 <span class="material-symbols-outlined task-icon">attach_file</span>

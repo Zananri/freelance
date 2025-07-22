@@ -41,4 +41,11 @@ class Task extends Model
     {
         return $this->hasMany(TaskAssignment::class);
     }
+
+   // Di model Task.php
+public function feedback_comments()
+{
+    return $this->hasMany(TaskFeedback::class);
+}
+
 }
