@@ -1096,23 +1096,67 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to handle task progress (new request -> in progress)
     function handleTaskProgress(taskId, taskCard) {
-        if (confirm("Are you sure you want to move this task to In Progress?")) {
-            updateTaskStatus(taskId, 'in_progress', taskCard);
-        }
+        showUpdateStatusModal(taskId, taskCard, 'in_progress', 'In Progress');
     }
 
     // Function to handle task complete (in progress -> completed)
     function handleTaskComplete(taskId, taskCard) {
-        if (confirm("Are you sure you want to mark this task as Completed?")) {
-            updateTaskStatus(taskId, 'completed', taskCard);
-        }
+        showUpdateStatusModal(taskId, taskCard, 'completed', 'Completed');
     }
 
     // Function to handle task reject (completed -> rejected)
     function handleTaskReject(taskId, taskCard) {
-        if (confirm("Are you sure you want to reject this task?")) {
-            updateTaskStatus(taskId, 'rejected', taskCard);
-        }
+        showUpdateStatusModal(taskId, taskCard, 'rejected', 'Rejected');
+    }
+
+    // Function to show update status modal
+    function showUpdateStatusModal(taskId, taskCard, newStatus, statusText) {
+        // Fetch task details to display image and title
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                // Set task image
+                const updateStatusTaskImage = document.getElementById("updateStatusTaskImage");
+                if (updateStatusTaskImage) {
+                    if (data.image) {
+                        updateStatusTaskImage.src = appUrl + "/file/task/" + data.image;
+                    } else {
+                        updateStatusTaskImage.src = appUrl + "/asset/img/background/add-image.png";
+                    }
+                }
+
+                // Show the modal
+                const updateStatusModal = new bootstrap.Modal(document.getElementById("updateStatusModal"));
+                updateStatusModal.show();
+
+                // Set up confirm button click handler
+                const confirmBtn = document.getElementById("confirmUpdateStatusBtn");
+                confirmBtn.onclick = function () {
+                    updateTaskStatus(taskId, newStatus, taskCard);
+                    updateStatusModal.hide();
+                };
+            },
+            error: function () {
+                // Fallback if task details can't be loaded
+                const updateStatusTaskImage = document.getElementById("updateStatusTaskImage");
+                if (updateStatusTaskImage) {
+                    updateStatusTaskImage.src = appUrl + "/asset/img/background/add-image.png";
+                }
+                
+                // Show the modal
+                const updateStatusModal = new bootstrap.Modal(document.getElementById("updateStatusModal"));
+                updateStatusModal.show();
+
+                // Set up confirm button click handler
+                const confirmBtn = document.getElementById("confirmUpdateStatusBtn");
+                confirmBtn.onclick = function () {
+                    updateTaskStatus(taskId, newStatus, taskCard);
+                    updateStatusModal.hide();
+                };
+            }
+        });
     }
 
     // Function to update task status via AJAX
@@ -2129,7 +2173,44 @@ document.addEventListener("DOMContentLoaded", function () {
         // Store taskId on modal for use in delete
         deleteModalEl.dataset.taskId = taskId;
 
-        deleteModal.show();
+        // Fetch task details to display image and title
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                // Set task image
+                const deleteTaskImage = document.getElementById("deleteTaskImage");
+                if (deleteTaskImage) {
+                    if (data.image) {
+                        deleteTaskImage.src = appUrl + "/file/task/" + data.image;
+                    } else {
+                        deleteTaskImage.src = appUrl + "/asset/img/background/add-image.png";
+                    }
+                }
+
+                // Set task title
+                const deleteTaskTitle = document.getElementById("deleteTaskTitle");
+                if (deleteTaskTitle) {
+                    deleteTaskTitle.textContent = data.title || "Untitled Task";
+                }
+
+                // Show modal after data is loaded
+                deleteModal.show();
+            },
+            error: function () {
+                // Fallback if task details can't be loaded
+                const deleteTaskImage = document.getElementById("deleteTaskImage");
+                if (deleteTaskImage) {
+                    deleteTaskImage.src = appUrl + "/asset/img/background/add-image.png";
+                }
+                const deleteTaskTitle = document.getElementById("deleteTaskTitle");
+                if (deleteTaskTitle) {
+                    deleteTaskTitle.textContent = "Task #" + taskId;
+                }
+                deleteModal.show();
+            }
+        });
 
         // Delete button click handler
         const confirmDeleteBtn = document.getElementById(

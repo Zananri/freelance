@@ -33,6 +33,7 @@
 
 .btn-submit-black:hover {
     background-color: #333;
+    color: white;
 }
 
 /* Spinner inside submit button */
@@ -401,6 +402,29 @@
     font-weight: 300;
     color: #222;
     margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.status-new-request {
+    background-color: #FF9B2F;
+}
+
+.status-in-progress {
+    background-color: #FFCC00;
+}
+
+.status-completed {
+    background-color: #78C841;
 }
 
 .project-image {

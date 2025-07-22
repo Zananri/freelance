@@ -31,19 +31,28 @@
         <div class="row">
             <!-- New Request Section -->
             <div class="col-md-4">
-                <h4 class="task-section-title">New Request</h4>
+                <h4 class="task-section-title">
+                    <span class="status-indicator status-new-request"></span>
+                    New Request
+                </h4>
                 <div id="new-request-tasks" class="task-list"></div>
             </div>
 
             <!-- In Progress Section -->
             <div class="col-md-4">
-                <h4 class="task-section-title">In Progress</h4>
+                <h4 class="task-section-title">
+                    <span class="status-indicator status-in-progress"></span>
+                    In Progress
+                </h4>
                 <div id="in-progress-tasks" class="task-list"></div>
             </div>
 
             <!-- Completed Section -->
             <div class="col-md-4">
-                <h4 class="task-section-title">Completed</h4>
+                <h4 class="task-section-title">
+                    <span class="status-indicator status-completed"></span>
+                    Completed
+                </h4>
                 <div id="completed-tasks" class="task-list"></div>
             </div>
         </div>
@@ -330,6 +339,28 @@
                     <p id="deleteTaskTitle" class="fw-bold fs-5 text-center mb-4"></p>
                     <div class="d-flex justify-content-center gap-3 w-100">
                         <button type="button" class="btn btn-danger" id="confirmDeleteTaskBtn">Delete</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Status Modal -->
+    <div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="updateStatusModalLabel">Update Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
+                    <img id="updateStatusTaskImage" src="" alt="Task Image"
+                        style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
+                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to update status?</p>
+                    <div class="d-flex justify-content-center gap-3 w-100">
+                        <button type="button" class="btn btn-submit-black" id="confirmUpdateStatusBtn">Confirm</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
