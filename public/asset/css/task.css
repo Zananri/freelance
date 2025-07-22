@@ -399,6 +399,7 @@
 /* Added styles for task sections and cards */
 
 .task-section-title {
+    font-size: 18px;
     font-weight: 300;
     color: #222;
     margin-bottom: 1rem;
