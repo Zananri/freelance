@@ -14,7 +14,7 @@ class AddStatusToTasksTable extends Migration
     public function up()
     {
         Schema::table('tasks', function (Blueprint $table) {
-            $table->enum('status', ['new_request', 'in_progress', 'completed'])->default('new_request')->after('priority');
+            $table->enum('status', ['new_request', 'in_progress', 'completed', 'rejected'])->default('new_request')->after('priority');
         });
     }
 

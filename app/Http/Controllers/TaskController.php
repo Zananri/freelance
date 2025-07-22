@@ -33,6 +33,7 @@ class TaskController extends Controller
             'new_request' => [],
             'in_progress' => [],
             'completed' => [],
+            'rejected' => [],
         ];
 
         foreach ($tasks as $status => $tasksGroup) {
@@ -53,6 +54,9 @@ class TaskController extends Controller
                         break;
                     case 'completed':
                         $responseKey = 'completed';
+                        break;
+                    case 'rejected':
+                        $responseKey = 'in_progress'; // Rejected tasks go to in_progress section
                         break;
                     default:
                         $responseKey = 'new_request';
@@ -456,7 +460,7 @@ class TaskController extends Controller
         $task = Task::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:new request,in progress,completed,new_request,in_progress',
+            'status' => 'required|in:new request,in progress,completed,rejected,new_request,in_progress',
         ]);
 
         if ($validator->fails()) {
@@ -473,6 +477,7 @@ class TaskController extends Controller
             'new request' => 'new_request',
             'in progress' => 'in_progress',
             'completed' => 'completed',
+            'rejected' => 'rejected',
             'new_request' => 'new_request',
             'in_progress' => 'in_progress',
         ];

@@ -890,16 +890,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Determine status-based menu items
         let statusMenuItem = '';
+        
         if (task.status === 'new_request' || task.status === 'new request') {
             statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
         } else if (task.status === 'in_progress' || task.status === 'in progress') {
             statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
+        } else if (task.status === 'completed') {
+            statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
+        } else if (task.status === 'rejected') {
+            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
+        }
+
+        // Add status badge for rejected tasks
+        let statusBadge = '';
+        if (task.status === 'rejected') {
+            statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 10px; right: 40px;">REJECTED</span>';
         }
 
         return `
            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
                task.id
            }" data-task-status="${task.status}">
+    ${statusBadge}
     <div class="dropdown-icon-container">
         <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
         <div class="dropdown-menu d-none">
@@ -1071,6 +1083,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     case "Set to Complete":
                         handleTaskComplete(taskId, taskCard);
                         break;
+                    case "Reject":
+                        handleTaskReject(taskId, taskCard);
+                        break;
                     case "Delete":
                         handleTaskDelete(taskId, taskCard);
                         break;
@@ -1090,6 +1105,13 @@ document.addEventListener("DOMContentLoaded", function () {
     function handleTaskComplete(taskId, taskCard) {
         if (confirm("Are you sure you want to mark this task as Completed?")) {
             updateTaskStatus(taskId, 'completed', taskCard);
+        }
+    }
+
+    // Function to handle task reject (completed -> rejected)
+    function handleTaskReject(taskId, taskCard) {
+        if (confirm("Are you sure you want to reject this task?")) {
+            updateTaskStatus(taskId, 'rejected', taskCard);
         }
     }
 
