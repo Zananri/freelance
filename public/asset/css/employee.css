@@ -250,6 +250,18 @@ table.table tbody tr td:first-child {
 .form-custom {
     margin-top: -12px;
 }
+
+.form-label {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+    display: block;
+    top: 10px;
+}
+
+.form-select {
+    font-size: 14px;
+}
 .modal-body-custom {
     padding: 0;
 }
@@ -451,6 +463,12 @@ table.table > tbody > tr > td {
 .custom-image-upload.is-valid {
     border-color: #28a745 !important;
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Filter Modal - Remove underline from title */
+#filterModal .modal-header {
+    text-decoration: none !important;
+    border-bottom: none !important;
 }
 
 /* Employee Detail Modal Styling */

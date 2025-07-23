@@ -2551,4 +2551,187 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Fetch and render tasks on page load
     fetchAndRenderTasks();
+
+    // Enhanced Task Filtering with All Project Support
+    let currentTaskFilters = {
+        project: "",
+        status: ""
+    };
+
+    const filterTaskProjectSelect = document.getElementById("filterTaskProject");
+    const filterTaskStatusSelect = document.getElementById("filterTaskStatus");
+    const applyTaskFilterBtn = document.getElementById("applyTaskFilterBtn");
+    const openTaskFilterModalBtn = document.getElementById("openTaskFilterModalBtn");
+
+    // Load projects for filter select
+    function loadProjectsForFilter() {
+        if (!filterTaskProjectSelect) return;
+        
+        fetch(appUrl + "/project/index")
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Failed to load projects");
+                }
+                return response.json();
+            })
+            .then((data) => {
+                if (!data.data) return;
+                let options = '<option value="">All Projects</option>';
+                data.data.forEach((project) => {
+                    options += `<option value="${project.id}">${project.title}</option>`;
+                });
+                filterTaskProjectSelect.innerHTML = options;
+            })
+            .catch((error) => {
+                console.error("Error loading projects for filter:", error);
+            });
+    }
+
+    // Status filter is always enabled regardless of project selection
+    if (filterTaskProjectSelect) {
+        filterTaskProjectSelect.addEventListener("change", function() {
+            // Status filter is always enabled regardless of project selection
+            filterTaskStatusSelect.disabled = false;
+        });
+    }
+
+    // Apply task filters
+    if (applyTaskFilterBtn) {
+        applyTaskFilterBtn.addEventListener("click", function() {
+            currentTaskFilters.project = filterTaskProjectSelect.value;
+            currentTaskFilters.status = filterTaskStatusSelect.value;
+            
+            fetchAndRenderFilteredTasks(currentTaskFilters);
+            $("#taskFilterModal").modal("hide");
+        });
+    }
+
+    // Open filter modal
+    if (openTaskFilterModalBtn) {
+        openTaskFilterModalBtn.addEventListener("click", function() {
+            loadProjectsForFilter();
+            $("#taskFilterModal").modal("show");
+        });
+    }
+
+    // Enhanced fetch and render filtered tasks
+    function fetchAndRenderFilteredTasks(filters = {}) {
+        $.ajax({
+            url: appUrl + "/task/index",
+            type: "GET",
+            dataType: "json",
+            data: filters,
+            success: function (data) {
+                // Clear existing task lists
+                document.getElementById("new-request-tasks").innerHTML = "";
+                document.getElementById("in-progress-tasks").innerHTML = "";
+                document.getElementById("completed-tasks").innerHTML = "";
+
+                // Get all tasks from response
+                let allTasks = [];
+                
+                // Combine all tasks from different status arrays
+                if (data.new_request) allTasks = allTasks.concat(data.new_request);
+                if (data.in_progress) allTasks = allTasks.concat(data.in_progress);
+                if (data.completed) allTasks = allTasks.concat(data.completed);
+                if (data.rejected) allTasks = allTasks.concat(data.rejected);
+                
+                // Filter tasks based on selected criteria
+                let filteredTasks = allTasks;
+
+                // Apply project filter if selected (empty means all projects)
+                if (filters.project && filters.project !== "") {
+                    filteredTasks = filteredTasks.filter(task => 
+                        task.project_id == filters.project
+                    );
+                }
+
+                // Apply status filter if selected (empty means all status)
+                if (filters.status && filters.status !== "") {
+                    filteredTasks = filteredTasks.filter(task => 
+                        task.status === filters.status
+                    );
+                }
+
+                // Group filtered tasks by status
+                const groupedTasks = {
+                    new_request: [],
+                    in_progress: [],
+                    completed: [],
+                    rejected: []
+                };
+
+                filteredTasks.forEach(task => {
+                    const status = task.status;
+                    if (status === 'new_request' || status === 'new request') {
+                        groupedTasks.new_request.push(task);
+                    } else if (status === 'in_progress' || status === 'in progress') {
+                        groupedTasks.in_progress.push(task);
+                    } else if (status === 'completed') {
+                        groupedTasks.completed.push(task);
+                    } else if (status === 'rejected') {
+                        groupedTasks.rejected.push(task);
+                    }
+                });
+
+                // Render filtered tasks in appropriate sections
+                groupedTasks.new_request.forEach((task) => {
+                    document
+                        .getElementById("new-request-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+                groupedTasks.in_progress.forEach((task) => {
+                    document
+                        .getElementById("in-progress-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+                groupedTasks.completed.forEach((task) => {
+                    document
+                        .getElementById("completed-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+                groupedTasks.rejected.forEach((task) => {
+                    document
+                        .getElementById("in-progress-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+
+                // Add event listeners for dropdown functionality after rendering
+                setupTaskDropdownListeners();
+
+                // Add event listener for attach_file icon click to show reference files modal
+                addAttachFileIconListeners();
+            },
+            error: function (xhr, status, error) {
+                console.error("Error fetching filtered tasks:", error);
+            },
+        });
+    }
+
+    // Reset filters
+    function resetTaskFilters() {
+        currentTaskFilters = {
+            project: "",
+            status: ""
+        };
+        
+        if (filterTaskProjectSelect) filterTaskProjectSelect.value = "";
+        if (filterTaskStatusSelect) {
+            filterTaskStatusSelect.value = "";
+            filterTaskStatusSelect.disabled = false;
+        }
+        
+        fetchAndRenderTasks();
+    }
+
+    // Add reset filter button functionality
+    const resetFilterBtn = document.createElement('button');
+    resetFilterBtn.type = 'button';
+    resetFilterBtn.className = 'btn btn-outline-secondary ms-2';
+    resetFilterBtn.textContent = 'Reset';
+    resetFilterBtn.addEventListener('click', resetTaskFilters);
+    
+    if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
+        applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
+    }
 });

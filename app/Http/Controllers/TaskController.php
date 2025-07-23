@@ -21,7 +21,7 @@ class TaskController extends Controller
         return view('task/task');
     }
 
-    public function index()
+    public function index(Request $request)
     {
         // Get current logged in user's employee ID
         $currentUser = auth()->user();
@@ -37,14 +37,29 @@ class TaskController extends Controller
             ]);
         }
 
-        // Fetch tasks where current user is PIC or executor
-        $tasks = Task::with(['project', 'assignments.employee', 'feedback_comments'])
+        // Get filter parameters
+        $projectId = $request->input('project');
+        $status = $request->input('status');
+
+        // Build base query
+        $query = Task::with(['project', 'assignments.employee', 'feedback_comments'])
             ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
                 $query->where('employee_id', $currentEmployeeId)
                       ->whereIn('role', ['PIC', 'executor']);
-            })
-            ->get()
-            ->groupBy('status');
+            });
+
+        // Apply project filter if provided
+        if ($projectId) {
+            $query->where('project_id', $projectId);
+        }
+
+        // Apply status filter if provided
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        // Get all tasks
+        $tasks = $query->get()->groupBy('status');
 
         // Prepare response data grouped by status
         $response = [
@@ -74,7 +89,7 @@ class TaskController extends Controller
                         $responseKey = 'completed';
                         break;
                     case 'rejected':
-                        $responseKey = 'in_progress'; // Rejected tasks go to in_progress section
+                        $responseKey = 'rejected'; // Rejected tasks go to rejected section
                         break;
                     default:
                         $responseKey = 'new_request';
@@ -110,6 +125,7 @@ class TaskController extends Controller
                     'title' => $task->title,
                     'description' => $task->description,
                     'project_image' => ($task->project && $task->project->image) ? asset('file/project/' . $task->project->image) : asset('asset/img/profile_picture/sample_project.png'),
+                    'project_id' => $task->project_id, // Add project_id for filtering
                     'executors' => $allExecutors,
                     'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                     'feedback_comments_count' => $task->feedback_comments ? $task->feedback_comments->count() : 0,
