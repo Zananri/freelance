@@ -901,6 +901,11 @@ document.addEventListener("DOMContentLoaded", function () {
             statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
         }
 
+        // Determine if delete should be shown (only for new_request and rejected)
+        const showDelete = task.status === 'new_request' || 
+                          task.status === 'new request' || 
+                          task.status === 'rejected';
+
         // Add status badge for rejected tasks
         let statusBadge = '';
         if (task.status === 'rejected') {
@@ -919,7 +924,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="dropdown-item">Edit</div>
             <div class="dropdown-item">Feedback</div>
             ${statusMenuItem}
-            <div class="dropdown-item delete-task">Delete</div>
+            ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
         </div>
     </div>
     <div class="d-flex align-items-center mb-2">
