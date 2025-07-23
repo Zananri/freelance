@@ -23,8 +23,26 @@ class TaskController extends Controller
 
     public function index()
     {
-        // Fetch tasks with related project and assignments
+        // Get current logged in user's employee ID
+        $currentUser = auth()->user();
+        $currentEmployeeId = $currentUser?->employee?->id;
+
+        if (!$currentEmployeeId) {
+            // If user is not an employee, return empty response
+            return response()->json([
+                'new_request' => [],
+                'in_progress' => [],
+                'completed' => [],
+                'rejected' => [],
+            ]);
+        }
+
+        // Fetch tasks where current user is PIC or executor
         $tasks = Task::with(['project', 'assignments.employee', 'feedback_comments'])
+            ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
+                $query->where('employee_id', $currentEmployeeId)
+                      ->whereIn('role', ['PIC', 'executor']);
+            })
             ->get()
             ->groupBy('status');
 
@@ -62,20 +80,29 @@ class TaskController extends Controller
                         $responseKey = 'new_request';
                 }
 
-                // Merge PIC into executors array as first element
+                // Get unique executors (including PIC if also executor)
                 $allExecutors = collect();
+                
+                // Add PIC first (always show PIC)
                 if ($pic) {
                     $allExecutors->push([
                         'name' => $pic->employee->name ?? '',
                         'image' => $pic->employee && $pic->employee->user && $pic->employee->user->photo ? asset($pic->employee->user->photo) : asset('asset/img/profile_picture/default.png'),
+                        'id' => $pic->employee->id,
                     ]);
                 }
+                
+                // Add executors that are not the PIC
                 $executorsMapped = $executors->map(function ($executor) {
                     return [
                         'name' => $executor->employee->name ?? '',
                         'image' => $executor->employee && $executor->employee->user && $executor->employee->user->photo ? asset($executor->employee->user->photo) : asset('asset/img/profile_picture/default.png'),
+                        'id' => $executor->employee->id,
                     ];
+                })->filter(function ($executor) use ($pic) {
+                    return !$pic || $executor['id'] != $pic->employee->id;
                 })->values();
+                
                 $allExecutors = $allExecutors->merge($executorsMapped);
 
                 $response[$responseKey][] = [
@@ -393,22 +420,16 @@ class TaskController extends Controller
     }
 
     /**
-     * Get employees for task executor dropdown, excluding logged-in user
+     * Get employees for task executor dropdown, including PIC
      */
     public function getEmployeesForTaskExecutor(Request $request)
     {
         try {
             $query = $request->input('q', '');
 
-            // Use null-safe operator to get employee id
-            $excludeEmployeeId = auth()->user()?->employee?->id;
-
             $employees = Employee::query()
                 ->when($query !== '', function ($q) use ($query) {
                     return $q->where('name', 'like', '%' . $query . '%');
-                })
-                ->when($excludeEmployeeId, function ($q) use ($excludeEmployeeId) {
-                    return $q->where('id', '!=', $excludeEmployeeId);
                 })
                 ->orderBy('name')
                 ->get(['id', 'name', 'photo as user_photo']);

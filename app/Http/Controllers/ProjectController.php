@@ -546,6 +546,7 @@ public function getProjectFeedbacks($projectId)
         try {
             $feedbacks = ProjectFeedback::with(['employee'])
                 ->where('project_id', $projectId)
+                ->orderBy('created_at', 'desc')
                 ->get();
 
             $feedbacksTransformed = $feedbacks->map(function ($feedback) {
