@@ -458,8 +458,8 @@ table.table > tbody > tr > td {
     font-weight: 300;
     font-size: 28px;
     position: absolute;
-    top: 24px;
-    left: 24px;
+    top: 15px;
+    left: 10px;
     color: rgb(103, 111, 122);
 }
 
