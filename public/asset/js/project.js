@@ -1106,49 +1106,49 @@ function showImageModal(imageSrc) {
                             // Delete button click handler
                             const confirmDeleteBtn = document.getElementById('confirmDeleteProjectBtn');
                             confirmDeleteBtn.onclick = function () {
-                                $.ajax({
-                                    url: appUrl + '/projects/' + projectId,
-                                    type: 'DELETE',
-                                    headers: {
-                                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                                    },
-                                    success: function (response) {
-                                        // Remove card from UI
-                                        card.remove();
+                            $.ajax({
+                                url: appUrl + '/project/' + projectId,
+                                type: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                success: function (response) {
+                                    // Remove card from UI
+                                    card.remove();
 
-                                        // Hide modal
-                                        deleteModal.hide();
+                                    // Hide modal
+                                    deleteModal.hide();
 
-                                        // Show success alert fixed at bottom right corner
-                                        let alertContainer = document.createElement('div');
-                                        alertContainer.className = 'alert alert-success d-flex align-items-center project-delete-alert';
-                                        alertContainer.setAttribute('role', 'alert');
-                                        alertContainer.style.opacity = '1';
+                                    // Show success alert fixed at bottom right corner
+                                    let alertContainer = document.createElement('div');
+                                    alertContainer.className = 'alert alert-success d-flex align-items-center project-delete-alert';
+                                    alertContainer.setAttribute('role', 'alert');
+                                    alertContainer.style.opacity = '1';
 
-                                        alertContainer.innerHTML = `
-                                            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
-                                                <use xlink:href="#check-circle-fill"/>
-                                            </svg>
-                                            <div>
-                                                ${response.message || 'Project deleted successfully'}
-                                            </div>
-                                        `;
+                                    alertContainer.innerHTML = `
+                                        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
+                                            <use xlink:href="#check-circle-fill"/>
+                                        </svg>
+                                        <div>
+                                            ${response.message || 'Project deleted successfully'}
+                                        </div>
+                                    `;
 
-                                        document.body.appendChild(alertContainer);
+                                    document.body.appendChild(alertContainer);
 
-                                        // After 1.5 seconds, fade out alert and reload page
+                                    // After 1.5 seconds, fade out alert and reload page
+                                    setTimeout(() => {
+                                        alertContainer.style.opacity = '0';
                                         setTimeout(() => {
-                                            alertContainer.style.opacity = '0';
-                                            setTimeout(() => {
-                                                alertContainer.remove();
-                                                location.reload();
-                                            }, 500);
-                                        }, 1500);
-                                    },
-                                    error: function () {
-                                        alert('Failed to delete project.');
-                                    }
-                                });
+                                            alertContainer.remove();
+                                        }, 500);
+                                    }, 1500);
+                                },
+                                error: function (xhr) {
+                                    console.error('Delete error:', xhr);
+                                    alert('Failed to delete project: ' + (xhr.responseJSON?.message || 'Unknown error'));
+                                }
+                            });
                             };
 
                         });

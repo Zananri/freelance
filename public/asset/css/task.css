@@ -893,3 +893,9 @@
     vertical-align: middle;
     color: #007bff;
 }
+
+.btn-icon-toggle {
+    background-color: #ddd;
+    color: #555;
+    height: 45px;
+}

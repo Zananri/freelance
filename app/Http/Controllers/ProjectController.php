@@ -560,11 +560,24 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($id);
 
-        // Instead of deleting, update status to DELETED
-        $project->status = 'DELETED';
-        $project->save();
+        // Delete project assignments first
+        $project->projectAssignments()->delete();
+        
+        // Delete project feedbacks
+        $project->projectFeedbacks()->delete();
+        
+        // Delete project files
+        if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
+            unlink(public_path('file/project/' . $project->image));
+        }
+        if ($project->reference_file && file_exists(public_path('file/project/' . $project->reference_file))) {
+            unlink(public_path('file/project/' . $project->reference_file));
+        }
+        
+        // Finally delete the project
+        $project->delete();
 
-        return response()->json(['message' => 'Project marked as deleted successfully']);
+        return response()->json(['message' => 'Project deleted successfully']);
     }
 
     /**

@@ -24,7 +24,7 @@
     </div>
 
     <div class="d-flex justify-content-end mb-3 gap-2">
-        <button class="btn btn-icon-toggle border-dddd" type="button" id="openTaskFilterModalBtn">
+        <button class="btn btn-icon-toggle" type="button" id="openTaskFilterModalBtn">
             <span class="material-symbols-outlined icon">filter_list</span> Filter
         </button>
         <button class="btn-submit-black" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add Task</button>
