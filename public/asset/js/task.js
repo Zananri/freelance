@@ -894,7 +894,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (task.status === 'new_request' || task.status === 'new request') {
             statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
         } else if (task.status === 'in_progress' || task.status === 'in progress') {
-            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
+            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
         } else if (task.status === 'completed') {
             statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
         } else if (task.status === 'rejected') {
@@ -1086,6 +1086,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     case "Reject":
                         handleTaskReject(taskId, taskCard);
                         break;
+                    case "Back to Request":
+                        handleTaskBackToRequest(taskId, taskCard);
+                        break;
                     case "Delete":
                         handleTaskDelete(taskId, taskCard);
                         break;
@@ -1107,6 +1110,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // Function to handle task reject (completed -> rejected)
     function handleTaskReject(taskId, taskCard) {
         showUpdateStatusModal(taskId, taskCard, 'rejected', 'Rejected');
+    }
+
+    // Function to handle task back to request (in progress -> new request)
+    function handleTaskBackToRequest(taskId, taskCard) {
+        showUpdateStatusModal(taskId, taskCard, 'new_request', 'New Request');
     }
 
     // Function to show update status modal
