@@ -15,25 +15,34 @@ class ProjectController extends Controller
     /**
      * Return JSON data for employees filtered by search query.
      */
-    public function getEmployees(Request $request)
-    {
-        $query = $request->input('q', '');
-        $excludeEmployeeId = $request->input('exclude_employee_id');
+   public function getEmployees(Request $request)
+{
+    $query = $request->input('q', '');
+    $excludeEmployeeId = $request->input('exclude_employee_id');
 
-        $employees = Employee::query();
+    $employees = Employee::query();
 
-        if ($query !== '') {
-            $employees = $employees->where('name', 'like', '%' . $query . '%');
-        }
-
-        if ($excludeEmployeeId) {
-            $employees = $employees->where('id', '!=', $excludeEmployeeId);
-        }
-
-        $employees = $employees->orderBy('name')->get(['id', 'name', 'photo']);
-
-        return response()->json(['data' => $employees]);
+    if ($query !== '') {
+        $employees = $employees->where('name', 'like', '%' . $query . '%');
     }
+
+    if ($excludeEmployeeId) {
+        $employees = $employees->where('id', '!=', $excludeEmployeeId);
+    }
+
+    $employees = $employees->orderBy('name')->get(['id', 'name', 'photo']);
+
+    // Map the employees to include proper photo URL
+    $mappedEmployees = $employees->map(function($emp) {
+        return [
+            'id' => $emp->id,
+            'name' => $emp->name,
+            'user_photo' => $emp->photo ? asset('storage/'.$emp->photo) : asset('asset/img/profile_picture/default.png')
+        ];
+    });
+
+    return response()->json(['data' => $mappedEmployees]);
+}
     /**
      * Display the project main page.ea
      */

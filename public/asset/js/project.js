@@ -328,65 +328,76 @@ $('#editProjectForm').on('submit', function (e) {
         });
     }
 
-        function renderDropdown() {
-            if (filteredEmployees.length === 0) {
-                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = 'block';
-                return;
+       function renderDropdown() {
+    if (filteredEmployees.length === 0) {
+        dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const html = filteredEmployees.map(emp => {
+        const isChecked = selectedEmployees.some(e => e.id === emp.id);
+
+        // Atur default user_photo jika kosong
+        if (!emp.user_photo) {
+            emp.user_photo = '/asset/img/profile_picture/default.png'; // relatif terhadap appUrl
+        }
+
+        // Bangun URL gambar profile
+        let photoUrl;
+        if (emp.user_photo.startsWith('http')) {
+            photoUrl = emp.user_photo;
+        } else if (emp.user_photo.startsWith('/')) {
+            photoUrl = appUrl + emp.user_photo;
+        } else if (emp.user_photo.includes('/')) {
+            photoUrl = appUrl + '/' + emp.user_photo;
+        } else {
+            photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
+        }
+
+        return `
+            <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                <div class="d-flex align-items-center">
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <span>${emp.name}</span>
+                </div>
+                <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+            </label>
+        `;
+    }).join('');
+
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+
+    dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const id = parseInt(this.getAttribute('data-id'));
+            const name = this.getAttribute('data-name');
+            const employeeObj = employees.find(emp => emp.id === id);
+
+            if (this.checked) {
+                if (!selectedEmployees.some(e => e.id === id)) {
+                    selectedEmployees.push({
+                        id,
+                        name,
+                        user_photo: employeeObj ? employeeObj.user_photo : null
+                    });
+                }
+            } else {
+                selectedEmployees = selectedEmployees.filter(e => e.id !== id);
             }
 
-            const html = filteredEmployees.map(emp => {
-                const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                let photoUrl;
-                if (emp.user_photo) {
-                    if (emp.user_photo.startsWith('http')) {
-                        photoUrl = emp.user_photo;
-                    } else if (emp.user_photo.startsWith('/')) {
-                        photoUrl = appUrl + emp.user_photo;
-                    } else if (emp.user_photo.includes('/')) {
-                        photoUrl = appUrl + '/' + emp.user_photo;
-                    } else {
-                        photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
-                    }
-                } else {
-                    photoUrl = appUrl + '/asset/img/profile_picture/default.png';
-                }
-                return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
-                        </div>
-                        <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                    </label>
-                `;
-            }).join('');
-            dropdown.innerHTML = html;
-            dropdown.style.display = 'block';
-
-            dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function () {
-                    const id = parseInt(this.getAttribute('data-id'));
-                    const name = this.getAttribute('data-name');
-                    const employeeObj = employees.find(emp => emp.id === id);
-                    if (this.checked) {
-                        if (!selectedEmployees.some(e => e.id === id)) {
-                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
-                        }
-                    } else {
-                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
-                    }
-                    renderSelected();
-                    updateHiddenInput();
-                });
-            });
-        }
+            renderSelected();
+            updateHiddenInput();
+        });
+    });
+}
 
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
-
+// Ganti semua logika pengambilan foto dengan:
+                const photoUrl = emp.user_photo || appUrl + '/asset/img/profile_picture/default.png';
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
 
@@ -513,66 +524,78 @@ $('#editProjectForm').on('submit', function (e) {
         });
     }
 
-        function renderDropdown() {
-            if (filteredEmployees.length === 0) {
-                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = 'block';
-                return;
+     function renderDropdown() {
+    if (filteredEmployees.length === 0) {
+        dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const html = filteredEmployees.map(emp => {
+        const isChecked = selectedEmployees.some(e => e.id === emp.id);
+
+        // Pastikan user_photo ada, jika tidak set default
+        if (!emp.user_photo) {
+            emp.user_photo = '/asset/img/profile_picture/default.png'; // relatif terhadap appUrl
+        }
+
+        // Tentukan URL gambar profil
+        let photoUrl;
+        if (emp.user_photo.startsWith('http')) {
+            photoUrl = emp.user_photo;
+        } else if (emp.user_photo.startsWith('/')) {
+            photoUrl = appUrl + emp.user_photo;
+        } else if (emp.user_photo.includes('/')) {
+            photoUrl = appUrl + '/' + emp.user_photo;
+        } else {
+            photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
+        }
+
+        return `
+            <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                <div class="d-flex align-items-center">
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <span>${emp.name}</span>
+                </div>
+                <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+            </label>
+        `;
+    }).join('');
+
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+
+    dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const id = parseInt(this.getAttribute('data-id'));
+            const name = this.getAttribute('data-name');
+            const employeeObj = employees.find(emp => emp.id === id);
+
+            if (this.checked) {
+                if (!selectedEmployees.some(e => e.id === id)) {
+                    selectedEmployees.push({
+                        id,
+                        name,
+                        user_photo: employeeObj ? employeeObj.user_photo : null
+                    });
+                }
+            } else {
+                selectedEmployees = selectedEmployees.filter(e => e.id !== id);
             }
 
-            const html = filteredEmployees.map(emp => {
-                const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                let photoUrl;
-                if (emp.user_photo) {
-                    if (emp.user_photo.startsWith('http')) {
-                        photoUrl = emp.user_photo;
-                    } else if (emp.user_photo.startsWith('/')) {
-                        photoUrl = appUrl + emp.user_photo;
-                    } else if (emp.user_photo.includes('/')) {
-                        photoUrl = appUrl + '/' + emp.user_photo;
-                    } else {
-                        photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
-                    }
-                } else {
-                    photoUrl = appUrl + '/asset/img/profile_picture/default.png';
-                }
-                return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
-                        </div>
-                        <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                    </label>
-                `;
-            }).join('');
-            dropdown.innerHTML = html;
-            dropdown.style.display = 'block';
+            renderSelected();
+            updateHiddenInput();
+            renderDropdown(); // refresh dropdown setelah perubahan
+        });
+    });
+}
 
-            dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function () {
-                    const id = parseInt(this.getAttribute('data-id'));
-                    const name = this.getAttribute('data-name');
-                    const employeeObj = employees.find(emp => emp.id === id);
-                    if (this.checked) {
-                        if (!selectedEmployees.some(e => e.id === id)) {
-                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
-                        }
-                    } else {
-                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
-                    }
-                    renderSelected();
-                    updateHiddenInput();
-                    renderDropdown();
-                });
-            });
-        }
 
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
-
+// Ganti semua logika pengambilan foto dengan:
+                const photoUrl = emp.user_photo || appUrl + '/asset/img/profile_picture/default.png';
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
 
@@ -647,15 +670,21 @@ $('#editProjectForm').on('submit', function (e) {
             selectedEmployees = contributors.map(ca => {
                 let photoUrl = '';
                 let userPhoto = ca.user_photo;
-                if (userPhoto) {
-                    if (userPhoto.startsWith('http')) {
-                        photoUrl = userPhoto;
-                    } else {
-                        photoUrl = appUrl + '/file/profile_picture/' + userPhoto;
-                    }
-                } else {
+                
+                if (!userPhoto) {
                     photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+                } else if (userPhoto.startsWith('http')) {
+                    photoUrl = userPhoto;
+                } else if (userPhoto.startsWith('/file/photo') || userPhoto.startsWith('/file/profile_picture')) {
+                    photoUrl = appUrl + userPhoto;
+                } else if (userPhoto.startsWith('file/photo') || userPhoto.startsWith('file/profile_picture')) {
+                    photoUrl = appUrl + '/' + userPhoto;
+                } else if (userPhoto.startsWith('/')) {
+                    photoUrl = appUrl + userPhoto;
+                } else {
+                    photoUrl = appUrl + '/file/profile_picture/' + userPhoto;
                 }
+                
                 return {
                     id: ca.id,
                     name: ca.name,
@@ -1406,54 +1435,74 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
-            if (filteredEmployees.length === 0) {
-                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = 'block';
-                return;
+    function renderDropdown() {
+    if (filteredEmployees.length === 0) {
+        dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const html = filteredEmployees.map(emp => {
+        const isChecked = selectedEmployees.some(e => e.id === emp.id);
+
+        // Gunakan default foto jika tidak ada user_photo
+        let photoUrl;
+        if (!emp.user_photo) {
+            photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+        } else if (emp.user_photo.startsWith('http')) {
+            photoUrl = emp.user_photo;
+        } else if (emp.user_photo.startsWith('/')) {
+            photoUrl = appUrl + emp.user_photo;
+        } else if (emp.user_photo.includes('/')) {
+            photoUrl = appUrl + '/' + emp.user_photo;
+        } else {
+            photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
+        }
+
+        return `
+            <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                <div class="d-flex align-items-center">
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <span>${emp.name}</span>
+                </div>
+                <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+            </label>
+        `;
+    }).join('');
+
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+
+    dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const id = parseInt(this.getAttribute('data-id'));
+            const name = this.getAttribute('data-name');
+            const employeeObj = employees.find(emp => emp.id === id);
+
+            if (this.checked) {
+                if (!selectedEmployees.some(e => e.id === id)) {
+                    selectedEmployees.push({
+                        id,
+                        name,
+                        user_photo: employeeObj ? employeeObj.user_photo : null
+                    });
+                }
+            } else {
+                selectedEmployees = selectedEmployees.filter(e => e.id !== id);
             }
 
-                const html = filteredEmployees.map(emp => {
-                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                    const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
-                    return `
-                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                            <div class="d-flex align-items-center">
-                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                                <span>${emp.name}</span>
-                            </div>
-                            <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                        </label>
-                    `;
-                }).join('');
-            dropdown.innerHTML = html;
-            dropdown.style.display = 'block';
+            renderSelected();
+            updateHiddenInput();
+        });
+    });
+}
 
-            // Add event listeners for checkboxes
-            dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function () {
-                    const id = parseInt(this.getAttribute('data-id'));
-                    const name = this.getAttribute('data-name');
-                    // Find the employee object from employees array to get user_photo
-                    const employeeObj = employees.find(emp => emp.id === id);
-                    if (this.checked) {
-                        if (!selectedEmployees.some(e => e.id === id)) {
-                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
-                        }
-                    } else {
-                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
-                    }
-                    renderSelected();
-                    updateHiddenInput();
-                });
-            });
-        }
 
         // Render selected employees as badges with remove buttons
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + (emp.user_photo.startsWith('/') ? emp.user_photo : '/file/profile_picture/' + emp.user_photo)) : appUrl + '/asset/img/profile_picture/default.png';
+                const photoUrl = emp.user_photo || appUrl + '/asset/img/profile_picture/default.png';
 
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
@@ -1567,54 +1616,75 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
-            if (filteredEmployees.length === 0) {
-                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = 'block';
-                return;
+      function renderDropdown() {
+    if (filteredEmployees.length === 0) {
+        dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const html = filteredEmployees.map(emp => {
+        const isChecked = selectedEmployees.some(e => e.id === emp.id);
+
+        // Perbaikan aman untuk photoUrl
+        let photoUrl;
+        if (!emp.user_photo) {
+            photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+        } else if (emp.user_photo.startsWith('http')) {
+            photoUrl = emp.user_photo;
+        } else if (emp.user_photo.startsWith('/')) {
+            photoUrl = appUrl + emp.user_photo;
+        } else if (emp.user_photo.includes('/')) {
+            photoUrl = appUrl + '/' + emp.user_photo;
+        } else {
+            photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
+        }
+
+        return `
+            <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                <div class="d-flex align-items-center">
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <span>${emp.name}</span>
+                </div>
+                <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+            </label>
+        `;
+    }).join('');
+
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+
+    // Add event listeners for checkboxes
+    dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const id = parseInt(this.getAttribute('data-id'));
+            const name = this.getAttribute('data-name');
+            const employeeObj = employees.find(emp => emp.id === id);
+
+            if (this.checked) {
+                if (!selectedEmployees.some(e => e.id === id)) {
+                    selectedEmployees.push({
+                        id,
+                        name,
+                        user_photo: employeeObj ? employeeObj.user_photo : null
+                    });
+                }
+            } else {
+                selectedEmployees = selectedEmployees.filter(e => e.id !== id);
             }
 
-                const html = filteredEmployees.map(emp => {
-                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                    const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo) : appUrl + '/asset/img/profile_picture/default.png';
-                    return `
-                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                            <div class="d-flex align-items-center">
-                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                                <span>${emp.name}</span>
-                            </div>
-                            <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                        </label>
-                    `;
-                }).join('');
-            dropdown.innerHTML = html;
-            dropdown.style.display = 'block';
+            renderSelected();
+            updateHiddenInput();
+        });
+    });
+}
 
-            // Add event listeners for checkboxes
-            dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function () {
-                    const id = parseInt(this.getAttribute('data-id'));
-                    const name = this.getAttribute('data-name');
-                    // Find the employee object from employees array to get user_photo
-                    const employeeObj = employees.find(emp => emp.id === id);
-                    if (this.checked) {
-                        if (!selectedEmployees.some(e => e.id === id)) {
-                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
-                        }
-                    } else {
-                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
-                    }
-                    renderSelected();
-                    updateHiddenInput();
-                });
-            });
-        }
 
         // Render selected employees as badges with remove buttons
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : appUrl + (emp.user_photo.startsWith('/') ? emp.user_photo : '/file/profile_picture/' + emp.user_photo)) : appUrl + '/asset/img/profile_picture/default.png';
+                const photoUrl = emp.user_photo || appUrl + '/asset/img/profile_picture/default.png';
 
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
@@ -1884,58 +1954,81 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
             });
         }
 
-        function renderDropdown() {
-            if (filteredEmployees.length === 0) {
-                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = 'block';
-                return;
+      function renderDropdown() {
+    if (filteredEmployees.length === 0) {
+        dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const html = filteredEmployees.map(emp => {
+        const isChecked = selectedEmployees.some(e => e.id === emp.id);
+
+        // Perbaikan logika foto: aman untuk berbagai format
+        let photoUrl;
+        if (!emp.user_photo) {
+            photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+        } else if (emp.user_photo.startsWith('http')) {
+            photoUrl = emp.user_photo;
+        } else if (emp.user_photo.startsWith('/')) {
+            photoUrl = appUrl + emp.user_photo;
+        } else if (emp.user_photo.includes('/')) {
+            photoUrl = appUrl + '/' + emp.user_photo;
+        } else {
+            photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
+        }
+
+        return `
+            <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                <div class="d-flex align-items-center">
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <span>${emp.name}</span>
+                </div>
+                <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+            </label>
+        `;
+    }).join('');
+
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+
+    dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const id = parseInt(this.getAttribute('data-id'));
+            const name = this.getAttribute('data-name');
+            const employeeObj = employees.find(emp => emp.id === id);
+
+            if (this.checked) {
+                if (!selectedEmployees.some(e => e.id === id)) {
+                    selectedEmployees.push({
+                        id,
+                        name,
+                        user_photo: employeeObj ? employeeObj.user_photo : null
+                    });
+                }
+            } else {
+                selectedEmployees = selectedEmployees.filter(e => e.id !== id);
             }
 
-            const html = filteredEmployees.map(emp => {
-                const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
-                return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
-                        </div>
-                        <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                    </label>
-                `;
-            }).join('');
-            dropdown.innerHTML = html;
-            dropdown.style.display = 'block';
+            renderSelected();
+            updateHiddenInput();
 
-            dropdown.querySelectorAll('.co-author-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function () {
-                    const id = parseInt(this.getAttribute('data-id'));
-                    const name = this.getAttribute('data-name');
-                    const employeeObj = employees.find(emp => emp.id === id);
-                    if (this.checked) {
-                        if (!selectedEmployees.some(e => e.id === id)) {
-                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
-                        }
-                    } else {
-                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
-                    }
-                    renderSelected();
-                    updateHiddenInput();
-                    // Update global selectedCoAuthorIds
-                    window.selectedCoAuthorIds = selectedEmployees.map(e => e.id);
-                    // Refresh contributor dropdown
-                    if (window.refreshContributorDropdown) {
-                        window.refreshContributorDropdown();
-                    }
-                });
-            });
-        }
+            // Update global selectedCoAuthorIds
+            window.selectedCoAuthorIds = selectedEmployees.map(e => e.id);
+
+            // Refresh contributor dropdown if available
+            if (window.refreshContributorDropdown) {
+                window.refreshContributorDropdown();
+            }
+        });
+    });
+}
 
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
-
+// Ganti semua logika pengambilan foto dengan:
+                const photoUrl = emp.user_photo || appUrl + '/asset/img/profile_picture/default.png';
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
 
@@ -2081,60 +2174,83 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
-            if (filteredEmployees.length === 0) {
-                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = 'block';
-                return;
+      function renderDropdown() {
+    if (filteredEmployees.length === 0) {
+        dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    const html = filteredEmployees.map(emp => {
+        const isChecked = selectedEmployees.some(e => e.id === emp.id);
+
+        // Penanganan URL foto secara aman
+        let photoUrl;
+        if (!emp.user_photo) {
+            photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+        } else if (emp.user_photo.startsWith('http')) {
+            photoUrl = emp.user_photo;
+        } else if (emp.user_photo.startsWith('/')) {
+            photoUrl = appUrl + emp.user_photo;
+        } else if (emp.user_photo.includes('/')) {
+            photoUrl = appUrl + '/' + emp.user_photo;
+        } else {
+            photoUrl = appUrl + '/file/profile_picture/' + emp.user_photo;
+        }
+
+        return `
+            <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                <div class="d-flex align-items-center">
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <span>${emp.name}</span>
+                </div>
+                <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+            </label>
+        `;
+    }).join('');
+
+    dropdown.innerHTML = html;
+    dropdown.style.display = 'block';
+
+    // Event listener untuk checkbox
+    dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const id = parseInt(this.getAttribute('data-id'));
+            const name = this.getAttribute('data-name');
+            const employeeObj = employees.find(emp => emp.id === id);
+
+            if (this.checked) {
+                if (!selectedEmployees.some(e => e.id === id)) {
+                    selectedEmployees.push({
+                        id,
+                        name,
+                        user_photo: employeeObj ? employeeObj.user_photo : null
+                    });
+                }
+            } else {
+                selectedEmployees = selectedEmployees.filter(e => e.id !== id);
             }
 
-            const html = filteredEmployees.map(emp => {
-                const isChecked = selectedEmployees.some(e => e.id === emp.id);
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
-                return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
-                        </div>
-                        <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
-                    </label>
-                `;
-            }).join('');
-            dropdown.innerHTML = html;
-            dropdown.style.display = 'block';
+            renderSelected();
+            updateHiddenInput();
 
-            // Add event listeners for checkboxes
-            dropdown.querySelectorAll('.contributor-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function () {
-                    const id = parseInt(this.getAttribute('data-id'));
-                    const name = this.getAttribute('data-name');
-                    // Find the employee object from employees array to get user_photo
-                    const employeeObj = employees.find(emp => emp.id === id);
-                    if (this.checked) {
-                        if (!selectedEmployees.some(e => e.id === id)) {
-                            selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
-                        }
-                    } else {
-                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
-                    }
-                    renderSelected();
-                    updateHiddenInput();
-                    // Update global selectedContributorIds
-                    window.selectedContributorIds = selectedEmployees.map(e => e.id);
-                    // Refresh co-author dropdown
-                    if (window.refreshCoAuthorDropdown) {
-                        window.refreshCoAuthorDropdown();
-                    }
-                });
-            });
-        }
+            // Update global selectedContributorIds
+            window.selectedContributorIds = selectedEmployees.map(e => e.id);
+
+            // Refresh co-author dropdown jika tersedia
+            if (window.refreshCoAuthorDropdown) {
+                window.refreshCoAuthorDropdown();
+            }
+        });
+    });
+}
+
 
         // Render selected employees as badges with remove buttons
         function renderSelected() {
             selectedContainer.innerHTML = '';
             selectedEmployees.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : window.location.origin + '/' + emp.user_photo) : window.location.origin + '/asset/img/profile_picture/default.png';
+                const photoUrl = emp.user_photo || appUrl + '/asset/img/profile_picture/default.png';
 
                 const badge = document.createElement('span');
                 badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
