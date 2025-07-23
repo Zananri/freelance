@@ -491,13 +491,13 @@ class ProjectController extends Controller
         // Update project_assignments for author and co_author
         if (auth()->check()) {
             $employee = auth()->user()->employee;
-        if ($employee) {
-            // Update or insert author assignment
-            ProjectAssignment::updateOrCreate(
-                ['project_id' => $project->id, 'employee_id' => $employee->id],
-                ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
-            );
-        }
+            if ($employee) {
+                // Update or insert author assignment
+                ProjectAssignment::updateOrCreate(
+                    ['project_id' => $project->id, 'employee_id' => $employee->id],
+                    ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
+                );
+            }
         }
 
         // Remove existing co_author assignments
@@ -511,24 +511,44 @@ class ProjectController extends Controller
             ->delete();
 
         // Insert new co_author assignments
-            if ($request->co_author && is_array($request->co_author)) {
-                $coAuthorAssignments = [];
-                foreach ($request->co_author as $employeeId) {
-                    $employeeExists = Employee::where('id', $employeeId)->exists();
-                    if ($employeeExists) {
-                        $coAuthorAssignments[] = [
-                            'project_id' => $project->id,
-                            'employee_id' => $employeeId,
-                            'role' => 'co_author',
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ];
-                    }
-                }
-                if (!empty($coAuthorAssignments)) {
-                    ProjectAssignment::insert($coAuthorAssignments);
+        if ($request->co_author && is_array($request->co_author)) {
+            $coAuthorAssignments = [];
+            foreach ($request->co_author as $employeeId) {
+                $employeeExists = Employee::where('id', $employeeId)->exists();
+                if ($employeeExists) {
+                    $coAuthorAssignments[] = [
+                        'project_id' => $project->id,
+                        'employee_id' => $employeeId,
+                        'role' => 'co_author',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                 }
             }
+            if (!empty($coAuthorAssignments)) {
+                ProjectAssignment::insert($coAuthorAssignments);
+            }
+        }
+
+        // Insert new contributor assignments
+        if ($request->contributors && is_array($request->contributors)) {
+            $contributorAssignments = [];
+            foreach ($request->contributors as $employeeId) {
+                $employeeExists = Employee::where('id', $employeeId)->exists();
+                if ($employeeExists) {
+                    $contributorAssignments[] = [
+                        'project_id' => $project->id,
+                        'employee_id' => $employeeId,
+                        'role' => 'contributor',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+            if (!empty($contributorAssignments)) {
+                ProjectAssignment::insert($contributorAssignments);
+            }
+        }
 
         return response()->json(['message' => 'Project updated successfully', 'project' => $project]);
     }
