@@ -145,10 +145,10 @@ document.addEventListener("DOMContentLoaded", function () {
         employees.forEach((employee) => {
             // Jangan pernah ambil foto dari localStorage di tabel, hanya dari API/database
             const profilePicture = employee.user_photo
-                ? employee.user_photo
+                ? `${appUrl}/${employee.user_photo}`
                 : employee.profile_picture
-                ? employee.profile_picture
-                : "asset/img/default-profile.png";
+                ? `${appUrl}/${employee.profile_picture}`
+                : `${appUrl}/asset/img/default-profile.png`;
             const departmentName = employee.department
                 ? employee.department.name_department
                 : "-";
@@ -165,7 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <tr data-id="${employee.id}">
                     <td>
                         <div class="d-flex align-items-center gap-3">
-                            <img src="/${profilePicture}" alt="Profile Picture" class="table-image rounded-circle" width="40" height="40" />
+                            <img src="${profilePicture}" alt="Profile Picture" class="table-image rounded-circle" width="40" height="40" />
                             <div>
                                 <div class="fw-semibold" style="font-size: 14px;">${employee.first_name} ${employee.last_name}</div>
                                 <div style="font-size: 10px; color: #6c757d;">${employee.email}</div>
@@ -216,9 +216,10 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             success: function (employee) {
                 // Populate modal fields
-                const photoUrl = employee.profile_picture
-                    ? `/${employee.profile_picture}`
-                    : "/asset/img/default-profile.png";
+              const photoUrl = employee.profile_picture
+                    ? `${appUrl}/${employee.profile_picture}`
+                    : `${appUrl}/asset/img/default-profile.png`;
+
                 $(".delete-employee-photo").css({
                     "background-image": `url(${photoUrl})`,
                     "background-size": "cover",
@@ -371,12 +372,13 @@ $(document).on("click", ".btn-detail", function () {
 
 
                 // Use updated photo if available, else use employee.photo
-                const photoUrl = updatedPhoto
-                    ? updatedPhoto
-                    : employee.photo
-                    ? `/${employee.photo}`
-                    : "/asset/img/default-profile.png";
-                $("#detailPhoto").attr("src", photoUrl);
+            const photoUrl = updatedPhoto
+                ? updatedPhoto // bisa berupa blob, base64, atau URL full
+                : employee.photo
+                ? `${appUrl}/${employee.photo}` // pastikan pathnya benar
+                : `${appUrl}/asset/img/default-profile.png`;
+
+            $("#detailPhoto").attr("src", photoUrl);
 
                 employeeDetailModal.show();
             },
