@@ -733,3 +733,31 @@
 #deleteProjectTitle {
     font-weight: 300 !important;
 }
+
+/* Task Status Badge Styling */
+.status-badge {
+    color: white;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    display: inline-block;
+    text-align: center;
+    line-height: 1;
+}
+
+.status-new-request {
+    background-color: #FF9B2F;
+}
+
+.status-in-progress {
+    background-color: #FFCC00;
+}
+
+.status-completed {
+    background-color: #78C841;
+}
+
+.status-rejected {
+    background-color: #ED3500;
+}

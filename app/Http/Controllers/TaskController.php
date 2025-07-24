@@ -597,7 +597,7 @@ class TaskController extends Controller
     {
         $feedbacks = TaskFeedback::with(['employee.user'])
             ->where('task_id', $taskId)
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'desc',)
             ->get();
 
         return response()->json([
@@ -668,6 +668,7 @@ class TaskController extends Controller
                 'created_at' => $task->created_at,
                 'pic_name' => $picName,
                 'executors' => $executorsData,
+                'status' => $task->status,
             ];
         });
 

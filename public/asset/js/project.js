@@ -1323,12 +1323,43 @@ function showImageModal(imageSrc) {
                         
                         const createdDate = formatTaskDate(task.created_at);
 
-                        html += `
+                    // Get status badge class and text
+                    let statusClass = '';
+                    let statusText = '';
+                    
+                    switch(task.status) {
+                        case 'new_request':
+                        case 'new request':
+                            statusClass = 'status-badge status-new-request';
+                            statusText = 'New Request';
+                            break;
+                        case 'in_progress':
+                        case 'in progress':
+                            statusClass = 'status-badge status-in-progress';
+                            statusText = 'In Progress';
+                            break;
+                        case 'completed':
+                            statusClass = 'status-badge status-completed';
+                            statusText = 'Completed';
+                            break;
+                        case 'rejected':
+                            statusClass = 'status-badge status-rejected';
+                            statusText = 'Rejected';
+                            break;
+                        default:
+                            statusClass = 'status-badge';
+                            statusText = task.status;
+                    }
+
+                    html += `
                             <div class="task-item d-flex align-items-start mb-3 pb-3 border-bottom">
                                 <div class="task-number me-3 fw-bold text-muted">${index + 1}</div>
                                 <img src="${taskImage}" alt="${task.title}" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
                                 <div class="flex-grow-1">
-                                    <div class="fw-bold">${task.title}</div>
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="fw-bold">${task.title}</div>
+                                        <span class="${statusClass}">${statusText}</span>
+                                    </div>
                                     <div class="text-muted small mb-1">${createdDate}</div>
                                     <div class="small">
                                         <strong>PIC:</strong> ${task.pic_name || 'Not assigned'}<br>

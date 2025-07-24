@@ -995,6 +995,15 @@ document.addEventListener("DOMContentLoaded", function () {
                         .getElementById("completed-tasks")
                         .insertAdjacentHTML("beforeend", createTaskCard(task));
                 });
+                
+                // Render rejected tasks in the In Progress section with REJECTED badge
+                if (data.rejected && data.rejected.length > 0) {
+                    data.rejected.forEach((task) => {
+                        document
+                            .getElementById("in-progress-tasks")
+                            .insertAdjacentHTML("beforeend", createTaskCard(task));
+                    });
+                }
 
                 // Add event listeners for dropdown functionality after rendering
                 setupTaskDropdownListeners();
@@ -2670,7 +2679,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     } else if (status === 'completed') {
                         groupedTasks.completed.push(task);
                     } else if (status === 'rejected') {
-                        groupedTasks.rejected.push(task);
+                        // Rejected tasks go to in_progress section with REJECTED badge
+                        groupedTasks.in_progress.push(task);
                     }
                 });
 
@@ -2688,11 +2698,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 groupedTasks.completed.forEach((task) => {
                     document
                         .getElementById("completed-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.rejected.forEach((task) => {
-                    document
-                        .getElementById("in-progress-tasks")
                         .insertAdjacentHTML("beforeend", createTaskCard(task));
                 });
 
