@@ -632,4 +632,47 @@ class TaskController extends Controller
             'count' => $count,
         ]);
     }
+
+    /**
+     * Get all tasks for a specific project
+     */
+    public function getTasksByProject($projectId)
+    {
+        $tasks = Task::with([
+            'assignments.employee.user',
+            'project'
+        ])
+        ->where('project_id', $projectId)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        $response = $tasks->map(function ($task) {
+            // Get PIC
+            $pic = $task->assignments->firstWhere('role', 'PIC');
+            $picName = $pic ? ($pic->employee->name ?? 'Not assigned') : 'Not assigned';
+
+            // Get Executors
+            $executors = $task->assignments->where('role', 'executor');
+            $executorsData = $executors->map(function ($executor) {
+                return [
+                    'id' => $executor->employee->id,
+                    'name' => $executor->employee->name ?? 'Unknown',
+                ];
+            })->values();
+
+            return [
+                'id' => $task->id,
+                'title' => $task->title,
+                'description' => $task->description,
+                'image' => $task->image,
+                'created_at' => $task->created_at,
+                'pic_name' => $picName,
+                'executors' => $executorsData,
+            ];
+        });
+
+        return response()->json([
+            'data' => $response
+        ]);
+    }
 }

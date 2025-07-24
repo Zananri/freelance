@@ -1161,125 +1161,193 @@ function showImageModal(imageSrc) {
         });
     });
 
-    // Event listener for "Detail" dropdown item click and "Feedback";" dropdown item click
+    // Event listener for "Detail", "Task", and "Feedback" dropdown item click
     document.addEventListener('click', function (e) {
         if (e.target && e.target.classList.contains('dropdown-item')) {
             const text = e.target.textContent.trim();
+            const card = e.target.closest('.col-md-4');
+            if (!card) return;
+
+            const projectId = card.getAttribute('data-project-id');
+            if (!projectId) {
+                alert('Project ID not found.');
+                return;
+            }
+
             if (text === 'Detail') {
                 e.preventDefault();
                 e.stopPropagation();
 
-                const card = e.target.closest('.col-md-4');
-                if (!card) return;
-
-                const projectId = card.getAttribute('data-project-id');
-                if (!projectId) {
-                    alert('Project ID not found.');
-                    return;
-                }
-
                 // Fetch project details via AJAX
-$.ajax({
-    url: appUrl + '/project/' + projectId,
-    type: 'GET',
-    dataType: 'json',
-    success: function (data) {
-        // Populate modal fields
-        const baseFileUrl = appUrl + '/file/project/';
+                $.ajax({
+                    url: appUrl + '/project/' + projectId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        // Populate modal fields
+                        const baseFileUrl = appUrl + '/file/project/';
 
-        // Update image with only border-radius style, remove width and height inline styles
-        $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
-        $('#projectDetailImage').attr('style', 'border-radius: 8px;');
+                        $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
+                        $('#projectDetailImage').attr('style', 'border-radius: 8px;');
 
-        // Update title as h2 with text-align: justify
-        $('#projectDetailTitle').replaceWith(`<h2 class="project-title" id="projectDetailTitle">${data.title || ''}</h2>`);
+                        $('#projectDetailTitle').replaceWith(`<h2 class="project-title" id="projectDetailTitle">${data.title || ''}</h2>`);
+                        $('#projectDetailAuthor').text(data.author ? data.author.name : 'Unknown').css('text-align', 'justify');
+                        $('#projectDetailDepartment').text(data.department || '');
+                        $('#projectDetailDivision').text(data.division || '');
+                        $('#projectDetailDescription').text(data.description || '');
 
-        // Update author as p with text-align: justify
-        $('#projectDetailAuthor').text(data.author ? data.author.name : 'Unknown').css('text-align', 'justify');
-        $('#projectDetailDepartment').text(data.department || '');
-        $('#projectDetailDivision').text(data.division || '');
-        $('#projectDetailDescription').text(data.description || '');
+                        if (data.reference_url) {
+                            $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
+                        } else {
+                            $('#projectDetailReferenceUrl').hide();
+                        }
 
-        if (data.reference_url) {
-            $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
-        } else {
-            $('#projectDetailReferenceUrl').hide();
-        }
+                        if (data.reference_file) {
+                            $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
+                        } else {
+                            $('#projectDetailReferenceFile').hide();
+                        }
 
-        if (data.reference_file) {
-            $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
-        } else {
-            $('#projectDetailReferenceFile').hide();
-        }
+                        function formatDate(dateStr) {
+                            if (!dateStr) return '';
+                            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                            const dateObj = new Date(dateStr);
+                            return dateObj.toLocaleDateString(undefined, options);
+                        }
 
-        // Format dates as "day month year"
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            const dateObj = new Date(dateStr);
-            return dateObj.toLocaleDateString(undefined, options);
-        }
+                        $('#projectDetailStartDate').text(formatDate(data.start_date));
+                        $('#projectDetailDueDate').text(formatDate(data.due_date));
 
-        $('#projectDetailStartDate').text(formatDate(data.start_date));
-        $('#projectDetailDueDate').text(formatDate(data.due_date));
+                        if (data.co_authors && data.co_authors.length > 0) {
+                            const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
+                            $('#projectDetailCoAuthors').text(coAuthorNames);
+                        } else {
+                            $('#projectDetailCoAuthors').text('None');
+                        }
 
-        // Co-authors list
-        if (data.co_authors && data.co_authors.length > 0) {
-            const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
-            $('#projectDetailCoAuthors').text(coAuthorNames);
-        } else {
-            $('#projectDetailCoAuthors').text('None');
-        }
+                        if (data.contributors && data.contributors.length > 0) {
+                            const contributorNames = data.contributors.map(c => c.name).join(', ');
+                            $('#projectDetailContributors').text(contributorNames);
+                        } else {
+                            $('#projectDetailContributors').text('None');
+                        }
 
-        // Contributors list
-        if (data.contributors && data.contributors.length > 0) {
-            const contributorNames = data.contributors.map(c => c.name).join(', ');
-            $('#projectDetailContributors').text(contributorNames);
-        } else {
-            $('#projectDetailContributors').text('None');
-        }
+                        const projectDetailModal = new bootstrap.Modal(document.getElementById('projectDetailModal'));
+                        projectDetailModal.show();
+                    },
+                    error: function () {
+                        alert('Failed to load project details.');
+                    }
+                });
 
-        // Show modal
-        const projectDetailModalEl = document.getElementById('projectDetailModal');
-        const projectDetailModal = new bootstrap.Modal(projectDetailModalEl);
-        projectDetailModal.show();
-    },
-    error: function () {
-        alert('Failed to load project details.');
-    }
-});
+            } else if (text === 'Task') {
+                e.preventDefault();
+                e.stopPropagation();
+
+                loadProjectTasks(projectId);
+
             } else if (text === 'Feedback') {
                 e.preventDefault();
                 e.stopPropagation();
 
-                const card = e.target.closest('.col-md-4');
-                if (!card) {
-                    alert('Project card not found.');
-                    return;
-                }
-
-                const projectId = card.getAttribute('data-project-id');
-                if (!projectId) {
-                    alert('Project ID not found.');
-                    return;
-                }
-
-                // Set the project id on the modal data attribute dynamically
                 const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
                 projectFeedbackModalEl.setAttribute('data-project-id', projectId);
 
-                // Clear existing modal body content
                 const modalBody = projectFeedbackModalEl.querySelector('.feedback-modal-body');
                 modalBody.innerHTML = '';
 
-            // Remove direct fetch call to avoid duplication
-            // Instead, just call loadFeedbackData and show modal
-            loadFeedbackData(projectId);
-            const projectFeedbackModal = new bootstrap.Modal(projectFeedbackModalEl);
-            projectFeedbackModal.show();
+                loadFeedbackData(projectId);
+                const projectFeedbackModal = new bootstrap.Modal(projectFeedbackModalEl);
+                projectFeedbackModal.show();
             }
         }
     });
+
+    // Function to format task date like feedback
+    function formatTaskDate(dateStr) {
+        if (!dateStr) return '';
+        
+        const dateObj = new Date(dateStr);
+        const now = new Date();
+        
+        // Helper function to check if two dates are the same day
+        function isSameDay(d1, d2) {
+            return d1.getFullYear() === d2.getFullYear() &&
+                   d1.getMonth() === d2.getMonth() &&
+                   d1.getDate() === d2.getDate();
+        }
+        
+        // Helper function to check if d1 is yesterday of d2
+        function isYesterday(d1, d2) {
+            const yesterday = new Date(d2);
+            yesterday.setDate(d2.getDate() - 1);
+            return isSameDay(d1, yesterday);
+        }
+        
+        if (isSameDay(dateObj, now)) {
+            // Show time only
+            return dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        } else if (isYesterday(dateObj, now)) {
+            return 'yesterday';
+        } else {
+            return dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+    }
+
+    // Function to load project tasks
+    function loadProjectTasks(projectId) {
+        const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
+        const taskListContainer = document.getElementById('taskListContainer');
+        
+        taskListContainer.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `;
+        
+        taskModal.show();
+
+        $.ajax({
+            url: appUrl + '/projects/' + projectId + '/tasks',
+            type: 'GET',
+            dataType: 'json',
+            success: function (response) {
+                if (response.data && response.data.length > 0) {
+                    let html = '';
+                    response.data.forEach((task, index) => {
+                        const taskImage = task.image 
+                            ? appUrl + '/file/task/' + task.image 
+                            : appUrl + '/asset/img/profile_picture/default.png';
+                        
+                        const createdDate = formatTaskDate(task.created_at);
+
+                        html += `
+                            <div class="task-item d-flex align-items-start mb-3 pb-3 border-bottom">
+                                <div class="task-number me-3 fw-bold text-muted">${index + 1}</div>
+                                <img src="${taskImage}" alt="${task.title}" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">${task.title}</div>
+                                    <div class="text-muted small mb-1">${createdDate}</div>
+                                    <div class="small">
+                                        <strong>PIC:</strong> ${task.pic_name || 'Not assigned'}<br>
+                                        <strong>Executors:</strong> ${task.executors && task.executors.length > 0 ? task.executors.map(e => e.name).join(', ') : 'Not assigned'}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    taskListContainer.innerHTML = html;
+                } else {
+                    taskListContainer.innerHTML = '<div class="text-center py-4 text-muted">No tasks found for this project.</div>';
+                }
+            },
+            error: function () {
+                taskListContainer.innerHTML = '<div class="text-center py-4 text-danger">Failed to load tasks. Please try again.</div>';
+            }
+        });
+    }
     
 
 // Reset footer button text and remove submit handler when modal is closed
