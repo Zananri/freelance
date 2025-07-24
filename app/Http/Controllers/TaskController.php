@@ -649,7 +649,16 @@ class TaskController extends Controller
         $response = $tasks->map(function ($task) {
             // Get PIC
             $pic = $task->assignments->firstWhere('role', 'PIC');
-            $picName = $pic ? ($pic->employee->name ?? 'Not assigned') : 'Not assigned';
+            $picData = null;
+            if ($pic && $pic->employee) {
+                $picData = [
+                    'id' => $pic->employee->id,
+                    'name' => $pic->employee->name ?? 'Not assigned',
+                    'user_photo' => $pic->employee->user && $pic->employee->user->photo 
+                        ? $pic->employee->user->photo 
+                        : null,
+                ];
+            }
 
             // Get Executors
             $executors = $task->assignments->where('role', 'executor');
@@ -657,6 +666,9 @@ class TaskController extends Controller
                 return [
                     'id' => $executor->employee->id,
                     'name' => $executor->employee->name ?? 'Unknown',
+                    'user_photo' => $executor->employee->user && $executor->employee->user->photo 
+                        ? $executor->employee->user->photo 
+                        : null,
                 ];
             })->values();
 
@@ -666,7 +678,7 @@ class TaskController extends Controller
                 'description' => $task->description,
                 'image' => $task->image,
                 'created_at' => $task->created_at,
-                'pic_name' => $picName,
+                'pic' => $picData,
                 'executors' => $executorsData,
                 'status' => $task->status,
             ];

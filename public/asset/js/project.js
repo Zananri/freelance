@@ -1323,47 +1323,133 @@ function showImageModal(imageSrc) {
                         
                         const createdDate = formatTaskDate(task.created_at);
 
-                    // Get status badge class and text
-                    let statusClass = '';
-                    let statusText = '';
-                    
-                    switch(task.status) {
-                        case 'new_request':
-                        case 'new request':
-                            statusClass = 'status-badge status-new-request';
-                            statusText = 'New Request';
-                            break;
-                        case 'in_progress':
-                        case 'in progress':
-                            statusClass = 'status-badge status-in-progress';
-                            statusText = 'In Progress';
-                            break;
-                        case 'completed':
-                            statusClass = 'status-badge status-completed';
-                            statusText = 'Completed';
-                            break;
-                        case 'rejected':
-                            statusClass = 'status-badge status-rejected';
-                            statusText = 'Rejected';
-                            break;
-                        default:
-                            statusClass = 'status-badge';
-                            statusText = task.status;
-                    }
+                        // Get PIC image
+                        let picImage = appUrl + '/asset/img/profile_picture/default.png';
+                        if (task.pic && task.pic.user_photo) {
+                            if (task.pic.user_photo.startsWith('http')) {
+                                picImage = task.pic.user_photo;
+                            } else if (task.pic.user_photo.startsWith('/')) {
+                                picImage = appUrl + task.pic.user_photo;
+                            } else {
+                                picImage = appUrl + '/file/profile_picture/' + task.pic.user_photo;
+                            }
+                        }
 
-                    html += `
+                        // Get status badge class and text
+                        let statusClass = '';
+                        let statusText = '';
+                        
+                        switch(task.status) {
+                            case 'new_request':
+                            case 'new request':
+                                statusClass = 'status-badge status-new-request';
+                                statusText = 'New Request';
+                                break;
+                            case 'in_progress':
+                            case 'in progress':
+                                statusClass = 'status-badge status-in-progress';
+                                statusText = 'In Progress';
+                                break;
+                            case 'completed':
+                                statusClass = 'status-badge status-completed';
+                                statusText = 'Completed';
+                                break;
+                            case 'rejected':
+                                statusClass = 'status-badge status-rejected';
+                                statusText = 'Rejected';
+                                break;
+                            default:
+                                statusClass = 'status-badge';
+                                statusText = task.status;
+                        }
+
+                        // Build combined PIC and Executors HTML
+                        let combinedImagesHtml = '';
+                        let allPeople = [];
+                        
+                        // Helper function to get correct image URL
+                        function getImageUrl(userPhoto) {
+                            if (!userPhoto) {
+                                return appUrl + '/asset/img/profile_picture/default.png';
+                            }
+                            
+                            if (userPhoto.startsWith('http')) {
+                                return userPhoto;
+                            }
+                            
+                            // Handle different path formats
+                            if (userPhoto.startsWith('/file/photo/')) {
+                                return appUrl + userPhoto;
+                            } else if (userPhoto.startsWith('/file/profile_picture/')) {
+                                return appUrl + userPhoto;
+                            } else if (userPhoto.startsWith('file/photo/')) {
+                                return appUrl + '/' + userPhoto;
+                            } else if (userPhoto.startsWith('file/profile_picture/')) {
+                                return appUrl + '/' + userPhoto;
+                            } else if (userPhoto.startsWith('/')) {
+                                return appUrl + userPhoto;
+                            } else {
+                                return appUrl + '/file/profile_picture/' + userPhoto;
+                            }
+                        }
+                        
+                        // Add PIC first
+                        if (task.pic) {
+                            let picImage = getImageUrl(task.pic.user_photo);
+                            allPeople.push({
+                                id: task.pic.id,
+                                image: picImage,
+                                name: task.pic.name || 'Unknown',
+                                title: 'PIC'
+                            });
+                        }
+                        
+                        // Add executors, excluding PIC duplicates
+                        if (task.executors && task.executors.length > 0) {
+                            task.executors.forEach((executor) => {
+                                if (!allPeople.some(p => p.id === executor.id)) {
+                                    let executorImage = getImageUrl(executor.user_photo);
+                                    allPeople.push({
+                                        id: executor.id,
+                                        image: executorImage,
+                                        name: executor.name || 'Unknown',
+                                        title: 'Executor'
+                                    });
+                                }
+                            });
+                        }
+
+                        // Build combined images HTML
+                        combinedImagesHtml = allPeople.map((person, index) => {
+                            const overlapClass = index === 0 ? '' : 'executor-image-overlap';
+                            const zIndexStyle = `style="z-index: ${allPeople.length - index};"`;
+                            return `<img src="${person.image}" alt="${person.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${person.name} (${person.title})" ${zIndexStyle}>`;
+                        }).join('');
+
+                        // Initialize Bootstrap tooltips after images are added to DOM
+                        setTimeout(() => {
+                            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                                return new bootstrap.Tooltip(tooltipTriggerEl);
+                            });
+                        }, 100);
+
+                        html += `
                             <div class="task-item d-flex align-items-start mb-3 pb-3 border-bottom">
-                                <div class="task-number me-3 fw-bold text-muted">${index + 1}</div>
                                 <img src="${taskImage}" alt="${task.title}" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div class="fw-bold">${task.title}</div>
                                         <span class="${statusClass}">${statusText}</span>
                                     </div>
-                                    <div class="text-muted small mb-1">${createdDate}</div>
-                                    <div class="small">
-                                        <strong>PIC:</strong> ${task.pic_name || 'Not assigned'}<br>
-                                        <strong>Executors:</strong> ${task.executors && task.executors.length > 0 ? task.executors.map(e => e.name).join(', ') : 'Not assigned'}
+                                    <div class="text-muted small mb-2">${createdDate}</div>
+                                    <div class="d-flex align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <div class="d-flex align-items-center pic-executor-container">
+                                                ${combinedImagesHtml}
+                                            </div>
+                                           
+                                        </div>
                                     </div>
                                 </div>
                             </div>

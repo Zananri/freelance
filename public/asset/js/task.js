@@ -884,7 +884,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 const overlapClass =
                     index === 0 ? "" : "executor-image-overlap";
                 const zIndexStyle = `style="z-index: ${index + 1};"`;
-                return `<img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" title="${executor.name}" ${zIndexStyle}>`;
+                const role = index === 0 && task.pic && executor.id === task.pic.id ? 'PIC' : 'Executor';
+                return `<img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name} (${role})" ${zIndexStyle}>`;
             })
             .join("");
 
@@ -1010,6 +1011,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Add event listener for attach_file icon click to show reference files modal
                 addAttachFileIconListeners();
+
+                // Initialize Bootstrap tooltips for PIC and executor images
+                setTimeout(() => {
+                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                }, 100);
             },
             error: function (xhr, status, error) {
                 console.error("Error fetching tasks:", error);
@@ -2706,6 +2715,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Add event listener for attach_file icon click to show reference files modal
                 addAttachFileIconListeners();
+
+                // Initialize Bootstrap tooltips for PIC and executor images
+                setTimeout(() => {
+                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                }, 100);
             },
             error: function (xhr, status, error) {
                 console.error("Error fetching filtered tasks:", error);

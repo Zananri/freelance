@@ -761,3 +761,40 @@
 .status-rejected {
     background-color: #ED3500;
 }
+
+/* PIC and Executor image styling for task modal */
+.pic-executor-image {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.executor-image-overlap {
+    margin-left: -8px;
+}
+
+.pic-executor-container {
+    display: flex;
+    align-items: center;
+}
+
+.task-item .pic-executor-container {
+    margin-left: -4px;
+}
+
+.task-item .pic-executor-image {
+    width: 22px;
+    height: 22px;
+}
+
+.task-item .d-flex.align-items-center {
+    gap: 4px;
+}
+
+.task-item .small {
+    font-size: 12px;
+    color: #666;
+}
