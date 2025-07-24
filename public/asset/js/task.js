@@ -885,7 +885,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     index === 0 ? "" : "executor-image-overlap";
                 const zIndexStyle = `style="z-index: ${index + 1};"`;
                 const role = index === 0 && task.pic && executor.id === task.pic.id ? 'PIC' : 'Executor';
-                return `<img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name} (${role})" ${zIndexStyle}>`;
+                return `<img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name}" ${zIndexStyle}>`;
             })
             .join("");
 
