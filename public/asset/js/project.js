@@ -1436,7 +1436,7 @@ function showImageModal(imageSrc) {
 
                         html += `
                             <div class="task-item d-flex align-items-start mb-3 pb-3 border-bottom">
-                                <img src="${taskImage}" alt="${task.title}" class="rounded-circle me-3" width="40" height="40" style="object-fit: cover;">
+                                <img src="${taskImage}" alt="${task.title}" class="me-3" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
                                 <div class="flex-grow-1">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div class="fw-bold">${task.title}</div>
