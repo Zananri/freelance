@@ -913,6 +913,9 @@ document.addEventListener("DOMContentLoaded", function () {
             statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 10px; right: 40px;">REJECTED</span>';
         }
 
+        // Conditionally render arrow icon only if status is not completed
+        const arrowIconHtml = (task.status !== 'completed') ? `<span class="material-symbols-outlined arrow-forward-icon" data-task-id="${task.id}" data-task-status="${task.status}">arrow_forward</span>` : '';
+
         return `
            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
                task.id
@@ -928,6 +931,8 @@ document.addEventListener("DOMContentLoaded", function () {
             ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
         </div>
     </div>
+    ${arrowIconHtml}
+
     <div class="d-flex align-items-center mb-2">
         <img src="${task.project_image}" alt="Project Image"
             class="project-image me-3">
@@ -1011,6 +1016,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Add event listener for attach_file icon click to show reference files modal
                 addAttachFileIconListeners();
+
+                // Add event listeners for arrow-forward-icon click to update status directly
+                document.querySelectorAll('.arrow-forward-icon').forEach(icon => {
+                    icon.addEventListener('click', function() {
+                        const taskId = this.getAttribute('data-task-id');
+                        const currentStatus = this.getAttribute('data-task-status');
+                        let newStatus = null;
+
+                        if (currentStatus === 'new_request' || currentStatus === 'new request') {
+                            newStatus = 'in_progress';
+                        } else if (currentStatus === 'in_progress' || currentStatus === 'in progress') {
+                            newStatus = 'completed';
+                        }
+
+                        if (newStatus) {
+                            updateTaskStatusDirect(taskId, newStatus);
+                        }
+                    });
+                });
 
                 // Initialize Bootstrap tooltips for PIC and executor images
                 setTimeout(() => {
@@ -1211,6 +1235,39 @@ document.addEventListener("DOMContentLoaded", function () {
                 fetchAndRenderTasks();
                 
                 // Show success message
+                showStatusUpdateAlert(response.message || "Task status updated successfully");
+            },
+            error: function (xhr) {
+                let errorMessage = "Failed to update task status.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+                }
+                alert(errorMessage);
+            },
+        });
+    }
+
+    // New function to update task status directly without confirmation modal
+    function updateTaskStatusDirect(taskId, newStatus) {
+        $.ajax({
+            url: appUrl + "/task/" + taskId + "/status",
+            type: "PUT",
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            data: {
+                status: newStatus,
+            },
+            success: function (response) {
+                // Refresh task cards to show updated status
+                fetchAndRenderTasks();
+
+                // Show success alert immediately
                 showStatusUpdateAlert(response.message || "Task status updated successfully");
             },
             error: function (xhr) {

@@ -899,3 +899,41 @@
     color: #555;
     height: 45px;
 }
+
+/* Arrow back icon styling - FIXED positioning and hover color */
+.arrow-forward-icon {
+    font-size: 18px;
+    position: absolute;
+    top: 8%;
+    right: -35px;
+    transform: translateY(-50%);
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #717375;
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+    --bs-bg-opacity: 0.3;
+    background-color: rgba(
+        var(--bs-white-rgb),
+        var(--bs-bg-opacity)
+    ) !important;
+    font-variation-settings: "FILL" 0, "wght" 400;
+    transition: all 0.15s ease-in-out;
+}
+
+/* FIXED hover effect - now changes arrow color to #111 */
+.arrow-forward-icon:hover {
+    color: #111 !important;
+
+    cursor: pointer;
+    --bs-bg-opacity: 1;
+    background-color: rgba(
+        var(--bs-white-rgb),
+        var(--bs-bg-opacity)
+    ) !important;
+}
+
+
