@@ -914,7 +914,22 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
                 // Conditionally render arrow icon only if status is not completed
-                const arrowIconHtml = (task.status !== 'completed') ? `<span class="material-symbols-outlined arrow-forward-icon" data-bs-toggle="tooltip" data-placement="bottom" data-task-id="${task.id}" data-task-status="${task.status}" title="${(task.status === 'new_request' || task.status === 'new request') ? 'Progress' : (task.status === 'in_progress' || task.status === 'in progress') ? 'Set to Complete' : ''}">arrow_forward</span>` : '';
+                const arrowIconHtml = (task.status !== 'completed') ? 
+                `<span class="material-symbols-outlined arrow-forward-icon" 
+                    data-bs-toggle="tooltip" 
+                    data-placement="bottom" 
+                    data-task-id="${task.id}" 
+                    data-task-status="${task.status}" 
+                    title="${
+                        (task.status === 'new_request' || task.status === 'new request') 
+                            ? 'Progress' 
+                            : (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') 
+                                ? 'Set to Complete' 
+                                : ''
+                    }">
+                    arrow_forward
+                </span>` 
+            : '';
 
                 // Check if description is long enough to need truncation
                 const description = task.description || '';
@@ -1055,7 +1070,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         if (currentStatus === 'new_request' || currentStatus === 'new request') {
                             newStatus = 'in_progress';
-                        } else if (currentStatus === 'in_progress' || currentStatus === 'in progress') {
+                        } else if (currentStatus === 'in_progress' || currentStatus === 'in progress' || currentStatus === 'rejected') {
                             newStatus = 'completed';
                         }
 
