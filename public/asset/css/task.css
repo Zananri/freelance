@@ -436,7 +436,7 @@
 }
 
 .task-title {
-    font-size: 1.1rem;
+    font-size: 16px;
     font-weight: 600;
 }
 
@@ -939,7 +939,7 @@ p  {
     font-size: 18px;
     position: absolute;
     top: 8%;
-    right: -35px;
+    right: 32px;
     transform: translateY(-50%);
     z-index: 9;
     display: flex;

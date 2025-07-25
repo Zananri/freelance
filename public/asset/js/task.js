@@ -910,7 +910,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Add status badge for rejected tasks
         let statusBadge = '';
         if (task.status === 'rejected') {
-            statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 10px; right: 40px;">REJECTED</span>';
+            statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 4.5%; right: 70px;">REJECTED</span>';
         }
 
         // Conditionally render arrow icon only if status is not completed
@@ -937,7 +937,7 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
     ${arrowIconHtml}
 
-    <div class="d-flex align-items-center mb-2">
+    <div class="d-flex align-items-center mb-2 mt-2">
         <img src="${task.project_image}" alt="Project Image"
             class="project-image me-3">
         <h5 class="mb-0 task-title">${task.title}</h5>
