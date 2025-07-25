@@ -33,16 +33,16 @@
                     <div class="col-md-4 d-flex flex-column gap-3">
                         <div>
                             <label for="employee_name" class="form-label">Employee Name</label>
-                            <input type="text" id="employee_name" name="employee_name" class="form-control input-text"
-                                value="{{ $employee->name }}" required />
+                            <input type="text" id="employee_name" name="employee_name"
+                                class="form-control input-text" value="{{ $employee->name }}" required />
                             <div class="invalid-feedback">
                                 Please enter the employee name.
                             </div>
                         </div>
                         <div>
                             <label for="employee_email" class="form-label">Employee Email</label>
-                            <input type="email" id="employee_email" name="employee_email" class="form-control input-text"
-                                value="{{ $employee->email }}" required />
+                            <input type="email" id="employee_email" name="employee_email"
+                                class="form-control input-text" value="{{ $employee->email }}" required />
                             <div class="invalid-feedback">
                                 Please enter a valid email.
                             </div>
@@ -57,8 +57,8 @@
                         </div>
                         <div>
                             <label for="employee_phone" class="form-label">Employee Phone</label>
-                            <input type="number" id="employee_phone" name="employee_phone" class="form-control input-text"
-                                value="{{ $employee->phone }}" required />
+                            <input type="number" id="employee_phone" name="employee_phone"
+                                class="form-control input-text" value="{{ $employee->phone }}" required />
                             <div class="invalid-feedback">
                                 Please enter the employee phone.
                             </div>
@@ -167,7 +167,7 @@
                                 Please select an office.
                             </div>
                         </div>
-                      
+
                     </div>
 
                     <!-- Right Section -->
@@ -176,9 +176,9 @@
                             <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
                                 <span>Upload Photo</span>
                             </div>
-<label for="photo"
-    class="custom-image-upload-photo position-relative photo-upload {{ $employee->photo ? 'has-image' : '' }}"
-    style="background-image: url('{{ $employee->photo ? asset($employee->photo) : '' }}'); opacity: {{ $employee->photo ? '1' : '0.5' }}; background-size: cover;">
+                            <label for="photo"
+                                class="custom-image-upload-photo position-relative photo-upload {{ $employee->photo ? 'has-image' : '' }}"
+                                style="background-image: url('{{ $employee->photo ? asset($employee->photo) : '' }}'); opacity: {{ $employee->photo ? '1' : '0.5' }}; background-size: cover;">
                                 <input type="file" id="photo" name="photo" accept="image/*"
                                     class="photo-input" hidden />
                                 <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">

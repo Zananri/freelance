@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
+    // Get appUrl from meta tag
+    const appUrl = document.querySelector('meta[name="app-url"]')?.content || '';
     const form = document.getElementById("employeeEditForm");
     const loaderOverlay = document.createElement("div");
     loaderOverlay.className = "modal-loading-overlay d-none";
@@ -24,72 +26,80 @@ document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.getElementById("department_id");
     const divisionSelect = document.getElementById("division_id");
     const jobSelect = document.getElementById("job_id");
-
-    function loadDepartments(selectedId) {
-        fetch("/department/index", { headers: { Accept: "application/json" } })
-            .then((res) => res.json())
-            .then((data) => {
-                let options =
-                    '<option value="" disabled>Select Department</option>';
-                (data.data || []).forEach((dept) => {
-                    options += `<option value="${dept.id}" ${
-                        dept.id == selectedId ? "selected" : ""
-                    }>${dept.name_department || dept.name}</option>`;
-                });
-                departmentSelect.innerHTML = options;
-                if (selectedId) {
-                    loadDivisions(
-                        selectedId,
-                        divisionSelect.getAttribute("data-current")
-                    );
-                }
+function loadDepartments(selectedId) {
+    $.ajax({
+        url: appUrl + "/department/index",
+        method: "GET",
+        dataType: "json",
+        success: function (data) {
+            let options = '<option value="" disabled>Select Department</option>';
+            (data.data || []).forEach((dept) => {
+                options += `<option value="${dept.id}" ${
+                    dept.id == selectedId ? "selected" : ""
+                }>${dept.name_department || dept.name}</option>`;
             });
-    }
+            departmentSelect.innerHTML = options;
 
-    function loadDivisions(departmentId, selectedId) {
-        divisionSelect.innerHTML =
-            '<option value="" disabled>Loading...</option>';
-        fetch(`/division/index?department_id=${departmentId}`, {
-            headers: { Accept: "application/json" },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                let options =
-                    '<option value="" disabled>Select Division</option>';
-                (data.data || []).forEach((div) => {
-                    options += `<option value="${div.id}" ${
-                        div.id == selectedId ? "selected" : ""
-                    }>${div.name_division || div.name}</option>`;
-                });
-                divisionSelect.innerHTML = options;
-                if (selectedId) {
-                    loadJobs(
-                        selectedId,
-                        jobSelect.getAttribute("data-current")
-                    );
-                } else {
-                    jobSelect.innerHTML =
-                        '<option value="" disabled>Select Job</option>';
-                }
-            });
-    }
+            if (selectedId) {
+                loadDivisions(selectedId, divisionSelect.getAttribute("data-current"));
+            }
+        },
+        error: function () {
+            console.error("Failed to load departments.");
+        }
+    });
+}
 
-    function loadJobs(divisionId, selectedId) {
-        jobSelect.innerHTML = '<option value="" disabled>Loading...</option>';
-        fetch(`/job/index?division_id=${divisionId}`, {
-            headers: { Accept: "application/json" },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                let options = '<option value="" disabled>Select Job</option>';
-                (data.data || []).forEach((job) => {
-                    options += `<option value="${job.id}" ${
-                        job.id == selectedId ? "selected" : ""
-                    }>${job.job_name || job.name}</option>`;
-                });
-                jobSelect.innerHTML = options;
+function loadDivisions(departmentId, selectedId) {
+    divisionSelect.innerHTML = '<option value="" disabled>Loading...</option>';
+    $.ajax({
+        url: appUrl + "/division/index",
+        method: "GET",
+        data: { department_id: departmentId },
+        dataType: "json",
+        success: function (data) {
+            let options = '<option value="" disabled>Select Division</option>';
+            (data.data || []).forEach((div) => {
+                options += `<option value="${div.id}" ${
+                    div.id == selectedId ? "selected" : ""
+                }>${div.name_division || div.name}</option>`;
             });
-    }
+            divisionSelect.innerHTML = options;
+
+            if (selectedId) {
+                loadJobs(selectedId, jobSelect.getAttribute("data-current"));
+            } else {
+                jobSelect.innerHTML = '<option value="" disabled>Select Job</option>';
+            }
+        },
+        error: function () {
+            console.error("Failed to load divisions.");
+        }
+    });
+}
+
+function loadJobs(divisionId, selectedId) {
+    jobSelect.innerHTML = '<option value="" disabled>Loading...</option>';
+    $.ajax({
+        url: appUrl + "/job/index",
+        method: "GET",
+        data: { division_id: divisionId },
+        dataType: "json",
+        success: function (data) {
+            let options = '<option value="" disabled>Select Job</option>';
+            (data.data || []).forEach((job) => {
+                options += `<option value="${job.id}" ${
+                    job.id == selectedId ? "selected" : ""
+                }>${job.job_name || job.name}</option>`;
+            });
+            jobSelect.innerHTML = options;
+        },
+        error: function () {
+            console.error("Failed to load jobs.");
+        }
+    });
+}
+
 
     // Initialize dropdowns with current employee data
     const currentDepartmentId = window.currentEmployeeData
@@ -244,7 +254,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     })
                                 );
                             }
-                            window.location.href = "/employee";
+                            window.location.href = appUrl + "/employee";
                         }, 1500);
                     } else {
                         alert(data.message);
@@ -258,7 +268,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 })
                             );
                         }
-                        window.location.href = "/employee";
+window.location.href = appUrl + "/employee";
                     }
                     // Remove validation classes after success
                     const inputs = form.querySelectorAll(
@@ -361,7 +371,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     })
                                 );
                             }
-                            window.location.href = "/employee";
+window.location.href = appUrl + "/employee";
                         }, 1500);
                     } else {
                         alert(data.message);
@@ -375,7 +385,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 })
                             );
                         }
-                        window.location.href = "/employee";
+window.location.href = appUrl + "/employee";
                     }
                     // Remove validation classes after success
                     const inputs = form.querySelectorAll(

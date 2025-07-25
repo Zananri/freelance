@@ -1,5 +1,5 @@
 $(document).ready(function () {
-    var appUrl = window.location.origin;
+    var appUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]+$/, '');
     var profilePhotoLabel = $('.profile-photo-upload');
     var profilePhotoInput = $('#profile_photo');
     var profilePhotoClearBtn = $('#profilePhotoClearBtn');

@@ -301,7 +301,9 @@ class EmployeeController extends Controller
             'data' => $employee,
             'updatedPhotoUrl' => $updatedPhotoUrl,
             'employeeId' => $employee->id,
+            'redirectUrl' => route('employee')
         ]);
+        
     }
 
     public function destroy($id)
