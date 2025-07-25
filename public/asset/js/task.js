@@ -916,6 +916,10 @@ document.addEventListener("DOMContentLoaded", function () {
         // Conditionally render arrow icon only if status is not completed
         const arrowIconHtml = (task.status !== 'completed') ? `<span class="material-symbols-outlined arrow-forward-icon" data-task-id="${task.id}" data-task-status="${task.status}">arrow_forward</span>` : '';
 
+        // Check if description is long enough to need truncation
+        const description = task.description || '';
+        const needsTruncation = description.length > 123; // Approximate 3 lines
+        
         return `
            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
                task.id
@@ -938,7 +942,12 @@ document.addEventListener("DOMContentLoaded", function () {
             class="project-image me-3">
         <h5 class="mb-0 task-title">${task.title}</h5>
     </div>
-    <p class="task-description">${task.description}</p>
+    <div class="task-description-container">
+        <p class="task-description ${needsTruncation ? 'truncated' : ''}" data-full-description="${description}">
+            ${description}
+        </p>
+        ${needsTruncation ? '<span class="task-description-toggle" onclick="toggleDescription(this)">View More</span>' : ''}
+    </div>
     <hr class="task-separator rounded-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="d-flex align-items-center pic-executor-container">
@@ -972,6 +981,26 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
         `;
     }
+
+    // Function to toggle description expansion
+    function toggleDescription(element) {
+        const container = element.closest('.task-description-container');
+        const description = container.querySelector('.task-description');
+        const isExpanded = description.classList.contains('expanded');
+        
+        if (isExpanded) {
+            // Collapse
+            description.classList.remove('expanded');
+            description.classList.add('truncated');
+            element.textContent = 'View More';
+        } else {
+            // Expand
+            description.classList.add('expanded');
+            description.classList.remove('truncated');
+            element.textContent = 'See Less';
+        }
+    }
+    window.toggleDescription = toggleDescription;
 
     // Function to fetch and render tasks
     function fetchAndRenderTasks() {

@@ -449,6 +449,40 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+    position: relative;
+}
+
+p  {
+   margin-bottom: 0;
+}
+
+.task-description.expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    max-height: none;
+    overflow: visible;
+}
+
+.task-description-toggle {
+    color: #007bff;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 0.25rem;
+    user-select: none;
+    font-size: 0.9rem;
+    display: inline-block;
+}
+
+.task-description-container {
+    position: relative;
+}
+
+.task-description.truncated {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .task-icon {
