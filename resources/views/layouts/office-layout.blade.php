@@ -43,6 +43,7 @@
     <link href="{{ asset('asset/css/sidebar.css?v='.time()) }}" rel="stylesheet">
 
     <style>
+        
     </style>
 
     @isset($head_slot)
@@ -64,8 +65,11 @@
 
             <div class="nav-item d-inline-block me-3" style="">
                 <div class="nav-icon">
-                    <div class="d-flex">
-                        <span class="material-symbols-outlined">notifications</span>
+                    <div class="d-flex position-relative">
+                        <span class="material-symbols-outlined" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#notificationModal">notifications</span>
+                        <span id="notificationBadge" class="notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                            <span id="notificationCount">0</span>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -236,6 +240,8 @@
 
     </footer>
 
+    <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
         integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous">
     </script>
@@ -243,29 +249,38 @@
         integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous">
     </script>
 
-    <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
-
-    <script>
-        $('#sidebar-control').on('click', function() {
-            $("body").toggleClass("hide-sidebar");
-        });
-
-        // Toggle avatar dropdown card
-        $('#avatarDropdownToggle').on('click', function(event) {
-            event.stopPropagation();
-            $('#avatarDropdownCard').toggle();
-        });
-
-        // Close dropdown card on close button click
-        $('#avatarDropdownCard .btn-close').on('click', function(event) {
-            event.stopPropagation();
-            $('#avatarDropdownCard').hide();
-        });
-    </script>
+    <script src="{{ asset('asset/js/app.js?v='.time()) }}"></script>
+    <script src="{{ asset('asset/js/office.js?v='.time()) }}"></script>
 
     @isset($script_slot)
         {{ $script_slot }}
     @endisset
+
+    <!-- Notification Modal -->
+    <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow-lg">
+                <div class="modal-header border-0 pb-2">
+                    <h5 class="modal-title fw-semibold" id="notificationModalLabel">
+                        <span class="material-symbols-outlined me-2 align-middle">notifications</span>
+                        Notifications
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <div class="notification-list" id="notificationList">
+                        <!-- Notifications will be loaded dynamically -->
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

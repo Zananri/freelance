@@ -248,7 +248,7 @@ class ProjectController extends Controller
                 \Log::warning('Project creation: User not authenticated.');
             }
 
-            // Insert co_author assignments into project_assignments
+            // Insert co_author assignments into project_assignments and create notifications
             if ($request->co_author && is_array($request->co_author)) {
                 $coAuthorAssignments = [];
                 foreach ($request->co_author as $employeeId) {
@@ -262,6 +262,23 @@ class ProjectController extends Controller
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
+                    
+                    // Create notification for co-author
+                    try {
+                        $authorEmployee = auth()->user()->employee;
+                        \App\Models\Notification::create([
+                            'employee_id' => $employeeId,
+                            'type' => 'new job',
+                            'title' => 'New Project Assigned',
+                            'message' => $project->description ?? 'You have been assigned as co-author to a new project.',
+                            'sent_at' => now(),
+                            'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ]);
+                    } catch (\Exception $ex) {
+                        \Log::error('Failed to create notification for co-author ' . $employeeId . ': ' . $ex->getMessage());
+                    }
                 } else {
                     \Log::warning("Project creation: Co-author employee ID {$employeeId} does not exist.");
                 }
@@ -510,7 +527,7 @@ class ProjectController extends Controller
             ->where('role', 'contributor')
             ->delete();
 
-        // Insert new co_author assignments
+        // Insert new co_author assignments and create notifications
         if ($request->co_author && is_array($request->co_author)) {
             $coAuthorAssignments = [];
             foreach ($request->co_author as $employeeId) {
@@ -523,6 +540,32 @@ class ProjectController extends Controller
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
+                    
+                    // Create notification for new co-author
+                    try {
+                        $authorEmployee = auth()->user()->employee;
+                        // Check if notification already exists for this project and employee
+                        $existingNotification = \App\Models\Notification::where('employee_id', $employeeId)
+                            ->where('title', 'New Project Assigned')
+                            ->where('message', $project->description ?? 'You have been assigned as co-author to a new project.')
+                            ->where('created_by', $authorEmployee ? $authorEmployee->id : null)
+                            ->first();
+                            
+                        if (!$existingNotification) {
+                            \App\Models\Notification::create([
+                                'employee_id' => $employeeId,
+                                'type' => 'new job',
+                                'title' => 'New Project Assigned',
+                                'message' => $project->description ?? 'You have been assigned as co-author to a new project.',
+                                'sent_at' => now(),
+                                'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                                'updated_at' => now(),
+                                'created_at' => now(),
+                            ]);
+                        }
+                    } catch (\Exception $ex) {
+                        \Log::error('Failed to create notification for co-author ' . $employeeId . ': ' . $ex->getMessage());
+                    }
                 }
             }
             if (!empty($coAuthorAssignments)) {

@@ -508,4 +508,88 @@ td > .btn-delete {
     text-align: center;
 }
 
+/* Notification Modal Styles */
+.notification-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
 
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+    border-left-color: #0d6efd;
+    transform: translateX(2px);
+}
+
+.notification-icon {
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.notification-icon .material-symbols-outlined {
+    font-size: 24px;
+}
+
+.notification-content {
+    flex-grow: 1;
+}
+
+.notification-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.notification-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.notification-time {
+    color: #6c757d;
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
+.notification-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.notification-badge {
+            font-size: 0.7rem;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+       
+        .empty-notifications {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }

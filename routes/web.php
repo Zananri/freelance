@@ -75,7 +75,6 @@ Route::put('/profile/{id}', [ProfileController::class, 'update'])->name('profile
 Route::delete('/profile/{id}', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
 
-
 Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
 Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
 Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
@@ -128,3 +127,9 @@ Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword')->middleware('auth');
 
 Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
+
+// Notification routes
+Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getUserNotifications'])->name('notifications.index');
+Route::get('/notifications/count', [App\Http\Controllers\NotificationController::class, 'getUnreadCount'])->name('notifications.count');
+Route::delete('/notifications/{id}', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+Route::delete('/notifications', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
