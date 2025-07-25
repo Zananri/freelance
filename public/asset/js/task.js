@@ -913,73 +913,73 @@ document.addEventListener("DOMContentLoaded", function () {
             statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 4.5%; right: 70px;">REJECTED</span>';
         }
 
-        // Conditionally render arrow icon only if status is not completed
-        const arrowIconHtml = (task.status !== 'completed') ? `<span class="material-symbols-outlined arrow-forward-icon" data-task-id="${task.id}" data-task-status="${task.status}">arrow_forward</span>` : '';
+                // Conditionally render arrow icon only if status is not completed
+                const arrowIconHtml = (task.status !== 'completed') ? `<span class="material-symbols-outlined arrow-forward-icon" data-bs-toggle="tooltip" data-placement="bottom" data-task-id="${task.id}" data-task-status="${task.status}" title="${(task.status === 'new_request' || task.status === 'new request') ? 'Progress' : (task.status === 'in_progress' || task.status === 'in progress') ? 'Set to Complete' : ''}">arrow_forward</span>` : '';
 
-        // Check if description is long enough to need truncation
-        const description = task.description || '';
-        const needsTruncation = description.length > 123; // Approximate 3 lines
-        
-        return `
-           <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
-               task.id
-           }" data-task-status="${task.status}">
-    ${statusBadge}
-    <div class="dropdown-icon-container">
-        <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-        <div class="dropdown-menu d-none">
-            <div class="dropdown-item">Detail</div>
-            <div class="dropdown-item">Edit</div>
-            <div class="dropdown-item">Feedback</div>
-            ${statusMenuItem}
-            ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
-        </div>
-    </div>
-    ${arrowIconHtml}
-
-    <div class="d-flex align-items-center mb-2 mt-2">
-        <img src="${task.project_image}" alt="Project Image"
-            class="project-image me-3">
-        <h5 class="mb-0 task-title">${task.title}</h5>
-    </div>
-    <div class="task-description-container">
-        <p class="task-description ${needsTruncation ? 'truncated' : ''}" data-full-description="${description}">
-            ${description}
-        </p>
-        ${needsTruncation ? '<span class="task-description-toggle" onclick="toggleDescription(this)">View More</span>' : ''}
-    </div>
-    <hr class="task-separator rounded-4">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <div class="d-flex align-items-center pic-executor-container">
-            ${
-                task.pic
-                    ? `<img src="${task.pic.image}" alt="${task.pic.name}" class="pic-executor-image"
-                title="${task.pic.name}">`
-                    : ""
-            }
-            ${executorsHtml}
-        </div>
-        <div class="d-flex">
-           <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                <span class="material-symbols-outlined task-icon mode_comment"
-                    data-task-id="${task.id}">mode_comment</span>
-                ${
-                    task.feedback_comments_count > 0
-                        ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
-                        : ""
-                }
-            </div>
-            <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                <span class="material-symbols-outlined task-icon">attach_file</span>
-                ${
-                    task.reference_files_count > 0
-                        ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
-                        : ""
-                }
+                // Check if description is long enough to need truncation
+                const description = task.description || '';
+                const needsTruncation = description.length > 123; // Approximate 3 lines
+                
+                return `
+                   <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
+                       task.id
+                   }" data-task-status="${task.status}">
+        ${statusBadge}
+        <div class="dropdown-icon-container">
+            <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+            <div class="dropdown-menu d-none">
+                <div class="dropdown-item">Detail</div>
+                <div class="dropdown-item">Edit</div>
+                <div class="dropdown-item">Feedback</div>
+                ${statusMenuItem}
+                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
             </div>
         </div>
-    </div>
-        `;
+        ${arrowIconHtml}
+
+        <div class="d-flex align-items-center mb-2 mt-2">
+            <img src="${task.project_image}" alt="Project Image"
+                class="project-image me-3">
+            <h5 class="mb-0 task-title">${task.title}</h5>
+        </div>
+        <div class="task-description-container">
+            <p class="task-description ${needsTruncation ? 'truncated' : ''}" data-full-description="${description}">
+                ${description}
+            </p>
+            ${needsTruncation ? '<span class="task-description-toggle" onclick="toggleDescription(this)">View More</span>' : ''}
+        </div>
+        <hr class="task-separator rounded-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex align-items-center pic-executor-container">
+                ${
+                    task.pic
+                        ? `<img src="${task.pic.image}" alt="${task.pic.name}" class="pic-executor-image"
+                    title="${task.pic.name}">`
+                        : ""
+                }
+                ${executorsHtml}
+            </div>
+            <div class="d-flex">
+               <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                    <span class="material-symbols-outlined task-icon mode_comment"
+                        data-task-id="${task.id}">mode_comment</span>
+                    ${
+                        task.feedback_comments_count > 0
+                            ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
+                            : ""
+                    }
+                </div>
+                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                    <span class="material-symbols-outlined task-icon">attach_file</span>
+                    ${
+                        task.reference_files_count > 0
+                            ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
+                            : ""
+                    }
+                </div>
+            </div>
+        </div>
+            `;
     }
 
     // Function to toggle description expansion
