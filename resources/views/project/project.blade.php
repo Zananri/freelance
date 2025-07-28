@@ -23,7 +23,31 @@
         <h2>Project</h2>
     </div>
 
-    <div class="d-flex justify-content-end mb-3">
+    <div class="d-flex justify-content-end mb-3 gap-2 position-relative">
+        <div class="dropdown-filter-container">
+            <button class="btn btn-icon-toggle" type="button" id="openProjectFilterBtn">
+                <span class="material-symbols-outlined icon">filter_list</span> Filter
+            </button>
+            <div class="dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
+                <div class="dropdown-filter-header">
+                    <h6>Filter Projects</h6>
+                </div>
+                <div class="dropdown-filter-body">
+                    <div class="mb-3">
+                        <label for="filterProjectStatus" class="form-label">Filter by Status</label>
+                        <select id="filterProjectStatus" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="ongoing">Not Started</option>
+                            <option value="completed">In Progress</option>
+                            <option value="pending">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="dropdown-filter-footer">
+                    <button type="button" class="btn btn-primary" id="applyProjectFilterBtn">Filter</button>
+                </div>
+            </div>
+        </div>
         <button class="btn-submit-black" data-bs-toggle="modal" data-bs-target="#addProjectModal">Add Project</button>
     </div>
     <div id="project-cards-container" class="container my-4">

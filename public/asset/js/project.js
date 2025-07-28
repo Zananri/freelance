@@ -2092,6 +2092,9 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
     loadProjectCardData();
     // loadEmployees(); // Removed obsolete function call
     setupCoAuthorInput();
+    
+    // Setup filter dropdown functionality
+    setupFilterDropdown();
 
     // Add event listener to department select to load divisions on change
     departmentSelect.addEventListener('change', function () {
@@ -2546,6 +2549,45 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
         // Re-initialize co-author input to fetch updated employee list excluding current contributors
         wrappedSetupCoAuthorInput();
     };
+
+    // Setup filter dropdown functionality
+    function setupFilterDropdown() {
+        const openFilterBtn = document.getElementById('openProjectFilterBtn');
+        const filterDropdown = document.getElementById('projectFilterDropdown');
+        const applyFilterBtn = document.getElementById('applyProjectFilterBtn');
+        const filterStatus = document.getElementById('filterProjectStatus');
+
+        if (!openFilterBtn || !filterDropdown) return;
+
+        // Toggle dropdown visibility
+        openFilterBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isVisible = filterDropdown.style.display === 'block';
+            filterDropdown.style.display = isVisible ? 'none' : 'block';
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!openFilterBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
+                filterDropdown.style.display = 'none';
+            }
+        });
+
+        // Handle apply filter button
+        if (applyFilterBtn) {
+            applyFilterBtn.addEventListener('click', function() {
+                const selectedStatus = filterStatus ? filterStatus.value : '';
+                console.log('Filter applied with status:', selectedStatus);
+                filterDropdown.style.display = 'none';
+                // Logic untuk filter akan ditambahkan nanti
+            });
+        }
+
+        // Handle dropdown item clicks
+        filterDropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
 
     // Clear form and reset image preview when modal is closed
     var addProjectModalEl = document.getElementById("addProjectModal");
