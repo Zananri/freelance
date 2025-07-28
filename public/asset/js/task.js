@@ -916,7 +916,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Conditionally render icon based on status
                 let iconHtml = '';
                 if (task.status !== 'completed') {
-                    if (task.status === 'in_progress' || task.status === 'in progress') {
+                    if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
                         // Show check icon for In Progress tasks
                         iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
                             data-bs-toggle="tooltip" 
