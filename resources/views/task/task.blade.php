@@ -23,49 +23,40 @@
         <h2>Task</h2>
     </div>
 
-    <div class="d-flex justify-content-end mb-3 gap-2">
-        <button class="btn btn-icon-toggle" type="button" id="openTaskFilterModalBtn">
-            <span class="material-symbols-outlined icon">filter_list</span> Filter
-        </button>
-        <button class="btn-submit-black" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add Task</button>
-    </div>
-
-    <!-- Task Filter Modal -->
-    <div class="modal fade" id="taskFilterModal" tabindex="-1" aria-labelledby="taskFilterModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="taskFilterModalLabel">Filter Tasks</h5>
-                    <button type="button" class="btn-close mt-1" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+    <div class="d-flex justify-content-end mb-3 gap-2 position-relative">
+        <div class="dropdown-filter-container">
+            <button class="btn btn-icon-toggle" type="button" id="openTaskFilterBtn">
+                <span class="material-symbols-outlined icon">filter_list</span> Filter
+            </button>
+            <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
+                <div class="dropdown-filter-header">
+                    <h6>Filter Tasks</h6>
                 </div>
-                <div class="modal-body">
-                    <form id="taskFilterForm">
-                        <div class="mb-3">
-                            <label for="filterTaskProject" class="form-label">Filter by Project</label>
-                            <select id="filterTaskProject" class="form-select">
-                                <option value="">All Projects</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="filterTaskStatus" class="form-label">Filter by Status</label>
-                            <select id="filterTaskStatus" class="form-select">
-                                <option value="">All Status</option>
-                                <option value="new_request">New Request</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-                    </form>
+                <div class="dropdown-filter-body">
+                    <div class="mb-3">
+                        <label for="filterTaskProject" class="form-label">Filter by Project</label>
+                        <select id="filterTaskProject" class="form-select">
+                            <option value="">All Projects</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filterTaskStatus" class="form-label">Filter by Status</label>
+                        <select id="filterTaskStatus" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="new_request">New Request</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="applyTaskFilterBtn">Filter</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <div class="dropdown-filter-footer">
+                    <button type="button" class="btn btn-primary btn-sm" id="applyTaskFilterBtn">Filter</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetTaskFilterBtn">Reset</button>
                 </div>
             </div>
         </div>
+        <button class="btn-submit-black" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add Task</button>
     </div>
 
     <div id="task-cards-container" class="container my-4">

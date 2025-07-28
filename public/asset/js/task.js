@@ -2693,7 +2693,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const filterTaskProjectSelect = document.getElementById("filterTaskProject");
     const filterTaskStatusSelect = document.getElementById("filterTaskStatus");
     const applyTaskFilterBtn = document.getElementById("applyTaskFilterBtn");
-    const openTaskFilterModalBtn = document.getElementById("openTaskFilterModalBtn");
+    const openTaskFilterBtn = document.getElementById("openTaskFilterBtn");
+    const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
 
     // Load projects for filter select
     function loadProjectsForFilter() {
@@ -2713,18 +2714,18 @@ document.addEventListener("DOMContentLoaded", function () {
                     options += `<option value="${project.id}">${project.title}</option>`;
                 });
                 filterTaskProjectSelect.innerHTML = options;
+                
+                // Set current filter values if they exist
+                if (currentTaskFilters.project) {
+                    filterTaskProjectSelect.value = currentTaskFilters.project;
+                }
+                if (currentTaskFilters.status) {
+                    filterTaskStatusSelect.value = currentTaskFilters.status;
+                }
             })
             .catch((error) => {
                 console.error("Error loading projects for filter:", error);
             });
-    }
-
-    // Status filter is always enabled regardless of project selection
-    if (filterTaskProjectSelect) {
-        filterTaskProjectSelect.addEventListener("change", function() {
-            // Status filter is always enabled regardless of project selection
-            filterTaskStatusSelect.disabled = false;
-        });
     }
 
     // Apply task filters
@@ -2734,17 +2735,72 @@ document.addEventListener("DOMContentLoaded", function () {
             currentTaskFilters.status = filterTaskStatusSelect.value;
             
             fetchAndRenderFilteredTasks(currentTaskFilters);
-            $("#taskFilterModal").modal("hide");
+            
+            // Hide the dropdown
+            document.getElementById("taskFilterDropdown").style.display = "none";
         });
     }
 
-    // Open filter modal
-    if (openTaskFilterModalBtn) {
-        openTaskFilterModalBtn.addEventListener("click", function() {
-            loadProjectsForFilter();
-            $("#taskFilterModal").modal("show");
+    // Reset filters
+    if (resetTaskFilterBtn) {
+        resetTaskFilterBtn.addEventListener("click", function() {
+            currentTaskFilters = {
+                project: "",
+                status: ""
+            };
+            
+            if (filterTaskProjectSelect) filterTaskProjectSelect.value = "";
+            if (filterTaskStatusSelect) filterTaskStatusSelect.value = "";
+            
+            fetchAndRenderTasks();
+            
+            // Hide the dropdown
+            document.getElementById("taskFilterDropdown").style.display = "none";
         });
     }
+
+    // Toggle filter dropdown
+    if (openTaskFilterBtn) {
+        openTaskFilterBtn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById("taskFilterDropdown");
+            const isVisible = dropdown.style.display !== "none";
+            
+            if (isVisible) {
+                dropdown.style.display = "none";
+            } else {
+                loadProjectsForFilter();
+                dropdown.style.display = "block";
+                
+                // Position dropdown below button
+                const buttonRect = openTaskFilterBtn.getBoundingClientRect();
+                dropdown.style.position = "absolute";
+                dropdown.style.top = "100%";
+                dropdown.style.right = "0";
+                dropdown.style.zIndex = "1000";
+            }
+        });
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function(e) {
+        const dropdown = document.getElementById("taskFilterDropdown");
+        const button = document.getElementById("openTaskFilterBtn");
+        
+        if (dropdown && button && !dropdown.contains(e.target) && !button.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
+
+    // Close dropdown on escape key
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+            const dropdown = document.getElementById("taskFilterDropdown");
+            if (dropdown) {
+                dropdown.style.display = "none";
+            }
+        }
+    });
 
     // Enhanced fetch and render filtered tasks
     function fetchAndRenderFilteredTasks(filters = {}) {
@@ -2859,13 +2915,6 @@ document.addEventListener("DOMContentLoaded", function () {
         
         fetchAndRenderTasks();
     }
-
-    // Add reset filter button functionality
-    const resetFilterBtn = document.createElement('button');
-    resetFilterBtn.type = 'button';
-    resetFilterBtn.className = 'btn btn-outline-secondary ms-2';
-    resetFilterBtn.textContent = 'Reset';
-    resetFilterBtn.addEventListener('click', resetTaskFilters);
     
     if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
         applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
