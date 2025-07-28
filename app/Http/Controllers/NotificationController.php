@@ -164,4 +164,30 @@ class NotificationController extends Controller
 
         return $notifications;
     }
+
+    /**
+     * Delete a notification for the current authenticated user
+     */
+    public function deleteNotification($id)
+    {
+        $user = Auth::user();
+        
+        if (!$user || !$user->employee) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $employeeId = $user->employee->id;
+        
+        $notification = Notification::where('id', $id)
+            ->where('employee_id', $employeeId)
+            ->first();
+
+        if (!$notification) {
+            return response()->json(['error' => 'Notification not found'], 404);
+        }
+
+        $notification->delete();
+
+        return response()->json(['message' => 'Notification deleted successfully']);
+    }
 }
