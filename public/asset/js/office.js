@@ -1,4 +1,25 @@
 $(document).ready(function() {
+
+     function toggleSidebar() {
+        $('body').toggleClass('hide-sidebar');
+        
+        // Save state to localStorage
+        const isHidden = $('body').hasClass('hide-sidebar');
+        localStorage.setItem('sidebarHidden', isHidden);
+    }
+
+    // Load saved state on page load
+    const savedState = localStorage.getItem('sidebarHidden');
+    if (savedState === 'true') {
+        $('body').addClass('hide-sidebar');
+    }
+
+    // Event listener for menu button
+    $(document).on('click', '#sidebar-control', function(e) {
+        e.preventDefault();
+        toggleSidebar();
+    });
+
     // Notification functionality
     function fetchNotificationCount() {
         const appUrl = $('meta[name="app-url"]').attr('content');
