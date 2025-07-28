@@ -51,8 +51,7 @@
                     </div>
                 </div>
                 <div class="dropdown-filter-footer">
-                    <button type="button" class="btn btn-primary btn-sm" id="applyTaskFilterBtn">Filter</button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" id="resetTaskFilterBtn">Reset</button>
+                    <button type="button" class="btn btn-primary" id="applyTaskFilterBtn">Filter</button>
                 </div>
             </div>
         </div>
@@ -378,21 +377,68 @@
         </div>
     </div>
 
-    <!-- Update Status Modal -->
-    <div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel"
+    <!-- Back to Request Status Modal -->
+    <div class="modal fade" id="progressStatusModal" tabindex="-1" aria-labelledby="progressStatusModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="updateStatusModalLabel">Update Status</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <img id="updateStatusTaskImage" src="" alt="Task Image"
-                        style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
-                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to update status?</p>
+                    <h4 class="fw-bold text-center mb-2" id="progressStatusTitle">In Progress</h4>
+                    <p class="text-center mb-4" id="progressStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                        Task is being worked on
+                    </p>
+                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to go back to Request?</p>
                     <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-submit-black" id="confirmUpdateStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-submit-black" id="confirmProgressStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Status Modal -->
+    <div class="modal fade" id="completeStatusModal" tabindex="-1" aria-labelledby="completeStatusModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
+                    <h4 class="fw-bold text-center mb-2" id="completeStatusTitle">Completed</h4>
+                    <p class="text-center mb-4" id="completeStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                        Task has been finished
+                    </p>
+                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Complete?</p>
+                    <div class="d-flex justify-content-center gap-3 w-100">
+                        <button type="button" class="btn btn-submit-black" id="confirmCompleteStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Status Modal -->
+    <div class="modal fade" id="rejectStatusModal" tabindex="-1" aria-labelledby="rejectStatusModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
+                    <h4 class="fw-bold text-center mb-2" id="rejectStatusTitle">Rejected</h4>
+                    <p class="text-center mb-4" id="rejectStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                        Task has been rejected
+                    </p>
+                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Reject?</p>
+                    <div class="d-flex justify-content-center gap-3 w-100">
+                        <button type="button" class="btn btn-submit-black" id="confirmRejectStatusBtn">Confirm</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
