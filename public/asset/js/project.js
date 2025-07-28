@@ -27,48 +27,48 @@ document.addEventListener("DOMContentLoaded", function () {
                             ? appUrl + "/file/project/" + project.image
                             : appUrl + "/asset/img/background/add-image.png";
 
-                        rowHtml += `
-                            <div class="col-md-4 mb-4 position-relative" data-project-id="${project.id}">
-                                <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
-                                    <div class="dropdown-icon-container">
-                                        <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-                                        <div class="dropdown-menu d-none">
-                                            <div class="dropdown-item">Detail</div>
-                                            <div class="dropdown-item">Task</div>
-                                            <div class="dropdown-item">Feedback</div>
-                                            <div class="dropdown-item">Edit</div>
-                                            <div class="dropdown-item text-danger delete-project">Delete</div>
-                                        </div>
+                    rowHtml += `
+                        <div class="col-md-4 mb-4 position-relative" data-project-id="${project.id}">
+                            <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
+                                <div class="dropdown-icon-container">
+                                    <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+                                    <div class="dropdown-menu d-none">
+                                        <div class="dropdown-item">Detail</div>
+                                        <div class="dropdown-item">Task</div>
+                                        <div class="dropdown-item">Feedback</div>
+                                        <div class="dropdown-item">Edit</div>
+                                        <div class="dropdown-item text-danger delete-project">Delete</div>
                                     </div>
-                                    <div class="card-body">
-                                        <div class="d-flex">
-                                            <div class="me-3">
-                                                <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-started mb-1">
+                                                <h6 class="mb-0 title-project">${project.title}</h6>
                                             </div>
-                                            <div class="flex-grow-1">
-                                                <div class="d-flex align-items-started mb-1">
-                                                    <h6 class="mb-0 title-project">${project.title}</h6>
+                                            <div class="d-flex justify-content-start mt-2">
+                                                <div class="d-flex align-items-center me-3">
+                                                    <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
+                                                    <span class="icon-number">${project.task_counts?.total || 0}</span>
                                                 </div>
-                                                <div class="d-flex justify-content-start mt-2">
-                                                    <div class="d-flex align-items-center me-3">
-                                                        <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                                        <span class="icon-number">0</span>
-                                                    </div>
-                                                    <div class="d-flex align-items-center me-3">
-                                                        <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                                        <span class="icon-number">0</span>
-                                                    </div>
-                                                    <div class="d-flex align-items-center">
-                                                        <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                                        <span class="icon-number">0</span>
-                                                    </div>
+                                                <div class="d-flex align-items-center me-3">
+                                                    <span class="material-symbols-outlined icon-av-timer">av_timer</span>
+                                                    <span class="icon-number">${project.task_counts?.in_progress || 0}</span>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <span class="material-symbols-outlined icon-checklist">checklist</span>
+                                                    <span class="icon-number">${project.task_counts?.completed || 0}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        `;
+                        </div>
+                    `;
 
                         if ((index + 1) % 3 === 0 && index !== data.data.length - 1) {
                             rowHtml += '</div><div class="row">';

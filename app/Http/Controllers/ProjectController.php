@@ -7,6 +7,9 @@ use App\Models\Project;
 use App\Models\ProjectFeedback;
 use App\Models\ProjectAssignment;
 use App\Models\Employee;
+use App\Models\Task;
+use App\Models\Department;
+use App\Models\Division;
 use App\Models\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -129,6 +132,15 @@ class ProjectController extends Controller
                 ];
             });
 
+            // Get task counts for this project
+            $totalTasks = Task::where('project_id', $project->id)->count();
+            $inProgressTasks = Task::where('project_id', $project->id)
+                ->whereIn('status', ['in_progress', 'rejected'])
+                ->count();
+            $completedTasks = Task::where('project_id', $project->id)
+                ->where('status', 'completed')
+                ->count();
+
             return [
                 'id' => $project->id,
                 'title' => $project->title,
@@ -138,6 +150,11 @@ class ProjectController extends Controller
                 'division' => $project->division,
                 'status' => $project->status,
                 'project_assignments' => $projectAssignments,
+                'task_counts' => [
+                    'total' => $totalTasks,
+                    'in_progress' => $inProgressTasks,
+                    'completed' => $completedTasks
+                ]
             ];
         });
 
