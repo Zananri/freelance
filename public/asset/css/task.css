@@ -1027,4 +1027,42 @@ p  {
     }
 }
 
+/* Project Filter Display Styles */
+.project-filter-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 16px;
+    color: #222;
+    margin-top: 8px;
+}
 
+.project-filter-display .material-symbols-outlined {
+    font-size: 16px;
+    vertical-align: middle;
+}
+
+.project-filter-display .project-name {
+    font-size: 16px;
+    color: #222;
+    font-weight: 500;
+}
+
+#currentProjectName {
+    font-size: 16px;
+    color: #222;
+    font-weight: 300;
+    margin-left: 4px;
+}
+
+.filter-text {
+    font-size: 16px;
+    color: #222;
+    font-weight: 300;
+    right: 4px;
+}
+
+#projectFilterDisplay {
+    display: none; /* Initially hidden */
+    position: absolute;
+   }

@@ -21,6 +21,10 @@
     </svg>
     <div class="title-content">
         <h2>Task</h2>
+        <div class="project-filter-display" id="projectFilterDisplay" style="display: none;">
+            <span class="filter-text">Filter <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">chevron_right</span></span>
+            <span class="project-name" id="currentProjectName" style="font-size: 16px; color: #222;"></span>
+        </div>
     </div>
 
     <div class="d-flex justify-content-end mb-3 gap-2 position-relative">

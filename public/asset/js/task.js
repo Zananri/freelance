@@ -2754,6 +2754,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const openTaskFilterBtn = document.getElementById("openTaskFilterBtn");
     const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
 
+    // Function to update project filter display
+    function updateProjectFilterDisplay() {
+        const displayElement = document.getElementById('projectFilterDisplay');
+        const projectNameElement = document.getElementById('currentProjectName');
+        
+        if (!displayElement || !projectNameElement) return;
+        
+        const selectedProjectId = filterTaskProjectSelect.value;
+        const selectedProjectText = filterTaskProjectSelect.options[filterTaskProjectSelect.selectedIndex]?.text || '';
+        
+        if (selectedProjectId && selectedProjectId !== '') {
+            projectNameElement.textContent = selectedProjectText;
+            displayElement.style.display = 'flex';
+        } else {
+            displayElement.style.display = 'none';
+        }
+    }
+
     // Load projects for filter select
     function loadProjectsForFilter() {
         if (!filterTaskProjectSelect) return;
@@ -2794,6 +2812,9 @@ document.addEventListener("DOMContentLoaded", function () {
             
             fetchAndRenderFilteredTasks(currentTaskFilters);
             
+            // Update project filter display
+            updateProjectFilterDisplay();
+            
             // Hide the dropdown
             document.getElementById("taskFilterDropdown").style.display = "none";
         });
@@ -2811,6 +2832,9 @@ document.addEventListener("DOMContentLoaded", function () {
             if (filterTaskStatusSelect) filterTaskStatusSelect.value = "";
             
             fetchAndRenderTasks();
+            
+            // Update project filter display (hide it)
+            updateProjectFilterDisplay();
             
             // Hide the dropdown
             document.getElementById("taskFilterDropdown").style.display = "none";
@@ -2972,6 +2996,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         
         fetchAndRenderTasks();
+
+        // Hide project filter display on reset
+        updateProjectFilterDisplay();
     }
 
     // Add reset filter button functionality
