@@ -85,7 +85,7 @@
                 @endif
 
                 <div id="avatarDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
-                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3"
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" id="closeAvatarDropdown"
                         aria-label="Close"></button>
                     <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center"
                         style="min-height: 220px;">

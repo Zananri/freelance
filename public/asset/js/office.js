@@ -91,17 +91,47 @@ $(document).ready(function() {
         }
     }
 
+    // Avatar Dropdown functionality
+    function toggleAvatarDropdown() {
+        const dropdown = $('#avatarDropdownCard');
+        dropdown.toggle();
+    }
+
+    function hideAvatarDropdown() {
+        $('#avatarDropdownCard').hide();
+    }
+
+    // Avatar dropdown event handlers
+    $(document).on('click', '#avatarDropdownToggle', function(e) {
+        e.stopPropagation();
+        toggleAvatarDropdown();
+    });
+
+    $(document).on('click', '#closeAvatarDropdown', function(e) {
+        e.stopPropagation();
+        hideAvatarDropdown();
+    });
+
+    // Close dropdown when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#avatarDropdownCard, #avatarDropdownToggle').length) {
+            hideAvatarDropdown();
+        }
+    });
+
     // Load notifications when modal is opened
-    $(document).on('show.bs.modal', '#notificationModal', function() {
+    $(document).on('shown.bs.modal', '#notificationModal', function() {
         fetchNotifications();
+        // Mark all notifications as read when modal is opened
+        markAllAsRead();
     });
 
     // Mark notification as read when clicked
     $(document).on('click', '.notification-item', function() {
         const notificationId = $(this).data('notification-id');
         $.ajax({
-            url: `/notifications/${notificationId}`,
-            method: 'DELETE',
+            url: `/notifications/${notificationId}/read`,
+            method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
@@ -114,6 +144,26 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Function to mark all notifications as read
+    function markAllAsRead() {
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        $.ajax({
+            url: appUrl + "/notifications/mark-all-read",
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function() {
+                // Hide badge immediately for current user only
+                $('#notificationBadge').hide();
+                $('#notificationCount').text('0');
+            },
+            error: function() {
+                console.error('Failed to mark all notifications as read');
+            }
+        });
+    }
 
     // Initial load
     fetchNotificationCount();

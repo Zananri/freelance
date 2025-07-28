@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -129,7 +130,7 @@ Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'
 Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
 
 // Notification routes
-Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'getUserNotifications'])->name('notifications.index');
-Route::get('/notifications/count', [App\Http\Controllers\NotificationController::class, 'getUnreadCount'])->name('notifications.count');
-Route::delete('/notifications/{id}', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
-Route::delete('/notifications', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
+Route::get('/notifications', [NotificationController::class, 'getUserNotifications'])->name('notifications.index');
+Route::get('/notifications/count', [NotificationController::class, 'getUnreadCount'])->name('notifications.count');
+Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');

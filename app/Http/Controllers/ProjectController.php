@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectFeedback;
 use App\Models\ProjectAssignment;
 use App\Models\Employee;
+use App\Models\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -266,16 +267,27 @@ class ProjectController extends Controller
                     // Create notification for co-author
                     try {
                         $authorEmployee = auth()->user()->employee;
-                        \App\Models\Notification::create([
-                            'employee_id' => $employeeId,
-                            'type' => 'new job',
-                            'title' => 'New Project Assigned',
-                            'message' => $project->description ?? 'You have been assigned as co-author to a new project.',
-                            'sent_at' => now(),
-                            'created_by' => $authorEmployee ? $authorEmployee->id : null,
-                            'updated_at' => now(),
-                            'created_at' => now(),
-                        ]);
+                        
+                        // Cek apakah sudah ada notifikasi untuk project ini
+                        $existingNotification = Notification::where('employee_id', $employeeId)
+                            ->where('type', 'new job')
+                            ->where('title', 'New Project Assigned')
+                            ->where('message', 'like', '%assigned as co-author to a new project%')
+                            ->whereDate('created_at', now()->toDateString())
+                            ->first();
+                            
+                        if (!$existingNotification) {
+                            Notification::create([
+                                'employee_id' => $employeeId,
+                                'type' => 'new job',
+                                'title' => 'New Project Assigned',
+                                'message' => $project->description ?? 'You have been assigned as co-author to a new project: ' . $project->title,
+                                'sent_at' => now(),
+                                'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                                'updated_at' => now(),
+                                'created_at' => now(),
+                            ]);
+                        }
                     } catch (\Exception $ex) {
                         \Log::error('Failed to create notification for co-author ' . $employeeId . ': ' . $ex->getMessage());
                     }
@@ -292,7 +304,7 @@ class ProjectController extends Controller
                 }
             }
 
-            // Insert contributor assignments into project_assignments
+            // Insert contributor assignments into project_assignments and create notifications
             if ($request->contributors && is_array($request->contributors)) {
                 $contributorAssignments = [];
                 foreach ($request->contributors as $employeeId) {
@@ -305,6 +317,34 @@ class ProjectController extends Controller
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
+                    
+                    // Create notification for contributor
+                    try {
+                        $authorEmployee = auth()->user()->employee;
+                        
+                        // Cek apakah sudah ada notifikasi untuk project ini
+                        $existingNotification = Notification::where('employee_id', $employeeId)
+                            ->where('type', 'new job')
+                            ->where('title', 'New Project Assigned')
+                            ->where('message', 'like', '%assigned as contributor to a new project%')
+                            ->whereDate('created_at', now()->toDateString())
+                            ->first();
+                            
+                        if (!$existingNotification) {
+                            Notification::create([
+                                'employee_id' => $employeeId,
+                                'type' => 'new job',
+                                'title' => 'New Project Assigned',
+                                'message' => $project->description ?? 'You have been assigned as contributor to a new project: ' . $project->title,
+                                'sent_at' => now(),
+                                'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                                'updated_at' => now(),
+                                'created_at' => now(),
+                            ]);
+                        }
+                    } catch (\Exception $ex) {
+                        \Log::error('Failed to create notification for contributor ' . $employeeId . ': ' . $ex->getMessage());
+                    }
                 } else {
                     \Log::warning("Project creation: Contributor employee ID {$employeeId} does not exist.");
                 }
@@ -545,18 +585,19 @@ class ProjectController extends Controller
                     try {
                         $authorEmployee = auth()->user()->employee;
                         // Check if notification already exists for this project and employee
-                        $existingNotification = \App\Models\Notification::where('employee_id', $employeeId)
+                        $existingNotification = Notification::where('employee_id', $employeeId)
+                            ->where('type', 'new job')
                             ->where('title', 'New Project Assigned')
-                            ->where('message', $project->description ?? 'You have been assigned as co-author to a new project.')
-                            ->where('created_by', $authorEmployee ? $authorEmployee->id : null)
+                            ->where('message', 'like', '%assigned as co-author to a new project%')
+                            ->whereDate('created_at', now()->toDateString())
                             ->first();
                             
                         if (!$existingNotification) {
-                            \App\Models\Notification::create([
+                            Notification::create([
                                 'employee_id' => $employeeId,
                                 'type' => 'new job',
                                 'title' => 'New Project Assigned',
-                                'message' => $project->description ?? 'You have been assigned as co-author to a new project.',
+                                'message' => $project->description ?? 'You have been assigned as co-author to a new project: ' . $project->title,
                                 'sent_at' => now(),
                                 'created_by' => $authorEmployee ? $authorEmployee->id : null,
                                 'updated_at' => now(),
@@ -573,25 +614,51 @@ class ProjectController extends Controller
             }
         }
 
-        // Insert new contributor assignments
-        if ($request->contributors && is_array($request->contributors)) {
-            $contributorAssignments = [];
-            foreach ($request->contributors as $employeeId) {
-                $employeeExists = Employee::where('id', $employeeId)->exists();
-                if ($employeeExists) {
-                    $contributorAssignments[] = [
-                        'project_id' => $project->id,
-                        'employee_id' => $employeeId,
-                        'role' => 'contributor',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+            // Insert new contributor assignments
+            if ($request->contributors && is_array($request->contributors)) {
+                $contributorAssignments = [];
+                foreach ($request->contributors as $employeeId) {
+                    $employeeExists = Employee::where('id', $employeeId)->exists();
+                    if ($employeeExists) {
+                        $contributorAssignments[] = [
+                            'project_id' => $project->id,
+                            'employee_id' => $employeeId,
+                            'role' => 'contributor',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                        
+                        // Create notification for new contributor
+                        try {
+                            $authorEmployee = auth()->user()->employee;
+                            $existingNotification = Notification::where('employee_id', $employeeId)
+                                ->where('type', 'new job')
+                                ->where('title', 'New Project Assigned')
+                                ->where('message', 'like', '%assigned as contributor to a new project%')
+                                ->whereDate('created_at', now()->toDateString())
+                                ->first();
+                                
+                            if (!$existingNotification) {
+                                Notification::create([
+                                    'employee_id' => $employeeId,
+                                    'type' => 'new job',
+                                    'title' => 'New Project Assigned',
+                                    'message' => $project->description ?? 'You have been assigned as contributor to a new project: ' . $project->title,
+                                    'sent_at' => now(),
+                                    'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                                    'updated_at' => now(),
+                                    'created_at' => now(),
+                                ]);
+                            }
+                        } catch (\Exception $ex) {
+                            \Log::error('Failed to create notification for contributor ' . $employeeId . ': ' . $ex->getMessage());
+                        }
+                    }
+                }
+                if (!empty($contributorAssignments)) {
+                    ProjectAssignment::insert($contributorAssignments);
                 }
             }
-            if (!empty($contributorAssignments)) {
-                ProjectAssignment::insert($contributorAssignments);
-            }
-        }
 
         return response()->json(['message' => 'Project updated successfully', 'project' => $project]);
     }
