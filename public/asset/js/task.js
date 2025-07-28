@@ -913,23 +913,36 @@ document.addEventListener("DOMContentLoaded", function () {
             statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 4.5%; right: 70px;">REJECTED</span>';
         }
 
-                // Conditionally render arrow icon only if status is not completed
-                const arrowIconHtml = (task.status !== 'completed') ? 
-                `<span class="material-symbols-outlined arrow-forward-icon" 
-                    data-bs-toggle="tooltip" 
-                    data-placement="bottom" 
-                    data-task-id="${task.id}" 
-                    data-task-status="${task.status}" 
-                    title="${
-                        (task.status === 'new_request' || task.status === 'new request') 
-                            ? 'Progress' 
-                            : (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') 
-                                ? 'Set to Complete' 
-                                : ''
-                    }">
-                    arrow_forward
-                </span>` 
-            : '';
+                // Conditionally render icon based on status
+                let iconHtml = '';
+                if (task.status !== 'completed') {
+                    if (task.status === 'in_progress' || task.status === 'in progress') {
+                        // Show check icon for In Progress tasks
+                        iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
+                            data-bs-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-task-id="${task.id}" 
+                            data-task-status="${task.status}" 
+                            title="Set to Complete">
+                            check
+                        </span>`;
+                    } else {
+                        // Show arrow icon for other non-completed tasks
+                        iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
+                            data-bs-toggle="tooltip" 
+                            data-placement="bottom" 
+                            data-task-id="${task.id}" 
+                            data-task-status="${task.status}" 
+                            title="${
+                                (task.status === 'new_request' || task.status === 'new request') 
+                                    ? 'Progress' 
+                                    : 'Set to Complete'
+                            }">
+                            arrow_forward
+                        </span>`;
+                    }
+                }
+                const arrowIconHtml = iconHtml;
 
                 // Check if description is long enough to need truncation
                 const description = task.description || '';
