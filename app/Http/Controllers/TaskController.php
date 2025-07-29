@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\NotificationController;
 
 use Illuminate\Http\Request;
 use App\Models\Task;
@@ -216,11 +218,12 @@ class TaskController extends Controller
             ]);
         }
 
-        // Handle executor assignments
+        // Handle executor assignments and send notifications
         if ($request->has('executors')) {
             $executorIds = json_decode($request->input('executors'), true);
             if (is_array($executorIds)) {
                 foreach ($executorIds as $executorId) {
+                    // Create task assignment
                     TaskAssignment::create([
                         'task_id' => $task->id,
                         'employee_id' => $executorId,
@@ -228,6 +231,18 @@ class TaskController extends Controller
                         'is_receive' => false,
                         'date_receive' => null,
                     ]);
+
+                    // Send notification to executor
+                    $executor = Employee::find($executorId);
+                    if ($executor) {
+                        NotificationController::createUserNotification(
+                            $executorId,
+                            'task_assignment',
+                            'New Task Assigned',
+                            'You have been assigned as executor for task: ' . $task->title,
+                            auth()->user()->employee->id ?? null
+                        );
+                    }
                 }
             }
         }
@@ -409,6 +424,12 @@ class TaskController extends Controller
 
         // Update executor assignments
         if ($request->has('executors')) {
+            // Get existing executor IDs before deletion
+            $existingExecutors = TaskAssignment::where('task_id', $task->id)
+                ->where('role', 'executor')
+                ->pluck('employee_id')
+                ->toArray();
+
             // Delete existing executor assignments (keep PIC)
             TaskAssignment::where('task_id', $task->id)
                 ->where('role', 'executor')
@@ -425,6 +446,20 @@ class TaskController extends Controller
                         'is_receive' => false,
                         'date_receive' => null,
                     ]);
+
+                    // Send notification only to NEW executors (not existing ones)
+                    if (!in_array($executorId, $existingExecutors)) {
+                        $executor = Employee::find($executorId);
+                        if ($executor) {
+                            NotificationController::createUserNotification(
+                                $executorId,
+                                'task_assignment',
+                                'New Task Assigned',
+                                'You have been assigned as executor for task: ' . $task->title,
+                                auth()->user()->employee->id ?? null
+                            );
+                        }
+                    }
                 }
             }
         }
