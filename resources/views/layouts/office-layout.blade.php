@@ -66,7 +66,7 @@
             <div class="nav-item d-inline-block me-3" style="">
                 <div class="nav-icon">
                     <div class="d-flex position-relative">
-                        <span class="material-symbols-outlined" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#notificationModal">notifications</span>
+                        <span class="material-symbols-outlined" style="cursor: pointer;" id="notificationDropdownToggle">notifications</span>
                         <span id="notificationBadge" class="notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
                             <span id="notificationCount">0</span>
                         </span>
@@ -256,25 +256,22 @@
         {{ $script_slot }}
     @endisset
 
-    <!-- Notification Modal -->
-    <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4 shadow-lg">
-                <div class="modal-header border-0 pb-2">
-                    <h5 class="modal-title fw-semibold" id="notificationModalLabel">
-                        <span class="material-symbols-outlined me-2 align-middle">notifications</span>
-                        Notifications
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body pt-0">
-                    <div class="notification-list" id="notificationList">
-                        <!-- Notifications will be loaded dynamically -->
-                        <div class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
+    <!-- Notification Dropdown Card -->
+    <div id="notificationDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
+        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" id="closeNotificationDropdown"
+            aria-label="Close"></button>
+        <div class="card-body p-0">
+            <div class="p-3 border-bottom">
+                <h5 class="fw-semibold mb-0">
+                    <span class="material-symbols-outlined me-2 align-middle">notifications</span>
+                    Notifications
+                </h5>
+            </div>
+            <div class="notification-list" id="notificationList">
+                <!-- Notifications will be loaded dynamically -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
             </div>

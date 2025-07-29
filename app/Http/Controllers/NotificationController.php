@@ -41,6 +41,7 @@ class NotificationController extends Controller
                 'created_at' => $notification->created_at,
                 'created_by_name' => $notification->creator ? $notification->creator->name : 'System',
                 'employee_id' => $notification->employee_id, // Tambahkan untuk validasi
+                'is_read' => $notification->is_read, // Include read status
             ];
         });
 

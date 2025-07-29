@@ -85,15 +85,15 @@ $(document).ready(function() {
                         }
                         
                         html += `
-                            <div class="notification-item position-relative d-flex align-items-start p-3 mb-2 rounded-3 hover-bg-light" data-notification-id="${notification.id}">
+                            <div class="notification-item position-relative d-flex align-items-start" data-notification-id="${notification.id}">
                                
-                                <div class="notification-content flex-grow-1">
-                                    <div class="notification-title fw-medium mb-1">${notification.title}</div>
-                                    <div class="notification-text text-muted small">${notification.message}</div>
-                                    <div class="notification-time text-muted small mt-1">${timeAgo}</div>
+                                <div class="notification-content" style="position: relative;">
+                                    <div class="notification-title">${notification.title}</div>
+                                    <div class="notification-text">${notification.message}</div>
+                                    <div class="notification-time">${timeAgo}</div>
                                     ${acceptButton}
+                                    ${notification.is_read ? '<div class="notification-read-label">Read</div>' : ''}
                                 </div>
-                               
                             </div>
                         `;
                     });
@@ -191,11 +191,46 @@ $(document).ready(function() {
         }
     });
 
-    // Load notifications when modal is opened
-    $(document).on('shown.bs.modal', '#notificationModal', function() {
-        fetchNotifications();
-        // Mark all notifications as read when modal is opened
+    let dropdownClosed = false;
+
+    // Notification Dropdown functionality
+    function toggleNotificationDropdown() {
+        const dropdown = $('#notificationDropdownCard');
+        dropdown.toggle();
+        
+        if (dropdown.is(':visible')) {
+            fetchNotifications();
+            // Only mark all as read if dropdown was previously closed
+            if (dropdownClosed) {
+                markAllAsRead();
+            }
+            dropdownClosed = false;
+        }
+    }
+
+    function hideNotificationDropdown() {
+        $('#notificationDropdownCard').hide();
+        // Mark all currently loaded notifications as read when dropdown is closed
         markAllAsRead();
+        dropdownClosed = true;
+    }
+
+    // Notification dropdown event handlers
+    $(document).on('click', '#notificationDropdownToggle', function(e) {
+        e.stopPropagation();
+        toggleNotificationDropdown();
+    });
+
+    $(document).on('click', '#closeNotificationDropdown', function(e) {
+        e.stopPropagation();
+        hideNotificationDropdown();
+    });
+
+    // Close dropdown when clicking outside
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('#notificationDropdownCard, #notificationDropdownToggle').length) {
+            hideNotificationDropdown();
+        }
     });
 
     // Mark notification as read when clicked
@@ -230,6 +265,8 @@ $(document).ready(function() {
                 // Hide badge immediately for current user only
                 $('#notificationBadge').hide();
                 $('#notificationCount').text('0');
+                // Refresh notifications to update UI with read labels
+                fetchNotifications();
             },
             error: function() {
                 console.error('Failed to mark all notifications as read');
@@ -333,34 +370,32 @@ $(document).ready(function() {
 
    // Accept task function for task assignment notifications
 function acceptTask(taskId, notificationId) {
-    if (confirm('Are you sure you want to accept this task?')) {
-        const appUrl = $('meta[name="app-url"]').attr('content');
-        $.ajax({
-            url: `${appUrl}/task/${taskId}/accept`,
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(response) {
-                showDeleteSuccessAlert('Task accepted successfully!', 'success');
-                
-                // Remove notification from list
-                $(`[data-notification-id="${notificationId}"]`).remove();
-                
-                // Update notification count
-                fetchNotificationCount();
+    const appUrl = $('meta[name="app-url"]').attr('content');
+    $.ajax({
+        url: `${appUrl}/task/${taskId}/accept`,
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            showDeleteSuccessAlert('Task accepted successfully!', 'success');
+            
+            // Remove notification from list
+            $(`[data-notification-id="${notificationId}"]`).remove();
+            
+            // Update notification count
+            fetchNotificationCount();
 
-                // Reload the page after short delay (optional)
-                setTimeout(() => {
+            // Reload the page after short delay (optional)
+            setTimeout(() => {
                 window.location.href = `${appUrl}/task`;
-                }, 1000); // 1 detik delay agar alert terlihat dulu
-            },
-            error: function(xhr, status, error) {
-                console.error('Error accepting task:', status, error);
-                showDeleteSuccessAlert('Failed to accept task', 'error');
-            }
-        });
-    }
+            }, 1000); // 1 second delay so alert is visible first
+        },
+        error: function(xhr, status, error) {
+            console.error('Error accepting task:', status, error);
+            showDeleteSuccessAlert('Failed to accept task', 'error');
+        }
+    });
 }
 
     // Make acceptTask function globally available

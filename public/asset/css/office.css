@@ -577,7 +577,7 @@ td > .btn-delete {
     background: #a8a8a8;
 }
 
-.notification-badge {
+        .notification-badge {
             font-size: 0.7rem;
             min-width: 18px;
             height: 18px;
@@ -587,7 +587,154 @@ td > .btn-delete {
             justify-content: center;
         }
         
-       
+        /* Notification Dropdown Styles */
+        #notificationDropdownCard {
+            position: fixed;
+            background-color: rgb(240, 241, 248);
+            border: 0;
+            top: 80px;
+            right: 20px;
+            width: 350px;
+            min-height: 400px;
+            overflow-y: auto;
+            border-radius: 12px;
+            z-index: 1050;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        #notificationDropdownCard .card-body > .border-bottom {
+            border-color: #dee2e6;
+        }
+
+        #notificationDropdownCard h5 {
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        @media (max-width: 568px) { 
+            #notificationDropdownCard {
+                width: calc(100vw - 40px);
+                right: 20px;
+                left: 20px;
+            }
+        }
+
+        #notificationDropdownCard .btn-close.position-absolute {
+            cursor: pointer;
+            z-index: 1060;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        #notificationDropdownCard .btn-close.position-absolute:hover {
+            opacity: 1;
+        }
+
+        #notificationDropdownCard .notification-list {
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        #notificationDropdownCard .notification-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+            background-color: white;
+            margin: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        #notificationDropdownCard .notification-item:hover {
+            background-color: #f8f9fa;
+            border-left-color: #0d6efd;
+            transform: translateX(2px);
+        }
+
+        #notificationDropdownCard .notification-icon {
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        #notificationDropdownCard .notification-icon .material-symbols-outlined {
+            font-size: 24px;
+            color: #0d6efd;
+        }
+
+        #notificationDropdownCard .notification-content {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        #notificationDropdownCard .notification-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        #notificationDropdownCard .notification-text {
+            color: #6c757d;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        #notificationDropdownCard .notification-time {
+            color: #6c757d;
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+
+        #notificationDropdownCard .notification-read-label {
+            position: absolute;
+            bottom: 4px;
+            right: 8px;
+            font-size: 0.65rem;
+            color: #6c757d;
+            font-style: italic;
+            user-select: none;
+        }
+
+        #notificationDropdownCard .notification-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        #notificationDropdownCard .notification-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        #notificationDropdownCard .notification-list::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+
+        #notificationDropdownCard .notification-list::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        #notificationDropdownCard .empty-notifications {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        #notificationDropdownCard .btn-accept-task {
+            font-size: 12px;
+            padding: 4px 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        #notificationDropdownCard .btn-accept-task .material-symbols-outlined {
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        
         .empty-notifications {
             text-align: center;
             padding: 2rem;
