@@ -438,23 +438,40 @@ class TaskController extends Controller
 
         $task->update($data);
 
-        // Update executor assignments
+        // Update executor assignments - preserve existing accept status
         if ($request->has('executors')) {
-            // Get existing executor IDs before deletion
+            // Get existing executor assignments with their current status
             $existingExecutors = TaskAssignment::where('task_id', $task->id)
                 ->where('role', 'executor')
-                ->pluck('employee_id')
-                ->toArray();
+                ->get()
+                ->keyBy('employee_id');
 
-            // Delete existing executor assignments (keep PIC)
+            // Get new executor IDs
+            $newExecutorIds = json_decode($request->input('executors'), true);
+            if (!is_array($newExecutorIds)) {
+                $newExecutorIds = [];
+            }
+
+            // Remove executors that are no longer in the list
             TaskAssignment::where('task_id', $task->id)
                 ->where('role', 'executor')
+                ->whereNotIn('employee_id', $newExecutorIds)
                 ->delete();
 
-            // Add new executor assignments
-            $executorIds = json_decode($request->input('executors'), true);
-            if (is_array($executorIds)) {
-                foreach ($executorIds as $executorId) {
+            // Add new executors or update existing ones
+            foreach ($newExecutorIds as $executorId) {
+                // Skip if executor is the PIC
+                $picEmployeeId = auth()->user()->employee->id ?? null;
+                if ($executorId == $picEmployeeId) {
+                    continue;
+                }
+
+                // Check if this executor already exists
+                if (isset($existingExecutors[$executorId])) {
+                    // Executor already exists, keep their current status
+                    continue;
+                } else {
+                    // New executor, create with pending status
                     TaskAssignment::create([
                         'task_id' => $task->id,
                         'employee_id' => $executorId,
@@ -463,18 +480,17 @@ class TaskController extends Controller
                         'date_receive' => null,
                     ]);
 
-                    // Send notification only to NEW executors (not existing ones)
-                    if (!in_array($executorId, $existingExecutors)) {
-                        $executor = Employee::find($executorId);
-                        if ($executor) {
-                            NotificationController::createUserNotification(
-                                $executorId,
-                                'task_assignment',
-                                'New Task Assigned',
-                                'You have been assigned as executor for task: ' . $task->title,
-                                auth()->user()->employee->id ?? null
-                            );
-                        }
+                    // Send notification to new executor
+                    $executor = Employee::find($executorId);
+                    if ($executor) {
+                        NotificationController::createUserNotification(
+                            $executorId,
+                            'task_assignment',
+                            'New Task Assigned',
+                            'You have been assigned as executor for task: ' . $task->title,
+                            auth()->user()->employee->id ?? null,
+                            $task->id
+                        );
                     }
                 }
             }
