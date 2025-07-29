@@ -100,7 +100,7 @@ class ProjectController extends Controller
     /**
      * Display a listing of the projects.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
         if (!$user || !$user->employee) {
@@ -109,11 +109,35 @@ class ProjectController extends Controller
         }
         $employeeId = $user->employee->id;
 
-        // Get projects where the employee is author, co_author, or contributor
-        $projects = Project::whereHas('projectAssignments', function ($query) use ($employeeId) {
+        $filter = $request->input('filter', null);
+
+        // Base query for projects where the employee is author, co_author, or contributor
+        $query = Project::whereHas('projectAssignments', function ($query) use ($employeeId) {
             $query->where('employee_id', $employeeId)
                   ->whereIn('role', ['author', 'co_author', 'contributor']);
-        })->with([
+        });
+
+        if ($filter === 'not_started') {
+            // Filter projects where tasks have status 'new_request' or no tasks at all
+            $query->where(function ($q) {
+                $q->whereHas('tasks', function ($q2) {
+                    $q2->where('status', 'new_request');
+                })->orWhereDoesntHave('tasks');
+            });
+        } elseif ($filter === 'in_progress') {
+            // Filter projects where tasks have status 'in_progress' or 'rejected'
+            $query->whereHas('tasks', function ($q) {
+                $q->whereIn('status', ['in_progress', 'rejected']);
+            });
+        } elseif ($filter === 'completed') {
+ $query->whereIn('projects.id', function ($subquery) {
+    $subquery->from('tasks')
+        ->selectRaw('project_id')
+        ->groupBy('project_id')
+        ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)');
+});
+}
+        $projects = $query->with([
             'department',
             'division',
             'projectAssignments.employee',

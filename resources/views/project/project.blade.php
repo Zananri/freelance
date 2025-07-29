@@ -38,8 +38,8 @@
                         <select id="filterProjectStatus" class="form-select">
                             <option value="">All Status</option>
                             <option value="ongoing">Not Started</option>
-                            <option value="completed">In Progress</option>
-                            <option value="pending">Completed</option>
+                            <option value="pending">In Progress</option>
+                            <option value="completed">Completed</option>
                         </select>
                     </div>
                 </div>

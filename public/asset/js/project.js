@@ -11,11 +11,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const addProjectForm = document.getElementById("addProjectForm");
 
     // Load project card data and generate cards dynamically
-    function loadProjectCardData() {
+    function loadProjectCardData(filter = null) {
         $.ajax({
             url: appUrl + "/project/index",
             type: "GET",
             dataType: "json",
+            data: { filter: filter },
             success: function (data) {
                 let container = document.getElementById("project-cards-container");
                 container.innerHTML = ""; // Clear existing cards
@@ -2579,7 +2580,21 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
                 const selectedStatus = filterStatus ? filterStatus.value : '';
                 console.log('Filter applied with status:', selectedStatus);
                 filterDropdown.style.display = 'none';
-                // Logic untuk filter akan ditambahkan nanti
+
+                // Map UI filter values to backend filter parameters
+                let filterParam = null;
+                if (selectedStatus === '') {
+                    filterParam = null; // no filter
+                } else if (selectedStatus === 'ongoing') {
+                    filterParam = 'not_started'; // map "Not Started" to backend filter
+                } else if (selectedStatus === 'completed') {
+                    filterParam = 'completed'; // map "Completed" to backend filter
+                } else if (selectedStatus === 'pending') {
+                    filterParam = 'in_progress'; // map "In Progress" to backend filter
+                }
+
+                // Reload project cards with filter parameter
+                loadProjectCardData(filterParam);
             });
         }
 
