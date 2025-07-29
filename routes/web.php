@@ -109,6 +109,8 @@ Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.dest
 
 // Task status update routes
 Route::put('/task/{id}/status', [TaskController::class, 'updateStatus'])->name('task.update-status');
+Route::post('/task/{id}/accept', [TaskController::class, 'acceptTask'])->name('task.accept');
+Route::get('/task/{id}/accept-status', [TaskController::class, 'checkAcceptStatus'])->name('task.accept-status');
 
 // Get tasks by project
 Route::get('/projects/{id}/tasks', [TaskController::class, 'getTasksByProject'])->name('project.tasks');

@@ -119,13 +119,18 @@ class NotificationController extends Controller
     /**
      * Create notification for specific user
      */
-    public static function createUserNotification($employeeId, $type, $title, $message, $createdBy = null)
+    public static function createUserNotification($employeeId, $type, $title, $message, $createdBy = null, $taskId = null)
     {
+        $fullMessage = $message;
+        if ($taskId) {
+            $fullMessage .= " [Task ID: {$taskId}]";
+        }
+        
         return Notification::create([
             'employee_id' => $employeeId,
             'type' => $type,
             'title' => $title,
-            'message' => $message,
+            'message' => $fullMessage,
             'sent_at' => now(),
             'is_read' => false,
             'created_by' => $createdBy,

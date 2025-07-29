@@ -871,21 +871,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to create task card HTML
     function createTaskCard(task) {
-        // Combine PIC and executors into one array for uniform rendering
+        // Combine PIC and executors into one array for uniform rendering without duplicates
         const allExecutors = [];
         if (task.pic) {
             allExecutors.push(task.pic);
         }
         if (task.executors && task.executors.length > 0) {
-            allExecutors.push(...task.executors);
+            task.executors.forEach((executor) => {
+                // Avoid duplicate if executor is same as PIC
+                if (!allExecutors.some(e => e.id === executor.id)) {
+                    allExecutors.push(executor);
+                }
+            });
         }
-        const executorsHtml = allExecutors
+
+        // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
+       const executorsHtml = allExecutors
             .map((executor, index) => {
-                const overlapClass =
-                    index === 0 ? "" : "executor-image-overlap";
-                const zIndexStyle = `style="z-index: ${index + 1};"`;
-                const role = index === 0 && task.pic && executor.id === task.pic.id ? 'PIC' : 'Executor';
-                return `<img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name}" ${zIndexStyle}>`;
+            const overlapClass = index === 0 ? "" : "executor-image-overlap";
+            const zIndexStyle = `style="z-index: ${index + 1};"`;
+            // Do not show badge for PIC
+            return `
+            <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
+            <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name} ${executor.is_receive ? '' : '(Pending)'}" ${zIndexStyle}>
+            </div>
+            `;
             })
             .join("");
 
@@ -979,12 +989,6 @@ document.addEventListener("DOMContentLoaded", function () {
         <hr class="task-separator rounded-4">
         <div class="d-flex justify-content-between align-items-center mb-2">
             <div class="d-flex align-items-center pic-executor-container">
-                ${
-                    task.pic
-                        ? `<img src="${task.pic.image}" alt="${task.pic.name}" class="pic-executor-image"
-                    title="${task.pic.name}">`
-                        : ""
-                }
                 ${executorsHtml}
             </div>
             <div class="d-flex">

@@ -43,11 +43,19 @@ class TaskController extends Controller
         $projectId = $request->input('project');
         $status = $request->input('status');
 
-        // Build base query
+        // Build base query - include all tasks where user is PIC or executor
         $query = Task::with(['project', 'assignments.employee', 'feedback_comments'])
             ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
-                $query->where('employee_id', $currentEmployeeId)
-                      ->whereIn('role', ['PIC', 'executor']);
+                $query->where(function ($q) use ($currentEmployeeId) {
+                    $q->where('employee_id', $currentEmployeeId)
+                      ->where(function ($q2) {
+                          $q2->where('role', 'PIC')
+                             ->orWhere(function ($q3) {
+                                 $q3->where('role', 'executor')
+                                    ->where('is_receive', true);
+                             });
+                      });
+                });
             });
 
         // Apply project filter if provided
@@ -97,38 +105,40 @@ class TaskController extends Controller
                         $responseKey = 'new_request';
                 }
 
-                // Get unique executors (including PIC if also executor)
-                $allExecutors = collect();
-                
-                // Add PIC first (always show PIC)
-                if ($pic) {
-                    $allExecutors->push([
-                        'name' => $pic->employee->name ?? '',
-                        'image' => $pic->employee && $pic->employee->user && $pic->employee->user->photo ? asset($pic->employee->user->photo) : asset('asset/img/profile_picture/default.png'),
+                // Prepare PIC data
+                $picData = null;
+                if ($pic && $pic->employee) {
+                    $picData = [
                         'id' => $pic->employee->id,
-                    ]);
-                }
-                
-                // Add executors that are not the PIC
-                $executorsMapped = $executors->map(function ($executor) {
+                'name' => $pic->employee->name,
+                'image' => $pic->employee->user && $pic->employee->user->photo 
+                    ? asset($pic->employee->user->photo) 
+                    : asset('asset/img/profile_picture/default.png'),
+                'is_receive' => true,
+            ];
+        }
+
+                // Prepare executors data with is_receive status
+                $executorsData = $executors->map(function ($executor) {
                     return [
-                        'name' => $executor->employee->name ?? '',
-                        'image' => $executor->employee && $executor->employee->user && $executor->employee->user->photo ? asset($executor->employee->user->photo) : asset('asset/img/profile_picture/default.png'),
                         'id' => $executor->employee->id,
+                        'name' => $executor->employee->name,
+                        'image' => $executor->employee->user && $executor->employee->user->photo 
+                            ? asset($executor->employee->user->photo) 
+                            : asset('asset/img/profile_picture/default.png'),
+                        'is_receive' => $executor->is_receive,
+                        'role' => $executor->role,
                     ];
-                })->filter(function ($executor) use ($pic) {
-                    return !$pic || $executor['id'] != $pic->employee->id;
                 })->values();
-                
-                $allExecutors = $allExecutors->merge($executorsMapped);
 
                 $response[$responseKey][] = [
                     'id' => $task->id,
                     'title' => $task->title,
                     'description' => $task->description,
                     'project_image' => ($task->project && $task->project->image) ? asset('file/project/' . $task->project->image) : asset('asset/img/profile_picture/sample_project.png'),
-                    'project_id' => $task->project_id, // Add project_id for filtering
-                    'executors' => $allExecutors,
+                    'project_id' => $task->project_id,
+                    'pic' => $picData,
+                    'executors' => $executorsData,
                     'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                     'feedback_comments_count' => $task->feedback_comments ? $task->feedback_comments->count() : 0,
                     'status' => $task->status,
@@ -213,8 +223,8 @@ class TaskController extends Controller
                 'task_id' => $task->id,
                 'employee_id' => $user->employee->id,
                 'role' => 'PIC',
-                'is_receive' => false,
-                'date_receive' => null,
+                'is_receive' => true,
+                'date_receive' => now(),
             ]);
         }
 
@@ -222,7 +232,12 @@ class TaskController extends Controller
         if ($request->has('executors')) {
             $executorIds = json_decode($request->input('executors'), true);
             if (is_array($executorIds)) {
+                $picEmployeeId = $user->employee->id ?? null;
                 foreach ($executorIds as $executorId) {
+                    // Skip if executor is the PIC themselves
+                    if ($executorId == $picEmployeeId) {
+                        continue;
+                    }
                     // Create task assignment
                     TaskAssignment::create([
                         'task_id' => $task->id,
@@ -240,7 +255,8 @@ class TaskController extends Controller
                             'task_assignment',
                             'New Task Assigned',
                             'You have been assigned as executor for task: ' . $task->title,
-                            auth()->user()->employee->id ?? null
+                            $picEmployeeId,
+                            $task->id
                         );
                     }
                 }
@@ -722,5 +738,73 @@ class TaskController extends Controller
         return response()->json([
             'data' => $response
         ]);
+    }
+
+    /**
+     * Check if task is already accepted by current user
+     */
+    public function checkAcceptStatus($taskId)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->employee) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $assignment = TaskAssignment::where('task_id', $taskId)
+            ->where('employee_id', $user->employee->id)
+            ->where('role', 'executor')
+            ->first();
+
+        if (!$assignment) {
+            return response()->json(['error' => 'Task assignment not found'], 404);
+        }
+
+        return response()->json([
+            'is_accepted' => $assignment->is_receive,
+            'task_id' => $taskId
+        ]);
+    }
+
+    /**
+     * Accept task assignment for executor
+     */
+    public function acceptTask(Request $request, $taskId)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->employee) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $assignment = TaskAssignment::where('task_id', $taskId)
+            ->where('employee_id', $user->employee->id)
+            ->where('role', 'executor')
+            ->first();
+
+        if (!$assignment) {
+            return response()->json(['error' => 'Task assignment not found'], 404);
+        }
+
+        // Check if already accepted
+        if ($assignment->is_receive) {
+            return response()->json(['error' => 'Task already accepted'], 400);
+        }
+
+        $assignment->update([
+            'is_receive' => true,
+            'date_receive' => now(),
+        ]);
+
+        // Send notification to PIC that executor has accepted the task
+        $picAssignment = $assignment->task->assignments->firstWhere('role', 'PIC');
+        if ($picAssignment) {
+            NotificationController::createUserNotification(
+                $picAssignment->employee_id,
+                'task_accepted',
+                'Task Accepted',
+                $user->employee->name . ' has accepted the task: ' . $assignment->task->title
+            );
+        }
+
+        return response()->json(['message' => 'Task accepted successfully']);
     }
 }

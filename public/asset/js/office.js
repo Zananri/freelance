@@ -62,29 +62,44 @@ $(document).ready(function() {
                     return;
                 }
 
-                let html = '';
-                notifications.forEach(notification => {
-                    const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
-                    html += `
-                        <div class="notification-item position-relative d-flex align-items-start p-3 mb-2 rounded-3 hover-bg-light" data-notification-id="${notification.id}">
-                            <div class="notification-icon me-3">
-                                <span class="material-symbols-outlined text-primary">info</span>
+                // Check task acceptance status for each notification
+                checkTaskAcceptanceStatus(notifications).then(notificationsWithStatus => {
+                    let html = '';
+                    notificationsWithStatus.forEach(notification => {
+                        const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
+                        const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
+                        const taskId = taskIdMatch ? taskIdMatch[1] : null;
+                        
+                        let acceptButton = '';
+                        if (notification.type === 'task_assignment' && taskId && !notification.is_accepted) {
+                            acceptButton = `
+                                <div class="d-flex gap-2 mt-2">
+                                    <button class="btn btn-sm btn-primary btn-accept-task" 
+                                            onclick="acceptTask(${taskId}, ${notification.id})"
+                                            style="font-size: 12px; padding: 4px 8px;">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
+                                        Accept Task
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        
+                        html += `
+                            <div class="notification-item position-relative d-flex align-items-start p-3 mb-2 rounded-3 hover-bg-light" data-notification-id="${notification.id}">
+                               
+                                <div class="notification-content flex-grow-1">
+                                    <div class="notification-title fw-medium mb-1">${notification.title}</div>
+                                    <div class="notification-text text-muted small">${notification.message}</div>
+                                    <div class="notification-time text-muted small mt-1">${timeAgo}</div>
+                                    ${acceptButton}
+                                </div>
+                               
                             </div>
-                            <div class="notification-content flex-grow-1">
-                                <div class="notification-title fw-medium mb-1">${notification.title}</div>
-                                <div class="notification-text text-muted small">${notification.message}</div>
-                                <div class="notification-time text-muted small mt-1">${timeAgo}</div>
-                            </div>
-                            <button class="btn-delete-notification position-absolute top-0 end-0 btn btn-sm btn-link text-danger p-1" 
-                                    data-notification-id="${notification.id}" 
-                                    title="Delete notification">
-                                <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
-                            </button>
-                        </div>
-                    `;
+                        `;
+                    });
+                    
+                    notificationList.html(html);
                 });
-                
-                notificationList.html(html);
             },
             error: function(xhr, status, error) {
                 console.error('Failed to load notifications:', status, error);
@@ -96,6 +111,37 @@ $(document).ready(function() {
                 `);
             }
         });
+    }
+
+    // Function to check task acceptance status
+    function checkTaskAcceptanceStatus(notifications) {
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        const promises = notifications.map(notification => {
+            if (notification.type === 'task_assignment') {
+                const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
+                const taskId = taskIdMatch ? taskIdMatch[1] : null;
+                
+                if (taskId) {
+                    return $.ajax({
+                        url: `${appUrl}/task/${taskId}/accept-status`,
+                        type: "GET"
+                    }).then(response => {
+                        return {
+                            ...notification,
+                            is_accepted: response.is_accepted
+                        };
+                    }).catch(() => {
+                        return {
+                            ...notification,
+                            is_accepted: false
+                        };
+                    });
+                }
+            }
+            return Promise.resolve(notification);
+        });
+        
+        return Promise.all(promises);
     }
 
     function getTimeAgo(dateString) {
@@ -284,6 +330,41 @@ $(document).ready(function() {
             }
         });
     });
+
+   // Accept task function for task assignment notifications
+function acceptTask(taskId, notificationId) {
+    if (confirm('Are you sure you want to accept this task?')) {
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        $.ajax({
+            url: `${appUrl}/task/${taskId}/accept`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                showDeleteSuccessAlert('Task accepted successfully!', 'success');
+                
+                // Remove notification from list
+                $(`[data-notification-id="${notificationId}"]`).remove();
+                
+                // Update notification count
+                fetchNotificationCount();
+
+                // Reload the page after short delay (optional)
+                setTimeout(() => {
+                window.location.href = `${appUrl}/task`;
+                }, 1000); // 1 detik delay agar alert terlihat dulu
+            },
+            error: function(xhr, status, error) {
+                console.error('Error accepting task:', status, error);
+                showDeleteSuccessAlert('Failed to accept task', 'error');
+            }
+        });
+    }
+}
+
+    // Make acceptTask function globally available
+    window.acceptTask = acceptTask;
 
     // Initial load
     fetchNotificationCount();
