@@ -2556,6 +2556,7 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
         const openFilterBtn = document.getElementById('openProjectFilterBtn');
         const filterDropdown = document.getElementById('projectFilterDropdown');
         const applyFilterBtn = document.getElementById('applyProjectFilterBtn');
+        const resetFilterBtn = document.getElementById('resetProjectFilterBtn');
         const filterStatus = document.getElementById('filterProjectStatus');
 
         if (!openFilterBtn || !filterDropdown) return;
@@ -2598,11 +2599,30 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
             });
         }
 
+        // Handle reset filter button
+        if (resetFilterBtn) {
+            resetFilterBtn.addEventListener('click', function() {
+                // Reset the filter dropdown to default
+                if (filterStatus) {
+                    filterStatus.value = '';
+                }
+                
+                // Close the dropdown
+                filterDropdown.style.display = 'none';
+                
+                // Reload project cards without filter (show all)
+                loadProjectCardData(null);
+                
+                // Provide visual feedback
+            });
+        }
+
         // Handle dropdown item clicks
         filterDropdown.addEventListener('click', function(e) {
             e.stopPropagation();
         });
     }
+
 
     // Clear form and reset image preview when modal is closed
     var addProjectModalEl = document.getElementById("addProjectModal");

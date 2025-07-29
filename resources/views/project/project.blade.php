@@ -45,6 +45,7 @@
                 </div>
                 <div class="dropdown-filter-footer">
                     <button type="button" class="btn btn-primary" id="applyProjectFilterBtn">Filter</button>
+                    <button type="button" class="btn btn-secondary" id="resetProjectFilterBtn">Reset</button>
                 </div>
             </div>
         </div>
