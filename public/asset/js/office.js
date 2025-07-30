@@ -246,12 +246,57 @@ $(document).ready(function() {
         }
     });
 
-    // Redirect to task page when notification is clicked (without marking as read)
+    // Redirect to appropriate page when notification is clicked (without marking as read)
     $(document).on('click', '.notification-item', function() {
         const appUrl = $('meta[name="app-url"]').attr('content');
-        // Redirect to task page without marking notification as read
-        window.location.href = `${appUrl}/task`;
+        const notificationId = $(this).data('notification-id');
+        const notificationTitle = $(this).find('.notification-title').text().toLowerCase();
+        
+        // Mark notification as read first
+        markNotificationAsRead(notificationId, function() {
+            // Check if this is a project notification
+            if (notificationTitle.includes('project')) {
+                // Redirect to project page
+                window.location.href = `${appUrl}/project`;
+            } else {
+                // Redirect to task page for other notifications
+                window.location.href = `${appUrl}/task`;
+            }
+        });
     });
+    
+    // Function to mark notification as read
+    function markNotificationAsRead(notificationId, callback) {
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        $.ajax({
+            url: `${appUrl}/notifications/${notificationId}/read`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function() {
+                // Update notification UI to show as read
+                const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+                notificationElement.find('.notification-unread-dot').remove();
+                notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
+                
+                // Update notification count
+                fetchNotificationCount();
+                
+                // Execute callback if provided
+                if (typeof callback === 'function') {
+                    callback();
+                }
+            },
+            error: function() {
+                console.error('Failed to mark notification as read');
+                // Still execute callback even if marking as read fails
+                if (typeof callback === 'function') {
+                    callback();
+                }
+            }
+        });
+    }
 
     // Function to mark all notifications as read
     function markAllAsRead() {
@@ -344,18 +389,6 @@ $(document).ready(function() {
         if (confirm('Are you sure you want to delete this notification?')) {
             deleteNotification(notificationId);
         }
-    });
-
-    // Prevent notification click when clicking delete button
-    // If not clicking delete button, redirect to task page (without marking as read)
-    $(document).on('click', '.notification-item', function(e) {
-        if ($(e.target).closest('.btn-delete-notification').length) {
-            return;
-        }
-        
-        const appUrl = $('meta[name="app-url"]').attr('content');
-        // Redirect to task page without marking notification as read
-        window.location.href = `${appUrl}/task`;
     });
 
     // Accept task function for task assignment notifications
