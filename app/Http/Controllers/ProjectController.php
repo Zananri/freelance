@@ -312,8 +312,8 @@ class ProjectController extends Controller
                         // Cek apakah sudah ada notifikasi untuk project ini
                         $existingNotification = Notification::where('employee_id', $employeeId)
                             ->where('type', 'new job')
-                            ->where('title', 'New Project Assigned')
-                            ->where('message', 'like', '%assigned as co-author to a new project%')
+                            ->where('title', 'You have been assigned as co-author for project: ' . $project->title)
+                            ->where('message', 'like', '%assigned as co-author for project%')
                             ->whereDate('created_at', now()->toDateString())
                             ->first();
                             
@@ -321,8 +321,8 @@ class ProjectController extends Controller
                             Notification::create([
                                 'employee_id' => $employeeId,
                                 'type' => 'new job',
-                                'title' => 'New Project Assigned',
-                                'message' => $project->description ?? 'You have been assigned as co-author to a new project: ' . $project->title,
+                                'title' => 'You have been assigned as co-author for project: ' . $project->title,
+                                'message' => 'You have been assigned as co-author for project: ' . $project->title,
                                 'sent_at' => now(),
                                 'created_by' => $authorEmployee ? $authorEmployee->id : null,
                                 'updated_at' => now(),
@@ -366,8 +366,8 @@ class ProjectController extends Controller
                         // Cek apakah sudah ada notifikasi untuk project ini
                         $existingNotification = Notification::where('employee_id', $employeeId)
                             ->where('type', 'new job')
-                            ->where('title', 'New Project Assigned')
-                            ->where('message', 'like', '%assigned as contributor to a new project%')
+                            ->where('title', 'You have been assigned as contributor for project: ' . $project->title)
+                            ->where('message', 'like', '%assigned as contributor for project%')
                             ->whereDate('created_at', now()->toDateString())
                             ->first();
                             
@@ -375,8 +375,8 @@ class ProjectController extends Controller
                             Notification::create([
                                 'employee_id' => $employeeId,
                                 'type' => 'new job',
-                                'title' => 'New Project Assigned',
-                                'message' => $project->description ?? 'You have been assigned as contributor to a new project: ' . $project->title,
+                                'title' => 'You have been assigned as contributor for project: ' . $project->title,
+                                'message' => 'You have been assigned as contributor for project: ' . $project->title,
                                 'sent_at' => now(),
                                 'created_by' => $authorEmployee ? $authorEmployee->id : null,
                                 'updated_at' => now(),
@@ -628,8 +628,8 @@ class ProjectController extends Controller
                         // Check if notification already exists for this project and employee
                         $existingNotification = Notification::where('employee_id', $employeeId)
                             ->where('type', 'new job')
-                            ->where('title', 'New Project Assigned')
-                            ->where('message', 'like', '%assigned as co-author to a new project%')
+                            ->where('title', 'You have been assigned as co-author for project: ' . $project->title)
+                            ->where('message', 'like', '%assigned as co-author for project%')
                             ->whereDate('created_at', now()->toDateString())
                             ->first();
                             
@@ -637,8 +637,8 @@ class ProjectController extends Controller
                             Notification::create([
                                 'employee_id' => $employeeId,
                                 'type' => 'new job',
-                                'title' => 'New Project Assigned',
-                                'message' => $project->description ?? 'You have been assigned as co-author to a new project: ' . $project->title,
+                                'title' => 'You have been assigned as co-author for project: ' . $project->title,
+                                'message' => 'You have been assigned as co-author for project: ' . $project->title,
                                 'sent_at' => now(),
                                 'created_by' => $authorEmployee ? $authorEmployee->id : null,
                                 'updated_at' => now(),
@@ -674,8 +674,8 @@ class ProjectController extends Controller
                             $authorEmployee = auth()->user()->employee;
                             $existingNotification = Notification::where('employee_id', $employeeId)
                                 ->where('type', 'new job')
-                                ->where('title', 'New Project Assigned')
-                                ->where('message', 'like', '%assigned as contributor to a new project%')
+                                ->where('title', 'You have been assigned as contributor for project: ' . $project->title)
+                                ->where('message', 'like', '%assigned as contributor for project%')
                                 ->whereDate('created_at', now()->toDateString())
                                 ->first();
                                 
@@ -683,8 +683,8 @@ class ProjectController extends Controller
                                 Notification::create([
                                     'employee_id' => $employeeId,
                                     'type' => 'new job',
-                                    'title' => 'New Project Assigned',
-                                    'message' => $project->description ?? 'You have been assigned as contributor to a new project: ' . $project->title,
+                                    'title' => 'You have been assigned as contributor for project: ' . $project->title,
+                                    'message' => 'You have been assigned as contributor for project: ' . $project->title,
                                     'sent_at' => now(),
                                     'created_by' => $authorEmployee ? $authorEmployee->id : null,
                                     'updated_at' => now(),
