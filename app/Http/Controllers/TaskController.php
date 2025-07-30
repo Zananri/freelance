@@ -253,7 +253,7 @@ class TaskController extends Controller
                         NotificationController::createUserNotification(
                             $executorId,
                             'task_assignment',
-                            'New Task Assigned',
+                            'You have been assigned as executor for task: ' . $task->title,
                             'You have been assigned as executor for task: ' . $task->title,
                             $picEmployeeId,
                             $task->id
@@ -486,7 +486,7 @@ class TaskController extends Controller
                         NotificationController::createUserNotification(
                             $executorId,
                             'task_assignment',
-                            'New Task Assigned',
+                            'You have been assigned as executor for task: ' . $task->title,
                             'You have been assigned as executor for task: ' . $task->title,
                             auth()->user()->employee->id ?? null,
                             $task->id
@@ -816,7 +816,7 @@ class TaskController extends Controller
             NotificationController::createUserNotification(
                 $picAssignment->employee_id,
                 'task_accepted',
-                'Task Accepted',
+                $user->employee->name . ' accepted task ' . $assignment->task->title,
                 $user->employee->name . ' has accepted the task: ' . $assignment->task->title
             );
         }

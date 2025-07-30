@@ -593,7 +593,7 @@ td > .btn-delete {
             background-color: rgb(240, 241, 248);
             border: 0;
             top: 80px;
-            right: 20px;
+            right: 120px;
             width: 350px;
             min-height: 400px;
             overflow-y: auto;
@@ -739,4 +739,31 @@ td > .btn-delete {
             text-align: center;
             padding: 2rem;
             color: #6c757d;
+        }
+        
+        /* Unread notification indicator */
+        .notification-unread-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 10px;
+            height: 10px;
+            background-color: #dc3545;
+            border-radius: 50%;
+            z-index: 1000;
+        }
+        
+        /* Adjust notification item padding to accommodate the dot */
+        #notificationDropdownCard .notification-item {
+            padding-right: 24px; /* Add extra padding to the right */
+        }
+        
+        /* Ensure the notification content doesn't overlap with the dot */
+        #notificationDropdownCard .notification-content {
+            padding-right: 10px;
+        }
+        
+        /* Adjust the position of the "Read" label to avoid overlapping with the dot */
+        #notificationDropdownCard .notification-read-label {
+            right: -5px; /* Move it slightly to the left */
         }

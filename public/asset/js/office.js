@@ -62,44 +62,63 @@ $(document).ready(function() {
                     return;
                 }
 
-                // Check task acceptance status for each notification
-                checkTaskAcceptanceStatus(notifications).then(notificationsWithStatus => {
-                    let html = '';
-                    notificationsWithStatus.forEach(notification => {
-                        const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
-                        const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
-                        const taskId = taskIdMatch ? taskIdMatch[1] : null;
-                        
-                        let acceptButton = '';
-                        if (notification.type === 'task_assignment' && taskId && !notification.is_accepted) {
-                            acceptButton = `
-                                <div class="d-flex gap-2 mt-2">
-                                    <button class="btn btn-sm btn-primary btn-accept-task" 
-                                            onclick="acceptTask(${taskId}, ${notification.id})"
-                                            style="font-size: 12px; padding: 4px 8px;">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
-                                        Accept Task
-                                    </button>
-                                </div>
-                            `;
-                        }
-                        
-                        html += `
-                            <div class="notification-item position-relative d-flex align-items-start" data-notification-id="${notification.id}">
-                               
-                                <div class="notification-content" style="position: relative;">
-                                    <div class="notification-title">${notification.title}</div>
-                                    <div class="notification-text">${notification.message}</div>
-                                    <div class="notification-time">${timeAgo}</div>
-                                    ${acceptButton}
-                                    ${notification.is_read ? '<div class="notification-read-label">Read</div>' : ''}
+        // Check task acceptance status for each notification
+        checkTaskAcceptanceStatus(notifications).then(notificationsWithStatus => {
+            let html = '';
+            notificationsWithStatus.forEach(notification => {
+                const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
+                const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
+                const taskId = taskIdMatch ? taskIdMatch[1] : null;
+                
+                // Check if this is a task assignment notification
+                const isTaskAssignment = notification.type === 'task_assignment' && taskId;
+                
+                // For task assignments, show either accept button or "Read" label in the same position
+                // For other notifications, show "Read" label when read
+                let actionElement = '';
+                if (isTaskAssignment && !notification.is_accepted) {
+                    // Show accept button for unaccepted task assignments
+                    actionElement = `
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-sm btn-primary btn-accept-task" 
+                                    onclick="acceptTask(${taskId}, ${notification.id})"
+                                    style="font-size: 12px; padding: 4px 8px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
+                                Accept Task
+                            </button>
+                        </div>
+                    `;
+                } else if (notification.is_read) {
+                    // Show "Read" label for read notifications (including accepted task assignments)
+                    actionElement = '<div class="notification-read-label">Read</div>';
+                }
+                
+                // Add unread indicator dot for unread notifications
+                const unreadIndicator = !notification.is_read ? '<div class="notification-unread-dot"></div>' : '';
+                
+                // Show notification message only for task creators
+                const showMessage = notification.type === 'task_assignment' && notification.created_by_name === notification.employee_name;
+                const messageElement = showMessage ? `<div class="notification-message" style="font-size: 14px;">${notification.message}</div>` : '';
+                
+                html += `
+                    <div class="notification-item position-relative d-flex align-items-start" data-notification-id="${notification.id}">
+                        ${unreadIndicator}
+                        <div class="notification-content" style="position: relative; width: 100%;">
+                            <div class="notification-title">${notification.title}</div>
+                            ${messageElement}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="notification-time">${timeAgo}</div>
+                                <div class="notification-actions">
+                                    ${actionElement}
                                 </div>
                             </div>
-                        `;
-                    });
-                    
-                    notificationList.html(html);
-                });
+                        </div>
+                    </div>
+                `;
+            });
+            
+            notificationList.html(html);
+        });
             },
             error: function(xhr, status, error) {
                 console.error('Failed to load notifications:', status, error);
@@ -200,18 +219,12 @@ $(document).ready(function() {
         
         if (dropdown.is(':visible')) {
             fetchNotifications();
-            // Only mark all as read if dropdown was previously closed
-            if (dropdownClosed) {
-                markAllAsRead();
-            }
             dropdownClosed = false;
         }
     }
 
     function hideNotificationDropdown() {
         $('#notificationDropdownCard').hide();
-        // Mark all currently loaded notifications as read when dropdown is closed
-        markAllAsRead();
         dropdownClosed = true;
     }
 
@@ -233,23 +246,11 @@ $(document).ready(function() {
         }
     });
 
-    // Mark notification as read when clicked
+    // Redirect to task page when notification is clicked (without marking as read)
     $(document).on('click', '.notification-item', function() {
-        const notificationId = $(this).data('notification-id');
-        $.ajax({
-            url: `/notifications/${notificationId}/read`,
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function() {
-                fetchNotificationCount();
-                fetchNotifications();
-            },
-            error: function() {
-                console.error('Failed to mark notification as read');
-            }
-        });
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        // Redirect to task page without marking notification as read
+        window.location.href = `${appUrl}/task`;
     });
 
     // Function to mark all notifications as read
@@ -346,29 +347,18 @@ $(document).ready(function() {
     });
 
     // Prevent notification click when clicking delete button
+    // If not clicking delete button, redirect to task page (without marking as read)
     $(document).on('click', '.notification-item', function(e) {
         if ($(e.target).closest('.btn-delete-notification').length) {
             return;
         }
         
-        const notificationId = $(this).data('notification-id');
-        $.ajax({
-            url: `/notifications/${notificationId}/read`,
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function() {
-                fetchNotificationCount();
-                fetchNotifications();
-            },
-            error: function() {
-                console.error('Failed to mark notification as read');
-            }
-        });
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        // Redirect to task page without marking notification as read
+        window.location.href = `${appUrl}/task`;
     });
 
-   // Accept task function for task assignment notifications
+    // Accept task function for task assignment notifications
 function acceptTask(taskId, notificationId) {
     const appUrl = $('meta[name="app-url"]').attr('content');
     $.ajax({
@@ -380,16 +370,43 @@ function acceptTask(taskId, notificationId) {
         success: function(response) {
             showDeleteSuccessAlert('Task accepted successfully!', 'success');
             
-            // Remove notification from list
-            $(`[data-notification-id="${notificationId}"]`).remove();
-            
-            // Update notification count
-            fetchNotificationCount();
-
-            // Reload the page after short delay (optional)
-            setTimeout(() => {
-                window.location.href = `${appUrl}/task`;
-            }, 1000); // 1 second delay so alert is visible first
+            // Mark the notification as read
+            $.ajax({
+                url: `${appUrl}/notifications/${notificationId}/read`,
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function() {
+                    // Update the notification UI to show it as read
+                    const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+                    notificationElement.find('.notification-unread-dot').remove();
+                    notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
+                    
+                    // Update notification count
+                    fetchNotificationCount();
+                    
+                    // Reload the page after short delay (optional)
+                    setTimeout(() => {
+                        window.location.href = `${appUrl}/task`;
+                    }, 1000); // 1 second delay so alert is visible first
+                },
+                error: function() {
+                    console.error('Failed to mark notification as read');
+                    // Still update the UI and count even if marking as read fails
+                    const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+                    notificationElement.find('.notification-unread-dot').remove();
+                    notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
+                    
+                    // Update notification count
+                    fetchNotificationCount();
+                    
+                    // Reload the page after short delay (optional)
+                    setTimeout(() => {
+                        window.location.href = `${appUrl}/task`;
+                    }, 1000); // 1 second delay so alert is visible first
+                }
+            });
         },
         error: function(xhr, status, error) {
             console.error('Error accepting task:', status, error);
