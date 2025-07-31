@@ -62,8 +62,10 @@ $(document).ready(function() {
                     return;
                 }
 
-        // Check task acceptance status for each notification
-        checkTaskAcceptanceStatus(notifications).then(notificationsWithStatus => {
+        // Check task and project acceptance status for each notification
+        checkTaskAcceptanceStatus(notifications).then(notificationsWithTaskStatus => {
+            return checkProjectAcceptanceStatus(notificationsWithTaskStatus);
+        }).then(notificationsWithStatus => {
             let html = '';
             notificationsWithStatus.forEach(notification => {
                 const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
@@ -73,7 +75,14 @@ $(document).ready(function() {
                 // Check if this is a task assignment notification
                 const isTaskAssignment = notification.type === 'task_assignment' && taskId;
                 
+                // Check if this is a project assignment notification
+                const isProjectAssignment = notification.type === 'new job' && notification.title.includes('project');
+                // Extract project title from the message
+                const projectTitleMatch = isProjectAssignment ? notification.message.match(/project: (.+)$/) : null;
+                const projectTitle = projectTitleMatch ? projectTitleMatch[1] : null;
+                
                 // For task assignments, show either accept button or "Read" label in the same position
+                // For project assignments, show either accept button or "Read" label in the same position
                 // For other notifications, show "Read" label when read
                 let actionElement = '';
                 if (isTaskAssignment && !notification.is_accepted) {
@@ -85,6 +94,18 @@ $(document).ready(function() {
                                     style="font-size: 12px; padding: 4px 8px;">
                                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
                                 Accept Task
+                            </button>
+                        </div>
+                    `;
+                } else if (isProjectAssignment && !notification.is_accepted) {
+                    // Show accept button for unaccepted project assignments
+                    actionElement = `
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-sm btn-primary btn-accept-project" 
+                                    onclick="acceptProject('${projectTitle}', ${notification.id})"
+                                    style="font-size: 12px; padding: 4px 8px;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
+                                Accept Project
                             </button>
                         </div>
                     `;
@@ -262,6 +283,142 @@ $(document).ready(function() {
         }
     });
     
+    // Function to check project acceptance status
+    function checkProjectAcceptanceStatus(notifications) {
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        const promises = notifications.map(notification => {
+            if (notification.type === 'new job' && notification.title.includes('project')) {
+                // Extract project title from message
+                const projectTitleMatch = notification.message.match(/project: (.+)$/);
+                const projectTitle = projectTitleMatch ? projectTitleMatch[1] : null;
+                
+                if (projectTitle) {
+                    // We need to get the project ID by title
+                    // First, get all projects
+                    return $.ajax({
+                        url: `${appUrl}/project/index`,
+                        type: "GET"
+                    }).then(response => {
+                        // Find the project with the matching title
+                        const project = response.data.find(p => p.title === projectTitle);
+                        if (project) {
+                            // Now check the accept status using the project ID
+                            return $.ajax({
+                                url: `${appUrl}/project/${project.id}/accept-status`,
+                                type: "GET"
+                            }).then(statusResponse => {
+                                return {
+                                    ...notification,
+                                    is_accepted: statusResponse.is_accepted,
+                                    project_id: project.id
+                                };
+                            }).catch(() => {
+                                return {
+                                    ...notification,
+                                    is_accepted: false,
+                                    project_id: project.id
+                                };
+                            });
+                        } else {
+                            // If project not found, mark as not accepted
+                            return {
+                                ...notification,
+                                is_accepted: false
+                            };
+                        }
+                    }).catch(() => {
+                        return {
+                            ...notification,
+                            is_accepted: false
+                        };
+                    });
+                }
+            }
+            return Promise.resolve(notification);
+        });
+        
+        return Promise.all(promises);
+    }
+
+    // Accept project function for project assignment notifications
+    function acceptProject(projectTitle, notificationId) {
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        
+        // First, get all projects to find the project ID by title
+        $.ajax({
+            url: `${appUrl}/project/index`,
+            type: "GET"
+        }).then(response => {
+            // Find the project with the matching title
+            const project = response.data.find(p => p.title === projectTitle);
+            if (project) {
+                // Now call the accept endpoint with the project ID
+                $.ajax({
+                    url: `${appUrl}/project/${project.id}/accept`,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        showDeleteSuccessAlert('Project accepted successfully!', 'success');
+                        
+                        // Mark the notification as read
+                        $.ajax({
+                            url: `${appUrl}/notifications/${notificationId}/read`,
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            },
+                            success: function() {
+                                console.log('Notification marked as read successfully');
+                                // Update the notification UI to show it as read
+                                const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+                                notificationElement.find('.notification-unread-dot').remove();
+                                notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
+                                
+                                // Update notification count
+                                fetchNotificationCount();
+                                
+                                // Reload the page after short delay (optional)
+                                setTimeout(() => {
+                                    window.location.href = `${appUrl}/project`;
+                                }, 2000); // 2 second delay so UI updates are visible
+                            },
+                            error: function() {
+                                console.error('Failed to mark notification as read');
+                                // Still update the UI and count even if marking as read fails
+                                const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+                                notificationElement.find('.notification-unread-dot').remove();
+                                notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
+                                
+                                // Update notification count
+                                fetchNotificationCount();
+                                
+                                // Reload the page after short delay (optional)
+                                setTimeout(() => {
+                                    window.location.href = `${appUrl}/project`;
+                                }, 2000); // 2 second delay so UI updates are visible
+                            }
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error accepting project:', status, error);
+                        showDeleteSuccessAlert('Failed to accept project', 'error');
+                    }
+                });
+            } else {
+                console.error('Project not found:', projectTitle);
+                showDeleteSuccessAlert('Project not found', 'error');
+            }
+        }).catch(error => {
+            console.error('Error fetching projects:', error);
+            showDeleteSuccessAlert('Failed to accept project', 'error');
+        });
+    }
+
+    // Make acceptProject function globally available
+    window.acceptProject = acceptProject;
+    
     // Function to mark notification as read
     function markNotificationAsRead(notificationId, callback) {
         const appUrl = $('meta[name="app-url"]').attr('content');
@@ -408,10 +565,9 @@ function acceptTask(taskId, notificationId) {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 success: function() {
+                    console.log('Task notification marked as read successfully');
                     // Update the notification UI to show it as read
                     const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                    notificationElement.find('.notification-unread-dot').remove();
-                    notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
                     
                     // Update notification count
                     fetchNotificationCount();

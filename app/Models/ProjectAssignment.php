@@ -15,6 +15,7 @@ class ProjectAssignment extends Model
         'project_id',
         'employee_id',
         'role',
+        'is_receive',
         'created_at',
         'updated_at',
     ];

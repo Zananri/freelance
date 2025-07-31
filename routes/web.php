@@ -137,3 +137,6 @@ Route::get('/notifications/count', [NotificationController::class, 'getUnreadCou
 Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
 Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
 Route::delete('/notifications/{id}', [NotificationController::class, 'deleteNotification'])->name('notifications.delete');
+
+Route::post('/project/{id}/accept', [ProjectController::class, 'acceptProject'])->name('project.accept');
+Route::get('/project/{id}/accept-status', [ProjectController::class, 'checkAcceptStatus'])->name('project.accept-status');

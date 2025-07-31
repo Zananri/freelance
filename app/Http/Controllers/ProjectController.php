@@ -17,6 +17,72 @@ use Illuminate\Support\Str;
 class ProjectController extends Controller
 {
     /**
+     * Accept project assignment for the authenticated user.
+     */
+    public function acceptProject($id)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->employee) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $employeeId = $user->employee->id;
+
+        // Find the project assignment for this user and project
+        $assignment = ProjectAssignment::where('project_id', $id)
+            ->where('employee_id', $employeeId)
+            ->first();
+
+        if (!$assignment) {
+            return response()->json(['error' => 'Project assignment not found'], 404);
+        }
+
+        // Update is_receive to true
+        $assignment->is_receive = true;
+        $assignment->save();
+
+        // Mark related notification as read
+        \Log::info('Looking for notification with title: %assigned as%project: ' . $assignment->project->title);
+        $notification = Notification::where('employee_id', $employeeId)
+            ->where('type', 'new job')
+            ->where('title', 'like', '%assigned as%project: ' . $assignment->project->title)
+            ->where('is_read', false)
+            ->orderBy('created_at', 'desc')
+            ->first();
+        \Log::info('Found notification: ' . ($notification ? 'Yes' : 'No'));
+
+        if ($notification) {
+            $notification->is_read = true;
+            $notification->save();
+        }
+
+        return response()->json(['message' => 'Project assignment accepted successfully']);
+    }
+
+    /**
+     * Check accept status for a project assignment.
+     */
+    public function checkAcceptStatus($id)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->employee) {
+            return response()->json(['is_accepted' => false]);
+        }
+
+        $employeeId = $user->employee->id;
+
+        // Find the project assignment for this user and project
+        $assignment = ProjectAssignment::where('project_id', $id)
+            ->where('employee_id', $employeeId)
+            ->first();
+
+        if (!$assignment) {
+            return response()->json(['is_accepted' => false]);
+        }
+
+        return response()->json(['is_accepted' => $assignment->is_receive]);
+    }
+    /**
      * Return JSON data for employees filtered by search query.
      */
    public function getEmployees(Request $request)
