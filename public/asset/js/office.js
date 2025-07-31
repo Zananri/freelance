@@ -99,10 +99,12 @@ $(document).ready(function() {
                     `;
                 } else if (isProjectAssignment && !notification.is_accepted) {
                     // Show accept button for unaccepted project assignments
+                    // Escape single quotes in project title to prevent JavaScript errors
+                    const escapedProjectTitle = projectTitle ? projectTitle.replace(/'/g, "\\'") : '';
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
                             <button class="btn btn-sm btn-primary btn-accept-project" 
-                                    onclick="acceptProject('${projectTitle}', ${notification.id})"
+                                    onclick="acceptProject('${escapedProjectTitle}', ${notification.id})"
                                     style="font-size: 12px; padding: 4px 8px;">
                                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
                                 Accept Project
@@ -294,9 +296,9 @@ $(document).ready(function() {
                 
                 if (projectTitle) {
                     // We need to get the project ID by title
-                    // First, get all projects
+                    // First, get all projects (including unaccepted ones)
                     return $.ajax({
-                        url: `${appUrl}/project/index`,
+                        url: `${appUrl}/project/index?include_unaccepted=true`,
                         type: "GET"
                     }).then(response => {
                         // Find the project with the matching title
@@ -346,7 +348,7 @@ $(document).ready(function() {
         
         // First, get all projects to find the project ID by title
         $.ajax({
-            url: `${appUrl}/project/index`,
+            url: `${appUrl}/project/index?include_unaccepted=true`,
             type: "GET"
         }).then(response => {
             // Find the project with the matching title
@@ -381,7 +383,17 @@ $(document).ready(function() {
                                 
                                 // Reload the page after short delay (optional)
                                 setTimeout(() => {
-                                    window.location.href = `${appUrl}/project`;
+                                    // Check if the response indicates a reload is needed
+                                    if (response && response.reload) {
+                                        // Reload the project cards instead of the entire page
+                                        if (typeof loadProjectCardData === 'function') {
+                                            loadProjectCardData();
+                                        } else {
+                                            window.location.href = `${appUrl}/project`;
+                                        }   
+                                    } else {
+                                        window.location.href = `${appUrl}/project`;
+                                    }
                                 }, 2000); // 2 second delay so UI updates are visible
                             },
                             error: function() {
@@ -403,7 +415,11 @@ $(document).ready(function() {
                     },
                     error: function(xhr, status, error) {
                         console.error('Error accepting project:', status, error);
-                        showDeleteSuccessAlert('Failed to accept project', 'error');
+                        if (xhr.responseJSON && xhr.responseJSON.error) {
+                            showDeleteSuccessAlert('Error: ' + xhr.responseJSON.error, 'error');
+                        } else {
+                            showDeleteSuccessAlert('Failed to accept project', 'error');
+                        }
                     }
                 });
             } else {

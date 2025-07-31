@@ -56,7 +56,8 @@ class ProjectController extends Controller
             $notification->save();
         }
 
-        return response()->json(['message' => 'Project assignment accepted successfully']);
+        // Reload the project cards to show the newly accepted project
+        return response()->json(['message' => 'Project assignment accepted successfully', 'reload' => true]);
     }
 
     /**
@@ -176,11 +177,21 @@ class ProjectController extends Controller
         $employeeId = $user->employee->id;
 
         $filter = $request->input('filter', null);
+        $includeUnaccepted = $request->input('include_unaccepted', false);
 
         // Base query for projects where the employee is author, co_author, or contributor
-        $query = Project::whereHas('projectAssignments', function ($query) use ($employeeId) {
+        $query = Project::whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
             $query->where('employee_id', $employeeId)
                   ->whereIn('role', ['author', 'co_author', 'contributor']);
+            
+            // If not including unaccepted projects, only show projects where the user is the author
+            // or has accepted the assignment
+            if (!$includeUnaccepted) {
+                $query->where(function ($q) {
+                    $q->where('role', 'author')
+                      ->orWhere('is_receive', true);
+                });
+            }
         });
 
         if ($filter === 'not_started') {
@@ -286,12 +297,12 @@ class ProjectController extends Controller
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'part_of_project' => 'nullable|exists:projects,id',
                 'co_author' => 'nullable|array',
-                'co_author.*' => 'exists:employees,id',
+                'co_author.*' => 'nullable|exists:employees,id',
                 'contributors' => 'nullable|array',
-                'contributors.*' => 'exists:employees,id',
+                'contributors.*' => 'nullable|exists:employees,id',
                 'complete_date' => 'nullable|date',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // Increased to 10MB
+                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // Increased to 10MB
             ]);
 
             $project = new Project();
@@ -478,22 +489,6 @@ class ProjectController extends Controller
                 'trace' => $e->getTraceAsString()
             ], 500);
         }
-
-        // After saving project and assignments, return project assignments with names
-        $assignments = ProjectAssignment::with(['employee', 'project'])->where('project_id', $project->id)->get();
-
-        $assignmentsTransformed = $assignments->map(function ($assignment) {
-            return [
-                'id' => $assignment->id,
-                'role' => $assignment->role,
-                'employee_id' => $assignment->employee_id,
-                'employee_name' => $assignment->employee ? $assignment->employee->name : null,
-                'project_id' => $assignment->project_id,
-                'project_title' => $assignment->project ? $assignment->project->title : null,
-            ];
-        });
-
-        return response()->json(['message' => 'Project created successfully', 'project' => $project, 'assignments' => $assignmentsTransformed]);
     }
 
     /**
@@ -606,12 +601,12 @@ class ProjectController extends Controller
             'due_date' => 'required|date|after_or_equal:start_date',
             'part_of_project' => 'nullable|exists:projects,id',
             'complete_date' => 'nullable|date',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // Increased to 10MB
+            'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // Increased to 10MB
             'co_author' => 'nullable|array',
-            'co_author.*' => 'exists:employees,id',
+            'co_author.*' => 'nullable|exists:employees,id',
             'contributors' => 'nullable|array',
-            'contributors.*' => 'exists:employees,id',
+            'contributors.*' => 'nullable|exists:employees,id',
         ]);
 
         $project->title = $request->title;
@@ -844,9 +839,9 @@ public function getProjectFeedbacks($projectId)
                 'project_id' => 'required|exists:projects,id',
                 'employee_id' => 'required|exists:employees,id',
                 'feedback_comment' => 'nullable|string',
-                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240', // Increased to 10MB
                 'reference_url' => 'nullable|url',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240', // Increased to 10MB
             ]);
 
             $feedback = new ProjectFeedback();
