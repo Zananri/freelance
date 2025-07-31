@@ -252,17 +252,14 @@ $(document).ready(function() {
         const notificationId = $(this).data('notification-id');
         const notificationTitle = $(this).find('.notification-title').text().toLowerCase();
         
-        // Mark notification as read first
-        markNotificationAsRead(notificationId, function() {
-            // Check if this is a project notification
-            if (notificationTitle.includes('project')) {
-                // Redirect to project page
-                window.location.href = `${appUrl}/project`;
-            } else {
-                // Redirect to task page for other notifications
-                window.location.href = `${appUrl}/task`;
-            }
-        });
+        // Check if this is a project notification
+        if (notificationTitle.includes('project')) {
+            // Redirect to project page without marking as read
+            window.location.href = `${appUrl}/project`;
+        } else {
+            // Redirect to task page for other notifications without marking as read
+            window.location.href = `${appUrl}/task`;
+        }
     });
     
     // Function to mark notification as read
