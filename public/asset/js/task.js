@@ -1318,15 +1318,15 @@ document.addEventListener("DOMContentLoaded", function () {
             data: {
                 status: newStatus,
             },
-            success: function (response) {
-                // Remove the task card from current section
-                taskCard.remove();
-                
-                // Refresh task cards to show in new section
-                fetchAndRenderTasks();
-                
-                // Show success message
-                showStatusUpdateAlert(response.message || "Task status updated successfully");
+                success: function (response) {
+                    // Remove the task card from current section
+                    taskCard.remove();
+                    
+                    // Refresh task cards to show in new section
+                    fetchAndRenderTasks();
+                    
+                    // Show success message
+                    showFloatingAlert(response.message || "Task status updated successfully", "success");
             },
                 error: function (xhr) {
                     let errorMessage = "Failed to update task status.";
@@ -1354,12 +1354,12 @@ document.addEventListener("DOMContentLoaded", function () {
             data: {
                 status: newStatus,
             },
-            success: function (response) {
-                // Refresh task cards to show updated status
-                fetchAndRenderTasks();
+                success: function (response) {
+                    // Refresh task cards to show updated status
+                    fetchAndRenderTasks();
 
-                // Show success alert immediately
-                showStatusUpdateAlert(response.message || "Task status updated successfully");
+                    // Show success alert immediately
+                    showFloatingAlert(response.message || "Task status updated successfully", "success");
             },
             error: function (xhr) {
                 let errorMessage = "Failed to update task status.";
