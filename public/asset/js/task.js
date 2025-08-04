@@ -140,22 +140,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (loader) loader.classList.add("d-none");
                         if (submitBtn) submitBtn.disabled = false;
 
-                        // Show success alert
-                        let alertContainer = document.querySelector(
-                            "#addTaskModal .modal-dialog .alert-container"
-                        );
-                        if (!alertContainer) {
-                            alertContainer = document.createElement("div");
-                            alertContainer.className = "alert-container mt-2";
-                            alertContainer.style.width = "100%";
-                            document
-                                .querySelector("#addTaskModal .modal-dialog")
-                                .appendChild(alertContainer);
-                        }
-                        alertContainer.innerHTML = `<div class="alert alert-success" role="alert">${
-                            data.message || "Task added successfully!"
-                        }</div>`;
-                        alertContainer.style.display = "block";
+                // Show success floating alert instead of modal alert
+                showFloatingAlert(data.message || "Task added successfully!", "success");
 
                         // Reset form and preview
                         addTaskForm.reset();
@@ -193,7 +179,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     } else if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    alert(errorMessage);
+                    showFloatingAlert(errorMessage, "danger");
                 },
                 complete: function () {
                     // Don't hide loader here, let success/error handle it
@@ -492,22 +478,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (loader) loader.classList.add("d-none");
                         if (submitBtn) submitBtn.disabled = false;
 
-                        // Show success alert (exactly same as Add Task)
-                        let alertContainer = document.querySelector(
-                            "#editTaskModal .modal-dialog .alert-container"
-                        );
-                        if (!alertContainer) {
-                            alertContainer = document.createElement("div");
-                            alertContainer.className = "alert-container mt-2";
-                            alertContainer.style.width = "100%";
-                            document
-                                .querySelector("#editTaskModal .modal-dialog")
-                                .appendChild(alertContainer);
-                        }
-                        alertContainer.innerHTML = `<div class="alert alert-success" role="alert">${
-                            data.message || "Task updated successfully!"
-                        }</div>`;
-                        alertContainer.style.display = "block";
+                // Show success floating alert instead of modal alert
+                showFloatingAlert(data.message || "Task updated successfully!", "success");
 
                         // Reset form and preview (same as Add Task)
                         editTaskForm.reset();
@@ -559,7 +531,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     } else if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    alert(errorMessage);
+                    showFloatingAlert(errorMessage, "danger");
                 },
                 complete: function () {
                     // Don't hide loader here, let success/error handle it
@@ -1356,16 +1328,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Show success message
                 showStatusUpdateAlert(response.message || "Task status updated successfully");
             },
-            error: function (xhr) {
-                let errorMessage = "Failed to update task status.";
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-                }
-                alert(errorMessage);
-            },
+                error: function (xhr) {
+                    let errorMessage = "Failed to update task status.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+                    }
+                    showFloatingAlert(errorMessage, "danger");
+                },
         });
     }
 
@@ -1402,11 +1374,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Function to show status update alert
-    function showStatusUpdateAlert(message) {
-        // Create alert div untuk pojok kanan bawah
+    // Function to show floating alert with SVG icon
+    function showFloatingAlert(message, type = "success") {
         const alertDiv = document.createElement("div");
-        alertDiv.className = "alert alert-success d-flex align-items-center task-status-alert";
+        alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
         alertDiv.setAttribute("role", "alert");
         alertDiv.style.opacity = "1";
         alertDiv.style.position = "fixed";
@@ -1416,9 +1387,18 @@ document.addEventListener("DOMContentLoaded", function () {
         alertDiv.style.minWidth = "300px";
         alertDiv.style.margin = "0";
 
+        let iconId = "";
+        if (type === "success") {
+            iconId = "check-circle-fill";
+        } else if (type === "danger") {
+            iconId = "exclamation-triangle-fill";
+        } else {
+            iconId = "info-fill";
+        }
+
         alertDiv.innerHTML = `
-            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
-                <use xlink:href="#check-circle-fill"/>
+            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
+                <use xlink:href="#${iconId}"/>
             </svg>
             <div>
                 ${message}
