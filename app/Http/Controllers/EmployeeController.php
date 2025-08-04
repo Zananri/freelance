@@ -110,8 +110,8 @@ class EmployeeController extends Controller
             'email_work' => 'nullable|email|unique:employees,email_work',
             'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
             'address' => 'required|string',
-            'photo' => 'nullable|file|image',
-            'ktp' => 'nullable|file|image',
+            'photo' => 'nullable|file|image|max:2048',
+            'ktp' => 'nullable|file|image|max:2048',
             'birth_date' => 'required|date',
             'hire_date' => 'required|date',
             'resign_date' => 'nullable|date',
@@ -123,10 +123,18 @@ class EmployeeController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Generate email_work from full name by replacing spaces with underscores if email_work is empty
+        // Generate unique email_work from full name by replacing spaces with underscores and adding timestamp if email_work is empty
         $emailWork = $request->input('email_work');
         if (empty($emailWork)) {
-            $emailWork = str_replace(' ', '_', trim($request->name));
+            $emailWork = str_replace(' ', '_', trim($request->name)) . '_' . time();
+        }
+        
+        // Ensure email_work is unique
+        $counter = 1;
+        $originalEmailWork = $emailWork;
+        while (User::where('email', $emailWork)->exists()) {
+            $emailWork = $originalEmailWork . '_' . $counter;
+            $counter++;
         }
 
         DB::beginTransaction();
@@ -211,7 +219,14 @@ class EmployeeController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Failed to create employee and user', 'details' => $e->getMessage()], 500);
+            \Log::error('Employee creation failed: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'error' => 'Failed to create employee and user', 
+                'details' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
     }
 
