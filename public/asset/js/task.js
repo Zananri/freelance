@@ -189,7 +189,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Existing code...
 
     // Executor input setup
     function setupExecutorInput() {

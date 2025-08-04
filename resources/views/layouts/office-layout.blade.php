@@ -65,7 +65,7 @@
 
             <div class="nav-item d-inline-block me-3" style="">
                 <div class="nav-icon">
-                    <div class="d-flex position-relative">
+                    <div class="d-flex position-relative" style="cursor: pointer;" id="notificationDropdownToggle">
                         <span class="material-symbols-outlined" style="cursor: pointer;" id="notificationDropdownToggle">notifications</span>
                         <span id="notificationBadge" class="notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
                             <span id="notificationCount">0</span>
