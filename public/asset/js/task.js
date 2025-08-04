@@ -1306,43 +1306,55 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Function to update task status via AJAX
-    function updateTaskStatus(taskId, newStatus, taskCard) {
-        $.ajax({
-            url: appUrl + "/task/" + taskId + "/status",
-            type: "PUT",
-            headers: {
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
-            },
-            data: {
-                status: newStatus,
-            },
-                success: function (response) {
-                    // Remove the task card from current section
-                    taskCard.remove();
-                    
-                    // Refresh task cards to show in new section
-                    fetchAndRenderTasks();
-                    
-                    // Show success message
-                    showFloatingAlert(response.message || "Task status updated successfully", "success");
-            },
-                error: function (xhr) {
-                    let errorMessage = "Failed to update task status.";
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMessage = xhr.responseJSON.message;
-                    }
-                    if (xhr.responseJSON && xhr.responseJSON.errors) {
-                        errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-                    }
-                    showFloatingAlert(errorMessage, "danger");
-                },
-        });
-    }
+function updateTaskStatus(taskId, newStatus, taskCard) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId + "/status",
+        type: "PUT",
+        headers: {
+            "X-CSRF-TOKEN": document
+                .querySelector('meta[name="csrf-token"]')
+                .getAttribute("content"),
+        },
+        data: {
+            status: newStatus,
+        },
+        success: function (response) {
+            // Dispose all Bootstrap tooltips inside the taskCard before removing it
+            const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                if (tooltipInstance) {
+                    tooltipInstance.dispose();
+                }
+            });
+
+            // Remove the task card from current section
+            taskCard.remove();
+
+            // Refresh task cards to show in new section
+            fetchAndRenderTasks();
+
+            // Show success message
+            showFloatingAlert(response.message || "Task status updated successfully", "success");
+        },
+        error: function (xhr) {
+            let errorMessage = "Failed to update task status.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+            }
+            showFloatingAlert(errorMessage, "danger");
+        },
+    });
+}
 
     // New function to update task status directly without confirmation modal
     function updateTaskStatusDirect(taskId, newStatus) {
+        // Find the task card element
+        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+        
         $.ajax({
             url: appUrl + "/task/" + taskId + "/status",
             type: "PUT",
@@ -1354,12 +1366,23 @@ document.addEventListener("DOMContentLoaded", function () {
             data: {
                 status: newStatus,
             },
-                success: function (response) {
-                    // Refresh task cards to show updated status
-                    fetchAndRenderTasks();
+            success: function (response) {
+                // Dispose all Bootstrap tooltips inside the taskCard before removing it
+                if (taskCard) {
+                    const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                        const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                        if (tooltipInstance) {
+                            tooltipInstance.dispose();
+                        }
+                    });
+                }
 
-                    // Show success alert immediately
-                    showFloatingAlert(response.message || "Task status updated successfully", "success");
+                // Refresh task cards to show updated status
+                fetchAndRenderTasks();
+
+                // Show success alert immediately
+                showFloatingAlert(response.message || "Task status updated successfully", "success");
             },
             error: function (xhr) {
                 let errorMessage = "Failed to update task status.";
