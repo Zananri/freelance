@@ -4,6 +4,40 @@
     font-size: 20px;
 }
 
+/* Success Alert Styling for Delete Employee - Positioned at bottom right */
+.alert-delete-container .alert-success {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    max-width: 400px;
+    border-radius: 8px;
+    padding: 10px 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background-color: #d1e7dd;
+    border: 1px solid #badbcc;
+    color: #0f5132;
+    display: flex;
+    align-items: center;
+}
+
+.alert-delete-container .alert-success .bi {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    fill: currentColor;
+}
+
+.alert-delete-container .alert-success .btn-close {
+    margin-left: auto;
+    padding: 0;
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
 .table-transparent th,
 .table-transparent td {
     background-color: rgba(248, 248, 249, 0) !important;

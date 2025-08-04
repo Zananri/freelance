@@ -276,17 +276,20 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (response) {
                 // Hide loader overlay
                 loaderOverlay.classList.add("d-none");
-                // Show success alert
+                // Show success alert with SVG symbols
                 $(".alert-delete-container").empty();
                 const alertHtml = `
-                    <div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">
-                        <div>${response.message}</div>
+                    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
+                        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
+                            <use xlink:href="#check-circle-fill"/>
+                        </svg>
+                        <div class="flex-grow-1">${response.message}</div>
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>`;
                 $(".alert-delete-container").append(alertHtml).show();
                 setTimeout(() => {
                     $(".alert-delete-container .alert").alert("close");
-                }, 2000);
+                }, 3000);
                 // Hide modal
                 deleteEmployeeModal.hide();
                 // Reload page to reflect changes
