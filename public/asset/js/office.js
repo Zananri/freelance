@@ -106,7 +106,7 @@ $(document).ready(function() {
                         <div class="d-flex gap-2 mt-2">
                             <button class="btn btn-sm btn-primary btn-accept-project" 
                                     onclick="acceptProject('${escapedProjectTitle}', ${notification.id})"
-                                    style="font-size: 20px; padding: 4px 8px;">
+                                    style="font-size: 12px; padding: 4px 8px;">
                                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
                                 Accept Project
                             </button>
@@ -622,7 +622,7 @@ $(document).ready(function() {
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-accept" id="confirmAcceptTaskBtn"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
+                                    <button type="button" class="btn btn-accept" id="confirmAcceptTaskBtn"><span class="material-symbols-outlined" style="font-size: 12px; vertical-align: middle;">check_circle</span>
                                     Accept Task</button>
                                 </div>
                             </div>

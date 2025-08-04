@@ -160,7 +160,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 bootstrap.Modal.getInstance(addTaskModalEl);
                             if (addTaskModalInstance)
                                 addTaskModalInstance.hide();
-                            alertContainer.style.display = "none";
                             // Reload page after adding task
                             window.location.href = appUrl + "/task";
                         }, 1500);
@@ -511,7 +510,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 bootstrap.Modal.getInstance(editTaskModalEl);
                             if (editTaskModalInstance)
                                 editTaskModalInstance.hide();
-                            alertContainer.style.display = "none";
                             // Refresh task cards without page reload
                             fetchAndRenderTasks();
                         }, 1500);
