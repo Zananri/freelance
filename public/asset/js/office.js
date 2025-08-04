@@ -269,19 +269,29 @@ $(document).ready(function() {
         }
     });
 
-    // Redirect to appropriate page when notification is clicked (without marking as read)
+    // Redirect to appropriate page when notification is clicked (only mark task_accepted notifications as read)
     $(document).on('click', '.notification-item', function() {
         const appUrl = $('meta[name="app-url"]').attr('content');
         const notificationId = $(this).data('notification-id');
         const notificationTitle = $(this).find('.notification-title').text().toLowerCase();
+        const notificationElement = $(this);
+        const notificationType = notificationElement.find('.notification-title').text().includes('accepted task') ? 'task_accepted' : 'other';
         
-        // Check if this is a project notification
-        if (notificationTitle.includes('project')) {
-            // Redirect to project page without marking as read
-            window.location.href = `${appUrl}/project`;
+        // Only mark 'task_accepted' notifications as read when clicked
+        if (notificationType === 'task_accepted') {
+            markNotificationAsRead(notificationId, function() {
+                // Redirect to task page
+                window.location.href = `${appUrl}/task`;
+            });
         } else {
-            // Redirect to task page for other notifications without marking as read
-            window.location.href = `${appUrl}/task`;
+            // Check if this is a project notification
+            if (notificationTitle.includes('project')) {
+                // Redirect to project page without marking as read
+                window.location.href = `${appUrl}/project`;
+            } else {
+                // Redirect to task page for other notifications without marking as read
+                window.location.href = `${appUrl}/task`;
+            }
         }
     });
     
