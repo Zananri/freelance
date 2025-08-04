@@ -618,8 +618,9 @@ $(document).ready(function() {
                                     </div>
                                 </div>
                                 <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" id="confirmAcceptTaskBtn">Accept Task</button>
+                                    <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-accept" id="confirmAcceptTaskBtn"><span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
+                                    Accept Task</button>
                                 </div>
                             </div>
                         </div>
