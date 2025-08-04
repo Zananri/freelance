@@ -208,7 +208,7 @@
                 </div>
 
                 <div class="text-center px-2 py-3">
-                    <button type="submit" class="btn-submit-black btn-submit-custom" style="font-size: 14px;">Update
+                    <button type="submit" class="btn-submit-black" style="font-size: 14px;">Update
                         Employee</button>
                 </div>
         </form>

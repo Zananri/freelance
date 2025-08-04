@@ -56,7 +56,7 @@
                             </div>
                         </div>
                         <div class="text-center px-2 py-3">
-                            <button type="submit" class="btn-submit-black btn-submit-custom" style="font-size: 14px;" disabled>Update</button>
+                            <button type="submit" class="btn-submit-black" disabled>Update</button>
                         </div>
                     </div>
 

@@ -175,7 +175,7 @@
             </div>
 
             <div class="text-center px-2 py-3">
-                <button type="submit" class="btn-submit-black btn-submit-custom" style="font-size: 14px;">Create Employee</button>
+                <button type="submit" class="btn-submit-black">Create Employee</button>
             </div>
             
         </form>

@@ -3008,7 +3008,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Add reset filter button functionality
     const resetFilterBtn = document.createElement('button');
     resetFilterBtn.type = 'button';
-    resetFilterBtn.className = 'btn btn-outline-secondary ms-2';
+    resetFilterBtn.className = 'btn btn-submit-reset';
     resetFilterBtn.textContent = 'Reset';
     resetFilterBtn.addEventListener('click', resetTaskFilters);
     

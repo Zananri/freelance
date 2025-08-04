@@ -90,7 +90,8 @@ $(document).ready(function() {
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
                             <button class="btn btn-sm btn-primary btn-accept-task" 
-                                    onclick="acceptTask(${taskId}, ${notification.id})"
+                                    data-task-id="${taskId}" 
+                                    data-notification-id="${notification.id}"
                                     style="font-size: 12px; padding: 4px 8px;">
                                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
                                 Accept Task
@@ -105,7 +106,7 @@ $(document).ready(function() {
                         <div class="d-flex gap-2 mt-2">
                             <button class="btn btn-sm btn-primary btn-accept-project" 
                                     onclick="acceptProject('${escapedProjectTitle}', ${notification.id})"
-                                    style="font-size: 12px; padding: 4px 8px;">
+                                    style="font-size: 20px; padding: 4px 8px;">
                                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
                                 Accept Project
                             </button>
@@ -154,6 +155,17 @@ $(document).ready(function() {
             }
         });
     }
+
+    // Add event listener for accept task buttons
+    $(document).on('click', '.btn-accept-task', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const taskId = $(this).data('task-id');
+        const notificationId = $(this).data('notification-id');
+        
+        acceptTask(taskId, notificationId);
+    });
 
     // Function to check task acceptance status
     function checkTaskAcceptanceStatus(notifications) {
@@ -571,61 +583,137 @@ $(document).ready(function() {
         }
     });
 
+    // Show accept task confirmation modal
+    function showAcceptTaskModal(taskId, notificationId) {
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        
+        // Fetch task details
+        $.ajax({
+            url: `${appUrl}/task/${taskId}`,
+            method: 'GET',
+            success: function(response) {
+                // Create modal HTML
+                const modalHtml = `
+                    <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="acceptTaskModalLabel">Accept Task</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <img src="${response.image ? appUrl + '/file/task/' + response.image : appUrl + '/asset/img/background/add-image.png'}" 
+                                                 alt="Task Image" 
+                                                 class="rounded-circle" 
+                                                 style="width: 70px; height: 70px; object-fit: cover;">
+                                        </div>
+                                        <div>
+                                            <h6 style="font-size: 16px; font-weight: 600; margin: 0;">${response.title}</h6>
+                                            <div style="margin-top: 0.25rem; font-size: 0.95rem;">
+                                                ${response.description || 'No description'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-primary" id="confirmAcceptTaskBtn">Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add modal to body
+                $('body').append(modalHtml);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('acceptTaskModal'));
+                modal.show();
+                
+                // Handle confirm button click
+                $('#confirmAcceptTaskBtn').on('click', function() {
+                    // Close modal
+                    modal.hide();
+                    
+                    // Actually accept the task
+                    actuallyAcceptTask(taskId, notificationId);
+                });
+                
+                // Remove modal from DOM when closed
+                $('#acceptTaskModal').on('hidden.bs.modal', function () {
+                    $(this).remove();
+                });
+            },
+            error: function() {
+                // Fallback if task details can't be loaded
+                actuallyAcceptTask(taskId, notificationId);
+            }
+        });
+    }
+    
+    // Actually accept task function
+    function actuallyAcceptTask(taskId, notificationId) {
+        const appUrl = $('meta[name="app-url"]').attr('content');
+        $.ajax({
+            url: `${appUrl}/task/${taskId}/accept`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                showDeleteSuccessAlert('Task accepted successfully!', 'success');
+                
+                // Mark the notification as read
+                $.ajax({
+                    url: `${appUrl}/notifications/${notificationId}/read`,
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function() {
+                        console.log('Task notification marked as read successfully');
+                        // Update the notification UI to show it as read
+                        const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+                        
+                        // Update notification count
+                        fetchNotificationCount();
+                        
+                        // Reload the page after short delay (optional)
+                        setTimeout(() => {
+                            window.location.href = `${appUrl}/task`;
+                        }, 1000); // 1 second delay so alert is visible first
+                    },
+                    error: function() {
+                        console.error('Failed to mark notification as read');
+                        // Still update the UI and count even if marking as read fails
+                        const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+                        notificationElement.find('.notification-unread-dot').remove();
+                        notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
+                        
+                        // Update notification count
+                        fetchNotificationCount();
+                        
+                        // Reload the page after short delay (optional)
+                        setTimeout(() => {
+                            window.location.href = `${appUrl}/task`;
+                        }, 1000); // 1 second delay so alert is visible first
+                    }
+                });
+            },
+            error: function(xhr, status, error) {
+                console.error('Error accepting task:', status, error);
+                showDeleteSuccessAlert('Failed to accept task', 'error');
+            }
+        });
+    }
+
     // Accept task function for task assignment notifications
-function acceptTask(taskId, notificationId) {
-    const appUrl = $('meta[name="app-url"]').attr('content');
-    $.ajax({
-        url: `${appUrl}/task/${taskId}/accept`,
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        success: function(response) {
-            showDeleteSuccessAlert('Task accepted successfully!', 'success');
-            
-            // Mark the notification as read
-            $.ajax({
-                url: `${appUrl}/notifications/${notificationId}/read`,
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function() {
-                    console.log('Task notification marked as read successfully');
-                    // Update the notification UI to show it as read
-                    const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                    
-                    // Update notification count
-                    fetchNotificationCount();
-                    
-                    // Reload the page after short delay (optional)
-                    setTimeout(() => {
-                        window.location.href = `${appUrl}/task`;
-                    }, 1000); // 1 second delay so alert is visible first
-                },
-                error: function() {
-                    console.error('Failed to mark notification as read');
-                    // Still update the UI and count even if marking as read fails
-                    const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                    notificationElement.find('.notification-unread-dot').remove();
-                    notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
-                    
-                    // Update notification count
-                    fetchNotificationCount();
-                    
-                    // Reload the page after short delay (optional)
-                    setTimeout(() => {
-                        window.location.href = `${appUrl}/task`;
-                    }, 1000); // 1 second delay so alert is visible first
-                }
-            });
-        },
-        error: function(xhr, status, error) {
-            console.error('Error accepting task:', status, error);
-            showDeleteSuccessAlert('Failed to accept task', 'error');
-        }
-    });
-}
+    function acceptTask(taskId, notificationId) {
+        showAcceptTaskModal(taskId, notificationId);
+    }
 
     // Make acceptTask function globally available
     window.acceptTask = acceptTask;

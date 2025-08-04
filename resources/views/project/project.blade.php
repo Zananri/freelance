@@ -166,7 +166,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black btn-submit-custom">
+                        <button type="submit" class="btn-submit-black">
                             Submit
                         </button>
                     </div>

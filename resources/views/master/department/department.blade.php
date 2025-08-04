@@ -129,7 +129,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black btn-submit-custom">Submit</button>
+                        <button type="submit" class="btn-submit-black">Submit</button>
                     </div>
                 </form>
             </div>
@@ -198,7 +198,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black btn-submit-custom">Update</button>
+                        <button type="submit" class="btn-submit-black">Update</button>
                     </div>
                 </form>
             </div>

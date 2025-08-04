@@ -55,7 +55,7 @@
                     </div>
                 </div>
                 <div class="dropdown-filter-footer">
-                    <button type="button" class="btn btn-primary" id="applyTaskFilterBtn">Filter</button>
+                    <button type="button" class="btn btn-submit-black" id="applyTaskFilterBtn">Filter</button>
                 </div>
             </div>
         </div>
@@ -194,7 +194,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black btn-submit-custom">
+                        <button type="submit" class="btn-submit-black">
                             Submit
                         </button>
                     </div>
@@ -310,7 +310,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black btn-submit-custom">
+                        <button type="submit" class="btn-submit-black">
                             Update
                         </button>
                     </div>
