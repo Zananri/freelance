@@ -1,3 +1,45 @@
+// Show floating alert at bottom right corner (like task page)
+function showFloatingAlert(message, type = "success") {
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${type} d-flex align-items-center profile-status-alert`;
+    alertDiv.setAttribute("role", "alert");
+    alertDiv.style.opacity = "1";
+    alertDiv.style.position = "fixed";
+    alertDiv.style.bottom = "20px";
+    alertDiv.style.right = "20px";
+    alertDiv.style.zIndex = "9999";
+    alertDiv.style.minWidth = "300px";
+    alertDiv.style.margin = "0";
+
+    let iconId = "";
+    if (type === "success") {
+        iconId = "check-circle-fill";
+    } else if (type === "danger") {
+        iconId = "exclamation-triangle-fill";
+    } else {
+        iconId = "info-fill";
+    }
+
+    alertDiv.innerHTML = `
+        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
+            <use xlink:href="#${iconId}"/>
+        </svg>
+        <div>
+            ${message}
+        </div>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    // After 1.5 seconds, fade out alert
+    setTimeout(() => {
+        alertDiv.style.opacity = "0";
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 500);
+    }, 1500);
+}
+
 $(document).ready(function () {
     var appUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]+$/, '');
     var profilePhotoLabel = $('.profile-photo-upload');
@@ -180,17 +222,16 @@ $(document).ready(function () {
             success: function (response) {
                 console.log('Profile update success:', response);
                 // Show success alert
-                formAlert.html('<div class="alert alert-success" role="alert">' + response.message + '</div>');
+                showFloatingAlert(response.message, "success");
                 // Hide alert after 1.5 seconds and reload page
                 setTimeout(function () {
-                    formAlert.html('');
                     location.reload();
                 }, 1500);
             },
             error: function (xhr, status, error) {
                 console.error('Profile update error:', error);
                 var errorMessage = xhr.responseJSON?.error || error || 'Error updating profile.';
-                formAlert.html('<div class="alert alert-danger" role="alert">Error updating profile: ' + errorMessage + '</div>');
+                showFloatingAlert('Error updating profile: ' + errorMessage, "danger");
             },
             complete: function () {
                 // Hide loader and enable submit button
