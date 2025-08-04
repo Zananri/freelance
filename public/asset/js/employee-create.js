@@ -3,6 +3,50 @@ var appUrl = $('meta[name="app-url"]').attr("content");
 document.addEventListener("DOMContentLoaded", function () {
     // --- DYNAMIC DROPDOWN LOGIC ---
     const departmentSelect = document.getElementById("department_id");
+
+    // Function to show floating alert with SVG icon
+    function showFloatingAlert(message, type = "success") {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type} d-flex align-items-center employee-create-alert`;
+        alertDiv.setAttribute("role", "alert");
+        alertDiv.style.opacity = "1";
+        alertDiv.style.position = "fixed";
+        alertDiv.style.bottom = "20px";
+        alertDiv.style.right = "20px";
+        alertDiv.style.zIndex = "9999";
+        alertDiv.style.minWidth = "300px";
+        alertDiv.style.margin = "0";
+        alertDiv.style.borderRadius = "8px";
+        alertDiv.style.padding = "10px 20px";
+
+        let iconId = "";
+        if (type === "success") {
+            iconId = "check-circle-fill";
+        } else if (type === "danger") {
+            iconId = "exclamation-triangle-fill";
+        } else {
+            iconId = "info-fill";
+        }
+
+        alertDiv.innerHTML = `
+            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
+                <use xlink:href="#${iconId}"/>
+            </svg>
+            <div>
+                ${message}
+            </div>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        // After 1.5 seconds, fade out alert
+        setTimeout(() => {
+            alertDiv.style.opacity = "0";
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 500);
+        }, 1500);
+    }
     const divisionSelect = document.getElementById("division_id");
     const jobSelect = document.getElementById("job_id");
 
@@ -236,23 +280,28 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Hide loader
                     if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
 
+                // Show success floating alert
+                showFloatingAlert("Employee created successfully!", "success");
+
                 if (response.redirect_url) {
-                    formAlert.innerHTML =
-                        '<div class="alert alert-success">Employee created successfully.</div>';
-                    // Hide alert after 1.5 seconds and then redirect
+                    // Redirect after showing alert
                     setTimeout(() => {
-                        formAlert.innerHTML = "";
                         window.location.href = response.redirect_url;
-                    }, 1500);
+                    }, 2000);
                     employeeCreateForm.reset();
                     return;
                 }
-                formAlert.innerHTML =
-                    '<div class="alert alert-success">Employee created successfully.</div>';
-                // Hide alert after 1.5 seconds
+
+                // Hide alert after 3 seconds
                 setTimeout(() => {
-                    formAlert.innerHTML = "";
-                }, 1500);
+                    const alertDiv = document.querySelector(".employee-create-alert");
+                    if (alertDiv) {
+                        alertDiv.style.opacity = "0";
+                        setTimeout(() => {
+                            alertDiv.remove();
+                        }, 500);
+                    }
+                }, 3000);
                 employeeCreateForm.reset();
 
                 // Remove validation classes from inputs and labels
