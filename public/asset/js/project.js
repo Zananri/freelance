@@ -243,7 +243,7 @@ $('#editProjectForm').on('submit', function (e) {
         },
         success: function (response) {
             // Show success alert
-            $('#editProjectAlert').removeClass('d-none').show().text(response.message || 'Project updated successfully!');
+            showFloatingAlert(response.message || "Project updated successfully!", "success");
 
             // Close modal after short delay
             setTimeout(() => {
@@ -2007,12 +2007,61 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
             alertContainer.style.width = '100%';
             document.querySelector('#addProjectModal').parentElement.appendChild(alertContainer);
         }
-        alertContainer.innerHTML = `<div class="alert alert-${type}" role="alert">${message}</div>`;
+        alertContainer.innerHTML = `
+            <div class="alert alert-${type} d-flex align-items-center" role="alert">
+                <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
+                    <use xlink:href="#check-circle-fill"/>
+                </svg>
+                <div>${message}</div>
+            </div>
+        `;
         alertContainer.style.display = 'block';
         setTimeout(() => {
             alertContainer.style.display = 'none';
             // Reload the page after alert disappears
             location.reload();
+        }, 1500);
+    }
+
+    // Show floating alert at bottom right corner (like task page)
+    function showFloatingAlert(message, type = "success") {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type} d-flex align-items-center project-status-alert`;
+        alertDiv.setAttribute("role", "alert");
+        alertDiv.style.opacity = "1";
+        alertDiv.style.position = "fixed";
+        alertDiv.style.bottom = "20px";
+        alertDiv.style.right = "20px";
+        alertDiv.style.zIndex = "9999";
+        alertDiv.style.minWidth = "300px";
+        alertDiv.style.margin = "0";
+
+        let iconId = "";
+        if (type === "success") {
+            iconId = "check-circle-fill";
+        } else if (type === "danger") {
+            iconId = "exclamation-triangle-fill";
+        } else {
+            iconId = "info-fill";
+        }
+
+        alertDiv.innerHTML = `
+            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
+                <use xlink:href="#${iconId}"/>
+            </svg>
+            <div>
+                ${message}
+            </div>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        // After 1.5 seconds, fade out alert
+        setTimeout(() => {
+            alertDiv.style.opacity = "0";
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 500);
         }, 1500);
     }
 
@@ -2042,30 +2091,30 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
             headers: {
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
             },
-            success: function (response) {
-                // Show success alert
-                showAlert(response.message || "Project added successfully!", "success");
+        success: function (response) {
+            // Show success alert
+            showFloatingAlert(response.message || "Project added successfully!", "success");
 
-                // Reset form and preview
-                addProjectForm.reset();
-                imageLabel.style.backgroundImage = "";
-                imageLabel.classList.remove("has-image");
-                imageLabel.style.opacity = "0.5";
-                imageClearBtn.classList.add("d-none");
-                divisionSelect.innerHTML =
-                    '<option value="" disabled selected>Select Division</option>';
-                loadDepartments();
-                loadProjects();
+            // Reset form and preview
+            addProjectForm.reset();
+            imageLabel.style.backgroundImage = "";
+            imageLabel.classList.remove("has-image");
+            imageLabel.style.opacity = "0.5";
+            imageClearBtn.classList.add("d-none");
+            divisionSelect.innerHTML =
+                '<option value="" disabled selected>Select Division</option>';
+            loadDepartments();
+            loadProjects();
 
-                // Close modal after short delay to show alert
-                setTimeout(() => {
-                    var addProjectModalEl =
-                        document.getElementById("addProjectModal");
-                    var addProjectModal =
-                        bootstrap.Modal.getInstance(addProjectModalEl);
-                    if (addProjectModal) addProjectModal.hide();
-                }, 1500);
-            },
+            // Close modal after short delay to show alert
+            setTimeout(() => {
+                var addProjectModalEl =
+                    document.getElementById("addProjectModal");
+                var addProjectModal =
+                    bootstrap.Modal.getInstance(addProjectModalEl);
+                if (addProjectModal) addProjectModal.hide();
+            }, 1500);
+        },
             error: function (xhr) {
                 if (xhr.status === 422) {
                     let errors = xhr.responseJSON.errors;
