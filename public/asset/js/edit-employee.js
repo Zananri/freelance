@@ -32,6 +32,7 @@ function loadDepartments(selectedId) {
         method: "GET",
         dataType: "json",
         success: function (data) {
+            console.log("Departments loaded:", data);
             let options = '<option value="" disabled>Select Department</option>';
             (data.data || []).forEach((dept) => {
                 options += `<option value="${dept.id}" ${
@@ -58,6 +59,7 @@ function loadDivisions(departmentId, selectedId) {
         data: { department_id: departmentId },
         dataType: "json",
         success: function (data) {
+            console.log("Divisions loaded for department", departmentId, ":", data);
             let options = '<option value="" disabled>Select Division</option>';
             (data.data || []).forEach((div) => {
                 options += `<option value="${div.id}" ${
@@ -86,6 +88,7 @@ function loadJobs(divisionId, selectedId) {
         data: { division_id: divisionId },
         dataType: "json",
         success: function (data) {
+            console.log("Jobs loaded for division", divisionId, ":", data);
             let options = '<option value="" disabled>Select Job</option>';
             (data.data || []).forEach((job) => {
                 options += `<option value="${job.id}" ${
@@ -181,6 +184,50 @@ function loadJobs(divisionId, selectedId) {
 
     // On successful form submission, save updated photo URL and employee ID in localStorage
     // Use a specific key to avoid conflicts with other pages.
+
+    function showFloatingAlert(message, type = "success") {
+        const alertDiv = document.createElement("div");
+        alertDiv.className = `alert alert-${type} d-flex align-items-center employee-edit-alert`;
+        alertDiv.setAttribute("role", "alert");
+        alertDiv.style.opacity = "1";
+        alertDiv.style.position = "fixed";
+        alertDiv.style.bottom = "20px";
+        alertDiv.style.right = "20px";
+        alertDiv.style.zIndex = "9999";
+        alertDiv.style.minWidth = "300px";
+        alertDiv.style.margin = "0";
+        alertDiv.style.borderRadius = "8px";
+        alertDiv.style.padding = "10px 20px";
+
+        let iconId = "";
+        if (type === "success") {
+            iconId = "check-circle-fill";
+        } else if (type === "danger") {
+            iconId = "exclamation-triangle-fill";
+        } else {
+            iconId = "info-fill";
+        }
+
+        alertDiv.innerHTML = `
+            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
+                <use xlink:href="#${iconId}"/>
+            </svg>
+            <div>
+                ${message}
+            </div>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        // After 1.5 seconds, fade out alert
+        setTimeout(() => {
+            alertDiv.style.opacity = "0";
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 500);
+        }, 1500);
+    }
+
     form.addEventListener("submit", function (e) {
         e.preventDefault();
         if (!form.checkValidity()) {
@@ -239,37 +286,20 @@ function loadJobs(divisionId, selectedId) {
                         }
                     }
                 } else if (data.message) {
-                    if (formAlert) {
-                        formAlert.innerHTML =
-                            '<div class="alert alert-success">Employee updated successfully.</div>';
-                        setTimeout(() => {
-                            formAlert.innerHTML = "";
-                            // Save updated photo URL and employee ID in localStorage if photo updated
-                            if (data.updatedPhotoUrl && data.employeeId) {
-                                localStorage.setItem(
-                                    "editEmployeeUpdatedPhoto",
-                                    JSON.stringify({
-                                        employeeId: data.employeeId,
-                                        photoUrl: data.updatedPhotoUrl,
-                                    })
-                                );
-                            }
-                            window.location.href = appUrl + "/employee";
-                        }, 1500);
-                    } else {
-                        alert(data.message);
+                    showFloatingAlert("Employee updated successfully.", "success");
+                    setTimeout(() => {
                         // Save updated photo URL and employee ID in localStorage if photo updated
                         if (data.updatedPhotoUrl && data.employeeId) {
                             localStorage.setItem(
-                                "editEmployeeUpdatedPhoto",
+                                "updatedEmployeePhoto",
                                 JSON.stringify({
                                     employeeId: data.employeeId,
                                     photoUrl: data.updatedPhotoUrl,
                                 })
                             );
                         }
-window.location.href = appUrl + "/employee";
-                    }
+                        window.location.href = appUrl + "/employee";
+                    }, 1500);
                     // Remove validation classes after success
                     const inputs = form.querySelectorAll(
                         "input, select, textarea"
@@ -356,25 +386,9 @@ window.location.href = appUrl + "/employee";
                         }
                     }
                 } else if (data.message) {
-                    if (formAlert) {
-                        formAlert.innerHTML =
-                            '<div class="alert alert-success">Employee updated successfully.</div>';
-                        setTimeout(() => {
-                            formAlert.innerHTML = "";
-                            // Save updated photo URL and employee ID in localStorage if photo updated
-                            if (data.updatedPhotoUrl && data.employeeId) {
-                                localStorage.setItem(
-                                    "updatedEmployeePhoto",
-                                    JSON.stringify({
-                                        employeeId: data.employeeId,
-                                        photoUrl: data.updatedPhotoUrl,
-                                    })
-                                );
-                            }
-window.location.href = appUrl + "/employee";
-                        }, 1500);
-                    } else {
-                        alert(data.message);
+                if (formAlert) {
+                    showFloatingAlert("Employee updated successfully.", "success");
+                    setTimeout(() => {
                         // Save updated photo URL and employee ID in localStorage if photo updated
                         if (data.updatedPhotoUrl && data.employeeId) {
                             localStorage.setItem(
@@ -385,8 +399,22 @@ window.location.href = appUrl + "/employee";
                                 })
                             );
                         }
-window.location.href = appUrl + "/employee";
+                        window.location.href = appUrl + "/employee";
+                    }, 1500);
+                } else {
+                    alert(data.message);
+                    // Save updated photo URL and employee ID in localStorage if photo updated
+                    if (data.updatedPhotoUrl && data.employeeId) {
+                        localStorage.setItem(
+                            "updatedEmployeePhoto",
+                            JSON.stringify({
+                                employeeId: data.employeeId,
+                                photoUrl: data.updatedPhotoUrl,
+                            })
+                        );
                     }
+                    window.location.href = appUrl + "/employee";
+                }
                     // Remove validation classes after success
                     const inputs = form.querySelectorAll(
                         "input, select, textarea"
