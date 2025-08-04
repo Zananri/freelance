@@ -2113,6 +2113,11 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
                 var addProjectModal =
                     bootstrap.Modal.getInstance(addProjectModalEl);
                 if (addProjectModal) addProjectModal.hide();
+                
+                // Reload page after alert disappears
+                setTimeout(function() {
+                    location.reload();
+                }, 1500);
             }, 1500);
         },
             error: function (xhr) {
