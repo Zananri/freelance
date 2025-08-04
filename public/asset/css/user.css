@@ -258,20 +258,6 @@ table.table tbody td {
     margin-top: 0.5rem !important;
 }
 
-/* Button styling for autorenew button in user detail modal, copied from department.css */
-.btn-submit-black {
-    background-color: black;
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
-}
-
-.btn-submit-black:hover {
-    background-color: #333;
-}
 
 .btn-submit-custom {
     width: auto;

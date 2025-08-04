@@ -50,20 +50,6 @@ table.table tbody tr td:last-child {
     justify-content: flex-end;
     gap: 8px;
 }
-
-/* Button Styling */
-.btn-submit-black {
-    background-color: #111;
-    color: #fff;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
-}
-.btn-submit-black:hover {
-    background-color: #333;
-}
 .btn-submit-custom {
     width: auto;
     min-width: auto;

@@ -16,26 +16,6 @@
     margin-bottom: 1.5rem;
 }
 
-.btn-submit-black {
-    background-color: black;
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-weight: normal;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-submit-black:hover {
-    background-color: #333;
-    color: white;
-}
-
 
 .btn-submit-reset {
     background-color: #1557b0;

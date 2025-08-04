@@ -140,7 +140,6 @@ $(document).ready(function() {
                     </div>
                 `;
             });
-            
             notificationList.html(html);
         });
             },

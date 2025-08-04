@@ -800,6 +800,7 @@ td > .btn-delete {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    height: 45px;
 }
 
 .btn-submit-black:hover {
