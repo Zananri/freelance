@@ -220,6 +220,8 @@ $(document).ready(function() {
     // Avatar Dropdown functionality
     function toggleAvatarDropdown() {
         const dropdown = $('#avatarDropdownCard');
+        // Close notification dropdown first
+        hideNotificationDropdown();
         dropdown.toggle();
     }
 
@@ -250,6 +252,8 @@ $(document).ready(function() {
     // Notification Dropdown functionality
     function toggleNotificationDropdown() {
         const dropdown = $('#notificationDropdownCard');
+        // Close avatar dropdown first
+        hideAvatarDropdown();
         dropdown.toggle();
         
         if (dropdown.is(':visible')) {
