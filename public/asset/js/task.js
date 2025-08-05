@@ -840,23 +840,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to check if all executors have accepted the task
     function hasAllExecutorsAccepted(task) {
-        if (!task.executors || task.executors.length === 0) {
-            return true; // No executors means it's accepted
-        }
-        
-        // Check if all executors have accepted (is_receive = true)
-        return task.executors.every(executor => executor.is_receive === true);
+        // Always return true to show task cards regardless of executor acceptance status
+        return true;
     }
 
     // Function to create task card HTML
     function createTaskCard(task) {
-        // Check if all executors have accepted the task
-        const allAccepted = hasAllExecutorsAccepted(task);
-        
-        // Skip rendering if not all executors have accepted
-        if (!allAccepted) {
-            return ``;
-        }
+        // Always show task cards regardless of executor acceptance status
 
         // Combine PIC and executors into one array for uniform rendering without duplicates
         const allExecutors = [];
