@@ -1009,64 +1009,50 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/task/index",
             type: "GET",
             dataType: "json",
-            success: function (data) {
+            success: function (response) {
+                console.log("DEBUG: Received task data from backend:", response);
+
+                if (!response || response.code !== 200 || !response.data) {
+                    console.error("Invalid response data format");
+                    return;
+                }
+
+                const data = response.data;
+
                 // Clear existing task lists
                 document.getElementById("new-request-tasks").innerHTML = "";
                 document.getElementById("in-progress-tasks").innerHTML = "";
                 document.getElementById("completed-tasks").innerHTML = "";
 
+                // Use empty arrays if any category missing
+                const newRequestTasks = Array.isArray(data.new_request) ? data.new_request : [];
+                const inProgressTasks = Array.isArray(data.in_progress) ? data.in_progress : [];
+                const completedTasks = Array.isArray(data.completed) ? data.completed : [];
+                const rejectedTasks = Array.isArray(data.rejected) ? data.rejected : [];
+
                 // Render tasks in respective sections
-                data.new_request.forEach((task) => {
-                    document
-                        .getElementById("new-request-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                newRequestTasks.forEach(task => {
+                    document.getElementById("new-request-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
                 });
-                data.in_progress.forEach((task) => {
-                    document
-                        .getElementById("in-progress-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                data.completed.forEach((task) => {
-                    document
-                        .getElementById("completed-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                
-                // Render rejected tasks in the In Progress section with REJECTED badge
-                if (data.rejected && data.rejected.length > 0) {
-                    data.rejected.forEach((task) => {
-                        document
-                            .getElementById("in-progress-tasks")
-                            .insertAdjacentHTML("beforeend", createTaskCard(task));
-                    });
-                }
 
-                // Add event listeners for dropdown functionality after rendering
+                inProgressTasks.forEach(task => {
+                    document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+
+                completedTasks.forEach(task => {
+                    document.getElementById("completed-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+
+                // Render rejected tasks in in-progress section with badge
+                rejectedTasks.forEach(task => {
+                    document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+
+                // Setup event listeners after rendering
                 setupTaskDropdownListeners();
-
-                // Add event listener for attach_file icon click to show reference files modal
                 addAttachFileIconListeners();
 
-                // Add event listeners for arrow-forward-icon click to update status directly
-                document.querySelectorAll('.arrow-forward-icon').forEach(icon => {
-                    icon.addEventListener('click', function() {
-                        const taskId = this.getAttribute('data-task-id');
-                        const currentStatus = this.getAttribute('data-task-status');
-                        let newStatus = null;
-
-                        if (currentStatus === 'new_request' || currentStatus === 'new request') {
-                            newStatus = 'in_progress';
-                        } else if (currentStatus === 'in_progress' || currentStatus === 'in progress' || currentStatus === 'rejected') {
-                            newStatus = 'completed';
-                        }
-
-                        if (newStatus) {
-                            updateTaskStatusDirect(taskId, newStatus);
-                        }
-                    });
-                });
-
-                // Initialize Bootstrap tooltips for PIC and executor images
+                // Initialize Bootstrap tooltips
                 setTimeout(() => {
                     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
                     tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -1076,7 +1062,11 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             error: function (xhr, status, error) {
                 console.error("Error fetching tasks:", error);
-            },
+                const taskContainer = document.getElementById("task-cards-container");
+                if (taskContainer) {
+                    taskContainer.innerHTML = '<div class="alert alert-danger">Failed to load tasks. Please refresh the page.</div>';
+                }
+            }
         });
     }
 

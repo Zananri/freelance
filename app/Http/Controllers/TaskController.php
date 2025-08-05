@@ -47,19 +47,11 @@ class TaskController extends Controller
             $projectId = $request->input('project');
             $status = $request->input('status');
 
-            // Build base query
+            // Build base query - include all tasks for PIC and assigned executors
             $query = Task::with(['project', 'assignments.employee', 'feedback_comments'])
                 ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
-                    $query->where(function ($q) use ($currentEmployeeId) {
-                        $q->where('employee_id', $currentEmployeeId)
-                          ->where(function ($q2) {
-                              $q2->where('role', 'PIC')
-                                 ->orWhere(function ($q3) {
-                                     $q3->where('role', 'executor')
-                                        ->where('is_receive', true);
-                                 });
-                          });
-                    });
+                    $query->where('employee_id', $currentEmployeeId)
+                          ->whereIn('role', ['PIC', 'executor']);
                 });
 
             // Apply filters
