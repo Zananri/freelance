@@ -595,6 +595,11 @@ $(document).ready(function() {
             url: `${appUrl}/task/${taskId}`,
             method: 'GET',
             success: function(response) {
+                // Safely access response data with fallback defaults
+                const taskTitle = (response.data && response.data.title) || 'undefined';
+                const taskDescription = (response.data && response.data.description) || 'No description';
+                const taskImage = (response.data && response.data.image) ? appUrl + '/file/task/' + response.data.image : appUrl + '/asset/img/background/add-image.png';
+
                 // Create modal HTML
                 const modalHtml = `
                     <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
@@ -607,15 +612,15 @@ $(document).ready(function() {
                                 <div class="modal-body">
                                     <div class="d-flex">
                                         <div class="me-3">
-                                            <img src="${response.image ? appUrl + '/file/task/' + response.image : appUrl + '/asset/img/background/add-image.png'}" 
+                                            <img src="${taskImage}" 
                                                  alt="Task Image" 
                                                  class="rounded-circle" 
                                                  style="width: 70px; height: 70px; object-fit: cover;">
                                         </div>
                                         <div>
-                                            <h6 style="font-size: 16px; font-weight: 600; margin: 0;">${response.title}</h6>
+                                            <h6 style="font-size: 16px; font-weight: 600; margin: 0;">${taskTitle}</h6>
                                             <div style="margin-top: 0.25rem; font-size: 0.95rem;">
-                                                ${response.description || 'No description'}
+                                                ${taskDescription}
                                             </div>
                                         </div>
                                     </div>
