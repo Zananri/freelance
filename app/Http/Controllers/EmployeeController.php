@@ -214,7 +214,8 @@ class EmployeeController extends Controller
                 'code' => 200,
                 'status' => 'success',
                 'data' => $employee,
-                'message' => 'Employee created successfully'
+                'message' => 'Employee created successfully',
+                'redirect_url' => route('employee')
             ]);
 
         } catch (\Exception $e) {
@@ -308,7 +309,8 @@ class EmployeeController extends Controller
                 'code' => 200,
                 'status' => 'success',
                 'data' => $employee,
-                'message' => 'Employee updated successfully'
+                'message' => 'Employee updated successfully',
+                'redirect_url' => route('employee')
             ]);
 
         } catch (\Exception $e) {
