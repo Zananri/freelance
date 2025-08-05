@@ -85,7 +85,11 @@ $(document).ready(function() {
                 // For project assignments, show either accept button or "Read" label in the same position
                 // For other notifications, show "Read" label when read
                 let actionElement = '';
-                if (isTaskAssignment && !notification.is_accepted) {
+                
+                // Check if task/project is already accepted
+                const isAccepted = notification.is_accepted || notification.is_read;
+                
+                if (isTaskAssignment && !isAccepted) {
                     // Show accept button for unaccepted task assignments
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
@@ -98,7 +102,7 @@ $(document).ready(function() {
                             </button>
                         </div>
                     `;
-                } else if (isProjectAssignment && !notification.is_accepted) {
+                } else if (isProjectAssignment && !isAccepted) {
                     // Show accept button for unaccepted project assignments
                     // Escape single quotes in project title to prevent JavaScript errors
                     const escapedProjectTitle = projectTitle ? projectTitle.replace(/'/g, "\\'") : '';
@@ -112,8 +116,8 @@ $(document).ready(function() {
                             </button>
                         </div>
                     `;
-                } else if (notification.is_read) {
-                    // Show "Read" label for read notifications (including accepted task assignments)
+                } else {
+                    // Show "Read" label for accepted/read notifications
                     actionElement = '<div class="notification-read-label">Read</div>';
                 }
                 
