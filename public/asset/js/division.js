@@ -338,59 +338,41 @@ function loadDepartmentsDropdown() {
     $(document).on("click", ".btn-edit", function () {
         var id = $(this).data("id");
         $.ajax({
-            url: appUrl + "/division/" + id + "/edit",
+            url: appUrl + "/division/" + id,
             type: "GET",
-            success: function (response) {
-                if (response.code === 200 && response.data) {
-                    var division = response.data;
-                    $("#edit_division_id").val(division.id);
-                    $("#edit_department_id").val(division.department_id);
-                    $("#edit_name_division").val(division.name_division);
-                    $("#edit_status").val(division.status);
-                    $("#edit_description").val(division.description);
+            success: function (division) {
+                $("#edit_division_id").val(division.id);
+                $("#edit_department_id").val(division.department_id);
+                $("#edit_name_division").val(division.name_division);
+                $("#edit_status").val(division.status);
+                $("#edit_description").val(division.description);
 
-                    // Handle departments dropdown
-                    if (division.departments && division.departments.length > 0) {
-                        var options = '';
-                        $.each(division.departments, function(index, dept) {
-                            if (dept.id !== null) {
-                                options += '<option value="' + dept.id + '"' + 
-                                          (dept.id === division.department_id ? ' selected' : '') + 
-                                          '>' + dept.name_department + '</option>';
-                            }
-                        });
-                        $("#edit_department_id").html(options);
-                    }
-
-                    if (division.image_url) {
-                        $("#editImageLabel").css({
-                            "background-image": "url('" + division.image_url + "')",
-                            "background-position": "center center",
-                            "background-repeat": "no-repeat",
-                            "background-size": "cover",
-                        });
-                        $("#editImageClearBtn").removeClass("d-none");
-                    } else {
-                        $("#editImageLabel").css({
-                            "background-image":
-                                "url('" + appUrl + "/asset/img/background/add-image.png')",
-                            "background-position": "center center",
-                            "background-repeat": "no-repeat",
-                            "background-size": "50%",
-                        });
-                        $("#editImageClearBtn").addClass("d-none");
-                    }
-
-                    $("#edit_image_preview img").hide();
-                    $("#editDivisionForm").data("id", id);
-                    editDivisionModal.show();
+                if (division.image_url) {
+                    $("#editImageLabel").css({
+                        "background-image": "url('" + division.image_url + "')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "cover",
+                    });
+                    $("#editImageClearBtn").removeClass("d-none");
                 } else {
-                    alert("Failed to fetch division data: " + response.message);
+                    $("#editImageLabel").css({
+                        "background-image":
+                            "url('/asset/img/background/add-image.png')",
+                        "background-position": "center center",
+                        "background-repeat": "no-repeat",
+                        "background-size": "50%",
+                    });
+                    $("#editImageClearBtn").addClass("d-none");
                 }
+
+                $("#edit_image_preview img").hide();
+
+                $("#editDivisionForm").data("id", id);
+                editDivisionModal.show();
             },
-            error: function (xhr) {
-                console.error("Error fetching division:", xhr);
-                alert("Failed to fetch division data. Please try again.");
+            error: function () {
+                alert("Failed to fetch division data.");
             },
         });
     });

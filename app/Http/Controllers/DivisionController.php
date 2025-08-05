@@ -159,54 +159,6 @@ class DivisionController extends Controller
         }
     }
 
-    public function edit(string $id)
-    {
-        try {
-            DB::beginTransaction();
-
-            $division = Division::with('department')->find($id);
-            
-            if (!$division) {
-                throw new \Exception('Division not found');
-            }
-
-            $data = $division->toArray();
-            $data['image_url'] = $division->images ? url('file/division/' . $division->images) : null;
-            $data['departments'] = Department::where('status', 'ACTIVE')
-                ->select('id', 'name_department')
-                ->get()
-                ->map(function ($dept) {
-                    return [
-                        'id' => $dept->id,
-                        'name_department' => $dept->name_department,
-                    ];
-                });
-            $data['departments']->prepend([
-                'id' => null,
-                'name_department' => 'Select Department'
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'data' => $data,
-                'message' => 'Success get division for edit'
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            return response()->json([
-                'code' => 406,
-                'status' => "error",
-                'data' => [],
-                'message'=> $e->getMessage()
-            ], 406);
-        }
-    }
-
     public function update(Request $request, string $id)
     {
         try {
