@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Job;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class JobController extends Controller
 {
@@ -61,76 +62,151 @@ class JobController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'department_id' => 'required|exists:departments,id',
-            'division_id' => 'required|exists:divisions,id',
-            'job_name' => 'required|string|max:255',
-            'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
-            'description' => 'nullable|string',
-        ]);
+        try {
+            DB::beginTransaction();
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            $validator = Validator::make($request->all(), [
+                'department_id' => 'required|exists:departments,id',
+                'division_id' => 'required|exists:divisions,id',
+                'job_name' => 'required|string|max:255',
+                'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
+                'description' => 'nullable|string',
+            ]);
+
+            if ($validator->fails()) {
+                throw new \Exception($validator->errors()->first());
+            }
+
+            $userId = auth()->check() ? auth()->id() : 1;
+
+            $job = Job::create([
+                'department_id' => $request->department_id,
+                'division_id' => $request->division_id,
+                'job_name' => $request->job_name,
+                'status' => $request->status,
+                'description' => $request->description,
+                'created_by' => $userId,
+                'updated_by' => $userId,
+                'deleted_by' => $userId,
+            ]);
+
+            if (!$job) {
+                throw new \Exception('Failed to create job');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $job,
+                'message' => 'Job created successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 406,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 406);
         }
-
-        $userId = auth()->check() ? auth()->id() : 1;
-
-        $job = Job::create([
-            'department_id' => $request->department_id,
-            'division_id' => $request->division_id,
-            'job_name' => $request->job_name,
-            'status' => $request->status,
-            'description' => $request->description,
-            'created_by' => $userId,
-            'updated_by' => $userId,
-            'deleted_by' => $userId,
-        ]);
-
-        return response()->json(['message' => 'Job created successfully', 'data' => $job]);
     }
 
     public function update(Request $request, $id)
     {
-        $job = Job::find($id);
-        if (!$job) {
-            return response()->json(['message' => 'Job not found'], 404);
+        try {
+            DB::beginTransaction();
+
+            $job = Job::find($id);
+            if (!$job) {
+                throw new \Exception('Job not found');
+            }
+
+            $validator = Validator::make($request->all(), [
+                'department_id' => 'sometimes|exists:departments,id',
+                'division_id' => 'sometimes|exists:divisions,id',
+                'job_name' => 'sometimes|string|max:255',
+                'status' => 'sometimes|string|in:ACTIVE,INACTIVE,DELETED',
+                'description' => 'nullable|string',
+            ]);
+
+            if ($validator->fails()) {
+                throw new \Exception($validator->errors()->first());
+            }
+
+            $userId = auth()->check() ? auth()->id() : 1;
+
+            $updateData = $request->only(['department_id', 'division_id', 'job_name', 'status', 'description']);
+            $updateData['updated_by'] = $userId;
+
+            $updated = $job->update($updateData);
+
+            if (!$updated) {
+                throw new \Exception('Failed to update job');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $job,
+                'message' => 'Job updated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 406,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 406);
         }
-
-        $validator = Validator::make($request->all(), [
-            'department_id' => 'sometimes|exists:departments,id',
-            'division_id' => 'sometimes|exists:divisions,id',
-            'job_name' => 'sometimes|string|max:255',
-            'status' => 'sometimes|string|in:ACTIVE,INACTIVE,DELETED',
-            'description' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $userId = auth()->check() ? auth()->id() : 1;
-
-        $updateData = $request->only(['department_id', 'division_id', 'job_name', 'status', 'description']);
-        $updateData['updated_by'] = $userId;
-
-        $job->update($updateData);
-
-        return response()->json(['message' => 'Job updated successfully', 'data' => $job]);
     }
 
     public function destroy($id)
     {
-        $job = Job::find($id);
-        if (!$job) {
-            return response()->json(['message' => 'Job not found'], 404);
+        try {
+            DB::beginTransaction();
+
+            $job = Job::find($id);
+            if (!$job) {
+                throw new \Exception('Job not found');
+            }
+
+            $userId = auth()->check() ? auth()->id() : 1;
+
+            $job->status = 'DELETED';
+            $job->deleted_by = $userId;
+            $saved = $job->save();
+
+            if (!$saved) {
+                throw new \Exception('Failed to delete job');
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Job deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 406,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 406);
         }
-
-        $userId = auth()->check() ? auth()->id() : 1;
-
-        $job->status = 'DELETED';
-        $job->deleted_by = $userId;
-        $job->save();
-
-        return response()->json(['message' => 'Job deleted successfully']);
     }
 }
