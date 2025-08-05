@@ -32,6 +32,7 @@ Route::delete('/department/{id}', [DepartmentController::class, 'destroy'])->nam
 Route::get('/division', [DivisionController::class, 'showDivisionPage'])->name('division');
 Route::get('/division/index', [DivisionController::class, 'index'])->name('division.index');
 Route::get('/division/{id}', [DivisionController::class, 'show'])->name('division.show');
+Route::get('/division/{id}/edit', [DivisionController::class, 'edit'])->name('division.edit');
 Route::post('/division/store', [DivisionController::class, 'store'])->name('division.store');
 Route::put('/division/{id}', [DivisionController::class, 'update'])->name('division.update');
 Route::delete('/division/{id}', [DivisionController::class, 'destroy'])->name('division.destroy');
