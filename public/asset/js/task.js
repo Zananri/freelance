@@ -838,8 +838,26 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
 
+    // Function to check if all executors have accepted the task
+    function hasAllExecutorsAccepted(task) {
+        if (!task.executors || task.executors.length === 0) {
+            return true; // No executors means it's accepted
+        }
+        
+        // Check if all executors have accepted (is_receive = true)
+        return task.executors.every(executor => executor.is_receive === true);
+    }
+
     // Function to create task card HTML
     function createTaskCard(task) {
+        // Check if all executors have accepted the task
+        const allAccepted = hasAllExecutorsAccepted(task);
+        
+        // Skip rendering if not all executors have accepted
+        if (!allAccepted) {
+            return ``;
+        }
+
         // Combine PIC and executors into one array for uniform rendering without duplicates
         const allExecutors = [];
         if (task.pic) {
@@ -862,7 +880,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Do not show badge for PIC
             return `
             <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
-            <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name} ${executor.is_receive ? '' : '(Pending)'}" ${zIndexStyle}>
+            <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name}" ${zIndexStyle}>
             </div>
             `;
             })
