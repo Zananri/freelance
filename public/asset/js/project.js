@@ -1180,66 +1180,68 @@ function showImageModal(imageSrc) {
                 e.stopPropagation();
 
                 // Fetch project details via AJAX
-                $.ajax({
-                    url: appUrl + '/project/' + projectId,
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function (data) {
-                        // Populate modal fields
-                        const baseFileUrl = appUrl + '/file/project/';
+$.ajax({
+    url: appUrl + '/project/' + projectId,
+    type: 'GET',
+    dataType: 'json',
+    success: function (response) {
+        const data = response.data || {};
 
-                        $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
-                        $('#projectDetailImage').attr('style', 'border-radius: 8px;');
+        // Populate modal fields
+        const baseFileUrl = appUrl + '/file/project/';
 
-                        $('#projectDetailTitle').replaceWith(`<h2 class="project-title" id="projectDetailTitle">${data.title || ''}</h2>`);
-                        $('#projectDetailAuthor').text(data.author ? data.author.name : 'Unknown').css('text-align', 'justify');
-                        $('#projectDetailDepartment').text(data.department || '');
-                        $('#projectDetailDivision').text(data.division || '');
-                        $('#projectDetailDescription').text(data.description || '');
+        $('#projectDetailImage').attr('src', data.image ? baseFileUrl + data.image : appUrl + '/asset/img/background/add-image.png');
+        $('#projectDetailImage').attr('style', 'border-radius: 8px;');
 
-                        if (data.reference_url) {
-                            $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
-                        } else {
-                            $('#projectDetailReferenceUrl').hide();
-                        }
+        $('#projectDetailTitle').replaceWith(`<h2 class="project-title" id="projectDetailTitle">${data.title || ''}</h2>`);
+        $('#projectDetailAuthor').text(data.author ? data.author.name : 'Unknown').css('text-align', 'justify');
+        $('#projectDetailDepartment').text(data.department || '');
+        $('#projectDetailDivision').text(data.division || '');
+        $('#projectDetailDescription').text(data.description || '');
 
-                        if (data.reference_file) {
-                            $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
-                        } else {
-                            $('#projectDetailReferenceFile').hide();
-                        }
+        if (data.reference_url) {
+            $('#projectDetailReferenceUrl').attr('href', data.reference_url).text(data.reference_url).show();
+        } else {
+            $('#projectDetailReferenceUrl').hide();
+        }
 
-                        function formatDate(dateStr) {
-                            if (!dateStr) return '';
-                            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-                            const dateObj = new Date(dateStr);
-                            return dateObj.toLocaleDateString(undefined, options);
-                        }
+        if (data.reference_file) {
+            $('#projectDetailReferenceFile').attr('href', baseFileUrl + data.reference_file).show();
+        } else {
+            $('#projectDetailReferenceFile').hide();
+        }
 
-                        $('#projectDetailStartDate').text(formatDate(data.start_date));
-                        $('#projectDetailDueDate').text(formatDate(data.due_date));
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const dateObj = new Date(dateStr);
+            return dateObj.toLocaleDateString(undefined, options);
+        }
 
-                        if (data.co_authors && data.co_authors.length > 0) {
-                            const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
-                            $('#projectDetailCoAuthors').text(coAuthorNames);
-                        } else {
-                            $('#projectDetailCoAuthors').text('None');
-                        }
+        $('#projectDetailStartDate').text(formatDate(data.start_date));
+        $('#projectDetailDueDate').text(formatDate(data.due_date));
 
-                        if (data.contributors && data.contributors.length > 0) {
-                            const contributorNames = data.contributors.map(c => c.name).join(', ');
-                            $('#projectDetailContributors').text(contributorNames);
-                        } else {
-                            $('#projectDetailContributors').text('None');
-                        }
+        if (data.co_authors && data.co_authors.length > 0) {
+            const coAuthorNames = data.co_authors.map(ca => ca.name).join(', ');
+            $('#projectDetailCoAuthors').text(coAuthorNames);
+        } else {
+            $('#projectDetailCoAuthors').text('None');
+        }
 
-                        const projectDetailModal = new bootstrap.Modal(document.getElementById('projectDetailModal'));
-                        projectDetailModal.show();
-                    },
-                    error: function () {
-                        alert('Failed to load project details.');
-                    }
-                });
+        if (data.contributors && data.contributors.length > 0) {
+            const contributorNames = data.contributors.map(c => c.name).join(', ');
+            $('#projectDetailContributors').text(contributorNames);
+        } else {
+            $('#projectDetailContributors').text('None');
+        }
+
+        const projectDetailModal = new bootstrap.Modal(document.getElementById('projectDetailModal'));
+        projectDetailModal.show();
+    },
+    error: function () {
+        alert('Failed to load project details.');
+    }
+});
 
             } else if (text === 'Task') {
                 e.preventDefault();
