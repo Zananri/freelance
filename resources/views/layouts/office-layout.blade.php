@@ -81,7 +81,7 @@
                         style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;">
                 @else
                     <div class="d-inline-block rounded-circle bg-secondary opacity-50"
-                        style="width: 40px; height: 40px;"></div>
+                        style="width: 40px; height: 40px; cursor: pointer;"></div>
                 @endif
 
                 <div id="avatarDropdownCard" class="card shadow-sm rounded-5" style="display: none;">

@@ -143,14 +143,7 @@
         </div>
     </div>
 
-    <x-slot name="script_slot">
-
-        <script src="{{ asset('asset/js/employee.js') }}"></script>
-
-        <script></script>
-    </x-slot>
-
-    <!-- Employee Detail Modal -->
+     <!-- Employee Detail Modal -->
     <div class="modal fade" id="employeeDetailModal" tabindex="-1" aria-labelledby="employeeDetailModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -187,4 +180,13 @@
             </div>
         </div>
     </div>
+
+    <x-slot name="script_slot">
+
+        <script src="{{ asset('asset/js/employee.js') }}"></script>
+
+        <script></script>
+    </x-slot>
+
+   
 </x-office-layout>
