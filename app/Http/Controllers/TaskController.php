@@ -898,16 +898,8 @@ class TaskController extends Controller
                 'date_receive' => now(),
             ]);
 
-            // Send notification to PIC
-            $picAssignment = $assignment->task->assignments->firstWhere('role', 'PIC');
-            if ($picAssignment) {
-                NotificationController::createUserNotification(
-                    $picAssignment->employee_id,
-                    'task_accepted',
-                    $user->employee->name . ' accepted task ' . $assignment->task->title,
-                    $user->employee->name . ' has accepted the task: ' . $assignment->task->title
-                );
-            }
+            // Tidak mengirim notifikasi ke PIC ketika executor menerima task
+            // Hanya update status tanpa notifikasi
 
             DB::commit();
 
