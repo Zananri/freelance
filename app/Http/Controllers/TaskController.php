@@ -47,11 +47,19 @@ class TaskController extends Controller
             $projectId = $request->input('project');
             $status = $request->input('status');
 
-            // Build base query - include all tasks for PIC and assigned executors
+            // Build base query
             $query = Task::with(['project', 'assignments.employee', 'feedback_comments'])
                 ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
-                    $query->where('employee_id', $currentEmployeeId)
-                          ->whereIn('role', ['PIC', 'executor']);
+                    $query->where(function ($q) use ($currentEmployeeId) {
+                        $q->where('employee_id', $currentEmployeeId)
+                          ->where(function ($q2) {
+                              $q2->where('role', 'PIC')
+                                 ->orWhere(function ($q3) {
+                                     $q3->where('role', 'executor')
+                                        ->where('is_receive', true);
+                                 });
+                          });
+                    });
                 });
 
             // Apply filters
@@ -333,6 +341,40 @@ class TaskController extends Controller
                 'message' => $e->getMessage()
             ], $e->getCode() ?: 500);
         }
+    }
+
+      public function edit(string $id)
+    {
+        $task = Task::with([
+            'project',
+            'assignments.employee.user'
+        ])->findOrFail($id);
+
+        // Get executors (excluding PIC)
+        $executors = $task->assignments->where('role', 'executor');
+
+        $response = [
+            'id' => $task->id,
+            'title' => $task->title,
+            'description' => $task->description,
+            'project_id' => $task->project_id,
+            'point' => $task->point,
+            'priority' => $task->priority,
+            'reference_url' => $task->reference_url,
+            'reference_files' => $task->reference_files,
+            'start_date' => $task->start_date,
+            'due_date' => $task->due_date,
+            'image' => $task->image,
+            'executors' => $executors->map(function ($executor) {
+                return [
+                    'id' => $executor->employee->id,
+                    'name' => $executor->employee->name,
+                    'user_photo' => $executor->employee->user->photo ?? null,
+                ];
+            })->values(),
+        ];
+
+        return response()->json($response);
     }
 
     /**

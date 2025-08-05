@@ -587,57 +587,42 @@ class ProjectController extends Controller
     /**
      * Show the form for editing the specified project.
      */
-    public function edit(string $id)
+       public function edit(string $id)
     {
-        try {
-            $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
+        $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
 
-            $coAuthors = [];
-            $contributors = [];
+        $coAuthors = [];
+        $contributors = [];
 
-            foreach ($project->projectAssignments as $assignment) {
-                $employee = $assignment->employee;
-                if (!$employee) continue;
-                
-                $userPhoto = null;
-                if ($employee->user && $employee->user->photo) {
-                    $userPhoto = $employee->user->photo;
-                }
-                
-                if ($assignment->role === 'co_author') {
-                    $coAuthors[] = [
-                        'id' => $employee->id,
-                        'name' => $employee->name,
-                        'user_photo' => $userPhoto,
-                    ];
-                } elseif ($assignment->role === 'contributor') {
-                    $contributors[] = [
-                        'id' => $employee->id,
-                        'name' => $employee->name,
-                        'user_photo' => $userPhoto,
-                    ];
-                }
+        foreach ($project->projectAssignments as $assignment) {
+            $employee = $assignment->employee;
+            if (!$employee) continue;
+            $userPhoto = null;
+            // Ambil dari relasi user
+            if ($employee->user && $employee->user->photo) {
+                $userPhoto = $employee->user->photo;
             }
-
-            $response = $project->toArray();
-            $response['co_authors'] = $coAuthors;
-            $response['contributors'] = $contributors;
-
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'data' => $response
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => $e->getCode() ?: 500,
-                'status' => "error",
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            if ($assignment->role === 'co_author') {
+                $coAuthors[] = [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'user_photo' => $userPhoto,
+                ];
+            } elseif ($assignment->role === 'contributor') {
+                $contributors[] = [
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'user_photo' => $userPhoto,
+                ];
+            }
         }
-    }
 
+        $response = $project->toArray();
+        $response['co_authors'] = $coAuthors;
+        $response['contributors'] = $contributors;
+
+        return response()->json($response);
+    }
     /**
      * Update the specified project in storage.
      */
