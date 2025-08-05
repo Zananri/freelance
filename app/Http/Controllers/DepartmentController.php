@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use App\Models\Department;
 use Illuminate\Support\Facades\Storage;
 
@@ -61,113 +62,167 @@ public function index(Request $request)
         return response()->json($data);
     }
 
-public function store(Request $request)
-{
-    try {
-        $validator = Validator::make($request->all(), [
-            'name_department' => 'required|string|max:255',
-            'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
-            'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+    public function store(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+            
+            $validator = Validator::make($request->all(), [
+                'name_department' => 'required|string|max:255',
+                'status' => 'required|string|in:ACTIVE,INACTIVE,DELETED',
+                'description' => 'nullable|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                throw new \Exception($validator->errors()->first());
+            }
+
+            $imageName = null;
+            if ($request->hasFile('image')) {
+                $t = time();
+                $imageName = 'DEPARTMENT_' . $t . '.' . $request->image->extension();
+                $request->image->move(public_path('file/department'), $imageName);
+            }
+
+            $userId = auth()->check() ? auth()->id() : 1;
+
+            $department = Department::create([
+                'name_department' => $request->name_department,
+                'status' => $request->status,
+                'description' => $request->description,
+                'images' => $imageName,
+                'created_by' => $userId,
+                'updated_by' => $userId,
+                'deleted_by' => $userId,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $department,
+                'message' => 'Department added successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 406,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 406);
         }
-
-        $imageName = null;
-        if ($request->hasFile('image')) {
-            $t = time();
-            $imageName = 'DEPARTMENT_' . $t . '.' . $request->image->extension();
-            $request->image->move(public_path('file/department'), $imageName);
-        }
-
-        $userId = auth()->check() ? auth()->id() : 1;
-
-        $department = Department::create([
-            'name_department' => $request->name_department,
-            'status' => $request->status,
-            'description' => $request->description,
-            'images' => $imageName,
-            'created_by' => $userId,
-            'updated_by' => $userId,
-            'deleted_by' => $userId,
-        ]);
-
-        return response()->json(['message' => 'Department added successfully', 'department' => $department]);
-    } catch (\Exception $e) {
-        \Log::error('Error creating department: ' . $e->getMessage());
-        return response()->json(['message' => 'Error creating department', 'error' => $e->getMessage()], 500);
     }
-}
 
     public function update(Request $request, $id)
     {
-        $department = Department::find($id);
-        if (!$department) {
-            return response()->json(['message' => 'Department not found'], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'name_department' => 'sometimes|string|max:255',
-            'status' => 'sometimes|string|in:ACTIVE,INACTIVE,DELETED',
-            'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $updateData = [];
-        if ($request->has('name_department')) {
-            $updateData['name_department'] = $request->name_department;
-        }
-        if ($request->has('status')) {
-            $updateData['status'] = $request->status;
-        }
-        if ($request->has('description')) {
-            $updateData['description'] = $request->description;
-        }
-
-        if ($request->input('remove_image') == "1") {
-            if ($department->images && file_exists(public_path('file/department/' . $department->images))) {
-                @unlink(public_path('file/department/' . $department->images));
+        try {
+            DB::beginTransaction();
+            
+            $department = Department::find($id);
+            if (!$department) {
+                throw new \Exception('Department not found');
             }
-            $updateData['images'] = null;
+
+            $validator = Validator::make($request->all(), [
+                'name_department' => 'sometimes|string|max:255',
+                'status' => 'sometimes|string|in:ACTIVE,INACTIVE,DELETED',
+                'description' => 'nullable|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                throw new \Exception($validator->errors()->first());
+            }
+
+            $updateData = [];
+            if ($request->has('name_department')) {
+                $updateData['name_department'] = $request->name_department;
+            }
+            if ($request->has('status')) {
+                $updateData['status'] = $request->status;
+            }
+            if ($request->has('description')) {
+                $updateData['description'] = $request->description;
+            }
+
+            if ($request->input('remove_image') == "1") {
+                if ($department->images && file_exists(public_path('file/department/' . $department->images))) {
+                    @unlink(public_path('file/department/' . $department->images));
+                }
+                $updateData['images'] = null;
+            }
+
+            if ($request->hasFile('image')) {
+                $t = time();
+                $imageName = 'DEPARTMENT_' . $t . '.' . $request->image->extension();
+                $request->image->move(public_path('file/department'), $imageName);
+                $updateData['images'] = $imageName;
+            }
+
+            $updateData['updated_by'] = auth()->check() ? auth()->id() : 1;
+
+            $department->update($updateData);
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $department,
+                'message' => 'Department updated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 406,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 406);
         }
-
-        if ($request->hasFile('image')) {
-            $t = time();
-            $imageName = 'DEPARTMENT_' . $t . '.' . $request->image->extension();
-            $request->image->move(public_path('file/department'), $imageName);
-            $updateData['images'] = $imageName;
-        }
-
-        $updateData['updated_by'] = 1;
-
-        $updateData['updated_by'] = auth()->id();
-
-        $department->update($updateData);
-
-        return response()->json(['message' => 'Department updated successfully', 'department' => $department]);
     }
 
     public function destroy($id)
     {
-        $department = Department::find($id);
-        if (!$department) {
-            return response()->json(['message' => 'Department not found'], 404);
+        try {
+            DB::beginTransaction();
+            
+            $department = Department::find($id);
+            if (!$department) {
+                throw new \Exception('Department not found');
+            }
+
+            $department->status = 'DELETED';
+            $department->deleted_by = auth()->check() ? auth()->id() : 1;
+
+            $department->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Department deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 406,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 406);
         }
-
-        $department->status = 'DELETED';
-        $department->deleted_by = 1;
-
-        $department->deleted_by = auth()->id();
-
-        $department->save();
-
-        return response()->json(['message' => 'Department deleted successfully']);
     }
 
    
