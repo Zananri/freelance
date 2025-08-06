@@ -91,7 +91,7 @@
     <!-- Modal for Check In -->
     <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content rounded-4">
                 <div class="modal-header modal-header-custom">
                     <h5 class="modal-title modal-title-custom" id="checkInModalLabel">Check In Attendance</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
