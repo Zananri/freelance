@@ -101,20 +101,22 @@ function updateAttendanceStatus() {
     const mockData = {
         checkInTime: null,
         checkOutTime: null,
-        status: 'Not Checked In'
+        status: ''
     };
     
     if (mockData.checkInTime) {
         document.getElementById('checkInTime').value = mockData.checkInTime;
         document.getElementById('checkInBtn').disabled = true;
+        document.getElementById('attendanceStatus').textContent = 'Checked In';
+    } else {
+        document.getElementById('attendanceStatus').textContent = '';
     }
     
     if (mockData.checkOutTime) {
         document.getElementById('checkOutTime').value = mockData.checkOutTime;
         document.getElementById('checkOutBtn').disabled = true;
+        document.getElementById('attendanceStatus').textContent = 'Checked Out';
     }
-    
-    document.getElementById('attendanceStatus').textContent = mockData.status;
 }
 
 // Calendar Functions
@@ -243,7 +245,8 @@ function loadAttendanceForDate(dateString) {
     document.getElementById('checkInTime').value = '';
     document.getElementById('checkOutTime').value = '';
     document.getElementById('workingHours').textContent = '0h 0m';
-    document.getElementById('attendanceStatus').textContent = 'Not Checked In';
+    // Remove "Not Checked In" text when no check-in yet
+    document.getElementById('attendanceStatus').textContent = '';
     
     document.getElementById('checkInBtn').disabled = false;
     document.getElementById('checkOutBtn').disabled = true;
