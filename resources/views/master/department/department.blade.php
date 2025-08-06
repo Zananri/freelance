@@ -206,6 +206,80 @@
         </div>
     </div>
 
+    <!-- Edit Division Modal -->
+    <div class="modal fade" id="editDivisionModal" data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-labelledby="editDivisionModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-loading-overlay d-none" id="editModalLoader">
+                    <div class="loader-spinner"></div>
+                </div>
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="editDivisionModalLabel">Edit Division</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editDivisionForm" class="form-custom needs-validation" novalidate
+                    enctype="multipart/form-data">
+                    <div class="modal-body modal-body-custom">
+                        <input type="hidden" id="edit_division_id" name="id">
+                        <div class="mb-3 mt-4">
+                            <label for="edit_department_id" class="form-label label-custom">Department</label>
+                            <select class="form-select input-select" id="edit_department_id" name="department_id" required>
+                                <option value="" disabled selected>Select Department</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a department.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_name_division" class="form-label label-custom">Division Name</label>
+                            <input type="text" class="form-control input-text" id="edit_name_division"
+                                name="name_division" placeholder="Input Division Name" required>
+                            <div class="invalid-feedback">
+                                Please enter the division name.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_status" class="form-label label-custom">Status</label>
+                            <select class="form-select input-select" id="edit_status" name="status" required>
+                                <option value="ACTIVE">Active</option>
+                                <option value="INACTIVE">Inactive</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a status.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_description" class="form-label label-custom">Description</label>
+                            <textarea class="form-control input-text" id="edit_description" name="description" placeholder="Input Description"></textarea>
+                            <div class="invalid-feedback">
+                                Please enter a description.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="title-label-image">
+                                <span>Upload image</span>
+                            </div>
+                            <label for="edit_image" class="custom-image-upload position-relative" id="editImageLabel"
+                                style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
+                                <input type="file" class="input-image" id="edit_image" name="image"
+                                    accept="image/*">
+                                <span class="image-clear-btn d-none" id="editImageClearBtn"
+                                    title="Remove image">&times;</span>
+                            </label>
+                            <div class="invalid-feedback">
+                                Please select an image file.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="submit" class="btn-submit-black">Update</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Delete Department Modal -->
     <div class="modal fade" id="deleteDepartmentModal" data-bs-backdrop="static" data-bs-keyboard="false"
         tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
@@ -221,7 +295,6 @@
                 </div>
                 <form id="deleteDepartmentForm" class="form-custom">
                     <div class="modal-body modal-body-custom">
-
                         <div class="mb-3 mt-4">
                             <label for="delete_name_department" class="form-label label-custom">Name</label>
                             <input type="text" class="form-control input-text" id="delete_name_department"

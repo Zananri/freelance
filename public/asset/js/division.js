@@ -102,7 +102,7 @@ $(document).ready(function () {
         "editImageClearBtn"
     );
 
-function loadDepartmentsDropdown() {
+    function loadDepartmentsDropdown(callback) {
         $.ajax({
             url: appUrl + "/department/index",
             type: "GET",
@@ -120,6 +120,9 @@ function loadDepartmentsDropdown() {
                 });
                 $("#department_id").html(options);
                 $("#edit_department_id").html(options);
+                if (callback && typeof callback === "function") {
+                    callback();
+                }
             },
         });
     }
@@ -337,46 +340,64 @@ function loadDepartmentsDropdown() {
 
     $(document).on("click", ".btn-edit", function () {
         var id = $(this).data("id");
-        $.ajax({
-            url: appUrl + "/division/" + id,
-            type: "GET",
-            success: function (division) {
-                $("#edit_division_id").val(division.id);
-                $("#edit_department_id").val(division.department_id);
-                $("#edit_name_division").val(division.name_division);
-                $("#edit_status").val(division.status);
-                $("#edit_description").val(division.description);
+        loadDepartmentsDropdown(function () {
+            $.ajax({
+                url: appUrl + "/division/" + id,
+                type: "GET",
+                success: function (response) {
+                    if (response.code === 200) {
+                        var division = response.data;
+                        $("#edit_division_id").val(division.id);
+                        $("#edit_department_id").val(division.department_id);
+                        $("#edit_name_division").val(division.name_division);
+                        $("#edit_status").val(division.status);
+                        $("#edit_description").val(division.description || '');
 
-                if (division.image_url) {
-                    $("#editImageLabel").css({
-                        "background-image": "url('" + division.image_url + "')",
-                        "background-position": "center center",
-                        "background-repeat": "no-repeat",
-                        "background-size": "cover",
-                    });
-                    $("#editImageClearBtn").removeClass("d-none");
-                } else {
-                    $("#editImageLabel").css({
-                        "background-image":
-                            "url('/asset/img/background/add-image.png')",
-                        "background-position": "center center",
-                        "background-repeat": "no-repeat",
-                        "background-size": "50%",
-                    });
-                    $("#editImageClearBtn").addClass("d-none");
-                }
+                        // Reset form validation
+                        $("#editDivisionForm").removeClass("was-validated");
+                        $("#editDivisionForm .is-invalid").removeClass("is-invalid");
+                        $("#editDivisionForm .is-valid").removeClass("is-valid");
 
-                $("#edit_image_preview img").hide();
+                        // Handle image
+                        if (division.image_url) {
+                            $("#editImageLabel").css({
+                                "background-image": "url('" + division.image_url + "')",
+                                "background-position": "center center",
+                                "background-repeat": "no-repeat",
+                                "background-size": "cover",
+                                "opacity": "1"
+                            });
+                            $("#editImageClearBtn").removeClass("d-none");
+                        } else {
+                            $("#editImageLabel").css({
+                                "background-image": "url('" + appUrl + "/asset/img/background/add-image.png')",
+                                "background-position": "center center",
+                                "background-repeat": "no-repeat",
+                                "background-size": "50%",
+                                "opacity": "0.5"
+                            });
+                            $("#editImageClearBtn").addClass("d-none");
+                        }
 
-                $("#editDivisionForm").data("id", id);
-                editDivisionModal.show();
-            },
-            error: function () {
-                alert("Failed to fetch division data.");
-            },
+                        $("#edit_remove_image").val("0");
+                        $("#edit_image").val("");
+
+                        $("#editDivisionForm").data("id", id);
+                        editDivisionModal.show();
+                    } else {
+                        alert(response.message || "Failed to fetch division data.");
+                    }
+                },
+                error: function () {
+                    alert("Failed to fetch division data.");
+                },
+            });
         });
     });
 
+    
+
+                  
     function showLoader(modalType, show = true) {
         const loaderId = {
             add: "#addModalLoader",
