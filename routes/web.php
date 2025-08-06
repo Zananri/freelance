@@ -141,3 +141,12 @@ Route::delete('/notifications/{id}', [NotificationController::class, 'deleteNoti
 
 Route::post('/project/{id}/accept', [ProjectController::class, 'acceptProject'])->name('project.accept');
 Route::get('/project/{id}/accept-status', [ProjectController::class, 'checkAcceptStatus'])->name('project.accept-status');
+
+Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
+Route::get('/attendance/index', [AttendanceController::class, 'index'])->name('attendance.index');
+Route::get('/attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
+Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
+Route::get('/attendance/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
+Route::post('/attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
+Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
+Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
