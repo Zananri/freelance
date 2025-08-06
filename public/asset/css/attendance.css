@@ -25,6 +25,15 @@
     flex-shrink: 0;
 }
 
+.modal-header-custom {
+    border: 0;
+}
+
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    color: rgb(103, 111, 122);
+}
 /* User Profile Styles */
 .user-profile-card {
     background: #ffffff;
@@ -459,15 +468,7 @@
     color: #555;
 }
 
-.modal-body .form-control {
-    border-radius: 8px;
-    border: 1px solid #ced4da;
-}
 
-.modal-body .form-control:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
 
 /* Radio button styling */
 .form-check-input:checked {
