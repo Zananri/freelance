@@ -488,3 +488,8 @@
         max-height: 150px;
     }
 }
+
+.modal-footer-custom {
+    border: 0;
+    justify-content: center;
+}

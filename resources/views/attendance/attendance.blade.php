@@ -98,18 +98,22 @@
                 </div>
                 <div class="modal-body">
                     <form id="checkInForm">
+                        <!-- employee_id -->
+                        <input type="hidden" name="employee_id" id="employee_id" value="{{ $employee ? $employee->id : '' }}">
                         <!-- is_work_outside -->
                         <div class="mb-3">
                             <label for="is_work_outside" class="form-label">Work Outside</label>
                             <div class="d-flex gap-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="is_work_outside" id="work_outside_yes" value="1">
+                                <div class=`"form-check">
+                                    <input class="form-check-input" type="radio" name="is_work_outside"
+                                        id="work_outside_yes" value="1">
                                     <label class="form-check-label" for="work_outside_yes">
                                         Yes
                                     </label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="is_work_outside" id="work_outside_no" value="0" checked>
+                                    <input class="form-check-input" type="radio" name="is_work_outside"
+                                        id="work_outside_no" value="0" checked>
                                     <label class="form-check-label" for="work_outside_no">
                                         No
                                     </label>
@@ -120,31 +124,35 @@
                         <!-- date_attendance -->
                         <div class="mb-3">
                             <label for="date_attendance" class="form-label label-custom">Date</label>
-                            <input type="date" class="form-control input-text" id="date_attendance" name="date_attendance" readonly>
+                            <input type="date" class="form-control input-text" id="date_attendance"
+                                name="date_attendance" readonly>
                         </div>
 
                         <!-- time_in -->
                         <div class="mb-3">
                             <label for="time_in" class="form-label label-custom">Time In</label>
-                            <input type="time" class="form-control input-text" id="time_in" name="time_in" readonly>
+                            <input type="time" class="form-control input-text" id="time_in" name="time_in"
+                                readonly>
                         </div>
 
                         <!-- time_out -->
                         <div class="mb-3">
                             <label for="time_out" class="form-label label-custom">Time Out</label>
-                            <input type="time" class="form-control input-text" id="time_out" name="time_out" readonly>
+                            <input type="time" class="form-control input-text" id="time_out" name="time_out"
+                                readonly>
                         </div>
 
                         <!-- time_late -->
                         <div class="mb-3">
                             <label for="time_late" class="form-label label-custom">Time Late</label>
-                            <input type="text" class="form-control input-text" id="time_late" name="time_late" readonly>
+                            <input type="text" class="form-control input-text" id="time_late" name="time_late"
+                                readonly>
                         </div>
 
                         <!-- note -->
                         <div class="mb-3">
                             <label for="note" class="form-label label-custom">Note</label>
-                            <textarea class="form-control" id="note" name="note" rows="3" ></textarea>
+                            <textarea class="form-control" id="note" name="note" rows="3"></textarea>
                         </div>
 
                         <!-- image -->
@@ -157,16 +165,20 @@
                                     </div>
                                     <span id="cameraText">Take Photo with Camera</span>
                                 </label>
-                                <input type="file" class="form-control d-none" id="imageInput" name="image" accept="image/*" capture="user">
-                                <video id="cameraVideo" autoplay playsinline class="w-50 rounded mt-2" style="max-height: 250px; display: none;"></video>
+                                <input type="file" class="form-control d-none" id="imageInput" name="image"
+                                    accept="image/*" capture="user">
+                                <video id="cameraVideo" autoplay playsinline class="w-50 rounded mt-2"
+                                    style="max-height: 250px; display: none;"></video>
                                 <canvas id="cameraCanvas" class="d-none"></canvas>
                                 <div id="imagePreview" class="image-preview mt-2" style="display: none;">
                                     <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="clearImageBtn" style="display: none;">
+                                <button type="button" class="btn btn-sm btn-outline-secondary d-none"
+                                    id="clearImageBtn" style="display: none;">
                                     <i class="fas fa-times"></i> Clear
                                 </button>
-                                <button type="button" class="btn btn-sm btn-primary d-none" id="retakeBtn" style="display: none;">
+                                <button type="button" class="btn btn-sm btn-primary d-none" id="retakeBtn"
+                                    style="display: none;">
                                     <i class="fas fa-redo"></i> Retake
                                 </button>
                             </div>
@@ -176,10 +188,15 @@
                         <input type="hidden" id="type_attendance" name="type_attendance" value="check_in">
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="submitCheckInBtn">Check In</button>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="submit" class="btn btn-primary" id="submitCheckInBtn">
+                        <span class="material-symbols-outlined">
+                            alarm_on
+                        </span>
+                        Check In
+                    </button>
                 </div>
+
             </div>
         </div>
     </div>

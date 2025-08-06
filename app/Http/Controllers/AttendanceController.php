@@ -4,8 +4,9 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 use App\Models\Employee;
-
+use App\Models\Attendance;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
@@ -43,30 +44,43 @@ class AttendanceController extends Controller
      */
     public function store(Request $request)
     {
-        
         try {
             DB::beginTransaction();
-            // Validate the request
+            
+            // Debug log untuk melihat data yang diterima
+            \Log::info('Attendance store request data:', $request->all());
+            
+            // Validasi request dengan rules yang lebih fleksibel
             $validated = $request->validate([
                 'employee_id' => 'required|exists:employees,id',
-                'is_work_outside' => 'required|boolean',
+                'is_work_outside' => 'required|string|in:0,1,true,false',
                 'date_attendance' => 'required|date',
-                'time_in' => 'required|date_format:H:i',
+                'time_in' => 'required|string',
                 'note' => 'nullable|string|max:500',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+                'image' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
             ]);
 
-            // Check if already checked in today
+            // Konversi is_work_outside ke boolean
+            $isWorkOutside = filter_var($validated['is_work_outside'], FILTER_VALIDATE_BOOLEAN);
+
+            // Cek apakah sudah check-in hari ini
             $existingAttendance = Attendance::where('employee_id', $validated['employee_id'])
                 ->where('date_attendance', $validated['date_attendance'])
+                ->where('type_attendance', 'check_in')
                 ->first();
 
             if ($existingAttendance) {
-                throw new \Exception('You have already checked in for today!');
+                return response()->json([
+                    'code' => 409,
+                    'status' => 'error',
+                    'data' => [],
+                    'message' => 'You have already checked in for today!'
+                ], 409);
             }
 
-            // Calculate late time if check-in is after 09:15
-            $checkInTime = \Carbon\Carbon::createFromFormat('H:i', $validated['time_in']);
+            // Parse time_in dari format HH:MM
+            $timeIn = $validated['time_in'];
+            $checkInTime = \Carbon\Carbon::createFromFormat('H:i', $timeIn);
             $lateThreshold = \Carbon\Carbon::createFromFormat('H:i', '09:15');
             $timeLate = null;
 
@@ -78,16 +92,16 @@ class AttendanceController extends Controller
             $imagePath = null;
             if ($request->hasFile('image')) {
                 $image = $request->file('image');
-                $imageName = 'attendance_' . time() . '.' . $image->getClientOriginalExtension();
+                $imageName = 'attendance_' . time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
                 $imagePath = $image->storeAs('attendance_images', $imageName, 'public');
             }
 
             // Create attendance record
             $attendance = Attendance::create([
                 'employee_id' => $validated['employee_id'],
-                'is_work_outside' => $validated['is_work_outside'],
+                'is_work_outside' => $isWorkOutside,
                 'date_attendance' => $validated['date_attendance'],
-                'time_in' => $validated['time_in'],
+                'time_in' => $timeIn,
                 'time_late' => $timeLate,
                 'type_attendance' => 'check_in',
                 'note' => $validated['note'] ?? null,
@@ -95,6 +109,8 @@ class AttendanceController extends Controller
             ]);
 
             DB::commit();
+
+            \Log::info('Attendance created successfully:', ['attendance_id' => $attendance->id]);
 
             return response()->json([
                 'code' => 200,
@@ -105,6 +121,7 @@ class AttendanceController extends Controller
 
         } catch (ValidationException $e) {
             DB::rollBack();
+            \Log::error('Validation error:', $e->errors());
             return response()->json([
                 'code' => 422,
                 'status' => 'error',
@@ -114,11 +131,12 @@ class AttendanceController extends Controller
             ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Attendance store error:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
                 'code' => 500,
                 'status' => 'error',
                 'data' => [],
-                'message' => $e->getMessage()
+                'message' => 'Server error: ' . $e->getMessage()
             ], 500);
         }
     }

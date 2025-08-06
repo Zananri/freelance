@@ -578,18 +578,93 @@ function submitCheckIn() {
         formData.append('image', capturedImage);
     }
     
-    // Here you would typically send the data to server
-    console.log('Submitting check-in:', Object.fromEntries(formData));
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        return;
+    }
+    formData.append('_token', csrfToken);
     
-    // Show success message
-    showNotification('Check-in submitted successfully!', 'success');
+    // Add employee_id from hidden field
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    if (!employeeId) {
+        console.error('Employee ID not found');
+        return;
+    }
+    formData.append('employee_id', employeeId);
     
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('checkInModal'));
-    if (modal) modal.hide();
+    // Convert boolean values properly
+    const isWorkOutside = document.querySelector('input[name="is_work_outside"]:checked')?.value;
+    if (!isWorkOutside) {
+        console.error('Work outside selection not found');
+        return;
+    }
+    formData.set('is_work_outside', isWorkOutside);
     
-    // Reset form
-    clearImage();
+    // Show loading state
+    const submitBtn = document.getElementById('submitCheckInBtn');
+    if (!submitBtn) {
+        console.error('Submit button not found');
+        return;
+    }
+    
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    submitBtn.disabled = true;
+    
+    // Get base URL from meta tag
+    const baseUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+    const url = `${baseUrl}/attendance/store`;
+    
+    // Send data to server
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.message || `HTTP error! status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification(data.message || 'Check-in submitted successfully!', 'success');
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('checkInModal'));
+            if (modal) modal.hide();
+            
+            // Reset form
+            form.reset();
+            clearImage();
+            
+            // Reload attendance data
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showNotification(data.message || 'Error submitting check-in', 'error');
+            console.error('Server error:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Network error:', error);
+        showNotification(error.message || 'Network error. Please check your connection.', 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
 }
 
 // Initialize on page load
