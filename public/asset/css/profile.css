@@ -90,3 +90,11 @@
     flex-direction: column;
     gap: 1rem;
 }
+
+.form-control.input-text {
+    background-color: #f0f1f8;
+}
+
+.form-control.input-text.current {
+    background-color: #fff;
+}

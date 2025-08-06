@@ -55,7 +55,7 @@
                         </label>
                         <div>
                             <label for="current_password" class="form-label">Current Password</label>
-                            <input type="password" id="current_password" name="current_password" class="form-control input-text" required />
+                            <input type="password" id="current_password" name="current_password" class="form-control input-text current" required />
                             <div class="valid-feedback">
                                 Current password is correct.
                             </div>
