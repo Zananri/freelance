@@ -16,14 +16,14 @@ function initializeAttendance() {
 }
 
 function setupEventListeners() {
-    // Check in button
+    // Check in/out button
     document.getElementById('checkInBtn').addEventListener('click', function() {
-        handleCheckIn();
-    });
-    
-    // Check out button
-    document.getElementById('checkOutBtn').addEventListener('click', function() {
-        handleCheckOut();
+        const button = this;
+        if (button.textContent === 'Check In') {
+            handleCheckIn();
+        } else {
+            handleCheckOut();
+        }
     });
     
     // Calendar navigation
