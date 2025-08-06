@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Employee;
 
 use Illuminate\Http\Request;
 
@@ -9,9 +11,13 @@ class AttendanceController extends Controller
     /**
      * Display a listing of the resource.
      */
-       public function showAttendancePage()
+  
+    public function showAttendancePage()
     {
-        return view('attendance/attendance');
+        $userId = Auth::id();
+        $employee = Employee::with('division')->where('user_id', $userId)->first();
+
+        return view('attendance/attendance', compact('employee'));
     }
 
     public function index()

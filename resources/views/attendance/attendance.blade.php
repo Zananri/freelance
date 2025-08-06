@@ -12,86 +12,15 @@
     
     <div class="body-content scrollable-container rounded-4 p-5">
         <div class="attendance-container">
-            <!-- Left Section - Attendance Form -->
+            <!-- Left Section - User Profile -->
             <div class="attendance-left">
-                <div class="attendance-header">
-                    <h3>Daily Attendance</h3>
-                    <p class="text-muted">Please check in and check out for your attendance record</p>
+                <div class="profile-image-container">
+                    <img src="{{ $employee && $employee->profile_picture ? asset($employee->profile_picture) : asset('asset/img/default-profile.png') }}" alt="User Profile" class="profile-image">
                 </div>
-                
-                <div class="attendance-form">
-                    <div class="form-group">
-                        <label>Employee ID</label>
-                        <input type="text" class="form-control" value="EMP001" readonly>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Employee Name</label>
-                        <input type="text" class="form-control" value="John Doe" readonly>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" class="form-control" id="currentDate" readonly>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Check In Time</label>
-                        <input type="time" class="form-control" id="checkInTime" readonly>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Check Out Time</label>
-                        <input type="time" class="form-control" id="checkOutTime" readonly>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select class="form-control">
-                            <option>Present</option>
-                            <option>Absent</option>
-                            <option>Late</option>
-                            <option>Leave</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Notes</label>
-                        <textarea class="form-control" rows="3" placeholder="Add notes if any..."></textarea>
-                    </div>
-                    
-                    <div class="attendance-buttons">
-                        <button type="button" class="btn btn-success" id="checkInBtn">
-                            <i class="fas fa-sign-in-alt"></i> Check In
-                        </button>
-                        <button type="button" class="btn btn-danger" id="checkOutBtn">
-                            <i class="fas fa-sign-out-alt"></i> Check Out
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="attendance-summary mt-4">
-                    <h4>Today's Summary</h4>
-                    <div class="summary-cards">
-                        <div class="summary-card">
-                            <div class="card-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="card-info">
-                                <h5>Working Hours</h5>
-                                <p id="workingHours">0h 0m</p>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="card-icon">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
-                            <div class="card-info">
-                                <h5>Status</h5>
-                                <p id="attendanceStatus">Not Checked In</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="user-info">
+                    <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>
+                    <p class="user-email">{{ $employee ? $employee->email : 'user@example.com' }}</p>
+                    <p class="user-division">{{ $employee && $employee->division ? $employee->division->name : 'Division' }}</p>
                 </div>
             </div>
             
