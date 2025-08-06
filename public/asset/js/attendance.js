@@ -3,37 +3,88 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize attendance page
     initializeAttendance();
     initializeCalendar();
-    setupEventListeners();
+    
+    // Setup event listeners with DOM ready check
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupEventListeners);
+    } else {
+        setupEventListeners();
+    }
 });
 
 function initializeAttendance() {
     // Set current date
     const today = new Date();
-    document.getElementById('currentDate').value = today.toISOString().split('T')[0];
+    const currentDateInput = document.getElementById('currentDate');
+    if (currentDateInput) {
+        currentDateInput.value = today.toISOString().split('T')[0];
+    }
     
     // Update check in/out times if available
     updateAttendanceStatus();
 }
 
 function setupEventListeners() {
-    // Check in/out button
-    document.getElementById('checkInBtn').addEventListener('click', function() {
-        const button = this;
-        if (button.textContent === 'Check In') {
-            handleCheckIn();
-        } else {
-            handleCheckOut();
-        }
-    });
+    // Check in/out button - now opens modal
+    const checkInBtn = document.getElementById('checkInBtn');
+    if (checkInBtn) {
+        checkInBtn.addEventListener('click', function() {
+            openCheckInModal();
+        });
+    }
     
     // Calendar navigation
-    document.getElementById('prevMonth').addEventListener('click', function() {
-        navigateMonth(-1);
+    const prevMonthBtn = document.getElementById('prevMonth');
+    const nextMonthBtn = document.getElementById('nextMonth');
+    
+    if (prevMonthBtn) {
+        prevMonthBtn.addEventListener('click', function() {
+            navigateMonth(-1);
+        });
+    }
+    
+    if (nextMonthBtn) {
+        nextMonthBtn.addEventListener('click', function() {
+            navigateMonth(1);
+        });
+    }
+    
+    // Modal form submission
+    const submitCheckInBtn = document.getElementById('submitCheckInBtn');
+    if (submitCheckInBtn) {
+        submitCheckInBtn.addEventListener('click', function() {
+            submitCheckIn();
+        });
+    }
+    
+    // Image input handling
+    const imageInput = document.getElementById('imageInput');
+    if (imageInput) {
+        imageInput.addEventListener('change', handleImagePreview);
+    }
+    
+    // Camera functionality
+    initializeCameraFeatures();
+}
+
+// Function to open the check-in modal
+function openCheckInModal() {
+    // Set current date and time
+    const now = new Date();
+    const dateString = now.toISOString().split('T')[0];
+    const timeString = now.toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit' 
     });
     
-    document.getElementById('nextMonth').addEventListener('click', function() {
-        navigateMonth(1);
-    });
+    // Update modal form fields
+    document.getElementById('date_attendance').value = dateString;
+    document.getElementById('time_in').value = timeString;
+    
+    // Show the modal using Bootstrap's modal API
+    const modal = new bootstrap.Modal(document.getElementById('checkInModal'));
+    modal.show();
 }
 
 function handleCheckIn() {
@@ -316,6 +367,230 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Camera functionality
+let stream = null;
+let capturedImage = null;
+
+function initializeCameraFeatures() {
+    // Camera label click handler
+    const cameraLabel = document.querySelector('.camera-label');
+    if (cameraLabel) {
+        cameraLabel.addEventListener('click', function(e) {
+            e.preventDefault();
+            startCamera();
+        });
+    }
+
+    // Clear image button
+    const clearImageBtn = document.getElementById('clearImageBtn');
+    if (clearImageBtn) {
+        clearImageBtn.addEventListener('click', clearImage);
+    }
+
+    // Retake button
+    const retakeBtn = document.getElementById('retakeBtn');
+    if (retakeBtn) {
+        retakeBtn.addEventListener('click', retakePhoto);
+    }
+}
+
+function startCamera() {
+    // Check if camera is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Camera is not supported on this device/browser');
+        return;
+    }
+
+    // Request camera access
+    navigator.mediaDevices.getUserMedia({ 
+        video: { 
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+        } 
+    })
+    .then(function(mediaStream) {
+        stream = mediaStream;
+        
+        // Show video element
+        const video = document.getElementById('cameraVideo');
+        const imageInput = document.getElementById('imageInput');
+        const cameraLabel = document.querySelector('.camera-label');
+        const preview = document.getElementById('imagePreview');
+        
+        if (video && cameraLabel) {
+            video.srcObject = mediaStream;
+            video.style.display = 'block';
+            cameraLabel.style.display = 'none';
+            imageInput.style.display = 'none';
+            preview.style.display = 'none';
+            
+            // Add capture button
+            addCaptureButton();
+        }
+    })
+    .catch(function(error) {
+        console.error('Error accessing camera:', error);
+        
+        // Fallback to file input if camera fails
+        const imageInput = document.getElementById('imageInput');
+        if (imageInput) {
+            imageInput.click();
+        }
+    });
+}
+
+function addCaptureButton() {
+    // Remove existing capture button
+    const existingBtn = document.getElementById('captureBtn');
+    if (existingBtn) {
+        existingBtn.remove();
+    }
+
+    // Create capture button
+    const captureBtn = document.createElement('button');
+    captureBtn.id = 'captureBtn';
+    captureBtn.type = 'button';
+    captureBtn.className = 'btn btn-primary mt-2 w-100';
+    captureBtn.innerHTML = '<i class="fas fa-camera"></i> Capture Photo';
+    
+    captureBtn.addEventListener('click', capturePhoto);
+    
+    const videoContainer = document.getElementById('cameraVideo').parentElement;
+    videoContainer.appendChild(captureBtn);
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    
+    if (!video || !canvas) return;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convert canvas to blob
+    canvas.toBlob(function(blob) {
+        if (blob) {
+            // Create file from blob
+            const file = new File([blob], 'attendance-photo.jpg', { type: 'image/jpeg' });
+            
+            // Create data URL for preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showImagePreview(e.target.result);
+                capturedImage = file;
+                
+                // Update file input
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                document.getElementById('imageInput').files = dt.files;
+            };
+            reader.readAsDataURL(blob);
+        }
+    }, 'image/jpeg', 0.9);
+    
+    // Stop camera stream
+    stopCamera();
+}
+
+function showImagePreview(src) {
+    const preview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const clearBtn = document.getElementById('clearImageBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+    const video = document.getElementById('cameraVideo');
+    const captureBtn = document.getElementById('captureBtn');
+    
+    if (preview && previewImg) {
+        previewImg.src = src;
+        preview.style.display = 'block';
+        
+        if (clearBtn) clearBtn.style.display = 'inline-block';
+        if (retakeBtn) retakeBtn.style.display = 'inline-block';
+        if (video) video.style.display = 'none';
+        if (captureBtn) captureBtn.remove();
+    }
+}
+
+function clearImage() {
+    const preview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const clearBtn = document.getElementById('clearImageBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+    const cameraLabel = document.querySelector('.camera-label');
+    const imageInput = document.getElementById('imageInput');
+    
+    if (preview) preview.style.display = 'none';
+    if (previewImg) previewImg.src = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+    if (retakeBtn) retakeBtn.style.display = 'none';
+    if (cameraLabel) cameraLabel.style.display = 'block';
+    if (imageInput) imageInput.value = '';
+    
+    capturedImage = null;
+}
+
+function retakePhoto() {
+    clearImage();
+    startCamera();
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+    }
+    
+    const video = document.getElementById('cameraVideo');
+    const captureBtn = document.getElementById('captureBtn');
+    
+    if (video) video.style.display = 'none';
+    if (captureBtn) captureBtn.remove();
+}
+
+function handleImagePreview(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        showImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+function submitCheckIn() {
+    const form = document.getElementById('checkInForm');
+    if (!form) return;
+    
+    // Get form data
+    const formData = new FormData(form);
+    
+    // Add captured image if exists
+    if (capturedImage) {
+        formData.append('image', capturedImage);
+    }
+    
+    // Here you would typically send the data to server
+    console.log('Submitting check-in:', Object.fromEntries(formData));
+    
+    // Show success message
+    showNotification('Check-in submitted successfully!', 'success');
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('checkInModal'));
+    if (modal) modal.hide();
+    
+    // Reset form
+    clearImage();
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {

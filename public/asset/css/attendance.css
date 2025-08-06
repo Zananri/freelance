@@ -392,3 +392,97 @@
     color: #666;
     margin: 0;
 }
+
+/* Image Upload Styling for Attendance Modal */
+.image-upload-container {
+    position: relative;
+}
+
+.image-upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 150px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+    background-image: url('/asset/img/background/add-image.png');
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 50%;
+    opacity: 0.5;
+}
+
+.image-upload-label:hover {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+    opacity: 0.8;
+}
+
+.image-upload-label.has-image {
+    background-image: none;
+    background-color: #f8f9fa;
+    border-style: solid;
+    opacity: 1;
+}
+
+.image-upload-icon {
+    margin-bottom: 8px;
+}
+
+.image-preview {
+    margin-top: 10px;
+    max-width: 200px;
+    max-height: 200px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#clearImageBtn {
+    margin-top: 10px;
+}
+
+/* Modal specific styles */
+.modal-body .form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.modal-body .form-control {
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+}
+
+.modal-body .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Radio button styling */
+.form-check-input:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .image-upload-label {
+        height: 120px;
+    }
+    
+    .image-preview {
+        max-width: 150px;
+        max-height: 150px;
+    }
+}
