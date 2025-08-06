@@ -49,13 +49,13 @@ function setupEventListeners() {
         });
     }
     
-    // Modal form submission
-    const submitCheckInBtn = document.getElementById('submitCheckInBtn');
-    if (submitCheckInBtn) {
-        submitCheckInBtn.addEventListener('click', function() {
-            submitCheckIn();
-        });
-    }
+            // Modal form submission
+            const submitCheckInBtn = document.getElementById('submitCheckInBtn');
+            if (submitCheckInBtn) {
+                submitCheckInBtn.addEventListener('click', function() {
+                    submitCheckIn();
+                });
+            }
     
     // Image input handling
     const imageInput = document.getElementById('imageInput');
