@@ -57,10 +57,11 @@ function handleCheckIn() {
 
 function handleCheckOut() {
     const now = new Date();
-    const timeString = now.toLocaleTimeString('en-US', { 
-        hour12: false, 
-        hour: '2-digit', 
-        minute: '2-digit' 
+    const timeString = now.toLocaleTimeString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit'
     });
     
     document.getElementById('checkOutTime').value = timeString;
