@@ -158,7 +158,7 @@
                                     <span id="cameraText">Take Photo with Camera</span>
                                 </label>
                                 <input type="file" class="form-control d-none" id="imageInput" name="image" accept="image/*" capture="user">
-                                <video id="cameraVideo" autoplay playsinline class="w-100 rounded mt-2" style="max-height: 250px; display: none;"></video>
+                                <video id="cameraVideo" autoplay playsinline class="w-50 rounded mt-2" style="max-height: 250px; display: none;"></video>
                                 <canvas id="cameraCanvas" class="d-none"></canvas>
                                 <div id="imagePreview" class="image-preview mt-2" style="display: none;">
                                     <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
