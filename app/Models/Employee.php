@@ -78,6 +78,11 @@ class Employee extends Model
         return $this->hasMany(ProjectFeedback::class);
     }
 
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
     // Accessor for first name
     public function getFirstNameAttribute()
     {
