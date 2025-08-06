@@ -26,7 +26,9 @@
 }
 
 .profile-image-container {
-    margin-bottom: 20px;
+    position: relative;
+    text-align: center;
+    margin-bottom: 10px;
 }
 
 .profile-image {
@@ -38,9 +40,8 @@
 
 .user-info h3 {
     font-size: 20px;
-    font-weight: 600;
-    color: #555;
-    margin: 0 0 8px 0;
+    font-weight: 400;
+    color: #222;
 }
 
 .user-email {
@@ -366,4 +367,17 @@
 .calendar-day.selected {
     background-color: #007bff;
     color: white;
+}
+
+.user-info {
+    font-weight: 300 !important;
+    position: relative;
+    text-align: center;
+}
+
+.user-info p {
+    font-size: 14px;
+    font-weight: 300 !important;
+    color: #666;
+    margin: 0;
 }

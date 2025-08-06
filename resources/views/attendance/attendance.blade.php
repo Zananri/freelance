@@ -19,7 +19,7 @@
                 </div>
                 <div class="user-info">
                     <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>
-                    <p class="user-email">{{ $employee ? $employee->email : 'user@example.com' }}</p>
+                    <p class="user-email">{{ $employee ? $employee->email_work : 'user@example.com' }}</p>
                     <p class="user-division">
                         @if($employee && $employee->division)
                             {{ $employee->division->name_division }}
