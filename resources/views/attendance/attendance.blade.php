@@ -119,32 +119,32 @@
 
                         <!-- date_attendance -->
                         <div class="mb-3">
-                            <label for="date_attendance" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="date_attendance" name="date_attendance" readonly>
+                            <label for="date_attendance" class="form-label label-custom">Date</label>
+                            <input type="date" class="form-control input-text" id="date_attendance" name="date_attendance" readonly>
                         </div>
 
                         <!-- time_in -->
                         <div class="mb-3">
-                            <label for="time_in" class="form-label">Time In</label>
-                            <input type="time" class="form-control" id="time_in" name="time_in" readonly>
+                            <label for="time_in" class="form-label label-custom">Time In</label>
+                            <input type="time" class="form-control input-text" id="time_in" name="time_in" readonly>
                         </div>
 
                         <!-- time_out -->
                         <div class="mb-3">
-                            <label for="time_out" class="form-label">Time Out</label>
-                            <input type="time" class="form-control" id="time_out" name="time_out" readonly>
+                            <label for="time_out" class="form-label label-custom">Time Out</label>
+                            <input type="time" class="form-control input-text" id="time_out" name="time_out" readonly>
                         </div>
 
                         <!-- time_late -->
                         <div class="mb-3">
-                            <label for="time_late" class="form-label">Time Late</label>
-                            <input type="text" class="form-control" id="time_late" name="time_late" readonly>
+                            <label for="time_late" class="form-label label-custom">Time Late</label>
+                            <input type="text" class="form-control input-text" id="time_late" name="time_late" readonly>
                         </div>
 
                         <!-- note -->
                         <div class="mb-3">
-                            <label for="note" class="form-label">Note</label>
-                            <textarea class="form-control" id="note" name="note" rows="3" placeholder="Enter your note here..."></textarea>
+                            <label for="note" class="form-label label-custom">Note</label>
+                            <textarea class="form-control" id="note" name="note" rows="3" ></textarea>
                         </div>
 
                         <!-- image -->

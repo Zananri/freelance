@@ -453,9 +453,10 @@
 }
 
 /* Modal specific styles */
-.modal-body .form-label {
-    font-weight: 600;
-    color: #495057;
+.form-label {
+    font-weight: 400;
+    font-size: 14px;
+    color: #555;
 }
 
 .modal-body .form-control {
