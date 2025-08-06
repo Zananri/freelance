@@ -34,27 +34,25 @@
     height: 100px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #007bff;
-    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
-}
+    }
 
 .user-info h3 {
     font-size: 20px;
     font-weight: 600;
-    color: #2c3e50;
+    color: #555;
     margin: 0 0 8px 0;
 }
 
 .user-email {
     font-size: 14px;
-    color: #6c757d;
+    color: #555;
     margin: 0 0 5px 0;
 }
 
 .user-division {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
-    color: #007bff;
+    color: #555;
     margin: 0;
 }
 

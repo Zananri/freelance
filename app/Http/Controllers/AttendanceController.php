@@ -17,6 +17,9 @@ class AttendanceController extends Controller
         $userId = Auth::id();
         $employee = Employee::with('division')->where('user_id', $userId)->first();
 
+        // Debug log to check division data
+        \Log::info('Employee division:', ['division' => $employee ? $employee->division : null]);
+
         return view('attendance/attendance', compact('employee'));
     }
 

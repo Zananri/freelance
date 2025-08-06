@@ -123,10 +123,14 @@ let currentMonth = currentDate.getMonth();
 let currentYear = currentDate.getFullYear();
 
 function initializeCalendar() {
+    currentDate = new Date();
+    currentMonth = currentDate.getMonth();
+    currentYear = currentDate.getFullYear();
     renderCalendar(currentMonth, currentYear);
 }
 
 function renderCalendar(month, year) {
+    console.log('Rendering calendar for', month, year); // Debug log
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
