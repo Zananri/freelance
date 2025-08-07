@@ -276,30 +276,36 @@ function renderCalendar(month, year) {
                 });
             }
 
-            // Add days of the month
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayElement = document.createElement("div");
-                dayElement.className = "calendar-day";
-                dayElement.textContent = day;
+                // Add days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayElement = document.createElement("div");
+                    dayElement.className = "calendar-day";
+                    dayElement.textContent = day;
 
-                // Check if this is today
-                const checkDate = new Date(year, month, day);
-                if (checkDate.toDateString() === new Date().toDateString()) {
-                    dayElement.classList.add("today");
+                    // Check if this is today
+                    const checkDate = new Date(year, month, day);
+                    if (checkDate.toDateString() === new Date().toDateString()) {
+                        dayElement.classList.add("today");
+                    }
+
+                    // Add checked-in class if day is in checkedInDays
+                    if (checkedInDays.includes(day)) {
+                        dayElement.classList.add("checked-in");
+                        
+                        // Create "In" label dynamically
+                        const inLabel = document.createElement('span');
+                        inLabel.className = 'check-in-label';
+                        inLabel.textContent = 'In';
+                        dayElement.appendChild(inLabel);
+                    }
+
+                    // Add click event
+                    dayElement.addEventListener("click", function () {
+                        selectDate(day, month, year);
+                    });
+
+                    calendarDays.appendChild(dayElement);
                 }
-
-                // Add checked-in class if day is in checkedInDays
-                if (checkedInDays.includes(day)) {
-                    dayElement.classList.add("checked-in");
-                }
-
-                // Add click event
-                dayElement.addEventListener("click", function () {
-                    selectDate(day, month, year);
-                });
-
-                calendarDays.appendChild(dayElement);
-            }
         })
         .catch(error => {
             console.error("Error fetching monthly attendance:", error);
@@ -413,10 +419,6 @@ style.textContent = `
         }
     }
     
-    .calendar-day.selected {
-        background-color: #007bff;
-        color: white;
-    }
 `;
 document.head.appendChild(style);
 
