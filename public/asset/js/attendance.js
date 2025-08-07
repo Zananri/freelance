@@ -1,13 +1,19 @@
-// Attendance JavaScript - Refactored with AJAX
-var appUrl = $('meta[name="app-url"]').attr("content");
+// Attendance JavaScript
+const baseUrl =
+    document.querySelector('meta[name="app-url"]')?.getAttribute("content") ||
+    "";
 
-$(document).ready(function () {
+document.addEventListener("DOMContentLoaded", function () {
     // Initialize attendance page
     initializeAttendance();
     initializeCalendar();
 
-    // Setup event listeners
-    setupEventListeners();
+    // Setup event listeners with DOM ready check
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupEventListeners);
+    } else {
+        setupEventListeners();
+    }
 });
 
 function initializeAttendance() {
@@ -18,32 +24,48 @@ function initializeAttendance() {
         currentDateInput.value = today.toISOString().split("T")[0];
     }
 
-    // Load initial attendance data
-    loadAttendanceData();
+    // Update check in/out times if available
+    updateAttendanceStatus();
 }
 
 function setupEventListeners() {
-    // Check in/out button - opens modal
-    $(document).on("click", "#checkInBtn", function () {
-        openCheckInModal();
-    });
+    // Check in/out button - now opens modal
+    const checkInBtn = document.getElementById("checkInBtn");
+    if (checkInBtn) {
+        checkInBtn.addEventListener("click", function () {
+            openCheckInModal();
+        });
+    }
 
     // Calendar navigation
-    $(document).on("click", "#prevMonth", function () {
-        navigateMonth(-1);
-    });
+    const prevMonthBtn = document.getElementById("prevMonth");
+    const nextMonthBtn = document.getElementById("nextMonth");
 
-    $(document).on("click", "#nextMonth", function () {
-        navigateMonth(1);
-    });
+    if (prevMonthBtn) {
+        prevMonthBtn.addEventListener("click", function () {
+            navigateMonth(-1);
+        });
+    }
+
+    if (nextMonthBtn) {
+        nextMonthBtn.addEventListener("click", function () {
+            navigateMonth(1);
+        });
+    }
 
     // Modal form submission
-    $(document).on("click", "#submitCheckInBtn", function () {
-        submitCheckInAJAX();
-    });
+    const submitCheckInBtn = document.getElementById("submitCheckInBtn");
+    if (submitCheckInBtn) {
+        submitCheckInBtn.addEventListener("click", function () {
+            submitCheckIn();
+        });
+    }
 
     // Image input handling
-    $(document).on("change", "#imageInput", handleImagePreview);
+    const imageInput = document.getElementById("imageInput");
+    if (imageInput) {
+        imageInput.addEventListener("change", handleImagePreview);
+    }
 
     // Camera functionality
     initializeCameraFeatures();
@@ -54,151 +76,65 @@ function openCheckInModal() {
     // Set current date and time
     const now = new Date();
     const dateString = now.toISOString().split("T")[0];
-  const timeString = now.toLocaleTimeString("id-ID", {
-    timeZone: "Asia/Jakarta",
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-});
-
+    const timeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+    });
 
     // Update modal form fields
-    $("#date_attendance").val(dateString);
-    $("#time_in").val(timeString);
+    document.getElementById("date_attendance").value = dateString;
+    document.getElementById("time_in").value = timeString;
 
-    // Show the modal
-    $("#checkInModal").modal("show");
+    // Show the modal using Bootstrap's modal API
+    const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
+    modal.show();
 }
 
-// AJAX function to load attendance data
-function loadAttendanceData() {
-    const employeeId = $('input[name="employee_id"]').val();
-    const selectedDate = $("#currentDate").val();
-
-    if (!employeeId || !selectedDate) return;
-
-    $.ajax({
-        url: appUrl + "/attendance/data",
-        type: "GET",
-        dataType: "json",
-        data: {
-            employee_id: employeeId,
-            date: selectedDate
-        },
-        beforeSend: function () {
-            showLoadingState();
-        },
-        success: function (response) {
-            if (response.success) {
-                updateAttendanceUI(response.data);
-            }
-        },
-        error: function (xhr, status, error) {
-            console.error("Error loading attendance data:", error);
-            showNotification("Failed to load attendance data", "error");
-        },
-        complete: function () {
-            hideLoadingState();
-        }
+function handleCheckIn() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
     });
+
+    document.getElementById("checkInTime").value = timeString;
+    document.getElementById("attendanceStatus").textContent = "Checked In";
+
+    // Disable check in button and enable check out
+    document.getElementById("checkInBtn").disabled = true;
+    document.getElementById("checkOutBtn").disabled = false;
+
+    // Show success message
+    showNotification("Successfully checked in at " + timeString, "success");
 }
 
-// Update attendance UI with data
-function updateAttendanceUI(data) {
-    if (data.check_in_time) {
-        $("#checkInTime").val(data.check_in_time);
-        $("#checkInBtn").prop("disabled", true);
-        $("#attendanceStatus").text("Checked In");
-    } else {
-        $("#checkInTime").val("");
-        $("#checkInBtn").prop("disabled", false);
-        $("#attendanceStatus").text("");
-    }
-
-    if (data.check_out_time) {
-        $("#checkOutTime").val(data.check_out_time);
-        $("#checkOutBtn").prop("disabled", true);
-        $("#attendanceStatus").text("Checked Out");
-        calculateWorkingHours();
-    } else {
-        $("#checkOutTime").val("");
-        $("#checkOutBtn").prop("disabled", !data.check_in_time);
-    }
-
-    if (data.working_hours) {
-        $("#workingHours").text(data.working_hours);
-    }
-}
-
-// AJAX function to submit check-in
-function submitCheckInAJAX() {
-    const form = document.getElementById("checkInForm");
-    if (!form) return;
-
-    const formData = new FormData(form);
-    
-    // Add CSRF token
-    formData.append("_token", $('meta[name="csrf-token"]').attr("content"));
-
-    // Add captured image if exists
-    if (window.capturedImage) {
-        formData.append("image", window.capturedImage);
-    }
-
-    $.ajax({
-        url: appUrl + "/attendance/store",
-        type: "POST",
-        data: formData,
-        contentType: false,
-        processData: false,
-        beforeSend: function () {
-            $("#submitCheckInBtn")
-                .html('<i class="fas fa-spinner fa-spin"></i> Processing...')
-                .prop("disabled", true);
-        },
-        success: function (response) {
-            if (response.success) {
-                showNotification(response.message || "Check-in submitted successfully!", "success");
-                
-                // Close modal
-                $("#checkInModal").modal("hide");
-                
-                // Reset form
-                form.reset();
-                clearImage();
-                
-                // Reload attendance data
-                loadAttendanceData();
-                loadCalendarData();
-            } else {
-                showNotification(response.message || "Error submitting check-in", "error");
-            }
-        },
-        error: function (xhr, status, error) {
-            console.error("Error submitting check-in:", error);
-            let errorMessage = "An error occurred. Please try again.";
-            
-            if (xhr.responseJSON && xhr.responseJSON.errors) {
-                const errors = Object.values(xhr.responseJSON.errors).flat();
-                errorMessage = errors.join("\n");
-            } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
-            }
-            
-            showNotification(errorMessage, "error");
-        },
-        complete: function () {
-            $("#submitCheckInBtn")
-                .html("Submit Check-in")
-                .prop("disabled", false);
-        }
+function handleCheckOut() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString("id-ID", {
+        timeZone: "Asia/Jakarta",
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
     });
+
+    document.getElementById("checkOutTime").value = timeString;
+    document.getElementById("attendanceStatus").textContent = "Checked Out";
+
+    // Calculate working hours
+    calculateWorkingHours();
+
+    // Disable check out button
+    document.getElementById("checkOutBtn").disabled = true;
+
+    // Show success message
+    showNotification("Successfully checked out at " + timeString, "success");
 }
 
-// Calculate working hours
 function calculateWorkingHours() {
-    const checkInTime = $("#checkInTime").val();
-    const checkOutTime = $("#checkOutTime").val();
+    const checkInTime = document.getElementById("checkInTime").value;
+    const checkOutTime = document.getElementById("checkOutTime").value;
 
     if (checkInTime && checkOutTime) {
         const [checkInHour, checkInMin] = checkInTime.split(":").map(Number);
@@ -211,7 +147,33 @@ function calculateWorkingHours() {
         const hours = Math.floor(totalMinutes / 60);
         const minutes = totalMinutes % 60;
 
-        $("#workingHours").text(`${hours}h ${minutes}m`);
+        document.getElementById(
+            "workingHours"
+        ).textContent = `${hours}h ${minutes}m`;
+    }
+}
+
+function updateAttendanceStatus() {
+    // This would typically fetch from server
+    // For now, we'll use mock data
+    const mockData = {
+        checkInTime: null,
+        checkOutTime: null,
+        status: "",
+    };
+
+    if (mockData.checkInTime) {
+        document.getElementById("checkInTime").value = mockData.checkInTime;
+        document.getElementById("checkInBtn").disabled = true;
+        document.getElementById("attendanceStatus").textContent = "Checked In";
+    } else {
+        document.getElementById("attendanceStatus").textContent = "";
+    }
+
+    if (mockData.checkOutTime) {
+        document.getElementById("checkOutTime").value = mockData.checkOutTime;
+        document.getElementById("checkOutBtn").disabled = true;
+        document.getElementById("attendanceStatus").textContent = "Checked Out";
     }
 }
 
@@ -224,51 +186,34 @@ function initializeCalendar() {
     currentDate = new Date();
     currentMonth = currentDate.getMonth();
     currentYear = currentDate.getFullYear();
-    loadCalendarData();
+    renderCalendar(currentMonth, currentYear);
 }
 
-// AJAX function to load calendar data
-function loadCalendarData() {
-    const employeeId = $('input[name="employee_id"]').val();
-    
-    if (!employeeId) return;
-
-    $.ajax({
-        url: appUrl + "/attendance/calendar",
-        type: "GET",
-        dataType: "json",
-        data: {
-            employee_id: employeeId,
-            month: currentMonth + 1,
-            year: currentYear
-        },
-        beforeSend: function () {
-            $("#calendarDays").html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i></div>');
-        },
-        success: function (response) {
-            if (response.success) {
-                renderCalendarWithData(response.data);
-            }
-        },
-        error: function (xhr, status, error) {
-            console.error("Error loading calendar data:", error);
-            $("#calendarDays").html('<div class="text-center text-danger">Failed to load calendar</div>');
-        }
-    });
-}
-
-function renderCalendarWithData(attendanceData) {
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+function renderCalendar(month, year) {
+    console.log("Rendering calendar for", month, year); // Debug log
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDay = firstDay.getDay();
 
     // Update header
     const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ];
-    $("#currentMonthYear").text(`${monthNames[currentMonth]} ${currentYear}`);
+    document.getElementById(
+        "currentMonthYear"
+    ).textContent = `${monthNames[month]} ${year}`;
 
     // Clear previous days
     const calendarDays = document.getElementById("calendarDays");
@@ -288,23 +233,42 @@ function renderCalendarWithData(attendanceData) {
         dayElement.textContent = day;
 
         // Check if this is today
-        const checkDate = new Date(currentYear, currentMonth, day);
+        const checkDate = new Date(year, month, day);
         if (checkDate.toDateString() === new Date().toDateString()) {
             dayElement.classList.add("today");
         }
 
-        // Add attendance data from server
-        const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        if (attendanceData[dateKey]) {
-            dayElement.classList.add("has-attendance", attendanceData[dateKey]);
-        }
+        // Add mock attendance data
+        addMockAttendanceData(dayElement, day, month, year);
 
         // Add click event
-        $(dayElement).on("click", function () {
-            selectDate(day, currentMonth, currentYear);
+        dayElement.addEventListener("click", function () {
+            selectDate(day, month, year);
         });
 
         calendarDays.appendChild(dayElement);
+    }
+}
+
+function addMockAttendanceData(dayElement, day, month, year) {
+    // Mock attendance data for demonstration
+    const mockAttendance = {
+        1: "present",
+        3: "absent",
+        5: "late",
+        7: "leave",
+        10: "present",
+        12: "late",
+        15: "present",
+        18: "leave",
+        20: "present",
+        22: "absent",
+        25: "present",
+        28: "late",
+    };
+
+    if (mockAttendance[day]) {
+        dayElement.classList.add("has-attendance", mockAttendance[day]);
     }
 }
 
@@ -319,7 +283,7 @@ function navigateMonth(direction) {
         currentYear++;
     }
 
-    loadCalendarData();
+    renderCalendar(currentMonth, currentYear);
 }
 
 function selectDate(day, month, year) {
@@ -327,227 +291,70 @@ function selectDate(day, month, year) {
     const dateString = selectedDate.toISOString().split("T")[0];
 
     // Update form date
-    $("#currentDate").val(dateString);
+    document.getElementById("currentDate").value = dateString;
 
     // Highlight selected date
-    $(".calendar-day").removeClass("selected");
-    $(`.calendar-day:contains('${day}')`).not('.other-month').addClass("selected");
+    const days = document.querySelectorAll(".calendar-day");
+    days.forEach((d) => d.classList.remove("selected"));
 
-    // Load attendance for selected date
-    loadAttendanceData();
-}
+    const selectedDay = Array.from(days).find(
+        (d) => d.textContent == day && !d.classList.contains("other-month")
+    );
 
-// Notification system
-function showNotification(message, type) {
-    const notification = $(`
-        <div class="alert alert-${type} notification" style="
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
-        ">
-            ${message}
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
-        </div>
-    `);
-
-    if (type === "success") {
-        notification.css("background-color", "#28a745");
-    } else if (type === "error") {
-        notification.css("background-color", "#dc3545");
+    if (selectedDay) {
+        selectedDay.classList.add("selected");
     }
 
-    $("body").append(notification);
+    // Load attendance for selected date
+    loadAttendanceForDate(dateString);
+}
 
-    // Auto remove after 3 seconds
+function loadAttendanceForDate(dateString) {
+    // This would typically fetch from server
+    // For now, we'll reset the form for new date
+    document.getElementById("checkInTime").value = "";
+    document.getElementById("checkOutTime").value = "";
+    document.getElementById("workingHours").textContent = "0h 0m";
+    // Remove "Not Checked In" text when no check-in yet
+    document.getElementById("attendanceStatus").textContent = "";
+
+    document.getElementById("checkInBtn").disabled = false;
+    document.getElementById("checkOutBtn").disabled = true;
+}
+
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement("div");
+    notification.className = `alert alert-${type} notification`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+    `;
+
+    if (type === "success") {
+        notification.style.backgroundColor = "#28a745";
+    }
+
+    document.body.appendChild(notification);
+
+    // Remove after 3 seconds
     setTimeout(() => {
-        notification.fadeOut(300, function() {
-            $(this).remove();
-        });
+        notification.style.animation = "slideOut 0.3s ease";
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
     }, 3000);
 }
 
-// Loading states
-function showLoadingState() {
-    // Add loading overlay or spinner
-    const loadingHtml = '<div class="loading-overlay"><i class="fas fa-spinner fa-spin"></i></div>';
-    $(".attendance-container").append(loadingHtml);
-}
-
-function hideLoadingState() {
-    $(".loading-overlay").remove();
-}
-
-// Camera functionality
-let stream = null;
-window.capturedImage = null;
-
-function initializeCameraFeatures() {
-    // Camera label click handler
-    $(document).on("click", ".camera-label", function (e) {
-        e.preventDefault();
-        startCamera();
-    });
-
-    // Clear image button
-    $(document).on("click", "#clearImageBtn", clearImage);
-
-    // Retake button
-    $(document).on("click", "#retakeBtn", retakePhoto);
-}
-
-function startCamera() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        showNotification("Camera is not supported on this device/browser", "error");
-        return;
-    }
-
-    navigator.mediaDevices
-        .getUserMedia({
-            video: {
-                facingMode: "user",
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-            },
-        })
-        .then(function (mediaStream) {
-            stream = mediaStream;
-            const video = document.getElementById("cameraVideo");
-            const imageInput = document.getElementById("imageInput");
-            const cameraLabel = document.querySelector(".camera-label");
-            const preview = document.getElementById("imagePreview");
-
-            if (video && cameraLabel) {
-                video.srcObject = mediaStream;
-                $(video).show();
-                $(cameraLabel).hide();
-                $(imageInput).hide();
-                $(preview).hide();
-
-                addCaptureButton();
-            }
-        })
-        .catch(function (error) {
-            console.error("Error accessing camera:", error);
-            showNotification("Failed to access camera. Using file upload instead.", "error");
-            $("#imageInput").click();
-        });
-}
-
-function addCaptureButton() {
-    // Remove existing capture button
-    $("#captureBtn").remove();
-
-    // Create capture button
-    const captureBtn = $(`
-        <button type="button" id="captureBtn" class="btn btn-primary mt-2 w-100">
-            <i class="fas fa-camera"></i> Capture Photo
-        </button>
-    `);
-
-    captureBtn.on("click", capturePhoto);
-    $("#cameraVideo").parent().append(captureBtn);
-}
-
-function capturePhoto() {
-    const video = document.getElementById("cameraVideo");
-    const canvas = document.getElementById("cameraCanvas");
-
-    if (!video || !canvas) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const context = canvas.getContext("2d");
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    canvas.toBlob(
-        function (blob) {
-            if (blob) {
-                const file = new File([blob], "attendance-photo.jpg", {
-                    type: "image/jpeg",
-                });
-
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    showImagePreview(e.target.result);
-                    window.capturedImage = file;
-
-                    // Update file input
-                    const dt = new DataTransfer();
-                    dt.items.add(file);
-                    document.getElementById("imageInput").files = dt.files;
-                };
-                reader.readAsDataURL(blob);
-            }
-        },
-        "image/jpeg",
-        0.9
-    );
-
-    stopCamera();
-}
-
-function showImagePreview(src) {
-    const preview = $("#imagePreview");
-    const previewImg = $("#previewImg");
-    const clearBtn = $("#clearImageBtn");
-    const retakeBtn = $("#retakeBtn");
-    const video = $("#cameraVideo");
-    const captureBtn = $("#captureBtn");
-
-    if (preview.length && previewImg.length) {
-        previewImg.attr("src", src);
-        preview.show();
-        clearBtn.show();
-        retakeBtn.show();
-        video.hide();
-        captureBtn.remove();
-    }
-}
-
-function clearImage() {
-    $("#imagePreview").hide();
-    $("#previewImg").attr("src", "");
-    $("#clearImageBtn").hide();
-    $("#retakeBtn").hide();
-    $(".camera-label").show();
-    $("#imageInput").val("");
-    window.capturedImage = null;
-}
-
-function retakePhoto() {
-    clearImage();
-    startCamera();
-}
-
-function stopCamera() {
-    if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-        stream = null;
-    }
-
-    $("#cameraVideo").hide();
-    $("#captureBtn").remove();
-}
-
-function handleImagePreview(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        showImagePreview(e.target.result);
-    };
-    reader.readAsDataURL(file);
-}
-
-// Add CSS for animations
+// Add CSS animations
 const style = document.createElement("style");
 style.textContent = `
     @keyframes slideIn {
@@ -576,31 +383,340 @@ style.textContent = `
         background-color: #007bff;
         color: white;
     }
-    
-    .loading-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-    }
-    
-    .loading-overlay i {
-        font-size: 2rem;
-        color: #007bff;
-    }
 `;
 document.head.appendChild(style);
 
-// Initialize Font Awesome
-if (!$('link[href*="font-awesome"]').length) {
+// Camera functionality
+let stream = null;
+let capturedImage = null;
+
+function initializeCameraFeatures() {
+    // Camera label click handler
+    const cameraLabel = document.querySelector(".camera-label");
+    if (cameraLabel) {
+        cameraLabel.addEventListener("click", function (e) {
+            e.preventDefault();
+            startCamera();
+        });
+    }
+
+    // Clear image button
+    const clearImageBtn = document.getElementById("clearImageBtn");
+    if (clearImageBtn) {
+        clearImageBtn.addEventListener("click", clearImage);
+    }
+
+    // Retake button
+    const retakeBtn = document.getElementById("retakeBtn");
+    if (retakeBtn) {
+        retakeBtn.addEventListener("click", retakePhoto);
+    }
+}
+
+function startCamera() {
+    // Check if camera is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Camera is not supported on this device/browser");
+        return;
+    }
+
+    // Request camera access
+    navigator.mediaDevices
+        .getUserMedia({
+            video: {
+                facingMode: "user",
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+            },
+        })
+        .then(function (mediaStream) {
+            stream = mediaStream;
+
+            // Show video element
+            const video = document.getElementById("cameraVideo");
+            const imageInput = document.getElementById("imageInput");
+            const cameraLabel = document.querySelector(".camera-label");
+            const preview = document.getElementById("imagePreview");
+
+            if (video && cameraLabel) {
+                video.srcObject = mediaStream;
+                video.style.display = "block";
+                cameraLabel.style.display = "none";
+                imageInput.style.display = "none";
+                preview.style.display = "none";
+
+                // Add capture button
+                addCaptureButton();
+            }
+        })
+        .catch(function (error) {
+            console.error("Error accessing camera:", error);
+
+            // Fallback to file input if camera fails
+            const imageInput = document.getElementById("imageInput");
+            if (imageInput) {
+                imageInput.click();
+            }
+        });
+}
+
+function addCaptureButton() {
+    // Remove existing capture button
+    const existingBtn = document.getElementById("captureBtn");
+    if (existingBtn) {
+        existingBtn.remove();
+    }
+
+    // Create capture button
+    const captureBtn = document.createElement("button");
+    captureBtn.id = "captureBtn";
+    captureBtn.type = "button";
+    captureBtn.className = "btn btn-primary mt-2 w-100";
+    captureBtn.innerHTML = '<i class="fas fa-camera"></i> Capture Photo';
+
+    captureBtn.addEventListener("click", capturePhoto);
+
+    const videoContainer = document.getElementById("cameraVideo").parentElement;
+    videoContainer.appendChild(captureBtn);
+}
+
+function capturePhoto() {
+    const video = document.getElementById("cameraVideo");
+    const canvas = document.getElementById("cameraCanvas");
+
+    if (!video || !canvas) return;
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
+    const context = canvas.getContext("2d");
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to blob
+    canvas.toBlob(
+        function (blob) {
+            if (blob) {
+                // Create file from blob
+                const file = new File([blob], "attendance-photo.jpg", {
+                    type: "image/jpeg",
+                });
+
+                // Create data URL for preview
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    showImagePreview(e.target.result);
+                    capturedImage = file;
+
+                    // Update file input
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    document.getElementById("imageInput").files = dt.files;
+                };
+                reader.readAsDataURL(blob);
+            }
+        },
+        "image/jpeg",
+        0.9
+    );
+
+    // Stop camera stream
+    stopCamera();
+}
+
+function showImagePreview(src) {
+    const preview = document.getElementById("imagePreview");
+    const previewImg = document.getElementById("previewImg");
+    const clearBtn = document.getElementById("clearImageBtn");
+    const retakeBtn = document.getElementById("retakeBtn");
+    const video = document.getElementById("cameraVideo");
+    const captureBtn = document.getElementById("captureBtn");
+
+    if (preview && previewImg) {
+        previewImg.src = src;
+        preview.style.display = "block";
+
+        if (clearBtn) clearBtn.style.display = "inline-block";
+        if (retakeBtn) retakeBtn.style.display = "inline-block";
+        if (video) video.style.display = "none";
+        if (captureBtn) captureBtn.remove();
+    }
+}
+
+function clearImage() {
+    const preview = document.getElementById("imagePreview");
+    const previewImg = document.getElementById("previewImg");
+    const clearBtn = document.getElementById("clearImageBtn");
+    const retakeBtn = document.getElementById("retakeBtn");
+    const cameraLabel = document.querySelector(".camera-label");
+    const imageInput = document.getElementById("imageInput");
+
+    if (preview) preview.style.display = "none";
+    if (previewImg) previewImg.src = "";
+    if (clearBtn) clearBtn.style.display = "none";
+    if (retakeBtn) retakeBtn.style.display = "none";
+    if (cameraLabel) cameraLabel.style.display = "block";
+    if (imageInput) imageInput.value = "";
+
+    capturedImage = null;
+}
+
+function retakePhoto() {
+    clearImage();
+    startCamera();
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+        stream = null;
+    }
+
+    const video = document.getElementById("cameraVideo");
+    const captureBtn = document.getElementById("captureBtn");
+
+    if (video) video.style.display = "none";
+    if (captureBtn) captureBtn.remove();
+}
+
+function handleImagePreview(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        showImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+}
+
+function submitCheckIn() {
+    const form = document.getElementById("checkInForm");
+    if (!form) return;
+
+    // Get form data
+    const formData = new FormData(form);
+
+    // Add captured image if exists
+    if (capturedImage) {
+        formData.append("image", capturedImage);
+    }
+
+    // Add CSRF token
+    const csrfToken = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content");
+    if (!csrfToken) {
+        console.error("CSRF token not found");
+        return;
+    }
+    formData.append("_token", csrfToken);
+
+    // Add employee_id from hidden field
+    const employeeId = document.querySelector(
+        'input[name="employee_id"]'
+    )?.value;
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+    formData.append("employee_id", employeeId);
+
+    // Convert boolean values properly
+    const isWorkOutside = document.querySelector(
+        'input[name="is_work_outside"]:checked'
+    )?.value;
+    if (!isWorkOutside) {
+        console.error("Work outside selection not found");
+        return;
+    }
+    formData.set("is_work_outside", isWorkOutside);
+
+    // Show loading state
+    const submitBtn = document.getElementById("submitCheckInBtn");
+    if (!submitBtn) {
+        console.error("Submit button not found");
+        return;
+    }
+
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    submitBtn.disabled = true;
+
+    // Get base URL from meta tag
+    const url = `${baseUrl}/attendance/store`;
+
+    // Send data to server
+    fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRF-TOKEN": csrfToken,
+            Accept: "application/json",
+        },
+    })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((err) => {
+                    throw new Error(
+                        err.message || `HTTP error! status: ${response.status}`
+                    );
+                });
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (data.status === "success") {
+                showNotification(
+                    data.message || "Check-in submitted successfully!",
+                    "success"
+                );
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(
+                    document.getElementById("checkInModal")
+                );
+                if (modal) modal.hide();
+
+                // Reset form
+                form.reset();
+                clearImage();
+
+                // Reload attendance data
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showNotification(
+                    data.message || "Error submitting check-in",
+                    "error"
+                );
+                console.error("Server error:", data);
+            }
+        })
+        .catch((error) => {
+            console.error("Network error:", error);
+            showNotification(
+                error.message || "Network error. Please check your connection.",
+                "error"
+            );
+        })
+        .finally(() => {
+            // Reset button state
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+}
+
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", function () {
+    // Add Font Awesome for icons
     const fontAwesome = document.createElement("link");
     fontAwesome.rel = "stylesheet";
-    fontAwesome.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css";
+    fontAwesome.href =
+        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css";
     document.head.appendChild(fontAwesome);
-}
+});
