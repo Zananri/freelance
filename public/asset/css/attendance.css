@@ -158,21 +158,21 @@
     max-width: 200px;
 }
 
-.btn-success {
+.btn-check-in {
     background-color: #007bff;
     color: white;
 }
 
-.btn-success:hover {
+.btn-check-in:hover {
     background-color: #0056b3;
 }
 
-.btn-danger {
+.btn-check-out {
     background-color: gray;
     color: white;
 }
 
-.btn-danger:hover {
+.btn-check-out:hover {
     background-color: darkgray;
 }
 

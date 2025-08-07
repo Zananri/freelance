@@ -30,9 +30,16 @@
                     </p>
                 </div>
                 <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-center">
-                    <button class="btn btn-success w-50 mb-2" id="checkInBtn"><span class="material-symbols-outlined">
-                            alarm_on
-                        </span>Check In</button>
+                    <button class="btn btn-check-in w-50 mb-2" id="checkInBtn" style="display: none;">
+                        <span class="material-symbols-outlined">alarm_on</span>
+                        Check In
+                    </button>
+                    <button class="btn btn-check-out w-50 mb-2" id="checkOutBtn" style="display: none;">
+                        <span class="material-symbols-outlined">alarm_off</span>
+                        Check Out
+                    </button>
+                    <input type="hidden" id="checkInTime" name="checkInTime" value="">
+                    <input type="hidden" id="checkOutTime" name="checkOutTime" value="">
                 </div>
             </div>
 
@@ -104,7 +111,7 @@
                         <div class="mb-3">
                             <label for="is_work_outside" class="form-label">Work Outside</label>
                             <div class="d-flex gap-3">
-                                <div class=`"form-check">
+                                <div class="form-check">
                                     <input class="form-check-input" type="radio" name="is_work_outside"
                                         id="work_outside_yes" value="1">
                                     <label class="form-check-label" for="work_outside_yes">

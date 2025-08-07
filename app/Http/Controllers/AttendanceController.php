@@ -173,4 +173,106 @@ class AttendanceController extends Controller
     {
         //
     }
+
+    /**
+     * Get today's attendance for specific employee
+     */
+    public function getTodayAttendance($employeeId)
+    {
+        try {
+            $today = Carbon::today()->toDateString();
+            
+            $attendance = Attendance::where('employee_id', $employeeId)
+                ->where('date_attendance', $today)
+                ->where('type_attendance', 'check_in')
+                ->first();
+
+            if (!$attendance) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'not_found',
+                    'data' => null,
+                    'message' => 'No attendance record found for today'
+                ]);
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $attendance,
+                'message' => 'Today\'s attendance retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching today\'s attendance:', [
+                'employee_id' => $employeeId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => null,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle check-out for attendance
+     */
+    public function checkout(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Validasi request
+            $validated = $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+            ]);
+
+            // Cari attendance check-in hari ini
+            $today = Carbon::today()->toDateString();
+            $attendance = Attendance::where('employee_id', $validated['employee_id'])
+                ->where('date_attendance', $today)
+                ->where('type_attendance', 'check_in')
+                ->whereNull('time_out')
+                ->first();
+
+            if (!$attendance) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'data' => [],
+                    'message' => 'No active check-in found for today!'
+                ], 404);
+            }
+
+            // Update waktu check-out
+            $now = Carbon::now();
+            $attendance->update([
+                'time_out' => $now->format('H:i'),
+                'type_attendance' => 'check_out'
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $attendance,
+                'message' => 'Check-out successful!'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Attendance checkout error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

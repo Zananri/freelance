@@ -154,27 +154,59 @@ function calculateWorkingHours() {
 }
 
 function updateAttendanceStatus() {
-    // This would typically fetch from server
-    // For now, we'll use mock data
-    const mockData = {
-        checkInTime: null,
-        checkOutTime: null,
-        status: "",
-    };
-
-    if (mockData.checkInTime) {
-        document.getElementById("checkInTime").value = mockData.checkInTime;
-        document.getElementById("checkInBtn").disabled = true;
-        document.getElementById("attendanceStatus").textContent = "Checked In";
-    } else {
-        document.getElementById("attendanceStatus").textContent = "";
+    const employeeId = document.querySelector(
+        'input[name="employee_id"]'
+    )?.value;
+    
+    if (!employeeId) {
+        // Show check-in button if no employee ID
+        document.getElementById("checkInBtn").style.display = "inline-block";
+        document.getElementById("checkOutBtn").style.display = "none";
+        return;
     }
 
-    if (mockData.checkOutTime) {
-        document.getElementById("checkOutTime").value = mockData.checkOutTime;
-        document.getElementById("checkOutBtn").disabled = true;
-        document.getElementById("attendanceStatus").textContent = "Checked Out";
-    }
+    const today = new Date().toISOString().split("T")[0];
+    const url = `${baseUrl}/attendance/today/${employeeId}`;
+
+    // Fetch actual attendance data from server
+    fetch(url)
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.status === "success" && data.data) {
+                const attendance = data.data;
+                
+                if (attendance.time_in && !attendance.time_out) {
+                    // Checked in but not checked out
+                    document.getElementById("checkInTime").value = attendance.time_in;
+                    document.getElementById("checkInBtn").style.display = "none";
+                    document.getElementById("checkOutBtn").style.display = "flex";
+                    document.getElementById("attendanceStatus").textContent = "Checked In";
+                } else if (attendance.time_in && attendance.time_out) {
+                    // Already checked out
+                    document.getElementById("checkInTime").value = attendance.time_in;
+                    document.getElementById("checkOutTime").value = attendance.time_out;
+                    document.getElementById("checkInBtn").style.display = "none";
+                    document.getElementById("checkOutBtn").style.display = "none";
+                    document.getElementById("attendanceStatus").textContent = "Checked Out";
+                } else {
+                    // No check-in yet
+                    document.getElementById("checkInBtn").style.display = "flex";
+                    document.getElementById("checkOutBtn").style.display = "none";
+                    document.getElementById("attendanceStatus").textContent = "";
+                }
+            } else {
+                // No attendance record or error
+                document.getElementById("checkInBtn").style.display = "flex";
+                document.getElementById("checkOutBtn").style.display = "none";
+                document.getElementById("attendanceStatus").textContent = "";
+            }
+        })
+        .catch((error) => {
+            console.error("Error fetching attendance data:", error);
+            // Fallback to showing check-in button
+            document.getElementById("checkInBtn").style.display = "flex";
+            document.getElementById("checkOutBtn").style.display = "none";
+        });
 }
 
 // Calendar Functions
@@ -720,3 +752,85 @@ document.addEventListener("DOMContentLoaded", function () {
         "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css";
     document.head.appendChild(fontAwesome);
 });
+
+// Function to submit check-out
+function submitCheckOut() {
+    const csrfToken = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content");
+    if (!csrfToken) {
+        console.error("CSRF token not found");
+        return;
+    }
+
+    const employeeId = document.querySelector(
+        'input[name="employee_id"]'
+    )?.value;
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const url = `${baseUrl}/attendance/checkout`;
+
+    const formData = new FormData();
+    formData.append("_token", csrfToken);
+    formData.append("employee_id", employeeId);
+
+    // Show loading state
+    const checkOutBtn = document.getElementById("checkOutBtn");
+    const originalText = checkOutBtn.innerHTML;
+    checkOutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    checkOutBtn.disabled = true;
+
+    fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRF-TOKEN": csrfToken,
+            Accept: "application/json",
+        },
+    })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((err) => {
+                    throw new Error(
+                        err.message || `HTTP error! status: ${response.status}`
+                    );
+                });
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (data.status === "success") {
+                showNotification(
+                    data.message || "Check-out submitted successfully!",
+                    "success"
+                );
+
+                // Reload attendance data
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showNotification(
+                    data.message || "Error submitting check-out",
+                    "error"
+                );
+                console.error("Server error:", data);
+            }
+        })
+        .catch((error) => {
+            console.error("Network error:", error);
+            showNotification(
+                error.message || "Network error. Please check your connection.",
+                "error"
+            );
+        })
+        .finally(() => {
+            // Reset button state
+            checkOutBtn.innerHTML = originalText;
+            checkOutBtn.disabled = false;
+        });
+}

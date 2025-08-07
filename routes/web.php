@@ -148,5 +148,7 @@ Route::get('/attendance/create', [AttendanceController::class, 'create'])->name(
 Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
 Route::get('/attendance/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
 Route::post('/attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
+Route::post('/attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
+Route::get('/attendance/today/{employeeId}', [AttendanceController::class, 'getTodayAttendance'])->name('attendance.today');
 Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
 Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
