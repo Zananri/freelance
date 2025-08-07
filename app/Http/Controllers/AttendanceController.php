@@ -275,4 +275,40 @@ class AttendanceController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get attendance records for an employee for a specific month
+     */
+    public function getMonthlyAttendance($employeeId, $year, $month)
+    {
+        try {
+            $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
+            $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
+
+            $attendances = Attendance::where('employee_id', $employeeId)
+                ->whereBetween('date_attendance', [$startDate, $endDate])
+                ->get(['date_attendance', 'type_attendance']);
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $attendances,
+                'message' => 'Monthly attendance retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching monthly attendance:', [
+                'employee_id' => $employeeId,
+                'year' => $year,
+                'month' => $month,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => null,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

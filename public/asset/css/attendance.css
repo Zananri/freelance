@@ -469,6 +469,64 @@
     color: #555;
 }
 
+/* New styles for attendance status clipped box */
+
+.attendance-status-in {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+    background-color: #007bff; /* Bootstrap primary blue */
+    color: white;
+    font-weight: 600;
+    line-height: 30px;
+    text-align: center;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    clip-path: polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%);
+    user-select: none;
+}
+
+.attendance-status-in::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 15%;
+    height: 100%;
+    background-color: transparent;
+    pointer-events: none;
+}
+
+/* New style for calendar day checked-in with clipped half blue */
+
+.calendar-day.checked-in {
+    position: relative;
+    background-color: white;
+    color: black;
+    overflow: hidden;
+}
+
+.calendar-day.checked-in::before {
+    content: "In";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #007bff;
+    color: white;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    clip-path: polygon(0 0, 0% 100%, 100% 0);
+    border-top-left-radius: 8px;
+    user-select: none;
+    pointer-events: none;
+}
+
+
 
 
 /* Radio button styling */

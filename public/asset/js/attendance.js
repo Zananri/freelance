@@ -258,25 +258,52 @@ function renderCalendar(month, year) {
         calendarDays.appendChild(emptyDay);
     }
 
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayElement = document.createElement("div");
-        dayElement.className = "calendar-day";
-        dayElement.textContent = day;
-
-        // Check if this is today
-        const checkDate = new Date(year, month, day);
-        if (checkDate.toDateString() === new Date().toDateString()) {
-            dayElement.classList.add("today");
-        }
-
-        // Add click event
-        dayElement.addEventListener("click", function () {
-            selectDate(day, month, year);
-        });
-
-        calendarDays.appendChild(dayElement);
+    // Fetch attendance data for the month and employee
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    if (!employeeId) {
+        console.error("Employee ID not found for attendance calendar");
+        return;
     }
+
+    fetch(`${baseUrl}/attendance/monthly/${employeeId}/${year}/${month + 1}`)
+        .then(response => response.json())
+        .then(data => {
+            let checkedInDays = [];
+            if (data.status === "success" && Array.isArray(data.data)) {
+                checkedInDays = data.data.map(record => {
+                    const date = new Date(record.date_attendance);
+                    return date.getDate();
+                });
+            }
+
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement("div");
+                dayElement.className = "calendar-day";
+                dayElement.textContent = day;
+
+                // Check if this is today
+                const checkDate = new Date(year, month, day);
+                if (checkDate.toDateString() === new Date().toDateString()) {
+                    dayElement.classList.add("today");
+                }
+
+                // Add checked-in class if day is in checkedInDays
+                if (checkedInDays.includes(day)) {
+                    dayElement.classList.add("checked-in");
+                }
+
+                // Add click event
+                dayElement.addEventListener("click", function () {
+                    selectDate(day, month, year);
+                });
+
+                calendarDays.appendChild(dayElement);
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching monthly attendance:", error);
+        });
 }
 
 function navigateMonth(direction) {

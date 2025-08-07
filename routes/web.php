@@ -150,5 +150,6 @@ Route::get('/attendance/{id}', [AttendanceController::class, 'show'])->name('att
 Route::post('/attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
 Route::post('/attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
 Route::get('/attendance/today/{employeeId}', [AttendanceController::class, 'getTodayAttendance'])->name('attendance.today');
+Route::get('/attendance/monthly/{employeeId}/{year}/{month}', [AttendanceController::class, 'getMonthlyAttendance'])->name('attendance.monthly');
 Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
 Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
