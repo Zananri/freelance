@@ -270,37 +270,12 @@ function renderCalendar(month, year) {
             dayElement.classList.add("today");
         }
 
-        // Add mock attendance data
-        addMockAttendanceData(dayElement, day, month, year);
-
         // Add click event
         dayElement.addEventListener("click", function () {
             selectDate(day, month, year);
         });
 
         calendarDays.appendChild(dayElement);
-    }
-}
-
-function addMockAttendanceData(dayElement, day, month, year) {
-    // Mock attendance data for demonstration
-    const mockAttendance = {
-        1: "present",
-        3: "absent",
-        5: "late",
-        7: "leave",
-        10: "present",
-        12: "late",
-        15: "present",
-        18: "leave",
-        20: "present",
-        22: "absent",
-        25: "present",
-        28: "late",
-    };
-
-    if (mockAttendance[day]) {
-        dayElement.classList.add("has-attendance", mockAttendance[day]);
     }
 }
 
