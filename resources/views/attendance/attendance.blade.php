@@ -153,7 +153,7 @@
                                     <div class="image-upload-icon">
                                         <i class="fas fa-camera fa-2x text-primary"></i>
                                     </div>
-                                    <span id="cameraText">Take Photo with Camera</span>
+                                    <span id="cameraText">Take Photo</span>
                                 </label>
                                 <input type="file" class="form-control d-none" id="imageInput" name="image"
                                     accept="image/*" capture="user">
