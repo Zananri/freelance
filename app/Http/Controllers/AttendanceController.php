@@ -81,7 +81,7 @@ class AttendanceController extends Controller
             // Parse time_in dari format HH:MM
             $timeIn = $validated['time_in'];
             $checkInTime = \Carbon\Carbon::createFromFormat('H:i', $timeIn);
-            $lateThreshold = \Carbon\Carbon::createFromFormat('H:i', '09:15');
+            $lateThreshold = \Carbon\Carbon::createFromFormat('H:i', '09:00');
             $timeLate = null;
 
             if ($checkInTime->gt($lateThreshold)) {

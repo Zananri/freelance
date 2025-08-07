@@ -1,0 +1,352 @@
+<?php
+
+namespace App\Http\Controllers;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
+use App\Models\Employee;
+use App\Models\Attendance;
+use Illuminate\Http\Request;
+
+class AttendanceController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+  
+    public function showAttendancePage()
+    {
+        $userId = Auth::id();
+        $employee = Employee::with('division')->where('user_id', $userId)->first();
+
+        // Debug log to check division data
+        \Log::info('Employee division:', ['division' => $employee ? $employee->division : null]);
+
+        return view('attendance/attendance', compact('employee'));
+    }
+
+    public function index()
+    {
+        //
+    }
+
+    /**
+     * Get attendance data for AJAX requests
+     */
+    public function getAttendanceByDate(Request $request)
+    {
+        try {
+            $date = $request->get('date');
+            $employeeId = $request->get('employee_id');
+            
+            if (!$date || !$employeeId) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => 'error',
+                    'data' => [],
+                    'message' => 'Date and employee_id are required'
+                ], 400);
+            }
+
+            $attendance = Attendance::where('employee_id', $employeeId)
+                ->where('date_attendance', $date)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $attendance,
+                'message' => 'Attendance data retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Get attendance by date error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get attendance calendar data
+     */
+    public function getCalendarData(Request $request)
+    {
+        try {
+            $month = $request->get('month');
+            $year = $request->get('year');
+            $employeeId = $request->get('employee_id');
+            
+            if (!$month || !$year || !$employeeId) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => 'error',
+                    'data' => [],
+                    'message' => 'Month, year and employee_id are required'
+                ], 400);
+            }
+
+            $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+            $attendance = Attendance::where('employee_id', $employeeId)
+                ->whereBetween('date_attendance', [$startDate, $endDate])
+                ->get()
+                ->groupBy('date_attendance');
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $attendance,
+                'message' => 'Calendar data retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Get calendar data error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check out via AJAX
+     */
+    public function checkOut(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+            
+            $validated = $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'date_attendance' => 'required|date',
+                'time_out' => 'required|string',
+                'note' => 'nullable|string|max:500',
+            ]);
+
+            // Find today's check-in record
+            $checkIn = Attendance::where('employee_id', $validated['employee_id'])
+                ->where('date_attendance', $validated['date_attendance'])
+                ->where('type_attendance', 'check_in')
+                ->first();
+
+            if (!$checkIn) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'data' => [],
+                    'message' => 'No check-in record found for today'
+                ], 404);
+            }
+
+            // Check if already checked out
+            $existingCheckout = Attendance::where('employee_id', $validated['employee_id'])
+                ->where('date_attendance', $validated['date_attendance'])
+                ->where('type_attendance', 'check_out')
+                ->first();
+
+            if ($existingCheckout) {
+                return response()->json([
+                    'code' => 409,
+                    'status' => 'error',
+                    'data' => [],
+                    'message' => 'You have already checked out for today!'
+                ], 409);
+            }
+
+            // Calculate working hours
+            $timeIn = Carbon::createFromFormat('H:i', $checkIn->time_in);
+            $timeOut = Carbon::createFromFormat('H:i', $validated['time_out']);
+            $workingHours = $timeIn->diff($timeOut)->format('%H:%I');
+
+            // Create checkout record
+            $checkout = Attendance::create([
+                'employee_id' => $validated['employee_id'],
+                'date_attendance' => $validated['date_attendance'],
+                'time_out' => $validated['time_out'],
+                'working_hours' => $workingHours,
+                'type_attendance' => 'check_out',
+                'note' => $validated['note'] ?? null,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $checkout,
+                'message' => 'Check-out successful!',
+                'working_hours' => $workingHours
+            ]);
+
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => 422,
+                'status' => 'error',
+                'data' => [],
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Check out error:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        //
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+            
+            // Debug log untuk melihat data yang diterima
+            \Log::info('Attendance store request data:', $request->all());
+            
+            // Validasi request dengan rules yang lebih fleksibel
+            $validated = $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'is_work_outside' => 'required|string|in:0,1,true,false',
+                'date_attendance' => 'required|date',
+                'time_in' => 'required|string',
+                'note' => 'nullable|string|max:500',
+                'image' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
+            ]);
+
+            // Konversi is_work_outside ke boolean
+            $isWorkOutside = filter_var($validated['is_work_outside'], FILTER_VALIDATE_BOOLEAN);
+
+            // Cek apakah sudah check-in hari ini
+            $existingAttendance = Attendance::where('employee_id', $validated['employee_id'])
+                ->where('date_attendance', $validated['date_attendance'])
+                ->where('type_attendance', 'check_in')
+                ->first();
+
+            if ($existingAttendance) {
+                return response()->json([
+                    'code' => 409,
+                    'status' => 'error',
+                    'data' => [],
+                    'message' => 'You have already checked in for today!'
+                ], 409);
+            }
+
+            // Parse time_in dari format HH:MM
+            $timeIn = $validated['time_in'];
+            $checkInTime = \Carbon\Carbon::createFromFormat('H:i', $timeIn);
+            $lateThreshold = \Carbon\Carbon::createFromFormat('H:i', '09:15');
+            $timeLate = null;
+
+            if ($checkInTime->gt($lateThreshold)) {
+                $timeLate = $checkInTime->diff($lateThreshold)->format('%H:%I');
+            }
+
+            // Handle image upload
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = 'attendance_' . time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('attendance_images', $imageName, 'public');
+            }
+
+            // Create attendance record
+            $attendance = Attendance::create([
+                'employee_id' => $validated['employee_id'],
+                'is_work_outside' => $isWorkOutside,
+                'date_attendance' => $validated['date_attendance'],
+                'time_in' => $timeIn,
+                'time_late' => $timeLate,
+                'type_attendance' => 'check_in',
+                'note' => $validated['note'] ?? null,
+                'image' => $imagePath ? 'storage/' . $imagePath : null,
+            ]);
+
+            DB::commit();
+
+            \Log::info('Attendance created successfully:', ['attendance_id' => $attendance->id]);
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $attendance,
+                'message' => 'Check-in successful!'
+            ]);
+
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            \Log::error('Validation error:', $e->errors());
+            return response()->json([
+                'code' => 422,
+                'status' => 'error',
+                'data' => [],
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Attendance store error:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        //
+    }
+}
