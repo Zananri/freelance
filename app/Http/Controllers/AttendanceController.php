@@ -80,21 +80,22 @@ class AttendanceController extends Controller
 
             // Parse time_in dari format HH:MM
             $timeIn = $validated['time_in'];
-            $checkInTime = \Carbon\Carbon::createFromFormat('H:i', $timeIn);
-            $lateThreshold = \Carbon\Carbon::createFromFormat('H:i', '09:00');
+            $checkInTime = Carbon::createFromFormat('H:i', $timeIn);
+            $lateThreshold = Carbon::createFromFormat('H:i', '09:00');
             $timeLate = null;
 
             if ($checkInTime->gt($lateThreshold)) {
                 $timeLate = $checkInTime->diff($lateThreshold)->format('%H:%I');
             }
 
-            // Handle image upload
-            $imagePath = null;
+              $imageName = null;
             if ($request->hasFile('image')) {
-                $image = $request->file('image');
-                $imageName = 'attendance_' . time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                $imagePath = $image->storeAs('attendance_images', $imageName, 'public');
+                $t = time();
+                $imageName = 'ATTENDANCE_' . $t . '.' . $request->image->extension();
+                $request->image->move(public_path('file/attendance'), $imageName);
             }
+            $imagePath = $imageName ? 'attendance/' . $imageName : null;
+
 
             // Create attendance record
             $attendance = Attendance::create([
@@ -105,7 +106,7 @@ class AttendanceController extends Controller
                 'time_late' => $timeLate,
                 'type_attendance' => 'check_in',
                 'note' => $validated['note'] ?? null,
-                'image' => $imagePath ? 'storage/' . $imagePath : null,
+                'image' => $imagePath ? 'file/' . $imagePath : null,
             ]);
 
             DB::commit();
