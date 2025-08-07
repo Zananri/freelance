@@ -93,7 +93,7 @@
                         <!-- is_work_outside -->
                         <div class="mb-3">
                             <label for="is_work_outside" class="form-label">Work Outside</label>
-                            <div class="d-flex gap-3">
+                            <div class="work-outside-container">
                                 <div class="form-check">
                                     <input class="form-check-input" type="radio" name="is_work_outside"
                                         id="work_outside_yes" value="1">
