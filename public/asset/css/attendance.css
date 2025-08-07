@@ -464,6 +464,8 @@
 /* New JavaScript-based "In" label styling */
 .calendar-day.checked-in {
     position: relative;
+    /* Add half triangular background */
+    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
 }
 
 .check-in-label {
