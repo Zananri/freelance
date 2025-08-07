@@ -117,6 +117,14 @@ function openCheckInModal() {
     document.getElementById("date_attendance").value = dateString;
     document.getElementById("time_in").value = timeString;
 
+    // Check for existing image URL and show preview if present
+    const existingImageUrlInput = document.getElementById("existingImageUrl");
+    if (existingImageUrlInput && existingImageUrlInput.value) {
+        showImagePreview(existingImageUrlInput.value);
+    } else {
+        clearImage();
+    }
+
     // Show the modal using Bootstrap's modal API
     const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
     modal.show();
@@ -488,11 +496,7 @@ function initializeCameraFeatures() {
         clearImageBtn.addEventListener("click", clearImage);
     }
 
-    // Retake button
-    const retakeBtn = document.getElementById("retakeBtn");
-    if (retakeBtn) {
-        retakeBtn.addEventListener("click", retakePhoto);
-    }
+    // Removed retake button event listener as per user request
 }
 
 function startCamera() {
@@ -619,8 +623,14 @@ function showImagePreview(src) {
         previewImg.src = src;
         preview.style.display = "block";
 
-        if (clearBtn) clearBtn.style.display = "inline-block";
-        if (retakeBtn) retakeBtn.style.display = "inline-block";
+        if (clearBtn) {
+            clearBtn.style.display = "";
+            clearBtn.classList.remove("d-none");
+        }
+        if (retakeBtn) {
+            retakeBtn.style.display = "inline-block";
+            retakeBtn.classList.remove("d-none");
+        }
         if (video) video.style.display = "none";
         if (captureBtn) captureBtn.remove();
     }
@@ -634,14 +644,21 @@ function clearImage() {
     const cameraLabel = document.querySelector(".camera-label");
     const imageInput = document.getElementById("imageInput");
     const video = document.getElementById("cameraVideo");
+    const existingImageUrlInput = document.getElementById("existingImageUrl");
 
     // Reset preview
     if (preview) preview.style.display = "none";
     if (previewImg) previewImg.src = "";
     
     // Hide clear and retake buttons
-    if (clearBtn) clearBtn.style.display = "none";
-    if (retakeBtn) retakeBtn.style.display = "none";
+    if (clearBtn) {
+        clearBtn.style.display = "none";
+        clearBtn.classList.add("d-none");
+    }
+    if (retakeBtn) {
+        retakeBtn.style.display = "none";
+        retakeBtn.classList.add("d-none");
+    }
     
     // Show camera label again
     if (cameraLabel) {
@@ -653,6 +670,9 @@ function clearImage() {
     
     // Clear file input
     if (imageInput) imageInput.value = "";
+    
+    // Clear existing image URL hidden input
+    if (existingImageUrlInput) existingImageUrlInput.value = "";
     
     // Hide video if showing
     if (video) video.style.display = "none";

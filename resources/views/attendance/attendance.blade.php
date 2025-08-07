@@ -157,20 +157,17 @@
                                 </label>
                                 <input type="file" class="form-control d-none" id="imageInput" name="image"
                                     accept="image/*" capture="user">
+                                <input type="hidden" id="existingImageUrl" name="existingImageUrl" value="{{ $attendance && $attendance->image ? asset($attendance->image) : '' }}">
                                 <video id="cameraVideo" autoplay playsinline class="w-50 rounded mt-2"
                                     style="max-height: 250px; display: none;"></video>
                                 <canvas id="cameraCanvas" class="d-none"></canvas>
                                 <div id="imagePreview" class="image-preview mt-2" style="display: none;">
                                     <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary d-none"
-                                    id="clearImageBtn" style="display: none;">
-                                    <i class="fas fa-times"></i> Clear
+                                <button type="button" class="image-clear-btn d-none" id="clearImageBtn" style="display: none;">
+                                    &times;
                                 </button>
-                                <button type="button" class="btn btn-sm btn-primary d-none" id="retakeBtn"
-                                    style="display: none;">
-                                    <i class="fas fa-redo"></i> Retake
-                                </button>
+                                <!-- Removed retake button as per user request -->
                             </div>
                         </div>
 

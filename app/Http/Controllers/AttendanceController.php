@@ -20,10 +20,20 @@ class AttendanceController extends Controller
         $userId = Auth::id();
         $employee = Employee::with('division')->where('user_id', $userId)->first();
 
+        // Fetch today's attendance for the employee
+        $today = \Carbon\Carbon::today()->toDateString();
+        $attendance = null;
+        if ($employee) {
+            $attendance = Attendance::where('employee_id', $employee->id)
+                ->where('date_attendance', $today)
+                ->where('type_attendance', 'check_in')
+                ->first();
+        }
+
         // Debug log to check division data
         \Log::info('Employee division:', ['division' => $employee ? $employee->division : null]);
 
-        return view('attendance/attendance', compact('employee'));
+        return view('attendance/attendance', compact('employee', 'attendance'));
     }
 
     public function index()
