@@ -134,9 +134,9 @@
 
                         <!-- time_late -->
                         <div class="mb-3">
-                            <label for="time_late" class="form-label label-custom">Time Late</label>
+                            <label for="time_late" class="form-label label-custom" hidden>Time Late</label>
                             <input type="text" class="form-control input-text" id="time_late" name="time_late"
-                                readonly>
+                                readonly hidden>
                         </div>
 
                         <!-- note -->
