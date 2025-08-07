@@ -146,7 +146,7 @@
                         </div>
 
                         <!-- image -->
-                        <div class="mb-3">
+                        <div class="mb-3" id="imageUploadSection">
                             <label class="form-label">Photo</label>
                             <div class="image-upload-container">
                                 <label for="imageInput" class="image-upload-label camera-label">

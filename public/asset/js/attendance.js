@@ -67,8 +67,39 @@ function setupEventListeners() {
         imageInput.addEventListener("change", handleImagePreview);
     }
 
+    // Work outside radio buttons event listeners
+    const workOutsideYes = document.getElementById("work_outside_yes");
+    const workOutsideNo = document.getElementById("work_outside_no");
+    
+    if (workOutsideYes && workOutsideNo) {
+        workOutsideYes.addEventListener("change", toggleImageUploadVisibility);
+        workOutsideNo.addEventListener("change", toggleImageUploadVisibility);
+    }
+
     // Camera functionality
     initializeCameraFeatures();
+
+    // Initialize image upload visibility based on default selection
+    toggleImageUploadVisibility();
+}
+
+// Function to toggle image upload visibility based on work outside selection
+function toggleImageUploadVisibility() {
+    const workOutsideYes = document.getElementById("work_outside_yes");
+    const imageUploadSection = document.getElementById("imageUploadSection");
+    
+    if (workOutsideYes && imageUploadSection) {
+        if (workOutsideYes.checked) {
+            // Show image upload section when "Yes" is selected
+            imageUploadSection.style.display = "block";
+        } else {
+            // Hide image upload section when "No" is selected
+            imageUploadSection.style.display = "none";
+            
+            // Clear any existing image when hiding
+            clearImage();
+        }
+    }
 }
 
 // Function to open the check-in modal
@@ -159,9 +190,7 @@ function updateAttendanceStatus() {
     )?.value;
     
     if (!employeeId) {
-        // Show check-in button if no employee ID
-        document.getElementById("checkInBtn").style.display = "inline-block";
-        document.getElementById("checkOutBtn").style.display = "none";
+        console.error("Employee ID not found");
         return;
     }
 
@@ -175,37 +204,54 @@ function updateAttendanceStatus() {
             if (data.status === "success" && data.data) {
                 const attendance = data.data;
                 
+                const checkInBtn = document.getElementById("checkInBtn");
+                const checkOutBtn = document.getElementById("checkOutBtn");
+                
+                if (!checkInBtn || !checkOutBtn) {
+                    console.error("Check buttons not found");
+                    return;
+                }
+
                 if (attendance.time_in && !attendance.time_out) {
-                    // Checked in but not checked out
-                    document.getElementById("checkInTime").value = attendance.time_in;
-                    document.getElementById("checkInBtn").style.display = "none";
-                    document.getElementById("checkOutBtn").style.display = "flex";
-                    document.getElementById("attendanceStatus").textContent = "Checked In";
+                    // Checked in but not checked out - show checkout button
+                    checkInBtn.style.display = "none";
+                    checkOutBtn.style.display = "flex";
+                    
+                    // Update hidden time fields
+                    const checkInTimeInput = document.getElementById("checkInTime");
+                    if (checkInTimeInput) {
+                        checkInTimeInput.value = attendance.time_in;
+                    }
                 } else if (attendance.time_in && attendance.time_out) {
-                    // Already checked out
-                    document.getElementById("checkInTime").value = attendance.time_in;
-                    document.getElementById("checkOutTime").value = attendance.time_out;
-                    document.getElementById("checkInBtn").style.display = "none";
-                    document.getElementById("checkOutBtn").style.display = "none";
-                    document.getElementById("attendanceStatus").textContent = "Checked Out";
+                    // Already checked out - hide both buttons
+                    checkInBtn.style.display = "none";
+                    checkOutBtn.style.display = "none";
                 } else {
-                    // No check-in yet
-                    document.getElementById("checkInBtn").style.display = "flex";
-                    document.getElementById("checkOutBtn").style.display = "none";
-                    document.getElementById("attendanceStatus").textContent = "";
+                    // No check-in yet - show checkin button
+                    checkInBtn.style.display = "flex";
+                    checkOutBtn.style.display = "none";
                 }
             } else {
-                // No attendance record or error
-                document.getElementById("checkInBtn").style.display = "flex";
-                document.getElementById("checkOutBtn").style.display = "none";
-                document.getElementById("attendanceStatus").textContent = "";
+                // No attendance record - show checkin button
+                const checkInBtn = document.getElementById("checkInBtn");
+                const checkOutBtn = document.getElementById("checkOutBtn");
+                
+                if (checkInBtn && checkOutBtn) {
+                    checkInBtn.style.display = "flex";
+                    checkOutBtn.style.display = "none";
+                }
             }
         })
         .catch((error) => {
             console.error("Error fetching attendance data:", error);
             // Fallback to showing check-in button
-            document.getElementById("checkInBtn").style.display = "flex";
-            document.getElementById("checkOutBtn").style.display = "none";
+            const checkInBtn = document.getElementById("checkInBtn");
+            const checkOutBtn = document.getElementById("checkOutBtn");
+            
+            if (checkInBtn && checkOutBtn) {
+                checkInBtn.style.display = "flex";
+                checkOutBtn.style.display = "none";
+            }
         });
 }
 
@@ -592,7 +638,7 @@ function clearImage() {
     if (previewImg) previewImg.src = "";
     if (clearBtn) clearBtn.style.display = "none";
     if (retakeBtn) retakeBtn.style.display = "none";
-    if (cameraLabel) cameraLabel.style.display = "block";
+    if (cameraLabel) cameraLabel.style.display = "";
     if (imageInput) imageInput.value = "";
 
     capturedImage = null;
