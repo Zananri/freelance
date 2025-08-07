@@ -633,15 +633,35 @@ function clearImage() {
     const retakeBtn = document.getElementById("retakeBtn");
     const cameraLabel = document.querySelector(".camera-label");
     const imageInput = document.getElementById("imageInput");
+    const video = document.getElementById("cameraVideo");
 
+    // Reset preview
     if (preview) preview.style.display = "none";
     if (previewImg) previewImg.src = "";
+    
+    // Hide clear and retake buttons
     if (clearBtn) clearBtn.style.display = "none";
     if (retakeBtn) retakeBtn.style.display = "none";
-    if (cameraLabel) cameraLabel.style.display = "";
+    
+    // Show camera label again
+    if (cameraLabel) {
+        cameraLabel.style.display = "flex";
+        cameraLabel.style.backgroundPosition = "center center";
+        cameraLabel.style.backgroundRepeat = "no-repeat";
+        cameraLabel.style.backgroundSize = "50%";
+    }
+    
+    // Clear file input
     if (imageInput) imageInput.value = "";
-
+    
+    // Hide video if showing
+    if (video) video.style.display = "none";
+    
+    // Reset captured image
     capturedImage = null;
+    
+    // Stop camera if running
+    stopCamera();
 }
 
 function retakePhoto() {
