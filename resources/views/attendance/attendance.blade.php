@@ -10,69 +10,73 @@
         <h2>Attendance</h2>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 p-5">
-        <div class="attendance-container">
-            <!-- Left Section - User Profile -->
-            <div class="attendance-left">
-                <div class="profile-image-container">
-                    <img src="{{ $employee && $employee->profile_picture ? asset($employee->profile_picture) : asset('asset/img/default-profile.png') }}"
-                        alt="User Profile" class="profile-image">
-                </div>
-                <div class="user-info">
-                    <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>
-                    <p class="user-email">{{ $employee ? $employee->email_work : 'user@example.com' }}</p>
-                    <p class="user-division">
-                        @if ($employee && $employee->division)
-                            {{ $employee->division->name_division }}
-                        @else
-                            <span style="color:red;">Division not assigned</span>
-                        @endif
-                    </p>
-                </div>
-                <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-center">
-                    <button class="btn btn-check-in w-50 mb-2" id="checkInBtn" style="display: none;">
-                        <span class="material-symbols-outlined">alarm_on</span>
-                        Check In
-                    </button>
-                    <button class="btn btn-check-out w-50 mb-2" id="checkOutBtn" style="display: none;">
-                        <span class="material-symbols-outlined">alarm_off</span>
-                        Check Out
-                    </button>
-                    <input type="hidden" id="checkInTime" name="checkInTime" value="">
-                    <input type="hidden" id="checkOutTime" name="checkOutTime" value="">
+    <!-- Container untuk 2 body-content kiri dan kanan -->
+    <div class="attendance-wrapper">
+        <!-- Body Content 1 - User Profile Section (Kiri) -->
+        <div class="body-content scrollable-container rounded-4 p-4 attendance-left-content">
+            <div class="attendance-profile-container">
+                <div class="profile-section">
+                    <div class="profile-image-container">
+                        <img src="{{ $employee && $employee->profile_picture ? asset($employee->profile_picture) : asset('asset/img/default-profile.png') }}"
+                            alt="User Profile" class="profile-image">
+                    </div>
+                    <div class="user-info">
+                        <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>
+                        <p class="user-email">{{ $employee ? $employee->email_work : 'user@example.com' }}</p>
+                        <p class="user-division">
+                            @if ($employee && $employee->division)
+                                {{ $employee->division->name_division }}
+                            @else
+                                <span style="color:red;">Division not assigned</span>
+                            @endif
+                        </p>
+                    </div>
+                    <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-center">
+                        <button class="btn btn-check-in w-50 mb-2" id="checkInBtn" style="display: none;">
+                            <span class="material-symbols-outlined">alarm_on</span>
+                            Check In
+                        </button>
+                        <button class="btn btn-check-out w-50 mb-2" id="checkOutBtn" style="display: none;">
+                            <span class="material-symbols-outlined">alarm_off</span>
+                            Check Out
+                        </button>
+                        <input type="hidden" id="checkInTime" name="checkInTime" value="">
+                        <input type="hidden" id="checkOutTime" name="checkOutTime" value="">
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Right Section - Calendar -->
-            <div class="attendance-right">
-                <div class="calendar-container">
-                    <div class="calendar-header">
-                        <button class="btn btn-sm" id="prevMonth">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <h4 id="currentMonthYear">July 2024</h4>
-                        <button class="btn btn-sm" id="nextMonth">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
+        <!-- Body Content 2 - Calendar Section (Kanan) -->
+        <div class="body-content scrollable-container rounded-4 p-4 attendance-right-content">
+            <div class="attendance-calendar-container">
+                <div class="calendar-section">
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button class="btn btn-sm" id="prevMonth">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <h4 id="currentMonthYear">July 2024</h4>
+                            <button class="btn btn-sm" id="nextMonth">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <div class="calendar-weekdays">
+                            <div>Sun</div>
+                            <div>Mon</div>
+                            <div>Tue</div>
+                            <div>Wed</div>
+                            <div>Thu</div>
+                            <div>Fri</div>
+                            <div>Sat</div>
+                        </div>
+
+                        <input type="hidden" id="currentDate" name="currentDate" value="">
+                        <div class="calendar-days" id="calendarDays">
+                        <!-- Calendar days will be generated by JavaScript -->
+                        </div>
                     </div>
-
-                    <div class="calendar-weekdays">
-                        <div>Sun</div>
-                        <div>Mon</div>
-                        <div>Tue</div>
-                        <div>Wed</div>
-                        <div>Thu</div>
-                        <div>Fri</div>
-                        <div>Sat</div>
-                    </div>
-
-                    <input type="hidden" id="currentDate" name="currentDate" value="">
-                    <!-- Removed attendanceStatus div as status is shown on calendar dates -->
-                    <div class="calendar-days" id="calendarDays">
-                    <!-- Calendar days will be generated by JavaScript -->
-                    </div>
-
-
                 </div>
             </div>
         </div>

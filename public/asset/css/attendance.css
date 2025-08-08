@@ -1,8 +1,93 @@
-/* Attendance Page Styles */
-.attendance-container {
+/* Attendance Page Styles - Updated for 2 body-content kiri-kanan layout dengan height sama */
+.attendance-wrapper {
     display: flex;
-    gap: 30px;
-    height: 100%;
+    gap: 20px;
+    align-items: stretch;
+}
+
+.attendance-left-content,
+.attendance-right-content {
+    flex: 1;
+    min-height: 550px;
+    height: fit-content;
+    max-height: calc(100vh - 200px);
+}
+
+.attendance-left-content {
+    max-width: 400px;
+}
+
+.attendance-right-content {
+    flex: 1.8;
+    min-width: 0;
+}
+
+/* Membuat calendar lebih besar */
+.attendance-right-content .calendar-container {
+    width: 100%;
+    max-width: none;
+    padding: 30px;
+}
+
+.attendance-right-content .calendar-days {
+    gap: 4px;
+}
+
+.attendance-right-content .calendar-day {
+    font-size: 16px;
+    aspect-ratio: 1.2;
+}
+
+.profile-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+.calendar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* Responsive untuk layar kecil */
+@media (max-width: 1200px) {
+    .attendance-wrapper {
+        flex-direction: column;
+    }
+    
+    .attendance-left-content,
+    .attendance-right-content {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+/* Styling khusus untuk label In dan Out di tampilan mobile */
+@media (max-width: 576px) {
+    .check-in-label,
+    .check-out-label {
+        font-size: 12px !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+    }
+
+    .calendar-day.checked-in {
+        background: #007bff !important;
+        color: white !important;
+    }
+
+    .calendar-day.checked-out {
+        background: #6c757d !important;
+        color: white !important;
+    }
+
+    .calendar-day.checked-in.checked-out {
+        background: linear-gradient(135deg, #007bff 50%, #6c757d 50%) !important;
+        color: white !important;
+    }
 }
 
 /* Styling untuk Yes/No buttons di modal check-in seperti button profile dan logout */
@@ -565,7 +650,7 @@
     top: 2px;
     left: 2px;
     color: white;
-    font-size: 10px;
+    font-size: 16px;
     padding: 1px 4px;
     border-radius: 2px;
     z-index: 10;
@@ -593,7 +678,7 @@
     top: 2px;
     left: 2px;
     color: white;
-    font-size: 10px;
+    font-size: 16px;
     padding: 1px 4px;
     border-radius: 2px;
     z-index: 10;
@@ -608,7 +693,7 @@
     bottom: 2px;
     right: 2px;
     color: white;
-    font-size: 10px;
+    font-size: 16px;
     padding: 1px 4px;
     border-radius: 2px;
     z-index: 10;
@@ -648,4 +733,112 @@
 .modal-footer-custom {
     border: 0;
     justify-content: center;
+}
+
+/* Responsive styling untuk modal di perangkat mobile */
+@media (max-width: 576px) {
+    .modal-dialog {
+        max-width: 90vw !important;
+        margin: 1.75rem auto;
+        width: 100% !important;
+        height: auto !important;
+        max-height: 90vh !important;
+    }
+
+    .modal-content {
+        height: 100% !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+        border-radius: 12px !important;
+    }
+
+    .modal-body {
+        padding: 1rem !important;
+    }
+
+    .modal-header,
+    .modal-footer {
+        padding: 0.5rem 1rem !important;
+    }
+
+    /* Sesuaikan ukuran font dan tombol */
+    .modal-title {
+        font-size: 1.25rem !important;
+    }
+
+    .btn {
+        font-size: 1rem !important;
+        padding: 10px 20px !important;
+    }
+    .calendar-day.checked-in {
+    position: relative;
+    /* Add half triangular background */
+    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+}
+
+.check-in-label {
+    position: absolute;
+    top: 2px;
+    left: -1px !important;
+    color: white;
+    font-size: 6px !important;
+    padding: 1px 4px;
+    border-radius: 2px;
+    z-index: 10;
+    font-weight: 400;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* New styling for checkout with both In and Out labels - proper positioning */
+.calendar-day.checked-in {
+    position: relative;
+    /* Add half triangular background for check-in (top-left) */
+    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+}
+
+.calendar-day.checked-out {
+    position: relative;
+    /* Add half triangular background for check-out (bottom-right) */
+    background: linear-gradient(315deg, #6c757d 50%, transparent 50%);
+}
+
+.check-in-label {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    color: white;
+    font-size: 16px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    z-index: 10;
+    font-weight: 400;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+.check-out-label {
+    position: absolute;
+    bottom: 0px !important;
+    right: -3px !important;
+    color: white;
+    font-size: 6px !important;
+    padding: 1px 4px;
+    border-radius: 2px;
+    z-index: 10;
+    font-weight: 400;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* When both check-in and check-out are present */
+.calendar-day.checked-in.checked-out {
+    /* Single gradient with sharp half split without white line */
+    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
+    color: white;
+}
+
 }
