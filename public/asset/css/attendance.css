@@ -620,10 +620,9 @@
 
 /* When both check-in and check-out are present */
 .calendar-day.checked-in.checked-out {
-    /* Add both backgrounds - check-in top-left, check-out bottom-right */
-    background: linear-gradient(315deg, #6c757d 50%, transparent 50%), 
-                linear-gradient(135deg, #007bff 50%, transparent 50%);
-                color: white
+    /* Single gradient with sharp half split without white line */
+    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
+    color: white;
 }
 
 
