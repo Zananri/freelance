@@ -37,6 +37,14 @@ function setupEventListeners() {
         });
     }
 
+    // Check out button
+    const checkOutBtn = document.getElementById("checkOutBtn");
+    if (checkOutBtn) {
+        checkOutBtn.addEventListener("click", function () {
+            openCheckOutModal();
+        });
+    }
+
     // Calendar navigation
     const prevMonthBtn = document.getElementById("prevMonth");
     const nextMonthBtn = document.getElementById("nextMonth");
@@ -58,6 +66,14 @@ function setupEventListeners() {
     if (submitCheckInBtn) {
         submitCheckInBtn.addEventListener("click", function () {
             submitCheckIn();
+        });
+    }
+
+    // Submit checkout
+    const submitCheckOutBtn = document.getElementById("submitCheckOutBtn");
+    if (submitCheckOutBtn) {
+        submitCheckOutBtn.addEventListener("click", function () {
+            submitCheckOut();
         });
     }
 
@@ -322,44 +338,58 @@ function renderCalendar(month, year) {
     fetch(`${baseUrl}/attendance/monthly/${employeeId}/${year}/${month + 1}`)
         .then(response => response.json())
         .then(data => {
-            let checkedInDays = [];
+            let attendanceData = {};
             if (data.status === "success" && Array.isArray(data.data)) {
-                checkedInDays = data.data.map(record => {
+                data.data.forEach(record => {
                     const date = new Date(record.date_attendance);
-                    return date.getDate();
+                    attendanceData[date.getDate()] = record;
                 });
             }
 
-                // Add days of the month
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dayElement = document.createElement("div");
-                    dayElement.className = "calendar-day";
-                    dayElement.textContent = day;
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayElement = document.createElement("div");
+                dayElement.className = "calendar-day";
+                dayElement.textContent = day;
 
-                    // Check if this is today
-                    const checkDate = new Date(year, month, day);
-                    if (checkDate.toDateString() === new Date().toDateString()) {
-                        dayElement.classList.add("today");
-                    }
-
-                    // Add checked-in class if day is in checkedInDays
-                    if (checkedInDays.includes(day)) {
-                        dayElement.classList.add("checked-in");
-                        
-                        // Create "In" label dynamically
-                        const inLabel = document.createElement('span');
-                        inLabel.className = 'check-in-label';
-                        inLabel.textContent = 'In';
-                        dayElement.appendChild(inLabel);
-                    }
-
-                    // Add click event
-                    dayElement.addEventListener("click", function () {
-                        selectDate(day, month, year);
-                    });
-
-                    calendarDays.appendChild(dayElement);
+                // Check if this is today
+                const checkDate = new Date(year, month, day);
+                if (checkDate.toDateString() === new Date().toDateString()) {
+                    dayElement.classList.add("today");
                 }
+
+                // Add attendance classes based on data
+                if (attendanceData[day]) {
+                    const record = attendanceData[day];
+                    
+                    // Add checked-in class
+                    dayElement.classList.add("checked-in");
+                    
+                    // Create "In" label
+                    const inLabel = document.createElement('span');
+                    inLabel.className = 'check-in-label';
+                    inLabel.textContent = 'In';
+                    dayElement.appendChild(inLabel);
+
+                    // If checked out, add checked-out class and "Out" label
+                    if (record.time_out) {
+                        dayElement.classList.add("checked-out");
+                        
+                        // Create "Out" label
+                        const outLabel = document.createElement('span');
+                        outLabel.className = 'check-out-label';
+                        outLabel.textContent = 'Out';
+                        dayElement.appendChild(outLabel);
+                    }
+                }
+
+                // Add click event
+                dayElement.addEventListener("click", function () {
+                    selectDate(day, month, year);
+                });
+
+                calendarDays.appendChild(dayElement);
+            }
         })
         .catch(error => {
             console.error("Error fetching monthly attendance:", error);
@@ -843,35 +873,92 @@ document.addEventListener("DOMContentLoaded", function () {
     document.head.appendChild(fontAwesome);
 });
 
+// Checkout Modal Functions
+function openCheckOutModal() {
+    // Get current date and time
+    const now = new Date();
+    const dateString = now.toISOString().split("T")[0];
+    const timeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    // Update modal form fields
+    document.getElementById("date_attendance").value = dateString;
+    document.getElementById("time_out").value = timeString;
+
+    // Load check-in data to display work outside status
+    loadCheckInDataForCheckout();
+
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
+    modal.show();
+}
+
+function loadCheckInDataForCheckout() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    if (!employeeId) return;
+
+    const url = `${baseUrl}/attendance/today/${employeeId}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success" && data.data) {
+                const attendance = data.data;
+                
+                // Display work outside status
+                const workOutsideText = attendance.is_work_outside ? "Yes" : "No";
+                document.getElementById("workOutsideStatusText").textContent = workOutsideText;
+                document.getElementById("workOutsideStatusText").className = 
+                    attendance.is_work_outside;
+
+                // Display time in
+                if (attendance.time_in) {
+                    document.getElementById("time_in_display").value = attendance.time_in;
+                    
+                    // Calculate work duration
+                    const checkInTime = new Date(attendance.date_attendance + 'T' + attendance.time_in);
+                    const now = new Date();
+                    const duration = Math.floor((now - checkInTime) / (1000 * 60)); // in minutes
+                    const hours = Math.floor(duration / 60);
+                    const minutes = duration % 60;
+                    document.getElementById("total_work_duration").value = `${hours}h ${minutes}m`;
+                } else {
+                    document.getElementById("time_in_display").value = "Not available";
+                    document.getElementById("total_work_duration").value = "0h 0m";
+                }
+
+                // Show/hide image upload based on work outside
+                const imageSection = document.getElementById("imageUploadSection");
+                imageSection.style.display = attendance.is_work_outside ? "block" : "none";
+            }
+        })
+        .catch(error => {
+            console.error("Error loading check-in data:", error);
+            document.getElementById("workOutsideStatusText").textContent = "Error loading data";
+            document.getElementById("time_in_display").value = "Error";
+            document.getElementById("total_work_duration").value = "Error";
+        });
+}
+
 // Function to submit check-out
 function submitCheckOut() {
-    const csrfToken = document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute("content");
-    if (!csrfToken) {
-        console.error("CSRF token not found");
-        return;
-    }
+    const form = document.getElementById("checkOutForm");
+    const formData = new FormData(form);
 
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
-    if (!employeeId) {
-        console.error("Employee ID not found");
-        return;
-    }
+    // Add CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+    formData.append("_token", csrfToken);
 
     const url = `${baseUrl}/attendance/checkout`;
 
-    const formData = new FormData();
-    formData.append("_token", csrfToken);
-    formData.append("employee_id", employeeId);
-
     // Show loading state
-    const checkOutBtn = document.getElementById("checkOutBtn");
-    const originalText = checkOutBtn.innerHTML;
-    checkOutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    checkOutBtn.disabled = true;
+    const submitCheckOutBtn = document.getElementById("submitCheckOutBtn");
+    const originalText = submitCheckOutBtn.innerHTML;
+    submitCheckOutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    submitCheckOutBtn.disabled = true;
 
     fetch(url, {
         method: "POST",
@@ -882,22 +969,19 @@ function submitCheckOut() {
             Accept: "application/json",
         },
     })
-        .then((response) => {
-            if (!response.ok) {
-                return response.json().then((err) => {
-                    throw new Error(
-                        err.message || `HTTP error! status: ${response.status}`
-                    );
-                });
-            }
-            return response.json();
-        })
+        .then((response) => response.json())
         .then((data) => {
             if (data.status === "success") {
                 showNotification(
                     data.message || "Check-out submitted successfully!",
                     "success"
                 );
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(
+                    document.getElementById("checkOutModal")
+                );
+                if (modal) modal.hide();
 
                 // Reload attendance data
                 setTimeout(() => {
@@ -920,7 +1004,7 @@ function submitCheckOut() {
         })
         .finally(() => {
             // Reset button state
-            checkOutBtn.innerHTML = originalText;
-            checkOutBtn.disabled = false;
+            submitCheckOutBtn.innerHTML = originalText;
+            submitCheckOutBtn.disabled = false;
         });
 }

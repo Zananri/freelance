@@ -573,7 +573,56 @@
     line-height: 1;
     pointer-events: none;
     user-select: none;
+}
 
+/* New styling for checkout with both In and Out labels - proper positioning */
+.calendar-day.checked-in {
+    position: relative;
+    /* Add half triangular background for check-in (top-left) */
+    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+}
+
+.calendar-day.checked-out {
+    position: relative;
+    /* Add half triangular background for check-out (bottom-right) */
+    background: linear-gradient(315deg, #6c757d 50%, transparent 50%);
+}
+
+.check-in-label {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    color: white;
+    font-size: 12px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    z-index: 10;
+    font-weight: bold;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+.check-out-label {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    color: white;
+    font-size: 12px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    z-index: 10;
+    font-weight: bold;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* When both check-in and check-out are present */
+.calendar-day.checked-in.checked-out {
+    /* Add both backgrounds - check-in top-left, check-out bottom-right */
+    background: linear-gradient(135deg, #007bff 50%, transparent 50%), 
+                linear-gradient(315deg, #6c757d 50%, transparent 50%);
 }
 
 
