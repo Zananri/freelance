@@ -14,14 +14,29 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="mb-0 table-title">List Shift</h5>
         </div>
+
+        <div class="table-responsive">
+            <div class="table-scroll-wrapper">
+                 <table class="table table-borderless align-middle table-transparent">
+                <thead>
+                    <tr>
+                        <th scope="col" width="15%">Employee</th>
+                        <th scope="col" width="15%">Shift Name</th>
+                        <th scope="col" width="10%">Start Time</th>
+                        <th scope="col" width="10%">End Time</th>
+                        <th scope="col" width="10%">Date</th>
+                        <th scope="col" width="10%">Status</th>
+                        <th scope="col" width="15%">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="shiftTableBody">
+                    <!-- Data will be loaded here -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <x-slot name="script_slot">
-
         <script src="{{ asset('asset/js/shift.js') }}"></script>
-
-        <script></script>
     </x-slot>
-
-   
 </x-office-layout>

@@ -1,0 +1,39 @@
+.table-transparent th,
+.table-transparent td {
+    background-color: rgba(248, 248, 249, 0) !important;
+}
+
+
+.table-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center center;
+    background: #f7f7f7;
+}
+
+table.table thead tr th:first-child {
+    width: 80px;
+    padding-left: 12px;
+    padding-right: 32px;
+}
+
+table.table tbody tr td:first-child {
+    padding-left: 12px;
+    padding-right: 32px;
+    width: 80px;
+}
+
+table.table > thead > tr {
+    border-bottom: 1px solid #ddd;
+}
+
+table.table > tbody > tr {
+    border-bottom: 1px solid #ddd;
+}
+
+table.table > tbody > tr > td {
+    font-size: 14px;
+    padding: 12px;
+}
