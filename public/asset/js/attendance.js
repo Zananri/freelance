@@ -162,7 +162,7 @@ function handleCheckIn() {
     document.getElementById("checkOutBtn").disabled = false;
 
     // Show success message
-    showNotification("Successfully checked in at " + timeString, "success");
+    showFloatingAlert("Successfully checked in at " + timeString, "success");
 }
 
 function handleCheckOut() {
@@ -184,7 +184,7 @@ function handleCheckOut() {
     document.getElementById("checkOutBtn").disabled = true;
 
     // Show success message
-    showNotification("Successfully checked out at " + timeString, "success");
+    showFloatingAlert("Successfully checked out at " + timeString, "success");
 }
 
 function calculateWorkingHours() {
@@ -446,65 +446,47 @@ function loadAttendanceForDate(dateString) {
     document.getElementById("checkOutBtn").disabled = true;
 }
 
-function showNotification(message, type) {
-    // Create notification element
-    const notification = document.createElement("div");
-    notification.className = `alert alert-${type} notification`;
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 500;
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
+// Function to show floating alert with SVG icon - same as task.js
+function showFloatingAlert(message, type = "success") {
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
+    alertDiv.setAttribute("role", "alert");
+    alertDiv.style.opacity = "1";
+    alertDiv.style.position = "fixed";
+    alertDiv.style.bottom = "20px";
+    alertDiv.style.right = "20px";
+    alertDiv.style.zIndex = "9999";
+    alertDiv.style.minWidth = "300px";
+    alertDiv.style.margin = "0";
+
+    let iconId = "";
+    if (type === "success") {
+        iconId = "check-circle-fill";
+    } else if (type === "danger") {
+        iconId = "exclamation-triangle-fill";
+    } else {
+        iconId = "info-fill";
+    }
+
+    alertDiv.innerHTML = `
+        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
+            <use xlink:href="#${iconId}"/>
+        </svg>
+        <div>
+            ${message}
+        </div>
     `;
 
-    if (type === "success") {
-        notification.style.backgroundColor = "#28a745";
-    }
+    document.body.appendChild(alertDiv);
 
-    document.body.appendChild(notification);
-
-    // Remove after 3 seconds
+    // After 1.5 seconds, fade out alert
     setTimeout(() => {
-        notification.style.animation = "slideOut 0.3s ease";
+        alertDiv.style.opacity = "0";
         setTimeout(() => {
-            document.body.removeChild(notification);
-        }, 300);
-    }, 3000);
+            alertDiv.remove();
+        }, 500);
+    }, 1500);
 }
-
-// Add CSS animations
-const style = document.createElement("style");
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-`;
-document.head.appendChild(style);
 
 // Camera functionality
 let stream = null;
@@ -822,11 +804,10 @@ function submitCheckIn() {
         })
         .then((data) => {
             if (data.status === "success") {
-                showNotification(
+                showFloatingAlert(
                     data.message || "Check-in submitted successfully!",
                     "success"
-                );
-
+                )
                 // Close modal
                 const modal = bootstrap.Modal.getInstance(
                     document.getElementById("checkInModal")
@@ -842,7 +823,7 @@ function submitCheckIn() {
                     location.reload();
                 }, 1000);
             } else {
-                showNotification(
+                showFloatingAlert(
                     data.message || "Error submitting check-in",
                     "error"
                 );
@@ -851,7 +832,7 @@ function submitCheckIn() {
         })
         .catch((error) => {
             console.error("Network error:", error);
-            showNotification(
+            showFloatingAlert(
                 error.message || "Network error. Please check your connection.",
                 "error"
             );
@@ -1026,7 +1007,7 @@ function submitCheckOut() {
         .then((response) => response.json())
         .then((data) => {
             if (data.status === "success") {
-                showNotification(
+                showFloatingAlert(
                     data.message || "Check-out submitted successfully!",
                     "success"
                 );
@@ -1042,7 +1023,7 @@ function submitCheckOut() {
                     location.reload();
                 }, 1000);
             } else {
-                showNotification(
+                showFloatingAlert(
                     data.message || "Error submitting check-out",
                     "error"
                 );
@@ -1051,7 +1032,7 @@ function submitCheckOut() {
         })
         .catch((error) => {
             console.error("Network error:", error);
-            showNotification(
+            showFloatingAlert(
                 error.message || "Network error. Please check your connection.",
                 "error"
             );
