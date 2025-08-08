@@ -258,12 +258,18 @@ class AttendanceController extends Controller
                 ], 404);
             }
 
-            // Update waktu check-out
-            $now = Carbon::now();
-            $attendance->update([
-                'time_out' => $now->format('H:i'),
-                'type_attendance' => 'check_out'
-            ]);
+// Update waktu check-out and note if provided
+$now = Carbon::now();
+$updateData = [
+    'time_out' => $now->format('H:i'),
+    'type_attendance' => 'check_out'
+];
+
+if ($request->has('note')) {
+    $updateData['note'] = $request->input('note');
+}
+
+$attendance->update($updateData);
 
             DB::commit();
 

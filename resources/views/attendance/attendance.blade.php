@@ -259,8 +259,7 @@
                     </form>
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="submitCheckOutBtn">
+                    <button type="button" class="btn btn-secondary" id="submitCheckOutBtn">
                         <span class="material-symbols-outlined">alarm_off</span>
                         Check Out
                     </button>
