@@ -450,43 +450,31 @@ function loadAttendanceForDate(dateString) {
 function showFloatingAlert(message, type = "success") {
     const alertDiv = document.createElement("div");
     alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
-    alertDiv.setAttribute("role", "alert");
-    alertDiv.style.opacity = "1";
-    alertDiv.style.position = "fixed";
-    alertDiv.style.bottom = "20px";
-    alertDiv.style.right = "20px";
-    alertDiv.style.zIndex = "9999";
-    alertDiv.style.minWidth = "300px";
-    alertDiv.style.margin = "0";
+    alertDiv.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+    `;
 
-    let iconId = "";
-    if (type === "success") {
-        iconId = "check-circle-fill";
-    } else if (type === "danger") {
-        iconId = "exclamation-triangle-fill";
-    } else {
-        iconId = "info-fill";
-    }
-
+    let iconClass = type === "success" ? "fa-check-circle" : "fa-exclamation-triangle";
+    
     alertDiv.innerHTML = `
-        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
-            <use xlink:href="#${iconId}"/>
-        </svg>
-        <div>
-            ${message}
-        </div>
+        <i class="fas ${iconClass} me-2"></i>
+        <div>${message}</div>
     `;
 
     document.body.appendChild(alertDiv);
 
-    // After 1.5 seconds, fade out alert
     setTimeout(() => {
         alertDiv.style.opacity = "0";
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 500);
-    }, 1500);
+        setTimeout(() => alertDiv.remove(), 500);
+    }, 3000);
 }
+
 
 // Camera functionality
 let stream = null;
