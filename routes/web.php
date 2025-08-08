@@ -156,3 +156,5 @@ Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('a
 Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
 
 Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
+Route::get('/shift/employees-with-shifts', [ShiftController::class, 'getEmployeesWithShifts'])->name('shift.employees-with-shifts');
+Route::get('/shift/employees-basic', [ShiftController::class, 'getEmployeesBasic'])->name('shift.employees-basic');

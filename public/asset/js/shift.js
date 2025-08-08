@@ -1,122 +1,75 @@
-// Shift Management JavaScript
+// Shift Management JavaScript - Complete rebuild with correct endpoint
 document.addEventListener('DOMContentLoaded', function() {
-    loadShiftData();
+    loadEmployeeData();
 });
 
-// Function to load shift data
-async function loadShiftData() {
+// Function to load employee data with proper error handling
+async function loadEmployeeData() {
     try {
-        // Simulated data - in real implementation, fetch from API
-        const shifts = [
-            {
-                id: 1,
-                employee: {
-                    first_name: 'John',
-                    last_name: 'Doe',
-                    email: 'john.doe@company.com',
-                    profile_picture: '/asset/img/default-profile.png'
-                },
-                shift_name: 'Morning Shift',
-                start_time: '08:00',
-                end_time: '16:00',
-                date: '2024-07-20',
-                status: 'Active'
-            },
-            {
-                id: 2,
-                employee: {
-                    first_name: 'Jane',
-                    last_name: 'Smith',
-                    email: 'jane.smith@company.com',
-                    profile_picture: '/asset/img/default-profile.png'
-                },
-                shift_name: 'Afternoon Shift',
-                start_time: '14:00',
-                end_time: '22:00',
-                date: '2024-07-20',
-                status: 'Active'
-            }
-        ];
-
-        renderShiftTable(shifts);
+        // Construct the correct endpoint based on the application's base path
+        const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
+        const endpoint = `${basePath}/shift/employees-basic`;
+        
+        console.log('Fetching from:', endpoint);
+        
+        const response = await fetch(endpoint);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+            renderEmployeeTable(data.data);
+        } else {
+            console.error('Invalid data format:', data);
+            renderError('Failed to load employee data');
+        }
     } catch (error) {
-        console.error('Error loading shift data:', error);
+        console.error('Error loading employee data:', error);
+        renderError(error.message || 'Failed to load employee data');
     }
 }
 
-// Function to render shift table with employee data
-function renderShiftTable(shifts) {
+// Function to render employee table
+function renderEmployeeTable(employees) {
     const tableBody = document.getElementById('shiftTableBody');
+    if (!tableBody) return;
+    
     tableBody.innerHTML = '';
 
-    shifts.forEach((shift, index) => {
+    if (!employees || employees.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="1" class="text-center">No employees found</td></tr>';
+        return;
+    }
+
+    employees.forEach((employee) => {
         const row = document.createElement('tr');
         
-        // Employee display format like in employee page
         const employeeDisplay = `
             <div class="d-flex align-items-center gap-3">
-                <img src="${shift.employee.profile_picture}" 
+                <img src="${employee.profile_picture || '/asset/img/default-profile.png'}" 
                      alt="Profile Picture" 
                      class="table-image rounded-circle" 
                      width="40" 
                      height="40" />
                 <div>
-                    <div class="fw-semibold" style="font-size: 14px;">
-                        ${shift.employee.first_name} ${shift.employee.last_name}
-                    </div>
-                    <div style="font-size: 10px; color: #6c757d;">
-                        ${shift.employee.email}
-                    </div>
+                    <div class="fw-semibold">${employee.name}</div>
+                    <div class="text-muted">${employee.email}</div>
                 </div>
             </div>
         `;
 
-        row.innerHTML = `
-            <td>${employeeDisplay}</td>
-            <td>${shift.shift_name}</td>
-            <td>${shift.start_time}</td>
-            <td>${shift.end_time}</td>
-            <td>${shift.date}</td>
-            <td>
-                <span class="badge ${shift.status === 'Active' ? 'bg-success' : 'bg-secondary'}">
-                    ${shift.status}
-                </span>
-            </td>
-            <td>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-primary" onclick="editShift(${shift.id})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteShift(${shift.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
-        
+        row.innerHTML = `<td>${employeeDisplay}</td>`;
         tableBody.appendChild(row);
     });
 }
 
-// Placeholder functions for actions
-function editShift(id) {
-    console.log('Edit shift:', id);
-    // Implement edit functionality
-}
-
-function deleteShift(id) {
-    console.log('Delete shift:', id);
-    // Implement delete functionality
-}
-
-// Function to fetch real data from API (for future implementation)
-async function fetchShiftData() {
-    try {
-        const response = await fetch('/api/shifts');
-        const data = await response.json();
-        return data.data || [];
-    } catch (error) {
-        console.error('Error fetching shift data:', error);
-        return [];
+// Function to render error message
+function renderError(message) {
+    const tableBody = document.getElementById('shiftTableBody');
+    if (tableBody) {
+        tableBody.innerHTML = `<tr><td colspan="1" class="text-center text-danger">${message}</td></tr>`;
     }
 }
