@@ -295,9 +295,9 @@ class AttendanceController extends Controller
             $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
             $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
 
-            $attendances = Attendance::where('employee_id', $employeeId)
-                ->whereBetween('date_attendance', [$startDate, $endDate])
-                ->get(['date_attendance', 'type_attendance']);
+$attendances = Attendance::where('employee_id', $employeeId)
+    ->whereBetween('date_attendance', [$startDate, $endDate])
+    ->get(['date_attendance', 'type_attendance', 'time_out']);
 
             return response()->json([
                 'code' => 200,

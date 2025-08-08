@@ -888,12 +888,51 @@ function openCheckOutModal() {
     document.getElementById("date_attendance").value = dateString;
     document.getElementById("time_out").value = timeString;
 
+    // Set the visible time_out_display input to current time
+    const timeOutDisplay = document.getElementById("time_out_display");
+    if (timeOutDisplay) {
+        timeOutDisplay.value = timeString;
+    }
+
     // Load check-in data to display work outside status
     loadCheckInDataForCheckout();
 
     // Show the modal
     const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
     modal.show();
+}
+
+function calculateDuration24h(timeIn24h, timeOut24h) {
+    if (!timeIn24h || !timeOut24h) return "0h 0m";
+
+    try {
+        // Normalize time formats (handle cases like "09:00 AM" or "09:00:00")
+        const normalizeTime = (timeStr) => {
+            let [hours, minutes] = timeStr.replace(/[^0-9:]/g, '').split(':');
+            return `${hours.padStart(2, '0')}:${(minutes || '00').padStart(2, '0')}`;
+        };
+
+        const normalizedIn = normalizeTime(timeIn24h);
+        const normalizedOut = normalizeTime(timeOut24h);
+
+        const [inHours, inMinutes] = normalizedIn.split(':').map(Number);
+        const [outHours, outMinutes] = normalizedOut.split(':').map(Number);
+
+        let totalInMinutes = (outHours * 60 + outMinutes) - (inHours * 60 + inMinutes);
+        
+        // Handle overnight case (negative duration)
+        if (totalInMinutes < 0) {
+            totalInMinutes += 24 * 60; // Add 24 hours
+        }
+
+        const hours = Math.floor(totalInMinutes / 60);
+        const minutes = totalInMinutes % 60;
+
+        return `${hours} hours ${minutes.toString().padStart(2)} minutes`;
+    } catch (e) {
+        console.error('Error calculating duration:', e);
+        return "0 hours 0 minutes";
+    }
 }
 
 function loadCheckInDataForCheckout() {
@@ -918,13 +957,20 @@ function loadCheckInDataForCheckout() {
                 if (attendance.time_in) {
                     document.getElementById("time_in_display").value = attendance.time_in;
                     
-                    // Calculate work duration
-                    const checkInTime = new Date(attendance.date_attendance + 'T' + attendance.time_in);
-                    const now = new Date();
-                    const duration = Math.floor((now - checkInTime) / (1000 * 60)); // in minutes
-                    const hours = Math.floor(duration / 60);
-                    const minutes = duration % 60;
-                    document.getElementById("total_work_duration").value = `${hours}h ${minutes}m`;
+                    // Calculate work duration only if both time_in and time_out exist
+                    if (attendance.time_out) {
+                        const totalDuration = calculateDuration24h(attendance.time_in, attendance.time_out);
+                        document.getElementById("total_work_duration").value = totalDuration;
+                    } else {
+                        // If not checked out yet, show current duration
+                        const currentTime = new Date().toLocaleTimeString('en-US', {
+                            hour12: false,
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }).replace(/^24/, '00');
+                        const totalDuration = calculateDuration24h(attendance.time_in, currentTime);
+                        document.getElementById("total_work_duration").value = totalDuration;
+                    }
                 } else {
                     document.getElementById("time_in_display").value = "Not available";
                     document.getElementById("total_work_duration").value = "0h 0m";
@@ -932,14 +978,22 @@ function loadCheckInDataForCheckout() {
 
                 // Show/hide image upload based on work outside
                 const imageSection = document.getElementById("imageUploadSection");
-                imageSection.style.display = attendance.is_work_outside ? "block" : "none";
+                if (imageSection) {
+                    imageSection.style.display = attendance.is_work_outside ? "block" : "none";
+                }
             }
         })
         .catch(error => {
             console.error("Error loading check-in data:", error);
-            document.getElementById("workOutsideStatusText").textContent = "Error loading data";
-            document.getElementById("time_in_display").value = "Error";
-            document.getElementById("total_work_duration").value = "Error";
+            const errorElements = [
+                'workOutsideStatusText',
+                'time_in_display',
+                'total_work_duration'
+            ];
+            errorElements.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = "Error loading data";
+            });
         });
 }
 

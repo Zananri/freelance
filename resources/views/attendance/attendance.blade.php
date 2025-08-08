@@ -221,6 +221,12 @@
                             <input type="time" class="form-control input-text" id="time_in_display" name="time_in_display" readonly>
                         </div>
 
+                        <!-- Time Out Display -->
+                        <div class="mb-3">
+                            <label for="time_out_display" class="form-label label-custom">Time Out</label>
+                            <input type="time" class="form-control input-text" id="time_out_display" name="time_out_display" readonly>
+                        </div>
+
                         <!-- Total Work Duration -->
                         <div class="mb-3">
                             <label for="total_work_duration" class="form-label label-custom">Total Work Duration</label>
@@ -248,8 +254,7 @@
                         <!-- Note -->
                         <div class="mb-3">
                             <label for="note" class="form-label">Note</label>
-                            <textarea class="form-control label-custom" id="note" name="note" rows="3"
-                                ></textarea>
+                            <textarea class="form-control label-custom" id="note" name="note" rows="3"></textarea>
                         </div>
                     </form>
                 </div>
