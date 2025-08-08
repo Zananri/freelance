@@ -20,7 +20,7 @@
                  <table class="table table-borderless align-middle table-transparent">
                 <thead>
                     <tr>
-                        <th scope="col" width="100%">Employee</th>
+                        <th scope="col">Employee</th>
                     </tr>
                 </thead>
                 <tbody id="shiftTableBody">
