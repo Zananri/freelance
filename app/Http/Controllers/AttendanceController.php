@@ -21,7 +21,7 @@ class AttendanceController extends Controller
         $employee = Employee::with('division')->where('user_id', $userId)->first();
 
         // Fetch today's attendance for the employee
-        $today = \Carbon\Carbon::today()->toDateString();
+        $today = Carbon::today()->toDateString();
         $attendance = null;
         if ($employee) {
             $attendance = Attendance::where('employee_id', $employee->id)

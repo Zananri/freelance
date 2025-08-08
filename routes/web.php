@@ -11,6 +11,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\ShiftController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
@@ -153,3 +154,5 @@ Route::get('/attendance/today/{employeeId}', [AttendanceController::class, 'getT
 Route::get('/attendance/monthly/{employeeId}/{year}/{month}', [AttendanceController::class, 'getMonthlyAttendance'])->name('attendance.monthly');
 Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
 Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+
+Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
