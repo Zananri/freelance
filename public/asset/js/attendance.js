@@ -86,7 +86,7 @@ function setupEventListeners() {
     // Work outside radio buttons event listeners
     const workOutsideYes = document.getElementById("work_outside_yes");
     const workOutsideNo = document.getElementById("work_outside_no");
-    
+
     if (workOutsideYes && workOutsideNo) {
         workOutsideYes.addEventListener("change", toggleImageUploadVisibility);
         workOutsideNo.addEventListener("change", toggleImageUploadVisibility);
@@ -103,7 +103,7 @@ function setupEventListeners() {
 function toggleImageUploadVisibility() {
     const workOutsideYes = document.getElementById("work_outside_yes");
     const imageUploadSection = document.getElementById("imageUploadSection");
-    
+
     if (workOutsideYes && imageUploadSection) {
         if (workOutsideYes.checked) {
             // Show image upload section when "Yes" is selected
@@ -111,7 +111,7 @@ function toggleImageUploadVisibility() {
         } else {
             // Hide image upload section when "No" is selected
             imageUploadSection.style.display = "none";
-            
+
             // Clear any existing image when hiding
             clearImage();
         }
@@ -167,10 +167,10 @@ function handleCheckIn() {
 
 function handleCheckOut() {
     const now = new Date();
-    const currentTime = new Date().toLocaleTimeString('en-US', {
-                            hour12: false,
-                            hour: '2-digit',
-                            minute: '2-digit'
+    const currentTime = new Date().toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
     });
 
     document.getElementById("checkOutTime").value = currentTime;
@@ -211,7 +211,7 @@ function updateAttendanceStatus() {
     const employeeId = document.querySelector(
         'input[name="employee_id"]'
     )?.value;
-    
+
     if (!employeeId) {
         console.error("Employee ID not found");
         return;
@@ -226,10 +226,10 @@ function updateAttendanceStatus() {
         .then((data) => {
             if (data.status === "success" && data.data) {
                 const attendance = data.data;
-                
+
                 const checkInBtn = document.getElementById("checkInBtn");
                 const checkOutBtn = document.getElementById("checkOutBtn");
-                
+
                 if (!checkInBtn || !checkOutBtn) {
                     console.error("Check buttons not found");
                     return;
@@ -239,9 +239,10 @@ function updateAttendanceStatus() {
                     // Checked in but not checked out - show checkout button
                     checkInBtn.style.display = "none";
                     checkOutBtn.style.display = "flex";
-                    
+
                     // Update hidden time fields
-                    const checkInTimeInput = document.getElementById("checkInTime");
+                    const checkInTimeInput =
+                        document.getElementById("checkInTime");
                     if (checkInTimeInput) {
                         checkInTimeInput.value = attendance.time_in;
                     }
@@ -258,7 +259,7 @@ function updateAttendanceStatus() {
                 // No attendance record - show checkin button
                 const checkInBtn = document.getElementById("checkInBtn");
                 const checkOutBtn = document.getElementById("checkOutBtn");
-                
+
                 if (checkInBtn && checkOutBtn) {
                     checkInBtn.style.display = "flex";
                     checkOutBtn.style.display = "none";
@@ -270,7 +271,7 @@ function updateAttendanceStatus() {
             // Fallback to showing check-in button
             const checkInBtn = document.getElementById("checkInBtn");
             const checkOutBtn = document.getElementById("checkOutBtn");
-            
+
             if (checkInBtn && checkOutBtn) {
                 checkInBtn.style.display = "flex";
                 checkOutBtn.style.display = "none";
@@ -328,18 +329,20 @@ function renderCalendar(month, year) {
     }
 
     // Fetch attendance data for the month and employee
-    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const employeeId = document.querySelector(
+        'input[name="employee_id"]'
+    )?.value;
     if (!employeeId) {
         console.error("Employee ID not found for attendance calendar");
         return;
     }
 
     fetch(`${baseUrl}/attendance/monthly/${employeeId}/${year}/${month + 1}`)
-        .then(response => response.json())
-        .then(data => {
+        .then((response) => response.json())
+        .then((data) => {
             let attendanceData = {};
             if (data.status === "success" && Array.isArray(data.data)) {
-                data.data.forEach(record => {
+                data.data.forEach((record) => {
                     const date = new Date(record.date_attendance);
                     attendanceData[date.getDate()] = record;
                 });
@@ -360,24 +363,24 @@ function renderCalendar(month, year) {
                 // Add attendance classes based on data
                 if (attendanceData[day]) {
                     const record = attendanceData[day];
-                    
+
                     // Add checked-in class
                     dayElement.classList.add("checked-in");
-                    
+
                     // Create "In" label
-                    const inLabel = document.createElement('span');
-                    inLabel.className = 'check-in-label';
-                    inLabel.textContent = 'In';
+                    const inLabel = document.createElement("span");
+                    inLabel.className = "check-in-label";
+                    inLabel.textContent = "In";
                     dayElement.appendChild(inLabel);
 
                     // If checked out, add checked-out class and "Out" label
                     if (record.time_out) {
                         dayElement.classList.add("checked-out");
-                        
+
                         // Create "Out" label
-                        const outLabel = document.createElement('span');
-                        outLabel.className = 'check-out-label';
-                        outLabel.textContent = 'Out';
+                        const outLabel = document.createElement("span");
+                        outLabel.className = "check-out-label";
+                        outLabel.textContent = "Out";
                         dayElement.appendChild(outLabel);
                     }
                 }
@@ -390,7 +393,7 @@ function renderCalendar(month, year) {
                 calendarDays.appendChild(dayElement);
             }
         })
-        .catch(error => {
+        .catch((error) => {
             console.error("Error fetching monthly attendance:", error);
         });
 }
@@ -459,8 +462,9 @@ function showFloatingAlert(message, type = "success") {
         transition: opacity 0.5s ease;
     `;
 
-    let iconClass = type === "success" ? "fa-check-circle" : "fa-exclamation-triangle";
-    
+    let iconClass =
+        type === "success" ? "fa-check-circle" : "fa-exclamation-triangle";
+
     alertDiv.innerHTML = `
         <i class="fas ${iconClass} me-2"></i>
         <div>${message}</div>
@@ -473,7 +477,6 @@ function showFloatingAlert(message, type = "success") {
         setTimeout(() => alertDiv.remove(), 500);
     }, 3000);
 }
-
 
 // Camera functionality
 let stream = null;
@@ -648,7 +651,7 @@ function clearImage() {
     // Reset preview
     if (preview) preview.style.display = "none";
     if (previewImg) previewImg.src = "";
-    
+
     // Hide clear and retake buttons
     if (clearBtn) {
         clearBtn.style.display = "none";
@@ -658,7 +661,7 @@ function clearImage() {
         retakeBtn.style.display = "none";
         retakeBtn.classList.add("d-none");
     }
-    
+
     // Show camera label again
     if (cameraLabel) {
         cameraLabel.style.display = "flex";
@@ -666,19 +669,19 @@ function clearImage() {
         cameraLabel.style.backgroundRepeat = "no-repeat";
         cameraLabel.style.backgroundSize = "50%";
     }
-    
+
     // Clear file input
     if (imageInput) imageInput.value = "";
-    
+
     // Clear existing image URL hidden input
     if (existingImageUrlInput) existingImageUrlInput.value = "";
-    
+
     // Hide video if showing
     if (video) video.style.display = "none";
-    
+
     // Reset captured image
     capturedImage = null;
-    
+
     // Stop camera if running
     stopCamera();
 }
@@ -794,7 +797,7 @@ function submitCheckIn() {
                 showFloatingAlert(
                     data.message || "Check-in submitted successfully!",
                     "success"
-                )
+                );
                 // Close modal
                 const modal = bootstrap.Modal.getInstance(
                     document.getElementById("checkInModal")
@@ -876,18 +879,22 @@ function calculateDuration24h(timeIn24h, timeOut24h) {
     try {
         // Normalize time formats (handle cases like "09:00 AM" or "09:00:00")
         const normalizeTime = (timeStr) => {
-            let [hours, minutes] = timeStr.replace(/[^0-9:]/g, '').split(':');
-            return `${hours.padStart(2, '0')}:${(minutes || '00').padStart(2, '0')}`;
+            let [hours, minutes] = timeStr.replace(/[^0-9:]/g, "").split(":");
+            return `${hours.padStart(2, "0")}:${(minutes || "00").padStart(
+                2,
+                "0"
+            )}`;
         };
 
         const normalizedIn = normalizeTime(timeIn24h);
         const normalizedOut = normalizeTime(timeOut24h);
 
-        const [inHours, inMinutes] = normalizedIn.split(':').map(Number);
-        const [outHours, outMinutes] = normalizedOut.split(':').map(Number);
+        const [inHours, inMinutes] = normalizedIn.split(":").map(Number);
+        const [outHours, outMinutes] = normalizedOut.split(":").map(Number);
 
-        let totalInMinutes = (outHours * 60 + outMinutes) - (inHours * 60 + inMinutes);
-        
+        let totalInMinutes =
+            outHours * 60 + outMinutes - (inHours * 60 + inMinutes);
+
         // Handle overnight case (negative duration)
         if (totalInMinutes < 0) {
             totalInMinutes += 24 * 60; // Add 24 hours
@@ -898,67 +905,88 @@ function calculateDuration24h(timeIn24h, timeOut24h) {
 
         return `${hours} hours ${minutes.toString().padStart(2)} minutes`;
     } catch (e) {
-        console.error('Error calculating duration:', e);
+        console.error("Error calculating duration:", e);
         return "0 hours 0 minutes";
     }
 }
 
 function loadCheckInDataForCheckout() {
-    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const employeeId = document.querySelector(
+        'input[name="employee_id"]'
+    )?.value;
     if (!employeeId) return;
 
     const url = `${baseUrl}/attendance/today/${employeeId}`;
 
     fetch(url)
-        .then(response => response.json())
-        .then(data => {
+        .then((response) => response.json())
+        .then((data) => {
             if (data.status === "success" && data.data) {
                 const attendance = data.data;
-                
+
                 // Display work outside status
-                const workOutsideText = attendance.is_work_outside ? "Yes" : "No";
-                document.getElementById("workOutsideStatusText").textContent = workOutsideText;
-                document.getElementById("workOutsideStatusText").className = 
+                const workOutsideText = attendance.is_work_outside
+                    ? "Yes"
+                    : "No";
+                document.getElementById("workOutsideStatusText").textContent =
+                    workOutsideText;
+                document.getElementById("workOutsideStatusText").className =
                     attendance.is_work_outside;
 
                 // Display time in
                 if (attendance.time_in) {
-                    document.getElementById("time_in_display").value = attendance.time_in;
-                    
+                    document.getElementById("time_in_display").value =
+                        attendance.time_in;
+
                     // Calculate work duration only if both time_in and time_out exist
                     if (attendance.time_out) {
-                        const totalDuration = calculateDuration24h(attendance.time_in, attendance.time_out);
-                        document.getElementById("total_work_duration").value = totalDuration;
+                        const totalDuration = calculateDuration24h(
+                            attendance.time_in,
+                            attendance.time_out
+                        );
+                        document.getElementById("total_work_duration").value =
+                            totalDuration;
                     } else {
                         // If not checked out yet, show current duration
-                        const currentTime = new Date().toLocaleTimeString('en-US', {
-                            hour12: false,
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        }).replace(/^24/, '00');
-                        const totalDuration = calculateDuration24h(attendance.time_in, currentTime);
-                        document.getElementById("total_work_duration").value = totalDuration;
+                        const currentTime = new Date()
+                            .toLocaleTimeString("en-US", {
+                                hour12: false,
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            })
+                            .replace(/^24/, "00");
+                        const totalDuration = calculateDuration24h(
+                            attendance.time_in,
+                            currentTime
+                        );
+                        document.getElementById("total_work_duration").value =
+                            totalDuration;
                     }
                 } else {
-                    document.getElementById("time_in_display").value = "Not available";
-                    document.getElementById("total_work_duration").value = "0h 0m";
+                    document.getElementById("time_in_display").value =
+                        "Not available";
+                    document.getElementById("total_work_duration").value =
+                        "0h 0m";
                 }
 
                 // Show/hide image upload based on work outside
-                const imageSection = document.getElementById("imageUploadSection");
+                const imageSection =
+                    document.getElementById("imageUploadSection");
                 if (imageSection) {
-                    imageSection.style.display = attendance.is_work_outside ? "block" : "none";
+                    imageSection.style.display = attendance.is_work_outside
+                        ? "block"
+                        : "none";
                 }
             }
         })
-        .catch(error => {
+        .catch((error) => {
             console.error("Error loading check-in data:", error);
             const errorElements = [
-                'workOutsideStatusText',
-                'time_in_display',
-                'total_work_duration'
+                "workOutsideStatusText",
+                "time_in_display",
+                "total_work_duration",
             ];
-            errorElements.forEach(id => {
+            errorElements.forEach((id) => {
                 const el = document.getElementById(id);
                 if (el) el.textContent = "Error loading data";
             });
@@ -971,7 +999,9 @@ function submitCheckOut() {
     const formData = new FormData(form);
 
     // Add CSRF token
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+    const csrfToken = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content");
     formData.append("_token", csrfToken);
 
     const url = `${baseUrl}/attendance/checkout`;
@@ -979,7 +1009,8 @@ function submitCheckOut() {
     // Show loading state
     const submitCheckOutBtn = document.getElementById("submitCheckOutBtn");
     const originalText = submitCheckOutBtn.innerHTML;
-    submitCheckOutBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    submitCheckOutBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Processing...';
     submitCheckOutBtn.disabled = true;
 
     fetch(url, {

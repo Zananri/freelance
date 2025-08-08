@@ -38,12 +38,12 @@
         }
     </style>
     <link href="{{ asset('asset/css/MaterialSymbolsOutlined.css') }}" rel="stylesheet">
-    <link href="{{ asset('asset/css/app.css?v='.time()) }}" rel="stylesheet">
-    <link href="{{ asset('asset/css/office.css?v='.time()) }}" rel="stylesheet">
-    <link href="{{ asset('asset/css/sidebar.css?v='.time()) }}" rel="stylesheet">
+    <link href="{{ asset('asset/css/app.css?v=' . time()) }}" rel="stylesheet">
+    <link href="{{ asset('asset/css/office.css?v=' . time()) }}" rel="stylesheet">
+    <link href="{{ asset('asset/css/sidebar.css?v=' . time()) }}" rel="stylesheet">
 
     <style>
-        
+
     </style>
 
     @isset($head_slot)
@@ -66,15 +66,19 @@
             <div class="nav-item d-inline-block me-3" style="">
                 <div class="nav-icon">
                     <div class="d-flex position-relative" style="cursor: pointer;" id="notificationDropdownToggle">
-                        <span class="material-symbols-outlined" style="cursor: pointer;" id="notificationDropdownToggle">notifications</span>
-                        <span id="notificationBadge" class="notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                        <span class="material-symbols-outlined" style="cursor: pointer;"
+                            id="notificationDropdownToggle">notifications</span>
+                        <span id="notificationBadge"
+                            class="notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                            style="display: none;">
                             <span id="notificationCount">0</span>
                         </span>
                     </div>
                 </div>
             </div>
 
-            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative" style="width: 40px; height: 40px; overflow: visible;" id="avatarDropdownToggle">
+            <div class="nav-item img-avatar rounded-circle d-inline-block me-2 position-relative"
+                style="width: 40px; height: 40px; overflow: visible;" id="avatarDropdownToggle">
 
                 @if (Auth::check())
                     <img src="{{ asset(Auth::user()->photo) }}" alt="User Avatar" class="rounded-circle"
@@ -98,7 +102,7 @@
                                     style="width: 70px; height: 70px;"></div>
                             @endif
                         </div>
-                        <div class="fw-semibold text-body mb-1" >{{ Auth::check() ? Auth::user()->name : 'Guest' }}
+                        <div class="fw-semibold text-body mb-1">{{ Auth::check() ? Auth::user()->name : 'Guest' }}
                         </div>
                         <div class="mb-1 text-body-secondary fs-12">
                             {{ Auth::check() ? Auth::user()->email : '' }}
@@ -249,8 +253,8 @@
         integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous">
     </script>
 
-    <script src="{{ asset('asset/js/app.js?v='.time()) }}"></script>
-    <script src="{{ asset('asset/js/office.js?v='.time()) }}"></script>
+    <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
+    <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
 
     @isset($script_slot)
         {{ $script_slot }}
@@ -279,13 +283,15 @@
     </div>
 
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
-  <symbol id="check-circle-fill" viewBox="0 0 16 16">
-    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-  </symbol>
-  <symbol id="exclamation-triangle-fill" viewBox="0 0 16 16">
-    <path d="M8.982 1.566a.75.75 0 0 0-1.132 0L1.75 13.5A.75.75 0 0 0 2.482 15h11.036a.75.75 0 0 0 .732-1.5L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-  </symbol>
-</svg>
+        <symbol id="check-circle-fill" viewBox="0 0 16 16">
+            <path
+                d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+        </symbol>
+        <symbol id="exclamation-triangle-fill" viewBox="0 0 16 16">
+            <path
+                d="M8.982 1.566a.75.75 0 0 0-1.132 0L1.75 13.5A.75.75 0 0 0 2.482 15h11.036a.75.75 0 0 0 .732-1.5L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+        </symbol>
+    </svg>
 
 </body>
 
