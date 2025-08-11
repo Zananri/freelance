@@ -429,65 +429,89 @@ function renderCalendar(month, year) {
                 if (attendanceData[day]) {
                     const records = attendanceData[day];
 
-                    // Determine background and labels based on multiple records
-                    // Count check-ins and check-outs
-                    let checkInCount = 0;
-                    let checkOutCount = 0;
-                    records.forEach((rec) => {
-                        if (rec.type_attendance === "check_in") checkInCount++;
-                        if (rec.type_attendance === "check_out") checkOutCount++;
-                    });
+                    // Special handling for current day to show 3 segments with previous day checkout
+                    const today = new Date();
+                    const checkDate = new Date(year, month, day);
+                    const isToday = checkDate.toDateString() === today.toDateString();
 
-                    // Add classes for backgrounds based on counts
-                    if (checkInCount === 1 && checkOutCount === 0) {
-                        // Only check-in
-                        dayElement.classList.add("checked-in");
-                        const inLabel = document.createElement("span");
-                        inLabel.className = "check-in-label";
-                        inLabel.textContent = "In";
-                        dayElement.appendChild(inLabel);
-                    } else if (checkInCount === 1 && checkOutCount === 1) {
-                        // One check-in and one check-out
-                        dayElement.classList.add("checked-in");
-                        dayElement.classList.add("checked-out");
-                        const inLabel = document.createElement("span");
-                        inLabel.className = "check-in-label";
-                        inLabel.textContent = "In";
-                        dayElement.appendChild(inLabel);
-                        const outLabel = document.createElement("span");
-                        outLabel.className = "check-out-label";
-                        outLabel.textContent = "Out";
-                        dayElement.appendChild(outLabel);
-                    } else if (checkInCount === 2 && checkOutCount === 1) {
-                        // Two check-ins and one check-out (3 segments)
-                        dayElement.classList.add("checked-in");
-                        dayElement.classList.add("checked-out");
-                        dayElement.classList.add("checked-in-second");
-                        const outLabelTop = document.createElement("span");
-                        outLabelTop.className = "check-out-label-top";
-                        outLabelTop.textContent = "Out";
-                        dayElement.appendChild(outLabelTop);
-                        const inLabel = document.createElement("span");
-                        inLabel.className = "check-in-label";
-                        inLabel.textContent = "In";
-                        dayElement.appendChild(inLabel);
-                        const outLabelBottom = document.createElement("span");
-                        outLabelBottom.className = "check-out-label-bottom";
-                        outLabelBottom.textContent = "Out";
-                        dayElement.appendChild(outLabelBottom);
+                    // Define dateString for current day
+                    const dateString = checkDate.toISOString().split("T")[0];
+
+                    // Group records by type and date
+                    const todayRecords = records.filter(r => r.date_attendance === dateString);
+                    const previousDayRecords = records.filter(r => r.date_attendance < dateString);
+                    
+                    // Check for previous day checkout
+                    const hasPreviousDayCheckout = previousDayRecords.some(r => r.type_attendance === "check_out");
+                    
+                    // Count today's check-ins and check-outs
+                    const todayCheckIns = todayRecords.filter(r => r.type_attendance === "check_in");
+                    const todayCheckOuts = todayRecords.filter(r => r.type_attendance === "check_out");
+
+                    // Handle 3-segment display for current day
+                    if (isToday && (hasPreviousDayCheckout || todayCheckIns.length > 0 || todayCheckOuts.length > 0)) {
+                        // Always use 3-segment layout for today
+                        dayElement.classList.add("has-three-sections");
+
+                        // Create date number container
+                        const dateNumber = document.createElement("span");
+                        dateNumber.className = "date-number";
+                        dateNumber.textContent = day;
+                        dayElement.appendChild(dateNumber);
+
+                        // Top section - Previous day's checkout (if exists)
+                        if (hasPreviousDayCheckout) {
+                            const outLabelTop = document.createElement("span");
+                            outLabelTop.className = "check-out-label-top";
+                            outLabelTop.textContent = "Out";
+                            dayElement.appendChild(outLabelTop);
+                        }
+
+                        // Middle section - Today's check-in
+                        if (todayCheckIns.length > 0) {
+                            const inLabel = document.createElement("span");
+                            inLabel.className = "check-in-label-middle";
+                            inLabel.textContent = "In";
+                            dayElement.appendChild(inLabel);
+                        }
+
+                        // Bottom section - Today's checkout
+                        if (todayCheckOuts.length > 0) {
+                            const outLabelBottom = document.createElement("span");
+                            outLabelBottom.className = "check-out-label-bottom";
+                            outLabelBottom.textContent = "Out";
+                            dayElement.appendChild(outLabelBottom);
+                        }
                     } else {
-                        // Default fallback: show check-in label for first check-in
-                        const firstCheckIn = records.find(r => r.type_attendance === "check_in");
-                        if (firstCheckIn) {
+                        // Handle other days with simpler display
+                        let checkInCount = 0;
+                        let checkOutCount = 0;
+                        records.forEach((rec) => {
+                            if (rec.type_attendance === "check_in") checkInCount++;
+                            if (rec.type_attendance === "check_out") checkOutCount++;
+                        });
+
+                        if (checkInCount > 0 && checkOutCount > 0) {
+                            // Both check-in and check-out
+                            dayElement.classList.add("checked-in");
+                            dayElement.classList.add("checked-out");
+                            const inLabel = document.createElement("span");
+                            inLabel.className = "check-in-label";
+                            inLabel.textContent = "In";
+                            dayElement.appendChild(inLabel);
+                            const outLabel = document.createElement("span");
+                            outLabel.className = "check-out-label";
+                            outLabel.textContent = "Out";
+                            dayElement.appendChild(outLabel);
+                        } else if (checkInCount > 0) {
+                            // Only check-in
                             dayElement.classList.add("checked-in");
                             const inLabel = document.createElement("span");
                             inLabel.className = "check-in-label";
                             inLabel.textContent = "In";
                             dayElement.appendChild(inLabel);
-                        }
-                        // Show check-out label for first check-out if any
-                        const firstCheckOut = records.find(r => r.type_attendance === "check_out");
-                        if (firstCheckOut) {
+                        } else if (checkOutCount > 0) {
+                            // Only check-out
                             dayElement.classList.add("checked-out");
                             const outLabel = document.createElement("span");
                             outLabel.className = "check-out-label";
