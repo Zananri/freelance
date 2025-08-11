@@ -377,4 +377,58 @@ class AttendanceController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get all attendance records for a specific day for an employee
+     */
+    public function getDailyAttendances($employeeId, $date)
+    {
+        try {
+            // Validate date format
+            $dateObj = Carbon::createFromFormat('Y-m-d', $date);
+            if (!$dateObj) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => 'error',
+                    'data' => null,
+                    'message' => 'Invalid date format'
+                ], 400);
+            }
+
+            $attendances = Attendance::where('employee_id', $employeeId)
+                ->where('date_attendance', $dateObj->toDateString())
+                ->orderBy('time_in', 'asc')
+                ->get();
+
+            if ($attendances->isEmpty()) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'not_found',
+                    'data' => null,
+                    'message' => 'No attendance record found for the date'
+                ]);
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $attendances,
+                'message' => 'Daily attendance retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching daily attendance:', [
+                'employee_id' => $employeeId,
+                'date' => $date,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => null,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -269,12 +269,46 @@ function updateAttendanceStatus() {
                         return;
                     }
 
-                    // If there is a latest unclosed check-in (any date)
+                    console.log("Latest unclosed attendance:", latestData);
+                    console.log("Today's attendance:", todayData);
+
+                    // Determine button state based on today's attendance first
+                    if (todayData.status === "success" && todayData.data) {
+                        const attendances = todayData.data;
+
+                        if (attendances.length > 0) {
+                            const lastAttendance = attendances[attendances.length - 1];
+
+                            if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
+                                // Last record is check-in without checkout, show checkout button
+                                checkInBtn.style.display = "none";
+                                checkOutBtn.style.display = "flex";
+
+                                // Update hidden time fields
+                                const checkInTimeInput = document.getElementById("checkInTime");
+                                if (checkInTimeInput) {
+                                    checkInTimeInput.value = lastAttendance.time_in;
+                                }
+                                return;
+                            } else {
+                                // Last record is checkout or fully checked out, show check-in button
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "none";
+                                return;
+                            }
+                        } else {
+                            // No attendance today, show check-in button
+                            checkInBtn.style.display = "flex";
+                            checkOutBtn.style.display = "none";
+                            return;
+                        }
+                    }
+
+                    // If no attendance today, check latest unclosed check-in from previous days
                     if (latestData.status === "success" && latestData.data) {
                         const latestAttendance = latestData.data;
                         const latestDate = latestAttendance.date_attendance;
 
-                        // If latest unclosed check-in is before today, show checkout button for today
                         if (latestDate < today) {
                             checkInBtn.style.display = "none";
                             checkOutBtn.style.display = "flex";
@@ -287,35 +321,9 @@ function updateAttendanceStatus() {
                         }
                     }
 
-                    // Otherwise, use today's attendance data
-                    if (todayData.status === "success" && todayData.data) {
-                        const attendance = todayData.data;
-
-                        if (attendance.time_in && !attendance.time_out) {
-                            // Checked in but not checked out - show checkout button
-                            checkInBtn.style.display = "none";
-                            checkOutBtn.style.display = "flex";
-
-                            // Update hidden time fields
-                            const checkInTimeInput =
-                                document.getElementById("checkInTime");
-                            if (checkInTimeInput) {
-                                checkInTimeInput.value = attendance.time_in;
-                            }
-                        } else if (attendance.time_in && attendance.time_out) {
-                            // Already checked out - hide both buttons
-                            checkInBtn.style.display = "none";
-                            checkOutBtn.style.display = "none";
-                        } else {
-                            // No check-in yet - show checkin button
-                            checkInBtn.style.display = "flex";
-                            checkOutBtn.style.display = "none";
-                        }
-                    } else {
-                        // No attendance record - show checkin button
-                        checkInBtn.style.display = "flex";
-                        checkOutBtn.style.display = "none";
-                    }
+                    // Default fallback: show check-in button
+                    checkInBtn.style.display = "flex";
+                    checkOutBtn.style.display = "none";
                 });
         })
         .catch((error) => {
@@ -1035,81 +1043,105 @@ function loadCheckInDataForCheckout() {
     )?.value;
     if (!employeeId) return;
 
-    const url = `${baseUrl}/attendance/today/${employeeId}`;
+    // Get selected date from currentDate input or fallback to today
+    const selectedDate = document.getElementById("currentDate")?.value || new Date().toISOString().split("T")[0];
 
-    fetch(url)
+    const urlSelectedDate = `${baseUrl}/attendance/daily/${employeeId}/${selectedDate}`;
+    const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
+
+    // Fetch attendance for selected date
+    fetch(urlSelectedDate)
         .then((response) => response.json())
         .then((data) => {
-            if (data.status === "success" && data.data) {
-                const attendance = data.data;
+            if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
+                // Find the first check-in record for the selected date
+                const checkInRecord = data.data.find(r => r.type_attendance === "check_in");
 
-                // Display work outside status
-                const workOutsideText = attendance.is_work_outside
-                    ? "Yes"
-                    : "No";
-                document.getElementById("workOutsideStatusText").textContent =
-                    workOutsideText;
-                document.getElementById("workOutsideStatusText").className =
-                    attendance.is_work_outside;
-
-                // Display time in
-                if (attendance.time_in) {
-                    document.getElementById("time_in_display").textContent =
-                        attendance.time_in;
-
-                    // Calculate work duration only if both time_in and time_out exist
-                    if (attendance.time_out) {
-                        const totalDuration = calculateDuration24h(
-                            attendance.time_in,
-                            attendance.time_out
-                        );
-                        document.getElementById("total_work_duration").textContent =
-                            totalDuration;
-                    } else {
-                        // If not checked out yet, show current duration
-                        const currentTime = new Date()
-                            .toLocaleTimeString("en-US", {
-                                hour12: false,
-                                hour: "2-digit",
-                                minute: "2-digit",
-                            })
-                            .replace(/^24/, "00");
-                        const totalDuration = calculateDuration24h(
-                            attendance.time_in,
-                            currentTime
-                        );
-                        document.getElementById("total_work_duration").textContent =
-                            totalDuration;
-                    }
-                } else {
-                    document.getElementById("time_in_display").textContent =
-                        "Not available";
-                    document.getElementById("total_work_duration").textContent =
-                        "0h 0m";
+                if (!checkInRecord) {
+                    // No check-in record found for the date
+                    setCheckoutModalDefaults();
+                    return;
                 }
 
-                // Show/hide image upload based on work outside
-                const imageSection =
-                    document.getElementById("imageUploadSection");
-                if (imageSection) {
-                    imageSection.style.display = attendance.is_work_outside
-                        ? "block"
-                        : "none";
-                }
+                populateCheckoutModal(checkInRecord);
+            } else {
+                // No check-in for selected date, fetch latest unclosed check-in
+                fetch(urlLatestUnclosed)
+                    .then((response) => response.json())
+                    .then((latestData) => {
+                        if (latestData.status === "success" && latestData.data) {
+                            populateCheckoutModal(latestData.data);
+                        } else {
+                            setCheckoutModalDefaults();
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error loading latest unclosed check-in data:", error);
+                        setCheckoutModalDefaults();
+                    });
             }
         })
         .catch((error) => {
             console.error("Error loading check-in data:", error);
-            const errorElements = [
-                "workOutsideStatusText",
-                "time_in_display",
-                "total_work_duration",
-            ];
-            errorElements.forEach((id) => {
-                const el = document.getElementById(id);
-                if (el) el.textContent = "Error loading data";
-            });
+            setCheckoutModalDefaults();
         });
+}
+
+function populateCheckoutModal(checkInRecord) {
+    // Display work outside status
+    const workOutsideText = checkInRecord.is_work_outside ? "Yes" : "No";
+    document.getElementById("workOutsideStatusText").textContent = workOutsideText;
+    document.getElementById("workOutsideStatusText").className = checkInRecord.is_work_outside;
+
+    // Display time in
+    if (checkInRecord.time_in) {
+        document.getElementById("time_in_display").textContent = checkInRecord.time_in;
+
+        // Calculate work duration only if both time_in and time_out exist
+        if (checkInRecord.time_out) {
+            const totalDuration = calculateDuration24h(checkInRecord.time_in, checkInRecord.time_out);
+            document.getElementById("total_work_duration").textContent = totalDuration;
+        } else {
+            // If not checked out yet, show current duration
+            const currentTime = new Date()
+                .toLocaleTimeString("en-US", {
+                    hour12: false,
+                    hour: "2-digit",
+                    minute: "2-digit",
+                })
+                .replace(/^24/, "00");
+            const totalDuration = calculateDuration24h(checkInRecord.time_in, currentTime);
+            document.getElementById("total_work_duration").textContent = totalDuration;
+        }
+    } else {
+        setCheckoutModalDefaults();
+    }
+
+    // Show/hide image upload based on work outside
+    const imageSection = document.getElementById("imageUploadSection");
+    if (imageSection) {
+        imageSection.style.display = checkInRecord.is_work_outside ? "block" : "none";
+    }
+}
+
+function setCheckoutModalDefaults() {
+    document.getElementById("workOutsideStatusText").textContent = "Not available";
+    document.getElementById("time_in_display").textContent = "Not available";
+    document.getElementById("total_work_duration").textContent = "0h 0m";
+    const imageSection = document.getElementById("imageUploadSection");
+    if (imageSection) {
+        imageSection.style.display = "none";
+    }
+}
+
+function setCheckoutModalDefaults() {
+    document.getElementById("workOutsideStatusText").textContent = "Not available";
+    document.getElementById("time_in_display").textContent = "Not available";
+    document.getElementById("total_work_duration").textContent = "0h 0m";
+    const imageSection = document.getElementById("imageUploadSection");
+    if (imageSection) {
+        imageSection.style.display = "none";
+    }
 }
 
 // Function to submit check-out
