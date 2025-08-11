@@ -906,10 +906,10 @@ function openCheckOutModal() {
     document.getElementById("date_attendance").value = dateString;
     document.getElementById("time_out").value = timeString;
 
-    // Set the visible time_out_display input to current time
+    // Set the visible time_out_display span to current time
     const timeOutDisplay = document.getElementById("time_out_display");
     if (timeOutDisplay) {
-        timeOutDisplay.value = timeString;
+        timeOutDisplay.textContent = timeString;
     }
 
     // Load check-in data to display work outside status
@@ -982,7 +982,7 @@ function loadCheckInDataForCheckout() {
 
                 // Display time in
                 if (attendance.time_in) {
-                    document.getElementById("time_in_display").value =
+                    document.getElementById("time_in_display").textContent =
                         attendance.time_in;
 
                     // Calculate work duration only if both time_in and time_out exist
@@ -991,7 +991,7 @@ function loadCheckInDataForCheckout() {
                             attendance.time_in,
                             attendance.time_out
                         );
-                        document.getElementById("total_work_duration").value =
+                        document.getElementById("total_work_duration").textContent =
                             totalDuration;
                     } else {
                         // If not checked out yet, show current duration
@@ -1006,13 +1006,13 @@ function loadCheckInDataForCheckout() {
                             attendance.time_in,
                             currentTime
                         );
-                        document.getElementById("total_work_duration").value =
+                        document.getElementById("total_work_duration").textContent =
                             totalDuration;
                     }
                 } else {
-                    document.getElementById("time_in_display").value =
+                    document.getElementById("time_in_display").textContent =
                         "Not available";
-                    document.getElementById("total_work_duration").value =
+                    document.getElementById("total_work_duration").textContent =
                         "0h 0m";
                 }
 

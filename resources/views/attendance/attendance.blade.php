@@ -195,7 +195,7 @@
 
                         <!-- Work Outside Display -->
                         <div class="mb-3">
-                            <label class="form-label">Work Outside Status</label>
+                            <label class="form-label label-custom">Work Outside Status</label>
                             <div class="work-outside-display">
                                 <span id="workOutsideStatusText">Loading...</span>
                             </div>
@@ -203,20 +203,26 @@
 
                         <!-- Time In Display -->
                         <div class="mb-3">
-                            <label for="time_in_display" class="form-label label-custom">Time In</label>
-                            <input type="time" class="form-control input-text" id="time_in_display" name="time_in_display" readonly>
+                            <label class="form-label label-custom">Time In</label>
+                            <div class="time_in">
+                                <span id="time_in_display">Loading...</span>
+                            </div>
                         </div>
 
                         <!-- Time Out Display -->
                         <div class="mb-3">
-                            <label for="time_out_display" class="form-label label-custom">Time Out</label>
-                            <input type="time" class="form-control input-text" id="time_out_display" name="time_out_display" readonly>
+                            <label class="form-label label-custom">Time Out</label>
+                            <div class="time_out">
+                                <span id="time_out_display">Loading...</span>
+                            </div>
                         </div>
 
                         <!-- Total Work Duration -->
                         <div class="mb-3">
-                            <label for="total_work_duration" class="form-label label-custom">Total Work Duration</label>
-                            <input type="text" class="form-control input-text" id="total_work_duration" name="total_work_duration" readonly>
+                            <label class="form-label label-custom">Total Work Duration</label>
+                            <div class="total_work_duration">
+                                <span id="total_work_duration">Loading...</span>
+                            </div>
                         </div>
 
                         <!-- Image Upload Section -->
@@ -237,11 +243,6 @@
                             </div>
                         </div>
 
-                        <!-- Note -->
-                        <div class="mb-3">
-                            <label for="note" class="form-label">Note</label>
-                            <textarea class="form-control label-custom" id="note" name="note" rows="3"></textarea>
-                        </div>
                     </form>
                 </div>
                 <div class="modal-footer modal-footer-custom">
