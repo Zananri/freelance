@@ -250,53 +250,73 @@ function updateAttendanceStatus() {
     }
 
     const today = new Date().toISOString().split("T")[0];
-    const url = `${baseUrl}/attendance/today/${employeeId}`;
+    const urlToday = `${baseUrl}/attendance/today/${employeeId}`;
+    const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
 
-    // Fetch actual attendance data from server
-    fetch(url)
+    // Fetch latest unclosed check-in (could be from previous day)
+    fetch(urlLatestUnclosed)
         .then((response) => response.json())
-        .then((data) => {
-            if (data.status === "success" && data.data) {
-                const attendance = data.data;
+        .then((latestData) => {
+            // Fetch today's attendance data
+            fetch(urlToday)
+                .then((response) => response.json())
+                .then((todayData) => {
+                    const checkInBtn = document.getElementById("checkInBtn");
+                    const checkOutBtn = document.getElementById("checkOutBtn");
 
-                const checkInBtn = document.getElementById("checkInBtn");
-                const checkOutBtn = document.getElementById("checkOutBtn");
-
-                if (!checkInBtn || !checkOutBtn) {
-                    console.error("Check buttons not found");
-                    return;
-                }
-
-                if (attendance.time_in && !attendance.time_out) {
-                    // Checked in but not checked out - show checkout button
-                    checkInBtn.style.display = "none";
-                    checkOutBtn.style.display = "flex";
-
-                    // Update hidden time fields
-                    const checkInTimeInput =
-                        document.getElementById("checkInTime");
-                    if (checkInTimeInput) {
-                        checkInTimeInput.value = attendance.time_in;
+                    if (!checkInBtn || !checkOutBtn) {
+                        console.error("Check buttons not found");
+                        return;
                     }
-                } else if (attendance.time_in && attendance.time_out) {
-                    // Already checked out - hide both buttons
-                    checkInBtn.style.display = "none";
-                    checkOutBtn.style.display = "none";
-                } else {
-                    // No check-in yet - show checkin button
-                    checkInBtn.style.display = "flex";
-                    checkOutBtn.style.display = "none";
-                }
-            } else {
-                // No attendance record - show checkin button
-                const checkInBtn = document.getElementById("checkInBtn");
-                const checkOutBtn = document.getElementById("checkOutBtn");
 
-                if (checkInBtn && checkOutBtn) {
-                    checkInBtn.style.display = "flex";
-                    checkOutBtn.style.display = "none";
-                }
-            }
+                    // If there is a latest unclosed check-in (any date)
+                    if (latestData.status === "success" && latestData.data) {
+                        const latestAttendance = latestData.data;
+                        const latestDate = latestAttendance.date_attendance;
+
+                        // If latest unclosed check-in is before today, show checkout button for today
+                        if (latestDate < today) {
+                            checkInBtn.style.display = "none";
+                            checkOutBtn.style.display = "flex";
+                            // Set hidden checkInTime to latest check-in time
+                            const checkInTimeInput = document.getElementById("checkInTime");
+                            if (checkInTimeInput) {
+                                checkInTimeInput.value = latestAttendance.time_in;
+                            }
+                            return;
+                        }
+                    }
+
+                    // Otherwise, use today's attendance data
+                    if (todayData.status === "success" && todayData.data) {
+                        const attendance = todayData.data;
+
+                        if (attendance.time_in && !attendance.time_out) {
+                            // Checked in but not checked out - show checkout button
+                            checkInBtn.style.display = "none";
+                            checkOutBtn.style.display = "flex";
+
+                            // Update hidden time fields
+                            const checkInTimeInput =
+                                document.getElementById("checkInTime");
+                            if (checkInTimeInput) {
+                                checkInTimeInput.value = attendance.time_in;
+                            }
+                        } else if (attendance.time_in && attendance.time_out) {
+                            // Already checked out - hide both buttons
+                            checkInBtn.style.display = "none";
+                            checkOutBtn.style.display = "none";
+                        } else {
+                            // No check-in yet - show checkin button
+                            checkInBtn.style.display = "flex";
+                            checkOutBtn.style.display = "none";
+                        }
+                    } else {
+                        // No attendance record - show checkin button
+                        checkInBtn.style.display = "flex";
+                        checkOutBtn.style.display = "none";
+                    }
+                });
         })
         .catch((error) => {
             console.error("Error fetching attendance data:", error);
@@ -374,9 +394,14 @@ function renderCalendar(month, year) {
         .then((data) => {
             let attendanceData = {};
             if (data.status === "success" && Array.isArray(data.data)) {
+                // Group attendance records by date
                 data.data.forEach((record) => {
                     const date = new Date(record.date_attendance);
-                    attendanceData[date.getDate()] = record;
+                    const day = date.getDate();
+                    if (!attendanceData[day]) {
+                        attendanceData[day] = [];
+                    }
+                    attendanceData[day].push(record);
                 });
             }
 
@@ -394,26 +419,73 @@ function renderCalendar(month, year) {
 
                 // Add attendance classes based on data
                 if (attendanceData[day]) {
-                    const record = attendanceData[day];
+                    const records = attendanceData[day];
 
-                    // Add checked-in class
-                    dayElement.classList.add("checked-in");
+                    // Determine background and labels based on multiple records
+                    // Count check-ins and check-outs
+                    let checkInCount = 0;
+                    let checkOutCount = 0;
+                    records.forEach((rec) => {
+                        if (rec.type_attendance === "check_in") checkInCount++;
+                        if (rec.type_attendance === "check_out") checkOutCount++;
+                    });
 
-                    // Create "In" label
-                    const inLabel = document.createElement("span");
-                    inLabel.className = "check-in-label";
-                    inLabel.textContent = "In";
-                    dayElement.appendChild(inLabel);
-
-                    // If checked out, add checked-out class and "Out" label
-                    if (record.time_out) {
+                    // Add classes for backgrounds based on counts
+                    if (checkInCount === 1 && checkOutCount === 0) {
+                        // Only check-in
+                        dayElement.classList.add("checked-in");
+                        const inLabel = document.createElement("span");
+                        inLabel.className = "check-in-label";
+                        inLabel.textContent = "In";
+                        dayElement.appendChild(inLabel);
+                    } else if (checkInCount === 1 && checkOutCount === 1) {
+                        // One check-in and one check-out
+                        dayElement.classList.add("checked-in");
                         dayElement.classList.add("checked-out");
-
-                        // Create "Out" label
+                        const inLabel = document.createElement("span");
+                        inLabel.className = "check-in-label";
+                        inLabel.textContent = "In";
+                        dayElement.appendChild(inLabel);
                         const outLabel = document.createElement("span");
                         outLabel.className = "check-out-label";
                         outLabel.textContent = "Out";
                         dayElement.appendChild(outLabel);
+                    } else if (checkInCount === 2 && checkOutCount === 1) {
+                        // Two check-ins and one check-out (3 segments)
+                        dayElement.classList.add("checked-in");
+                        dayElement.classList.add("checked-out");
+                        dayElement.classList.add("checked-in-second");
+                        const outLabelTop = document.createElement("span");
+                        outLabelTop.className = "check-out-label-top";
+                        outLabelTop.textContent = "Out";
+                        dayElement.appendChild(outLabelTop);
+                        const inLabel = document.createElement("span");
+                        inLabel.className = "check-in-label";
+                        inLabel.textContent = "In";
+                        dayElement.appendChild(inLabel);
+                        const outLabelBottom = document.createElement("span");
+                        outLabelBottom.className = "check-out-label-bottom";
+                        outLabelBottom.textContent = "Out";
+                        dayElement.appendChild(outLabelBottom);
+                    } else {
+                        // Default fallback: show check-in label for first check-in
+                        const firstCheckIn = records.find(r => r.type_attendance === "check_in");
+                        if (firstCheckIn) {
+                            dayElement.classList.add("checked-in");
+                            const inLabel = document.createElement("span");
+                            inLabel.className = "check-in-label";
+                            inLabel.textContent = "In";
+                            dayElement.appendChild(inLabel);
+                        }
+                        // Show check-out label for first check-out if any
+                        const firstCheckOut = records.find(r => r.type_attendance === "check_out");
+                        if (firstCheckOut) {
+                            dayElement.classList.add("checked-out");
+                            const outLabel = document.createElement("span");
+                            outLabel.className = "check-out-label";
+                            outLabel.textContent = "Out";
+                            dayElement.appendChild(outLabel);
+                        }
                     }
                 }
 

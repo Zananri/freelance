@@ -12,6 +12,47 @@ use Illuminate\Http\Request;
 class AttendanceController extends Controller
 {
     /**
+     * Get the latest unclosed check-in attendance for an employee
+     */
+    public function getLatestUnclosedAttendance($employeeId)
+    {
+        try {
+            $attendance = Attendance::where('employee_id', $employeeId)
+                ->whereNull('time_out')
+                ->orderBy('date_attendance', 'desc')
+                ->orderBy('time_in', 'desc')
+                ->first();
+
+            if (!$attendance) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'not_found',
+                    'data' => null,
+                    'message' => 'No unclosed check-in found'
+                ]);
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $attendance,
+                'message' => 'Latest unclosed check-in retrieved successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching latest unclosed attendance:', [
+                'employee_id' => $employeeId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => null,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+    /**
      * Display a listing of the resource.
      */
   
@@ -56,15 +97,13 @@ class AttendanceController extends Controller
     {
         try {
             DB::beginTransaction();
-            
-            // Debug log untuk melihat data yang diterima
+
             \Log::info('Attendance store request data:', [
                 'all_data' => $request->all(),
                 'files' => $request->allFiles(),
                 'headers' => $request->headers->all()
             ]);
-            
-            // Validasi request dengan rules yang lebih fleksibel
+
             $validated = $request->validate([
                 'employee_id' => 'required|exists:employees,id',
                 'is_work_outside' => 'required|in:0,1,true,false',
@@ -74,25 +113,10 @@ class AttendanceController extends Controller
                 'image' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
             ]);
 
-            // Konversi is_work_outside ke boolean (sudah boolean dari validasi)
             $isWorkOutside = $validated['is_work_outside'];
 
-            // Cek apakah sudah check-in hari ini
-            $existingAttendance = Attendance::where('employee_id', $validated['employee_id'])
-                ->where('date_attendance', $validated['date_attendance'])
-                ->where('type_attendance', 'check_in')
-                ->first();
+            // Allow multiple check-ins per day, no conflict check needed
 
-            if ($existingAttendance) {
-                return response()->json([
-                    'code' => 409,
-                    'status' => 'error',
-                    'data' => [],
-                    'message' => 'You have already checked in for today!'
-                ], 409);
-            }
-
-            // Parse time_in dari format HH:MM
             $timeIn = $validated['time_in'];
             $checkInTime = Carbon::createFromFormat('H:i', $timeIn);
             $lateThreshold = Carbon::createFromFormat('H:i', '09:00');
@@ -102,7 +126,7 @@ class AttendanceController extends Controller
                 $timeLate = $checkInTime->diff($lateThreshold)->format('%H:%I');
             }
 
-              $imageName = null;
+            $imageName = null;
             if ($request->hasFile('image')) {
                 $t = time();
                 $imageName = 'ATTENDANCE_' . $t . '.' . $request->image->extension();
@@ -110,8 +134,6 @@ class AttendanceController extends Controller
             }
             $imagePath = $imageName ? 'attendance/' . $imageName : null;
 
-
-            // Create attendance record
             $attendance = Attendance::create([
                 'employee_id' => $validated['employee_id'],
                 'is_work_outside' => $isWorkOutside,
@@ -133,7 +155,6 @@ class AttendanceController extends Controller
                 'data' => $attendance,
                 'message' => 'Check-in successful!'
             ]);
-
         } catch (ValidationException $e) {
             DB::rollBack();
             \Log::error('Validation error:', $e->errors());
@@ -195,13 +216,14 @@ class AttendanceController extends Controller
     {
         try {
             $today = Carbon::today()->toDateString();
-            
-            $attendance = Attendance::where('employee_id', $employeeId)
-                ->where('date_attendance', $today)
-                ->where('type_attendance', 'check_in')
-                ->first();
 
-            if (!$attendance) {
+            // Return all attendance records for today (multiple check-ins/outs)
+            $attendances = Attendance::where('employee_id', $employeeId)
+                ->where('date_attendance', $today)
+                ->orderBy('time_in', 'asc')
+                ->get();
+
+            if ($attendances->isEmpty()) {
                 return response()->json([
                     'code' => 404,
                     'status' => 'not_found',
@@ -213,16 +235,15 @@ class AttendanceController extends Controller
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $attendance,
+                'data' => $attendances,
                 'message' => 'Today\'s attendance retrieved successfully'
             ]);
-
         } catch (\Exception $e) {
             \Log::error('Error fetching today\'s attendance:', [
                 'employee_id' => $employeeId,
                 'error' => $e->getMessage()
             ]);
-            
+
             return response()->json([
                 'code' => 500,
                 'status' => 'error',
@@ -240,17 +261,17 @@ class AttendanceController extends Controller
         try {
             DB::beginTransaction();
 
-            // Validasi request
             $validated = $request->validate([
                 'employee_id' => 'required|exists:employees,id',
             ]);
 
-            // Cari attendance check-in hari ini
             $today = Carbon::today()->toDateString();
+
+            // Find the latest check-in without checkout, including previous day if any
             $attendance = Attendance::where('employee_id', $validated['employee_id'])
-                ->where('date_attendance', $today)
-                ->where('type_attendance', 'check_in')
                 ->whereNull('time_out')
+                ->orderBy('date_attendance', 'desc')
+                ->orderBy('time_in', 'desc')
                 ->first();
 
             if (!$attendance) {
@@ -258,32 +279,54 @@ class AttendanceController extends Controller
                     'code' => 404,
                     'status' => 'error',
                     'data' => [],
-                    'message' => 'No active check-in found for today!'
+                    'message' => 'No active check-in found to check out!'
                 ], 404);
             }
 
-// Update waktu check-out and note if provided
-$now = Carbon::now();
-$updateData = [
-    'time_out' => $now->format('H:i'),
-    'type_attendance' => 'check_out'
-];
+            $now = Carbon::now();
 
-if ($request->has('note')) {
-    $updateData['note'] = $request->input('note');
-}
+            if ($attendance->date_attendance < $today) {
+                // Previous day check-in without checkout, create new checkout record for today
+                $checkout = Attendance::create([
+                    'employee_id' => $validated['employee_id'],
+                    'is_work_outside' => $attendance->is_work_outside,
+                    'date_attendance' => $today,
+                    'time_in' => null,
+                    'time_out' => $now->format('H:i'),
+                    'type_attendance' => 'check_out',
+                    'note' => $request->input('note') ?? null,
+                    'image' => null,
+                ]);
+                DB::commit();
 
-$attendance->update($updateData);
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => $checkout,
+                    'message' => 'Check-out successful for today!'
+                ]);
+            } else {
+                // Same day check-in, update the existing record
+                $updateData = [
+                    'time_out' => $now->format('H:i'),
+                    'type_attendance' => 'check_out'
+                ];
 
-            DB::commit();
+                if ($request->has('note')) {
+                    $updateData['note'] = $request->input('note');
+                }
 
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'data' => $attendance,
-                'message' => 'Check-out successful!'
-            ]);
+                $attendance->update($updateData);
 
+                DB::commit();
+
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => $attendance,
+                    'message' => 'Check-out successful!'
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Attendance checkout error:', ['error' => $e->getMessage()]);
@@ -305,9 +348,12 @@ $attendance->update($updateData);
             $startDate = Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString();
             $endDate = Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString();
 
-$attendances = Attendance::where('employee_id', $employeeId)
-    ->whereBetween('date_attendance', [$startDate, $endDate])
-    ->get(['date_attendance', 'type_attendance', 'time_out']);
+            // Return all attendance records for the month (multiple per day)
+            $attendances = Attendance::where('employee_id', $employeeId)
+                ->whereBetween('date_attendance', [$startDate, $endDate])
+                ->orderBy('date_attendance', 'asc')
+                ->orderBy('time_in', 'asc')
+                ->get(['date_attendance', 'type_attendance', 'time_in', 'time_out']);
 
             return response()->json([
                 'code' => 200,
