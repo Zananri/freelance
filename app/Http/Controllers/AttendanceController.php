@@ -58,20 +58,24 @@ class AttendanceController extends Controller
             DB::beginTransaction();
             
             // Debug log untuk melihat data yang diterima
-            \Log::info('Attendance store request data:', $request->all());
+            \Log::info('Attendance store request data:', [
+                'all_data' => $request->all(),
+                'files' => $request->allFiles(),
+                'headers' => $request->headers->all()
+            ]);
             
             // Validasi request dengan rules yang lebih fleksibel
             $validated = $request->validate([
                 'employee_id' => 'required|exists:employees,id',
-                'is_work_outside' => 'required|string|in:0,1,true,false',
+                'is_work_outside' => 'required|in:0,1,true,false',
                 'date_attendance' => 'required|date',
-                'time_in' => 'required|string',
+                'time_in' => 'required|date_format:H:i',
                 'note' => 'nullable|string|max:500',
                 'image' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
             ]);
 
-            // Konversi is_work_outside ke boolean
-            $isWorkOutside = filter_var($validated['is_work_outside'], FILTER_VALIDATE_BOOLEAN);
+            // Konversi is_work_outside ke boolean (sudah boolean dari validasi)
+            $isWorkOutside = $validated['is_work_outside'];
 
             // Cek apakah sudah check-in hari ini
             $existingAttendance = Attendance::where('employee_id', $validated['employee_id'])

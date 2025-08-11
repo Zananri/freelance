@@ -119,37 +119,19 @@
                         <!-- date_attendance -->
                         <div class="mb-3">
                             <label for="date_attendance" class="form-label label-custom">Date</label>
-                            <input type="date" class="form-control input-text" id="date_attendance"
-                                name="date_attendance" readonly>
+                             <div class="date_attendance">
+                                <span id="date_attendance">Loading...</span>
+                            </div>
                         </div>
 
                         <!-- time_in -->
                         <div class="mb-3">
                             <label for="time_in" class="form-label label-custom">Time In</label>
-                            <input type="time" class="form-control input-text" id="time_in" name="time_in"
-                                readonly>
+                             <div class="time_in">
+                                <span id="time_in">Loading...</span>
+                            </div>
                         </div>
-
-                        <!-- time_out -->
-                        <div class="mb-3">
-                            <label for="time_out" class="form-label label-custom">Time Out</label>
-                            <input type="time" class="form-control input-text" id="time_out" name="time_out"
-                                readonly>
-                        </div>
-
-                        <!-- time_late -->
-                        <div class="mb-3">
-                            <label for="time_late" class="form-label label-custom" hidden>Time Late</label>
-                            <input type="text" class="form-control input-text" id="time_late" name="time_late"
-                                readonly hidden>
-                        </div>
-
-                        <!-- note -->
-                        <div class="mb-3">
-                            <label for="note" class="form-label label-custom">Note</label>
-                            <textarea class="form-control" id="note" name="note" rows="3"></textarea>
-                        </div>
-
+                        
                         <!-- image -->
                         <div class="mb-3" id="imageUploadSection">
                             <label class="form-label">Photo</label>

@@ -129,9 +129,41 @@ function openCheckInModal() {
         minute: "2-digit",
     });
 
-    // Update modal form fields
-    document.getElementById("date_attendance").value = dateString;
-    document.getElementById("time_in").value = timeString;
+    // Format date for display (DD/MM/YYYY)
+    const [year, month, day] = dateString.split('-');
+    const formattedDate = `${day}/${month}/${year}`;
+
+    // Update modal display fields (span elements)
+    const dateDisplay = document.getElementById("date_attendance");
+    const timeDisplay = document.getElementById("time_in");
+    
+    if (dateDisplay) {
+        dateDisplay.textContent = formattedDate;
+    }
+    if (timeDisplay) {
+        timeDisplay.textContent = timeString;
+    }
+
+    // Update hidden form fields for submission
+    let dateInput = document.querySelector('input[name="date_attendance"]');
+    let timeInput = document.querySelector('input[name="time_in"]');
+    
+    // Remove existing hidden inputs if any
+    if (dateInput) dateInput.remove();
+    if (timeInput) timeInput.remove();
+    
+    // Create new hidden inputs
+    const hiddenDate = document.createElement('input');
+    hiddenDate.type = 'hidden';
+    hiddenDate.name = 'date_attendance';
+    hiddenDate.value = dateString;
+    document.getElementById('checkInForm').appendChild(hiddenDate);
+    
+    const hiddenTime = document.createElement('input');
+    hiddenTime.type = 'hidden';
+    hiddenTime.name = 'time_in';
+    hiddenTime.value = timeString;
+    document.getElementById('checkInForm').appendChild(hiddenTime);
 
     // Check for existing image URL and show preview if present
     const existingImageUrlInput = document.getElementById("existingImageUrl");
@@ -719,12 +751,44 @@ function submitCheckIn() {
     const form = document.getElementById("checkInForm");
     if (!form) return;
 
-    // Get form data
-    const formData = new FormData(form);
+    // Validate form before submission
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    if (!employeeId) {
+        showFloatingAlert("Employee ID not found. Please refresh the page.", "error");
+        return;
+    }
+
+    const isWorkOutsideRadio = document.querySelector('input[name="is_work_outside"]:checked');
+    if (!isWorkOutsideRadio) {
+        showFloatingAlert("Please select whether you are working outside or not.", "error");
+        return;
+    }
+
+    // Create new FormData
+    const formData = new FormData();
+    
+    // Add required fields
+    formData.append("employee_id", employeeId);
+    formData.append("is_work_outside", isWorkOutsideRadio.value === "1" ? "1" : "0");
+    formData.append("date_attendance", document.querySelector('input[name="date_attendance"]').value);
+    formData.append("time_in", document.querySelector('input[name="time_in"]').value);
+    formData.append("type_attendance", "check_in");
+    
+    // Add optional fields
+    const noteTextarea = document.querySelector('textarea[name="note"]');
+    if (noteTextarea && noteTextarea.value.trim()) {
+        formData.append("note", noteTextarea.value.trim());
+    }
 
     // Add captured image if exists
     if (capturedImage) {
         formData.append("image", capturedImage);
+    } else {
+        // Check if there's a file input
+        const imageInput = document.getElementById("imageInput");
+        if (imageInput && imageInput.files && imageInput.files[0]) {
+            formData.append("image", imageInput.files[0]);
+        }
     }
 
     // Add CSRF token
@@ -732,30 +796,10 @@ function submitCheckIn() {
         .querySelector('meta[name="csrf-token"]')
         ?.getAttribute("content");
     if (!csrfToken) {
-        console.error("CSRF token not found");
+        showFloatingAlert("CSRF token not found. Please refresh the page.", "error");
         return;
     }
     formData.append("_token", csrfToken);
-
-    // Add employee_id from hidden field
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
-    if (!employeeId) {
-        console.error("Employee ID not found");
-        return;
-    }
-    formData.append("employee_id", employeeId);
-
-    // Convert boolean values properly
-    const isWorkOutside = document.querySelector(
-        'input[name="is_work_outside"]:checked'
-    )?.value;
-    if (!isWorkOutside) {
-        console.error("Work outside selection not found");
-        return;
-    }
-    formData.set("is_work_outside", isWorkOutside);
 
     // Show loading state
     const submitBtn = document.getElementById("submitCheckInBtn");
@@ -783,14 +827,17 @@ function submitCheckIn() {
         },
     })
         .then((response) => {
-            if (!response.ok) {
-                return response.json().then((err) => {
-                    throw new Error(
-                        err.message || `HTTP error! status: ${response.status}`
-                    );
-                });
-            }
-            return response.json();
+            return response.json().then((data) => {
+                if (!response.ok) {
+                    // Handle validation errors
+                    if (data.errors) {
+                        const errorMessages = Object.values(data.errors).flat().join('\n');
+                        throw new Error(errorMessages || data.message || 'Validation error');
+                    }
+                    throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                }
+                return data;
+            });
         })
         .then((data) => {
             if (data.status === "success") {
