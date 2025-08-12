@@ -55,8 +55,8 @@ function renderEmployeeTable(employees) {
                      width="40" 
                      height="40" />
                 <div>
-                    <div class="fw-semibold">${employee.name}</div>
-                    <div class="text-muted">${employee.email}</div>
+                    <div class="fw-semibold" style="font-size: 14px;">${employee.name}</div>
+                    <div style="font-size: 10px; color: #6c757d;">${employee.email}</div>
                 </div>
             </div>
         `;
