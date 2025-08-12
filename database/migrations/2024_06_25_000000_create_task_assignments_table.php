@@ -23,7 +23,7 @@ class CreateTaskAssignmentsTable extends Migration
             $table->timestamps();
 
             $table->foreign('task_id')->references('id')->on('tasks')->onDelete('cascade');
-            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
+            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('restrict');
         });
     }
 

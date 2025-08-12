@@ -23,8 +23,8 @@ return new class extends Migration
             $table->bigInteger('updated_by');
             $table->timestamps();
 
-            $table->foreign('department_id')->references('id')->on('departments')->onDelete('cascade');
-            $table->foreign('division_id')->references('id')->on('divisions')->onDelete('cascade');
+            $table->foreign('department_id')->references('id')->on('departments')->onDelete('restrict');
+            $table->foreign('division_id')->references('id')->on('divisions')->onDelete('restrict');
         });
     }
 

@@ -21,7 +21,7 @@ class CreateDivisionsTable extends Migration
             $table->string('deleted_by')->nullable();
             $table->timestamps();
 
-            $table->foreign('department_id')->references('id')->on('departments')->onDelete('cascade');
+            $table->foreign('department_id')->references('id')->on('departments')->onDelete('restrict');
         });
     }
 

@@ -21,8 +21,8 @@ return new class extends Migration
             $table->timestamps();
 
             // Foreign key constraint
-            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
-            
+            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('restrict');
+
             // Index untuk performa query
             $table->index('employee_id');
             $table->index('date_shift');

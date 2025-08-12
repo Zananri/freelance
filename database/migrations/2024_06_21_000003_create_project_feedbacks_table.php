@@ -21,8 +21,8 @@ class CreateProjectFeedbacksTable extends Migration
             $table->string('reference_file')->nullable();
             $table->timestamps();
 
-            $table->foreign('project_id')->references('id')->on('projects')->onDelete('cascade');
-            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
+            $table->foreign('project_id')->references('id')->on('projects')->onDelete('restrict');
+            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('restrict');
         });
     }
 

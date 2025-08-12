@@ -31,7 +31,7 @@ class CreateTasksTable extends Migration
             $table->string('deleted_by')->nullable();
             $table->timestamps();
 
-            $table->foreign('project_id')->references('id')->on('projects')->onDelete('cascade');
+            $table->foreign('project_id')->references('id')->on('projects')->onDelete('restrict');
         });
     }
 

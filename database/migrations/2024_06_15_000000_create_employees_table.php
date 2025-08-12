@@ -37,9 +37,9 @@ class CreateEmployeesTable extends Migration
             $table->string('updated_by')->nullable();
             $table->timestamps();
 
-            $table->foreign('department_id')->references('id')->on('departments')->onDelete('cascade');
-            $table->foreign('division_id')->references('id')->on('divisions')->onDelete('cascade');
-            $table->foreign('job_id')->references('id')->on('job_list')->onDelete('cascade');
+            $table->foreign('department_id')->references('id')->on('departments')->onDelete('restrict');
+            $table->foreign('division_id')->references('id')->on('divisions')->onDelete('restrict');
+            $table->foreign('job_id')->references('id')->on('job_list')->onDelete('restrict');
         });
     }
 

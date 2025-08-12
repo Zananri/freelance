@@ -346,22 +346,29 @@ async function saveShiftChanges() {
         return;
     }
 
-    // Convert dates to proper format (YYYY-MM-DD)
-    const formattedDates = dateShifts.map(date => {
-        // Handle different date formats
-        if (typeof date === 'string') {
-            // If it's already in YYYY-MM-DD format
-            if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                return date;
+        // Convert dates to proper format (YYYY-MM-DD) - FIXED VERSION
+        const formattedDates = dateShifts.map(date => {
+            // Handle different date formats
+            if (typeof date === 'string') {
+                // If it's already in YYYY-MM-DD format
+                if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    return date;
+                }
+                // If it's in other format, convert to Date object carefully
+                const parsedDate = new Date(date);
+                // Ensure we get the correct date (avoid timezone issues)
+                const year = parsedDate.getFullYear();
+                const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+                const day = String(parsedDate.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            } else if (date instanceof Date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
             }
-            // If it's in other format, convert to Date object
-            const parsedDate = new Date(date);
-            return parsedDate.toISOString().split('T')[0];
-        } else if (date instanceof Date) {
-            return date.toISOString().split('T')[0];
-        }
-        return date;
-    });
+            return date;
+        });
 
     try {
         const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
