@@ -227,9 +227,11 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: none;
 }
+
 .modal-header-custom {
     border: 0;
 }
+
 .modal-title-custom {
     font-weight: 300;
     font-size: 28px;

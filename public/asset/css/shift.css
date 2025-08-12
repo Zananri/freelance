@@ -16,6 +16,24 @@
     width: 100%;
 }
 
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: rgb(103, 111, 122);
+}
+
+.modal-header-custom {
+    border: 0;
+}
+
+.label-custom {
+    font-size: 14px;
+    font-weight: 400;
+}
+
 .min-width-200 {
     min-width: 200px;
 }
@@ -114,7 +132,7 @@ table.table thead tr th:first-child {
 }
 
 .modal-header {
-    border-bottom: 1px solid #dee2e6;
+    border: 0;
 }
 
 .modal-footer {
@@ -126,8 +144,20 @@ table.table thead tr th:first-child {
 }
 
 .form-label {
-    font-weight: 500;
-    color: #333;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 24px;
+    background: #f7f7f8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.modal-body-custom {
+    padding: 0;
 }
 
 /* Gap utilities */

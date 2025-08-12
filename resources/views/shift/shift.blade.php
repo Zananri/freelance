@@ -91,7 +91,6 @@
                     <thead>
                         <tr>
                             <th scope="col">Employee</th>
-                            <th scope="col">Shift</th>
                             <th scope="col">Start Time</th>
                             <th scope="col">End Time</th>
                             <th scope="col"></th>
@@ -101,6 +100,51 @@
                         <!-- Data will be loaded here -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Shift Modal -->
+    <div class="modal fade" id="editShiftModal" tabindex="-1" aria-labelledby="editShiftModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="editShiftModalLabel">Edit Employee Shift</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom">
+                    <form id="editShiftForm">
+                        <input type="hidden" id="editShiftId" name="shift_id">
+                        <input type="hidden" id="editEmployeeId" name="employee_id">
+                        
+                        <div class="mb-3">
+                            <label for="editEmployeeName" class="form-label label-custom">Employee Name</label>
+                            <input type="text" class="form-control input-text" id="editEmployeeName" readonly>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editDateShiftDisplay" class="form-label label-custom">Date Shift</label>
+                            <input type="text" id="editDateShiftDisplay" class="form-control input-text" 
+                                   placeholder="Click calendar to select dates" readonly />
+                            <input type="hidden" id="editDateShift" name="date_shift" />
+                            <small class="text-muted">Click calendar icon to select multiple dates</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editTimeStart" class="form-label label-custom">Start Time</label>
+                            <input type="time" class="form-control input-text" id="editTimeStart" name="time_start" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editTimeEnd" class="form-label label-custom">End Time</label>
+                            <input type="time" class="form-control input-text" id="editTimeEnd" name="time_end" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveShiftBtn">Save Changes</button>
+                </div>
             </div>
         </div>
     </div>
