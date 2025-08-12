@@ -346,6 +346,23 @@ async function saveShiftChanges() {
         return;
     }
 
+    // Convert dates to proper format (YYYY-MM-DD)
+    const formattedDates = dateShifts.map(date => {
+        // Handle different date formats
+        if (typeof date === 'string') {
+            // If it's already in YYYY-MM-DD format
+            if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                return date;
+            }
+            // If it's in other format, convert to Date object
+            const parsedDate = new Date(date);
+            return parsedDate.toISOString().split('T')[0];
+        } else if (date instanceof Date) {
+            return date.toISOString().split('T')[0];
+        }
+        return date;
+    });
+
     try {
         const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
         const endpoint = `${basePath}/shift/update/${formData.get('employee_id')}`;
@@ -358,11 +375,23 @@ async function saveShiftChanges() {
             },
             body: JSON.stringify({
                 employee_id: formData.get('employee_id'),
-                date_shifts: dateShifts,
+                date_shifts: formattedDates,
                 time_start: formData.get('time_start'),
                 time_end: formData.get('time_end')
             })
         });
+
+        // Check if response is ok
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            throw new Error(`Server returned non-JSON response: ${text}`);
+        }
 
         const result = await response.json();
 

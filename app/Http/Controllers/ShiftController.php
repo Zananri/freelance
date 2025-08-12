@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use \Illuminate\Validation\ValidationException;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ShiftController extends Controller
 {
@@ -105,26 +107,28 @@ class ShiftController extends Controller
         try {
             DB::beginTransaction();
             
-            $request->validate([
+            // Validasi input
+            $validated = $request->validate([
+                'employee_id' => 'required|exists:employees,id',
                 'date_shifts' => 'required|array',
-                'date_shifts.*' => 'required|date',
+                'date_shifts.*' => 'required|date_format:Y-m-d',
                 'time_start' => 'required|date_format:H:i',
                 'time_end' => 'required|date_format:H:i|after:time_start',
             ]);
 
-            $employeeId = $request->employee_id;
+            $employeeId = $validated['employee_id'];
             
             // Delete existing shifts for this employee
             EmployeeShift::where('employee_id', $employeeId)->delete();
             
             // Create new shifts for each date
-            foreach ($request->date_shifts as $date) {
+            foreach ($validated['date_shifts'] as $date) {
                 EmployeeShift::create([
                     'employee_id' => $employeeId,
                     'date_shift' => $date,
-                    'time_start' => $request->time_start,
-                    'time_end' => $request->time_end,
-                    'total_hour' => Carbon::parse($request->time_end)->diffInHours(Carbon::parse($request->time_start))
+                    'time_start' => $validated['time_start'],
+                    'time_end' => $validated['time_end'],
+                    'total_hour' => Carbon::parse($validated['time_end'])->diffInHours(Carbon::parse($validated['time_start']))
                 ]);
             }
 
@@ -134,6 +138,13 @@ class ShiftController extends Controller
                 'message' => 'Shift updated successfully'
             ]);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error: ' . $e->getMessage(),
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
