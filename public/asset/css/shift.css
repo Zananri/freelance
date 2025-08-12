@@ -60,7 +60,10 @@
     border: 1px solid #ddd;
 }
 
-
+.modal-footer-custom {
+    border: 0;
+    justify-content: center;
+}
 
 .ml-neg-5 {
     margin-left: -5px;

@@ -67,7 +67,10 @@ function renderEmployeeTable(employees) {
             </div>
         `;
 
-        // Use actual shift data instead of dummy data
+        // Handle multiple dates
+        const dateShifts = Array.isArray(employee.date_shift) ? employee.date_shift : [employee.date_shift];
+        const dateDisplay = dateShifts.filter(d => d).join(', ') || "No shifts";
+        
         const startTimeDisplay = employee.start_time || "Not set";
         const endTimeDisplay = employee.end_time || "Not set";
 
@@ -80,9 +83,10 @@ function renderEmployeeTable(employees) {
                 <span>${endTimeDisplay}</span>
             </td>
             <td>
-            <button class="btn-icon-toggle btn-edit" data-id="${employee.id}" 
+            <button class="btn-icon-toggle btn-edit" 
+                    data-id="${employee.id}" 
                     data-name="${employee.name}" 
-                    data-date="${employee.date_shift || ''}" 
+                    data-dates='${JSON.stringify(dateShifts)}' 
                     data-start="${employee.start_time || ''}" 
                     data-end="${employee.end_time || ''}" 
                     title="Edit">
@@ -265,7 +269,7 @@ function initializeShiftDatePicker() {
 function openEditModal(button) {
     const employeeId = button.dataset.id;
     const employeeName = button.dataset.name;
-    const dateShift = button.dataset.date;
+    const datesData = button.dataset.dates;
     const timeStart = button.dataset.start;
     const timeEnd = button.dataset.end;
 
@@ -273,16 +277,17 @@ function openEditModal(button) {
     selectedShiftDates = [];
     
     // Parse existing dates
-    if (dateShift && dateShift !== 'null' && dateShift !== '') {
+    if (datesData && datesData !== 'null' && datesData !== '') {
         try {
-            const dates = JSON.parse(dateShift);
+            const dates = JSON.parse(datesData);
             if (Array.isArray(dates)) {
-                selectedShiftDates = dates.map(d => new Date(d));
+                selectedShiftDates = dates.filter(d => d).map(d => new Date(d));
             } else {
-                selectedShiftDates = [new Date(dateShift)];
+                selectedShiftDates = [new Date(datesData)];
             }
         } catch (e) {
-            selectedShiftDates = [new Date(dateShift)];
+            console.error('Error parsing dates:', e);
+            selectedShiftDates = [];
         }
     }
 
@@ -298,7 +303,7 @@ function openEditModal(button) {
     
     if (selectedShiftDates.length > 0) {
         const formattedDates = selectedShiftDates.map(d => 
-            d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            d.toISOString().split('T')[0]
         );
         dateDisplay.value = formattedDates.join(', ');
         dateInput.value = JSON.stringify(formattedDates);
@@ -320,28 +325,30 @@ async function saveShiftChanges() {
     const form = document.getElementById('editShiftForm');
     const formData = new FormData(form);
     
-    const data = {
-        employee_id: formData.get('employee_id'),
-        date_shift: formData.get('date_shift'),
-        time_start: formData.get('time_start'),
-        time_end: formData.get('time_end')
-    };
+    const dateShiftData = formData.get('date_shift');
+    let dateShifts = [];
+    
+    try {
+        dateShifts = JSON.parse(dateShiftData);
+    } catch (e) {
+        dateShifts = [dateShiftData];
+    }
 
     // Validate form
-    if (!data.date_shift || !data.time_start || !data.time_end) {
+    if (!dateShifts || dateShifts.length === 0 || !formData.get('time_start') || !formData.get('time_end')) {
         alert('Please fill all required fields');
         return;
     }
 
     // Validate time range
-    if (data.time_start >= data.time_end) {
+    if (formData.get('time_start') >= formData.get('time_end')) {
         alert('End time must be after start time');
         return;
     }
 
     try {
         const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/shift/update/${data.employee_id}`;
+        const endpoint = `${basePath}/shift/update/${formData.get('employee_id')}`;
 
         const response = await fetch(endpoint, {
             method: 'PUT',
@@ -349,7 +356,12 @@ async function saveShiftChanges() {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify({
+                employee_id: formData.get('employee_id'),
+                date_shifts: dateShifts,
+                time_start: formData.get('time_start'),
+                time_end: formData.get('time_end')
+            })
         });
 
         const result = await response.json();

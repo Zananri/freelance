@@ -141,9 +141,8 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveShiftBtn">Save Changes</button>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-submit-black" id="saveShiftBtn">Save Changes</button>
                 </div>
             </div>
         </div>
