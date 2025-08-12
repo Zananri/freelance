@@ -83,6 +83,11 @@ class Employee extends Model
         return $this->hasMany(Attendance::class);
     }
 
+    public function shifts()
+    {
+        return $this->hasMany(EmployeeShift::class);
+    }
+
     // Accessor for first name
     public function getFirstNameAttribute()
     {

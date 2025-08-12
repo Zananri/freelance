@@ -255,8 +255,6 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.delete("employee_email_work");
             formData.set("phone", formData.get("employee_phone"));
             formData.delete("employee_phone");
-            // Removed setting status as it is not present in the form
-            // formData.set("status", formData.get("status"));
             formData.set("address", formData.get("address"));
             formData.set("birth_date", formData.get("birth_date"));
             formData.set("hire_date", formData.get("hire_date"));
@@ -265,6 +263,19 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.set("department_id", formData.get("department_id"));
             formData.set("division_id", formData.get("division_id"));
             formData.set("job_id", formData.get("job_id"));
+            formData.set("time_start", formData.get("time_start"));
+            formData.set("time_end", formData.get("time_end"));
+
+            // Handle date_shift as single array
+            const dateShiftInput = document.getElementById('date_shift');
+            if (dateShiftInput && dateShiftInput.value) {
+                try {
+                    const dates = JSON.parse(dateShiftInput.value);
+                    formData.append('date_shift', JSON.stringify(dates));
+                } catch (e) {
+                    console.error('Error parsing date_shift:', e);
+                }
+            }
 
             $.ajax({
                 url: appUrl + "/employee",
@@ -434,4 +445,154 @@ document.addEventListener("DOMContentLoaded", function () {
         'label[for="ktp"]',
         "ktpClearBtn"
     );
+
+    // Setup multiple date picker for shift dates
+    let selectedDates = [];
+    
+    function initializeDatePicker() {
+        const dateDisplay = document.getElementById('date_shift_display');
+        const dateInput = document.getElementById('date_shift');
+        
+        if (!dateDisplay || !dateInput) return;
+
+        // Create datepicker container
+        const datepickerContainer = document.createElement('div');
+        datepickerContainer.id = 'shift-datepicker';
+        datepickerContainer.className = 'datepicker-container';
+        datepickerContainer.style.cssText = `
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 10px;
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+        `;
+        
+        dateDisplay.parentNode.style.position = 'relative';
+        dateDisplay.parentNode.appendChild(datepickerContainer);
+
+        // Create calendar
+        const calendar = document.createElement('div');
+        calendar.className = 'calendar-grid';
+        calendar.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            font-size: 12px;
+        `;
+        
+        // Header
+        const header = document.createElement('div');
+        header.style.cssText = 'grid-column: span 7; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;';
+        header.innerHTML = `
+            <button type="button" class="btn-prev-month" style="border: none; background: none; cursor: pointer;"><</button>
+            <span class="month-year"></span>
+            <button type="button" class="btn-next-month" style="border: none; background: none; cursor: pointer;">></button>
+        `;
+        
+        // Weekday headers
+        const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+        weekdays.forEach(day => {
+            const dayHeader = document.createElement('div');
+            dayHeader.textContent = day;
+            dayHeader.style.cssText = 'text-align: center; font-weight: bold; padding: 5px;';
+            calendar.appendChild(dayHeader);
+        });
+        
+        datepickerContainer.appendChild(header);
+        datepickerContainer.appendChild(calendar);
+
+        let currentDate = new Date();
+        
+        function renderCalendar() {
+            calendar.innerHTML = '';
+            weekdays.forEach(day => {
+                const dayHeader = document.createElement('div');
+                dayHeader.textContent = day;
+                dayHeader.style.cssText = 'text-align: center; font-weight: bold; padding: 5px;';
+                calendar.appendChild(dayHeader);
+            });
+
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+            header.querySelector('.month-year').textContent = 
+                currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            for (let i = 0; i < 42; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                
+                const dayElement = document.createElement('div');
+                dayElement.textContent = date.getDate();
+                dayElement.style.cssText = `
+                    text-align: center;
+                    padding: 8px;
+                    cursor: pointer;
+                    border-radius: 4px;
+                    ${date.getMonth() !== currentDate.getMonth() ? 'color: #ccc;' : ''}
+                    ${selectedDates.some(d => d.toDateString() === date.toDateString()) ? 'background: #007bff; color: white;' : ''}
+                `;
+                
+                dayElement.addEventListener('click', () => toggleDate(date));
+                calendar.appendChild(dayElement);
+            }
+        }
+
+        function toggleDate(date) {
+            const index = selectedDates.findIndex(d => d.toDateString() === date.toDateString());
+            if (index > -1) {
+                selectedDates.splice(index, 1);
+            } else {
+                selectedDates.push(new Date(date));
+            }
+            updateDisplay();
+            renderCalendar();
+        }
+
+        function updateDisplay() {
+            selectedDates.sort((a, b) => a - b);
+            const dateStrings = selectedDates.map(d => d.toISOString().split('T')[0]);
+            dateDisplay.value = selectedDates.length > 0 
+                ? selectedDates.map(d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })).join(', ')
+                : '';
+            
+            // Update hidden input with array of dates in format [Aug 12, Aug 22, Aug 13]
+            const formattedDates = selectedDates.map(d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            dateInput.value = JSON.stringify(formattedDates);
+        }
+
+        // Event listeners
+        dateDisplay.addEventListener('click', () => {
+            datepickerContainer.style.display = datepickerContainer.style.display === 'none' ? 'block' : 'none';
+            renderCalendar();
+        });
+
+        header.querySelector('.btn-prev-month').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        header.querySelector('.btn-next-month').addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        // Close datepicker when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#shift-datepicker') && e.target !== dateDisplay) {
+                datepickerContainer.style.display = 'none';
+            }
+        });
+
+        renderCalendar();
+    }
+
+    // Initialize date picker
+    initializeDatePicker();
 });

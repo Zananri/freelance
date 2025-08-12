@@ -137,6 +137,33 @@
                                 Please select an office.
                             </div>
                         </div>
+
+                        <!-- Shift Input -->
+                        <div>
+                            <label for="date_shift" class="form-label">Shift Dates</label>
+                            <input type="text" id="date_shift_display" class="form-control input-text" placeholder="Click calendar to select dates" readonly />
+                            <input type="hidden" id="date_shift" name="date_shift[]" />
+                            <small class="text-muted">Click calendar icon to select multiple dates</small>
+                            <div class="invalid-feedback">
+                                Please select at least one shift date.
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="time_start" class="form-label">Start Time</label>
+                            <input type="time" id="time_start" name="time_start" class="form-control input-text" required />
+                            <div class="invalid-feedback">
+                                Please enter start time.
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="time_end" class="form-label">End Time</label>
+                            <input type="time" id="time_end" name="time_end" class="form-control input-text" required />
+                            <div class="invalid-feedback">
+                                Please enter end time.
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Right Section -->
