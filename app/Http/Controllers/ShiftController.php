@@ -123,9 +123,12 @@ class ShiftController extends Controller
             
             // Create new shifts for each date
             foreach ($validated['date_shifts'] as $date) {
+                // Ensure date is in correct format YYYY-MM-DD
+                $formattedDate = Carbon::parse($date)->format('Y-m-d');
+                
                 EmployeeShift::create([
                     'employee_id' => $employeeId,
-                    'date_shift' => $date,
+                    'date_shift' => $formattedDate,
                     'time_start' => $validated['time_start'],
                     'time_end' => $validated['time_end'],
                     'total_hour' => Carbon::parse($validated['time_end'])->diffInHours(Carbon::parse($validated['time_start']))

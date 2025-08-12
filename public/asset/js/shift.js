@@ -231,11 +231,19 @@ function initializeShiftDatePicker() {
 
     function updateDisplay() {
         selectedShiftDates.sort((a, b) => a - b);
-        const formattedDates = selectedShiftDates.map(d => 
-            d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        );
+        const formattedDates = selectedShiftDates.map(d => {
+            // Format as YYYY-MM-DD to avoid year issues
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        });
         
-        dateDisplay.value = formattedDates.join(', ');
+        dateDisplay.value = formattedDates.map(d => {
+            const date = new Date(d);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }).join(', ');
+        
         dateInput.value = JSON.stringify(formattedDates);
     }
 
@@ -302,10 +310,19 @@ function openEditModal(button) {
     const dateInput = document.getElementById('editDateShift');
     
     if (selectedShiftDates.length > 0) {
-        const formattedDates = selectedShiftDates.map(d => 
-            d.toISOString().split('T')[0]
-        );
-        dateDisplay.value = formattedDates.join(', ');
+        const formattedDates = selectedShiftDates.map(d => {
+            // Format as YYYY-MM-DD to avoid year issues
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        });
+        
+        dateDisplay.value = formattedDates.map(d => {
+            const date = new Date(d);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }).join(', ');
+        
         dateInput.value = JSON.stringify(formattedDates);
     } else {
         dateDisplay.value = '';
