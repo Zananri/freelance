@@ -580,58 +580,58 @@ class TaskController extends Controller
     /**
      * Update task status
      */
-    public function updateStatus(Request $request, string $id)
-    {
-        DB::beginTransaction();
-        try {
-            $task = Task::findOrFail($id);
+  public function updateStatus(Request $request, string $id)
+{
+    DB::beginTransaction();
+    try {
+        $task = Task::findOrFail($id);
 
-            $validator = Validator::make($request->all(), [
-                'status' => 'required|in:new request,in progress,completed,rejected,new_request,in_progress',
-            ]);
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:new request,in progress,completed,rejected,new_request,in_progress',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'code' => 422,
-                    'status' => 'error',
-                    'message' => 'Validation errors',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
-
-            $statusMap = [
-                'new request' => 'new_request',
-                'in progress' => 'in_progress',
-                'completed' => 'completed',
-                'rejected' => 'rejected',
-                'new_request' => 'new_request',
-                'in_progress' => 'in_progress',
-            ];
-
-            $dbStatus = $statusMap[$request->status] ?? $request->status;
-            $task->update(['status' => $dbStatus]);
-
-            DB::commit();
-
+        if ($validator->fails()) {
             return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'message' => 'Task status updated successfully',
-                'data' => [
-                    'task' => $task,
-                    'updated_status' => $dbStatus
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => 422,
                 'status' => 'error',
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+                'message' => 'Validation errors',
+                'errors' => $validator->errors(),
+            ], 422);
         }
+
+        $statusMap = [
+            'new request' => 'new_request',
+            'in progress' => 'in_progress',
+            'completed' => 'completed',
+            'rejected' => 'rejected',
+            'new_request' => 'new_request',
+            'in_progress' => 'in_progress',
+        ];
+
+        $dbStatus = $statusMap[$request->status] ?? $request->status;
+        $task->update(['status' => $dbStatus]);
+
+        DB::commit();
+
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'message' => 'Task status updated successfully',
+            'data' => [
+                'task' => $task,
+                'updated_status' => $dbStatus
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'code' => $e->getCode() ?: 500,
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], $e->getCode() ?: 500);
     }
+}
 
     /**
      * Store task feedback

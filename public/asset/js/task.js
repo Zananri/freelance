@@ -838,6 +838,85 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
 
+document.addEventListener("click", function (e) {
+    if (e.target && e.target.classList.contains("arrow-forward-icon")) {
+        const taskId = e.target.getAttribute("data-task-id");
+        const currentStatus = e.target.getAttribute("data-task-status");
+        
+        if (!taskId) {
+            alert("Task ID not found.");
+            return;
+        }
+
+        // Determine next status based on current status
+        let nextStatus = '';
+        let actionDescription = '';
+        
+        if (currentStatus === 'new_request' || currentStatus === 'new request') {
+            nextStatus = 'in_progress';
+            actionDescription = 'Progress';
+        } else if (currentStatus === 'in_progress' || currentStatus === 'in progress') {
+            nextStatus = 'completed';
+            actionDescription = 'Set to Complete';
+        } else if (currentStatus === 'rejected') {
+            nextStatus = 'completed';
+            actionDescription = 'Set to Complete';
+        }
+
+      if (nextStatus) {
+    // Cari card task
+    const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+
+    // Langsung update status tanpa modal
+    updateTaskStatus(taskId, nextStatus, taskCard);
+}
+    }
+});
+
+function updateTaskStatus(taskId, newStatus, taskCard) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId + "/status",
+        type: "PUT",
+        headers: {
+            "X-CSRF-TOKEN": document
+                .querySelector('meta[name="csrf-token"]')
+                .getAttribute("content"),
+        },
+        data: {
+            status: newStatus,
+        },
+        success: function (response) {
+            // Dispose all Bootstrap tooltips inside the taskCard before removing it
+            const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                if (tooltipInstance) {
+                    tooltipInstance.dispose();
+                }
+            });
+
+            // Remove the task card from current section immediately
+            taskCard.remove();
+
+            // Refresh task cards to show in new section
+            fetchAndRenderTasks();
+
+            // Show success message
+            showFloatingAlert(response.message || "Task status updated successfully", "success");
+        },
+        error: function (xhr) {
+            let errorMessage = "Failed to update task status.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+            }
+            showFloatingAlert(errorMessage, "danger");
+        },
+    });
+}
+
     // Function to check if all executors have accepted the task
     function hasAllExecutorsAccepted(task) {
         // Always return true to show task cards regardless of executor acceptance status
@@ -845,151 +924,143 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Function to create task card HTML
-    function createTaskCard(task) {
-        // Always show task cards regardless of executor acceptance status
+   function createTaskCard(task) {
+    // Combine PIC and executors into one array for uniform rendering without duplicates
+    const allExecutors = [];
+    if (task.pic) {
+        allExecutors.push(task.pic);
+    }
+    if (task.executors && task.executors.length > 0) {
+        task.executors.forEach((executor) => {
+            // Avoid duplicate if executor is same as PIC
+            if (!allExecutors.some(e => e.id === executor.id)) {
+                allExecutors.push(executor);
+            }
+        });
+    }
 
-        // Combine PIC and executors into one array for uniform rendering without duplicates
-        const allExecutors = [];
-        if (task.pic) {
-            allExecutors.push(task.pic);
-        }
-        if (task.executors && task.executors.length > 0) {
-            task.executors.forEach((executor) => {
-                // Avoid duplicate if executor is same as PIC
-                if (!allExecutors.some(e => e.id === executor.id)) {
-                    allExecutors.push(executor);
-                }
-            });
-        }
-
-        // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
-       const executorsHtml = allExecutors
-            .map((executor, index) => {
+    // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
+    const executorsHtml = allExecutors
+        .map((executor, index) => {
             const overlapClass = index === 0 ? "" : "executor-image-overlap";
             const zIndexStyle = `style="z-index: ${index + 1};"`;
-            // Do not show badge for PIC
             return `
             <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
-            <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name}" ${zIndexStyle}>
+                <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name}" ${zIndexStyle}>
             </div>
             `;
-            })
-            .join("");
+        })
+        .join("");
 
-        // Determine status-based menu items
-        let statusMenuItem = '';
-        
-        if (task.status === 'new_request' || task.status === 'new request') {
-            statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
-        } else if (task.status === 'in_progress' || task.status === 'in progress') {
-            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
-        } else if (task.status === 'completed') {
-            statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
-        } else if (task.status === 'rejected') {
-            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
-        }
-
-        // Determine if delete should be shown (only for new_request and rejected)
-        const showDelete = task.status === 'new_request' || 
-                          task.status === 'new request' || 
-                          task.status === 'rejected';
-
-        // Add status badge for rejected tasks
-        let statusBadge = '';
-        if (task.status === 'rejected') {
-            statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 4.5%; right: 70px;">REJECTED</span>';
-        }
-
-                // Conditionally render icon based on status
-                let iconHtml = '';
-                if (task.status !== 'completed') {
-                    if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
-                        // Show check icon for In Progress tasks
-                        iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
-                            data-bs-toggle="tooltip" 
-                            data-placement="bottom" 
-                            data-task-id="${task.id}" 
-                            data-task-status="${task.status}" 
-                            title="Set to Complete">
-                            check
-                        </span>`;
-                    } else {
-                        // Show arrow icon for other non-completed tasks
-                        iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
-                            data-bs-toggle="tooltip" 
-                            data-placement="bottom" 
-                            data-task-id="${task.id}" 
-                            data-task-status="${task.status}" 
-                            title="${
-                                (task.status === 'new_request' || task.status === 'new request') 
-                                    ? 'Progress' 
-                                    : 'Set to Complete'
-                            }">
-                            arrow_forward
-                        </span>`;
-                    }
-                }
-                const arrowIconHtml = iconHtml;
-
-                // Check if description is long enough to need truncation
-                const description = task.description || '';
-                const needsTruncation = description.length > 123; // Approximate 3 lines
-                
-                return `
-                   <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
-                       task.id
-                   }" data-task-status="${task.status}">
-        ${statusBadge}
-        <div class="dropdown-icon-container">
-            <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-            <div class="dropdown-menu d-none">
-                <div class="dropdown-item">Detail</div>
-                <div class="dropdown-item">Edit</div>
-                <div class="dropdown-item">Feedback</div>
-                ${statusMenuItem}
-                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
-            </div>
-        </div>
-        ${arrowIconHtml}
-
-        <div class="d-flex align-items-center mb-2 mt-2">
-            <img src="${task.project_image}" alt="Project Image"
-                class="project-image me-3">
-            <h5 class="mb-0 task-title">${task.title}</h5>
-        </div>
-        <div class="task-description-container">
-            <p class="task-description ${needsTruncation ? 'truncated' : ''}" data-full-description="${description}">
-                ${description}
-            </p>
-            ${needsTruncation ? '<span class="task-description-toggle" onclick="toggleDescription(this)">View More</span>' : ''}
-        </div>
-        <hr class="task-separator rounded-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="d-flex align-items-center pic-executor-container">
-                ${executorsHtml}
-            </div>
-            <div class="d-flex">
-               <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                    <span class="material-symbols-outlined task-icon mode_comment"
-                        data-task-id="${task.id}">mode_comment</span>
-                    ${
-                        task.feedback_comments_count > 0
-                            ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
-                            : ""
-                    }
-                </div>
-                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                    <span class="material-symbols-outlined task-icon">attach_file</span>
-                    ${
-                        task.reference_files_count > 0
-                            ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
-                            : ""
-                    }
-                </div>
-            </div>
-        </div>
-            `;
+    // Determine status-based menu items
+    let statusMenuItem = '';
+    
+    if (task.status === 'new_request' || task.status === 'new request') {
+        statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
+    } else if (task.status === 'in_progress' || task.status === 'in progress') {
+        statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
+    } else if (task.status === 'completed') {
+        statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
+    } else if (task.status === 'rejected') {
+        statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
     }
+
+    // Determine if delete should be shown (only for new_request and rejected)
+    const showDelete = task.status === 'new_request' || 
+                      task.status === 'new request' || 
+                      task.status === 'rejected';
+
+    // Add status badge for rejected tasks
+    let statusBadge = '';
+    if (task.status === 'rejected') {
+        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 4.5%; right: 70px;">REJECTED</span>';
+    }
+
+    // FIXED: Proper icon logic based on current status
+    let iconHtml = '';
+    if (task.status !== 'completed') {
+        if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
+            // Show check icon for In Progress and Rejected tasks (both can be completed)
+            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
+                data-bs-toggle="tooltip" 
+                data-placement="bottom" 
+                data-task-id="${task.id}" 
+                data-task-status="${task.status}" 
+                title="Set to Complete"
+                style="cursor: pointer;">
+                check
+            </span>`;
+        } else if (task.status === 'new_request' || task.status === 'new request') {
+            // Show arrow icon for New Request tasks
+            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
+                data-bs-toggle="tooltip" 
+                data-placement="bottom" 
+                data-task-id="${task.id}" 
+                data-task-status="${task.status}" 
+                title="Progress"
+                style="cursor: pointer;">
+                arrow_forward
+            </span>`;
+        }
+    }
+
+    // Check if description is long enough to need truncation
+    const description = task.description || '';
+    const needsTruncation = description.length > 123; // Approximate 3 lines
+    
+    return `
+        <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}">
+            ${statusBadge}
+            <div class="dropdown-icon-container">
+                <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+                <div class="dropdown-menu d-none">
+                    <div class="dropdown-item">Detail</div>
+                    <div class="dropdown-item">Edit</div>
+                    <div class="dropdown-item">Feedback</div>
+                    ${statusMenuItem}
+                    ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
+                </div>
+            </div>
+            ${iconHtml}
+
+            <div class="d-flex align-items-center mb-2 mt-2">
+                <img src="${task.project_image}" alt="Project Image" class="project-image me-3">
+                <h5 class="mb-0 task-title">${task.title}</h5>
+            </div>
+            <div class="task-description-container">
+                <p class="task-description ${needsTruncation ? 'truncated' : ''}" data-full-description="${description}">
+                    ${description}
+                </p>
+                ${needsTruncation ? '<span class="task-description-toggle" onclick="toggleDescription(this)">View More</span>' : ''}
+            </div>
+            <hr class="task-separator rounded-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center pic-executor-container">
+                    ${executorsHtml}
+                </div>
+                <div class="d-flex">
+                   <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                        <span class="material-symbols-outlined task-icon mode_comment"
+                            data-task-id="${task.id}">mode_comment</span>
+                        ${
+                            task.feedback_comments_count > 0
+                                ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
+                                : ""
+                        }
+                    </div>
+                    <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                        <span class="material-symbols-outlined task-icon">attach_file</span>
+                        ${
+                            task.reference_files_count > 0
+                                ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
+                                : ""
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
     // Function to toggle description expansion
     function toggleDescription(element) {
@@ -2081,6 +2152,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             },
         });
     }
+
+    
 
     // Function to add event listeners for attach_file icon click
     function addAttachFileIconListeners() {
