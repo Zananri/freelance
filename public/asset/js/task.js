@@ -1263,113 +1263,105 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         showStatusModal(taskId, taskCard, 'new_request', 'Back to Request', 'New Request', 'Task is back to new request');
     }
 
-    // Function to show appropriate status modal based on action
-    function showStatusModal(taskId, taskCard, newStatus, modalTitle, statusTitle, statusDescription) {
-        // Fetch task details to get the actual task title and description
-        $.ajax({
-            url: appUrl + "/task/" + taskId,
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                // Use actual task title and description
-                const taskTitle = data.title || 'Untitled Task';
-                const taskDescription = data.description || 'No description available';
-                
-                // Truncate description to 20 characters
-                const truncatedDescription = taskDescription.length > 20 
-                    ? taskDescription.substring(0, 20) + '...' 
-                    : taskDescription;
+   function showStatusModal(taskId, taskCard, newStatus, modalTitle, statusTitle, statusDescription) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId,
+        type: "GET",
+        dataType: "json",
+        success: function (res) {
+            // Ambil dari data.data sesuai struktur Laravel
+            const taskData = res.data || {};
+            const taskTitle = taskData.title || 'Untitled Task';
+            const taskDescription = taskData.description || 'No description available';
 
-                // Determine which modal to show based on action
-                let modalId, confirmBtnId;
-                
-                switch(newStatus) {
-                    case 'in_progress':
-                        modalId = 'progressStatusModal';
-                        confirmBtnId = 'confirmProgressStatusBtn';
-                        break;
-                    case 'completed':
-                        modalId = 'completeStatusModal';
-                        confirmBtnId = 'confirmCompleteStatusBtn';
-                        break;
-                    case 'rejected':
-                        modalId = 'rejectStatusModal';
-                        confirmBtnId = 'confirmRejectStatusBtn';
-                        break;
-                    default:
-                        modalId = 'progressStatusModal';
-                        confirmBtnId = 'confirmProgressStatusBtn';
-                }
+            // Potong description kalau terlalu panjang
+            const truncatedDescription = taskDescription.length > 20
+                ? taskDescription.substring(0, 20) + '...'
+                : taskDescription;
 
-                // Update modal content with only task title (no status prefix)
-                const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
-                const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
-                
-                if (statusTitleEl) statusTitleEl.textContent = taskTitle;
-                if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
-
-                // Show the appropriate modal
-                const statusModal = new bootstrap.Modal(document.getElementById(modalId));
-                statusModal.show();
-
-                // Set up confirm button click handler
-                const confirmBtn = document.getElementById(confirmBtnId);
-                confirmBtn.onclick = function () {
-                    updateTaskStatus(taskId, newStatus, taskCard);
-                    statusModal.hide();
-                };
-            },
-            error: function () {
-                // Fallback if task details can't be loaded
-                const fallbackTitle = 'Task #' + taskId;
-                const fallbackDescription = 'Task description not available';
-                
-                // Truncate fallback description
-                const truncatedDescription = fallbackDescription.length > 20 
-                    ? fallbackDescription.substring(0, 20) + '...' 
-                    : fallbackDescription;
-
-                // Determine which modal to show based on action
-                let modalId, confirmBtnId;
-                
-                switch(newStatus) {
-                    case 'in_progress':
-                        modalId = 'progressStatusModal';
-                        confirmBtnId = 'confirmProgressStatusBtn';
-                        break;
-                    case 'completed':
-                        modalId = 'completeStatusModal';
-                        confirmBtnId = 'confirmCompleteStatusBtn';
-                        break;
-                    case 'rejected':
-                        modalId = 'rejectStatusModal';
-                        confirmBtnId = 'confirmRejectStatusBtn';
-                        break;
-                    default:
-                        modalId = 'progressStatusModal';
-                        confirmBtnId = 'confirmProgressStatusBtn';
-                }
-
-                // Update modal content with fallback title
-                const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
-                const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
-                
-                if (statusTitleEl) statusTitleEl.textContent = `${statusTitle}: ${fallbackTitle}`;
-                if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
-
-                // Show the appropriate modal
-                const statusModal = new bootstrap.Modal(document.getElementById(modalId));
-                statusModal.show();
-
-                // Set up confirm button click handler
-                const confirmBtn = document.getElementById(confirmBtnId);
-                confirmBtn.onclick = function () {
-                    updateTaskStatus(taskId, newStatus, taskCard);
-                    statusModal.hide();
-                };
+            // Tentukan modal ID & confirm button ID
+            let modalId, confirmBtnId;
+            switch (newStatus) {
+                case 'in_progress':
+                    modalId = 'progressStatusModal';
+                    confirmBtnId = 'confirmProgressStatusBtn';
+                    break;
+                case 'completed':
+                    modalId = 'completeStatusModal';
+                    confirmBtnId = 'confirmCompleteStatusBtn';
+                    break;
+                case 'rejected':
+                    modalId = 'rejectStatusModal';
+                    confirmBtnId = 'confirmRejectStatusBtn';
+                    break;
+                default:
+                    modalId = 'progressStatusModal';
+                    confirmBtnId = 'confirmProgressStatusBtn';
             }
-        });
-    }
+
+            // Set teks modal
+            const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
+            const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
+
+            if (statusTitleEl) statusTitleEl.textContent = taskTitle;
+            if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
+
+            // Tampilkan modal
+            const statusModal = new bootstrap.Modal(document.getElementById(modalId));
+            statusModal.show();
+
+            // Tombol konfirmasi
+            const confirmBtn = document.getElementById(confirmBtnId);
+            confirmBtn.onclick = function () {
+                updateTaskStatus(taskId, newStatus, taskCard);
+                statusModal.hide();
+            };
+        },
+        error: function () {
+            const fallbackTitle = 'Task #' + taskId;
+            const fallbackDescription = 'Task description not available';
+
+            const truncatedDescription = fallbackDescription.length > 20
+                ? fallbackDescription.substring(0, 20) + '...'
+                : fallbackDescription;
+
+            let modalId, confirmBtnId;
+            switch (newStatus) {
+                case 'in_progress':
+                    modalId = 'progressStatusModal';
+                    confirmBtnId = 'confirmProgressStatusBtn';
+                    break;
+                case 'completed':
+                    modalId = 'completeStatusModal';
+                    confirmBtnId = 'confirmCompleteStatusBtn';
+                    break;
+                case 'rejected':
+                    modalId = 'rejectStatusModal';
+                    confirmBtnId = 'confirmRejectStatusBtn';
+                    break;
+                default:
+                    modalId = 'progressStatusModal';
+                    confirmBtnId = 'confirmProgressStatusBtn';
+            }
+
+            const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
+            const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
+
+            if (statusTitleEl) statusTitleEl.textContent = fallbackTitle;
+            if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
+
+            const statusModal = new bootstrap.Modal(document.getElementById(modalId));
+            statusModal.show();
+
+            const confirmBtn = document.getElementById(confirmBtnId);
+            confirmBtn.onclick = function () {
+                updateTaskStatus(taskId, newStatus, taskCard);
+                statusModal.hide();
+            };
+        }
+    });
+}
+
 
     // Function to update task status via AJAX
 function updateTaskStatus(taskId, newStatus, taskCard) {

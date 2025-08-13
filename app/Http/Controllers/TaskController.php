@@ -210,7 +210,7 @@ class TaskController extends Controller
 
         // Set created_by
         if ($request->user()) {
-            $data['created_by'] = $request->user()->name;
+            $data['created_by'] = $request->user()->id;
         }
 
         // Create task
