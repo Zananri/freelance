@@ -55,7 +55,7 @@ class TaskController extends Controller
                           ->where(function ($q2) {
                               $q2->where('role', 'PIC')
                                  ->orWhere(function ($q3) {
-                                     $q3->where('role', 'executor')
+                                     $q3->where('role', 'EXECUTOR')
                                         ->where('is_receive', true);
                                  });
                           });
@@ -84,7 +84,7 @@ class TaskController extends Controller
             foreach ($tasks as $status => $tasksGroup) {
                 foreach ($tasksGroup as $task) {
                     $pic = $task->assignments->firstWhere('role', 'PIC');
-                    $executors = $task->assignments->where('role', 'executor');
+                    $executors = $task->assignments->where('role', 'EXECUTOR');
 
                     $responseKey = match (strtolower($status)) {
                         'new request', 'new_request' => 'new_request',
@@ -155,133 +155,137 @@ class TaskController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
-        DB::beginTransaction();
-        try {
-            $validator = Validator::make($request->all(), [
-                'project_id' => 'required|exists:projects,id',
-                'point' => 'required|integer|min:1',
-                'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-                'priority' => 'required|in:HIGH,MEDIUM,LOW',
-                'reference_url' => 'nullable|url|max:255',
-                'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:pdf,doc,docx|max:5120',
-                'start_date' => 'required|date',
-                'due_date' => 'required|date|after_or_equal:start_date',
-                'complete_date' => 'nullable|date|after_or_equal:start_date',
-                'created_by' => auth()->id(),
-                'updated_by' => auth()->id(),
-                'deleted_by' => null,
+   public function store(Request $request)
+{
+    DB::beginTransaction();
+    try {
+        $validator = Validator::make($request->all(), [
+            'project_id' => 'required|exists:projects,id',
+            'point' => 'required|integer|min:1',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'priority' => 'required|in:HIGH,MEDIUM,LOW',
+            'reference_url' => 'nullable|url|max:255',
+            'reference_files' => 'nullable|array',
+            'reference_files.*' => 'file|mimes:pdf,doc,docx|max:5120',
+            'start_date' => 'required|date',
+            'due_date' => 'required|date|after_or_equal:start_date',
+            'complete_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'status' => 'error',
+                'message' => 'Validation errors',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $imageFile = $request->file('image');
+            $imageExtension = $imageFile->getClientOriginalExtension();
+            $imageName = 'TASK_' . time() . '.' . $imageExtension;
+            $imageFile->move(public_path('file/task'), $imageName);
+            $data['image'] = $imageName;
+        }
+
+        // Initialize reference files array
+        $referenceFiles = [];
+        
+        // Handle reference files upload
+        if ($request->hasFile('reference_files')) {
+            foreach ($request->file('reference_files') as $index => $file) {
+                $referenceExtension = $file->getClientOriginalExtension();
+                $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
+                $file->move(public_path('file/task_reference_files'), $referenceName);
+                $referenceFiles[] = $referenceName;
+            }
+        }
+        $data['reference_files'] = $referenceFiles;
+
+        // Set created_by
+        if ($request->user()) {
+            $data['created_by'] = $request->user()->name;
+        }
+
+        // Create task
+        $task = Task::create($data);
+
+        // Add creator as PIC
+        $user = $request->user();
+        if ($user && $user->employee) {
+            TaskAssignment::create([
+                'task_id' => $task->id,
+                'employee_id' => $user->employee->id,
+                'role' => 'PIC',
+                'is_receive' => true,
+                'date_receive' => now(),
             ]);
+        } else {
+            throw new \Exception('User not authenticated or has no employee record');
+        }
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'code' => 422,
-                    'status' => 'error',
-                    'message' => 'Validation errors',
-                    'errors' => $validator->errors(),
-                ], 422);
+        // Handle executor assignments with improved validation
+        if ($request->has('executors')) {
+            $executorIds = json_decode($request->input('executors'), true);
+            
+            // Ensure executors is always an array
+            if (!is_array($executorIds)) {
+                $executorIds = [];
             }
+            
+            $picEmployeeId = $user->employee->id ?? null;
+            
+            foreach ($executorIds as $executorId) {
+                // Skip if executor is same as PIC
+                if ($executorId == $picEmployeeId) continue;
 
-            $data = $validator->validated();
-
-            // Handle image upload
-            if ($request->hasFile('image')) {
-                $imageFile = $request->file('image');
-                $imageExtension = $imageFile->getClientOriginalExtension();
-                $imageName = 'TASK_' . time() . '.' . $imageExtension;
-                $imageFile->move(public_path('file/task'), $imageName);
-                $data['image'] = $imageName;
-            }
-
-            // Handle reference files
-            if ($request->hasFile('reference_files')) {
-                $newFiles = [];
-                foreach ($request->file('reference_files') as $index => $file) {
-                    $referenceExtension = $file->getClientOriginalExtension();
-                    $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
-                    $file->move(public_path('file/task_reference_files'), $referenceName);
-                    $newFiles[] = $referenceName;
-                }
-                $data['reference_files'] = $newFiles;
-            }
-
-            // Set created_by
-            if ($request->user()) {
-                $data['created_by'] = $request->user()->name;
-            }
-
-            // Create task
-            $task = Task::create($data);
-
-            // Add creator as PIC
-            $user = $request->user();
-            if ($user && $user->employee) {
                 TaskAssignment::create([
                     'task_id' => $task->id,
-                    'employee_id' => $user->employee->id,
-                    'role' => 'PIC',
-                    'is_receive' => true,
-                    'date_receive' => now(),
+                    'employee_id' => $executorId,
+                    'role' => 'EXECUTOR',
+                    'is_receive' => false,
+                    'date_receive' => null,
                 ]);
-            } else {
-                throw new \Exception('User not authenticated or has no employee record');
-            }
 
-            // Handle executor assignments
-            if ($request->has('executors')) {
-                $executorIds = json_decode($request->input('executors'), true);
-                if (is_array($executorIds)) {
-                    $picEmployeeId = $user->employee->id ?? null;
-                    
-                    foreach ($executorIds as $executorId) {
-                        if ($executorId == $picEmployeeId) continue;
-
-                        TaskAssignment::create([
-                            'task_id' => $task->id,
-                            'employee_id' => $executorId,
-                            'role' => 'executor',
-                            'is_receive' => false,
-                            'date_receive' => null,
-                        ]);
-
-                        // Send notification
-                        $executor = Employee::find($executorId);
-                        if ($executor) {
-                            NotificationController::createUserNotification(
-                                $executorId,
-                                'task_assignment',
-                                'You have been assigned as executor for task: ' . $task->title,
-                                'You have been assigned as executor for task: ' . $task->title,
-                                $picEmployeeId,
-                                $task->id
-                            );
-                        }
-                    }
+                // Send notification to executor
+                $executor = Employee::find($executorId);
+                if ($executor) {
+                    NotificationController::createUserNotification(
+                        $executorId,
+                        'task_assignment',
+                        'You have been assigned as executor for task: ' . $task->title,
+                        'You have been assigned as executor for task: ' . $task->title,
+                        $picEmployeeId,
+                        $task->id
+                    );
                 }
             }
-
-            DB::commit();
-
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'message' => 'Task created successfully',
-                'data' => $task
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'code' => $e->getCode() ?: 500,
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
         }
+
+        DB::commit();
+
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'message' => 'Task created successfully',
+            'data' => $task
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'code' => $e->getCode() ?: 500,
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], $e->getCode() ?: 500);
     }
+}
 
     /**
      * Display the specified resource.
@@ -297,7 +301,7 @@ class TaskController extends Controller
 
             // Get PIC and executors
             $pic = $task->assignments->firstWhere('role', 'PIC');
-            $executors = $task->assignments->where('role', 'executor');
+            $executors = $task->assignments->where('role', 'EXECUTOR');
 
             $response = [
                 'id' => $task->id,
@@ -354,7 +358,7 @@ class TaskController extends Controller
         ])->findOrFail($id);
 
         // Get executors (excluding PIC)
-        $executors = $task->assignments->where('role', 'executor');
+        $executors = $task->assignments->where('role', 'EXECUTOR');
 
         $response = [
             'id' => $task->id,
@@ -466,13 +470,13 @@ class TaskController extends Controller
 
                 // Get existing executors
                 $existingExecutors = TaskAssignment::where('task_id', $task->id)
-                    ->where('role', 'executor')
+                    ->where('role', 'EXECUTOR')
                     ->get()
                     ->keyBy('employee_id');
 
                 // Remove executors not in new list
                 TaskAssignment::where('task_id', $task->id)
-                    ->where('role', 'executor')
+                    ->where('role', 'EXECUTOR')
                     ->whereNotIn('employee_id', $newExecutorIds)
                     ->delete();
 
@@ -485,7 +489,7 @@ class TaskController extends Controller
                     TaskAssignment::create([
                         'task_id' => $task->id,
                         'employee_id' => $executorId,
-                        'role' => 'executor',
+                        'role' => 'EXECUTOR',
                         'is_receive' => false,
                         'date_receive' => null,
                     ]);
@@ -798,7 +802,7 @@ class TaskController extends Controller
                 }
 
                 // Get Executors
-                $executors = $task->assignments->where('role', 'executor');
+                $executors = $task->assignments->where('role', 'EXECUTOR');
                 $executorsData = $executors->map(function ($executor) {
                     return [
                         'id' => $executor->employee->id,
@@ -849,7 +853,7 @@ class TaskController extends Controller
 
             $assignment = TaskAssignment::where('task_id', $taskId)
                 ->where('employee_id', $user->employee->id)
-                ->where('role', 'executor')
+                ->where('role', 'EXECUTOR')
                 ->first();
 
             if (!$assignment) {
@@ -888,7 +892,7 @@ class TaskController extends Controller
 
             $assignment = TaskAssignment::where('task_id', $taskId)
                 ->where('employee_id', $user->employee->id)
-                ->where('role', 'executor')
+                ->where('role', 'EXECUTOR')
                 ->first();
 
             if (!$assignment) {
