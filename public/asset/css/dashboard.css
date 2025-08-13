@@ -1,0 +1,65 @@
+.dashboard-wrapper {
+    display: flex;
+    align-items: stretch;
+    gap: 20px;
+}
+
+.dashboard-attendance-content {
+    flex: 1;
+    height: 33.3333%;
+    width: 100%;
+}
+
+.attendance-card {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    max-width: 50%;
+    background: #fff;
+    border-radius: 12px;
+    padding: 15px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.attendance-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+.profile-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ddd;
+}
+
+.profile-text {
+    text-align: center;
+    margin-top: 16px;
+}
+
+.btn.btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+}
+
+.attendance-actions {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 16px;
+}
