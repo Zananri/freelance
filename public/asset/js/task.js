@@ -2928,103 +2928,90 @@ function handleTaskDetail(taskId) {
         }
     });
 
-    // Enhanced fetch and render filtered tasks
-    function fetchAndRenderFilteredTasks(filters = {}) {
-        $.ajax({
-            url: appUrl + "/task/index",
-            type: "GET",
-            dataType: "json",
-            data: filters,
-            success: function (data) {
-                // Clear existing task lists
-                document.getElementById("new-request-tasks").innerHTML = "";
-                document.getElementById("in-progress-tasks").innerHTML = "";
-                document.getElementById("completed-tasks").innerHTML = "";
+   function fetchAndRenderFilteredTasks(filters = {}) {
+    $.ajax({
+        url: appUrl + "/task/index",
+        type: "GET",
+        dataType: "json",
+        data: filters,
+        success: function (data) {
+            // ✅ Ambil data di dalam "data"
+            let tasksData = data.data || {};
 
-                // Get all tasks from response
-                let allTasks = [];
-                
-                // Combine all tasks from different status arrays
-                if (data.new_request) allTasks = allTasks.concat(data.new_request);
-                if (data.in_progress) allTasks = allTasks.concat(data.in_progress);
-                if (data.completed) allTasks = allTasks.concat(data.completed);
-                if (data.rejected) allTasks = allTasks.concat(data.rejected);
-                
-                // Filter tasks based on selected criteria
-                let filteredTasks = allTasks;
+            // Clear existing task lists
+            document.getElementById("new-request-tasks").innerHTML = "";
+            document.getElementById("in-progress-tasks").innerHTML = "";
+            document.getElementById("completed-tasks").innerHTML = "";
 
-                // Apply project filter if selected (empty means all projects)
-                if (filters.project && filters.project !== "") {
-                    filteredTasks = filteredTasks.filter(task => 
-                        task.project_id == filters.project
-                    );
+            // Gabungkan semua task
+            let allTasks = [];
+            if (tasksData.new_request) allTasks = allTasks.concat(tasksData.new_request);
+            if (tasksData.in_progress) allTasks = allTasks.concat(tasksData.in_progress);
+            if (tasksData.completed) allTasks = allTasks.concat(tasksData.completed);
+            if (tasksData.rejected) allTasks = allTasks.concat(tasksData.rejected);
+
+            // Filter berdasarkan project
+            if (filters.project && filters.project !== "") {
+                allTasks = allTasks.filter(task => task.project_id == filters.project);
+            }
+
+            // Filter berdasarkan status
+            if (filters.status && filters.status !== "") {
+                allTasks = allTasks.filter(task => {
+                    let taskStatus = task.status.toLowerCase().replace(" ", "_");
+                    return taskStatus === filters.status;
+                });
+            }
+
+            // Group ulang berdasarkan status
+            const groupedTasks = {
+                new_request: [],
+                in_progress: [],
+                completed: [],
+                rejected: []
+            };
+
+            allTasks.forEach(task => {
+                let normalizedStatus = task.status.toLowerCase().replace(" ", "_");
+                if (groupedTasks[normalizedStatus] !== undefined) {
+                    groupedTasks[normalizedStatus].push(task);
+                } else if (normalizedStatus === "rejected") {
+                    groupedTasks.rejected.push(task);
                 }
+            });
 
-                // Apply status filter if selected (empty means all status)
-                if (filters.status && filters.status !== "") {
-                    filteredTasks = filteredTasks.filter(task => 
-                        task.status === filters.status
-                    );
-                }
+            // Render tasks ke kolom masing-masing
+            groupedTasks.new_request.forEach(task => {
+                document.getElementById("new-request-tasks")
+                    .insertAdjacentHTML("beforeend", createTaskCard(task));
+            });
+            groupedTasks.in_progress.forEach(task => {
+                document.getElementById("in-progress-tasks")
+                    .insertAdjacentHTML("beforeend", createTaskCard(task));
+            });
+            groupedTasks.completed.forEach(task => {
+                document.getElementById("completed-tasks")
+                    .insertAdjacentHTML("beforeend", createTaskCard(task));
+            });
 
-                // Group filtered tasks by status
-                const groupedTasks = {
-                    new_request: [],
-                    in_progress: [],
-                    completed: [],
-                    rejected: []
-                };
+            // Event listener tambahan
+            setupTaskDropdownListeners();
+            addAttachFileIconListeners();
 
-                filteredTasks.forEach(task => {
-                    const status = task.status;
-                    if (status === 'new_request' || status === 'new request') {
-                        groupedTasks.new_request.push(task);
-                    } else if (status === 'in_progress' || status === 'in progress') {
-                        groupedTasks.in_progress.push(task);
-                    } else if (status === 'completed') {
-                        groupedTasks.completed.push(task);
-                    } else if (status === 'rejected') {
-                        // Rejected tasks go to in_progress section with REJECTED badge
-                        groupedTasks.in_progress.push(task);
-                    }
+            // Tooltip bootstrap
+            setTimeout(() => {
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
+            }, 100);
+        },
+        error: function (xhr, status, error) {
+            console.error("Error fetching filtered tasks:", error);
+        },
+    });
+}
 
-                // Render filtered tasks in appropriate sections
-                groupedTasks.new_request.forEach((task) => {
-                    document
-                        .getElementById("new-request-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.in_progress.forEach((task) => {
-                    document
-                        .getElementById("in-progress-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.completed.forEach((task) => {
-                    document
-                        .getElementById("completed-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-
-                // Add event listeners for dropdown functionality after rendering
-                setupTaskDropdownListeners();
-
-                // Add event listener for attach_file icon click to show reference files modal
-                addAttachFileIconListeners();
-
-                // Initialize Bootstrap tooltips for PIC and executor images
-                setTimeout(() => {
-                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    tooltipTriggerList.map(function (tooltipTriggerEl) {
-                        return new bootstrap.Tooltip(tooltipTriggerEl);
-                    });
-                }, 100);
-            },
-            error: function (xhr, status, error) {
-                console.error("Error fetching filtered tasks:", error);
-            },
-        });
-    }
 
     // Reset filters
     function resetTaskFilters() {
