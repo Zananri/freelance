@@ -838,6 +838,85 @@ document.addEventListener("DOMContentLoaded", function () {
         };
     }
 
+document.addEventListener("click", function (e) {
+    if (e.target && e.target.classList.contains("arrow-forward-icon")) {
+        const taskId = e.target.getAttribute("data-task-id");
+        const currentStatus = e.target.getAttribute("data-task-status");
+        
+        if (!taskId) {
+            alert("Task ID not found.");
+            return;
+        }
+
+        // Determine next status based on current status
+        let nextStatus = '';
+        let actionDescription = '';
+        
+        if (currentStatus === 'new_request' || currentStatus === 'new request') {
+            nextStatus = 'in_progress';
+            actionDescription = 'Progress';
+        } else if (currentStatus === 'in_progress' || currentStatus === 'in progress') {
+            nextStatus = 'completed';
+            actionDescription = 'Set to Complete';
+        } else if (currentStatus === 'rejected') {
+            nextStatus = 'completed';
+            actionDescription = 'Set to Complete';
+        }
+
+      if (nextStatus) {
+    // Cari card task
+    const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+
+    // Langsung update status tanpa modal
+    updateTaskStatus(taskId, nextStatus, taskCard);
+}
+    }
+});
+
+function updateTaskStatus(taskId, newStatus, taskCard) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId + "/status",
+        type: "PUT",
+        headers: {
+            "X-CSRF-TOKEN": document
+                .querySelector('meta[name="csrf-token"]')
+                .getAttribute("content"),
+        },
+        data: {
+            status: newStatus,
+        },
+        success: function (response) {
+            // Dispose all Bootstrap tooltips inside the taskCard before removing it
+            const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                if (tooltipInstance) {
+                    tooltipInstance.dispose();
+                }
+            });
+
+            // Remove the task card from current section immediately
+            taskCard.remove();
+
+            // Refresh task cards to show in new section
+            fetchAndRenderTasks();
+
+            // Show success message
+            showFloatingAlert(response.message || "Task status updated successfully", "success");
+        },
+        error: function (xhr) {
+            let errorMessage = "Failed to update task status.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+            }
+            showFloatingAlert(errorMessage, "danger");
+        },
+    });
+}
+
     // Function to check if all executors have accepted the task
     function hasAllExecutorsAccepted(task) {
         // Always return true to show task cards regardless of executor acceptance status
@@ -845,151 +924,143 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Function to create task card HTML
-    function createTaskCard(task) {
-        // Always show task cards regardless of executor acceptance status
+   function createTaskCard(task) {
+    // Combine PIC and executors into one array for uniform rendering without duplicates
+    const allExecutors = [];
+    if (task.pic) {
+        allExecutors.push(task.pic);
+    }
+    if (task.executors && task.executors.length > 0) {
+        task.executors.forEach((executor) => {
+            // Avoid duplicate if executor is same as PIC
+            if (!allExecutors.some(e => e.id === executor.id)) {
+                allExecutors.push(executor);
+            }
+        });
+    }
 
-        // Combine PIC and executors into one array for uniform rendering without duplicates
-        const allExecutors = [];
-        if (task.pic) {
-            allExecutors.push(task.pic);
-        }
-        if (task.executors && task.executors.length > 0) {
-            task.executors.forEach((executor) => {
-                // Avoid duplicate if executor is same as PIC
-                if (!allExecutors.some(e => e.id === executor.id)) {
-                    allExecutors.push(executor);
-                }
-            });
-        }
-
-        // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
-       const executorsHtml = allExecutors
-            .map((executor, index) => {
+    // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
+    const executorsHtml = allExecutors
+        .map((executor, index) => {
             const overlapClass = index === 0 ? "" : "executor-image-overlap";
             const zIndexStyle = `style="z-index: ${index + 1};"`;
-            // Do not show badge for PIC
             return `
             <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
-            <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name}" ${zIndexStyle}>
+                <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name}" ${zIndexStyle}>
             </div>
             `;
-            })
-            .join("");
+        })
+        .join("");
 
-        // Determine status-based menu items
-        let statusMenuItem = '';
-        
-        if (task.status === 'new_request' || task.status === 'new request') {
-            statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
-        } else if (task.status === 'in_progress' || task.status === 'in progress') {
-            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
-        } else if (task.status === 'completed') {
-            statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
-        } else if (task.status === 'rejected') {
-            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
-        }
-
-        // Determine if delete should be shown (only for new_request and rejected)
-        const showDelete = task.status === 'new_request' || 
-                          task.status === 'new request' || 
-                          task.status === 'rejected';
-
-        // Add status badge for rejected tasks
-        let statusBadge = '';
-        if (task.status === 'rejected') {
-            statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 4.5%; right: 70px;">REJECTED</span>';
-        }
-
-                // Conditionally render icon based on status
-                let iconHtml = '';
-                if (task.status !== 'completed') {
-                    if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
-                        // Show check icon for In Progress tasks
-                        iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
-                            data-bs-toggle="tooltip" 
-                            data-placement="bottom" 
-                            data-task-id="${task.id}" 
-                            data-task-status="${task.status}" 
-                            title="Set to Complete">
-                            check
-                        </span>`;
-                    } else {
-                        // Show arrow icon for other non-completed tasks
-                        iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
-                            data-bs-toggle="tooltip" 
-                            data-placement="bottom" 
-                            data-task-id="${task.id}" 
-                            data-task-status="${task.status}" 
-                            title="${
-                                (task.status === 'new_request' || task.status === 'new request') 
-                                    ? 'Progress' 
-                                    : 'Set to Complete'
-                            }">
-                            arrow_forward
-                        </span>`;
-                    }
-                }
-                const arrowIconHtml = iconHtml;
-
-                // Check if description is long enough to need truncation
-                const description = task.description || '';
-                const needsTruncation = description.length > 123; // Approximate 3 lines
-                
-                return `
-                   <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${
-                       task.id
-                   }" data-task-status="${task.status}">
-        ${statusBadge}
-        <div class="dropdown-icon-container">
-            <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-            <div class="dropdown-menu d-none">
-                <div class="dropdown-item">Detail</div>
-                <div class="dropdown-item">Edit</div>
-                <div class="dropdown-item">Feedback</div>
-                ${statusMenuItem}
-                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
-            </div>
-        </div>
-        ${arrowIconHtml}
-
-        <div class="d-flex align-items-center mb-2 mt-2">
-            <img src="${task.project_image}" alt="Project Image"
-                class="project-image me-3">
-            <h5 class="mb-0 task-title">${task.title}</h5>
-        </div>
-        <div class="task-description-container">
-            <p class="task-description ${needsTruncation ? 'truncated' : ''}" data-full-description="${description}">
-                ${description}
-            </p>
-            ${needsTruncation ? '<span class="task-description-toggle" onclick="toggleDescription(this)">View More</span>' : ''}
-        </div>
-        <hr class="task-separator rounded-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div class="d-flex align-items-center pic-executor-container">
-                ${executorsHtml}
-            </div>
-            <div class="d-flex">
-               <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                    <span class="material-symbols-outlined task-icon mode_comment"
-                        data-task-id="${task.id}">mode_comment</span>
-                    ${
-                        task.feedback_comments_count > 0
-                            ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
-                            : ""
-                    }
-                </div>
-                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                    <span class="material-symbols-outlined task-icon">attach_file</span>
-                    ${
-                        task.reference_files_count > 0
-                            ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
-                            : ""
-                    }
-                </div>
-            </div>
-        </div>
-            `;
+    // Determine status-based menu items
+    let statusMenuItem = '';
+    
+    if (task.status === 'new_request' || task.status === 'new request') {
+        statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
+    } else if (task.status === 'in_progress' || task.status === 'in progress') {
+        statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
+    } else if (task.status === 'completed') {
+        statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
+    } else if (task.status === 'rejected') {
+        statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
     }
+
+    // Determine if delete should be shown (only for new_request and rejected)
+    const showDelete = task.status === 'new_request' || 
+                      task.status === 'new request' || 
+                      task.status === 'rejected';
+
+    // Add status badge for rejected tasks
+    let statusBadge = '';
+    if (task.status === 'rejected') {
+        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 4.5%; right: 70px;">REJECTED</span>';
+    }
+
+    // FIXED: Proper icon logic based on current status
+    let iconHtml = '';
+    if (task.status !== 'completed') {
+        if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
+            // Show check icon for In Progress and Rejected tasks (both can be completed)
+            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
+                data-bs-toggle="tooltip" 
+                data-placement="bottom" 
+                data-task-id="${task.id}" 
+                data-task-status="${task.status}" 
+                title="Set to Complete"
+                style="cursor: pointer;">
+                check
+            </span>`;
+        } else if (task.status === 'new_request' || task.status === 'new request') {
+            // Show arrow icon for New Request tasks
+            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
+                data-bs-toggle="tooltip" 
+                data-placement="bottom" 
+                data-task-id="${task.id}" 
+                data-task-status="${task.status}" 
+                title="Progress"
+                style="cursor: pointer;">
+                arrow_forward
+            </span>`;
+        }
+    }
+
+    // Check if description is long enough to need truncation
+    const description = task.description || '';
+    const needsTruncation = description.length > 123; // Approximate 3 lines
+    
+    return `
+        <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}">
+            ${statusBadge}
+            <div class="dropdown-icon-container">
+                <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+                <div class="dropdown-menu d-none">
+                    <div class="dropdown-item">Detail</div>
+                    <div class="dropdown-item">Edit</div>
+                    <div class="dropdown-item">Feedback</div>
+                    ${statusMenuItem}
+                    ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
+                </div>
+            </div>
+            ${iconHtml}
+
+            <div class="d-flex align-items-center mb-2 mt-2">
+                <img src="${task.project_image}" alt="Project Image" class="project-image me-3">
+                <h5 class="mb-0 task-title">${task.title}</h5>
+            </div>
+            <div class="task-description-container">
+                <p class="task-description ${needsTruncation ? 'truncated' : ''}" data-full-description="${description}">
+                    ${description}
+                </p>
+                ${needsTruncation ? '<span class="task-description-toggle" onclick="toggleDescription(this)">View More</span>' : ''}
+            </div>
+            <hr class="task-separator rounded-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex align-items-center pic-executor-container">
+                    ${executorsHtml}
+                </div>
+                <div class="d-flex">
+                   <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                        <span class="material-symbols-outlined task-icon mode_comment"
+                            data-task-id="${task.id}">mode_comment</span>
+                        ${
+                            task.feedback_comments_count > 0
+                                ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
+                                : ""
+                        }
+                    </div>
+                    <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                        <span class="material-symbols-outlined task-icon">attach_file</span>
+                        ${
+                            task.reference_files_count > 0
+                                ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
+                                : ""
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
     // Function to toggle description expansion
     function toggleDescription(element) {
@@ -1192,113 +1263,105 @@ document.addEventListener("DOMContentLoaded", function () {
         showStatusModal(taskId, taskCard, 'new_request', 'Back to Request', 'New Request', 'Task is back to new request');
     }
 
-    // Function to show appropriate status modal based on action
-    function showStatusModal(taskId, taskCard, newStatus, modalTitle, statusTitle, statusDescription) {
-        // Fetch task details to get the actual task title and description
-        $.ajax({
-            url: appUrl + "/task/" + taskId,
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                // Use actual task title and description
-                const taskTitle = data.title || 'Untitled Task';
-                const taskDescription = data.description || 'No description available';
-                
-                // Truncate description to 20 characters
-                const truncatedDescription = taskDescription.length > 20 
-                    ? taskDescription.substring(0, 20) + '...' 
-                    : taskDescription;
+   function showStatusModal(taskId, taskCard, newStatus, modalTitle, statusTitle, statusDescription) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId,
+        type: "GET",
+        dataType: "json",
+        success: function (res) {
+            // Ambil dari data.data sesuai struktur Laravel
+            const taskData = res.data || {};
+            const taskTitle = taskData.title || 'Untitled Task';
+            const taskDescription = taskData.description || 'No description available';
 
-                // Determine which modal to show based on action
-                let modalId, confirmBtnId;
-                
-                switch(newStatus) {
-                    case 'in_progress':
-                        modalId = 'progressStatusModal';
-                        confirmBtnId = 'confirmProgressStatusBtn';
-                        break;
-                    case 'completed':
-                        modalId = 'completeStatusModal';
-                        confirmBtnId = 'confirmCompleteStatusBtn';
-                        break;
-                    case 'rejected':
-                        modalId = 'rejectStatusModal';
-                        confirmBtnId = 'confirmRejectStatusBtn';
-                        break;
-                    default:
-                        modalId = 'progressStatusModal';
-                        confirmBtnId = 'confirmProgressStatusBtn';
-                }
+            // Potong description kalau terlalu panjang
+            const truncatedDescription = taskDescription.length > 20
+                ? taskDescription.substring(0, 20) + '...'
+                : taskDescription;
 
-                // Update modal content with only task title (no status prefix)
-                const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
-                const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
-                
-                if (statusTitleEl) statusTitleEl.textContent = taskTitle;
-                if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
-
-                // Show the appropriate modal
-                const statusModal = new bootstrap.Modal(document.getElementById(modalId));
-                statusModal.show();
-
-                // Set up confirm button click handler
-                const confirmBtn = document.getElementById(confirmBtnId);
-                confirmBtn.onclick = function () {
-                    updateTaskStatus(taskId, newStatus, taskCard);
-                    statusModal.hide();
-                };
-            },
-            error: function () {
-                // Fallback if task details can't be loaded
-                const fallbackTitle = 'Task #' + taskId;
-                const fallbackDescription = 'Task description not available';
-                
-                // Truncate fallback description
-                const truncatedDescription = fallbackDescription.length > 20 
-                    ? fallbackDescription.substring(0, 20) + '...' 
-                    : fallbackDescription;
-
-                // Determine which modal to show based on action
-                let modalId, confirmBtnId;
-                
-                switch(newStatus) {
-                    case 'in_progress':
-                        modalId = 'progressStatusModal';
-                        confirmBtnId = 'confirmProgressStatusBtn';
-                        break;
-                    case 'completed':
-                        modalId = 'completeStatusModal';
-                        confirmBtnId = 'confirmCompleteStatusBtn';
-                        break;
-                    case 'rejected':
-                        modalId = 'rejectStatusModal';
-                        confirmBtnId = 'confirmRejectStatusBtn';
-                        break;
-                    default:
-                        modalId = 'progressStatusModal';
-                        confirmBtnId = 'confirmProgressStatusBtn';
-                }
-
-                // Update modal content with fallback title
-                const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
-                const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
-                
-                if (statusTitleEl) statusTitleEl.textContent = `${statusTitle}: ${fallbackTitle}`;
-                if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
-
-                // Show the appropriate modal
-                const statusModal = new bootstrap.Modal(document.getElementById(modalId));
-                statusModal.show();
-
-                // Set up confirm button click handler
-                const confirmBtn = document.getElementById(confirmBtnId);
-                confirmBtn.onclick = function () {
-                    updateTaskStatus(taskId, newStatus, taskCard);
-                    statusModal.hide();
-                };
+            // Tentukan modal ID & confirm button ID
+            let modalId, confirmBtnId;
+            switch (newStatus) {
+                case 'in_progress':
+                    modalId = 'progressStatusModal';
+                    confirmBtnId = 'confirmProgressStatusBtn';
+                    break;
+                case 'completed':
+                    modalId = 'completeStatusModal';
+                    confirmBtnId = 'confirmCompleteStatusBtn';
+                    break;
+                case 'rejected':
+                    modalId = 'rejectStatusModal';
+                    confirmBtnId = 'confirmRejectStatusBtn';
+                    break;
+                default:
+                    modalId = 'progressStatusModal';
+                    confirmBtnId = 'confirmProgressStatusBtn';
             }
-        });
-    }
+
+            // Set teks modal
+            const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
+            const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
+
+            if (statusTitleEl) statusTitleEl.textContent = taskTitle;
+            if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
+
+            // Tampilkan modal
+            const statusModal = new bootstrap.Modal(document.getElementById(modalId));
+            statusModal.show();
+
+            // Tombol konfirmasi
+            const confirmBtn = document.getElementById(confirmBtnId);
+            confirmBtn.onclick = function () {
+                updateTaskStatus(taskId, newStatus, taskCard);
+                statusModal.hide();
+            };
+        },
+        error: function () {
+            const fallbackTitle = 'Task #' + taskId;
+            const fallbackDescription = 'Task description not available';
+
+            const truncatedDescription = fallbackDescription.length > 20
+                ? fallbackDescription.substring(0, 20) + '...'
+                : fallbackDescription;
+
+            let modalId, confirmBtnId;
+            switch (newStatus) {
+                case 'in_progress':
+                    modalId = 'progressStatusModal';
+                    confirmBtnId = 'confirmProgressStatusBtn';
+                    break;
+                case 'completed':
+                    modalId = 'completeStatusModal';
+                    confirmBtnId = 'confirmCompleteStatusBtn';
+                    break;
+                case 'rejected':
+                    modalId = 'rejectStatusModal';
+                    confirmBtnId = 'confirmRejectStatusBtn';
+                    break;
+                default:
+                    modalId = 'progressStatusModal';
+                    confirmBtnId = 'confirmProgressStatusBtn';
+            }
+
+            const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
+            const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
+
+            if (statusTitleEl) statusTitleEl.textContent = fallbackTitle;
+            if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
+
+            const statusModal = new bootstrap.Modal(document.getElementById(modalId));
+            statusModal.show();
+
+            const confirmBtn = document.getElementById(confirmBtnId);
+            confirmBtn.onclick = function () {
+                updateTaskStatus(taskId, newStatus, taskCard);
+                statusModal.hide();
+            };
+        }
+    });
+}
+
 
     // Function to update task status via AJAX
 function updateTaskStatus(taskId, newStatus, taskCard) {
@@ -2082,6 +2145,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         });
     }
 
+    
+
     // Function to add event listeners for attach_file icon click
     function addAttachFileIconListeners() {
         // Use event delegation on the container to handle dynamically added cards
@@ -2156,107 +2221,84 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     }
 
     // Function to handle task detail view
-    function handleTaskDetail(taskId) {
-        $.ajax({
-            url: appUrl + "/task/" + taskId,
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                // Populate task detail modal
-                $("#taskDetailImage").attr(
-                    "src",
-                    data.image
-                        ? appUrl + "/file/task/" + data.image
-                        : appUrl + "/asset/img/background/add-image.png"
-                );
-                $("#taskDetailTitle").text(data.title || "");
-                $("#taskDetailDescription").text(data.description || "");
-
-                // Department and Division from project
-                $("#taskDetailDepartment").text(
-                    data.project && data.project.department
-                        ? data.project.department
-                        : ""
-                );
-                $("#taskDetailDivision").text(
-                    data.project && data.project.division
-                        ? data.project.division
-                        : ""
-                );
-                $("#taskDetailProject").text(
-                    data.project ? data.project.title : ""
-                );
-
-                // PIC (Person in Charge)
-                $("#taskDetailPIC").text(data.pic ? data.pic.name : "None");
-
-                $("#taskDetailPoint").text(data.point || "");
-                $("#taskDetailPriority").text(data.priority || "");
-
-                if (data.reference_url) {
-                    $("#taskDetailReferenceUrl")
-                        .attr("href", data.reference_url)
-                        .text(data.reference_url)
-                        .show();
-                } else {
-                    $("#taskDetailReferenceUrl").hide();
-                }
-
-                // Reference Files
-                if (
-                    data.reference_files &&
-                    Array.isArray(data.reference_files) &&
-                    data.reference_files.length > 0
-                ) {
-                    const referenceFilesHtml = data.reference_files
-                        .map((fileName) => {
-                            return `<a href="${appUrl}/file/task_reference_files/${fileName}" target="_blank" class="d-block text-decoration-none mb-1">
-                            <span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span>
-                            ${fileName}
-                        </a>`;
-                        })
-                        .join("");
-                    $("#taskDetailReferenceFiles").html(referenceFilesHtml);
-                } else {
-                    $("#taskDetailReferenceFiles").text("No files");
-                }
-
-                // Format dates
-                function formatDate(dateStr) {
-                    if (!dateStr) return "";
-                    const options = {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    };
-                    const dateObj = new Date(dateStr);
-                    return dateObj.toLocaleDateString(undefined, options);
-                }
-
-                $("#taskDetailStartDate").text(formatDate(data.start_date));
-                $("#taskDetailDueDate").text(formatDate(data.due_date));
-
-                // Executors list
-                if (data.executors && data.executors.length > 0) {
-                    const executorNames = data.executors
-                        .map((ex) => ex.name)
-                        .join(", ");
-                    $("#taskDetailExecutors").text(executorNames);
-                } else {
-                    $("#taskDetailExecutors").text("None");
-                }
-
-                // Show modal
-                const taskDetailModal = new bootstrap.Modal(
-                    document.getElementById("taskDetailModal")
-                );
-                taskDetailModal.show();
-            },
-            error: function () {
+function handleTaskDetail(taskId) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId,
+        type: "GET",
+        dataType: "json",
+        success: function (res) {
+            if (res.status !== 'success' || !res.data) {
                 alert("Failed to load task details.");
-            },
-        });
-    }
+                return;
+            }
+
+            const data = res.data;
+
+            // Gambar task
+            $("#taskDetailImage").attr("src", data.image);
+
+            // Judul & Deskripsi
+            $("#taskDetailTitle").text(data.title || "");
+            $("#taskDetailDescription").text(data.description || "");
+            // Point & Priority
+            $("#taskDetailPoint").text(data.point || 0);
+            $("#taskDetailPriority").text(data.priority || "Normal");
+
+            // Department, Division, Project
+            $("#taskDetailDepartment").text(data.project?.department || "");
+            $("#taskDetailDivision").text(data.project?.division || "");
+            $("#taskDetailProject").text(data.project?.title || "");
+
+            // PIC
+            $("#taskDetailPIC").text(data.pic?.name || "None");
+
+            // Executors
+            if (Array.isArray(data.executors) && data.executors.length > 0) {
+                $("#taskDetailExecutors").text(data.executors.map(ex => ex.name).join(", "));
+            } else {
+                $("#taskDetailExecutors").text("None");
+            }
+
+            // Reference URL
+            if (data.reference_url) {
+                $("#taskDetailReferenceUrl")
+                    .attr("href", data.reference_url)
+                    .text(data.reference_url)
+                    .show();
+            } else {
+                $("#taskDetailReferenceUrl").hide();
+            }
+
+            // Reference Files
+            if (Array.isArray(data.reference_files) && data.reference_files.length > 0) {
+                const referenceFilesHtml = data.reference_files.map((fileName) => {
+                    return `<a href="${appUrl}/file/task_reference_files/${fileName}" target="_blank" class="d-block text-decoration-none mb-1">
+                        <span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span>
+                        ${fileName}
+                    </a>`;
+                }).join("");
+                $("#taskDetailReferenceFiles").html(referenceFilesHtml);
+            } else {
+                $("#taskDetailReferenceFiles").text("No files");
+            }
+
+            // Format tanggal
+            const formatDate = (dateStr) => {
+                if (!dateStr) return "";
+                const options = { year: "numeric", month: "long", day: "numeric" };
+                return new Date(dateStr).toLocaleDateString(undefined, options);
+            };
+            $("#taskDetailStartDate").text(formatDate(data.start_date));
+            $("#taskDetailDueDate").text(formatDate(data.due_date));
+
+            // Tampilkan modal
+            new bootstrap.Modal(document.getElementById("taskDetailModal")).show();
+        },
+        error: function () {
+            alert("Failed to load task details.");
+        },
+    });
+}
 
     // Function to handle task edit
     function handleTaskEdit(taskId) {
@@ -2383,38 +2425,23 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             url: appUrl + "/task/" + taskId,
             type: "GET",
             dataType: "json",
-            success: function (data) {
-                // Set task image
-                const deleteTaskImage = document.getElementById("deleteTaskImage");
-                if (deleteTaskImage) {
-                    if (data.image) {
-                        deleteTaskImage.src = appUrl + "/file/task/" + data.image;
-                    } else {
-                        deleteTaskImage.src = appUrl + "/asset/img/background/add-image.png";
-                    }
-                }
+         success: function (data) {
+    const task = data.data; // ambil objek task di dalam response
 
-                // Set task title
-                const deleteTaskTitle = document.getElementById("deleteTaskTitle");
-                if (deleteTaskTitle) {
-                    deleteTaskTitle.textContent = data.title || "Untitled Task";
-                }
+    const deleteTaskImage = document.getElementById("deleteTaskImage");
+    if (deleteTaskImage) {
+        deleteTaskImage.src = task.image
+            ? task.image
+            : appUrl + "/asset/img/background/add-image.png";
+    }
 
-                // Show modal after data is loaded
-                deleteModal.show();
-            },
-            error: function () {
-                // Fallback if task details can't be loaded
-                const deleteTaskImage = document.getElementById("deleteTaskImage");
-                if (deleteTaskImage) {
-                    deleteTaskImage.src = appUrl + "/asset/img/background/add-image.png";
-                }
-                const deleteTaskTitle = document.getElementById("deleteTaskTitle");
-                if (deleteTaskTitle) {
-                    deleteTaskTitle.textContent = "Task #" + taskId;
-                }
-                deleteModal.show();
-            }
+    const deleteTaskTitle = document.getElementById("deleteTaskTitle");
+    if (deleteTaskTitle) {
+        deleteTaskTitle.textContent = task.title || "Untitled Task";
+    }
+
+    deleteModal.show();
+}
         });
 
         // Delete button click handler
@@ -2886,103 +2913,90 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
     });
 
-    // Enhanced fetch and render filtered tasks
-    function fetchAndRenderFilteredTasks(filters = {}) {
-        $.ajax({
-            url: appUrl + "/task/index",
-            type: "GET",
-            dataType: "json",
-            data: filters,
-            success: function (data) {
-                // Clear existing task lists
-                document.getElementById("new-request-tasks").innerHTML = "";
-                document.getElementById("in-progress-tasks").innerHTML = "";
-                document.getElementById("completed-tasks").innerHTML = "";
+   function fetchAndRenderFilteredTasks(filters = {}) {
+    $.ajax({
+        url: appUrl + "/task/index",
+        type: "GET",
+        dataType: "json",
+        data: filters,
+        success: function (data) {
+            // ✅ Ambil data di dalam "data"
+            let tasksData = data.data || {};
 
-                // Get all tasks from response
-                let allTasks = [];
-                
-                // Combine all tasks from different status arrays
-                if (data.new_request) allTasks = allTasks.concat(data.new_request);
-                if (data.in_progress) allTasks = allTasks.concat(data.in_progress);
-                if (data.completed) allTasks = allTasks.concat(data.completed);
-                if (data.rejected) allTasks = allTasks.concat(data.rejected);
-                
-                // Filter tasks based on selected criteria
-                let filteredTasks = allTasks;
+            // Clear existing task lists
+            document.getElementById("new-request-tasks").innerHTML = "";
+            document.getElementById("in-progress-tasks").innerHTML = "";
+            document.getElementById("completed-tasks").innerHTML = "";
 
-                // Apply project filter if selected (empty means all projects)
-                if (filters.project && filters.project !== "") {
-                    filteredTasks = filteredTasks.filter(task => 
-                        task.project_id == filters.project
-                    );
+            // Gabungkan semua task
+            let allTasks = [];
+            if (tasksData.new_request) allTasks = allTasks.concat(tasksData.new_request);
+            if (tasksData.in_progress) allTasks = allTasks.concat(tasksData.in_progress);
+            if (tasksData.completed) allTasks = allTasks.concat(tasksData.completed);
+            if (tasksData.rejected) allTasks = allTasks.concat(tasksData.rejected);
+
+            // Filter berdasarkan project
+            if (filters.project && filters.project !== "") {
+                allTasks = allTasks.filter(task => task.project_id == filters.project);
+            }
+
+            // Filter berdasarkan status
+            if (filters.status && filters.status !== "") {
+                allTasks = allTasks.filter(task => {
+                    let taskStatus = task.status.toLowerCase().replace(" ", "_");
+                    return taskStatus === filters.status;
+                });
+            }
+
+            // Group ulang berdasarkan status
+            const groupedTasks = {
+                new_request: [],
+                in_progress: [],
+                completed: [],
+                rejected: []
+            };
+
+            allTasks.forEach(task => {
+                let normalizedStatus = task.status.toLowerCase().replace(" ", "_");
+                if (groupedTasks[normalizedStatus] !== undefined) {
+                    groupedTasks[normalizedStatus].push(task);
+                } else if (normalizedStatus === "rejected") {
+                    groupedTasks.rejected.push(task);
                 }
+            });
 
-                // Apply status filter if selected (empty means all status)
-                if (filters.status && filters.status !== "") {
-                    filteredTasks = filteredTasks.filter(task => 
-                        task.status === filters.status
-                    );
-                }
+            // Render tasks ke kolom masing-masing
+            groupedTasks.new_request.forEach(task => {
+                document.getElementById("new-request-tasks")
+                    .insertAdjacentHTML("beforeend", createTaskCard(task));
+            });
+            groupedTasks.in_progress.forEach(task => {
+                document.getElementById("in-progress-tasks")
+                    .insertAdjacentHTML("beforeend", createTaskCard(task));
+            });
+            groupedTasks.completed.forEach(task => {
+                document.getElementById("completed-tasks")
+                    .insertAdjacentHTML("beforeend", createTaskCard(task));
+            });
 
-                // Group filtered tasks by status
-                const groupedTasks = {
-                    new_request: [],
-                    in_progress: [],
-                    completed: [],
-                    rejected: []
-                };
+            // Event listener tambahan
+            setupTaskDropdownListeners();
+            addAttachFileIconListeners();
 
-                filteredTasks.forEach(task => {
-                    const status = task.status;
-                    if (status === 'new_request' || status === 'new request') {
-                        groupedTasks.new_request.push(task);
-                    } else if (status === 'in_progress' || status === 'in progress') {
-                        groupedTasks.in_progress.push(task);
-                    } else if (status === 'completed') {
-                        groupedTasks.completed.push(task);
-                    } else if (status === 'rejected') {
-                        // Rejected tasks go to in_progress section with REJECTED badge
-                        groupedTasks.in_progress.push(task);
-                    }
+            // Tooltip bootstrap
+            setTimeout(() => {
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
+            }, 100);
+        },
+        error: function (xhr, status, error) {
+            console.error("Error fetching filtered tasks:", error);
+        },
+    });
+}
 
-                // Render filtered tasks in appropriate sections
-                groupedTasks.new_request.forEach((task) => {
-                    document
-                        .getElementById("new-request-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.in_progress.forEach((task) => {
-                    document
-                        .getElementById("in-progress-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.completed.forEach((task) => {
-                    document
-                        .getElementById("completed-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-
-                // Add event listeners for dropdown functionality after rendering
-                setupTaskDropdownListeners();
-
-                // Add event listener for attach_file icon click to show reference files modal
-                addAttachFileIconListeners();
-
-                // Initialize Bootstrap tooltips for PIC and executor images
-                setTimeout(() => {
-                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    tooltipTriggerList.map(function (tooltipTriggerEl) {
-                        return new bootstrap.Tooltip(tooltipTriggerEl);
-                    });
-                }, 100);
-            },
-            error: function (xhr, status, error) {
-                console.error("Error fetching filtered tasks:", error);
-            },
-        });
-    }
 
     // Reset filters
     function resetTaskFilters() {
