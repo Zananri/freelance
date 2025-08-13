@@ -210,7 +210,7 @@ class EmployeeController extends Controller
                 'office' => $request->office,
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
-                'deleted_by' => auth()->id(),
+                'deleted_by' => null,
             ]);
 
             // Simpan shift ke employee_shifts

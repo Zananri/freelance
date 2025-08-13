@@ -172,6 +172,9 @@ class TaskController extends Controller
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+                'deleted_by' => null,
             ]);
 
             if ($validator->fails()) {
@@ -502,6 +505,9 @@ class TaskController extends Controller
                 }
             }
 
+            $updateData['updated_by'] = auth()->id();
+            $task->update($updateData);
+
             DB::commit();
 
             return response()->json([
@@ -547,8 +553,8 @@ class TaskController extends Controller
             TaskAssignment::where('task_id', $task->id)->delete();
 
             // Delete task
-            $task->delete();
-
+            $task->deleted_by = auth()->id();
+            
             DB::commit();
 
             return response()->json([

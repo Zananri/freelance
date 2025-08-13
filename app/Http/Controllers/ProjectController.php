@@ -405,7 +405,7 @@ class ProjectController extends Controller
             $project->due_date = $request->due_date;
             $project->part_of_project = $request->part_of_project;
             $project->complete_date = $request->complete_date;
-            $project->created_by = auth()->user() ? auth()->user()->name : null;
+            $project->created_by = auth()->user() ? auth()->user()->id : null;
 
             // Handle image upload
             if ($request->hasFile('image')) {
@@ -668,7 +668,7 @@ class ProjectController extends Controller
             $project->due_date = $request->due_date;
             $project->part_of_project = $request->part_of_project;
             $project->complete_date = $request->complete_date;
-            $project->updated_by = auth()->user() ? auth()->user()->name : null;
+            $project->updated_by = auth()->user() ? auth()->user()->id : null;
 
             // Handle image upload
             if ($request->hasFile('image')) {

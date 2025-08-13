@@ -16,9 +16,9 @@ class CreateDivisionsTable extends Migration
             $table->unsignedBigInteger('department_id');
             $table->string('name_division');
             $table->string('status');
-            $table->string('created_by')->nullable();
-            $table->string('updated_by')->nullable();
-            $table->string('deleted_by')->nullable();
+            $table->bigInteger('created_by')->nullable();
+            $table->bigInteger('deleted_by')->nullable();
+            $table->bigInteger('updated_by')->nullable();
             $table->timestamps();
 
             $table->foreign('department_id')->references('id')->on('departments')->onDelete('restrict');

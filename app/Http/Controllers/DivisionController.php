@@ -100,7 +100,7 @@ class DivisionController extends Controller
                 'images' => $imageName,
                 'created_by' => $userId,
                 'updated_by' => $userId,
-                'deleted_by' => $userId,
+                'deleted_by' => null,
             ]);
 
             DB::commit();
