@@ -1,0 +1,66 @@
+/**
+ * App JavaScript File
+ * NSA Office Performance System
+ * 
+ * File ini dibuat untuk mengatasi error 404 pada saat mengakses halaman project
+ * File ini dapat diisi dengan fungsi-fungsi JavaScript yang dibutuhkan
+ */
+
+// Fungsi untuk inisialisasi aplikasi
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('NSA Office Performance System - App.js loaded successfully');
+    
+    // Inisialisasi fungsi umum
+    initCommonFunctions();
+});
+
+// Fungsi umum yang bisa digunakan di seluruh aplikasi
+function initCommonFunctions() {
+    // Setup untuk AJAX dengan CSRF token
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
+    
+    // Fungsi untuk menampilkan notifikasi
+    window.showNotification = function(message, type = 'success') {
+        // Implementasi notifikasi bisa ditambahkan di sini
+        console.log(`${type}: ${message}`);
+    };
+    
+    // Fungsi untuk format tanggal
+    window.formatDate = function(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+}
+
+// Fungsi untuk konfirmasi sebelum delete
+window.confirmDelete = function(message = 'Are you sure you want to delete this item?') {
+    return confirm(message);
+};
+
+// Fungsi untuk loading state
+window.showLoading = function(elementId = null) {
+    if (elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+        }
+    }
+};
+
+// Fungsi untuk hide loading state
+window.hideLoading = function(elementId = null) {
+    if (elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '';
+        }
+    }
+};

@@ -1,0 +1,312 @@
+/* Cleaned user.css: Only necessary styles for user blade */
+
+.table-transparent th,
+.table-transparent td {
+    background-color: rgba(248, 248, 249, 0) !important;
+}
+
+.title-content a {
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+.table-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center center;
+    background: #f7f7f7;
+}
+
+table.table > thead > tr {
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+    font-weight: normal;
+}
+
+table.table > tbody > tr {
+    border-bottom: 1px solid #ddd;
+}
+
+/* Add body-content spacing similar to employee.css */
+.body-content {
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* New styles to make User, User Type, User Role columns equal width and action column minimal width */
+table.table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* Set font size and color for all table headers and cells */
+table.table thead th,
+table.table tbody td {
+    font-size: 14px;
+    color: #555;
+}
+
+/* Reset password button styling similar to employee buttons */
+.btn-reset {
+    border: none;
+    background-color: transparent;
+    color: #555;
+    padding: 0.375rem 0.75rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-sizing: border-box;
+    height: 38px;
+    min-width: 38px;
+    font-size: 14px;
+    border-radius: 4px;
+}
+
+.btn-reset .material-symbols-outlined {
+    color: inherit;
+    transition: color 0.3s ease;
+    font-size: 20px;
+}
+
+.btn-reset:hover {
+    background-color: white;
+}
+
+.btn-reset:hover .material-symbols-outlined {
+    color: black;
+}
+
+/* User Detail Modal Styling - adapted from employee.css */
+
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: rgb(103, 111, 122);
+}
+
+#userDetailModal .modal-dialog {
+    max-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+}
+
+#userDetailModal .modal-content {
+    max-width: 500px;
+    max-height: 700px;
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    background-color: rgb(240, 241, 248);
+}
+
+#userDetailModal .modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px;
+}
+
+#userDetailModal .modal-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding-top: 1rem;
+    overflow-y: auto;
+    align-items: center;
+}
+
+.user-photo-name-email {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.user-photo {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.user-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #555;
+    margin: 0;
+}
+
+.user-email {
+    font-size: 12px;
+    color: #555;
+}
+
+.user-detail-columns {
+    display: flex;
+    width: 100%;
+    gap: 3rem;
+    justify-content: center;
+}
+
+.user-detail-left,
+.user-detail-right {
+    margin-top: 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.user-detail-left p,
+.user-detail-right p {
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+}
+
+.user-detail-left p strong,
+.user-detail-right p strong {
+    font-weight: 600;
+    color: #555;
+}
+
+/* Additional styling for new fields to match employee detail modal */
+#userDetailModal p strong {
+    font-weight: 600;
+    color: #555;
+}
+
+#userDetailModal p {
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+}
+
+/* Scrollbar styling for modal body */
+#userDetailModal .modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+#userDetailModal .modal-body::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #userDetailModal .modal-content {
+        width: 95vw;
+        height: 95vh;
+        padding: 1rem;
+    }
+    #userDetailModal .modal-body {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+    }
+    .user-detail-columns {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
+/* Custom modal header to position close button top right */
+.custom-modal-header {
+    position: relative;
+    padding: 0;
+    height: 40px;
+    border-bottom: none !important;
+}
+
+/* Position close button absolutely at top right corner */
+.custom-modal-header .btn-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+/* Adjust modal body padding to move content higher */
+#userDetailModal .modal-body {
+    padding-top: 0.5rem;
+}
+
+/* Reduce margin-top of user name to move content higher */
+.user-photo-name-email .user-name {
+    margin-top: 0.5rem !important;
+}
+
+
+.btn-submit-custom {
+    width: auto;
+    min-width: auto;
+    height: 36px;
+    font-weight: normal;
+    padding: 6px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Align icon and text horizontally with spacing in the button */
+.btn-submit-black.btn-submit-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Loading overlay for reset password button */
+#resetPasswordLoader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+}
+
+#resetPasswordLoader .loader-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #333;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

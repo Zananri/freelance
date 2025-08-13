@@ -32,6 +32,10 @@ body {
     color: #fff;
 }
 
+.fs-8{
+    font-size: 8px;
+}
+
 .fs-9{
     font-size: 8px;
 }
@@ -64,7 +68,15 @@ body {
     font-size: 18px;
 }
 
+.fs-20{
+    font-size: 18px;
+}
+
 .fs-24{
+    font-size: 24px;
+}
+
+.fs-32{
     font-size: 24px;
 }
 

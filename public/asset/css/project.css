@@ -1,0 +1,885 @@
+.custom-card .card-body {
+    padding: 1rem;
+}
+
+.title-project {
+    color: #555;
+    font-size: 16px;
+}
+
+.row.justify-content-start > .col-md-2 {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.col-md-4 {
+    margin-bottom: 1.5rem;
+}
+
+/* Spinner inside submit button */
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+    margin-left: 0.5rem;
+}
+
+/* Success alert styling */
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 14px;
+    text-align: center;
+}
+
+.custom-card {
+    background-color: rgb(240, 241, 248);
+    margin-right: 15px;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.card-image img {
+    border-radius: 8px;
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.project-name {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.author {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.card-icons {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.icon-item {
+    display: flex;
+    align-items: center;
+}
+
+.icon-format_list_bulleted {
+    color: #555; /* blue */
+    font-size: 14px;
+}
+
+.icon-av-timer {
+    color: #555; /* orange */
+    font-size: 14px;
+}
+
+.icon-checklist {
+    color: #555; /* green */
+    font-size: 14px;
+}
+
+.icon-number {
+    margin-left: 0.25rem;
+    font-weight: 600;
+    font-size: 14px;
+    color: #555;
+}
+
+
+
+/* New class for icon container below project name */
+.icon-container-inline {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.icon-container-inline .d-flex.align-items-center {
+    margin-right: 1rem;
+}
+
+.card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: visible;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.status-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.custom-image-upload {
+    position: relative;
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5;
+}
+
+.custom-image-upload.has-image {
+    opacity: 1;
+}
+
+.custom-image-upload:hover {
+    border-color: #333;
+}
+
+.custom-image-upload.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.custom-image-upload.is-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.image-clear-btn {
+    position: absolute;
+    top: -13px;
+    right: -13px;
+    background: #dc3545;
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s;
+    opacity: 0.85;
+}
+.image-clear-btn:hover {
+    background: #b02a37;
+    opacity: 1;
+}
+
+.title-label-image {
+    display: block;
+    font-size: 14px;
+    color: #222;
+    margin-bottom: 6px;
+    margin-left: 2px;
+    font-family: inherit;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 24px;
+    background: #f7f7f8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+.modal-header-custom {
+    border: 0;
+}
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: rgb(103, 111, 122);
+}
+
+#deleteProjectTitle {
+    font-weight: 300 !important;
+}
+.form-custom {
+    margin-top: -12px;
+}
+.modal-body-custom {
+    padding: 0;
+}
+
+.label-custom {
+    font-size: 14px;
+    font-weight: 400;
+}
+.modal-footer-custom {
+    border: 0;
+    justify-content: center;
+}
+.btn-submit-custom {
+    width: auto;
+    min-width: auto;
+    height: 36px;
+    padding: 6px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Loading overlay for modal */
+.modal-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    z-index: 1051; /* higher than modal content */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-loading-overlay .loader-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #000000;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Alert container below modal */
+.alert-container {
+    margin-top: 0.5rem;
+    width: 100%;
+    height: 36px !important;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 36px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* Ensure modal-dialog is positioned relative for overlay */
+.modal-dialog {
+    position: relative;
+}
+
+/* Dropdown icon container positioned at top right of card */
+.dropdown-icon-container {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+/* Dropdown icon style */
+.dropdown-icon {
+    cursor: pointer;
+    font-size: 24px;
+    color: #555;
+    user-select: none;
+}
+
+/* Dropdown menu container */
+.dropdown-menu {
+    position: absolute;
+    top: 32px;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    min-width: 160px;
+    padding: 8px 0;
+    display: none;
+    flex-direction: column;
+    font-size: 14px;
+    color: #333;
+}
+
+/* Show dropdown menu */
+.dropdown-menu:not(.d-none) {
+    display: flex;
+}
+
+/* Dropdown menu item */
+.dropdown-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+    color: #555;
+}
+
+/* Hover effect for dropdown items */
+.dropdown-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Special style for delete item */
+.dropdown-item.text-danger {
+    color: #dc3545;
+}
+
+.delete-alert-container {
+    margin-top: 10px;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    background-color: #d4edda;
+    color: #155724;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    word-break: break-word;
+    width: auto;
+}
+
+/* Project Detail Modal Styling */
+
+.project-detail-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: #555;
+}
+
+.project-photo-title-author {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 1rem;
+}
+
+.project-photo-title-author img.project-photo {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.project-photo-title-author .project-title {
+    text-align: center;
+    font-weight: 600;
+    color: #555;
+    margin: 0;
+}
+
+.project-photo-title-author .project-description {
+    text-align: justify;
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+}
+
+.project-detail-columns {
+    display: flex;
+    width: 100%;
+    gap: 3rem;
+    justify-content: center;
+}
+
+.project-detail-left,
+.project-detail-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.project-detail-left p,
+.project-detail-right p {
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+    
+}
+
+.project-detail-right p a {
+    font-size: 14px;
+    margin: 0;
+    text-decoration: none;
+    
+}
+
+.project-detail-left p strong,
+.project-detail-right p strong {
+    font-weight: 500;
+    color: #555;
+    
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .project-detail-columns {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+    }
+    .project-detail-left,
+    .project-detail-right {
+        flex: 1 1 100%;
+    }
+}
+
+/* Description styling similar to employee address */
+#projectDetailDescription {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    display: block;
+}
+
+/* Custom styles for Project Feedback Modal */
+
+
+.feedback-modal-dialog {
+    max-width: 480px;
+    min-height: 600px; /* Ensure modal height is at least as tall as project view modal */
+    display: flex;
+    flex-direction: column;
+}
+
+.feedback-modal-content {
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.feedback-modal-body {
+    padding: 1rem 1.5rem;
+    max-height: 100%;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.feedback-modal-content {
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    padding: 0;
+}
+
+.feedback-modal-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #ddd;
+    padding: 1rem 1.5rem;
+}
+
+.feedback-modal-title {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #333;
+}
+
+#addFeedbackButton {
+    background-color: black;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#addFeedbackButton:hover {
+    background-color: #333;
+    color: white;
+}
+
+.feedback-modal-body {
+    padding: 1rem 1.5rem;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.feedback-item {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.feedback-employee-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.feedback-comment {
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    color: #444;
+}
+
+.feedback-item img.feedback-image {
+    width: 70px;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.feedback-reference-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.feedback-reference-url,
+.feedback-reference-file {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.feedback-reference-url:hover,
+.feedback-reference-file:hover {
+    text-decoration: underline;
+}
+
+.feedback-reference-url .material-symbols-outlined,
+.feedback-reference-file .material-symbols-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+    color: #007bff;
+}
+
+/* Override Bootstrap modal backdrop opacity for lighter background */
+.modal-backdrop.show {
+    opacity: 0.3 !important; /* Adjust opacity to be lighter */
+}
+
+/* Adjusted footer padding for feedback modal */
+.feedback-modal-footer {
+    padding: 0.5rem 1rem;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Dropdown list for co-author input */
+#co_author_dropdown {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Dropdown item */
+#co_author_dropdown .dropdown-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+/* Disabled dropdown item */
+#co_author_dropdown .dropdown-item.disabled {
+    color: #999;
+    cursor: default;
+}
+
+/* Checkbox styles */
+#co_author_dropdown input[type="checkbox"].co-author-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #fff;
+    border: 1.5px solid #ccc;
+    border-radius: 4px;
+    position: relative;
+    outline: none;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#co_author_dropdown input[type="checkbox"].co-author-checkbox:checked {
+    background-color: #0d6efd; /* Bootstrap primary blue */
+    border-color: #0d6efd;
+}
+
+#co_author_dropdown input[type="checkbox"].co-author-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 6px;
+    width: 4px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Selected co-author badges */
+#selected_co_authors .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35em 0.65em;
+    font-size: 0.875em;
+    border-radius: 0.375rem;
+    background-color: #0d6efd;
+    color: white;
+    user-select: none;
+}
+
+#selected_co_authors .badge .btn-close {
+    margin-left: 0.5em;
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+#selected_co_authors .badge .btn-close:hover {
+    opacity: 1;
+}
+
+/* Added styles for project delete success alert */
+.project-delete-alert {
+    position: fixed;
+    bottom: 60px;
+    right: 20px;
+    z-index: 1050;
+    min-width: 300px;
+    max-width: 350px;
+    box-shadow: 0 0.125rem 0.25rem rgb(0 0 0 / 0.075);
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.project-delete-alert svg.bi {
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+    width: 24px;
+    height: 24px;
+    color: #198754; /* Bootstrap success green */
+}
+
+#deleteProjectTitle {
+    font-weight: 300 !important;
+}
+
+/* Task Status Badge Styling */
+.status-badge {
+    color: white;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    display: inline-block;
+    text-align: center;
+    line-height: 1;
+}
+
+.status-new-request {
+    background-color: #FF9B2F;
+}
+
+.status-in-progress {
+    background-color: #FFCC00;
+}
+
+.status-completed {
+    background-color: #78C841;
+}
+
+.status-rejected {
+    background-color: #ED3500;
+}
+
+/* PIC and Executor image styling for task modal */
+.pic-executor-image {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.executor-image-overlap {
+    margin-left: -8px;
+}
+
+.pic-executor-container {
+    display: flex;
+    align-items: center;
+}
+
+.task-item .pic-executor-container {
+    margin-left: -4px;
+}
+
+.task-item .pic-executor-image {
+    width: 40px;
+    height: 40px;
+}
+
+.task-item .d-flex.align-items-center {
+    gap: 4px;
+}
+
+.task-item .small {
+    font-size: 12px;
+    color: #666;
+}
+
+/* Filter Button Styles - Sama persis dengan task */
+.btn-icon-toggle {
+    color: #333;
+    height: 45px;
+}
+
+/* Dropdown Filter Styles - Sama persis dengan task */
+.dropdown-filter-container {
+    position: relative;
+}
+
+.dropdown-filter-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 1000;
+    min-width: 280px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-top: 4px;
+}
+
+.dropdown-filter-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.dropdown-filter-header h6 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #212529;
+}
+
+.dropdown-filter-body {
+    padding: 16px;
+}
+
+.dropdown-filter-footer {
+    padding: 12px 16px;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    gap: 5px;
+    justify-content: flex-end;
+    border-radius: 0 0 8px 8px;
+}
+
+.dropdown-filter-footer .btn-sm {
+    padding: 4px 12px;
+    font-size: 14px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dropdown-filter-menu {
+        min-width: 250px;
+        right: -50px;
+    }
+}
+
+/* Project Filter Display Styles - Sama persis dengan task */
+.project-filter-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 16px;
+    color: #222;
+    margin-top: 8px;
+}
+
+.project-filter-display .material-symbols-outlined {
+    font-size: 16px;
+    vertical-align: middle;
+}
+
+.project-filter-display .project-name {
+    font-size: 16px;
+    color: #222;
+    font-weight: 500;
+}
+
+#currentProjectName {
+    font-size: 16px;
+    color: #222;
+    font-weight: 300;
+    margin-left: 4px;
+}
+
+.filter-text {
+    font-size: 16px;
+    color: #222;
+    font-weight: 300;
+    right: 4px;
+}
+
+#projectFilterDisplay {
+    display: none; /* Initially hidden */
+    position: absolute;
+}
