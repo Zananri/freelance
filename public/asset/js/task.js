@@ -2229,107 +2229,84 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     }
 
     // Function to handle task detail view
-    function handleTaskDetail(taskId) {
-        $.ajax({
-            url: appUrl + "/task/" + taskId,
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                // Populate task detail modal
-                $("#taskDetailImage").attr(
-                    "src",
-                    data.image
-                        ? appUrl + "/file/task/" + data.image
-                        : appUrl + "/asset/img/background/add-image.png"
-                );
-                $("#taskDetailTitle").text(data.title || "");
-                $("#taskDetailDescription").text(data.description || "");
-
-                // Department and Division from project
-                $("#taskDetailDepartment").text(
-                    data.project && data.project.department
-                        ? data.project.department
-                        : ""
-                );
-                $("#taskDetailDivision").text(
-                    data.project && data.project.division
-                        ? data.project.division
-                        : ""
-                );
-                $("#taskDetailProject").text(
-                    data.project ? data.project.title : ""
-                );
-
-                // PIC (Person in Charge)
-                $("#taskDetailPIC").text(data.pic ? data.pic.name : "None");
-
-                $("#taskDetailPoint").text(data.point || "");
-                $("#taskDetailPriority").text(data.priority || "");
-
-                if (data.reference_url) {
-                    $("#taskDetailReferenceUrl")
-                        .attr("href", data.reference_url)
-                        .text(data.reference_url)
-                        .show();
-                } else {
-                    $("#taskDetailReferenceUrl").hide();
-                }
-
-                // Reference Files
-                if (
-                    data.reference_files &&
-                    Array.isArray(data.reference_files) &&
-                    data.reference_files.length > 0
-                ) {
-                    const referenceFilesHtml = data.reference_files
-                        .map((fileName) => {
-                            return `<a href="${appUrl}/file/task_reference_files/${fileName}" target="_blank" class="d-block text-decoration-none mb-1">
-                            <span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span>
-                            ${fileName}
-                        </a>`;
-                        })
-                        .join("");
-                    $("#taskDetailReferenceFiles").html(referenceFilesHtml);
-                } else {
-                    $("#taskDetailReferenceFiles").text("No files");
-                }
-
-                // Format dates
-                function formatDate(dateStr) {
-                    if (!dateStr) return "";
-                    const options = {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    };
-                    const dateObj = new Date(dateStr);
-                    return dateObj.toLocaleDateString(undefined, options);
-                }
-
-                $("#taskDetailStartDate").text(formatDate(data.start_date));
-                $("#taskDetailDueDate").text(formatDate(data.due_date));
-
-                // Executors list
-                if (data.executors && data.executors.length > 0) {
-                    const executorNames = data.executors
-                        .map((ex) => ex.name)
-                        .join(", ");
-                    $("#taskDetailExecutors").text(executorNames);
-                } else {
-                    $("#taskDetailExecutors").text("None");
-                }
-
-                // Show modal
-                const taskDetailModal = new bootstrap.Modal(
-                    document.getElementById("taskDetailModal")
-                );
-                taskDetailModal.show();
-            },
-            error: function () {
+function handleTaskDetail(taskId) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId,
+        type: "GET",
+        dataType: "json",
+        success: function (res) {
+            if (res.status !== 'success' || !res.data) {
                 alert("Failed to load task details.");
-            },
-        });
-    }
+                return;
+            }
+
+            const data = res.data;
+
+            // Gambar task
+            $("#taskDetailImage").attr("src", data.image);
+
+            // Judul & Deskripsi
+            $("#taskDetailTitle").text(data.title || "");
+            $("#taskDetailDescription").text(data.description || "");
+            // Point & Priority
+            $("#taskDetailPoint").text(data.point || 0);
+            $("#taskDetailPriority").text(data.priority || "Normal");
+
+            // Department, Division, Project
+            $("#taskDetailDepartment").text(data.project?.department || "");
+            $("#taskDetailDivision").text(data.project?.division || "");
+            $("#taskDetailProject").text(data.project?.title || "");
+
+            // PIC
+            $("#taskDetailPIC").text(data.pic?.name || "None");
+
+            // Executors
+            if (Array.isArray(data.executors) && data.executors.length > 0) {
+                $("#taskDetailExecutors").text(data.executors.map(ex => ex.name).join(", "));
+            } else {
+                $("#taskDetailExecutors").text("None");
+            }
+
+            // Reference URL
+            if (data.reference_url) {
+                $("#taskDetailReferenceUrl")
+                    .attr("href", data.reference_url)
+                    .text(data.reference_url)
+                    .show();
+            } else {
+                $("#taskDetailReferenceUrl").hide();
+            }
+
+            // Reference Files
+            if (Array.isArray(data.reference_files) && data.reference_files.length > 0) {
+                const referenceFilesHtml = data.reference_files.map((fileName) => {
+                    return `<a href="${appUrl}/file/task_reference_files/${fileName}" target="_blank" class="d-block text-decoration-none mb-1">
+                        <span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span>
+                        ${fileName}
+                    </a>`;
+                }).join("");
+                $("#taskDetailReferenceFiles").html(referenceFilesHtml);
+            } else {
+                $("#taskDetailReferenceFiles").text("No files");
+            }
+
+            // Format tanggal
+            const formatDate = (dateStr) => {
+                if (!dateStr) return "";
+                const options = { year: "numeric", month: "long", day: "numeric" };
+                return new Date(dateStr).toLocaleDateString(undefined, options);
+            };
+            $("#taskDetailStartDate").text(formatDate(data.start_date));
+            $("#taskDetailDueDate").text(formatDate(data.due_date));
+
+            // Tampilkan modal
+            new bootstrap.Modal(document.getElementById("taskDetailModal")).show();
+        },
+        error: function () {
+            alert("Failed to load task details.");
+        },
+    });
+}
 
     // Function to handle task edit
     function handleTaskEdit(taskId) {

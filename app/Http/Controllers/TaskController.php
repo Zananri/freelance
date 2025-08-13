@@ -290,65 +290,97 @@ class TaskController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
-    {
-        try {
-            $task = Task::with([
-                'project.department', 
-                'project.division',
-                'assignments.employee.user'
-            ])->findOrFail($id);
+   public function show(string $id)
+{
+    try {
+        $task = Task::with([
+            'project.department',
+            'project.division',
+            'assignments.employee.user'
+        ])->findOrFail($id);
 
-            // Get PIC and executors
-            $pic = $task->assignments->firstWhere('role', 'PIC');
-            $executors = $task->assignments->where('role', 'EXECUTOR');
+        // Get PIC dan Executors
+        $pic = $task->assignments->firstWhere('role', 'PIC');
+        $executors = $task->assignments->where('role', 'EXECUTOR');
 
-            $response = [
-                'id' => $task->id,
-                'title' => $task->title,
-                'description' => $task->description,
-                'point' => $task->point,
-                'priority' => $task->priority,
-                'status' => $task->status,
-                'reference_url' => $task->reference_url,
-                'reference_files' => $task->reference_files,
-                'start_date' => $task->start_date,
-                'due_date' => $task->due_date,
-                'image' => $task->image,
-                'project' => [
-                    'id' => $task->project->id,
-                    'title' => $task->project->title,
-                    'department' => $task->project->department->name_department ?? '',
-                    'division' => $task->project->division->name_division ?? '',
-                ],
-                'pic' => $pic ? [
-                    'id' => $pic->employee->id,
-                    'name' => $pic->employee->name,
-                    'user_photo' => $pic->employee->user->photo ?? null,
-                ] : null,
-                'executors' => $executors->map(function ($executor) {
+        // Pastikan reference_files selalu array
+        $referenceFiles = is_array($task->reference_files)
+            ? $task->reference_files
+            : (is_string($task->reference_files)
+                ? json_decode($task->reference_files, true) ?? []
+                : []);
+
+        // Response
+        $response = [
+            'id' => $task->id,
+            'title' => $task->title ?? '',
+            'description' => $task->description ?? '',
+            'point' => $task->point ?? '',
+            'priority' => $task->priority ?? '',
+            'status' => $task->status ?? '',
+            'reference_url' => $task->reference_url ?? '',
+            'reference_files' => $referenceFiles,
+            'start_date' => $task->start_date ?? '',
+            'due_date' => $task->due_date ?? '',
+            'image' => $task->image
+                ? asset('file/task/' . $task->image)
+                : asset('asset/img/background/add-image.png'),
+
+            // Project data dengan fallback
+            'project' => $task->project ? [
+                'id' => $task->project->id,
+                'title' => $task->project->title ?? '',
+                'department' => $task->project->department->name_department ?? 'No Department',
+                'division' => $task->project->division->name_division ?? 'No Division',
+            ] : [
+                'id' => null,
+                'title' => 'No Project',
+                'department' => 'No Department',
+                'division' => 'No Division',
+            ],
+
+            // PIC dengan default
+            'pic' => ($pic && $pic->employee) ? [
+                'id' => $pic->employee->id,
+                'name' => $pic->employee->name ?? '',
+                'user_photo' => $pic->employee->user->photo
+                    ? asset($pic->employee->user->photo)
+                    : asset('asset/img/profile_picture/default.png'),
+            ] : [
+                'id' => null,
+                'name' => 'None',
+                'user_photo' => asset('asset/img/profile_picture/default.png'),
+            ],
+
+            // Executors dengan default
+            'executors' => $executors->count() > 0
+                ? $executors->map(function ($executor) {
                     return [
                         'id' => $executor->employee->id,
-                        'name' => $executor->employee->name,
-                        'user_photo' => $executor->employee->user->photo ?? null,
+                        'name' => $executor->employee->name ?? '',
+                        'user_photo' => $executor->employee->user->photo
+                            ? asset($executor->employee->user->photo)
+                            : asset('asset/img/profile_picture/default.png'),
                     ];
-                })->values(),
-            ];
+                })->values()
+                : [],
+        ];
 
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'data' => $response
-            ]);
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'data' => $response
+        ]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => $e->getCode() ?: 500,
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
-        }
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => $e->getCode() ?: 500,
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], $e->getCode() ?: 500);
     }
+}
+
 
       public function edit(string $id)
     {
