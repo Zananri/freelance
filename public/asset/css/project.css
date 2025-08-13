@@ -202,7 +202,7 @@
 .modal-content-custom {
     border-radius: 16px;
     padding: 24px;
-    background: #f7f7f8;
+    background-color: rgb(240, 241, 248);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: none;
 }
@@ -749,12 +749,11 @@
     height: 24px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1px solid #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    border: 3px solid #f0f1f8;
 }
 
 .executor-image-overlap {
-    margin-left: -8px;
+    margin-left: -22px;
 }
 
 .pic-executor-container {
@@ -769,6 +768,7 @@
 .task-item .pic-executor-image {
     width: 40px;
     height: 40px;
+    z-index: 1 !important;
 }
 
 .task-item .d-flex.align-items-center {

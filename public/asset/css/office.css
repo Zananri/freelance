@@ -515,6 +515,27 @@ td > .btn-delete {
     padding-right: 4px;
 }
 
+
+.btn-submit-reset {
+    background-color: #1557b0;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-submit-reset:hover {
+    background-color: #007bff;
+    color: white;
+}
+
 .notification-item {
     display: flex;
     align-items: flex-start;
