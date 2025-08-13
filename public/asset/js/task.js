@@ -2425,38 +2425,23 @@ function handleTaskDetail(taskId) {
             url: appUrl + "/task/" + taskId,
             type: "GET",
             dataType: "json",
-            success: function (data) {
-                // Set task image
-                const deleteTaskImage = document.getElementById("deleteTaskImage");
-                if (deleteTaskImage) {
-                    if (data.image) {
-                        deleteTaskImage.src = appUrl + "/file/task/" + data.image;
-                    } else {
-                        deleteTaskImage.src = appUrl + "/asset/img/background/add-image.png";
-                    }
-                }
+         success: function (data) {
+    const task = data.data; // ambil objek task di dalam response
 
-                // Set task title
-                const deleteTaskTitle = document.getElementById("deleteTaskTitle");
-                if (deleteTaskTitle) {
-                    deleteTaskTitle.textContent = data.title || "Untitled Task";
-                }
+    const deleteTaskImage = document.getElementById("deleteTaskImage");
+    if (deleteTaskImage) {
+        deleteTaskImage.src = task.image
+            ? task.image
+            : appUrl + "/asset/img/background/add-image.png";
+    }
 
-                // Show modal after data is loaded
-                deleteModal.show();
-            },
-            error: function () {
-                // Fallback if task details can't be loaded
-                const deleteTaskImage = document.getElementById("deleteTaskImage");
-                if (deleteTaskImage) {
-                    deleteTaskImage.src = appUrl + "/asset/img/background/add-image.png";
-                }
-                const deleteTaskTitle = document.getElementById("deleteTaskTitle");
-                if (deleteTaskTitle) {
-                    deleteTaskTitle.textContent = "Task #" + taskId;
-                }
-                deleteModal.show();
-            }
+    const deleteTaskTitle = document.getElementById("deleteTaskTitle");
+    if (deleteTaskTitle) {
+        deleteTaskTitle.textContent = task.title || "Untitled Task";
+    }
+
+    deleteModal.show();
+}
         });
 
         // Delete button click handler
