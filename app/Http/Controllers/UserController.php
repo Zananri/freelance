@@ -2,19 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Employee;
+use App\Models\Attendance;
 
 class UserController extends Controller
 {
-   
+
     public function showUserPage()
     {
         return view('master.user.user');
     }
-    
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -25,7 +27,7 @@ class UserController extends Controller
         return view('master.user.user');
     }
 
-   
+
     public function login(Request $request)
     {
         $request->validate([
@@ -123,10 +125,16 @@ class UserController extends Controller
 
         if ($user) {
             $employee = Employee::where('user_id', $user->id)->first();
+            $today = Carbon::today()->toDateString();
 
             if ($employee) {
                 // Prefer profile_picture if available, else photo
                 $photo = $employee->profile_picture ?? $employee->photo;
+                $attendance = Attendance::where('employee_id', $employee->id)
+                    ->where('date_attendance', $today)
+                    ->where('type_attendance', 'check_in')
+                    ->first();
+
             }
 
             // If photo is a relative path, convert to asset URL
@@ -135,7 +143,7 @@ class UserController extends Controller
             }
         }
 
-        return view('dashboard', compact('photo'));
+        return view('dashboard', compact('photo', 'employee', 'attendance'));
     }
 
     /**
