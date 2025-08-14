@@ -523,206 +523,131 @@ let stream = null;
 let capturedImage = null;
 
 function initializeCameraFeatures() {
-    // Camera label click handler
     const cameraLabel = document.querySelector(".camera-label");
+    const clearImageBtn = document.getElementById("clearImageBtn");
+    const imageInput = document.getElementById("imageInput");
+    const captureBtn = document.getElementById("captureBtn");
+
     if (cameraLabel) {
-        cameraLabel.addEventListener("click", function (e) {
+        cameraLabel.addEventListener("click", e => {
             e.preventDefault();
             startCamera();
         });
     }
 
-    // Clear image button
-    const clearImageBtn = document.getElementById("clearImageBtn");
     if (clearImageBtn) {
         clearImageBtn.addEventListener("click", clearImage);
     }
 
-    // Removed retake button event listener as per user request
-}
+    if (imageInput) {
+        imageInput.addEventListener("change", handleImagePreview);
+    }
 
+    if (captureBtn) {
+        captureBtn.addEventListener("click", capturePhoto);
+    }
+}
 function startCamera() {
-    // Check if camera is supported
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("Camera is not supported on this device/browser");
+    const video = document.getElementById("cameraVideo");
+    const captureBtn = document.getElementById("captureBtn");
+    const cameraLabel = document.querySelector(".camera-label");
+    const preview = document.getElementById("imagePreview");
+
+    // Cegah duplikasi stream
+    if (stream) {
+        console.log("Camera already active");
         return;
     }
 
-    // Request camera access
-    navigator.mediaDevices
-        .getUserMedia({
-            video: {
-                facingMode: "user",
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-            },
-        })
-        .then(function (mediaStream) {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then(mediaStream => {
             stream = mediaStream;
+            video.srcObject = mediaStream;
 
-            // Show video element
-            const video = document.getElementById("cameraVideo");
-            const imageInput = document.getElementById("imageInput");
-            const cameraLabel = document.querySelector(".camera-label");
-            const preview = document.getElementById("imagePreview");
+            video.onloadedmetadata = () => {
+                video.play(); // pastikan play dipanggil setelah metadata siap
+            };
 
-            if (video && cameraLabel) {
-                video.srcObject = mediaStream;
-                video.style.display = "block";
-                cameraLabel.style.display = "none";
-                imageInput.style.display = "none";
-                preview.style.display = "none";
-
-                // Add capture button
-                addCaptureButton();
-            }
+            video.style.display = "block";
+            captureBtn.classList.remove("d-none");
+            if (cameraLabel) cameraLabel.style.display = "none";
+            if (preview) preview.style.display = "none";
         })
-        .catch(function (error) {
-            console.error("Error accessing camera:", error);
-
-            // Fallback to file input if camera fails
-            const imageInput = document.getElementById("imageInput");
-            if (imageInput) {
-                imageInput.click();
-            }
+        .catch(err => {
+            console.error("Cannot access camera:", err);
+            alert("Cannot access camera on this device.");
         });
 }
 
-function addCaptureButton() {
-    // Remove existing capture button
-    const existingBtn = document.getElementById("captureBtn");
-    if (existingBtn) {
-        existingBtn.remove();
-    }
-
-    // Create capture button
-    const captureBtn = document.createElement("button");
-    captureBtn.id = "captureBtn";
-    captureBtn.type = "button";
-    captureBtn.className = "btn btn-primary mt-2 w-100";
-    captureBtn.innerHTML = '<i class="fas fa-camera"></i> Capture Photo';
-
-    captureBtn.addEventListener("click", capturePhoto);
-
-    const videoContainer = document.getElementById("cameraVideo").parentElement;
-    videoContainer.appendChild(captureBtn);
-}
 
 function capturePhoto() {
     const video = document.getElementById("cameraVideo");
     const canvas = document.getElementById("cameraCanvas");
-
-    if (!video || !canvas) return;
-
-    // Set canvas dimensions to match video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // Draw video frame to canvas
-    const context = canvas.getContext("2d");
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Convert canvas to blob
-    canvas.toBlob(
-        function (blob) {
-            if (blob) {
-                // Create file from blob
-                const file = new File([blob], "attendance-photo.jpg", {
-                    type: "image/jpeg",
-                });
+    canvas.toBlob(blob => {
+        const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+        capturedImage = file; // Simpan ke variabel global
 
-                // Create data URL for preview
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    showImagePreview(e.target.result);
-                    capturedImage = file;
+        const reader = new FileReader();
+        reader.onload = e => showImagePreview(e.target.result, file);
+        reader.readAsDataURL(blob);
+    }, "image/jpeg", 0.9);
 
-                    // Update file input
-                    const dt = new DataTransfer();
-                    dt.items.add(file);
-                    document.getElementById("imageInput").files = dt.files;
-                };
-                reader.readAsDataURL(blob);
-            }
-        },
-        "image/jpeg",
-        0.9
-    );
-
-    // Stop camera stream
     stopCamera();
 }
 
-function showImagePreview(src) {
+
+function showImagePreview(src, file = null) {
     const preview = document.getElementById("imagePreview");
     const previewImg = document.getElementById("previewImg");
-    const clearBtn = document.getElementById("clearImageBtn");
-    const retakeBtn = document.getElementById("retakeBtn");
+    const cameraLabel = document.querySelector(".camera-label");
+    const imageInput = document.getElementById("imageInput");
     const video = document.getElementById("cameraVideo");
     const captureBtn = document.getElementById("captureBtn");
+    const clearBtn = document.getElementById("clearImageBtn");
 
-    if (preview && previewImg) {
-        previewImg.src = src;
-        preview.style.display = "block";
+    if (!preview || !previewImg) return;
 
-        if (clearBtn) {
-            clearBtn.style.display = "";
-            clearBtn.classList.remove("d-none");
-        }
-        if (retakeBtn) {
-            retakeBtn.style.display = "inline-block";
-            retakeBtn.classList.remove("d-none");
-        }
-        if (video) video.style.display = "none";
-        if (captureBtn) captureBtn.remove();
+    previewImg.src = src;
+    preview.style.display = "block";
+
+    // hide camera & label
+    video.style.display = "none";
+    captureBtn.classList.add("d-none");
+    if (cameraLabel) cameraLabel.style.display = "none";
+
+    if (clearBtn) clearBtn.classList.remove("d-none");
+
+    // update input file
+    if (file && imageInput) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        imageInput.files = dt.files;
     }
 }
 
 function clearImage() {
     const preview = document.getElementById("imagePreview");
     const previewImg = document.getElementById("previewImg");
-    const clearBtn = document.getElementById("clearImageBtn");
-    const retakeBtn = document.getElementById("retakeBtn");
     const cameraLabel = document.querySelector(".camera-label");
     const imageInput = document.getElementById("imageInput");
     const video = document.getElementById("cameraVideo");
-    const existingImageUrlInput = document.getElementById("existingImageUrl");
+    const captureBtn = document.getElementById("captureBtn");
+    const clearBtn = document.getElementById("clearImageBtn");
 
-    // Reset preview
-    if (preview) preview.style.display = "none";
     if (previewImg) previewImg.src = "";
-
-    // Hide clear and retake buttons
-    if (clearBtn) {
-        clearBtn.style.display = "none";
-        clearBtn.classList.add("d-none");
-    }
-    if (retakeBtn) {
-        retakeBtn.style.display = "none";
-        retakeBtn.classList.add("d-none");
-    }
-
-    // Show camera label again
-    if (cameraLabel) {
-        cameraLabel.style.display = "flex";
-        cameraLabel.style.backgroundPosition = "center center";
-        cameraLabel.style.backgroundRepeat = "no-repeat";
-        cameraLabel.style.backgroundSize = "50%";
-    }
-
-    // Clear file input
+    if (preview) preview.style.display = "none";
+    if (cameraLabel) cameraLabel.style.display = "flex";
     if (imageInput) imageInput.value = "";
-
-    // Clear existing image URL hidden input
-    if (existingImageUrlInput) existingImageUrlInput.value = "";
-
-    // Hide video if showing
     if (video) video.style.display = "none";
+    if (captureBtn) captureBtn.classList.add("d-none");
+    if (clearBtn) clearBtn.classList.add("d-none");
 
-    // Reset captured image
-    capturedImage = null;
-
-    // Stop camera if running
     stopCamera();
 }
 
@@ -733,15 +658,9 @@ function retakePhoto() {
 
 function stopCamera() {
     if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+        stream.getTracks().forEach(track => track.stop());
         stream = null;
     }
-
-    const video = document.getElementById("cameraVideo");
-    const captureBtn = document.getElementById("captureBtn");
-
-    if (video) video.style.display = "none";
-    if (captureBtn) captureBtn.remove();
 }
 
 function handleImagePreview(e) {
@@ -750,12 +669,17 @@ function handleImagePreview(e) {
 
     const reader = new FileReader();
     reader.onload = function (e) {
-        showImagePreview(e.target.result);
+        showImagePreview(e.target.result, file);
     };
     reader.readAsDataURL(file);
 }
 
+// Inisialisasi ketika halaman siap
+document.addEventListener("DOMContentLoaded", initializeCameraFeatures);
+
+
 function submitCheckIn() {
+
     const form = document.getElementById("checkInForm");
     if (!form) return;
 

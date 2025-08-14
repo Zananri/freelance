@@ -547,8 +547,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 50%;
-    height: 150px;
+    width: 180px;
+    height: 250px;
     border: 2px dashed #dee2e6;
     border-radius: 8px;
     cursor: pointer;
@@ -579,8 +579,8 @@
 
 .image-preview {
     margin-top: 10px;
-    max-width: 200px;
-    max-height: 200px;
+    max-width: 180px;
+    max-height: 250px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     overflow: hidden;
@@ -592,6 +592,25 @@
     height: 100%;
     object-fit: cover;
 }
+
+#previewImg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 180px;
+    height: 250px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 50%;
+    opacity: 1;
+}
+
 
 #clearImageBtn {
     margin-top: 10px;
@@ -754,3 +773,4 @@
         padding: 10px 20px !important;
     }
 }
+
