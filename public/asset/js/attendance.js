@@ -518,161 +518,156 @@ function showFloatingAlert(message, type = "success") {
     }, 3000);
 }
 
-// Camera functionality
 let stream = null;
 let capturedImage = null;
 
+document.addEventListener("DOMContentLoaded", () => {
+  initializeCameraFeatures();
+});
+
 function initializeCameraFeatures() {
-    const cameraLabel = document.querySelector(".camera-label");
-    const clearImageBtn = document.getElementById("clearImageBtn");
-    const imageInput = document.getElementById("imageInput");
-    const captureBtn = document.getElementById("captureBtn");
+  const cameraLabel = document.querySelector(".camera-label");
+  const clearImageBtn = document.getElementById("clearImageBtn");
+  const imageInput = document.getElementById("imageInput");
+  const captureBtn = document.getElementById("captureBtn");
 
-    if (cameraLabel) {
-        cameraLabel.addEventListener("click", e => {
-            e.preventDefault();
-            startCamera();
-        });
-    }
+  if (cameraLabel) {
+    cameraLabel.addEventListener("click", e => {
+      e.preventDefault();
+      startCamera();
+    });
+  }
 
-    if (clearImageBtn) {
-        clearImageBtn.addEventListener("click", clearImage);
-    }
+  if (clearImageBtn) {
+    clearImageBtn.addEventListener("click", clearImage);
+  }
 
-    if (imageInput) {
-        imageInput.addEventListener("change", handleImagePreview);
-    }
+  if (imageInput) {
+    imageInput.addEventListener("change", handleImagePreview);
+  }
 
-    if (captureBtn) {
-        captureBtn.addEventListener("click", capturePhoto);
-    }
+  if (captureBtn) {
+    captureBtn.addEventListener("click", capturePhoto);
+  }
 }
+
 function startCamera() {
-    const video = document.getElementById("cameraVideo");
-    const captureBtn = document.getElementById("captureBtn");
-    const cameraLabel = document.querySelector(".camera-label");
-    const preview = document.getElementById("imagePreview");
+  const video = document.getElementById("cameraVideo");
+  const cameraWrapper = document.getElementById("cameraWrapper");
+  const modalBody = document.querySelector(".modal-body");
+  const modalFooter = document.querySelector(".modal-footer");
 
-    // Cegah duplikasi stream
-    if (stream) {
-        console.log("Camera already active");
-        return;
-    }
+  if (stream) return;
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-        .then(mediaStream => {
-            stream = mediaStream;
-            video.srcObject = mediaStream;
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+    .then(mediaStream => {
+      stream = mediaStream;
+      video.srcObject = mediaStream;
+      video.onloadedmetadata = () => video.play();
 
-            video.onloadedmetadata = () => {
-                video.play(); // pastikan play dipanggil setelah metadata siap
-            };
-
-            video.style.display = "block";
-            captureBtn.classList.remove("d-none");
-            if (cameraLabel) cameraLabel.style.display = "none";
-            if (preview) preview.style.display = "none";
-        })
-        .catch(err => {
-            console.error("Cannot access camera:", err);
-            alert("Cannot access camera on this device.");
-        });
+      cameraWrapper.classList.remove("d-none");
+      modalBody.classList.add("d-none");
+      modalFooter.classList.add("d-none");
+    })
+    .catch(err => {
+      console.error("Cannot access camera:", err);
+      alert("Cannot access camera on this device.");
+    });
 }
-
 
 function capturePhoto() {
-    const video = document.getElementById("cameraVideo");
-    const canvas = document.getElementById("cameraCanvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+  const video = document.getElementById("cameraVideo");
+  const canvas = document.getElementById("cameraCanvas");
+  const cameraWrapper = document.getElementById("cameraWrapper");
+  const modalBody = document.querySelector(".modal-body");
+  const modalFooter = document.querySelector(".modal-footer");
 
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
 
-    canvas.toBlob(blob => {
-        const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
-        capturedImage = file; // Simpan ke variabel global
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const reader = new FileReader();
-        reader.onload = e => showImagePreview(e.target.result, file);
-        reader.readAsDataURL(blob);
-    }, "image/jpeg", 0.9);
+  canvas.toBlob(blob => {
+    const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+    capturedImage = file;
 
-    stopCamera();
+    const reader = new FileReader();
+    reader.onload = e => showImagePreview(e.target.result, file);
+    reader.readAsDataURL(blob);
+  }, "image/jpeg", 0.9);
+
+  cameraWrapper.classList.add("d-none");
+  modalBody.classList.remove("d-none");
+  modalFooter.classList.remove("d-none");
+
+  stopCamera();
 }
 
-
 function showImagePreview(src, file = null) {
-    const preview = document.getElementById("imagePreview");
-    const previewImg = document.getElementById("previewImg");
-    const cameraLabel = document.querySelector(".camera-label");
-    const imageInput = document.getElementById("imageInput");
-    const video = document.getElementById("cameraVideo");
-    const captureBtn = document.getElementById("captureBtn");
-    const clearBtn = document.getElementById("clearImageBtn");
+  const preview = document.getElementById("imagePreview");
+  const previewImg = document.getElementById("previewImg");
+  const cameraLabel = document.querySelector(".camera-label");
+  const imageInput = document.getElementById("imageInput");
+  const video = document.getElementById("cameraVideo");
+  const captureBtn = document.getElementById("captureBtn");
+  const clearBtn = document.getElementById("clearImageBtn");
 
-    if (!preview || !previewImg) return;
+  if (!preview || !previewImg) return;
 
-    previewImg.src = src;
-    preview.style.display = "block";
+  previewImg.src = src;
+  preview.style.display = "block";
 
-    // hide camera & label
-    video.style.display = "none";
-    captureBtn.classList.add("d-none");
-    if (cameraLabel) cameraLabel.style.display = "none";
+  video.style.display = "none";
+  captureBtn.classList.add("d-none");
+  if (cameraLabel) cameraLabel.style.display = "none";
+  if (clearBtn) clearBtn.classList.remove("d-none");
 
-    if (clearBtn) clearBtn.classList.remove("d-none");
-
-    // update input file
-    if (file && imageInput) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        imageInput.files = dt.files;
-    }
+  if (file && imageInput) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    imageInput.files = dt.files;
+  }
 }
 
 function clearImage() {
-    const preview = document.getElementById("imagePreview");
-    const previewImg = document.getElementById("previewImg");
-    const cameraLabel = document.querySelector(".camera-label");
-    const imageInput = document.getElementById("imageInput");
-    const video = document.getElementById("cameraVideo");
-    const captureBtn = document.getElementById("captureBtn");
-    const clearBtn = document.getElementById("clearImageBtn");
+  const preview = document.getElementById("imagePreview");
+  const previewImg = document.getElementById("previewImg");
+  const cameraLabel = document.querySelector(".camera-label");
+  const imageInput = document.getElementById("imageInput");
+  const video = document.getElementById("cameraVideo");
+  const captureBtn = document.getElementById("captureBtn");
+  const clearBtn = document.getElementById("clearImageBtn");
 
-    if (previewImg) previewImg.src = "";
-    if (preview) preview.style.display = "none";
-    if (cameraLabel) cameraLabel.style.display = "flex";
-    if (imageInput) imageInput.value = "";
-    if (video) video.style.display = "none";
-    if (captureBtn) captureBtn.classList.add("d-none");
-    if (clearBtn) clearBtn.classList.add("d-none");
+  if (previewImg) previewImg.src = "";
+  if (preview) preview.style.display = "none";
+  if (cameraLabel) cameraLabel.style.display = "flex";
+  if (imageInput) imageInput.value = "";
+  if (video) video.style.display = "block";
+  if (captureBtn) captureBtn.classList.remove("d-none");
+  if (clearBtn) clearBtn.classList.add("d-none");
 
-    stopCamera();
-}
-
-function retakePhoto() {
-    clearImage();
-    startCamera();
+  stopCamera();
 }
 
 function stopCamera() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
 }
 
 function handleImagePreview(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        showImagePreview(e.target.result, file);
-    };
-    reader.readAsDataURL(file);
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    showImagePreview(e.target.result, file);
+  };
+  reader.readAsDataURL(file);
 }
+
 
 // Inisialisasi ketika halaman siap
 document.addEventListener("DOMContentLoaded", initializeCameraFeatures);

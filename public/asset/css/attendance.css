@@ -616,17 +616,18 @@
     margin-top: 10px;
 }
 
-/* Clear Image Button Styling */
 .image-clear-btn {
+    padding: 0;
     position: absolute;
     top: -20px;
-    right: 250px;
+    right: 270px;
     width: 25px;
     height: 25px;
     background-color: #dc3545;
     color: white;
     border-radius: 50%;
-    display: flex;
+    display: flex
+;
     align-items: center;
     justify-content: center;
     cursor: pointer;
@@ -774,3 +775,14 @@
     }
 }
 
+#cameraWrapper {
+    padding: 1rem;
+    text-align: center;
+}
+
+#cameraVideo {
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
+    object-fit: cover;
+}
