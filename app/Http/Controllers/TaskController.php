@@ -684,6 +684,7 @@ class TaskController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+                
             ]);
 
             if ($validator->fails()) {
@@ -717,6 +718,13 @@ class TaskController extends Controller
                 $referenceName = 'TASK_FEEDBACK_' . time() . '.' . $referenceExtension;
                 $referenceFile->move(public_path('file/task_reference_files'), $referenceName);
                 $data['reference_file'] = $referenceName;
+            }
+
+                // Set created_by
+            if ($request->user()) {
+                $data['created_by'] = $request->user()->id;
+                $data['updated_by'] = $request->user()->id;
+                $data['deleted_by'] = null;
             }
 
             // Create task feedback
