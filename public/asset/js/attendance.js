@@ -331,7 +331,7 @@ function initializeCalendar() {
 }
 
 function renderCalendar(month, year) {
-    console.log("Rendering calendar for", month, year); // Debug log
+    console.log("Rendering calendar for", month, year);
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
@@ -339,22 +339,10 @@ function renderCalendar(month, year) {
 
     // Update header
     const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
     ];
-    document.getElementById(
-        "currentMonthYear"
-    ).textContent = `${monthNames[month]} ${year}`;
+    document.getElementById("currentMonthYear").textContent = `${monthNames[month]} ${year}`;
 
     // Clear previous days
     const calendarDays = document.getElementById("calendarDays");
@@ -367,10 +355,8 @@ function renderCalendar(month, year) {
         calendarDays.appendChild(emptyDay);
     }
 
-    // Fetch attendance data for the month and employee
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
+    // Fetch attendance data
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     if (!employeeId) {
         console.error("Employee ID not found for attendance calendar");
         return;
@@ -381,14 +367,23 @@ function renderCalendar(month, year) {
         .then((data) => {
             let attendanceData = {};
             if (data.status === "success" && Array.isArray(data.data)) {
-                // Group attendance records by date
+                // Group records by date and type
                 data.data.forEach((record) => {
                     const date = new Date(record.date_attendance);
                     const day = date.getDate();
+                    
                     if (!attendanceData[day]) {
-                        attendanceData[day] = [];
+                        attendanceData[day] = {
+                            checkIns: [],
+                            checkOuts: []
+                        };
                     }
-                    attendanceData[day].push(record);
+                    
+                    if (record.type_attendance === "check_in") {
+                        attendanceData[day].checkIns.push(record);
+                    } else if (record.type_attendance === "check_out") {
+                        attendanceData[day].checkOuts.push(record);
+                    }
                 });
             }
 
@@ -398,105 +393,32 @@ function renderCalendar(month, year) {
                 dayElement.className = "calendar-day";
                 dayElement.textContent = day;
 
-                // Check if this is today
+                // Check if today
                 const checkDate = new Date(year, month, day);
                 if (checkDate.toDateString() === new Date().toDateString()) {
                     dayElement.classList.add("today");
                 }
 
-                // Add attendance classes based on data
+                // Add attendance status
                 if (attendanceData[day]) {
-                    const records = attendanceData[day];
-
-                    // Special handling for current day to show 3 segments with previous day checkout
-                    const today = new Date();
-                    const checkDate = new Date(year, month, day);
-                    const isToday = checkDate.toDateString() === today.toDateString();
-
-                    // Define dateString for current day
-                    const dateString = checkDate.toISOString().split("T")[0];
-
-                    // Group records by type and date
-                    const todayRecords = records.filter(r => r.date_attendance === dateString);
-                    const previousDayRecords = records.filter(r => r.date_attendance < dateString);
+                    const { checkIns, checkOuts } = attendanceData[day];
                     
-                    // Check for previous day checkout
-                    const hasPreviousDayCheckout = previousDayRecords.some(r => r.type_attendance === "check_out");
+                    // Always show check-in if exists (even if there's check-out)
+                    if (checkIns.length > 0) {
+                        dayElement.classList.add("checked-in");
+                        const inLabel = document.createElement("span");
+                        inLabel.className = "check-in-label";
+                        inLabel.textContent = "In";
+                        dayElement.appendChild(inLabel);
+                    }
                     
-                    // Count today's check-ins and check-outs
-                    const todayCheckIns = todayRecords.filter(r => r.type_attendance === "check_in");
-                    const todayCheckOuts = todayRecords.filter(r => r.type_attendance === "check_out");
-
-                    // Handle 3-segment display for current day
-                    if (isToday && (hasPreviousDayCheckout || todayCheckIns.length > 0 || todayCheckOuts.length > 0)) {
-                        // Always use 3-segment layout for today
-                        dayElement.classList.add("has-three-sections");
-
-                        // Create date number container
-                        const dateNumber = document.createElement("span");
-                        dateNumber.className = "date-number";
-                        dateNumber.textContent = day;
-                        dayElement.appendChild(dateNumber);
-
-                        // Top section - Previous day's checkout (if exists)
-                        if (hasPreviousDayCheckout) {
-                            const outLabelTop = document.createElement("span");
-                            outLabelTop.className = "check-out-label-top";
-                            outLabelTop.textContent = "Out";
-                            dayElement.appendChild(outLabelTop);
-                        }
-
-                        // Middle section - Today's check-in
-                        if (todayCheckIns.length > 0) {
-                            const inLabel = document.createElement("span");
-                            inLabel.className = "check-in-label-middle";
-                            inLabel.textContent = "In";
-                            dayElement.appendChild(inLabel);
-                        }
-
-                        // Bottom section - Today's checkout
-                        if (todayCheckOuts.length > 0) {
-                            const outLabelBottom = document.createElement("span");
-                            outLabelBottom.className = "check-out-label-bottom";
-                            outLabelBottom.textContent = "Out";
-                            dayElement.appendChild(outLabelBottom);
-                        }
-                    } else {
-                        // Handle other days with simpler display
-                        let checkInCount = 0;
-                        let checkOutCount = 0;
-                        records.forEach((rec) => {
-                            if (rec.type_attendance === "check_in") checkInCount++;
-                            if (rec.type_attendance === "check_out") checkOutCount++;
-                        });
-
-                        if (checkInCount > 0 && checkOutCount > 0) {
-                            // Both check-in and check-out
-                            dayElement.classList.add("checked-in");
-                            dayElement.classList.add("checked-out");
-                            const inLabel = document.createElement("span");
-                            inLabel.className = "check-in-label";
-                            inLabel.textContent = "In";
-                            dayElement.appendChild(inLabel);
-                            const outLabel = document.createElement("span");
-                            outLabel.className = "check-out-label";
-                            outLabel.textContent = "Out";
-                            dayElement.appendChild(outLabel);
-                        } else if (checkInCount > 0) {
-                            // Only check-in
-                            dayElement.classList.add("checked-in");
-                            const inLabel = document.createElement("span");
-                            inLabel.className = "check-in-label";
-                            inLabel.textContent = "In";
-                            dayElement.appendChild(inLabel);
-                        } else if (checkOutCount > 0) {
-                            // Only check-out
-                            dayElement.classList.add("checked-out");
-                            const outLabel = document.createElement("span");
-                            outLabel.className = "check-out-label";
-                            outLabel.textContent = "Out";
-                            dayElement.appendChild(outLabel);
-                        }
+                    // Show check-out if exists
+                    if (checkOuts.length > 0) {
+                        dayElement.classList.add("checked-out");
+                        const outLabel = document.createElement("span");
+                        outLabel.className = "check-out-label";
+                        outLabel.textContent = "Out";
+                        dayElement.appendChild(outLabel);
                     }
                 }
 
@@ -976,151 +898,84 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Checkout Modal Functions
 function openCheckOutModal() {
-    // Get current date and time
-    const now = new Date();
-    const dateString = now.toISOString().split("T")[0];
-    const timeString = now.toLocaleTimeString("en-US", {
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    fetch(baseUrl + '/server-time')
+        .then(response => response.json())
+        .then(data => {
+            const serverTime = data.time;       // HH:mm
+            const serverDate = data.date;       // YYYY-MM-DD
 
-    // Update modal form fields
-    document.getElementById("date_attendance").value = dateString;
-    document.getElementById("time_out").value = timeString;
+            // Update hidden input
+            document.getElementById("date_attendance").value = serverDate;
+            document.getElementById("time_out").value = serverTime;
 
-    // Set the visible time_out_display span to current time
-    const timeOutDisplay = document.getElementById("time_out_display");
-    if (timeOutDisplay) {
-        timeOutDisplay.textContent = timeString;
-    }
+            // Update tampilan
+            document.getElementById("time_out_display").textContent = serverTime;
 
-    // Load check-in data to display work outside status
-    loadCheckInDataForCheckout();
+            // Load check-in data dan hitung durasi kerja
+            loadCheckInDataForCheckout(serverTime);
+        })
+        .catch(error => console.error('Gagal ambil waktu server:', error));
 
-    // Show the modal
+    // Tampilkan modal
     const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
     modal.show();
 }
 
-function calculateDuration24h(timeIn24h, timeOut24h) {
-    if (!timeIn24h || !timeOut24h) return "0h 0m";
+function calculateDuration24h(timeIn, timeOut) {
+    if (!timeIn || !timeOut) return "0h 0m";
 
-    try {
-        // Normalize time formats (handle cases like "09:00 AM" or "09:00:00")
-        const normalizeTime = (timeStr) => {
-            let [hours, minutes] = timeStr.replace(/[^0-9:]/g, "").split(":");
-            return `${hours.padStart(2, "0")}:${(minutes || "00").padStart(
-                2,
-                "0"
-            )}`;
-        };
+    const [inHour, inMin] = timeIn.split(":").map(Number);
+    const [outHour, outMin] = timeOut.split(":").map(Number);
 
-        const normalizedIn = normalizeTime(timeIn24h);
-        const normalizedOut = normalizeTime(timeOut24h);
+    let totalMinutes = (outHour * 60 + outMin) - (inHour * 60 + inMin);
+    if (totalMinutes < 0) totalMinutes += 24 * 60; // handle overnight
 
-        const [inHours, inMinutes] = normalizedIn.split(":").map(Number);
-        const [outHours, outMinutes] = normalizedOut.split(":").map(Number);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
 
-        let totalInMinutes =
-            outHours * 60 + outMinutes - (inHours * 60 + inMinutes);
-
-        // Handle overnight case (negative duration)
-        if (totalInMinutes < 0) {
-            totalInMinutes += 24 * 60; // Add 24 hours
-        }
-
-        const hours = Math.floor(totalInMinutes / 60);
-        const minutes = totalInMinutes % 60;
-
-        return `${hours} hours ${minutes.toString().padStart(2)} minutes`;
-    } catch (e) {
-        console.error("Error calculating duration:", e);
-        return "0 hours 0 minutes";
-    }
+    return `${hours}h ${minutes}m`;
 }
 
-function loadCheckInDataForCheckout() {
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
+function loadCheckInDataForCheckout(serverTime) {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     if (!employeeId) return;
 
-    // Get selected date from currentDate input or fallback to today
     const selectedDate = document.getElementById("currentDate")?.value || new Date().toISOString().split("T")[0];
+    const url = `${baseUrl}/attendance/daily/${employeeId}/${selectedDate}`;
 
-    const urlSelectedDate = `${baseUrl}/attendance/daily/${employeeId}/${selectedDate}`;
-    const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
-
-    // Fetch attendance for selected date
-    fetch(urlSelectedDate)
-        .then((response) => response.json())
-        .then((data) => {
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
             if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
-                // Find the first check-in record for the selected date
                 const checkInRecord = data.data.find(r => r.type_attendance === "check_in");
+                if (!checkInRecord) return setCheckoutModalDefaults();
 
-                if (!checkInRecord) {
-                    // No check-in record found for the date
-                    setCheckoutModalDefaults();
-                    return;
-                }
-
-                populateCheckoutModal(checkInRecord);
+                populateCheckoutModal(checkInRecord, serverTime);
             } else {
-                // No check-in for selected date, fetch latest unclosed check-in
-                fetch(urlLatestUnclosed)
-                    .then((response) => response.json())
-                    .then((latestData) => {
-                        if (latestData.status === "success" && latestData.data) {
-                            populateCheckoutModal(latestData.data);
-                        } else {
-                            setCheckoutModalDefaults();
-                        }
-                    })
-                    .catch((error) => {
-                        console.error("Error loading latest unclosed check-in data:", error);
-                        setCheckoutModalDefaults();
-                    });
+                setCheckoutModalDefaults();
             }
         })
-        .catch((error) => {
-            console.error("Error loading check-in data:", error);
-            setCheckoutModalDefaults();
-        });
+        .catch(() => setCheckoutModalDefaults());
 }
 
-function populateCheckoutModal(checkInRecord) {
-    // Display work outside status
+// Fungsi populate modal checkout
+function populateCheckoutModal(checkInRecord, serverTime) {
+    // Tampilkan status work outside
     const workOutsideText = checkInRecord.is_work_outside ? "Yes" : "No";
     document.getElementById("workOutsideStatusText").textContent = workOutsideText;
-    document.getElementById("workOutsideStatusText").className = checkInRecord.is_work_outside;
 
-    // Display time in
+    // Tampilkan time in
+    document.getElementById("time_in_display").textContent = checkInRecord.time_in || "Not available";
+
+    // Hitung durasi kerja dari time_in dan serverTime
     if (checkInRecord.time_in) {
-        document.getElementById("time_in_display").textContent = checkInRecord.time_in;
-
-        // Calculate work duration only if both time_in and time_out exist
-        if (checkInRecord.time_out) {
-            const totalDuration = calculateDuration24h(checkInRecord.time_in, checkInRecord.time_out);
-            document.getElementById("total_work_duration").textContent = totalDuration;
-        } else {
-            // If not checked out yet, show current duration
-            const currentTime = new Date()
-                .toLocaleTimeString("en-US", {
-                    hour12: false,
-                    hour: "2-digit",
-                    minute: "2-digit",
-                })
-                .replace(/^24/, "00");
-            const totalDuration = calculateDuration24h(checkInRecord.time_in, currentTime);
-            document.getElementById("total_work_duration").textContent = totalDuration;
-        }
+        const totalDuration = calculateDuration24h(checkInRecord.time_in, serverTime);
+        document.getElementById("total_work_duration").textContent = totalDuration;
     } else {
-        setCheckoutModalDefaults();
+        document.getElementById("total_work_duration").textContent = "0h 0m";
     }
 
-    // Show/hide image upload based on work outside
+    // Show/hide image section berdasarkan work outside
     const imageSection = document.getElementById("imageUploadSection");
     if (imageSection) {
         imageSection.style.display = checkInRecord.is_work_outside ? "block" : "none";
@@ -1131,20 +986,9 @@ function setCheckoutModalDefaults() {
     document.getElementById("workOutsideStatusText").textContent = "Not available";
     document.getElementById("time_in_display").textContent = "Not available";
     document.getElementById("total_work_duration").textContent = "0h 0m";
-    const imageSection = document.getElementById("imageUploadSection");
-    if (imageSection) {
-        imageSection.style.display = "none";
-    }
-}
 
-function setCheckoutModalDefaults() {
-    document.getElementById("workOutsideStatusText").textContent = "Not available";
-    document.getElementById("time_in_display").textContent = "Not available";
-    document.getElementById("total_work_duration").textContent = "0h 0m";
     const imageSection = document.getElementById("imageUploadSection");
-    if (imageSection) {
-        imageSection.style.display = "none";
-    }
+    if (imageSection) imageSection.style.display = "none";
 }
 
 // Function to submit check-out
