@@ -120,63 +120,42 @@ function toggleImageUploadVisibility() {
 
 // Function to open the check-in modal
 function openCheckInModal() {
-    // Set current date and time
-    const now = new Date();
-    const dateString = now.toISOString().split("T")[0];
-    const timeString = now.toLocaleTimeString("en-US", {
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    fetch(baseUrl + '/server-time')
+        .then(response => response.json())
+        .then(data => {
+            const timeString = data.time;
+            const formattedDate = data.formatted_date;
+            const dateString = data.date;
 
-    // Format date for display (DD/MM/YYYY)
-    const [year, month, day] = dateString.split('-');
-    const formattedDate = `${day}/${month}/${year}`;
+            // Update tampilan modal
+            document.getElementById("date_attendance").textContent = formattedDate;
+            document.getElementById("time_in").textContent = timeString;
 
-    // Update modal display fields (span elements)
-    const dateDisplay = document.getElementById("date_attendance");
-    const timeDisplay = document.getElementById("time_in");
-    
-    if (dateDisplay) {
-        dateDisplay.textContent = formattedDate;
-    }
-    if (timeDisplay) {
-        timeDisplay.textContent = timeString;
-    }
+            // Hapus input hidden lama
+            document.querySelectorAll('input[name="date_attendance"], input[name="time_in"]').forEach(el => el.remove());
 
-    // Update hidden form fields for submission
-    let dateInput = document.querySelector('input[name="date_attendance"]');
-    let timeInput = document.querySelector('input[name="time_in"]');
-    
-    // Remove existing hidden inputs if any
-    if (dateInput) dateInput.remove();
-    if (timeInput) timeInput.remove();
-    
-    // Create new hidden inputs
-    const hiddenDate = document.createElement('input');
-    hiddenDate.type = 'hidden';
-    hiddenDate.name = 'date_attendance';
-    hiddenDate.value = dateString;
-    document.getElementById('checkInForm').appendChild(hiddenDate);
-    
-    const hiddenTime = document.createElement('input');
-    hiddenTime.type = 'hidden';
-    hiddenTime.name = 'time_in';
-    hiddenTime.value = timeString;
-    document.getElementById('checkInForm').appendChild(hiddenTime);
+            // Tambahkan input hidden baru
+            const hiddenDate = document.createElement('input');
+            hiddenDate.type = 'hidden';
+            hiddenDate.name = 'date_attendance';
+            hiddenDate.value = dateString;
+            document.getElementById('checkInForm').appendChild(hiddenDate);
 
-    // Check for existing image URL and show preview if present
-    const existingImageUrlInput = document.getElementById("existingImageUrl");
-    if (existingImageUrlInput && existingImageUrlInput.value) {
-        showImagePreview(existingImageUrlInput.value);
-    } else {
-        clearImage();
-    }
+            const hiddenTime = document.createElement('input');
+            hiddenTime.type = 'hidden';
+            hiddenTime.name = 'time_in';
+            hiddenTime.value = timeString;
+            document.getElementById('checkInForm').appendChild(hiddenTime);
 
-    // Show the modal using Bootstrap's modal API
-    const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
-    modal.show();
+            // Tampilkan modal
+            const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Gagal ambil waktu server:', error);
+        });
 }
+
 
 function handleCheckIn() {
     const now = new Date();
