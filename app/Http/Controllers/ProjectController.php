@@ -920,6 +920,9 @@ class ProjectController extends Controller
             $feedback->employee_id = $request->employee_id;
             $feedback->feedback_comment = $request->feedback_comment;
             $feedback->reference_url = $request->reference_url;
+            $feedback->created_by = auth()->user() ? auth()->user()->id : null;
+            $feedback->updated_by = auth()->user() ? auth()->user()->id : null;
+            $feedback->deleted_by = null;   
 
             // Handle feedback image upload
             if ($request->hasFile('feedback_image')) {

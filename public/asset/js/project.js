@@ -889,7 +889,7 @@ function showAddFeedbackForm(projectId) {
                     <div class="image-upload-container">
                         <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
                             style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                            <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
+                            <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
                             <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
                         </label>
                     </div>
