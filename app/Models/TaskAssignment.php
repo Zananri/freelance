@@ -15,6 +15,9 @@ class TaskAssignment extends Model
         'role',
         'is_receive',
         'date_receive',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 
     // Define relationship to Task
