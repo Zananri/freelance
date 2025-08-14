@@ -332,6 +332,7 @@ function initializeCalendar() {
 
 function renderCalendar(month, year) {
     console.log("Rendering calendar for", month, year);
+
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
@@ -355,7 +356,7 @@ function renderCalendar(month, year) {
         calendarDays.appendChild(emptyDay);
     }
 
-    // Fetch attendance data
+    // Ambil employee_id
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     if (!employeeId) {
         console.error("Employee ID not found for attendance calendar");
@@ -366,54 +367,55 @@ function renderCalendar(month, year) {
         .then((response) => response.json())
         .then((data) => {
             let attendanceData = {};
+
             if (data.status === "success" && Array.isArray(data.data)) {
-                // Group records by date and type
                 data.data.forEach((record) => {
                     const date = new Date(record.date_attendance);
                     const day = date.getDate();
-                    
+
                     if (!attendanceData[day]) {
                         attendanceData[day] = {
-                            checkIns: [],
-                            checkOuts: []
+                            hasCheckIn: true,
+                            hasCheckOut: false
                         };
                     }
-                    
+
+                    // Tandai check-in dan check-out terpisah
                     if (record.type_attendance === "check_in") {
-                        attendanceData[day].checkIns.push(record);
-                    } else if (record.type_attendance === "check_out") {
-                        attendanceData[day].checkOuts.push(record);
+                        attendanceData[day].hasCheckIn = true;
+                    }
+                    if (record.type_attendance === "check_out") {
+                        attendanceData[day].hasCheckOut = true;
                     }
                 });
             }
 
-            // Add days of the month
+            console.log("Processed attendance data:", attendanceData);
+
+            // Tambahkan hari-hari di bulan
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayElement = document.createElement("div");
                 dayElement.className = "calendar-day";
                 dayElement.textContent = day;
 
-                // Check if today
                 const checkDate = new Date(year, month, day);
                 if (checkDate.toDateString() === new Date().toDateString()) {
                     dayElement.classList.add("today");
                 }
 
-                // Add attendance status
+                // Tambahkan status check-in / check-out
                 if (attendanceData[day]) {
-                    const { checkIns, checkOuts } = attendanceData[day];
-                    
-                    // Always show check-in if exists (even if there's check-out)
-                    if (checkIns.length > 0) {
+                    const { hasCheckIn, hasCheckOut } = attendanceData[day];
+
+                    if (hasCheckIn) {
                         dayElement.classList.add("checked-in");
                         const inLabel = document.createElement("span");
                         inLabel.className = "check-in-label";
                         inLabel.textContent = "In";
                         dayElement.appendChild(inLabel);
                     }
-                    
-                    // Show check-out if exists
-                    if (checkOuts.length > 0) {
+
+                    if (hasCheckOut) {
                         dayElement.classList.add("checked-out");
                         const outLabel = document.createElement("span");
                         outLabel.className = "check-out-label";
@@ -422,7 +424,7 @@ function renderCalendar(month, year) {
                     }
                 }
 
-                // Add click event
+                // Event klik
                 dayElement.addEventListener("click", function () {
                     selectDate(day, month, year);
                 });
@@ -434,6 +436,7 @@ function renderCalendar(month, year) {
             console.error("Error fetching monthly attendance:", error);
         });
 }
+
 
 function navigateMonth(direction) {
     currentMonth += direction;
