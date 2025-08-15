@@ -29,9 +29,9 @@
                                 <div id="date" class="digital-date mb-4 fw-light text-secondary"></div>
                             </div>
                             <div class="attendance-actions mt-2 w-100 d-flex justify-content-evenly">
-                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" id="checkInBtn">Check
+                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkIn"><span class="material-symbols-outlined check-icon" style="display: none;">check</span>Check
                                     In</button>
-                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" id="checkOutBtn">Check
+                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut">Check
                                     Out</button>
                             </div>
                             <div class="justify-content-start mt-4">
@@ -134,8 +134,10 @@
 
                     <!-- Tabs -->
                     <div class="d-flex justify-between align-items-center w-100 mb-3">
-                        <button class="btn btn-tab-custom active flex-fill mx-2 rounded-md-4">Today</button>
-                        <button class="btn btn-tab-custom flex-fill rounded-md-4">Tomorrow</button>
+                        <button class="btn-tab-task btn btn-tab-custom flex-fill mx-2 rounded-md-4"
+                            data-tab-active="today">Today</button>
+                        <button class="btn-tab-task btn btn-tab-custom flex-fill rounded-md-4"
+                            data-tab-active="tomorrow">Tomorrow</button>
                     </div>
 
                     <!-- Task List -->
