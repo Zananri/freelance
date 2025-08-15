@@ -407,14 +407,16 @@ async function saveShiftChanges() {
 
         // Check if response is ok
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            showFloatingAlert('Failed to update shift: ' + response.statusText, 'danger');
+            return;
         }
 
         // Check if response is JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
-            throw new Error(`Server returned non-JSON response: ${text}`);
+            showFloatingAlert('Server returned non-JSON response: ' + text, 'danger');
+            return;
         }
 
         const result = await response.json();
@@ -428,12 +430,42 @@ async function saveShiftChanges() {
             loadEmployeeData();
             
             // Show success message
-            alert('Shift updated successfully');
+            showFloatingAlert('Shift updated successfully', 'success');
         } else {
-            alert('Failed to update shift: ' + result.message);
+            showFloatingAlert('Failed to update shift: ' + result.message, 'danger');
         }
     } catch (error) {
         console.error('Error updating shift:', error);
-        alert('Error updating shift: ' + error.message);
+        showFloatingAlert('Error updating shift: ' + error.message, 'danger');
     }
+}
+
+// Function to show floating alert with SVG icon - same as task.js
+function showFloatingAlert(message, type = "success") {
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
+    alertDiv.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+    `;
+
+    let iconClass =
+        type === "success" ? "check-circle-fill" : "exclamation-triangle-fill";
+
+    alertDiv.innerHTML = `
+        <i class="fas ${iconClass} me-2"></i>
+        <div>${message}</div>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+        alertDiv.style.opacity = "0";
+        setTimeout(() => alertDiv.remove(), 500);
+    }, 3000);
 }
