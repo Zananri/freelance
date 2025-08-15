@@ -240,7 +240,7 @@
 }
 
 .card-fill {
-    min-height: 170px !important;
+    min-height: 170px;
 }
 
 /* Uploda Image Styling for Attendance Modal */
@@ -379,7 +379,7 @@
 .form-check-input:checked {
     background-color: #007bff;
     border-color: #007bff;
-}   
+}
 
 /* Responsive Design */
 @media (min-width: 768px) and (max-width: 1024px) {
@@ -410,9 +410,8 @@
     }
 
     .card-fill {
-        min-height: 250px !important;
-        height: auto !important;
-        width: 100% !important;
+        min-height: 250px;
+        height: auto;
     }
 
     .calendar-container {
@@ -459,8 +458,15 @@
         font-size: 12px;
     }
 
-    .card-fill {
-        min-height: 400px;
+    .project-card {
+        margin-bottom: 12px;
+        min-width: 0;
+        word-break: break-word;
+        box-sizing: border-box;
+    }
+
+    .card-fill.row {
+        flex-direction: column;
     }
 
     .btn {
