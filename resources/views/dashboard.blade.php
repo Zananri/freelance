@@ -5,7 +5,6 @@
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/dashboard.css') }}" rel="stylesheet">
         <link href="{{ asset('asset/css/calendar-dashboard.css') }}" rel="stylesheet">
-        <link href="{{ asset('asset/css/mobile-dashboard.css') }}" rel="stylesheet">
     </x-slot>
 
     <div class="title-content">
@@ -30,8 +29,10 @@
                                 <div id="date" class="digital-date mb-4 fw-light text-secondary"></div>
                             </div>
                             <div class="attendance-actions mt-2 w-100 d-flex justify-content-evenly">
-                                <button class="btn btn-custom-check-in w-25 m-2 p-2 fw-normal">Check In</button>
-                                <button class="btn btn-custom-check-out w-25 m-2 p-2 fw-normal">Check Out</button>
+                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" id="checkInBtn">Check
+                                    In</button>
+                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" id="checkOutBtn">Check
+                                    Out</button>
                             </div>
                             <div class="justify-content-start mt-4">
                                 <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
@@ -94,22 +95,25 @@
                     <div class="col-12 card-fill">
                         <div class="rounded-4 p-4 body-content">
                             <div class="row g-3 row-cols-1 row-cols-md-3">
-                                <div class="col">
-                                    <div class="p-4 text-center rounded-3" style="background-color: #FFFAE6;">
-                                        <p class="fw-semibold" style="font-size: 36px;">7</p>
-                                        <p class="text-secondary fw-normal">In Progress</p>
-                                    </div>
-                                </div>
-                                <div class="col">
-                                    <div class="p-4 text-center rounded-3" style="background-color: #DBF8E2;">
-                                        <p class="fw-semibold" style="font-size: 36px;">3</p>
-                                        <p class="text-secondary fw-normal">Complete</p>
-                                    </div>
-                                </div>
-                                <div class="col">
-                                    <div class="p-4 text-center rounded-3" style="background-color: #EAECF5;">
-                                        <p class="fw-semibold" style="font-size: 36px;">10</p>
-                                        <p class="text-secondary fw-normal">Total Project</p>
+                                <div>
+                                    <canvas id="doughnutChart"></canvas>
+                                    <div class="chart-labels d-flex justify-content-between mt-3">
+                                        <div class="text-center">
+                                            <span style="font-weight: bold; color: #222;">10</span><br>
+                                            <span style="color: #888;">Total</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <span style="font-weight: bold; color: #4fc97a;">3</span><br>
+                                            <span style="color: #888;">Complete</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <span style="font-weight: bold; color: #5a9be6;">5</span><br>
+                                            <span style="color: #888;">On Progress</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
+                                            <span style="color: #888;">Late</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -122,7 +126,7 @@
             <div class="col-md-4 my-3">
                 <div class="rounded-4 p-4 body-content d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-semibold">My Task</h5>
+                        <h5 class="fw-normal">My Task</h5>
                         <button class="btn btn-link p-0">
                             <span class="material-symbols-outlined text-secondary">chevron_right</span>
                         </button>
@@ -130,14 +134,14 @@
 
                     <!-- Tabs -->
                     <div class="d-flex justify-between align-items-center w-100 mb-3">
-                        <button class="btn btn-light flex-fill mx-2 rounded-md-4 active">Today</button>
-                        <button class="btn btn-outline-secondary flex-fill rounded-md-4">Tomorrow</button>
+                        <button class="btn btn-tab-custom active flex-fill mx-2 rounded-md-4">Today</button>
+                        <button class="btn btn-tab-custom flex-fill rounded-md-4">Tomorrow</button>
                     </div>
 
                     <!-- Task List -->
                     <div class="task-list flex-grow-1 overflow-auto">
                         {{-- Task Content --}}
-                        <div class="task-card p-3 mb-3 rounded" style="background-color: #FFFAE6;">
+                        <div class="task-card p-3 mb-3 rounded" style="background: #FFFAE6;">
                             <div class="d-flex align-items-center mb-2">
                                 <img src="https://picsum.photos/200" class="rounded-circle me-2">
                                 <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
@@ -416,5 +420,6 @@
 
     <x-slot name="script_slot">
         <script src="{{ asset('asset/js/dashboard.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </x-slot>
 </x-office-layout>

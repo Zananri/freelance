@@ -1304,23 +1304,41 @@ function submitCheckOut() {
         });
 }
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", function () {
     function updateClock() {
         const now = new Date();
 
-        let hours = now.getHours().toString().padStart(2, '0');
-        let minutes = now.getMinutes().toString().padStart(2, '0');
-        let seconds = now.getSeconds().toString().padStart(2, '0');
+        let hours = now.getHours().toString().padStart(2, "0");
+        let minutes = now.getMinutes().toString().padStart(2, "0");
+        let seconds = now.getSeconds().toString().padStart(2, "0");
 
-        const clockEl = document.getElementById('clock');
+        const clockEl = document.getElementById("clock");
         if (clockEl) {
             clockEl.textContent = `${hours} : ${minutes} : ${seconds}`;
         }
 
-        const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        const days = [
+            "Minggu",
+            "Senin",
+            "Selasa",
+            "Rabu",
+            "Kamis",
+            "Jumat",
+            "Sabtu",
+        ];
         const months = [
-            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            "Januari",
+            "Februari",
+            "Maret",
+            "April",
+            "Mei",
+            "Juni",
+            "Juli",
+            "Agustus",
+            "September",
+            "Oktober",
+            "November",
+            "Desember",
         ];
 
         let dayName = days[now.getDay()];
@@ -1328,7 +1346,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let monthName = months[now.getMonth()];
         let year = now.getFullYear();
 
-        const dateEl = document.getElementById('date');
+        const dateEl = document.getElementById("date");
         if (dateEl) {
             dateEl.textContent = `${dayName}, ${date} ${monthName} ${year}`;
         }
@@ -1336,4 +1354,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
     updateClock();
     setInterval(updateClock, 1000);
+});
+
+// Doughnut Chart Porject
+document.addEventListener("DOMContentLoaded", function () {
+    const ctx = document.getElementById("doughnutChart");
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: "doughnut",
+        data: {
+            labels: ["Total", "Complete", "On Progress", "Late"],
+            datasets: [{
+                data: [3, 5, 2],
+                backgroundColor: [
+                    "#b6e7c9",
+                    "#8fb3e8",
+                    "#ff9c9c"
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            cutout: "60%", // Size middle hole
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
 });
