@@ -89,21 +89,21 @@
             <div class="row" style="flex: 1;">
                 <div class="col-12">
                     <div class="rounded-4 p-4 body-content card-fill">
-                        <div class="row g-3 h-100">
-                            <div class="col-md-4 col-12">
-                                <div class="p-4 text-center h-100 rounded-3" style="background-color: #FFFAE6;">
+                        <div class="row g-3 row-cols-1 row-cols-md-3">
+                            <div class="col">
+                                <div class="p-4 text-center rounded-3" style="background-color: #FFFAE6;">
                                     <p class="fw-semibold" style="font-size: 36px;">7</p>
                                     <p class="text-secondary fw-normal">In Progress</p>
                                 </div>
                             </div>
-                            <div class="col-md-4 col-12">
-                                <div class="p-4 text-center h-100 rounded-3" style="background-color: #DBF8E2;">
+                            <div class="col">
+                                <div class="p-4 text-center rounded-3" style="background-color: #DBF8E2;">
                                     <p class="fw-semibold" style="font-size: 36px;">3</p>
                                     <p class="text-secondary fw-normal">Complete</p>
                                 </div>
                             </div>
-                            <div class="col-md-4 col-12">
-                                <div class="p-4 text-center h-100 rounded-3" style="background-color: #EAECF5;">
+                            <div class="col">
+                                <div class="p-4 text-center rounded-3" style="background-color: #EAECF5;">
                                     <p class="fw-semibold" style="font-size: 36px;">10</p>
                                     <p class="text-secondary fw-normal">Total Project</p>
                                 </div>
@@ -135,8 +135,8 @@
                     {{-- Task Content --}}
                     <div class="task-card p-3 mb-3 rounded" style="background-color: #FFFAE6;">
                         <div class="d-flex align-items-center mb-2">
-                            <img src="https://via.placeholder.com/40" class="rounded-circle me-2">
-                            <h6 class="mb-0">Lorem Ipsum is simply dummy</h6>
+                            <img src="https://via.placeholder.com/40" class="rounded-circle me-2" style="width: 30px; height: 30px;">
+                            <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
                         </div>
                         <p class="mb-2 small text-secondary">
                             Description It is a long established fact that a reader will be distracted by the readable
