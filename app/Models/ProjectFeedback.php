@@ -18,6 +18,9 @@ class ProjectFeedback extends Model
         'image',
         'reference_url',
         'reference_file',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 
     public function project()

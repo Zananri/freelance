@@ -225,6 +225,9 @@ class TaskController extends Controller
                 'role' => 'PIC',
                 'is_receive' => true,
                 'date_receive' => now(),
+                'created_by' => $user->id,
+                'updated_by' => $user->id,
+                'deleted_by' => null
             ]);
         } else {
             throw new \Exception('User not authenticated or has no employee record');
@@ -238,12 +241,13 @@ class TaskController extends Controller
             if (!is_array($executorIds)) {
                 $executorIds = [];
             }
-            
-            $picEmployeeId = $user->employee->id ?? null;
+
+            $employee = auth()->user()->employee;
+
             
             foreach ($executorIds as $executorId) {
                 // Skip if executor is same as PIC
-                if ($executorId == $picEmployeeId) continue;
+                if ($executorId == $employee->id) continue;
 
                 TaskAssignment::create([
                     'task_id' => $task->id,
@@ -251,6 +255,9 @@ class TaskController extends Controller
                     'role' => 'EXECUTOR',
                     'is_receive' => false,
                     'date_receive' => null,
+                    'created_by' => auth()->id(),
+                    'updated_by' => auth()->id(),
+                    'deleted_by' => null
                 ]);
 
                 // Send notification to executor
@@ -261,7 +268,7 @@ class TaskController extends Controller
                         'task_assignment',
                         'You have been assigned as executor for task: ' . $task->title,
                         'You have been assigned as executor for task: ' . $task->title,
-                        $picEmployeeId,
+                        $employee->id,
                         $task->id
                     );
                 }
@@ -322,9 +329,7 @@ class TaskController extends Controller
             'reference_files' => $referenceFiles,
             'start_date' => $task->start_date ?? '',
             'due_date' => $task->due_date ?? '',
-            'image' => $task->image
-                ? asset('file/task/' . $task->image)
-                : asset('asset/img/background/add-image.png'),
+            'image' => $task->image ?: null,
 
             // Project data dengan fallback
             'project' => $task->project ? [
@@ -498,7 +503,7 @@ class TaskController extends Controller
             // Update executor assignments
             if ($request->has('executors')) {
                 $newExecutorIds = json_decode($request->input('executors'), true) ?? [];
-                $picEmployeeId = auth()->user()->employee->id ?? null;
+                $employee = auth()->user()->employee;
 
                 // Get existing executors
                 $existingExecutors = TaskAssignment::where('task_id', $task->id)
@@ -514,7 +519,7 @@ class TaskController extends Controller
 
                 // Add new executors
                 foreach ($newExecutorIds as $executorId) {
-                    if ($executorId == $picEmployeeId || isset($existingExecutors[$executorId])) {
+                    if ($executorId == $employee->id || isset($existingExecutors[$executorId])) {
                         continue;
                     }
 
@@ -534,7 +539,7 @@ class TaskController extends Controller
                             'task_assignment',
                             'You have been assigned as executor for task: ' . $task->title,
                             'You have been assigned as executor for task: ' . $task->title,
-                            $picEmployeeId,
+                            $employee->id,
                             $task->id
                         );
                     }
@@ -679,6 +684,7 @@ class TaskController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+                
             ]);
 
             if ($validator->fails()) {
@@ -712,6 +718,13 @@ class TaskController extends Controller
                 $referenceName = 'TASK_FEEDBACK_' . time() . '.' . $referenceExtension;
                 $referenceFile->move(public_path('file/task_reference_files'), $referenceName);
                 $data['reference_file'] = $referenceName;
+            }
+
+                // Set created_by
+            if ($request->user()) {
+                $data['created_by'] = $request->user()->id;
+                $data['updated_by'] = $request->user()->id;
+                $data['deleted_by'] = null;
             }
 
             // Create task feedback

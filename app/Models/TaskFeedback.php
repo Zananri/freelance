@@ -19,6 +19,9 @@ class TaskFeedback extends Model
         'image',
         'reference_url',
         'reference_file',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 
     // Define relationships if needed

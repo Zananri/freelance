@@ -392,6 +392,7 @@ class ProjectController extends Controller
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+
             ]);
 
             $project = new Project();
@@ -406,6 +407,8 @@ class ProjectController extends Controller
             $project->part_of_project = $request->part_of_project;
             $project->complete_date = $request->complete_date;
             $project->created_by = auth()->user() ? auth()->user()->id : null;
+            $project->updated_by = auth()->user() ? auth()->user()->id : null;
+            $project->deleted_by = null;
 
             // Handle image upload
             if ($request->hasFile('image')) {
@@ -435,6 +438,9 @@ class ProjectController extends Controller
                         'role' => 'author',
                         'created_at' => now(),
                         'updated_at' => now(),
+                        'created_by' => auth()->user() ? auth()->user()->id : null,
+                        'updated_by' => auth()->user() ? auth()->user()->id : null,
+                        'deleted_by' => null
                     ]);
                 } else {
                     throw new \Exception('Authenticated user has no employee relation');
@@ -785,6 +791,8 @@ class ProjectController extends Controller
                 ProjectAssignment::insert($contributorAssignments);
             }
 
+            $updateData['updated_by'] = auth()->id();
+
             DB::commit();
             
             return response()->json([
@@ -828,7 +836,8 @@ class ProjectController extends Controller
             }
             
             // Finally delete the project
-            $project->delete();
+            $project->deleted_by = auth()->id();
+            $project->save();
 
             DB::commit();
             
@@ -911,6 +920,9 @@ class ProjectController extends Controller
             $feedback->employee_id = $request->employee_id;
             $feedback->feedback_comment = $request->feedback_comment;
             $feedback->reference_url = $request->reference_url;
+            $feedback->created_by = auth()->user() ? auth()->user()->id : null;
+            $feedback->updated_by = auth()->user() ? auth()->user()->id : null;
+            $feedback->deleted_by = null;   
 
             // Handle feedback image upload
             if ($request->hasFile('feedback_image')) {

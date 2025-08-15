@@ -143,6 +143,9 @@ class AttendanceController extends Controller
                 'type_attendance' => 'check_in',
                 'note' => $validated['note'] ?? null,
                 'image' => $imagePath ? 'file/' . $imagePath : null,
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+                'deleted_by' => null,
             ]);
 
             DB::commit();
@@ -316,6 +319,7 @@ class AttendanceController extends Controller
                     $updateData['note'] = $request->input('note');
                 }
 
+                $updateData['updated_by'] = auth()->id();
                 $attendance->update($updateData);
 
                 DB::commit();
