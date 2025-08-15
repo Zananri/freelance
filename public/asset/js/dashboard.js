@@ -1,350 +1,446 @@
 // Attendance JavaScript
-const baseUrl =
-    document.querySelector('meta[name="app-url"]')?.getAttribute("content") ||
-    "";
+const baseUrl = $('meta[name="app-url"]').attr("content");
 
-document.addEventListener("DOMContentLoaded", function () {
-    // Initialize attendance page
-    initializeAttendance();
+$(document).ready(function () {
     initializeCalendar();
-
-    // Setup event listeners with DOM ready check
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", setupEventListeners);
-    } else {
-        setupEventListeners();
-    }
 });
 
-function initializeAttendance() {
-    // Set current date
-    const today = new Date();
-    const currentDateInput = document.getElementById("currentDate");
-    if (currentDateInput) {
-        currentDateInput.value = today.toISOString().split("T")[0];
-    }
+$(".btn-custom-check").on("click", function () {
+    $(".btn-custom-check").removeClass("active");
+    $(this).addClass("active");
 
-    // Update check in/out times if available
-    updateAttendanceStatus();
-}
+    getAttendanceToDay();
 
-function setupEventListeners() {
-    // Check in/out button - now opens modal
-    const checkInBtn = document.getElementById("checkInBtn");
-    if (checkInBtn) {
-        checkInBtn.addEventListener("click", function () {
-            openCheckInModal();
-        });
-    }
-
-    // Check out button
-    const checkOutBtn = document.getElementById("checkOutBtn");
-    if (checkOutBtn) {
-        checkOutBtn.addEventListener("click", function () {
-            openCheckOutModal();
-        });
-    }
-
-    // Calendar navigation
-    const prevMonthBtn = document.getElementById("prevMonth");
-    const nextMonthBtn = document.getElementById("nextMonth");
-
-    if (prevMonthBtn) {
-        prevMonthBtn.addEventListener("click", function () {
-            navigateMonth(-1);
-        });
-    }
-
-    if (nextMonthBtn) {
-        nextMonthBtn.addEventListener("click", function () {
-            navigateMonth(1);
-        });
-    }
-
-    // Modal form submission
     const submitCheckInBtn = document.getElementById("submitCheckInBtn");
     if (submitCheckInBtn) {
         submitCheckInBtn.addEventListener("click", function () {
             submitCheckIn();
         });
     }
+});
 
-    // Submit checkout
-    const submitCheckOutBtn = document.getElementById("submitCheckOutBtn");
-    if (submitCheckOutBtn) {
-        submitCheckOutBtn.addEventListener("click", function () {
-            submitCheckOut();
-        });
+function getAttendanceToDay() {
+    let checkBtnActive = $(".btn-custom-check.active").attr(
+        "data-check-active"
+    );
+
+    if (checkBtnActive === "checkIn") {
+        openCheckInModal();
+    } else if (checkBtnActive === "checkOut") {
+        openCheckOutModal();
     }
-
-    // Image input handling
-    const imageInput = document.getElementById("imageInput");
-    if (imageInput) {
-        imageInput.addEventListener("change", handleImagePreview);
-    }
-
-    // Work outside radio buttons event listeners
-    const workOutsideYes = document.getElementById("work_outside_yes");
-    const workOutsideNo = document.getElementById("work_outside_no");
-
-    if (workOutsideYes && workOutsideNo) {
-        workOutsideYes.addEventListener("change", toggleImageUploadVisibility);
-        workOutsideNo.addEventListener("change", toggleImageUploadVisibility);
-    }
-
-    // Camera functionality
-    initializeCameraFeatures();
-
-    // Initialize image upload visibility based on default selection
-    toggleImageUploadVisibility();
 }
 
-// Function to toggle image upload visibility based on work outside selection
-function toggleImageUploadVisibility() {
-    const workOutsideYes = document.getElementById("work_outside_yes");
-    const imageUploadSection = document.getElementById("imageUploadSection");
+function openCheckInModal() {
+    fetch(baseUrl + "/server-time")
+        .then((response) => response.json())
+        .then((data) => {
+            const timeString = data.time;
+            const formattedDate = data.formatted_date;
+            const dateString = data.date;
 
-    if (workOutsideYes && imageUploadSection) {
-        if (workOutsideYes.checked) {
-            // Show image upload section when "Yes" is selected
-            imageUploadSection.style.display = "block";
-        } else {
-            // Hide image upload section when "No" is selected
-            imageUploadSection.style.display = "none";
+            // Update tampilan modal
+            document.getElementById("date_attendance").textContent =
+                formattedDate;
+            document.getElementById("time_in").textContent = timeString;
 
-            // Clear any existing image when hiding
-            clearImage();
+            // Hapus input hidden lama
+            document
+                .querySelectorAll(
+                    'input[name="date_attendance"], input[name="time_in"]'
+                )
+                .forEach((el) => el.remove());
+
+            // Tambahkan input hidden baru
+            const hiddenDate = document.createElement("input");
+            hiddenDate.type = "hidden";
+            hiddenDate.name = "date_attendance";
+            hiddenDate.value = dateString;
+            document.getElementById("checkInForm").appendChild(hiddenDate);
+
+            const hiddenTime = document.createElement("input");
+            hiddenTime.type = "hidden";
+            hiddenTime.name = "time_in";
+            hiddenTime.value = timeString;
+            document.getElementById("checkInForm").appendChild(hiddenTime);
+
+            // Tampilkan modal
+            const modal = new bootstrap.Modal(
+                document.getElementById("checkInModal")
+            );
+            modal.show();
+        })
+        .catch((error) => {
+            console.error("Gagal ambil waktu server:", error);
+        });
+}
+
+let stream = null;
+let capturedImage = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+    function initializeCameraFeatures() {
+        const cameraLabel = document.querySelector(".camera-label");
+        const clearImageBtn = document.getElementById("clearImageBtn");
+        const imageInput = document.getElementById("imageInput");
+        const captureBtn = document.getElementById("captureBtn");
+
+        if (cameraLabel) {
+            cameraLabel.addEventListener("click", (e) => {
+                e.preventDefault();
+                startCamera();
+            });
+        }
+
+        if (clearImageBtn) {
+            clearImageBtn.addEventListener("click", clearImage);
+        }
+
+        if (imageInput) {
+            imageInput.addEventListener("change", handleImagePreview);
+        }
+
+        if (captureBtn) {
+            captureBtn.addEventListener("click", capturePhoto);
         }
     }
-}
 
-// Function to open the check-in modal
-function openCheckInModal() {
-    // Set current date and time
-    const now = new Date();
-    const dateString = now.toISOString().split("T")[0];
-    const timeString = now.toLocaleTimeString("en-US", {
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
+    initializeCameraFeatures();
+});
+
+function startCamera() {
+  const video = document.getElementById("cameraVideo");
+  const cameraWrapper = document.getElementById("cameraWrapper");
+  const modalBody = document.querySelector(".modal-body");
+  const modalFooter = document.querySelector(".modal-footer");
+
+  if (stream) return;
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+    .then(mediaStream => {
+      stream = mediaStream;
+      video.srcObject = mediaStream;
+      video.onloadedmetadata = () => video.play();
+
+      cameraWrapper.classList.remove("d-none");
+      modalBody.classList.add("d-none");
+      modalFooter.classList.add("d-none");
+    })
+    .catch(err => {
+      console.error("Cannot access camera:", err);
+      alert("Cannot access camera on this device.");
     });
-
-    // Format date for display (DD/MM/YYYY)
-    const [year, month, day] = dateString.split("-");
-    const formattedDate = `${day}/${month}/${year}`;
-
-    // Update modal display fields (span elements)
-    const dateDisplay = document.getElementById("date_attendance");
-    const timeDisplay = document.getElementById("time_in");
-
-    if (dateDisplay) {
-        dateDisplay.textContent = formattedDate;
-    }
-    if (timeDisplay) {
-        timeDisplay.textContent = timeString;
-    }
-
-    // Update hidden form fields for submission
-    let dateInput = document.querySelector('input[name="date_attendance"]');
-    let timeInput = document.querySelector('input[name="time_in"]');
-
-    // Remove existing hidden inputs if any
-    if (dateInput) dateInput.remove();
-    if (timeInput) timeInput.remove();
-
-    // Create new hidden inputs
-    const hiddenDate = document.createElement("input");
-    hiddenDate.type = "hidden";
-    hiddenDate.name = "date_attendance";
-    hiddenDate.value = dateString;
-    document.getElementById("checkInForm").appendChild(hiddenDate);
-
-    const hiddenTime = document.createElement("input");
-    hiddenTime.type = "hidden";
-    hiddenTime.name = "time_in";
-    hiddenTime.value = timeString;
-    document.getElementById("checkInForm").appendChild(hiddenTime);
-
-    // Check for existing image URL and show preview if present
-    const existingImageUrlInput = document.getElementById("existingImageUrl");
-    if (existingImageUrlInput && existingImageUrlInput.value) {
-        showImagePreview(existingImageUrlInput.value);
-    } else {
-        clearImage();
-    }
-
-    // Show the modal using Bootstrap's modal API
-    const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
-    modal.show();
 }
 
-function handleCheckIn() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString("en-US", {
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-
-    document.getElementById("checkInTime").value = timeString;
-    document.getElementById("attendanceStatus").textContent = "Checked In";
-
-    // Disable check in button and enable check out
-    document.getElementById("checkInBtn").disabled = true;
-    document.getElementById("checkOutBtn").disabled = false;
-
-    // Show success message
-    showFloatingAlert("Successfully checked in at " + timeString, "success");
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
 }
 
-function handleCheckOut() {
-    const now = new Date();
-    const currentTime = new Date().toLocaleTimeString("en-US", {
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+function capturePhoto() {
+    const video = document.getElementById("cameraVideo");
+    const canvas = document.getElementById("cameraCanvas");
+    const cameraWrapper = document.getElementById("cameraWrapper");
+    const modalBody = document.querySelector(".modal-body");
+    const modalFooter = document.querySelector(".modal-footer");
 
-    document.getElementById("checkOutTime").value = currentTime;
-    document.getElementById("attendanceStatus").textContent = "Checked Out";
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    // Calculate working hours
-    calculateWorkingHours();
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // Disable check out button
-    document.getElementById("checkOutBtn").disabled = true;
+    canvas.toBlob(
+        (blob) => {
+            const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+            capturedImage = file;
 
-    // Show success message
-    showFloatingAlert("Successfully checked out at " + timeString, "success");
+            const reader = new FileReader();
+            reader.onload = (e) => showImagePreview(e.target.result, file);
+            reader.readAsDataURL(blob);
+        },
+        "image/jpeg",
+        0.9
+    );
+
+    cameraWrapper.classList.add("d-none");
+    modalBody.classList.remove("d-none");
+    modalFooter.classList.remove("d-none");
+
+    stopCamera();
 }
 
-function calculateWorkingHours() {
-    const checkInTime = document.getElementById("checkInTime").value;
-    const checkOutTime = document.getElementById("checkOutTime").value;
+function handleImagePreview(e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    if (checkInTime && checkOutTime) {
-        const [checkInHour, checkInMin] = checkInTime.split(":").map(Number);
-        const [checkOutHour, checkOutMin] = checkOutTime.split(":").map(Number);
-
-        const checkInTotal = checkInHour * 60 + checkInMin;
-        const checkOutTotal = checkOutHour * 60 + checkOutMin;
-
-        const totalMinutes = checkOutTotal - checkInTotal;
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-
-        document.getElementById(
-            "workingHours"
-        ).textContent = `${hours}h ${minutes}m`;
-    }
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    showImagePreview(e.target.result, file);
+  };
+  reader.readAsDataURL(file);
 }
 
-function updateAttendanceStatus() {
+function showImagePreview(src, file = null) {
+  const preview = document.getElementById("imagePreview");
+  const previewImg = document.getElementById("previewImg");
+  const cameraLabel = document.querySelector(".camera-label");
+  const imageInput = document.getElementById("imageInput");
+  const video = document.getElementById("cameraVideo");
+  const captureBtn = document.getElementById("captureBtn");
+  const clearBtn = document.getElementById("clearImageBtn");
+
+  if (!preview || !previewImg) return;
+
+  previewImg.src = src;
+  preview.style.display = "block";
+
+  video.style.display = "none";
+  captureBtn.classList.add("d-none");
+  if (cameraLabel) cameraLabel.style.display = "none";
+  if (clearBtn) clearBtn.classList.remove("d-none");
+
+  if (file && imageInput) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    imageInput.files = dt.files;
+  }
+}
+
+function clearImage() {
+  const preview = document.getElementById("imagePreview");
+  const previewImg = document.getElementById("previewImg");
+  const cameraLabel = document.querySelector(".camera-label");
+  const imageInput = document.getElementById("imageInput");
+  const video = document.getElementById("cameraVideo");
+  const captureBtn = document.getElementById("captureBtn");
+  const clearBtn = document.getElementById("clearImageBtn");
+
+  if (previewImg) previewImg.src = "";
+  if (preview) preview.style.display = "none";
+  if (cameraLabel) cameraLabel.style.display = "flex";
+  if (imageInput) imageInput.value = "";
+  if (video) video.style.display = "block";
+  if (captureBtn) captureBtn.classList.remove("d-none");
+  if (clearBtn) clearBtn.classList.add("d-none");
+
+  stopCamera();
+}
+
+function submitCheckIn() {
+    const form = document.getElementById("checkInForm");
+    if (!form) return;
+
+    // Validate form before submission
     const employeeId = document.querySelector(
         'input[name="employee_id"]'
     )?.value;
-
     if (!employeeId) {
-        console.error("Employee ID not found");
+        showFloatingAlert(
+            "Employee ID not found. Please refresh the page.",
+            "error"
+        );
         return;
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const urlToday = `${baseUrl}/attendance/today/${employeeId}`;
-    const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
+    const isWorkOutsideRadio = document.querySelector(
+        'input[name="is_work_outside"]:checked'
+    );
+    if (!isWorkOutsideRadio) {
+        showFloatingAlert(
+            "Please select whether you are working outside or not.",
+            "error"
+        );
+        return;
+    }
 
-    // Fetch latest unclosed check-in (could be from previous day)
-    fetch(urlLatestUnclosed)
-        .then((response) => response.json())
-        .then((latestData) => {
-            // Fetch today's attendance data
-            fetch(urlToday)
-                .then((response) => response.json())
-                .then((todayData) => {
-                    const checkInBtn = document.getElementById("checkInBtn");
-                    const checkOutBtn = document.getElementById("checkOutBtn");
+    // Create new FormData
+    const formData = new FormData();
 
-                    if (!checkInBtn || !checkOutBtn) {
-                        console.error("Check buttons not found");
-                        return;
+    // Add required fields
+    formData.append("employee_id", employeeId);
+    formData.append(
+        "is_work_outside",
+        isWorkOutsideRadio.value === "1" ? "1" : "0"
+    );
+    formData.append(
+        "date_attendance",
+        document.querySelector('input[name="date_attendance"]').value
+    );
+    formData.append(
+        "time_in",
+        document.querySelector('input[name="time_in"]').value
+    );
+    formData.append("type_attendance", "check_in");
+
+    // Add optional fields
+    const noteTextarea = document.querySelector('textarea[name="note"]');
+    if (noteTextarea && noteTextarea.value.trim()) {
+        formData.append("note", noteTextarea.value.trim());
+    }
+
+    // Add captured image if exists
+    if (capturedImage) {
+        formData.append("image", capturedImage);
+    } else {
+        // Check if there's a file input
+        const imageInput = document.getElementById("imageInput");
+        if (imageInput && imageInput.files && imageInput.files[0]) {
+            formData.append("image", imageInput.files[0]);
+        }
+    }
+
+    // Add CSRF token
+    const csrfToken = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content");
+    if (!csrfToken) {
+        showFloatingAlert(
+            "CSRF token not found. Please refresh the page.",
+            "error"
+        );
+        return;
+    }
+    formData.append("_token", csrfToken);
+
+    // Show loading state
+    const submitBtn = document.getElementById("submitCheckInBtn");
+    if (!submitBtn) {
+        console.error("Submit button not found");
+        return;
+    }
+
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    submitBtn.disabled = true;
+
+    // Get base URL from meta tag
+    const url = `${baseUrl}/attendance/store`;
+
+    // Send data to server
+    fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRF-TOKEN": csrfToken,
+            Accept: "application/json",
+        },
+    })
+        .then((response) => {
+            return response.json().then((data) => {
+                if (!response.ok) {
+                    // Handle validation errors
+                    if (data.errors) {
+                        const errorMessages = Object.values(data.errors)
+                            .flat()
+                            .join("\n");
+                        throw new Error(
+                            errorMessages || data.message || "Validation error"
+                        );
                     }
+                    throw new Error(
+                        data.message || `HTTP error! status: ${response.status}`
+                    );
+                }
+                return data;
+            });
+        })
+        .then((data) => {
+            if (data.status === "success") {
+                showFloatingAlert(
+                    data.message || "Check-in submitted successfully!",
+                    "success"
+                );
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(
+                    document.getElementById("checkInModal")
+                );
+                if (modal) modal.hide();
 
-                    console.log("Latest unclosed attendance:", latestData);
-                    console.log("Today's attendance:", todayData);
+                // Reset form
+                form.reset();
+                clearImage();
 
-                    // Determine button state based on today's attendance first
-                    if (todayData.status === "success" && todayData.data) {
-                        const attendances = todayData.data;
+                $("btnCheckIn .check-icon").show();
 
-                        if (attendances.length > 0) {
-                            const lastAttendance =
-                                attendances[attendances.length - 1];
-
-                            if (
-                                lastAttendance.type_attendance === "check_in" &&
-                                !lastAttendance.time_out
-                            ) {
-                                // Last record is check-in without checkout, show checkout button
-                                checkInBtn.style.display = "flex";
-                                checkOutBtn.style.display = "flex";
-
-                                // Update hidden time fields
-                                const checkInTimeInput =
-                                    document.getElementById("checkInTime");
-                                if (checkInTimeInput) {
-                                    checkInTimeInput.value =
-                                        lastAttendance.time_in;
-                                }
-                                return;
-                            } else {
-                                // Last record is checkout or fully checked out, show check-in button
-                                checkInBtn.disabled = false;
-                                checkOutBtn.disabled = true;
-                                return;
-                            }
-                        } else {
-                            // No attendance today, show check-in button
-                            checkInBtn.disabled = false;
-                            checkOutBtn.disabled = true;
-                            return;
-                        }
-                    }
-
-                    // If no attendance today, check latest unclosed check-in from previous days
-                    if (latestData.status === "success" && latestData.data) {
-                        const latestAttendance = latestData.data;
-                        const latestDate = latestAttendance.date_attendance;
-
-                        if (latestDate < today) {
-                            checkInBtn.disabled = true;
-                            checkOutBtn.disabled = false;
-                            // Set hidden checkInTime to latest check-in time
-                            const checkInTimeInput =
-                                document.getElementById("checkInTime");
-                            if (checkInTimeInput) {
-                                checkInTimeInput.value =
-                                    latestAttendance.time_in;
-                            }
-                            return;
-                        }
-                    }
-
-                    // Default fallback: show check-in button
-                    checkInBtn.disabled = false;
-                    checkOutBtn.disabled = true;
-                });
+                // Reload attendance data
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showFloatingAlert(
+                    data.message || "Error submitting check-in",
+                    "error"
+                );
+                console.error("Server error:", data);
+            }
         })
         .catch((error) => {
-            console.error("Error fetching attendance data:", error);
-            // Fallback to showing check-in button
-            const checkInBtn = document.getElementById("checkInBtn");
-            const checkOutBtn = document.getElementById("checkOutBtn");
-
-            if (checkInBtn && checkOutBtn) {
-                checkInBtn.disabled = false;
-                checkOutBtn.disabled = true;
-            }
+            console.error("Network error:", error);
+            showFloatingAlert(
+                error.message || "Network error. Please check your connection.",
+                "error"
+            );
+        })
+        .finally(() => {
+            // Reset button state
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         });
+}
+
+function openCheckOutModal() {
+    fetch(baseUrl + "/server-time")
+        .then((response) => response.json())
+        .then((data) => {
+            const serverTime = data.time;
+            const serverDate = data.date;
+
+            // Update hidden input
+            document.getElementById("date_attendance").value = serverDate;
+            document.getElementById("time_out").value = serverTime;
+
+            // Update tampilan
+            document.getElementById("time_out_display").textContent =
+                serverTime;
+
+            // Load check-in data dan hitung durasi kerja
+            loadCheckInDataForCheckout(serverTime);
+        })
+        .catch((error) => console.error("Gagal ambil waktu server:", error));
+
+    // Tampilkan modal
+    const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
+    modal.show();
+}
+
+$(".btn-tab-task").on("click", function () {
+    $(".btn-tab-task").removeClass("active");
+    $(this).addClass("active");
+
+    showTask();
+});
+
+function showTask() {
+    let taskActive = $(".btn-tab-task.active").attr("data-tab-active");
+
+    if (taskActive === "today") {
+        getTaskToday();
+    } else if (taskActive === "tomorrow") {
+        getTaskTomorrow();
+    }
+}
+
+function getTaskToday() {
+    console.log("task aktive today");
+}
+
+function getTaskTomorrow() {
+    console.log("task aktive today");
 }
 
 // Calendar Functions
@@ -555,755 +651,6 @@ function renderCalendar(month, year) {
         });
 }
 
-function navigateMonth(direction) {
-    currentMonth += direction;
-
-    if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-    } else if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-    }
-
-    renderCalendar(currentMonth, currentYear);
-}
-
-function selectDate(day, month, year) {
-    const selectedDate = new Date(year, month, day);
-    const dateString = selectedDate.toISOString().split("T")[0];
-
-    // Update form date
-    document.getElementById("currentDate").value = dateString;
-
-    // Highlight selected date
-    const days = document.querySelectorAll(".calendar-day");
-    days.forEach((d) => d.classList.remove("selected"));
-
-    const selectedDay = Array.from(days).find(
-        (d) => d.textContent == day && !d.classList.contains("other-month")
-    );
-
-    if (selectedDay) {
-        selectedDay.classList.add("selected");
-    }
-
-    // Load attendance for selected date
-    loadAttendanceForDate(dateString);
-}
-
-function loadAttendanceForDate(dateString) {
-    // This would typically fetch from server
-    // For now, we'll reset the form for new date
-    document.getElementById("checkInTime").value = "";
-    document.getElementById("checkOutTime").value = "";
-    document.getElementById("workingHours").textContent = "0h 0m";
-    // Remove "Not Checked In" text when no check-in yet
-    document.getElementById("attendanceStatus").textContent = "";
-
-    document.getElementById("checkInBtn").disabled = false;
-    document.getElementById("checkOutBtn").disabled = true;
-}
-
-// Function to show floating alert with SVG icon - same as task.js
-function showFloatingAlert(message, type = "success") {
-    const alertDiv = document.createElement("div");
-    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
-    alertDiv.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        opacity: 1;
-        transition: opacity 0.5s ease;
-    `;
-
-    let iconClass =
-        type === "success" ? "fa-check-circle" : "fa-exclamation-triangle";
-
-    alertDiv.innerHTML = `
-        <i class="fas ${iconClass} me-2"></i>
-        <div>${message}</div>
-    `;
-
-    document.body.appendChild(alertDiv);
-
-    setTimeout(() => {
-        alertDiv.style.opacity = "0";
-        setTimeout(() => alertDiv.remove(), 500);
-    }, 3000);
-}
-
-// Camera functionality
-let stream = null;
-let capturedImage = null;
-
-function initializeCameraFeatures() {
-    // Camera label click handler
-    const cameraLabel = document.querySelector(".camera-label");
-    if (cameraLabel) {
-        cameraLabel.addEventListener("click", function (e) {
-            e.preventDefault();
-            startCamera();
-        });
-    }
-
-    // Clear image button
-    const clearImageBtn = document.getElementById("clearImageBtn");
-    if (clearImageBtn) {
-        clearImageBtn.addEventListener("click", clearImage);
-    }
-
-    // Removed retake button event listener as per user request
-}
-
-function startCamera() {
-    // Check if camera is supported
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("Camera is not supported on this device/browser");
-        return;
-    }
-
-    // Request camera access
-    navigator.mediaDevices
-        .getUserMedia({
-            video: {
-                facingMode: "user",
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-            },
-        })
-        .then(function (mediaStream) {
-            stream = mediaStream;
-
-            // Show video element
-            const video = document.getElementById("cameraVideo");
-            const imageInput = document.getElementById("imageInput");
-            const cameraLabel = document.querySelector(".camera-label");
-            const preview = document.getElementById("imagePreview");
-
-            if (video && cameraLabel) {
-                video.srcObject = mediaStream;
-                video.style.display = "block";
-                cameraLabel.style.display = "none";
-                imageInput.style.display = "none";
-                preview.style.display = "none";
-
-                // Add capture button
-                addCaptureButton();
-            }
-        })
-        .catch(function (error) {
-            console.error("Error accessing camera:", error);
-
-            // Fallback to file input if camera fails
-            const imageInput = document.getElementById("imageInput");
-            if (imageInput) {
-                imageInput.click();
-            }
-        });
-}
-
-function addCaptureButton() {
-    // Remove existing capture button
-    const existingBtn = document.getElementById("captureBtn");
-    if (existingBtn) {
-        existingBtn.remove();
-    }
-
-    // Create capture button
-    const captureBtn = document.createElement("button");
-    captureBtn.id = "captureBtn";
-    captureBtn.type = "button";
-    captureBtn.className = "btn btn-primary mt-2 w-100";
-    captureBtn.innerHTML = '<i class="fas fa-camera"></i> Capture Photo';
-
-    captureBtn.addEventListener("click", capturePhoto);
-
-    const videoContainer = document.getElementById("cameraVideo").parentElement;
-    videoContainer.appendChild(captureBtn);
-}
-
-function capturePhoto() {
-    const video = document.getElementById("cameraVideo");
-    const canvas = document.getElementById("cameraCanvas");
-
-    if (!video || !canvas) return;
-
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // Draw video frame to canvas
-    const context = canvas.getContext("2d");
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Convert canvas to blob
-    canvas.toBlob(
-        function (blob) {
-            if (blob) {
-                // Create file from blob
-                const file = new File([blob], "attendance-photo.jpg", {
-                    type: "image/jpeg",
-                });
-
-                // Create data URL for preview
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    showImagePreview(e.target.result);
-                    capturedImage = file;
-
-                    // Update file input
-                    const dt = new DataTransfer();
-                    dt.items.add(file);
-                    document.getElementById("imageInput").files = dt.files;
-                };
-                reader.readAsDataURL(blob);
-            }
-        },
-        "image/jpeg",
-        0.9
-    );
-
-    // Stop camera stream
-    stopCamera();
-}
-
-function showImagePreview(src) {
-    const preview = document.getElementById("imagePreview");
-    const previewImg = document.getElementById("previewImg");
-    const clearBtn = document.getElementById("clearImageBtn");
-    const retakeBtn = document.getElementById("retakeBtn");
-    const video = document.getElementById("cameraVideo");
-    const captureBtn = document.getElementById("captureBtn");
-
-    if (preview && previewImg) {
-        previewImg.src = src;
-        preview.style.display = "block";
-
-        if (clearBtn) {
-            clearBtn.style.display = "";
-            clearBtn.classList.remove("d-none");
-        }
-        if (retakeBtn) {
-            retakeBtn.style.display = "inline-block";
-            retakeBtn.classList.remove("d-none");
-        }
-        if (video) video.style.display = "none";
-        if (captureBtn) captureBtn.remove();
-    }
-}
-
-function clearImage() {
-    const preview = document.getElementById("imagePreview");
-    const previewImg = document.getElementById("previewImg");
-    const clearBtn = document.getElementById("clearImageBtn");
-    const retakeBtn = document.getElementById("retakeBtn");
-    const cameraLabel = document.querySelector(".camera-label");
-    const imageInput = document.getElementById("imageInput");
-    const video = document.getElementById("cameraVideo");
-    const existingImageUrlInput = document.getElementById("existingImageUrl");
-
-    // Reset preview
-    if (preview) preview.style.display = "none";
-    if (previewImg) previewImg.src = "";
-
-    // Hide clear and retake buttons
-    if (clearBtn) {
-        clearBtn.style.display = "none";
-        clearBtn.classList.add("d-none");
-    }
-    if (retakeBtn) {
-        retakeBtn.style.display = "none";
-        retakeBtn.classList.add("d-none");
-    }
-
-    // Show camera label again
-    if (cameraLabel) {
-        cameraLabel.style.display = "flex";
-        cameraLabel.style.backgroundPosition = "center center";
-        cameraLabel.style.backgroundRepeat = "no-repeat";
-        cameraLabel.style.backgroundSize = "50%";
-    }
-
-    // Clear file input
-    if (imageInput) imageInput.value = "";
-
-    // Clear existing image URL hidden input
-    if (existingImageUrlInput) existingImageUrlInput.value = "";
-
-    // Hide video if showing
-    if (video) video.style.display = "none";
-
-    // Reset captured image
-    capturedImage = null;
-
-    // Stop camera if running
-    stopCamera();
-}
-
-function retakePhoto() {
-    clearImage();
-    startCamera();
-}
-
-function stopCamera() {
-    if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-        stream = null;
-    }
-
-    const video = document.getElementById("cameraVideo");
-    const captureBtn = document.getElementById("captureBtn");
-
-    if (video) video.style.display = "none";
-    if (captureBtn) captureBtn.remove();
-}
-
-function handleImagePreview(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        showImagePreview(e.target.result);
-    };
-    reader.readAsDataURL(file);
-}
-
-function submitCheckIn() {
-    const form = document.getElementById("checkInForm");
-    if (!form) return;
-
-    // Validate form before submission
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
-    if (!employeeId) {
-        showFloatingAlert(
-            "Employee ID not found. Please refresh the page.",
-            "error"
-        );
-        return;
-    }
-
-    const isWorkOutsideRadio = document.querySelector(
-        'input[name="is_work_outside"]:checked'
-    );
-    if (!isWorkOutsideRadio) {
-        showFloatingAlert(
-            "Please select whether you are working outside or not.",
-            "error"
-        );
-        return;
-    }
-
-    // Create new FormData
-    const formData = new FormData();
-
-    // Add required fields
-    formData.append("employee_id", employeeId);
-    formData.append(
-        "is_work_outside",
-        isWorkOutsideRadio.value === "1" ? "1" : "0"
-    );
-    formData.append(
-        "date_attendance",
-        document.querySelector('input[name="date_attendance"]').value
-    );
-    formData.append(
-        "time_in",
-        document.querySelector('input[name="time_in"]').value
-    );
-    formData.append("type_attendance", "check_in");
-
-    // Add optional fields
-    const noteTextarea = document.querySelector('textarea[name="note"]');
-    if (noteTextarea && noteTextarea.value.trim()) {
-        formData.append("note", noteTextarea.value.trim());
-    }
-
-    // Add captured image if exists
-    if (capturedImage) {
-        formData.append("image", capturedImage);
-    } else {
-        // Check if there's a file input
-        const imageInput = document.getElementById("imageInput");
-        if (imageInput && imageInput.files && imageInput.files[0]) {
-            formData.append("image", imageInput.files[0]);
-        }
-    }
-
-    // Add CSRF token
-    const csrfToken = document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute("content");
-    if (!csrfToken) {
-        showFloatingAlert(
-            "CSRF token not found. Please refresh the page.",
-            "error"
-        );
-        return;
-    }
-    formData.append("_token", csrfToken);
-
-    // Show loading state
-    const submitBtn = document.getElementById("submitCheckInBtn");
-    if (!submitBtn) {
-        console.error("Submit button not found");
-        return;
-    }
-
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML =
-        '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    submitBtn.disabled = true;
-
-    // Get base URL from meta tag
-    const url = `${baseUrl}/attendance/store`;
-
-    // Send data to server
-    fetch(url, {
-        method: "POST",
-        body: formData,
-        headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            "X-CSRF-TOKEN": csrfToken,
-            Accept: "application/json",
-        },
-    })
-        .then((response) => {
-            return response.json().then((data) => {
-                if (!response.ok) {
-                    // Handle validation errors
-                    if (data.errors) {
-                        const errorMessages = Object.values(data.errors)
-                            .flat()
-                            .join("\n");
-                        throw new Error(
-                            errorMessages || data.message || "Validation error"
-                        );
-                    }
-                    throw new Error(
-                        data.message || `HTTP error! status: ${response.status}`
-                    );
-                }
-                return data;
-            });
-        })
-        .then((data) => {
-            if (data.status === "success") {
-                showFloatingAlert(
-                    data.message || "Check-in submitted successfully!",
-                    "success"
-                );
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(
-                    document.getElementById("checkInModal")
-                );
-                if (modal) modal.hide();
-
-                // Reset form
-                form.reset();
-                clearImage();
-
-                // Reload attendance data
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                showFloatingAlert(
-                    data.message || "Error submitting check-in",
-                    "error"
-                );
-                console.error("Server error:", data);
-            }
-        })
-        .catch((error) => {
-            console.error("Network error:", error);
-            showFloatingAlert(
-                error.message || "Network error. Please check your connection.",
-                "error"
-            );
-        })
-        .finally(() => {
-            // Reset button state
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        });
-}
-
-// Initialize on page load
-document.addEventListener("DOMContentLoaded", function () {
-    // Add Font Awesome for icons
-    const fontAwesome = document.createElement("link");
-    fontAwesome.rel = "stylesheet";
-    fontAwesome.href =
-        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css";
-    document.head.appendChild(fontAwesome);
-});
-
-// Checkout Modal Functions
-function openCheckOutModal() {
-    // Get current date and time
-    const now = new Date();
-    const dateString = now.toISOString().split("T")[0];
-    const timeString = now.toLocaleTimeString("en-US", {
-        hour12: false,
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-
-    // Update modal form fields
-    document.getElementById("date_attendance").value = dateString;
-    document.getElementById("time_out").value = timeString;
-
-    // Set the visible time_out_display span to current time
-    const timeOutDisplay = document.getElementById("time_out_display");
-    if (timeOutDisplay) {
-        timeOutDisplay.textContent = timeString;
-    }
-
-    // Load check-in data to display work outside status
-    loadCheckInDataForCheckout();
-
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
-    modal.show();
-}
-
-function calculateDuration24h(timeIn24h, timeOut24h) {
-    if (!timeIn24h || !timeOut24h) return "0h 0m";
-
-    try {
-        // Normalize time formats (handle cases like "09:00 AM" or "09:00:00")
-        const normalizeTime = (timeStr) => {
-            let [hours, minutes] = timeStr.replace(/[^0-9:]/g, "").split(":");
-            return `${hours.padStart(2, "0")}:${(minutes || "00").padStart(
-                2,
-                "0"
-            )}`;
-        };
-
-        const normalizedIn = normalizeTime(timeIn24h);
-        const normalizedOut = normalizeTime(timeOut24h);
-
-        const [inHours, inMinutes] = normalizedIn.split(":").map(Number);
-        const [outHours, outMinutes] = normalizedOut.split(":").map(Number);
-
-        let totalInMinutes =
-            outHours * 60 + outMinutes - (inHours * 60 + inMinutes);
-
-        // Handle overnight case (negative duration)
-        if (totalInMinutes < 0) {
-            totalInMinutes += 24 * 60; // Add 24 hours
-        }
-
-        const hours = Math.floor(totalInMinutes / 60);
-        const minutes = totalInMinutes % 60;
-
-        return `${hours} hours ${minutes.toString().padStart(2)} minutes`;
-    } catch (e) {
-        console.error("Error calculating duration:", e);
-        return "0 hours 0 minutes";
-    }
-}
-
-function loadCheckInDataForCheckout() {
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
-    if (!employeeId) return;
-
-    // Get selected date from currentDate input or fallback to today
-    const selectedDate =
-        document.getElementById("currentDate")?.value ||
-        new Date().toISOString().split("T")[0];
-
-    const urlSelectedDate = `${baseUrl}/attendance/daily/${employeeId}/${selectedDate}`;
-    const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
-
-    // Fetch attendance for selected date
-    fetch(urlSelectedDate)
-        .then((response) => response.json())
-        .then((data) => {
-            if (
-                data.status === "success" &&
-                Array.isArray(data.data) &&
-                data.data.length > 0
-            ) {
-                // Find the first check-in record for the selected date
-                const checkInRecord = data.data.find(
-                    (r) => r.type_attendance === "check_in"
-                );
-
-                if (!checkInRecord) {
-                    // No check-in record found for the date
-                    setCheckoutModalDefaults();
-                    return;
-                }
-
-                populateCheckoutModal(checkInRecord);
-            } else {
-                // No check-in for selected date, fetch latest unclosed check-in
-                fetch(urlLatestUnclosed)
-                    .then((response) => response.json())
-                    .then((latestData) => {
-                        if (
-                            latestData.status === "success" &&
-                            latestData.data
-                        ) {
-                            populateCheckoutModal(latestData.data);
-                        } else {
-                            setCheckoutModalDefaults();
-                        }
-                    })
-                    .catch((error) => {
-                        console.error(
-                            "Error loading latest unclosed check-in data:",
-                            error
-                        );
-                        setCheckoutModalDefaults();
-                    });
-            }
-        })
-        .catch((error) => {
-            console.error("Error loading check-in data:", error);
-            setCheckoutModalDefaults();
-        });
-}
-
-function populateCheckoutModal(checkInRecord) {
-    // Display work outside status
-    const workOutsideText = checkInRecord.is_work_outside ? "Yes" : "No";
-    document.getElementById("workOutsideStatusText").textContent =
-        workOutsideText;
-    document.getElementById("workOutsideStatusText").className =
-        checkInRecord.is_work_outside;
-
-    // Display time in
-    if (checkInRecord.time_in) {
-        document.getElementById("time_in_display").textContent =
-            checkInRecord.time_in;
-
-        // Calculate work duration only if both time_in and time_out exist
-        if (checkInRecord.time_out) {
-            const totalDuration = calculateDuration24h(
-                checkInRecord.time_in,
-                checkInRecord.time_out
-            );
-            document.getElementById("total_work_duration").textContent =
-                totalDuration;
-        } else {
-            // If not checked out yet, show current duration
-            const currentTime = new Date()
-                .toLocaleTimeString("en-US", {
-                    hour12: false,
-                    hour: "2-digit",
-                    minute: "2-digit",
-                })
-                .replace(/^24/, "00");
-            const totalDuration = calculateDuration24h(
-                checkInRecord.time_in,
-                currentTime
-            );
-            document.getElementById("total_work_duration").textContent =
-                totalDuration;
-        }
-    } else {
-        setCheckoutModalDefaults();
-    }
-
-    // Show/hide image upload based on work outside
-    const imageSection = document.getElementById("imageUploadSection");
-    if (imageSection) {
-        imageSection.style.display = checkInRecord.is_work_outside
-            ? "block"
-            : "none";
-    }
-}
-
-function setCheckoutModalDefaults() {
-    document.getElementById("workOutsideStatusText").textContent =
-        "Not available";
-    document.getElementById("time_in_display").textContent = "Not available";
-    document.getElementById("total_work_duration").textContent = "0h 0m";
-    const imageSection = document.getElementById("imageUploadSection");
-    if (imageSection) {
-        imageSection.style.display = "none";
-    }
-}
-
-// Function to submit check-out
-function submitCheckOut() {
-    const form = document.getElementById("checkOutForm");
-    const formData = new FormData(form);
-
-    // Add CSRF token
-    const csrfToken = document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute("content");
-    formData.append("_token", csrfToken);
-
-    const url = `${baseUrl}/attendance/checkout`;
-
-    // Show loading state
-    const submitCheckOutBtn = document.getElementById("submitCheckOutBtn");
-    const originalText = submitCheckOutBtn.innerHTML;
-    submitCheckOutBtn.innerHTML =
-        '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    submitCheckOutBtn.disabled = true;
-
-    fetch(url, {
-        method: "POST",
-        body: formData,
-        headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            "X-CSRF-TOKEN": csrfToken,
-            Accept: "application/json",
-        },
-    })
-        .then((response) => response.json())
-        .then((data) => {
-            if (data.status === "success") {
-                showFloatingAlert(
-                    data.message || "Check-out submitted successfully!",
-                    "success"
-                );
-
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(
-                    document.getElementById("checkOutModal")
-                );
-                if (modal) modal.hide();
-
-                // Reload attendance data
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                showFloatingAlert(
-                    data.message || "Error submitting check-out",
-                    "error"
-                );
-                console.error("Server error:", data);
-            }
-        })
-        .catch((error) => {
-            console.error("Network error:", error);
-            showFloatingAlert(
-                error.message || "Network error. Please check your connection.",
-                "error"
-            );
-        })
-        .finally(() => {
-            // Reset button state
-            submitCheckOutBtn.innerHTML = originalText;
-            submitCheckOutBtn.disabled = false;
-        });
-}
-
 document.addEventListener("DOMContentLoaded", function () {
     function updateClock() {
         const now = new Date();
@@ -1365,21 +712,19 @@ document.addEventListener("DOMContentLoaded", function () {
         type: "doughnut",
         data: {
             labels: ["Total", "Complete", "On Progress", "Late"],
-            datasets: [{
-                data: [3, 5, 2],
-                backgroundColor: [
-                    "#b6e7c9",
-                    "#8fb3e8",
-                    "#ff9c9c"
-                ],
-                borderWidth: 0
-            }]
+            datasets: [
+                {
+                    data: [3, 5, 2],
+                    backgroundColor: ["#b6e7c9", "#8fb3e8", "#ff9c9c"],
+                    borderWidth: 0,
+                },
+            ],
         },
         options: {
             cutout: "60%", // Size middle hole
             plugins: {
-                legend: { display: false }
-            }
-        }
+                legend: { display: false },
+            },
+        },
     });
 });
