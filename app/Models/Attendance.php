@@ -24,7 +24,10 @@ class Attendance extends Model
         'time_late',
         'type_attendance',
         'note',
-        'image'
+        'image',
+        'created_by',
+        'updated_by',
+        'deleted_by',
     ];
 
     /**

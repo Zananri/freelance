@@ -15,6 +15,7 @@ use App\Http\Controllers\ShiftController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
+use Carbon\Carbon;
 
 Route::get('/master', function () {
     return view('master/master');
@@ -154,6 +155,15 @@ Route::get('/attendance/today/{employeeId}', [AttendanceController::class, 'getT
 Route::get('/attendance/monthly/{employeeId}/{year}/{month}', [AttendanceController::class, 'getMonthlyAttendance'])->name('attendance.monthly');
 Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
 Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
+Route::get('/server-time', function () {
+    $now = Carbon::now('Asia/Jakarta');
+    return response()->json([
+        'time' => $now->format('H:i'),
+        'date' => $now->toDateString(),
+        'formatted_date' => $now->format('d/m/Y'),
+    ]);
+});
+
 
 Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
 Route::get('/shift/employees-with-shifts', [ShiftController::class, 'getEmployeesWithShifts'])->name('shift.employees-with-shifts');
