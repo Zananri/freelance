@@ -108,13 +108,24 @@ class ShiftController extends Controller
             DB::beginTransaction();
             
             // Validasi input
-            $validated = $request->validate([
-                'employee_id' => 'required|exists:employees,id',
-                'date_shifts' => 'required|array',
-                'date_shifts.*' => 'required|date_format:Y-m-d',
-                'time_start' => 'required|date_format:H:i',
-                'time_end' => 'required|date_format:H:i|after:time_start',
-            ]);
+           $validated = $request->validate([
+    'employee_id' => 'required|exists:employees,id',
+    'date_shifts' => 'required|array',
+    'date_shifts.*' => 'required|date_format:Y-m-d',
+    'time_start' => 'required|date_format:H:i',
+    'time_end' => 'required|date_format:H:i',
+]);
+
+$start = Carbon::createFromFormat('H:i', $validated['time_start']);
+$end = Carbon::createFromFormat('H:i', $validated['time_end']);
+
+// Allow overnight shift: if end < start, assume it's next day
+if ($end->lessThanOrEqualTo($start)) {
+    $end->addDay();
+}
+
+$totalHour = $end->diffInHours($start);
+
 
             $employeeId = $validated['employee_id'];
             
@@ -122,18 +133,17 @@ class ShiftController extends Controller
             EmployeeShift::where('employee_id', $employeeId)->delete();
             
             // Create new shifts for each date
-            foreach ($validated['date_shifts'] as $date) {
-                // Ensure date is in correct format YYYY-MM-DD
-                $formattedDate = Carbon::parse($date)->format('Y-m-d');
-                
-                EmployeeShift::create([
-                    'employee_id' => $employeeId,
-                    'date_shift' => $formattedDate,
-                    'time_start' => $validated['time_start'],
-                    'time_end' => $validated['time_end'],
-                    'total_hour' => Carbon::parse($validated['time_end'])->diffInHours(Carbon::parse($validated['time_start']))
-                ]);
-            }
+          foreach ($validated['date_shifts'] as $date) {
+    $formattedDate = Carbon::parse($date)->format('Y-m-d');
+
+    EmployeeShift::create([
+        'employee_id' => $employeeId,
+        'date_shift' => $formattedDate,
+        'time_start' => $validated['time_start'],
+        'time_end' => $validated['time_end'],
+        'total_hour' => $totalHour
+    ]);
+}
 
             DB::commit();
             return response()->json([

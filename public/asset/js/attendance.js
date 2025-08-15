@@ -613,10 +613,16 @@ function startCamera() {
   const video = document.getElementById("cameraVideo");
   const cameraWrapper = document.getElementById("cameraWrapper");
   const modalBody = document.querySelector(".modal-body");
+  const modalContent = document.querySelector(".modal-content");
   const modalFooter = document.querySelector(".modal-footer");
   const modalHeader = document.querySelector(".modal-header");
 
   if (stream) return;
+
+  // Apply transparent style only when camera is active
+  if (modalContent) {
+    modalContent.classList.add("camera-active");
+  }
 
   if (modalHeader) modalHeader.classList.add("d-none");
   if (modalFooter) modalFooter.classList.add("d-none");
@@ -643,6 +649,7 @@ function capturePhoto() {
   const modalBody = document.querySelector(".modal-body");
   const modalFooter = document.querySelector(".modal-footer");
   const modalHeader = document.querySelector(".modal-header");
+  const modalContent = document.querySelector(".modal-content");
 
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -663,6 +670,11 @@ function capturePhoto() {
   if (modalBody) modalBody.classList.remove("d-none");
   if (modalFooter) modalFooter.classList.remove("d-none");
   if (modalHeader) modalHeader.classList.remove("d-none");
+
+  // Remove transparent style after capture
+  if (modalContent) {
+    modalContent.classList.remove("camera-active");
+  }
 
   stopCamera();
 }
@@ -702,6 +714,7 @@ function clearImage() {
   const captureBtn = document.getElementById("captureBtn");
   const clearBtn = document.getElementById("clearImageBtn");
   const modalHeader = document.querySelector(".modal-header");
+  const modalContent = document.querySelector(".modal-content");
 
   if (previewImg) previewImg.src = "";
   if (preview) preview.style.display = "none";
@@ -711,6 +724,11 @@ function clearImage() {
   if (captureBtn) captureBtn.classList.remove("d-none");
   if (clearBtn) clearBtn.classList.add("d-none");
   if (modalHeader) modalHeader.classList.remove("d-none");
+
+  // Remove transparent style if still active
+  if (modalContent) {
+    modalContent.classList.remove("camera-active");
+  }
 
   stopCamera();
 }
