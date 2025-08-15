@@ -576,6 +576,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initializeCameraFeatures();
 });
 
+function isMobileDevice() {
+  return /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+}
+
 function initializeCameraFeatures() {
   const cameraLabel = document.querySelector(".camera-label");
   const clearImageBtn = document.getElementById("clearImageBtn");
@@ -584,56 +588,43 @@ function initializeCameraFeatures() {
   const checkInModalEl = document.getElementById("checkInModal");
 
   if (checkInModalEl) {
-    checkInModalEl.addEventListener("hidden.bs.modal", () => {
-      resetCheckInModal();
-    });
+    checkInModalEl.addEventListener("hidden.bs.modal", resetCheckInModal);
   }
 
   if (cameraLabel) {
     cameraLabel.addEventListener("click", e => {
-      e.preventDefault();
-      startCamera();
+      if (!isMobileDevice()) {
+        e.preventDefault(); // only prevent default on desktop
+        startCamera();
+      }
     });
   }
 
-  if (clearImageBtn) {
-    clearImageBtn.addEventListener("click", clearImage);
-  }
-
-  if (imageInput) {
-    imageInput.addEventListener("change", handleImagePreview);
-  }
-
-  if (captureBtn) {
-    captureBtn.addEventListener("click", capturePhoto);
-  }
+  if (clearImageBtn) clearImageBtn.addEventListener("click", clearImage);
+  if (imageInput) imageInput.addEventListener("change", handleImagePreview);
+  if (captureBtn) captureBtn.addEventListener("click", capturePhoto);
 }
 
 function startCamera() {
   const video = document.getElementById("cameraVideo");
   const cameraWrapper = document.getElementById("cameraWrapper");
-  const modalBody = document.querySelector(".modal-body");
   const modalContent = document.querySelector(".modal-content");
-  const modalFooter = document.querySelector(".modal-footer");
   const modalHeader = document.querySelector(".modal-header");
+  const modalFooter = document.querySelector(".modal-footer");
+  const modalBody = document.querySelector(".modal-body");
 
   if (stream) return;
 
-  // Apply transparent style only when camera is active
-  if (modalContent) {
-    modalContent.classList.add("camera-active");
-  }
-
-  if (modalHeader) modalHeader.classList.add("d-none");
-  if (modalFooter) modalFooter.classList.add("d-none");
-  if (modalBody) modalBody.classList.add("d-none");
+  modalContent?.classList.add("camera-active");
+  modalHeader?.classList.add("d-none");
+  modalFooter?.classList.add("d-none");
+  modalBody?.classList.add("d-none");
 
   navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
     .then(mediaStream => {
       stream = mediaStream;
       video.srcObject = mediaStream;
       video.onloadedmetadata = () => video.play();
-
       cameraWrapper.classList.remove("d-none");
     })
     .catch(err => {
@@ -646,10 +637,10 @@ function capturePhoto() {
   const video = document.getElementById("cameraVideo");
   const canvas = document.getElementById("cameraCanvas");
   const cameraWrapper = document.getElementById("cameraWrapper");
-  const modalBody = document.querySelector(".modal-body");
-  const modalFooter = document.querySelector(".modal-footer");
-  const modalHeader = document.querySelector(".modal-header");
   const modalContent = document.querySelector(".modal-content");
+  const modalHeader = document.querySelector(".modal-header");
+  const modalFooter = document.querySelector(".modal-footer");
+  const modalBody = document.querySelector(".modal-body");
 
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -667,14 +658,10 @@ function capturePhoto() {
   }, "image/jpeg", 0.9);
 
   cameraWrapper.classList.add("d-none");
-  if (modalBody) modalBody.classList.remove("d-none");
-  if (modalFooter) modalFooter.classList.remove("d-none");
-  if (modalHeader) modalHeader.classList.remove("d-none");
-
-  // Remove transparent style after capture
-  if (modalContent) {
-    modalContent.classList.remove("camera-active");
-  }
+  modalHeader?.classList.remove("d-none");
+  modalFooter?.classList.remove("d-none");
+  modalBody?.classList.remove("d-none");
+  modalContent?.classList.remove("camera-active");
 
   stopCamera();
 }
@@ -695,8 +682,8 @@ function showImagePreview(src, file = null) {
 
   video.style.display = "none";
   captureBtn.classList.add("d-none");
-  if (cameraLabel) cameraLabel.style.display = "none";
-  if (clearBtn) clearBtn.classList.remove("d-none");
+  cameraLabel.style.display = "none";
+  clearBtn.classList.remove("d-none");
 
   if (file && imageInput) {
     const dt = new DataTransfer();
@@ -713,22 +700,16 @@ function clearImage() {
   const video = document.getElementById("cameraVideo");
   const captureBtn = document.getElementById("captureBtn");
   const clearBtn = document.getElementById("clearImageBtn");
-  const modalHeader = document.querySelector(".modal-header");
   const modalContent = document.querySelector(".modal-content");
 
-  if (previewImg) previewImg.src = "";
-  if (preview) preview.style.display = "none";
-  if (cameraLabel) cameraLabel.style.display = "flex";
-  if (imageInput) imageInput.value = "";
-  if (video) video.style.display = "block";
-  if (captureBtn) captureBtn.classList.remove("d-none");
-  if (clearBtn) clearBtn.classList.add("d-none");
-  if (modalHeader) modalHeader.classList.remove("d-none");
-
-  // Remove transparent style if still active
-  if (modalContent) {
-    modalContent.classList.remove("camera-active");
-  }
+  previewImg.src = "";
+  preview.style.display = "none";
+  cameraLabel.style.display = "flex";
+  imageInput.value = "";
+  video.style.display = "block";
+  captureBtn.classList.remove("d-none");
+  clearBtn.classList.add("d-none");
+  modalContent?.classList.remove("camera-active");
 
   stopCamera();
 }
@@ -745,9 +726,7 @@ function handleImagePreview(e) {
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function (e) {
-    showImagePreview(e.target.result, file);
-  };
+  reader.onload = e => showImagePreview(e.target.result, file);
   reader.readAsDataURL(file);
 }
 
