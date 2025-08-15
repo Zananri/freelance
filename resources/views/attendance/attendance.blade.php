@@ -82,10 +82,10 @@
         </div>
     </div>
 
-  <!-- Modal for Check In -->
+   <!-- Modal for Check In -->
 <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content rounded-4">
+    <div class="modal-content rounded-4" id="modalContent">
 
       <!-- Modal Header -->
       <div class="modal-header modal-header-custom">
@@ -96,24 +96,27 @@
       <!-- Modal Body -->
       <div class="modal-body">
         <form id="checkInForm">
-          <input type="hidden" name="employee_id" id="employee_id" value="{{ $employee ? $employee->id : '' }}">
+          <input type="hidden" name="employee_id" id="employee_id"
+            value="{{ $employee ? $employee->id : '' }}">
 
-          <!-- is_work_outside -->
+          <!-- Work Outside -->
           <div class="mb-3">
             <label for="is_work_outside" class="form-label">Work Outside</label>
             <div class="work-outside-container">
               <div class="form-check">
-                <input class="form-check-input" type="radio" name="is_work_outside" id="work_outside_yes" value="1">
+                <input class="form-check-input" type="radio" name="is_work_outside"
+                  id="work_outside_yes" value="1">
                 <label class="form-check-label" for="work_outside_yes">Yes</label>
               </div>
               <div class="form-check">
-                <input class="form-check-input" type="radio" name="is_work_outside" id="work_outside_no" value="0" checked>
+                <input class="form-check-input" type="radio" name="is_work_outside"
+                  id="work_outside_no" value="0" checked>
                 <label class="form-check-label" for="work_outside_no">No</label>
               </div>
             </div>
           </div>
 
-          <!-- date_attendance -->
+          <!-- Date Attendance -->
           <div class="mb-3">
             <label for="date_attendance" class="form-label label-custom">Date</label>
             <div class="date_attendance">
@@ -121,7 +124,7 @@
             </div>
           </div>
 
-          <!-- time_in -->
+          <!-- Time In -->
           <div class="mb-3">
             <label for="time_in" class="form-label label-custom">Time In</label>
             <div class="time_in">
@@ -129,7 +132,7 @@
             </div>
           </div>
 
-          <!-- image upload -->
+          <!-- Image Upload Section -->
           <div class="mb-3" id="imageUploadSection">
             <label class="form-label">Photo</label>
             <div class="image-upload-container">
@@ -141,9 +144,13 @@
                 <span id="cameraText">Take Photo</span>
               </label>
 
-              <!-- Hidden input file -->
-              <input type="file" class="form-control d-none" id="imageInput" name="image" accept="image/*" capture="user">
-              <input type="hidden" id="existingImageUrl" name="existingImageUrl" value="{{ $attendance && $attendance->image ? asset($attendance->image) : '' }}">
+              <!-- Input file untuk mobile -->
+              <input type="file" class="form-control d-none" id="imageInput" name="image"
+                accept="image/*" capture="environment">
+
+              <!-- Hidden existing image URL -->
+              <input type="hidden" id="existingImageUrl" name="existingImageUrl"
+                value="{{ $attendance && $attendance->image ? asset($attendance->image) : '' }}">
 
               <!-- Image preview -->
               <div id="imagePreview" class="image-preview mt-2" style="display:none;">
@@ -151,7 +158,8 @@
               </div>
 
               <!-- Clear button -->
-              <button type="button" class="image-clear-btn d-none btn btn-danger mt-2" id="clearImageBtn">&times;</button>
+              <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
+                id="clearImageBtn">&times;</button>
             </div>
           </div>
         </form>
@@ -164,23 +172,26 @@
         </button>
       </div>
 
-      <!-- Camera Wrapper -->
-      <div id="cameraWrapper" class="d-none p-3 text-center">
-        <video id="cameraVideo" autoplay playsinline class="w-100 rounded" style="max-height: 70vh; object-fit: cover;"></video>
-        <canvas id="cameraCanvas" class="d-none"></canvas>
-        <div class="d-flex justify-content-center align-items-center">
+      <!-- Camera Wrapper (desktop only) -->
+      <div id="cameraWrapper" class="d-none position-relative text-center">
+        <!-- Video Stream -->
+        <video id="cameraVideo" autoplay playsinline class="w-100 rounded"
+          style="height: 100vh; object-fit: cover;"></video>
 
-            <button type="button" class="btn btn-primary mt-3 w-100" id="captureBtn">
-            <i class="fas fa-camera"></i> Capture Photo
-            </button>
-        </div>
+        <!-- Capture Button Overlay -->
+        <button type="button"
+          class="btn btn-primary position-absolute bottom-0 start-50 translate-middle-x mb-4 px-4 py-2"
+          id="captureBtn">
+          <i class="fas fa-camera"></i> Capture Photo
+        </button>
+
+        <!-- Hidden Canvas for Capturing -->
+        <canvas id="cameraCanvas" class="d-none"></canvas>
       </div>
 
     </div>
   </div>
 </div>
-
-
 
 
     <!-- Modal for Check Out -->

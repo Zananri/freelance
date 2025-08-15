@@ -341,55 +341,62 @@ function openEditModal(button) {
 async function saveShiftChanges() {
     const form = document.getElementById('editShiftForm');
     const formData = new FormData(form);
-    
+
     const dateShiftData = formData.get('date_shift');
     let dateShifts = [];
-    
+
     try {
         dateShifts = JSON.parse(dateShiftData);
     } catch (e) {
         dateShifts = [dateShiftData];
     }
 
-    // Validate form
-    if (!dateShifts || dateShifts.length === 0 || !formData.get('time_start') || !formData.get('time_end')) {
+    // Validate required fields
+    const timeStart = formData.get('time_start');
+    const timeEnd = formData.get('time_end');
+    const employeeId = formData.get('employee_id');
+
+    if (!dateShifts || dateShifts.length === 0 || !timeStart || !timeEnd || !employeeId) {
         alert('Please fill all required fields');
         return;
     }
 
-    // Validate time range
-    if (formData.get('time_start') >= formData.get('time_end')) {
-        alert('End time must be after start time');
+    // Parse time and calculate duration
+    const startDate = new Date(`1970-01-01T${timeStart}:00`);
+    let endDate = new Date(`1970-01-01T${timeEnd}:00`);
+
+    if (endDate <= startDate) {
+        // Overnight shift: add 1 day to end time
+        endDate.setDate(endDate.getDate() + 1);
+    }
+
+    const durationHours = (endDate - startDate) / (1000 * 60 * 60);
+    if (durationHours <= 0) {
+        alert('Invalid time range');
         return;
     }
 
-        // Convert dates to proper format (YYYY-MM-DD) - FIXED VERSION
-        const formattedDates = dateShifts.map(date => {
-            // Handle different date formats
-            if (typeof date === 'string') {
-                // If it's already in YYYY-MM-DD format
-                if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                    return date;
-                }
-                // If it's in other format, convert to Date object carefully
-                const parsedDate = new Date(date);
-                // Ensure we get the correct date (avoid timezone issues)
-                const year = parsedDate.getFullYear();
-                const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-                const day = String(parsedDate.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            } else if (date instanceof Date) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            }
-            return date;
-        });
+    // Format dates to YYYY-MM-DD
+    const formattedDates = dateShifts.map(date => {
+        if (typeof date === 'string') {
+            if (date.match(/^\d{4}-\d{2}-\d{2}$/)) return date;
+            const parsedDate = new Date(date);
+            const year = parsedDate.getFullYear();
+            const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+            const day = String(parsedDate.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } else if (date instanceof Date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        return date;
+    });
 
     try {
         const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/shift/update/${formData.get('employee_id')}`;
+        const endpoint = `${basePath}/shift/update/${employeeId}`;
 
         const response = await fetch(endpoint, {
             method: 'PUT',
@@ -398,42 +405,68 @@ async function saveShiftChanges() {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
             body: JSON.stringify({
-                employee_id: formData.get('employee_id'),
+                employee_id: employeeId,
                 date_shifts: formattedDates,
-                time_start: formData.get('time_start'),
-                time_end: formData.get('time_end')
+                time_start: timeStart,
+                time_end: timeEnd
             })
         });
 
-        // Check if response is ok
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            showFloatingAlert('Failed to update shift: ' + response.statusText, 'danger');
+            return;
         }
 
-        // Check if response is JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
-            throw new Error(`Server returned non-JSON response: ${text}`);
+            showFloatingAlert('Server returned non-JSON response: ' + text, 'danger');
+            return;
         }
 
         const result = await response.json();
 
         if (result.success) {
-            // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('editShiftModal'));
             modal.hide();
-
-            // Reload data
             loadEmployeeData();
-            
-            // Show success message
-            alert('Shift updated successfully');
+            showFloatingAlert('Shift updated successfully', 'success');
         } else {
-            alert('Failed to update shift: ' + result.message);
+            showFloatingAlert('Failed to update shift: ' + result.message, 'danger');
         }
     } catch (error) {
         console.error('Error updating shift:', error);
-        alert('Error updating shift: ' + error.message);
+        showFloatingAlert('Error updating shift: ' + error.message, 'danger');
     }
+}
+
+
+// Function to show floating alert with SVG icon - same as task.js
+function showFloatingAlert(message, type = "success") {
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
+    alertDiv.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+    `;
+
+    let iconClass =
+        type === "success" ? "check-circle-fill" : "exclamation-triangle-fill";
+
+    alertDiv.innerHTML = `
+        <i class="fas ${iconClass} me-2"></i>
+        <div>${message}</div>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+        alertDiv.style.opacity = "0";
+        setTimeout(() => alertDiv.remove(), 500);
+    }, 3000);
 }
