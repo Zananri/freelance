@@ -82,106 +82,115 @@
         </div>
     </div>
 
-  <!-- Modal for Check In -->
-<div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content rounded-4">
+    <!-- Modal for Check In -->
+    <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4">
 
-      <!-- Modal Header -->
-      <div class="modal-header modal-header-custom">
-        <h5 class="modal-title modal-title-custom" id="checkInModalLabel">Check In Attendance</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <!-- Modal Body -->
-      <div class="modal-body">
-        <form id="checkInForm">
-          <input type="hidden" name="employee_id" id="employee_id" value="{{ $employee ? $employee->id : '' }}">
-
-          <!-- is_work_outside -->
-          <div class="mb-3">
-            <label for="is_work_outside" class="form-label">Work Outside</label>
-            <div class="work-outside-container">
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="is_work_outside" id="work_outside_yes" value="1">
-                <label class="form-check-label" for="work_outside_yes">Yes</label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="is_work_outside" id="work_outside_no" value="0" checked>
-                <label class="form-check-label" for="work_outside_no">No</label>
-              </div>
-            </div>
-          </div>
-
-          <!-- date_attendance -->
-          <div class="mb-3">
-            <label for="date_attendance" class="form-label label-custom">Date</label>
-            <div class="date_attendance">
-              <span id="date_attendance">Loading...</span>
-            </div>
-          </div>
-
-          <!-- time_in -->
-          <div class="mb-3">
-            <label for="time_in" class="form-label label-custom">Time In</label>
-            <div class="time_in">
-              <span id="time_in">Loading...</span>
-            </div>
-          </div>
-
-          <!-- image upload -->
-          <div class="mb-3" id="imageUploadSection">
-            <label class="form-label">Photo</label>
-            <div class="image-upload-container">
-              <!-- Label untuk trigger kamera -->
-              <label for="imageInput" class="image-upload-label camera-label">
-                <div class="image-upload-icon">
-                  <i class="fas fa-camera fa-2x text-primary"></i>
+                <!-- Modal Header -->
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="checkInModalLabel">Check In Attendance</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <span id="cameraText">Take Photo</span>
-              </label>
 
-              <!-- Hidden input file -->
-              <input type="file" class="form-control d-none" id="imageInput" name="image" accept="image/*" capture="user">
-              <input type="hidden" id="existingImageUrl" name="existingImageUrl" value="{{ $attendance && $attendance->image ? asset($attendance->image) : '' }}">
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <form id="checkInForm">
+                        <input type="hidden" name="employee_id" id="employee_id"
+                            value="{{ $employee ? $employee->id : '' }}">
 
-              <!-- Image preview -->
-              <div id="imagePreview" class="image-preview mt-2" style="display:none;">
-                <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
-              </div>
+                        <!-- is_work_outside -->
+                        <div class="mb-3">
+                            <label for="is_work_outside" class="form-label">Work Outside</label>
+                            <div class="work-outside-container">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="is_work_outside"
+                                        id="work_outside_yes" value="1">
+                                    <label class="form-check-label" for="work_outside_yes">Yes</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="is_work_outside"
+                                        id="work_outside_no" value="0" checked>
+                                    <label class="form-check-label" for="work_outside_no">No</label>
+                                </div>
+                            </div>
+                        </div>
 
-              <!-- Clear button -->
-              <button type="button" class="image-clear-btn d-none btn btn-danger mt-2" id="clearImageBtn">&times;</button>
-            </div>
-          </div>
-        </form>
-      </div>
+                        <!-- date_attendance -->
+                        <div class="mb-3">
+                            <label for="date_attendance" class="form-label label-custom">Date</label>
+                            <div class="date_attendance">
+                                <span id="date_attendance">Loading...</span>
+                            </div>
+                        </div>
 
-      <!-- Modal Footer -->
-      <div class="modal-footer modal-footer-custom">
-        <button type="submit" class="btn btn-primary" id="submitCheckInBtn">
-          <span class="material-symbols-outlined">alarm_on</span> Check In
-        </button>
-      </div>
+                        <!-- time_in -->
+                        <div class="mb-3">
+                            <label for="time_in" class="form-label label-custom">Time In</label>
+                            <div class="time_in">
+                                <span id="time_in">Loading...</span>
+                            </div>
+                        </div>
 
-      <!-- Camera Wrapper -->
-      <div id="cameraWrapper" class="d-none p-3 text-center">
-        <video id="cameraVideo" autoplay playsinline class="w-100 rounded" style="max-height: 70vh; object-fit: cover;"></video>
-        <canvas id="cameraCanvas" class="d-none"></canvas>
-        <div class="d-flex justify-content-center align-items-center">
+                        <!-- image upload -->
+                        <div class="mb-3" id="imageUploadSection">
+                            <label class="form-label">Photo</label>
+                            <div class="image-upload-container">
+                                <!-- Label untuk trigger kamera -->
+                                <label for="imageInput" class="image-upload-label camera-label">
+                                    <div class="image-upload-icon">
+                                        <i class="fas fa-camera fa-2x text-primary"></i>
+                                    </div>
+                                    <span id="cameraText">Take Photo</span>
+                                </label>
 
-            <button type="button" class="btn btn-primary mt-3 w-100" id="captureBtn">
-            <i class="fas fa-camera"></i> Capture Photo
-            </button>
-        </div>
-      </div>
+                                <!-- Hidden input file -->
+                                <input type="file" class="form-control d-none" id="imageInput" name="image"
+                                    accept="image/*" capture="user">
+                                <input type="hidden" id="existingImageUrl" name="existingImageUrl"
+                                    value="{{ $attendance && $attendance->image ? asset($attendance->image) : '' }}">
 
-    </div>
-  </div>
+                                <!-- Image preview -->
+                                <div id="imagePreview" class="image-preview mt-2" style="display:none;">
+                                    <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
+                                </div>
+
+                                <!-- Clear button -->
+                                <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
+                                    id="clearImageBtn">&times;</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer modal-footer-custom">
+                    <button type="submit" class="btn btn-primary" id="submitCheckInBtn">
+                        <span class="material-symbols-outlined">alarm_on</span> Check In
+                    </button>
+                </div>
+
+                <!-- Camera Wrapper -->
+                <!-- Camera Wrapper -->
+<div id="cameraWrapper" class="d-none position-relative text-center">
+  <!-- Video Stream -->
+  <video id="cameraVideo" autoplay playsinline class="w-100 rounded"
+    style="height: 100vh; object-fit: cover;"></video>
+
+  <!-- Capture Button Overlay -->
+  <button type="button"
+    class="btn btn-primary position-absolute bottom-0 start-50 translate-middle-x mb-4 px-4 py-2"
+    id="captureBtn">
+    <i class="fas fa-camera"></i> Capture Photo
+  </button>
+
+  <!-- Hidden Canvas for Capturing -->
+  <canvas id="cameraCanvas" class="d-none"></canvas>
 </div>
 
-
-
+            </div>
+        </div>
+    </div>
 
     <!-- Modal for Check Out -->
     <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel"
