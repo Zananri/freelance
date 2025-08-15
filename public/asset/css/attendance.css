@@ -201,7 +201,7 @@
     height: 100px;
     border-radius: 50%;
     object-fit: cover;
-    }
+}
 
 .user-info h3 {
     font-size: 20px;
@@ -547,8 +547,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 50%;
-    height: 150px;
+    width: 180px;
+    height: 250px;
     border: 2px dashed #dee2e6;
     border-radius: 8px;
     cursor: pointer;
@@ -579,8 +579,8 @@
 
 .image-preview {
     margin-top: 10px;
-    max-width: 200px;
-    max-height: 200px;
+    max-width: 180px;
+    max-height: 250px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     overflow: hidden;
@@ -593,21 +593,41 @@
     object-fit: cover;
 }
 
+#previewImg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 180px;
+    height: 250px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 50%;
+    opacity: 1;
+}
+
+
 #clearImageBtn {
     margin-top: 10px;
 }
 
-/* Clear Image Button Styling */
 .image-clear-btn {
+    padding: 0;
     position: absolute;
     top: -20px;
-    right: 250px;
+    right: 270px;
     width: 25px;
     height: 25px;
     background-color: #dc3545;
     color: white;
     border-radius: 50%;
-    display: flex;
+    display: flex
+;
     align-items: center;
     justify-content: center;
     cursor: pointer;
@@ -635,44 +655,26 @@
     color: #555;
 }
 
-/* New styles for attendance status clipped box */
-
-
-/* New JavaScript-based "In" label styling */
-.calendar-day.checked-in {
+/* Check-in styling - hanya berlaku jika TIDAK ada checked-out */
+.calendar-day.checked-in:not(.checked-out) {
     position: relative;
-    /* Add half triangular background */
     background: linear-gradient(135deg, #007bff 50%, transparent 50%);
 }
 
-.check-in-label {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
-}
-
-/* New styling for checkout with both In and Out labels - proper positioning */
-.calendar-day.checked-in {
+/* Check-out styling - hanya berlaku jika TIDAK ada checked-in */
+.calendar-day.checked-out:not(.checked-in) {
     position: relative;
-    /* Add half triangular background for check-in (top-left) */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
-}
-
-.calendar-day.checked-out {
-    position: relative;
-    /* Add half triangular background for check-out (bottom-right) */
     background: linear-gradient(315deg, #6c757d 50%, transparent 50%);
 }
 
+/* When both check-in and check-out are present */
+.calendar-day.checked-in.checked-out {
+    position: relative;
+    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
+    color: white;
+}
+
+/* Labels styling */
 .check-in-label {
     position: absolute;
     top: 2px;
@@ -703,15 +705,6 @@
     user-select: none;
 }
 
-/* When both check-in and check-out are present */
-.calendar-day.checked-in.checked-out {
-    /* Single gradient with sharp half split without white line */
-    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
-    color: white;
-}
-
-
-
 /* Radio button styling */
 .form-check-input:checked {
     background-color: #007bff;
@@ -727,6 +720,17 @@
     .image-preview {
         max-width: 150px;
         max-height: 150px;
+    }
+    
+    .check-in-label {
+        left: -1px !important;
+        font-size: 6px !important;
+    }
+
+    .check-out-label {
+        bottom: 0px !important;
+        right: -3px !important;
+        font-size: 6px !important;
     }
 }
 
@@ -761,7 +765,6 @@
         padding: 0.5rem 1rem !important;
     }
 
-    /* Sesuaikan ukuran font dan tombol */
     .modal-title {
         font-size: 1.25rem !important;
     }
@@ -770,182 +773,16 @@
         font-size: 1rem !important;
         padding: 10px 20px !important;
     }
-    .calendar-day.checked-in {
-    position: relative;
-    /* Add half triangular background */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
 }
 
-.check-in-label {
-    position: absolute;
-    top: 2px;
-    left: -1px !important;
-    color: white;
-    font-size: 6px !important;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
-}
-
-/* New styling for checkout with both In and Out labels - proper positioning */
-.calendar-day.checked-in {
-    position: relative;
-    /* Add half triangular background for check-in (top-left) */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
-}
-
-.calendar-day.checked-out {
-    position: relative;
-    /* Add half triangular background for check-out (bottom-right) */
-    background: linear-gradient(315deg, #6c757d 50%, transparent 50%);
-}
-
-.check-in-label {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
-}
-
-.check-out-label {
-    position: absolute;
-    bottom: 0px !important;
-    right: -3px !important;
-    color: white;
-    font-size: 6px !important;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
-}
-
-/* When both check-in and check-out are present */
-.calendar-day.checked-in.checked-out {
-    /* Single gradient with sharp half split without white line */
-    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
-    color: white;
-}
-
-
-}
-/* When both check-in and check-out are present */
-.calendar-day.checked-in.checked-out {
-    /* Single gradient with sharp half split without white line */
-    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
-    color: white;
-}
-
-/* Three vertical segments for current day with previous day checkout */
-.calendar-day.has-three-sections {
-    position: relative;
-    background: linear-gradient(to bottom, 
-        #6c757d 0%, #6c757d 33.33%, 
-        #007bff 33.33%, #007bff 66.66%, 
-        #6c757d 66.66%, #6c757d 100%);
-    color: white;
-    font-weight: 700;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 2px;
-}
-
-/* Labels for three segments - positioned correctly */
-.check-out-label-top {
-    position: absolute;
-    top: 2px;
-    left: 4px;
-    color: white;
-    font-size: 9px;
-    font-weight: 600;
-    user-select: none;
-    pointer-events: none;
-    z-index: 10;
-    text-transform: uppercase;
-    background: rgba(0,0,0,0.3);
-    padding: 1px 3px;
-    border-radius: 2px;
-}
-
-.check-in-label-middle {
-    position: absolute;
-    top: 50%;
-    right: 4px;
-    transform: translateY(-50%);
-    color: white;
-    font-size: 9px;
-    font-weight: 600;
-    user-select: none;
-    pointer-events: none;
-    z-index: 10;
-    text-transform: uppercase;
-    background: rgba(0,0,0,0.3);
-    padding: 1px 3px;
-    border-radius: 2px;
-}
-
-.check-out-label-bottom {
-    position: absolute;
-    bottom: 2px;
-    left: 4px;
-    color: white;
-    font-size: 9px;
-    font-weight: 600;
-    user-select: none;
-    pointer-events: none;
-    z-index: 10;
-    text-transform: uppercase;
-    background: rgba(0,0,0,0.3);
-    padding: 1px 3px;
-    border-radius: 2px;
-}
-
-/* Date number centered and white */
-.calendar-day.has-three-sections .date-number {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    transform: none !important;
-    color: white;
-    font-size: 14px;
-    font-weight: 700;
-    z-index: 5;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-    margin: 0 auto 4px auto;
-    display: block;
+#cameraWrapper {
+    padding: 1rem;
     text-align: center;
 }
 
-/* Ensure proper positioning for 3-segment layout */
-.calendar-day.has-three-sections {
-    position: relative;
-    overflow: hidden;
-}
-
-/* Responsive adjustments */
-@media (max-width: 576px) {
-    .check-out-label-top,
-    .check-in-label-middle,
-    .check-out-label-bottom {
-        font-size: 8px;
-    }
-    
-    .calendar-day.has-three-sections .date-number {
-        font-size: 12px;
-    }
+#cameraVideo {
+    width: 100%;
+    height: auto;
+    max-height: 70vh;
+    object-fit: cover;
 }

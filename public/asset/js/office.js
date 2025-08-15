@@ -602,8 +602,9 @@ $(document).ready(function() {
                 // Safely access response data with fallback defaults
                 const taskTitle = (response.data && response.data.title) || 'undefined';
                 const taskDescription = (response.data && response.data.description) || 'No description';
-                const taskImage = (response.data && response.data.image) ? appUrl + '/file/task/' + response.data.image : appUrl + '/asset/img/background/add-image.png';
-
+const taskImage = (response.data && response.data.image) 
+    ? appUrl + '/file/task/' + response.data.image 
+    : appUrl + '/asset/img/background/add-image.png';
                 // Create modal HTML
                 const modalHtml = `
                     <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
@@ -623,7 +624,7 @@ $(document).ready(function() {
                                         </div>
                                         <div>
                                             <h6 style="font-size: 16px; font-weight: 600; margin: 0;">${taskTitle}</h6>
-                                            <div style="margin-top: 0.25rem; font-size: 0.95rem;">
+                                            <div style="margin-top: 0.25rem; font-size: 14px;">
                                                 ${taskDescription}
                                             </div>
                                         </div>
