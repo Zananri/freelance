@@ -734,12 +734,8 @@ function resetCheckInModal() {
   clearImage();
 }
 
-
-
-
 // Inisialisasi ketika halaman siap
 document.addEventListener("DOMContentLoaded", initializeCameraFeatures);
-
 
 function submitCheckIn() {
 
