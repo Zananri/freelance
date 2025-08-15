@@ -94,7 +94,7 @@ class AttendanceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-   public function store(Request $request)
+public function store(Request $request)
 {
     try {
         DB::beginTransaction();
@@ -121,19 +121,29 @@ class AttendanceController extends Controller
             ->where('date_shift', $validated['date_attendance'])
             ->first();
 
-        if (!$shift || !$shift->time_start) {
-            throw new \Exception("Shift time_start not found for employee on this date.");
+        if (!$shift || !$shift->time_start || !$shift->time_end) {
+            throw new \Exception("Shift time_start or time_end not found for employee on this date.");
         }
 
-        $timeIn = $validated['time_in'];
-        $checkInTime = Carbon::createFromFormat('H:i', $timeIn);
-        $lateThreshold = Carbon::parse($shift->time_start)->setSeconds(0);
+        // Ambil waktu sekarang dari server
+        $now = Carbon::now();
+
+        // Ambil waktu mulai shift
+        $shiftStartTime = Carbon::parse($shift->time_start);
+        $shiftEndTime = Carbon::parse($shift->time_end);
+
+        // Jika shift malam dan waktu sekarang lebih kecil dari shiftStart, geser shiftStart ke hari sebelumnya
+        if ($shiftStartTime->gt($shiftEndTime) && $now->lt($shiftStartTime)) {
+            $shiftStartTime->subDay();
+        }
+
+        // Hitung keterlambatan
         $timeLate = null;
-
-        if ($checkInTime->gt($lateThreshold)) {
-            $timeLate = $checkInTime->diff($lateThreshold)->format('%H:%I');
+        if ($now->gt($shiftStartTime)) {
+            $timeLate = $now->diff($shiftStartTime)->format('%H:%I');
         }
 
+        // Handle image upload
         $imageName = null;
         if ($request->hasFile('image')) {
             $t = time();
@@ -142,11 +152,12 @@ class AttendanceController extends Controller
         }
         $imagePath = $imageName ? 'attendance/' . $imageName : null;
 
+        // Simpan ke database
         $attendance = Attendance::create([
             'employee_id' => $validated['employee_id'],
             'is_work_outside' => $isWorkOutside,
             'date_attendance' => $validated['date_attendance'],
-            'time_in' => $timeIn,
+            'time_in' => $validated['time_in'],
             'time_late' => $timeLate,
             'type_attendance' => 'check_in',
             'note' => $validated['note'] ?? null,
