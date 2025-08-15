@@ -1,3 +1,17 @@
+.dashboard-container {
+    height: calc(100vh - 150px);
+    overflow-x: hidden;
+}
+
+/* Adjusted dimensions for better spacing */
+.body-content {
+    margin-right: 1.5rem !important;
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding-bottom: 1rem !important;
+}
+
 .profile-image-container {
     display: flex;
     justify-content: center;
@@ -56,6 +70,50 @@
     margin-top: 16px;
 }
 
+.attendance-actions button {
+    display: flex;
+    padding: 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+    max-width: 200px;
+}
+
+.btn-custom-check-in {
+    background-color: #454545;
+    color: white;
+}
+
+.btn-custom-check-in:hover {
+    background-color: #e3e4ee;
+    color: black;
+}
+
+.btn-custom-check-out {
+    background-color: #e3e4ee;
+    color: #444444;
+}
+
+.btn-custom-check-out:hover {
+    background-color: darkgray;
+}
+
+/* .btn:disabled,
+.btn[disabled] {
+    opacity: 1 !important;
+    pointer-events: none;
+} */
+
+/* Form Modal Section */
 .form-check-input[type="radio"] {
     display: none;
 }
@@ -90,6 +148,12 @@
     border-color: #0056b3;
 }
 
+/* Radio button styling */
+.form-check-input:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
 /* Container untuk Yes/No buttons */
 .work-outside-container {
     display: flex;
@@ -100,147 +164,6 @@
 .work-outside-container .form-check {
     margin: 0;
     padding: 0;
-}
-
-.btn {
-    display: flex;
-    padding: 16px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    justify-content: center;
-    max-width: 200px;
-}
-
-.btn-check-in {
-    background-color: #454545;
-    color: white;
-}
-
-.btn-check-in:hover {
-    background-color: #E3E4EE;
-    color: black;
-}
-
-.btn-check-out {
-    background-color: #E3E4EE;
-    color: white;
-}
-
-.btn-check-out:hover {
-    background-color: darkgray;
-}
-
-/* .btn:disabled,
-.btn[disabled] {
-    opacity: 1 !important;
-    pointer-events: none;
-} */
-
-/* Calendar Section */
-.calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-}
-
-.calendar-header h4 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
-}
-
-.calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    font-weight: 500;
-    color: #6c757d;
-    font-size: 12px;
-}
-
-.calendar-weekdays div {
-    padding: 4px 2px;
-}
-
-.calendar-header button {
-    background: none;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.calendar-header button:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    flex: 1;
-}
-
-.calendar-day {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.calendar-day:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-day.other-month {
-    color: #adb5bd;
-}
-
-.calendar-day.has-attendance::after {
-    position: absolute;
-    bottom: 3px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-}
-
-.calendar-day.present::after {
-    background-color: #28a745;
-}
-
-.calendar-day.absent::after {
-    background-color: #dc3545;
-}
-
-.calendar-day.late::after {
-    background-color: #ffc107;
-}
-
-.calendar-day.leave::after {
-    background-color: #6f42c1;
-}
-
-.card-fill {
-    min-height: 170px;
 }
 
 /* Uploda Image Styling for Attendance Modal */
@@ -303,174 +226,111 @@
     margin-top: 10px;
 }
 
-/* Label Styling for Calendar */
-.calendar-day.checked-in {
-    position: relative;
-    /* Add half triangular background */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+/* Fixed dimensions for profile card with spacing */
+.col-md-6 .body-content.h-100 {
+    height: 420px !important;
+    min-height: 420px !important;
+    max-height: 420px !important;
+    overflow-y: auto;
 }
 
-.check-in-label {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+.col-md-6 .body-content.h-100,
+.col-md-6 .rounded-4.p-4.px-5.body-content.h-100 {
+    height: 400px !important;
+    margin-bottom: 20px;
 }
 
-/* New styling for checkout with both In and Out labels - proper positioning */
-.calendar-day.checked-in {
-    position: relative;
-    /* Add half triangular background for check-in (top-left) */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+.calendar-container {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: 100% !important;
+    max-height: 400px !important;
 }
 
-.calendar-day.checked-out {
-    position: relative;
-    /* Add half triangular background for check-out (bottom-right) */
-    background: linear-gradient(315deg, #6c757d 50%, transparent 50%);
+.col-md-4 .body-content {
+    /* height: 550px !important; */
+    min-height: 100% !important;
 }
 
-.check-in-label {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+/* Fixed dimensions for project card with spacing */
+.card-fill {
+    min-height: 220px !important;
 }
 
-.check-out-label {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+/* Additional spacing utilities */
+.dashboard-section {
+    margin-bottom: 2.5rem;
 }
 
-/* When both check-in and check-out are present */
-.calendar-day.checked-in.checked-out {
-    /* Single gradient with sharp half split without white line */
-    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
-    color: white;
+.task-card img {
+    width: 30px;
+    height: 30px;
 }
 
-/* Radio button styling */
-.form-check-input:checked {
-    background-color: #007bff;
-    border-color: #007bff;
+/* Fixed dimensions for task card - reasonable height */
+
+/* Disable flex-grow behavior */
+.row[style*="height: calc(100vh - 150px)"] {
+    height: auto !important;
+    min-height: auto !important;
 }
 
-/* Responsive Design */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .body-content {
-        padding: 10px;
+.row[style*="flex: 1"] {
+    flex: none !important;
+    height: auto !important;
+}
+
+/* Ensure cards don't stretch */
+.d-flex.flex-column {
+    height: auto !important;
+}
+
+/* Disable responsive media queries - override all */
+@media (max-width: 1024px) {
+    .body-content,
+    .profile-card,
+    .calendar-container,
+    .card-fill,
+    .col-md-6 .body-content.h-100,
+    .col-md-4 .body-content.h-100 {
+        height: auto !important;
     }
 
-    .profile-card {
-        margin-bottom: 40px;
+    .dashboard-container > .row {
+        flex-direction: column !important;
     }
-
-    .profile-image {
-        width: 50px;
-        height: 50px;
-    }
-
-    .btn.btn-check-in,
-    .btn.btn-check-out {
-        margin-top: 100px;
-        padding: 12px;
-        font-size: 14px;
-        width: 100% !important;
-    }
-
-    .attendance-actions {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .card-fill {
-        min-height: 250px;
-        height: auto;
-    }
-
-    .calendar-container {
+    .dashboard-container .col-md-8,
+    .dashboard-container .col-md-4 {
         width: 100% !important;
         max-width: 100% !important;
-        padding: 10px;
+        flex: 0 0 100% !important;
     }
-
-    .calendar-header h4 {
-        font-size: 16px;
+    .dashboard-container .row.flex-grow-1 {
+        flex-direction: column !important;
     }
-    .calendar-weekdays {
-        font-size: 11px;
-    }
-    .calendar-day {
-        font-size: 13px;
+    .dashboard-container .row.flex-grow-1 > .col-md-6 {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+        margin-bottom: 1rem !important;
     }
 }
 
-/* Responsive Design for Mobile */
 @media (max-width: 480px) {
-    .body-content {
-        margin-bottom: 20px;
-    }
-
-    .profile-card {
-        margin-bottom: 20px;
-    }
-
-    .profile-image {
-        width: 50px;
-        height: 50px;
+    .body-content,
+    .profile-card,
+    .calendar-container,
+    .card-fill,
+    .col-md-6 .body-content.h-100,
+    .col-md-4 .body-content.h-100 {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
     }
 
     .calendar-container {
-        padding: 10px;
-    }
-
-    .calendar-header h4 {
-        font-size: 16px;
-    }
-
-    .calendar-day {
-        font-size: 12px;
-    }
-
-    .project-card {
-        margin-bottom: 12px;
-        min-width: 0;
-        word-break: break-word;
-        box-sizing: border-box;
-    }
-
-    .card-fill.row {
-        flex-direction: column;
-    }
-
-    .btn {
-        padding: 8px;
-        font-size: 10px;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
     }
 }
