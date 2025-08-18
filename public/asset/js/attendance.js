@@ -48,17 +48,43 @@ function initializeMaps() {
 
             // Pastikan map sudah diinisialisasi
             if (window.mapCheckIn && window.mapCheckIn.setView) {
+                // Clear existing markers
+                window.mapCheckIn.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckIn.removeLayer(layer);
+                    }
+                });
+                
+                // Set view dan tambahkan marker di tengah
                 window.mapCheckIn.setView([latitude, longitude], 15);
                 L.marker([latitude, longitude]).addTo(window.mapCheckIn);
                 document.getElementById('latitudeCheckIn').value = latitude;
                 document.getElementById('longitudeCheckIn').value = longitude;
+                
+                // Force map resize
+                setTimeout(() => {
+                    window.mapCheckIn.invalidateSize();
+                }, 100);
             }
 
             if (window.mapCheckOut && window.mapCheckOut.setView) {
+                // Clear existing markers
+                window.mapCheckOut.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckOut.removeLayer(layer);
+                    }
+                });
+                
+                // Set view dan tambahkan marker di tengah
                 window.mapCheckOut.setView([latitude, longitude], 15);
                 L.marker([latitude, longitude]).addTo(window.mapCheckOut);
                 document.getElementById('latitudeCheckOut').value = latitude;
                 document.getElementById('longitudeCheckOut').value = longitude;
+                
+                // Force map resize
+                setTimeout(() => {
+                    window.mapCheckOut.invalidateSize();
+                }, 100);
             }
         }, function (error) {
             console.error('Error getting location:', error);
@@ -216,28 +242,39 @@ function openCheckInModal() {
       if (workOutsideNo) workOutsideNo.checked = true;
       if (imageUploadSection) imageUploadSection.style.display = "none";
 
-      // Get current location and zoom map
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-          const { latitude, longitude } = position.coords;
+            // Get current location and zoom map
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const { latitude, longitude } = position.coords;
 
-          // Pastikan map sudah diinisialisasi
-          if (window.mapCheckIn && window.mapCheckIn.setView) {
-            window.mapCheckIn.setView([latitude, longitude], 18); // Zoom level 18 for close view
-            // Clear existing markers
-            window.mapCheckIn.eachLayer(function (layer) {
-              if (layer instanceof L.Marker) {
-                window.mapCheckIn.removeLayer(layer);
-              }
-            });
-            L.marker([latitude, longitude]).addTo(window.mapCheckIn);
-            document.getElementById('latitudeCheckIn').value = latitude;
-            document.getElementById('longitudeCheckIn').value = longitude;
-          }
-        }, function (error) {
-          console.error('Error getting location:', error);
-        });
-      }
+                    // Pastikan map sudah diinisialisasi
+                    if (window.mapCheckIn && window.mapCheckIn.setView) {
+                        // Clear existing markers
+                        window.mapCheckIn.eachLayer(function (layer) {
+                            if (layer instanceof L.Marker) {
+                                window.mapCheckIn.removeLayer(layer);
+                            }
+                        });
+                        
+                        // Set view dan tambahkan marker di tengah
+                        window.mapCheckIn.setView([latitude, longitude], 18); // Zoom level 18 for close view
+                        const marker = L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+                        
+                        // Pastikan marker di tengah map
+                        window.mapCheckIn.panTo([latitude, longitude]);
+                        
+                        document.getElementById('latitudeCheckIn').value = latitude;
+                        document.getElementById('longitudeCheckIn').value = longitude;
+                        
+                        // Force map resize untuk memastikan tampilan benar
+                        setTimeout(() => {
+                            window.mapCheckIn.invalidateSize();
+                        }, 100);
+                    }
+                }, function (error) {
+                    console.error('Error getting location:', error);
+                });
+            }
 
       const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
       modal.show();
@@ -998,16 +1035,27 @@ function openCheckOutModal() {
 
                   // Pastikan map sudah diinisialisasi
                   if (window.mapCheckOut && window.mapCheckOut.setView) {
-                    window.mapCheckOut.setView([latitude, longitude], 18); // Zoom level 18 for close view
                     // Clear existing markers
                     window.mapCheckOut.eachLayer(function (layer) {
                       if (layer instanceof L.Marker) {
                         window.mapCheckOut.removeLayer(layer);
                       }
                     });
-                    L.marker([latitude, longitude]).addTo(window.mapCheckOut);
+                    
+                    // Set view dan tambahkan marker di tengah
+                    window.mapCheckOut.setView([latitude, longitude], 18); // Zoom level 18 for close view
+                    const marker = L.marker([latitude, longitude]).addTo(window.mapCheckOut);
+                    
+                    // Pastikan marker di tengah map
+                    window.mapCheckOut.panTo([latitude, longitude]);
+                    
                     document.getElementById('latitudeCheckOut').value = latitude;
                     document.getElementById('longitudeCheckOut').value = longitude;
+                    
+                    // Force map resize untuk memastikan tampilan benar
+                    setTimeout(() => {
+                        window.mapCheckOut.invalidateSize();
+                    }, 100);
                   }
                 }, function (error) {
                   console.error('Error getting location:', error);
