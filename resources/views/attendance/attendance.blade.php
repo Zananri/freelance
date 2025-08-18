@@ -4,6 +4,7 @@
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/attendance.css') }}" rel="stylesheet">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     </x-slot>
 
     <div class="title-content">
@@ -165,6 +166,14 @@
                 id="clearImageBtn">&times;</button>
             </div>
           </div>
+
+          <!-- Map Location Section for Check In -->
+          <div class="mb-3">
+            <label class="form-label">Location</label>
+            <div id="mapCheckIn" style="height: 300px;" class="rounded border"></div>
+            <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
+            <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
+          </div>
         </form>
       </div>
 
@@ -267,6 +276,14 @@
                             </div>
                         </div>
 
+                        <!-- Map Location Section for Check Out -->
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <div id="mapCheckOut" style="height: 300px;" class="rounded border"></div>
+                            <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
+                            <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
+                        </div>
+
                     </form>
                 </div>
                 <div class="modal-footer modal-footer-custom">
@@ -298,5 +315,46 @@
 
     <x-slot name="script_slot">
         <script src="{{ asset('asset/js/attendance.js') }}"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     </x-slot>
 </x-office-layout>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize maps
+        const mapCheckIn = L.map('mapCheckIn').setView([0, 0], 13);
+        const mapCheckOut = L.map('mapCheckOut').setView([0, 0], 13);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(mapCheckIn);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(mapCheckOut);
+
+        // Get user location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const { latitude, longitude } = position.coords;
+
+                // Update map for check-in
+                mapCheckIn.setView([latitude, longitude], 13);
+                L.marker([latitude, longitude]).addTo(mapCheckIn);
+                document.getElementById('latitudeCheckIn').value = latitude;
+                document.getElementById('longitudeCheckIn').value = longitude;
+
+                // Update map for check-out
+                mapCheckOut.setView([latitude, longitude], 13);
+                L.marker([latitude, longitude]).addTo(mapCheckOut);
+                document.getElementById('latitudeCheckOut').value = latitude;
+                document.getElementById('longitudeCheckOut').value = longitude;
+            }, function (error) {
+                console.error('Error getting location:', error);
+            });
+        } else {
+            console.error('Geolocation is not supported by this browser.');
+        }
+    });
+</script>

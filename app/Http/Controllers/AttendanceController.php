@@ -186,6 +186,12 @@ if ($request->hasFile('image')) {
                 'updated_by' => $userId,
             ]);
 
+            // Update location field for check-in
+            if ($validated['type_attendance'] === 'check_in') {
+                $location = $request->input('latitudeCheckIn') . ',' . $request->input('longitudeCheckIn');
+                $attendanceTracking->update(['location' => $location]);
+            }
+
             DB::commit();
 
             return response()->json([
@@ -297,9 +303,21 @@ if ($request->hasFile('image')) {
         try {
             DB::beginTransaction();
 
+            // Log the incoming request data
+            \Log::info('Checkout request data:', [
+                'all_data' => $request->all(),
+                'files' => $request->allFiles(),
+                'headers' => $request->headers->all()
+            ]);
+
             $validated = $request->validate([
                 'employee_id' => 'required|exists:employees,id',
+                'date_attendance' => 'required|date',
+                'time_out' => 'required|date_format:H:i',
+                'type_attendance' => 'required|in:check_out',
+                'is_work_outside' => 'required|in:0,1',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+                'note' => 'nullable|string|max:500',
             ]);
 
             $today = Carbon::today()->toDateString();
@@ -405,6 +423,25 @@ if ($request->hasFile('image')) {
                         'created_by' => $userId,
                         'updated_by' => $userId,
                     ]);
+                }
+            }
+
+            // Update location field for check-out
+            if ($validated['type_attendance'] === 'check_out' && $attendanceTracking) {
+                $latitude = $request->input('latitude');
+                $longitude = $request->input('longitude');
+                
+                if ($latitude && $longitude) {
+                    $checkOutLocation = $latitude . ',' . $longitude;
+                    $checkInLocation = $attendanceTracking->location;
+                    
+                    // If there's already a check-in location, append the checkout location
+                    if ($checkInLocation) {
+                        $attendanceTracking->update(['location' => $checkInLocation . '|' . $checkOutLocation]);
+                    } else {
+                        // If no check-in location, just store the checkout location
+                        $attendanceTracking->update(['location' => $checkOutLocation]);
+                    }
                 }
             }
 
