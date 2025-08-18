@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
 use App\Models\Attendance;
+use App\Models\AttendanceTracking;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
@@ -94,110 +95,113 @@ class AttendanceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-public function store(Request $request)
-{
-    try {
-        DB::beginTransaction();
+    public function store(Request $request)
+    {
+        try {
+            DB::beginTransaction();
 
-        \Log::info('Attendance store request data:', [
-            'all_data' => $request->all(),
-            'files' => $request->allFiles(),
-            'headers' => $request->headers->all()
-        ]);
+            \Log::info('Attendance store request data:', [
+                'all_data' => $request->all(),
+                'files' => $request->allFiles(),
+                'headers' => $request->headers->all()
+            ]);
 
-        $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,id',
-            'is_work_outside' => 'required|in:0,1,true,false',
-            'date_attendance' => 'required|date',
-            'time_in' => 'required|date_format:H:i',
-            'note' => 'nullable|string|max:500',
-            'image' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
-        ]);
+            $validated = $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'is_work_outside' => 'required|in:0,1,true,false',
+                'date_attendance' => 'required|date',
+                'time_in' => 'required|date_format:H:i',
+                'note' => 'nullable|string|max:500',
+                'type_attendance' => 'required|in:check_in,check_out',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            ]);
 
-        $isWorkOutside = $validated['is_work_outside'];
+            $userId = Auth::id();
+            $now = Carbon::now();
+            $dateTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_in']);
 
-        // Ambil shift berdasarkan employee dan tanggal
-        $shift = EmployeeShift::where('employee_id', $validated['employee_id'])
-            ->where('date_shift', $validated['date_attendance'])
-            ->first();
+            // Handle image upload
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('attendance', $imageName, 'public');
+            }
 
-        if (!$shift || !$shift->time_start || !$shift->time_end) {
-            throw new \Exception("Shift time_start or time_end not found for employee on this date.");
+            // Get employee shift for late calculation
+            $employeeShift = EmployeeShift::where('employee_id', $validated['employee_id'])
+                ->where('date_shift', $validated['date_attendance'])
+                ->first();
+
+            $timeLate = null;
+            if ($employeeShift) {
+                $shiftStartTime = Carbon::parse($employeeShift->time_start);
+                $shiftEndTime = Carbon::parse($employeeShift->time_end);
+                $checkInTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_in']);
+                
+                // Handle night shift (where start time > end time)
+                if ($shiftStartTime->gt($shiftEndTime) && $checkInTime->lt($shiftStartTime)) {
+                    $shiftStartTime->subDay();
+                }
+                
+                // Calculate late time if check-in is after shift start
+                if ($checkInTime->gt($shiftStartTime)) {
+                    $timeLate = $checkInTime->diff($shiftStartTime)->format('%H:%I');
+                }
+            }
+
+            // Create attendance record
+            $attendance = Attendance::create([
+                'employee_id' => $validated['employee_id'],
+                'date_attendance' => $validated['date_attendance'],
+                'time_in' => $validated['time_in'],
+                'type_attendance' => $validated['type_attendance'],
+                'note' => $validated['note'] ?? null,
+                'image' => $imagePath,
+                'time_late' => $timeLate,
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]);
+
+            // Create attendance tracking record
+            $attendanceTracking = AttendanceTracking::create([
+                'attendance_id' => $attendance->id,
+                'is_work_outside' => filter_var($validated['is_work_outside'], FILTER_VALIDATE_BOOLEAN),
+                'type' => $validated['type_attendance'],
+                'location' => null, // Set null dulu sesuai permintaan
+                'device' => null,   // Set null dulu sesuai permintaan
+                'image' => $imagePath, // Simpan juga di attendance_trackings
+                'date_time' => $dateTime,
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'attendance' => $attendance,
+                    'attendance_tracking' => $attendanceTracking
+                ],
+                'message' => 'Attendance recorded successfully'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Attendance store error:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Ambil waktu sekarang dari server
-        $now = Carbon::now();
-
-        // Ambil waktu mulai shift
-        $shiftStartTime = Carbon::parse($shift->time_start);
-        $shiftEndTime = Carbon::parse($shift->time_end);
-
-        // Jika shift malam dan waktu sekarang lebih kecil dari shiftStart, geser shiftStart ke hari sebelumnya
-        if ($shiftStartTime->gt($shiftEndTime) && $now->lt($shiftStartTime)) {
-            $shiftStartTime->subDay();
-        }
-
-        // Hitung keterlambatan
-        $timeLate = null;
-        if ($now->gt($shiftStartTime)) {
-            $timeLate = $now->diff($shiftStartTime)->format('%H:%I');
-        }
-
-        // Handle image upload
-        $imageName = null;
-        if ($request->hasFile('image')) {
-            $t = time();
-            $imageName = 'ATTENDANCE_' . $t . '.' . $request->image->extension();
-            $request->image->move(public_path('file/attendance'), $imageName);
-        }
-        $imagePath = $imageName ? 'attendance/' . $imageName : null;
-
-        // Simpan ke database
-        $attendance = Attendance::create([
-            'employee_id' => $validated['employee_id'],
-            'is_work_outside' => $isWorkOutside,
-            'date_attendance' => $validated['date_attendance'],
-            'time_in' => $validated['time_in'],
-            'time_late' => $timeLate,
-            'type_attendance' => 'check_in',
-            'note' => $validated['note'] ?? null,
-            'image' => $imagePath ? 'file/' . $imagePath : null,
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
-            'deleted_by' => null,
-        ]);
-
-        DB::commit();
-
-        \Log::info('Attendance created successfully:', ['attendance_id' => $attendance->id]);
-
-        return response()->json([
-            'code' => 200,
-            'status' => 'success',
-            'data' => $attendance,
-            'message' => 'Check-in successful!'
-        ]);
-    } catch (ValidationException $e) {
-        DB::rollBack();
-        \Log::error('Validation error:', $e->errors());
-        return response()->json([
-            'code' => 422,
-            'status' => 'error',
-            'data' => [],
-            'message' => 'Validation error',
-            'errors' => $e->errors()
-        ], 422);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Attendance store error:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-        return response()->json([
-            'code' => 500,
-            'status' => 'error',
-            'data' => [],
-            'message' => 'Server error: ' . $e->getMessage()
-        ], 500);
     }
-}
 
     /**
      * Display the specified resource.
