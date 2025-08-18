@@ -342,3 +342,47 @@
         padding: 20px;
     }
 }
+
+.timeline-row {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    position: relative;
+    margin-bottom: 10px; /* jarak antar bar */
+}
+
+.timeline-bar {
+    position: absolute;
+    height: 28px;
+    border-radius: 18px; /* lebih rounded */
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    font-weight: 500;
+    color: #555;
+    padding-left: 36px;
+    padding-right: 12px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    background: #e3f3ff;
+    left: 0;
+    transition: left 0.2s, width 0.2s;
+    box-sizing: border-box;
+}
+
+.timeline-bar.color1 { background: #e3f3ff; border: 1px solid #cbe2f7; }
+.timeline-bar.color2 { background: #e9e3f7; border: 1px solid #d7cbe7; }
+.timeline-bar.color3 { background: #f7f3e3; border: 1px solid #e7dbc7; }
+.timeline-bar.color4 { background: #ffe3e3; border: 1px solid #f7cbcb; }
+
+.timeline-bar .circle {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #b6e7c9;
+}

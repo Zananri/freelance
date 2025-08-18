@@ -29,9 +29,12 @@
                                 <div id="date" class="digital-date mb-4 fw-light text-secondary"></div>
                             </div>
                             <div class="attendance-actions mt-2 w-100 d-flex justify-content-evenly">
-                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkIn"><span class="material-symbols-outlined check-icon" style="display: none;">check</span>Check
+                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkIn"
+                                    id="checkInBtn"><span class="material-symbols-outlined check-icon"
+                                        style="display: none;">check</span>Check
                                     In</button>
-                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut">Check
+                                <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut"
+                                    id="checkOutBtn">Check
                                     Out</button>
                             </div>
                             <div class="justify-content-start mt-4">
@@ -91,29 +94,57 @@
                 </div>
 
                 {{-- Project Card --}}
-                <div class="row" style="flex: 1;">
-                    <div class="col-12 card-fill">
-                        <div class="rounded-4 p-4 body-content">
-                            <div class="row g-3 row-cols-1 row-cols-md-3">
-                                <div>
-                                    <canvas id="doughnutChart"></canvas>
-                                    <div class="chart-labels d-flex justify-content-between mt-3">
-                                        <div class="text-center">
-                                            <span style="font-weight: bold; color: #222;">10</span><br>
-                                            <span style="color: #888;">Total</span>
+                <div class="col-12 card-fill">
+                    <div class="rounded-4 p-4 body-content">
+                        <div class="row g-3 align-items-stretch">
+                            <!-- Grafik Doughnut -->
+                            <div class="col-md-6 col-12 mb-3">
+                                <h1 style="font-size: 24px; font-weight: normal;">Project</h1>
+                                <canvas id="doughnutChart"></canvas>
+                                <div class="chart-labels d-flex justify-content-between mt-3">
+                                    <div class="text-center">
+                                        <span style="font-weight: bold; color: #222;">10</span><br>
+                                        <span style="color: #888;">Total</span>
+                                    </div>
+                                    <div class="text-center">
+                                        <span style="font-weight: bold; color: #4fc97a;">3</span><br>
+                                        <span style="color: #888;">Complete</span>
+                                    </div>
+                                    <div class="text-center">
+                                        <span style="font-weight: bold; color: #5a9be6;">5</span><br>
+                                        <span style="color: #888;">On Progress</span>
+                                    </div>
+                                    <div class="text-center">
+                                        <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
+                                        <span style="color: #888;">Late</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Project Timeline -->
+                            <div class="col-md-6 col-12 mb-3">
+                                <div class="project-timeline-card h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 id="timelineTitle" class="fw-normal">Aug week 1</h5>
+                                        <div>
+                                            <button class="btn btn-sm btn-light me-2" id="prevTimeline">
+                                                <span class="material-symbols-outlined">chevron_left</span>
+                                            </button>
+                                            <button class="btn btn-sm btn-light" id="nextTimeline">
+                                                <span class="material-symbols-outlined">chevron_right</span>
+                                            </button>
                                         </div>
-                                        <div class="text-center">
-                                            <span style="font-weight: bold; color: #4fc97a;">3</span><br>
-                                            <span style="color: #888;">Complete</span>
+                                    </div>
+                                    <div class="timeline-table">
+                                        <div class="timeline-header d-flex">
+                                            <div class="timeline-cell fw-bold">Mo</div>
+                                            <div class="timeline-cell fw-bold">Tu</div>
+                                            <div class="timeline-cell fw-bold">We</div>
+                                            <div class="timeline-cell fw-bold">Th</div>
+                                            <div class="timeline-cell fw-bold">Fr</div>
+                                            <div class="timeline-cell fw-bold">Sa</div>
+                                            <div class="timeline-cell fw-bold">Su</div>
                                         </div>
-                                        <div class="text-center">
-                                            <span style="font-weight: bold; color: #5a9be6;">5</span><br>
-                                            <span style="color: #888;">On Progress</span>
-                                        </div>
-                                        <div class="text-center">
-                                            <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
-                                            <span style="color: #888;">Late</span>
-                                        </div>
+                                        <div id="timelineRows"></div>
                                     </div>
                                 </div>
                             </div>
