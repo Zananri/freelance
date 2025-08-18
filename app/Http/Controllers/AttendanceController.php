@@ -299,6 +299,7 @@ if ($request->hasFile('image')) {
 
             $validated = $request->validate([
                 'employee_id' => 'required|exists:employees,id',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             ]);
 
             $today = Carbon::today()->toDateString();
@@ -320,53 +321,99 @@ if ($request->hasFile('image')) {
             }
 
             $now = Carbon::now();
+            $userId = auth()->id();
+            $imageArray = [];
+
+            // Handle image upload for checkout
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = 'ATTENDANCE_CHECKOUT_' . time() . '.' . $image->getClientOriginalExtension();
+                $destinationPath = public_path('file/attendance');
+                $image->move($destinationPath, $imageName);
+                $imageArray[] = 'file/attendance/' . $imageName;
+            }
+
+            // Get the original check-in attendance tracking to determine if work outside
+            $checkInTracking = AttendanceTracking::where('attendance_id', $attendance->id)
+                ->where('type', 'check_in')
+                ->first();
+
+            $isWorkOutside = $checkInTracking ? $checkInTracking->is_work_outside : false;
 
             if ($attendance->date_attendance < $today) {
                 // Previous day check-in without checkout, create new checkout record for today
                 $checkout = Attendance::create([
                     'employee_id' => $validated['employee_id'],
-                    'is_work_outside' => $attendance->is_work_outside,
                     'date_attendance' => $today,
                     'time_in' => null,
                     'time_out' => $now->format('H:i'),
                     'type_attendance' => 'check_out',
                     'note' => $request->input('note') ?? null,
-                    'image' => null,
+                    'image' => $imageArray,
+                    'updated_by' => $userId,
                 ]);
-                DB::commit();
 
-                return response()->json([
-                    'code' => 200,
-                    'status' => 'success',
-                    'data' => $checkout,
-                    'message' => 'Check-out successful for today!'
+                // Create attendance tracking record for checkout
+                $attendanceTracking = AttendanceTracking::create([
+                    'attendance_id' => $checkout->id,
+                    'is_work_outside' => $isWorkOutside,
+                    'type' => 'check_out',
+                    'location' => null,
+                    'device' => null,
+                    'image' => $imageArray,
+                    'date_time' => $now,
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
             } else {
                 // Same day check-in, update the existing record
+                $currentImages = $attendance->image ?? [];
+                $mergedImages = array_merge($currentImages, $imageArray);
+                
                 $updateData = [
                     'time_out' => $now->format('H:i'),
-                    'type_attendance' => 'check_out'
+                    'type_attendance' => 'check_out',
+                    'image' => $mergedImages,
+                    'updated_by' => $userId,
                 ];
 
                 if ($request->has('note')) {
                     $updateData['note'] = $request->input('note');
                 }
 
-                $updateData['updated_by'] = auth()->id();
                 $attendance->update($updateData);
 
-                DB::commit();
-
-                return response()->json([
-                    'code' => 200,
-                    'status' => 'success',
-                    'data' => $attendance,
-                    'message' => 'Check-out successful!'
+                // Create attendance tracking record for checkout
+                $attendanceTracking = AttendanceTracking::create([
+                    'attendance_id' => $attendance->id,
+                    'is_work_outside' => $isWorkOutside,
+                    'type' => 'check_out',
+                    'location' => null,
+                    'device' => null,
+                    'image' => $imageArray,
+                    'date_time' => $now,
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
             }
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'attendance' => $attendance,
+                    'attendance_tracking' => $attendanceTracking
+                ],
+                'message' => 'Check-out successful!'
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Attendance checkout error:', ['error' => $e->getMessage()]);
+            \Log::error('Attendance checkout error:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'code' => 500,
                 'status' => 'error',
@@ -432,10 +479,19 @@ if ($request->hasFile('image')) {
                 ], 400);
             }
 
-            $attendances = Attendance::where('employee_id', $employeeId)
-                ->where('date_attendance', $dateObj->toDateString())
-                ->orderBy('time_in', 'asc')
-                ->get();
+            $attendances = Attendance::with(['attendanceTrackings' => function($query) {
+                $query->where('type', 'check_in');
+            }])
+            ->where('employee_id', $employeeId)
+            ->where('date_attendance', $dateObj->toDateString())
+            ->orderBy('time_in', 'asc')
+            ->get()
+            ->map(function($attendance) {
+                // Get is_work_outside from attendance_trackings
+                $checkInTracking = $attendance->attendanceTrackings->first();
+                $attendance->is_work_outside = $checkInTracking ? $checkInTracking->is_work_outside : false;
+                return $attendance;
+            });
 
             if ($attendances->isEmpty()) {
                 return response()->json([

@@ -53,6 +53,14 @@ class Attendance extends Model
     }
 
     /**
+     * Get the attendance trackings for this attendance.
+     */
+    public function attendanceTrackings()
+    {
+        return $this->hasMany(AttendanceTracking::class);
+    }
+
+    /**
      * Scope a query to only include attendances for a specific employee.
      */
     public function scopeForEmployee($query, $employeeId)

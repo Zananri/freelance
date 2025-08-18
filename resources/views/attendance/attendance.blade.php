@@ -175,7 +175,6 @@
         </button>
       </div>
 
-      <!-- Camera Wrapper (desktop only) -->
       <div id="cameraWrapper" class="d-none position-relative text-center">
         <!-- Video Stream -->
         <video id="cameraVideo" autoplay playsinline class="w-100 rounded"
@@ -201,7 +200,7 @@
     <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4">
+            <div class="modal-content rounded-4" id="checkOutModalContent">
                 <div class="modal-header modal-header-custom">
                     <h5 class="modal-title modal-title-custom" id="checkOutModalLabel">Check Out Attendance</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -214,6 +213,7 @@
                         <input type="hidden" name="date_attendance" id="date_attendance">
                         <input type="hidden" name="time_out" id="time_out">
                         <input type="hidden" name="type_attendance" value="check_out">
+                        <input type="hidden" name="is_work_outside_checkout" id="is_work_outside_checkout" value="0">
 
                         <!-- Work Outside Display -->
                         <div class="mb-3">
@@ -247,21 +247,23 @@
                             </div>
                         </div>
 
-                        <!-- Image Upload Section -->
-                        <div class="mb-3" id="imageUploadSection" style="display: none;">
-                            <label class="form-label">Photo (Optional)</label>
+                        <!-- Image Upload Section for Checkout -->
+                        <div class="mb-3" id="imageUploadSectionCheckout" style="display: none;">
+                            <label class="form-label">Photo</label>
                             <div class="image-upload-container">
-                                <label for="imageInput" class="image-upload-label camera-label">
+                                <label for="imageInputCheckout" class="image-upload-label camera-label">
                                     <div class="image-upload-icon">
                                         <i class="fas fa-camera fa-2x text-primary"></i>
                                     </div>
-                                    <span>Take Photo</span>
+                                    <span id="cameraTextCheckout">Take Photo</span>
                                 </label>
-                                <input type="file" class="form-control d-none" id="imageInput" name="image[]"
-                                    accept="image/*" capture="user">
-                                <div id="imagePreview" class="image-preview mt-2" style="display: none;">
-                                    <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
+                                <input type="file" class="form-control d-none" id="imageInputCheckout" name="image[]"
+                                    accept="image/*" capture="environment">
+                                <div id="imagePreviewCheckout" class="image-preview mt-2" style="display: none;">
+                                    <img id="previewImgCheckout" src="" alt="Preview" class="img-fluid rounded">
                                 </div>
+                                <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
+                                    id="clearImageBtnCheckout">&times;</button>
                             </div>
                         </div>
 
@@ -272,6 +274,22 @@
                         <span class="material-symbols-outlined">alarm_off</span>
                         Check Out
                     </button>
+                </div>
+
+                <div id="cameraWrapperCheckout" class="d-none position-relative text-center">
+                    <!-- Video Stream -->
+                    <video id="cameraVideoCheckout" autoplay playsinline class="w-100 rounded"
+                        style="height: 100vh; object-fit: cover;"></video>
+
+                    <!-- Capture Button Overlay -->
+                    <button type="button"
+                        class="btn btn-primary position-absolute bottom-0 start-50 translate-middle-x mb-4 px-4 py-2"
+                        id="captureBtnCheckout">
+                        <i class="fas fa-camera"></i> Capture Photo
+                    </button>
+
+                    <!-- Hidden Canvas for Capturing -->
+                    <canvas id="cameraCanvasCheckout" class="d-none"></canvas>
                 </div>
             </div>
         </div>
