@@ -333,12 +333,10 @@ if ($request->hasFile('image')) {
                 $imageArray[] = 'file/attendance/' . $imageName;
             }
 
-            // Get the original check-in attendance tracking to determine if work outside
-            $checkInTracking = AttendanceTracking::where('attendance_id', $attendance->id)
+            // Get the existing attendance tracking record
+            $attendanceTracking = AttendanceTracking::where('attendance_id', $attendance->id)
                 ->where('type', 'check_in')
                 ->first();
-
-            $isWorkOutside = $checkInTracking ? $checkInTracking->is_work_outside : false;
 
             if ($attendance->date_attendance < $today) {
                 // Previous day check-in without checkout, create new checkout record for today
@@ -353,10 +351,10 @@ if ($request->hasFile('image')) {
                     'updated_by' => $userId,
                 ]);
 
-                // Create attendance tracking record for checkout
+                // Create new attendance tracking for checkout
                 $attendanceTracking = AttendanceTracking::create([
                     'attendance_id' => $checkout->id,
-                    'is_work_outside' => $isWorkOutside,
+                    'is_work_outside' => $attendanceTracking ? $attendanceTracking->is_work_outside : false,
                     'type' => 'check_out',
                     'location' => null,
                     'device' => null,
@@ -383,18 +381,31 @@ if ($request->hasFile('image')) {
 
                 $attendance->update($updateData);
 
-                // Create attendance tracking record for checkout
-                $attendanceTracking = AttendanceTracking::create([
-                    'attendance_id' => $attendance->id,
-                    'is_work_outside' => $isWorkOutside,
-                    'type' => 'check_out',
-                    'location' => null,
-                    'device' => null,
-                    'image' => $imageArray,
-                    'date_time' => $now,
-                    'created_by' => $userId,
-                    'updated_by' => $userId,
-                ]);
+                // Update existing attendance tracking record instead of creating new one
+                if ($attendanceTracking) {
+                    $trackingImages = $attendanceTracking->image ?? [];
+                    $mergedTrackingImages = array_merge($trackingImages, $imageArray);
+                    
+                    $attendanceTracking->update([
+                        'type' => 'check_out',
+                        'image' => $mergedTrackingImages,
+                        'date_time' => $now,
+                        'updated_by' => $userId,
+                    ]);
+                } else {
+                    // Fallback: create new tracking if not found
+                    $attendanceTracking = AttendanceTracking::create([
+                        'attendance_id' => $attendance->id,
+                        'is_work_outside' => false,
+                        'type' => 'check_out',
+                        'location' => null,
+                        'device' => null,
+                        'image' => $imageArray,
+                        'date_time' => $now,
+                        'created_by' => $userId,
+                        'updated_by' => $userId,
+                    ]);
+                }
             }
 
             DB::commit();
