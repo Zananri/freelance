@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\EmployeeShift;
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
+use App\Helpers\DeviceHelper;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
@@ -179,7 +180,7 @@ if ($request->hasFile('image')) {
                 'is_work_outside' => filter_var($validated['is_work_outside'], FILTER_VALIDATE_BOOLEAN),
                 'type' => $validated['type_attendance'],
                 'location' => null, // Set null dulu sesuai permintaan
-                'device' => null,   // Set null dulu sesuai permintaan
+                'device' => DeviceHelper::getDeviceFromRequest($request), // Simpan device awal
                 'image' => $imageArray, // Simpan juga di attendance_trackings
                 'date_time' => $dateTime,
                 'created_by' => $userId,
@@ -375,7 +376,7 @@ if ($request->hasFile('image')) {
                     'is_work_outside' => $attendanceTracking ? $attendanceTracking->is_work_outside : false,
                     'type' => 'check_out',
                     'location' => null,
-                    'device' => null,
+                    'device' => DeviceHelper::buildDeviceArray($attendanceTracking ? $attendanceTracking->device : null, DeviceHelper::getDeviceFromRequest($request)),
                     'image' => $imageArray,
                     'date_time' => $now,
                     'created_by' => $userId,
@@ -404,20 +405,26 @@ if ($request->hasFile('image')) {
                     $trackingImages = $attendanceTracking->image ?? [];
                     $mergedTrackingImages = array_merge($trackingImages, $imageArray);
                     
+                    // Get current device for checkout
+                    $checkOutDevice = DeviceHelper::getDeviceFromRequest($request);
+                    $checkInDevice = $attendanceTracking->device;
+                    
                     $attendanceTracking->update([
                         'type' => 'check_out',
                         'image' => $mergedTrackingImages,
+                        'device' => $checkInDevice . '|' . $checkOutDevice, // Gabungkan dengan separator |
                         'date_time' => $now,
                         'updated_by' => $userId,
                     ]);
                 } else {
                     // Fallback: create new tracking if not found
+                    $checkOutDevice = DeviceHelper::getDeviceFromRequest($request);
                     $attendanceTracking = AttendanceTracking::create([
                         'attendance_id' => $attendance->id,
                         'is_work_outside' => false,
                         'type' => 'check_out',
                         'location' => null,
-                        'device' => null,
+                        'device' => $checkOutDevice . '|' . $checkOutDevice, // Use same device with separator since we don't have check-in device
                         'image' => $imageArray,
                         'date_time' => $now,
                         'created_by' => $userId,
