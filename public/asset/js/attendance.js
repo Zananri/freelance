@@ -3,6 +3,97 @@ const baseUrl =
     document.querySelector('meta[name="app-url"]')?.getAttribute("content") ||
     "";
 
+// Pastikan Leaflet sudah dimuat sebelum inisialisasi
+let mapCheckIn = null;
+let mapCheckOut = null;
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Tunggu hingga Leaflet tersedia
+    const checkLeaflet = setInterval(() => {
+        if (typeof L !== 'undefined') {
+            clearInterval(checkLeaflet);
+            initializeMaps();
+            initializeAttendance();
+        }
+    }, 100);
+});
+
+function initializeMaps() {
+    // Inisialisasi map dengan aman
+    const mapCheckInEl = document.getElementById('mapCheckIn');
+    const mapCheckOutEl = document.getElementById('mapCheckOut');
+
+    if (mapCheckInEl && typeof L !== 'undefined') {
+        if (!window.mapCheckIn || !window.mapCheckIn._container) {
+            window.mapCheckIn = L.map('mapCheckIn').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+            }).addTo(window.mapCheckIn);
+        }
+    }
+
+    if (mapCheckOutEl && typeof L !== 'undefined') {
+        if (!window.mapCheckOut || !window.mapCheckOut._container) {
+            window.mapCheckOut = L.map('mapCheckOut').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+            }).addTo(window.mapCheckOut);
+        }
+    }
+
+    // Perbaikan Event Listener untuk Geolocation
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            const { latitude, longitude } = position.coords;
+
+            // Pastikan map sudah diinisialisasi
+            if (window.mapCheckIn && window.mapCheckIn.setView) {
+                // Clear existing markers
+                window.mapCheckIn.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckIn.removeLayer(layer);
+                    }
+                });
+                
+                // Set view dan tambahkan marker di tengah
+                window.mapCheckIn.setView([latitude, longitude], 15);
+                L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+                document.getElementById('latitudeCheckIn').value = latitude;
+                document.getElementById('longitudeCheckIn').value = longitude;
+                
+                // Force map resize
+                setTimeout(() => {
+                    window.mapCheckIn.invalidateSize();
+                }, 100);
+            }
+
+            if (window.mapCheckOut && window.mapCheckOut.setView) {
+                // Clear existing markers
+                window.mapCheckOut.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckOut.removeLayer(layer);
+                    }
+                });
+                
+                // Set view dan tambahkan marker di tengah
+                window.mapCheckOut.setView([latitude, longitude], 15);
+                L.marker([latitude, longitude]).addTo(window.mapCheckOut);
+                document.getElementById('latitudeCheckOut').value = latitude;
+                document.getElementById('longitudeCheckOut').value = longitude;
+                
+                // Force map resize
+                setTimeout(() => {
+                    window.mapCheckOut.invalidateSize();
+                }, 100);
+            }
+        }, function (error) {
+            console.error('Error getting location:', error);
+        });
+    } else {
+        console.error('Geolocation is not supported by this browser.');
+    }
+};
+
 document.addEventListener("DOMContentLoaded", function () {
     // Initialize attendance page
     initializeAttendance();
@@ -150,6 +241,40 @@ function openCheckInModal() {
 
       if (workOutsideNo) workOutsideNo.checked = true;
       if (imageUploadSection) imageUploadSection.style.display = "none";
+
+            // Get current location and zoom map
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const { latitude, longitude } = position.coords;
+
+                    // Pastikan map sudah diinisialisasi
+                    if (window.mapCheckIn && window.mapCheckIn.setView) {
+                        // Clear existing markers
+                        window.mapCheckIn.eachLayer(function (layer) {
+                            if (layer instanceof L.Marker) {
+                                window.mapCheckIn.removeLayer(layer);
+                            }
+                        });
+                        
+                        // Set view dan tambahkan marker di tengah
+                        window.mapCheckIn.setView([latitude, longitude], 18); // Zoom level 18 for close view
+                        const marker = L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+                        
+                        // Pastikan marker di tengah map
+                        window.mapCheckIn.panTo([latitude, longitude]);
+                        
+                        document.getElementById('latitudeCheckIn').value = latitude;
+                        document.getElementById('longitudeCheckIn').value = longitude;
+                        
+                        // Force map resize untuk memastikan tampilan benar
+                        setTimeout(() => {
+                            window.mapCheckIn.invalidateSize();
+                        }, 100);
+                    }
+                }, function (error) {
+                    console.error('Error getting location:', error);
+                });
+            }
 
       const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
       modal.show();
@@ -302,70 +427,49 @@ function updateAttendanceStatus() {
                     console.log("Latest unclosed attendance:", latestData);
                     console.log("Today's attendance:", todayData);
 
-                    // Determine button state based on today's attendance first
-                    if (todayData.status === "success" && todayData.data) {
-                        const attendances = todayData.data;
+                    // Handle missing or invalid data
+                    if (!todayData.data || !Array.isArray(todayData.data)) {
+                        console.warn("No attendance record found for today.");
+                        checkInBtn.style.display = "flex";
+                        checkOutBtn.style.display = "none";
+                        return;
+                    }
 
-                        if (attendances.length > 0) {
-                            const lastAttendance = attendances[attendances.length - 1];
+                    const attendances = todayData.data;
 
-                            if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
-                                // Last record is check-in without checkout, show checkout button
-                                checkInBtn.style.display = "none";
-                                checkOutBtn.style.display = "flex";
+                    if (attendances.length > 0) {
+                        const lastAttendance = attendances[attendances.length - 1];
 
-                                // Update hidden time fields
-                                const checkInTimeInput = document.getElementById("checkInTime");
-                                if (checkInTimeInput) {
-                                    checkInTimeInput.value = lastAttendance.time_in;
-                                }
-                                return;
-                            } else {
-                                // Last record is checkout or fully checked out, show check-in button
-                                checkInBtn.style.display = "flex";
-                                checkOutBtn.style.display = "none";
-                                return;
+                        if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
+                            // Last record is check-in without checkout, show checkout button
+                            checkInBtn.style.display = "none";
+                            checkOutBtn.style.display = "flex";
+
+                            // Update hidden time fields
+                            const checkInTimeInput = document.getElementById("checkInTime");
+                            if (checkInTimeInput) {
+                                checkInTimeInput.value = lastAttendance.time_in;
                             }
+                            return;
                         } else {
-                            // No attendance today, show check-in button
+                            // Last record is checkout or fully checked out, show check-in button
                             checkInBtn.style.display = "flex";
                             checkOutBtn.style.display = "none";
                             return;
                         }
+                    } else {
+                        // No attendance today, show check-in button
+                        checkInBtn.style.display = "flex";
+                        checkOutBtn.style.display = "none";
+                        return;
                     }
-
-                    // If no attendance today, check latest unclosed check-in from previous days
-                    if (latestData.status === "success" && latestData.data) {
-                        const latestAttendance = latestData.data;
-                        const latestDate = latestAttendance.date_attendance;
-
-                        if (latestDate < today) {
-                            checkInBtn.style.display = "none";
-                            checkOutBtn.style.display = "flex";
-                            // Set hidden checkInTime to latest check-in time
-                            const checkInTimeInput = document.getElementById("checkInTime");
-                            if (checkInTimeInput) {
-                                checkInTimeInput.value = latestAttendance.time_in;
-                            }
-                            return;
-                        }
-                    }
-
-                    // Default fallback: show check-in button
-                    checkInBtn.style.display = "flex";
-                    checkOutBtn.style.display = "none";
+                })
+                .catch((error) => {
+                    console.error("Error fetching today's attendance data:", error);
                 });
         })
         .catch((error) => {
-            console.error("Error fetching attendance data:", error);
-            // Fallback to showing check-in button
-            const checkInBtn = document.getElementById("checkInBtn");
-            const checkOutBtn = document.getElementById("checkOutBtn");
-
-            if (checkInBtn && checkOutBtn) {
-                checkInBtn.style.display = "flex";
-                checkOutBtn.style.display = "none";
-            }
+            console.error("Error fetching latest unclosed attendance data:", error);
         });
 }
 
@@ -738,28 +842,36 @@ function resetCheckInModal() {
 document.addEventListener("DOMContentLoaded", initializeCameraFeatures);
 
 function submitCheckIn() {
-
     const form = document.getElementById("checkInForm");
     if (!form) return;
 
-    // Validate form before submission
-    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
-    if (!employeeId) {
-        showFloatingAlert("Employee ID not found. Please refresh the page.", "error");
+    // Validate employeeId
+    const employeeIdInput = document.querySelector('input[name="employee_id"]');
+    if (!employeeIdInput || !employeeIdInput.value) {
+        console.error("Employee ID not found or is empty.");
+        showFloatingAlert("Employee ID is missing. Please refresh the page.", "error");
         return;
     }
+    const employeeId = employeeIdInput.value;
 
+    const formData = new FormData(form);
+
+    // Add latitude and longitude for check-in
+    const latitude = document.getElementById("latitudeCheckIn").value;
+    const longitude = document.getElementById("longitudeCheckIn").value;
+    formData.append("latitudeCheckIn", latitude);
+    formData.append("longitudeCheckIn", longitude);
+
+    // Add employee ID
+    formData.append("employee_id", employeeId);
+
+    // Add required fields
     const isWorkOutsideRadio = document.querySelector('input[name="is_work_outside"]:checked');
     if (!isWorkOutsideRadio) {
-        showFloatingAlert("Please select whether you are working outside or not.", "error");
+        console.error("Work outside selection is missing.");
+        showFloatingAlert("Please select if you are working outside.", "error");
         return;
     }
-
-    // Create new FormData
-    const formData = new FormData();
-    
-    // Add required fields
-    formData.append("employee_id", employeeId);
     formData.append("is_work_outside", isWorkOutsideRadio.value === "1" ? "1" : "0");
     formData.append("date_attendance", document.querySelector('input[name="date_attendance"]').value);
     formData.append("time_in", document.querySelector('input[name="time_in"]').value);
@@ -883,24 +995,77 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Checkout Modal Functions
+let checkoutStream = null;
+let checkoutCapturedImage = null;
+
 function openCheckOutModal() {
     fetch(baseUrl + '/server-time')
         .then(response => response.json())
         .then(data => {
             const serverTime = data.time;       // HH:mm
             const serverDate = data.date;       // YYYY-MM-DD
+            const formattedDate = data.formatted_date; // Formatted date for display
 
-            // Update hidden input
-            document.getElementById("date_attendance").value = serverDate;
-            document.getElementById("time_out").value = serverTime;
+            // Update hidden inputs
+            const dateInput = document.getElementById("date_attendance");
+            const timeInput = document.getElementById("time_out");
+            
+            if (dateInput && timeInput) {
+                dateInput.value = serverDate;
+                timeInput.value = serverTime;
+            } else {
+                console.error("Date or time input elements not found");
+                showFloatingAlert("Error loading checkout form. Please refresh the page.", "error");
+                return;
+            }
 
             // Update tampilan
-            document.getElementById("time_out_display").textContent = serverTime;
+            const timeDisplay = document.getElementById("time_out_display");
+            if (timeDisplay) {
+                timeDisplay.textContent = serverTime;
+            }
 
             // Load check-in data dan hitung durasi kerja
             loadCheckInDataForCheckout(serverTime);
+
+            // Get current location and zoom map
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                  const { latitude, longitude } = position.coords;
+
+                  // Pastikan map sudah diinisialisasi
+                  if (window.mapCheckOut && window.mapCheckOut.setView) {
+                    // Clear existing markers
+                    window.mapCheckOut.eachLayer(function (layer) {
+                      if (layer instanceof L.Marker) {
+                        window.mapCheckOut.removeLayer(layer);
+                      }
+                    });
+                    
+                    // Set view dan tambahkan marker di tengah
+                    window.mapCheckOut.setView([latitude, longitude], 18); // Zoom level 18 for close view
+                    const marker = L.marker([latitude, longitude]).addTo(window.mapCheckOut);
+                    
+                    // Pastikan marker di tengah map
+                    window.mapCheckOut.panTo([latitude, longitude]);
+                    
+                    document.getElementById('latitudeCheckOut').value = latitude;
+                    document.getElementById('longitudeCheckOut').value = longitude;
+                    
+                    // Force map resize untuk memastikan tampilan benar
+                    setTimeout(() => {
+                        window.mapCheckOut.invalidateSize();
+                    }, 100);
+                  }
+                }, function (error) {
+                  console.error('Error getting location:', error);
+                });
+            }
         })
-        .catch(error => console.error('Gagal ambil waktu server:', error));
+        .catch(error => {
+            console.error('Gagal ambil waktu server:', error);
+            showFloatingAlert("Failed to get server time. Please try again.", "error");
+        });
 
     // Tampilkan modal
     const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
@@ -924,9 +1089,13 @@ function calculateDuration24h(timeIn, timeOut) {
 
 function loadCheckInDataForCheckout(serverTime) {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
-    if (!employeeId) return;
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        showFloatingAlert("Employee ID not found. Please refresh the page.", "error");
+        return;
+    }
 
-    const selectedDate = document.getElementById("currentDate")?.value || new Date().toISOString().split("T")[0];
+    const selectedDate = document.getElementById("date_attendance")?.value || new Date().toISOString().split("T")[0];
     const url = `${baseUrl}/attendance/daily/${employeeId}/${selectedDate}`;
 
     fetch(url)
@@ -934,37 +1103,79 @@ function loadCheckInDataForCheckout(serverTime) {
         .then(data => {
             if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
                 const checkInRecord = data.data.find(r => r.type_attendance === "check_in");
-                if (!checkInRecord) return setCheckoutModalDefaults();
+                if (!checkInRecord) {
+                    console.error("No check-in record found");
+                    showFloatingAlert("No check-in record found for today.", "error");
+                    return setCheckoutModalDefaults();
+                }
 
                 populateCheckoutModal(checkInRecord, serverTime);
             } else {
+                console.warn("No attendance data found");
+                showFloatingAlert("No attendance data found for today.", "error");
                 setCheckoutModalDefaults();
             }
         })
-        .catch(() => setCheckoutModalDefaults());
+        .catch(error => {
+            console.error("Error loading check-in data:", error);
+            showFloatingAlert("Error loading check-in data. Please try again.", "error");
+            setCheckoutModalDefaults();
+        });
 }
 
 // Fungsi populate modal checkout
 function populateCheckoutModal(checkInRecord, serverTime) {
-    // Tampilkan status work outside
-    const workOutsideText = checkInRecord.is_work_outside ? "Yes" : "No";
-    document.getElementById("workOutsideStatusText").textContent = workOutsideText;
+    try {
+        // Tampilkan status work outside
+        const workOutsideText = checkInRecord.is_work_outside ? "Yes" : "No";
+        const workOutsideStatusEl = document.getElementById("workOutsideStatusText");
+        if (workOutsideStatusEl) {
+            workOutsideStatusEl.textContent = workOutsideText;
+        }
 
-    // Tampilkan time in
-    document.getElementById("time_in_display").textContent = checkInRecord.time_in || "Not available";
+        // Set hidden field for work outside status
+        const workOutsideInput = document.getElementById("is_work_outside_checkout");
+        if (workOutsideInput) {
+            workOutsideInput.value = checkInRecord.is_work_outside ? "1" : "0";
+        }
 
-    // Hitung durasi kerja dari time_in dan serverTime
-    if (checkInRecord.time_in) {
-        const totalDuration = calculateDuration24h(checkInRecord.time_in, serverTime);
-        document.getElementById("total_work_duration").textContent = totalDuration;
-    } else {
-        document.getElementById("total_work_duration").textContent = "0h 0m";
-    }
+        // Tampilkan time in
+        const timeInDisplay = document.getElementById("time_in_display");
+        if (timeInDisplay) {
+            timeInDisplay.textContent = checkInRecord.time_in || "Not available";
+        }
 
-    // Show/hide image section berdasarkan work outside
-    const imageSection = document.getElementById("imageUploadSection");
-    if (imageSection) {
-        imageSection.style.display = checkInRecord.is_work_outside ? "block" : "none";
+        // Simpan time_in untuk referensi
+        const timeInHidden = document.getElementById("time_in");
+        if (timeInHidden) {
+            timeInHidden.value = checkInRecord.time_in;
+        }
+
+        // Hitung durasi kerja dari time_in dan serverTime
+        if (checkInRecord.time_in && serverTime) {
+            const totalDuration = calculateDuration24h(checkInRecord.time_in, serverTime);
+            const durationEl = document.getElementById("total_work_duration");
+            if (durationEl) {
+                durationEl.textContent = totalDuration;
+            }
+        }
+
+        // Show/hide image section berdasarkan work outside
+        const imageSection = document.getElementById("imageUploadSectionCheckout");
+        if (imageSection) {
+            imageSection.style.display = checkInRecord.is_work_outside ? "block" : "none";
+        }
+
+        // Enable submit button
+        const submitBtn = document.getElementById("submitCheckOutBtn");
+        if (submitBtn) {
+            submitBtn.disabled = false;
+        }
+
+    } catch (error) {
+        console.error("Error populating checkout modal:", error);
+        showFloatingAlert("Error loading checkout data. Please try again.", "error");
+        setCheckoutModalDefaults();
     }
 }
 
@@ -973,19 +1184,257 @@ function setCheckoutModalDefaults() {
     document.getElementById("time_in_display").textContent = "Not available";
     document.getElementById("total_work_duration").textContent = "0h 0m";
 
-    const imageSection = document.getElementById("imageUploadSection");
+    const imageSection = document.getElementById("imageUploadSectionCheckout");
     if (imageSection) imageSection.style.display = "none";
 }
 
-// Function to submit check-out
+// Initialize checkout camera features
+function initializeCheckoutCameraFeatures() {
+    const cameraLabelCheckout = document.querySelector(".camera-label[for='imageInputCheckout']");
+    const clearImageBtnCheckout = document.getElementById("clearImageBtnCheckout");
+    const imageInputCheckout = document.getElementById("imageInputCheckout");
+    const captureBtnCheckout = document.getElementById("captureBtnCheckout");
+    const checkOutModalEl = document.getElementById("checkOutModal");
+
+    if (checkOutModalEl) {
+        checkOutModalEl.addEventListener("hidden.bs.modal", resetCheckoutModal);
+    }
+
+    if (cameraLabelCheckout) {
+        cameraLabelCheckout.addEventListener("click", e => {
+            if (!isMobileDevice()) {
+                e.preventDefault();
+                startCheckoutCamera();
+            }
+        });
+    }
+
+    if (clearImageBtnCheckout) clearImageBtnCheckout.addEventListener("click", clearCheckoutImage);
+    if (imageInputCheckout) imageInputCheckout.addEventListener("change", handleCheckoutImagePreview);
+    if (captureBtnCheckout) captureBtnCheckout.addEventListener("click", captureCheckoutPhoto);
+}
+
+// Camera functions for checkout
+function startCheckoutCamera() {
+    const video = document.getElementById("cameraVideoCheckout");
+    const cameraWrapper = document.getElementById("cameraWrapperCheckout");
+    const modalContent = document.getElementById("checkOutModalContent");
+    const modalHeader = document.querySelector("#checkOutModal .modal-header");
+    const modalFooter = document.querySelector("#checkOutModal .modal-footer");
+    const modalBody = document.querySelector("#checkOutModal .modal-body");
+
+    if (checkoutStream) return;
+
+    modalContent?.classList.add("camera-active");
+    modalHeader?.classList.add("d-none");
+    modalFooter?.classList.add("d-none");
+    modalBody?.classList.add("d-none");
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then(mediaStream => {
+            checkoutStream = mediaStream;
+            video.srcObject = mediaStream;
+            video.onloadedmetadata = () => video.play();
+            cameraWrapper.classList.remove("d-none");
+        })
+        .catch(err => {
+            console.error("Cannot access camera:", err);
+            alert("Cannot access camera on this device.");
+        });
+}
+
+function captureCheckoutPhoto() {
+    const video = document.getElementById("cameraVideoCheckout");
+    const canvas = document.getElementById("cameraCanvasCheckout");
+    const cameraWrapper = document.getElementById("cameraWrapperCheckout");
+    const modalContent = document.getElementById("checkOutModalContent");
+    const modalHeader = document.querySelector("#checkOutModal .modal-header");
+    const modalFooter = document.querySelector("#checkOutModal .modal-footer");
+    const modalBody = document.querySelector("#checkOutModal .modal-body");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(blob => {
+        const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+        checkoutCapturedImage = file;
+
+        const reader = new FileReader();
+        reader.onload = e => showCheckoutImagePreview(e.target.result, file);
+        reader.readAsDataURL(blob);
+    }, "image/jpeg", 0.9);
+
+    cameraWrapper.classList.add("d-none");
+    modalHeader?.classList.remove("d-none");
+    modalFooter?.classList.remove("d-none");
+    modalBody?.classList.remove("d-none");
+    modalContent?.classList.remove("camera-active");
+
+    stopCheckoutCamera();
+}
+
+function showCheckoutImagePreview(src, file = null) {
+    const preview = document.getElementById("imagePreviewCheckout");
+    const previewImg = document.getElementById("previewImgCheckout");
+    const cameraLabel = document.querySelector(".camera-label[for='imageInputCheckout']");
+    const imageInput = document.getElementById("imageInputCheckout");
+    const video = document.getElementById("cameraVideoCheckout");
+    const captureBtn = document.getElementById("captureBtnCheckout");
+    const clearBtn = document.getElementById("clearImageBtnCheckout");
+
+    if (!preview || !previewImg) return;
+
+    previewImg.src = src;
+    preview.style.display = "block";
+
+    video.style.display = "none";
+    captureBtn.classList.add("d-none");
+    cameraLabel.style.display = "none";
+    clearBtn.classList.remove("d-none");
+
+    if (file && imageInput) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        imageInput.files = dt.files;
+    }
+}
+
+function clearCheckoutImage() {
+    const preview = document.getElementById("imagePreviewCheckout");
+    const previewImg = document.getElementById("previewImgCheckout");
+    const cameraLabel = document.querySelector(".camera-label[for='imageInputCheckout']");
+    const imageInput = document.getElementById("imageInputCheckout");
+    const video = document.getElementById("cameraVideoCheckout");
+    const captureBtn = document.getElementById("captureBtnCheckout");
+    const clearBtn = document.getElementById("clearImageBtnCheckout");
+    const modalContent = document.getElementById("checkOutModalContent");
+
+    previewImg.src = "";
+    preview.style.display = "none";
+    cameraLabel.style.display = "flex";
+    imageInput.value = "";
+    video.style.display = "block";
+    captureBtn.classList.remove("d-none");
+    clearBtn.classList.add("d-none");
+    modalContent?.classList.remove("camera-active");
+
+    stopCheckoutCamera();
+}
+
+function stopCheckoutCamera() {
+    if (checkoutStream) {
+        checkoutStream.getTracks().forEach(track => track.stop());
+        checkoutStream = null;
+    }
+}
+
+function handleCheckoutImagePreview(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => showCheckoutImagePreview(e.target.result, file);
+    reader.readAsDataURL(file);
+}
+
+function resetCheckoutModal() {
+    clearCheckoutImage();
+}
+
+// Updated submit check-out function
 function submitCheckOut() {
     const form = document.getElementById("checkOutForm");
+    if (!form) {
+        console.error("Check out form not found");
+        return;
+    }
+
+    // Get and validate all required fields first
+    const requiredFields = {
+        employeeId: document.querySelector('input[name="employee_id"]'),
+        dateAttendance: document.getElementById('date_attendance'),
+        timeOut: document.getElementById('time_out'),
+        typeAttendance: document.querySelector('input[name="type_attendance"]'),
+        isWorkOutside: document.getElementById('is_work_outside_checkout')
+    };
+
+    // Validate all required fields exist
+    for (const [key, element] of Object.entries(requiredFields)) {
+        if (!element || !element.value) {
+            console.error(`${key} is missing or empty`);
+            showFloatingAlert(`${key} is missing. Please refresh the page.`, "error");
+            return;
+        }
+    }
+
     const formData = new FormData(form);
+
+    // Add or update required fields
+    formData.set("employee_id", requiredFields.employeeId.value);
+    formData.set("date_attendance", requiredFields.dateAttendance.value);
+    formData.set("time_out", requiredFields.timeOut.value);
+    formData.set("type_attendance", "check_out");  // Ensure type_attendance is set correctly
+    formData.set("is_work_outside", requiredFields.isWorkOutside.value);
+    
+    // Add is_work_outside dari status check in sebelumnya
+    const isWorkOutsideValue = document.getElementById("is_work_outside_checkout").value;
+    formData.append("is_work_outside", isWorkOutsideValue);
+
+    // Add date dan time untuk checkout
+    const dateAttendance = document.getElementById("date_attendance").value;
+    const timeOut = document.getElementById("time_out").value;
+    
+    if (!dateAttendance || !timeOut) {
+        showFloatingAlert("Date and time are required. Please try again.", "error");
+        return;
+    }
+    
+    formData.append("date_attendance", dateAttendance);
+    formData.append("time_out", timeOut);
+
+    // Add latitude and longitude for check-out
+    const latitude = document.getElementById("latitudeCheckOut")?.value;
+    const longitude = document.getElementById("longitudeCheckOut")?.value;
+    
+    if (!latitude || !longitude) {
+        console.error("Location coordinates are missing");
+        showFloatingAlert("Could not get your location. Please refresh and try again.", "error");
+        return;
+    }
+    
+    formData.set("latitude", latitude);
+    formData.set("longitude", longitude);
+
+    // Add captured image if exists and if work outside
+    if (isWorkOutsideValue === "1") {
+        if (checkoutCapturedImage) {
+            formData.append("image", checkoutCapturedImage);
+        } else {
+            // Check if there's a file input
+            const imageInput = document.getElementById("imageInputCheckout");
+            if (imageInput && imageInput.files && imageInput.files[0]) {
+                formData.append("image", imageInput.files[0]);
+            }
+        }
+    }
+
+    // Add optional note if exists
+    const noteTextarea = document.querySelector('textarea[name="note"]');
+    if (noteTextarea && noteTextarea.value.trim()) {
+        formData.append("note", noteTextarea.value.trim());
+    }
 
     // Add CSRF token
     const csrfToken = document
         .querySelector('meta[name="csrf-token"]')
         ?.getAttribute("content");
+    if (!csrfToken) {
+        showFloatingAlert("CSRF token not found. Please refresh the page.", "error");
+        return;
+    }
     formData.append("_token", csrfToken);
 
     const url = `${baseUrl}/attendance/checkout`;
@@ -1020,6 +1469,10 @@ function submitCheckOut() {
                 );
                 if (modal) modal.hide();
 
+                // Reset form
+                form.reset();
+                resetCheckoutModal();
+
                 // Reload attendance data
                 setTimeout(() => {
                     location.reload();
@@ -1045,3 +1498,8 @@ function submitCheckOut() {
             submitCheckOutBtn.disabled = false;
         });
 }
+
+// Initialize checkout camera features on DOM ready
+document.addEventListener("DOMContentLoaded", function() {
+    initializeCheckoutCameraFeatures();
+});

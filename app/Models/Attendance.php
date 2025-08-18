@@ -41,6 +41,7 @@ class Attendance extends Model
         'time_out' => 'datetime:H:i',
         'time_late' => 'datetime:H:i',
         'is_work_outside' => 'boolean',
+        'image' => 'array',
     ];
 
     /**
@@ -49,6 +50,14 @@ class Attendance extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * Get the attendance trackings for this attendance.
+     */
+    public function attendanceTrackings()
+    {
+        return $this->hasMany(AttendanceTracking::class);
     }
 
     /**
