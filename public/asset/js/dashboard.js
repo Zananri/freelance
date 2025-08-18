@@ -4,201 +4,41 @@ const baseUrl = $('meta[name="app-url"]').attr("content");
 $(document).ready(function () {
     initializeAttendance();
     initializeCalendar();
-    getAttendanceToDay();
 
-    // === Restore status dari localStorage ===
-    if (localStorage.getItem("checkInDone") === "true") {
-        $("#checkInBtn .check-icon").show();
-        $("#checkInBtn").addClass("active");
-    } else {
-        $("#checkInBtn .check-icon").hide();
-        $("#checkInBtn").removeClass("active");
-    }
+    $(".btn-custom-check").on("click", function () {
+        let checkBtnActive = $(this).attr("data-check-active");
 
-    // === Sinkronisasi dengan backend (kalau sudah checkout hapus state) ===
-    fetch(`${baseUrl}/attendance/today/${$('input[name="employee_id"]').val()}`)
-        .then((res) => res.json())
-        .then((data) => {
-            if (data.status === "success" && data.data.length > 0) {
-                const last = data.data[data.data.length - 1];
+        if (checkBtnActive === "checkIn") {
+            openCheckInModal();
+        } else if (checkBtnActive === "checkOut") {
+            openCheckOutModal();
+        }
+    });
 
-                if (last.type_attendance === "check_out") {
-                    // Sudah checkout → reset CheckIn
-                    localStorage.removeItem("checkInDone");
-                    $("#checkInBtn .check-icon").hide();
-                    $("#checkInBtn").removeClass("active");
-
-                    // Set CheckOut jadi active + double check
-                    $("#checkOutBtn").addClass("active");
-                    $("#checkOutBtn .check-icon").remove();
-                    $("#checkOutBtn").prepend(
-                        '<span class="material-symbols-outlined check-icon">done_all</span>'
-                    );
-                }
-            }
-        });
-
-    // === Submit CheckIn ===
     const submitCheckInBtn = document.getElementById("submitCheckInBtn");
     if (submitCheckInBtn) {
         submitCheckInBtn.addEventListener("click", function () {
-            submitCheckIn().then((success) => {
-                if (success) {
-                    // Update UI setelah berhasil checkIn
-                    $("#checkInBtn .check-icon").show();
-                    $("#checkInBtn").addClass("active");
-                    localStorage.setItem("checkInDone", "true");
-                }
-            });
+            if (localStorage.getItem("checkInDone") === "true") {
+                $("#checkInBtn .check-icon").show();
+                $("#checkInBtn").addClass("active");
+            }
+
+            submitCheckIn();
         });
     }
 
-    // === Submit CheckOut ===
     const submitCheckOutBtn = document.getElementById("submitCheckOutBtn");
     if (submitCheckOutBtn) {
         submitCheckOutBtn.addEventListener("click", function () {
-            submitCheckOut().then((success) => {
-                if (success) {
-                    // Reset tombol CheckIn
-                    $("#checkInBtn .check-icon").hide();
-                    $("#checkInBtn").removeClass("active");
-                    localStorage.removeItem("checkInDone");
+            if (localStorage.getItem("checkOutDone") === "true") {
+                $("#checkOutBtn .done-all-icon").show();
+                $("#checkOutBtn").addClass("active");
+            }
 
-                    // Update tombol CheckOut jadi active + double check
-                    $("#checkOutBtn").addClass("active");
-                    $("#checkOutBtn .check-icon").remove();
-                    $("#checkOutBtn").prepend(
-                        '<span class="material-symbols-outlined check-icon">done_all</span>'
-                    );
-                }
-            });
+            submitCheckOut();
         });
     }
 });
-
-function initializeAttendance() {
-    // Set current date
-    const today = new Date();
-    const currentDateInput = document.getElementById("currentDate");
-    if (currentDateInput) {
-        currentDateInput.value = today.toISOString().split("T")[0];
-    }
-
-    // Update check in/out times if available
-    updateAttendanceStatus();
-}
-
-function updateAttendanceStatus() {
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
-
-    if (!employeeId) {
-        console.error("Employee ID not found");
-        return;
-    }
-
-    const today = new Date().toISOString().split("T")[0];
-    const urlToday = `${baseUrl}/attendance/today/${employeeId}`;
-    const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
-
-    // Fetch latest unclosed check-in (could be from previous day)
-    fetch(urlLatestUnclosed)
-        .then((response) => response.json())
-        .then((latestData) => {
-            // Fetch today's attendance data
-            fetch(urlToday)
-                .then((response) => response.json())
-                .then((todayData) => {
-                    const checkInBtn = document.getElementById("checkInBtn");
-                    const checkOutBtn = document.getElementById("checkOutBtn");
-
-                    if (!checkInBtn || !checkOutBtn) {
-                        console.error("Check buttons not found");
-                        return;
-                    }
-
-                    console.log("Latest unclosed attendance:", latestData);
-                    console.log("Today's attendance:", todayData);
-
-                    // Determine button state based on today's attendance first
-                    if (todayData.status === "success" && todayData.data) {
-                        const attendances = todayData.data;
-
-                        if (attendances.length > 0) {
-                            const lastAttendance = attendances[attendances.length - 1];
-
-                            if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
-                                // Last record is check-in without checkout, show checkout button
-                                checkInBtn.style.display = "flex";
-                                checkOutBtn.style.display = "flex";
-
-                                // Update hidden time fields
-                                const checkInTimeInput = document.getElementById("checkInTime");
-                                if (checkInTimeInput) {
-                                    checkInTimeInput.value = lastAttendance.time_in;
-                                }
-                                return;
-                            } else {
-                                // Last record is checkout or fully checked out, show check-in button
-                                checkInBtn.style.display = "flex";
-                                checkOutBtn.style.display = "flex";
-                                return;
-                            }
-                        } else {
-                            // No attendance today, show check-in button
-                            checkInBtn.style.display = "flex";
-                            checkOutBtn.style.display = "flex";
-                            return;
-                        }
-                    }
-
-                    // If no attendance today, check latest unclosed check-in from previous days
-                    if (latestData.status === "success" && latestData.data) {
-                        const latestAttendance = latestData.data;
-                        const latestDate = latestAttendance.date_attendance;
-
-                        if (latestDate < today) {
-                            checkInBtn.style.display = "flex";
-                            checkOutBtn.style.display = "flex";
-                            // Set hidden checkInTime to latest check-in time
-                            const checkInTimeInput = document.getElementById("checkInTime");
-                            if (checkInTimeInput) {
-                                checkInTimeInput.value = latestAttendance.time_in;
-                            }
-                            return;
-                        }
-                    }
-
-                    // Default fallback: show check-in button
-                    checkInBtn.style.display = "flex";
-                    checkOutBtn.style.display = "flex";
-                });
-        })
-        .catch((error) => {
-            console.error("Error fetching attendance data:", error);
-            // Fallback to showing check-in button
-            const checkInBtn = document.getElementById("checkInBtn");
-            const checkOutBtn = document.getElementById("checkOutBtn");
-
-            if (checkInBtn && checkOutBtn) {
-                checkInBtn.style.display = "flex";
-                checkOutBtn.style.display = "flex";
-            }
-        });
-}
-
-function getAttendanceToDay() {
-    let checkBtnActive = $(".btn-custom-check.active").attr(
-        "data-check-active"
-    );
-
-    if (checkBtnActive === "checkIn") {
-        openCheckInModal();
-    } else if (checkBtnActive === "checkOut") {
-        openCheckOutModal();
-    }
-}
 
 function openCheckInModal() {
     fetch(baseUrl + "/server-time")
@@ -276,52 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initializeCameraFeatures();
 });
-
-function calculateDuration24h(timeIn, timeOut) {
-    if (!timeIn || !timeOut) return "0h 0m";
-
-    const [inHour, inMin] = timeIn.split(":").map(Number);
-    const [outHour, outMin] = timeOut.split(":").map(Number);
-
-    let totalMinutes = outHour * 60 + outMin - (inHour * 60 + inMin);
-    if (totalMinutes < 0) totalMinutes += 24 * 60; // handle overnight
-
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    return `${hours}h ${minutes}m`;
-}
-
-function populateCheckoutModal(checkInRecord, serverTime) {
-    // Tampilkan status work outside
-    const workOutsideText = checkInRecord.is_work_outside ? "Yes" : "No";
-    document.getElementById("workOutsideStatusText").textContent =
-        workOutsideText;
-
-    // Tampilkan time in
-    document.getElementById("time_in_display").textContent =
-        checkInRecord.time_in || "Not available";
-
-    // Hitung durasi kerja dari time_in dan serverTime
-    if (checkInRecord.time_in) {
-        const totalDuration = calculateDuration24h(
-            checkInRecord.time_in,
-            serverTime
-        );
-        document.getElementById("total_work_duration").textContent =
-            totalDuration;
-    } else {
-        document.getElementById("total_work_duration").textContent = "0h 0m";
-    }
-
-    // Show/hide image section berdasarkan work outside
-    const imageSection = document.getElementById("imageUploadSection");
-    if (imageSection) {
-        imageSection.style.display = checkInRecord.is_work_outside
-            ? "block"
-            : "none";
-    }
-}
 
 function startCamera() {
     const video = document.getElementById("cameraVideo");
@@ -445,6 +239,85 @@ function clearImage() {
     stopCamera();
 }
 
+function showAlertDashboard(message, type = "success") {
+    const alertDiv = document.createElement("div");
+    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
+    alertDiv.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+    `;
+
+    let iconClass =
+        type === "success" ? "fa-check-circle" : "fa-exclamation-triangle";
+
+    alertDiv.innerHTML = `
+        <i class="fas ${iconClass} me-2"></i>
+        <div>${message}</div>
+    `;
+
+    document.body.appendChild(alertDiv);
+
+    setTimeout(() => {
+        alertDiv.style.opacity = "0";
+        setTimeout(() => alertDiv.remove(), 500);
+    }, 3000);
+}
+
+function resetCheckInModal() {
+    // Reset image preview
+    const preview = document.getElementById("imagePreview");
+    const previewImg = document.getElementById("previewImg");
+    const cameraLabel = document.querySelector(".camera-label");
+    const imageInput = document.getElementById("imageInput");
+    const video = document.getElementById("cameraVideo");
+    const captureBtn = document.getElementById("captureBtn");
+    const clearBtn = document.getElementById("clearImageBtn");
+
+    if (previewImg) previewImg.src = "";
+    if (preview) preview.style.display = "none";
+    if (cameraLabel) cameraLabel.style.display = "flex";
+    if (imageInput) imageInput.value = "";
+    if (video) video.style.display = "block";
+    if (captureBtn) captureBtn.classList.remove("d-none");
+    if (clearBtn) clearBtn.classList.add("d-none");
+
+    // Stop camera stream if still active
+    stopCamera();
+
+    // Reset radio button (optional)
+    const workOutsideYes = document.getElementById("work_outside_yes");
+    const workOutsideNo = document.getElementById("work_outside_no");
+    const imageUploadSection = document.getElementById("imageUploadSection");
+
+    if (workOutsideYes) {
+        workOutsideYes.addEventListener("change", () => {
+            if (imageUploadSection) imageUploadSection.style.display = "block";
+        });
+    }
+
+    if (workOutsideNo) {
+        workOutsideNo.addEventListener("change", () => {
+            if (imageUploadSection) imageUploadSection.style.display = "none";
+        });
+    }
+
+    // Clear hidden inputs
+    document
+        .querySelectorAll(
+            'input[name="date_attendance"], input[name="time_in"]'
+        )
+        .forEach((el) => el.remove());
+
+    // Reset date/time display
+    document.getElementById("date_attendance").textContent = "Loading...";
+    document.getElementById("time_in").textContent = "Loading...";
+}
+
 function submitCheckIn() {
     const form = document.getElementById("checkInForm");
     if (!form) return;
@@ -545,11 +418,9 @@ function submitCheckIn() {
                 // Update UI tanpa reload
                 $("#checkInBtn .check-icon").show();
                 $("#checkInBtn").addClass("active");
-                // $("#checkInBtn").prop("disabled", true);
-                // $("#checkOutBtn").prop("disabled", false);
 
-                // simpan di localStorage
-                localStorage.setItem("checkInDone", "true");
+                updateAttendanceStatus();
+                renderCalendar(currentMonth, currentYear);
 
                 const modal = bootstrap.Modal.getInstance(
                     document.getElementById("checkInModal")
@@ -573,31 +444,6 @@ function submitCheckIn() {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         });
-}
-
-function openCheckOutModal() {
-    fetch(baseUrl + "/server-time")
-        .then((response) => response.json())
-        .then((data) => {
-            const serverTime = data.time;
-            const serverDate = data.date;
-
-            // Update hidden input
-            document.getElementById("date_attendance").value = serverDate;
-            document.getElementById("time_out").value = serverTime;
-
-            // Update tampilan
-            document.getElementById("time_out_display").textContent =
-                serverTime;
-
-            // Load check-in data dan hitung durasi kerja
-            loadCheckInDataForCheckout(serverTime);
-        })
-        .catch((error) => console.error("Gagal ambil waktu server:", error));
-
-    // Tampilkan modal
-    const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
-    modal.show();
 }
 
 function loadCheckInDataForCheckout(serverTime) {
@@ -632,33 +478,172 @@ function loadCheckInDataForCheckout(serverTime) {
         .catch(() => setCheckoutModalDefaults());
 }
 
-function showFloatingAlert(message, type = "success") {
-    const alertDiv = document.createElement("div");
-    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
-    alertDiv.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        opacity: 1;
-        transition: opacity 0.5s ease;
-    `;
+function openCheckOutModal() {
+    fetch(baseUrl + "/server-time")
+        .then((response) => response.json())
+        .then((data) => {
+            const serverTime = data.time;
+            const serverDate = data.date;
 
-    let iconClass =
-        type === "success" ? "fa-check-circle" : "fa-exclamation-triangle";
+            // Update hidden input
+            document.getElementById("date_attendance").value = serverDate;
+            document.getElementById("time_out").value = serverTime;
 
-    alertDiv.innerHTML = `
-        <i class="fas ${iconClass} me-2"></i>
-        <div>${message}</div>
-    `;
+            // Update tampilan
+            document.getElementById("time_out_display").textContent =
+                serverTime;
 
-    document.body.appendChild(alertDiv);
+            // Load check-in data dan hitung durasi kerja
+            loadCheckInDataForCheckout(serverTime);
+        })
+        .catch((error) => console.error("Gagal ambil waktu server:", error));
 
-    setTimeout(() => {
-        alertDiv.style.opacity = "0";
-        setTimeout(() => alertDiv.remove(), 500);
-    }, 3000);
+    // Tampilkan modal
+    const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
+    modal.show();
+}
+
+function initializeAttendance() {
+    // Set current date
+    const today = new Date();
+    const currentDateInput = document.getElementById("currentDate");
+    if (currentDateInput) {
+        currentDateInput.value = today.toISOString().split("T")[0];
+    }
+
+    // Update check in/out times if available
+    updateAttendanceStatus();
+}
+
+function updateAttendanceStatus() {
+    const employeeId = document.querySelector(
+        'input[name="employee_id"]'
+    )?.value;
+
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const urlToday = `${baseUrl}/attendance/today/${employeeId}`;
+    const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
+
+    // Fetch latest unclosed check-in (could be from previous day)
+    fetch(urlLatestUnclosed)
+        .then((response) => response.json())
+        .then((latestData) => {
+            // Fetch today's attendance data
+            fetch(urlToday)
+                .then((response) => response.json())
+                .then((todayData) => {
+                    const checkInBtn = document.getElementById("checkInBtn");
+                    const checkOutBtn = document.getElementById("checkOutBtn");
+
+                    if (!checkInBtn || !checkOutBtn) {
+                        console.error("Check buttons not found");
+                        return;
+                    }
+
+                    console.log("Latest unclosed attendance:", latestData);
+                    console.log("Today's attendance:", todayData);
+
+                    // Determine button state based on today's attendance first
+                    if (todayData.status === "success" && todayData.data) {
+                        const attendances = todayData.data;
+
+                        if (attendances.length > 0) {
+                            const lastAttendance =
+                                attendances[attendances.length - 1];
+
+                            if (
+                                lastAttendance.type_attendance === "check_in" &&
+                                !lastAttendance.time_out
+                            ) {
+                                // Last record is check-in without checkout, show checkout button
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "flex";
+
+                                // Update hidden time fields
+                                const checkInTimeInput =
+                                    document.getElementById("checkInTime");
+                                if (checkInTimeInput) {
+                                    checkInTimeInput.value =
+                                        lastAttendance.time_in;
+                                }
+                                return;
+                            } else {
+                                // Last record is checkout or fully checked out, show check-in button
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "flex";
+                                return;
+                            }
+                        } else {
+                            // No attendance today, show check-in button
+                            checkInBtn.style.display = "flex";
+                            checkOutBtn.style.display = "flex";
+                            return;
+                        }
+                    }
+
+                    // If no attendance today, check latest unclosed check-in from previous days
+                    if (latestData.status === "success" && latestData.data) {
+                        const latestAttendance = latestData.data;
+                        const latestDate = latestAttendance.date_attendance;
+
+                        if (latestDate < today) {
+                            checkInBtn.style.display = "flex";
+                            checkOutBtn.style.display = "flex";
+                            // Set hidden checkInTime to latest check-in time
+                            const checkInTimeInput =
+                                document.getElementById("checkInTime");
+                            if (checkInTimeInput) {
+                                checkInTimeInput.value =
+                                    latestAttendance.time_in;
+                            }
+                            return;
+                        }
+                    }
+
+                    // Default fallback: show check-in button
+                    checkInBtn.style.display = "flex";
+                    checkOutBtn.style.display = "flex";
+                });
+        })
+        .catch((error) => {
+            console.error("Error fetching attendance data:", error);
+            // Fallback to showing check-in button
+            const checkInBtn = document.getElementById("checkInBtn");
+            const checkOutBtn = document.getElementById("checkOutBtn");
+
+            if (checkInBtn && checkOutBtn) {
+                checkInBtn.style.display = "flex";
+                checkOutBtn.style.display = "flex";
+            }
+        });
+}
+
+function populateCheckoutModal(checkInRecord, serverTime) {
+    // Tampilkan status work outside
+    const workOutsideText = checkInRecord.is_work_outside ? "Yes" : "No";
+    document.getElementById("workOutsideStatusText").textContent = workOutsideText;
+
+    // Tampilkan time in
+    document.getElementById("time_in_display").textContent = checkInRecord.time_in || "Not available";
+
+    // Hitung durasi kerja dari time_in dan serverTime
+    if (checkInRecord.time_in) {
+        const totalDuration = calculateDuration24h(checkInRecord.time_in, serverTime);
+        document.getElementById("total_work_duration").textContent = totalDuration;
+    } else {
+        document.getElementById("total_work_duration").textContent = "0h 0m";
+    }
+
+    // Show/hide image section berdasarkan work outside
+    const imageSection = document.getElementById("imageUploadSection");
+    if (imageSection) {
+        imageSection.style.display = checkInRecord.is_work_outside ? "block" : "none";
+    }
 }
 
 function setCheckoutModalDefaults() {
@@ -669,6 +654,76 @@ function setCheckoutModalDefaults() {
 
     const imageSection = document.getElementById("imageUploadSection");
     if (imageSection) imageSection.style.display = "none";
+}
+
+function submitCheckOut() {
+    const form = document.getElementById("checkOutForm");
+    const formData = new FormData(form);
+
+    // Add CSRF token
+    const csrfToken = document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content");
+    formData.append("_token", csrfToken);
+
+    const url = `${baseUrl}/attendance/checkout`;
+
+    // Show loading state
+    const submitCheckOutBtn = document.getElementById("submitCheckOutBtn");
+    const originalText = submitCheckOutBtn.innerHTML;
+    submitCheckOutBtn.innerHTML =
+        '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    submitCheckOutBtn.disabled = true;
+
+    fetch(url, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRF-TOKEN": csrfToken,
+            Accept: "application/json",
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.status === "success") {
+                showAlertDashboard(
+                    data.message || "Check-out submitted successfully!",
+                    "success"
+                );
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(
+                    document.getElementById("checkOutModal")
+                );
+                if (modal) modal.hide();
+
+                // Update UI tanpa reload
+                updateAttendanceStatus();
+                renderCalendar(currentMonth, currentYear);
+
+                $("#checkOutBtn .done-all-icon").show();
+                $("#checkOutBtn").addClass("active");
+            } else {
+                showAlertDashboard(
+                    data.message || "Error submitting check-out",
+                    "error"
+                );
+                console.error("Server error:", data);
+            }
+        })
+        .catch((error) => {
+            console.error("Network error:", error);
+            showAlertDashboard(
+                error.message || "Network error. Please check your connection.",
+                "error"
+            );
+        })
+        .finally(() => {
+            // Reset button state
+            submitCheckOutBtn.innerHTML = originalText;
+            submitCheckOutBtn.disabled = false;
+        });
 }
 
 $(".btn-tab-task").on("click", function () {
@@ -904,6 +959,48 @@ function renderCalendar(month, year) {
         });
 }
 
+// calendar mobile toggle
+$(document).ready(function () {
+    $(".toggle-calendar").on("click", function () {
+        let $calendar = $(".calendar-card-mobile");
+        $(".calendar-toggle-btn").addClass("active");
+
+        if ($calendar.is(":visible")) {
+            // keluar animasi slide out
+            $calendar.removeClass("animate-in").addClass("animate-out");
+
+            // setelah animasi selesai, sembunyikan
+            setTimeout(() => {
+                $calendar.hide();
+            }, 400);
+        } else {
+            // sebelum show reset posisi
+            $calendar.show().removeClass("animate-out").addClass("animate-in");
+        }
+    });
+});
+
+// timline mobile toggle
+$(document).ready(function () {
+    $(".toggle-timeline").on("click", function () {
+        let $timeline = $(".timeline-card-mobile");
+        $(".timeline-toggle-btn").addClass("active");
+
+        if ($timeline.is(":visible")) {
+            // keluar animasi slide out
+            $timeline.removeClass("animate-in").addClass("animate-out");
+
+            // setelah animasi selesai, sembunyikan
+            setTimeout(() => {
+                $timeline.hide();
+            }, 400);
+        } else {
+            // sebelum show reset posisi
+            $timeline.show().removeClass("animate-out").addClass("animate-in");
+        }
+    });
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     function updateClock() {
         const now = new Date();
@@ -958,45 +1055,79 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Doughnut Chart Porject
 document.addEventListener("DOMContentLoaded", function () {
-    const ctx = document.getElementById("doughnutChart");
-    if (!ctx) return;
-
-    new Chart(ctx, {
-        type: "doughnut",
-        data: {
-            labels: ["Total", "Complete", "On Progress", "Late"],
-            datasets: [
-                {
-                    data: [3, 5, 2],
-                    backgroundColor: ["#b6e7c9", "#8fb3e8", "#ff9c9c"],
-                    borderWidth: 0,
-                },
-            ],
-        },
-        options: {
-            cutout: "60%", // Size middle hole
-            plugins: {
-                legend: { display: false },
+    const createDoughnut = (el) =>
+        new Chart(el, {
+            type: "doughnut",
+            data: {
+                labels: ["Total", "Complete", "On Progress", "Late"],
+                datasets: [
+                    {
+                        data: [3, 5, 2],
+                        backgroundColor: ["#b6e7c9", "#8fb3e8", "#ff9c9c"],
+                        borderWidth: 0,
+                    },
+                ],
             },
-        },
-    });
+            options: { cutout: "60%", plugins: { legend: { display: false } } },
+        });
+
+    const ctxDesktop = document.getElementById("doughnutChart");
+    if (ctxDesktop) createDoughnut(ctxDesktop);
+
+    const ctxMobile = document.getElementById("doughnutChartMobile");
+    if (ctxMobile) createDoughnut(ctxMobile);
 });
 
-function renderTimeline() {
-    $("#timelineTitle").text(`${months[currentMonth]} week ${currentWeek + 1}`);
-    const $timelineRows = $("#timelineRows");
+// State untuk timeline
+let currentMonthProject = new Date().getMonth(); // 0 - 11
+let currentWeekProject = 0; // 0-3
+const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+];
+
+// Dummy data project (ubah sesuai backend lu)
+const timelineData = [
+    { name: "Name Project", start: 0, end: 3, color: "color1" },
+    { name: "Name Project", start: 1, end: 4, color: "color2" },
+    { name: "Name Project", start: 2, end: 6, color: "color3" },
+    { name: "Name Project", start: 0, end: 6, color: "color4" },
+];
+
+// Fungsi render timeline
+function renderTimeline(
+    targetRows = "#timelineRows",
+    targetTitle = "#timelineTitle"
+) {
+    $(targetTitle).text(
+        `${months[currentMonthProject]} week ${currentWeekProject + 1}`
+    );
+
+    const $timelineRows = $(targetRows);
     $timelineRows.empty();
 
-    $.each(timelineData, function(idx, proj) {
-        // Satu row per project
-        const $row = $("<div>").addClass("timeline-row d-flex").css("position", "relative");
+    $.each(timelineData, function (_, proj) {
+        const $row = $("<div>")
+            .addClass("timeline-row d-flex")
+            .css("position", "relative");
 
-        // Buat 7 cell kosong untuk grid
+        // bikin 7 kolom (hari Senin–Minggu)
         for (let i = 0; i < 7; i++) {
-            $row.append($("<div>").addClass("timeline-cell"));
+            $row.append(
+                $("<div>").addClass("timeline-cell").css("position", "relative")
+            );
         }
 
-        // Bar absolute di parent row, mulai dari hari start
         const barLeft = proj.start * (100 / 7);
         const barWidth = (proj.end - proj.start + 1) * (100 / 7);
 
@@ -1008,10 +1139,127 @@ function renderTimeline() {
                 position: "absolute",
                 top: "50%",
                 transform: "translateY(-50%)",
+                border: "none",
             })
-            .html(`<span class="circle ${proj.color}"></span>${proj.name}`);
+            .html(
+                `<span class="circle border-0 ${proj.color}"></span>${proj.name}`
+            );
 
         $row.append($bar);
         $timelineRows.append($row);
     });
 }
+
+$(document).ready(function () {
+    // render pertama kali
+    if ($("#timelineRows").length) {
+        renderTimeline("#timelineRows", "#timelineTitle");
+    }
+
+    // event prev
+    $("#prevTimeline").on("click", function () {
+        if (currentWeekProject > 0) {
+            currentWeekProject--;
+        } else if (currentMonthProject > 0) {
+            currentMonthProject--;
+            currentWeekProject = 3;
+        }
+        renderTimeline("#timelineRows", "#timelineTitle");
+    });
+
+    // event next
+    $("#nextTimeline").on("click", function () {
+        if (currentWeekProject < 3) {
+            currentWeekProject++;
+        } else if (currentMonthProject < 11) {
+            currentMonthProject++;
+            currentWeekProject = 0;
+        }
+        renderTimeline("#timelineRows", "#timelineTitle");
+    });
+});
+
+// Initialize Swiper for mobile task display
+function initializeTaskSwiper() {
+    // Check if we're on mobile (width <= 768px)
+    const isMobile = window.innerWidth <= 768;
+
+    if (isMobile) {
+        // Initialize Swiper if not already initialized
+        if (!window.taskSwiper) {
+            window.taskSwiper = new Swiper(".task-swiper", {
+                slidesPerView: 1,
+                spaceBetween: 5,
+                centeredSlides: true,
+                pagination: {
+                    el: ".swiper-pagination",
+                    clickable: true,
+                },
+                loop: true,
+                grabCursor: false,
+                effect: "slide",
+                speed: 300,
+                breakpoints: {
+                    320: {
+                        slidesPerView: 1,
+                        spaceBetween: 10,
+                    },
+                    480: {
+                        slidesPerView: 1,
+                        spaceBetween: 15,
+                    },
+                    640: {
+                        slidesPerView: 1,
+                        spaceBetween: 20,
+                    },
+                },
+            });
+        }
+    } else {
+        // Destroy Swiper if it exists and we're on desktop
+        if (window.taskSwiper) {
+            window.taskSwiper.destroy();
+            window.taskSwiper = null;
+        }
+    }
+}
+
+$(document).ready(function () {
+    initializeTaskSwiper();
+    $(window).on("resize", function () {
+        handleResize();
+    });
+});
+
+$(document).ready(function () {
+    // existing code...
+    initializeTaskSwiper();
+
+    // render default timeline untuk desktop
+    if ($("#timelineRows").length) {
+        renderTimeline("#timelineRows", "#timelineTitle");
+    }
+});
+
+$(document).on("click", ".toggle-timeline", function () {
+    const $timelineCard = $(this)
+        .closest(".project-card")
+        .find(".timeline-card");
+
+    $timelineCard.slideToggle();
+
+    if ($timelineCard.is(":visible")) {
+        renderTimeline("#timelineRows", "#timelineTitle");
+    }
+});
+
+// Handle window resize for responsive behavior
+function handleResize() {
+    initializeTaskSwiper();
+}
+
+// Initialize on document ready and window resize
+$(document).ready(function () {
+    initializeTaskSwiper();
+    $(window).on("resize", handleResize);
+});

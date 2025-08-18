@@ -5,27 +5,35 @@
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/dashboard.css') }}" rel="stylesheet">
         <link href="{{ asset('asset/css/calendar-dashboard.css') }}" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     </x-slot>
 
     <div class="title-content">
         <h2>Dashboard</h2>
     </div>
 
-    <div class="dashboard-container">
+    <div class="dashboard-container justify-content-center align-items-center">
         <div class="row">
             {{-- KIRI --}}
             <div class="col-md-8 d-flex flex-column">
                 <div class="row flex-grow-1" style="flex: 1;">
                     {{-- Profile --}}
                     <div class="col-md-6 my-3">
-                        <div class="rounded-4 p-4 px-5 body-content h-100">
+                        <div class="rounded-4 p-4 body-card h-100">
+                            <div class="d-flex justify-content-end align-items-center">
+                                <button class="btn btn-sm toggle-calendar calendar-toggle-btn">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size: 18px;">calendar_month</span>
+                                </button>
+                            </div>
+
                             <div class="profile-image-container">
                                 <img class="profile-image" src="{{ $photo }}" alt="User Profile">
                             </div>
                             <div class="profile-text mt-2">
                                 <p class="user-name fw-light text-secondary">
                                     {{ $employee ? $employee->name : 'User Name :' }}</p>
-                                <div id="clock" class="digital-clock fw-bold fw-700"></div>
+                                <div id="clock" class="digital-clock fw-bold fw-700 my-3"></div>
                                 <div id="date" class="digital-date mb-4 fw-light text-secondary"></div>
                             </div>
                             <div class="attendance-actions mt-2 w-100 d-flex justify-content-evenly">
@@ -34,45 +42,46 @@
                                         style="display: none;">check</span>Check
                                     In</button>
                                 <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut"
-                                    id="checkOutBtn">Check
+                                    id="checkOutBtn"><span class="material-symbols-outlined done-all-icon" style="display: none;">done_all</span>Check
                                     Out</button>
                             </div>
-                            <div class="justify-content-start mt-4">
-                                <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center" style="font-size: 12px;">
-                                <p class="mb-0 flex-grow-1">Check In</p>
-                                <div class="d-flex align-items-center">
-                                    <div class="time_out">
-                                        <span id="time_in_display"></span>
-                                    </div>
-                                    <button class="btn p-0 ms-1"
-                                        style="line-height: 1; background: none; border: none;">
-                                        <span class="material-symbols-outlined text-secondary"
-                                            style="font-size: 16px;">chevron_right</span>
-                                    </button>
+                            <div class="mx-3">
+                                <div class="justify-content-start mt-3">
+                                    <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
                                 </div>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center" style="font-size: 12px;">
-                                <p class="mb-0 flex-grow-1">Check Out</p>
-                                <div class="d-flex align-items-center">
-                                    <div class="time_in">
-                                        <span id="time_in_display"></span>
+                                <div class="d-flex justify-content-between align-items-center my-2"
+                                    style="font-size: 12px;">
+                                    <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
+                                    <div class="d-flex align-items-center">
+                                        <div class="time_in">
+                                            <span id="time_in_display"></span>
+                                        </div>
+                                        <button class="btn p-0 ms-1" style="line-height: 1; background-color: #EBECF4;">
+                                            <span class="material-symbols-outlined rounded-1"
+                                                style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
+                                        </button>
                                     </div>
-                                    <button class="btn p-0 ms-1"
-                                        style="line-height: 1; background: none; border: none;">
-                                        <span class="material-symbols-outlined text-secondary"
-                                            style="font-size: 16px;">chevron_right</span>
-                                    </button>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center" style="font-size: 12px;">
+                                    <p class="mb-0 flex-grow-1" style="color: #757575;">Check Out</p>
+                                    <div class="d-flex align-items-center">
+                                        <div class="time_out">
+                                            <span id="time_out_display"></span>
+                                        </div>
+                                        <button class="btn p-0 ms-1" style="line-height: 1; background-color: #EBECF4;">
+                                            <span class="material-symbols-outlined rounded-1"
+                                                style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {{-- Calendar --}}
-                    <div class="col-md-6 my-3">
-                        <div class="rounded-4 body-content calendar-container h-100">
+                    <div class="col-md-6 my-3 calendar-card-mobile">
+                        <div class="rounded-4 body-card calendar-container h-100">
                             <div class="calendar-header">
                                 <button class="btn btn-sm" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
                                 <h4 id="currentMonthYear">July 2024</h4>
@@ -94,57 +103,70 @@
                 </div>
 
                 {{-- Project Card --}}
-                <div class="col-12 card-fill">
-                    <div class="rounded-4 p-4 body-content">
-                        <div class="row g-3 align-items-stretch">
-                            <!-- Grafik Doughnut -->
-                            <div class="col-md-6 col-12 mb-3">
-                                <h1 style="font-size: 24px; font-weight: normal;">Project</h1>
-                                <canvas id="doughnutChart"></canvas>
-                                <div class="chart-labels d-flex justify-content-between mt-3">
-                                    <div class="text-center">
-                                        <span style="font-weight: bold; color: #222;">10</span><br>
-                                        <span style="color: #888;">Total</span>
+                <div class="row" style="flex: 1;">
+                    <div class="col-12 card-fill">
+                        <div class="rounded-4 p-4 body-card">
+                            <div class="project-card row g-3 align-items-stretch">
+                                <!-- Grafik Doughnut -->
+                                <h5 class="mb-0" style="font-size: 24px">Project</h5>
+                                <div class="col-md-6 col-12 mb-3">
+                                    <div
+                                        class="project-card-header d-flex justify-content-between align-items-center mb-3">
+                                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+                                            <span class="material-symbols-outlined"
+                                                style="font-size: 18px;">calendar_month</span>
+                                        </button>
                                     </div>
-                                    <div class="text-center">
-                                        <span style="font-weight: bold; color: #4fc97a;">3</span><br>
-                                        <span style="color: #888;">Complete</span>
+                                    <div class="chart-container">
+                                        <canvas id="doughnutChart"></canvas>
                                     </div>
-                                    <div class="text-center">
-                                        <span style="font-weight: bold; color: #5a9be6;">5</span><br>
-                                        <span style="color: #888;">On Progress</span>
-                                    </div>
-                                    <div class="text-center">
-                                        <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
-                                        <span style="color: #888;">Late</span>
+                                    <div class="chart-labels d-flex justify-content-between align-items-center mt-3">
+                                        <div class="text-center">
+                                            <span style="font-weight: bold; color: #222;">10</span><br>
+                                            <span style="color: #888;">Total</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <span style="font-weight: bold; color: #4fc97a;">3</span><br>
+                                            <span style="color: #888;">Complete</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <span style="font-weight: bold; color: #5a9be6;">5</span><br>
+                                            <span style="color: #888;">On Progress</span>
+                                        </div>
+                                        <div class="text-center">
+                                            <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
+                                            <span style="color: #888;">Late</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- Project Timeline -->
-                            <div class="col-md-6 col-12 mb-3">
-                                <div class="project-timeline-card h-100">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 id="timelineTitle" class="fw-normal">Aug week 1</h5>
-                                        <div>
-                                            <button class="btn btn-sm btn-light me-2" id="prevTimeline">
-                                                <span class="material-symbols-outlined">chevron_left</span>
-                                            </button>
-                                            <button class="btn btn-sm btn-light" id="nextTimeline">
-                                                <span class="material-symbols-outlined">chevron_right</span>
-                                            </button>
+
+                                <!-- Project Timeline -->
+                                <div class="col-md-6 col-12 mb-3 timeline-card-mobile">
+                                    <div class="project-timeline-card h-100">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px">Aug
+                                                week 1</h5>
+                                            <div>
+                                                <button class="btn btn-sm me-2" id="prevTimeline">
+                                                    <span class="material-symbols-outlined">chevron_left</span>
+                                                </button>
+                                                <button class="btn btn-sm" style="color: " id="nextTimeline">
+                                                    <span class="material-symbols-outlined">chevron_right</span>
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="timeline-table">
-                                        <div class="timeline-header d-flex">
-                                            <div class="timeline-cell fw-bold">Mo</div>
-                                            <div class="timeline-cell fw-bold">Tu</div>
-                                            <div class="timeline-cell fw-bold">We</div>
-                                            <div class="timeline-cell fw-bold">Th</div>
-                                            <div class="timeline-cell fw-bold">Fr</div>
-                                            <div class="timeline-cell fw-bold">Sa</div>
-                                            <div class="timeline-cell fw-bold">Su</div>
+                                        <div class="timeline-table justify-content-center align-items-center">
+                                            <div class="timeline-header d-flex">
+                                                <div class="timeline-cell fw-bold">Mo</div>
+                                                <div class="timeline-cell fw-bold">Tu</div>
+                                                <div class="timeline-cell fw-bold">We</div>
+                                                <div class="timeline-cell fw-bold">Th</div>
+                                                <div class="timeline-cell fw-bold">Fr</div>
+                                                <div class="timeline-cell fw-bold">Sa</div>
+                                                <div class="timeline-cell fw-bold">Su</div>
+                                            </div>
+                                            <div id="timelineRows"></div>
                                         </div>
-                                        <div id="timelineRows"></div>
                                     </div>
                                 </div>
                             </div>
@@ -155,9 +177,9 @@
 
             {{-- Task Group --}}
             <div class="col-md-4 my-3">
-                <div class="rounded-4 p-4 body-content d-flex flex-column">
+                <div class="rounded-4 p-4 body-card d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="fw-normal">My Task</h5>
+                        <h5 class="fw-normal" style="color: #454545">My Task</h5>
                         <button class="btn btn-link p-0">
                             <span class="material-symbols-outlined text-secondary">chevron_right</span>
                         </button>
@@ -171,15 +193,15 @@
                             data-tab-active="tomorrow">Tomorrow</button>
                     </div>
 
-                    <!-- Task List -->
-                    <div class="task-list flex-grow-1 overflow-auto">
+                    <!-- Task List - Desktop View -->
+                    <div class="task-list-desktop flex-grow-1 overflow-auto">
                         {{-- Task Content --}}
-                        <div class="task-card p-3 mb-3 rounded" style="background: #FFFAE6;">
+                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
                             <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-2">
+                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
                                 <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
                             </div>
-                            <p class="mb-2 small text-secondary">
+                            <p class="mb-2 small" style="font-size: 10px;">
                                 Description It is a long established fact that a reader will be distracted by the
                                 readable
                                 content...
@@ -187,78 +209,20 @@
                             <div class="d-flex justify-content-between align-items-center small mt-3"
                                 style="font-size: 10px;">
                                 <div>
-                                    <span class="text-danger">Priority:</span><span class="mx-2">High</span>
-                                    <span class="text-secondary">Deadline:</span><span class="mx-2">17 Aug
+                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
+                                        style="color: #E14F4F">High</span>
+                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
+                                        style="color: #454545">17 Aug
                                         2025</span>
                                 </div>
                                 <div class="d-flex">
                                     <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
                                         <span class="material-symbols-outlined"
-                                            style="font-size: 14px;">attach_file</span>
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                     <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
                                         <span class="material-symbols-outlined"
-                                            style="font-size: 14px;">mode_comment</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="task-card p-3 mb-3 rounded" style="background-color: #F1F7FF;">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-2">
-                                <h6 class="mb-0">Lorem Ipsum is simply dummy</h6>
-                            </div>
-                            <p class="mb-2 small text-secondary">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
-                            </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span class="text-danger">Priority:</span><span class="mx-2">High</span>
-                                    <span class="text-secondary">Deadline:</span><span class="mx-2">17 Aug
-                                        2025</span>
-                                </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px;">attach_file</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px;">mode_comment</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="task-card p-3 mb-3 rounded" style="background-color: #EDFFFA;">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-2">
-                                <h6 class="mb-0">Lorem Ipsum is simply dummy</h6>
-                            </div>
-                            <p class="mb-2 small text-secondary">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
-                            </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span class="text-danger">Priority:</span><span class="mx-2">High</span>
-                                    <span class="text-secondary">Deadline:</span><span class="mx-2">17 Aug
-                                        2025</span>
-                                </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px;">attach_file</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px;">mode_comment</span>
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
                                 </div>
                             </div>
@@ -266,7 +230,6 @@
                     </div>
                 </div>
             </div>
-
 
             {{-- Modal for checkin --}}
             <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel"
@@ -452,7 +415,15 @@
     </div>
 
     <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/dashboard.js') }}"></script>
+
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+        <script src="{{ asset('asset/js/dashboard.js') }}"></script>
+        <script src="{{ asset('asset/js/dashboard_attendance.js') }}"></script>
+        <script src="{{ asset('asset/js/dashboard_callendar.js') }}"></script>
+        <script src="{{ asset('asset/js/dashboard_task.js') }}"></script>
+        <script src="{{ asset('asset/js/dashboard_project.js') }}"></script>
+
     </x-slot>
 </x-office-layout>
