@@ -216,6 +216,29 @@ function openCheckInModal() {
       if (workOutsideNo) workOutsideNo.checked = true;
       if (imageUploadSection) imageUploadSection.style.display = "none";
 
+      // Get current location and zoom map
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          const { latitude, longitude } = position.coords;
+
+          // Pastikan map sudah diinisialisasi
+          if (window.mapCheckIn && window.mapCheckIn.setView) {
+            window.mapCheckIn.setView([latitude, longitude], 18); // Zoom level 18 for close view
+            // Clear existing markers
+            window.mapCheckIn.eachLayer(function (layer) {
+              if (layer instanceof L.Marker) {
+                window.mapCheckIn.removeLayer(layer);
+              }
+            });
+            L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+            document.getElementById('latitudeCheckIn').value = latitude;
+            document.getElementById('longitudeCheckIn').value = longitude;
+          }
+        }, function (error) {
+          console.error('Error getting location:', error);
+        });
+      }
+
       const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
       modal.show();
     })
@@ -967,6 +990,29 @@ function openCheckOutModal() {
 
             // Load check-in data dan hitung durasi kerja
             loadCheckInDataForCheckout(serverTime);
+
+            // Get current location and zoom map
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                  const { latitude, longitude } = position.coords;
+
+                  // Pastikan map sudah diinisialisasi
+                  if (window.mapCheckOut && window.mapCheckOut.setView) {
+                    window.mapCheckOut.setView([latitude, longitude], 18); // Zoom level 18 for close view
+                    // Clear existing markers
+                    window.mapCheckOut.eachLayer(function (layer) {
+                      if (layer instanceof L.Marker) {
+                        window.mapCheckOut.removeLayer(layer);
+                      }
+                    });
+                    L.marker([latitude, longitude]).addTo(window.mapCheckOut);
+                    document.getElementById('latitudeCheckOut').value = latitude;
+                    document.getElementById('longitudeCheckOut').value = longitude;
+                  }
+                }, function (error) {
+                  console.error('Error getting location:', error);
+                });
+            }
         })
         .catch(error => {
             console.error('Gagal ambil waktu server:', error);
