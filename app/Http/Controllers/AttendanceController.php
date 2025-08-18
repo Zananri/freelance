@@ -120,13 +120,23 @@ class AttendanceController extends Controller
             $now = Carbon::now();
             $dateTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_in']);
 
-            // Handle image upload
-            $imagePath = null;
-            if ($request->hasFile('image')) {
-                $image = $request->file('image');
-                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
-                $imagePath = $image->storeAs('attendance', $imageName, 'public');
-            }
+            // Ensure image is initialized as an array
+          $imageArray = [];
+
+if ($request->hasFile('image')) {
+    $image = $request->file('image');
+    $imageName = 'ATTENDANCE_' . time() . '.' . $image->getClientOriginalExtension();
+
+    // Tentukan path tujuan
+    $destinationPath = public_path('file/attendance');
+
+    // Pindahkan file ke folder tujuan
+    $image->move($destinationPath, $imageName);
+
+    // Simpan path relatif ke array
+    $imageArray[] = 'file/attendance/' . $imageName;
+}
+
 
             // Get employee shift for late calculation
             $employeeShift = EmployeeShift::where('employee_id', $validated['employee_id'])
@@ -157,7 +167,7 @@ class AttendanceController extends Controller
                 'time_in' => $validated['time_in'],
                 'type_attendance' => $validated['type_attendance'],
                 'note' => $validated['note'] ?? null,
-                'image' => $imagePath,
+                'image' => $imageArray,
                 'time_late' => $timeLate,
                 'created_by' => $userId,
                 'updated_by' => $userId,
@@ -170,7 +180,7 @@ class AttendanceController extends Controller
                 'type' => $validated['type_attendance'],
                 'location' => null, // Set null dulu sesuai permintaan
                 'device' => null,   // Set null dulu sesuai permintaan
-                'image' => $imagePath, // Simpan juga di attendance_trackings
+                'image' => $imageArray, // Simpan juga di attendance_trackings
                 'date_time' => $dateTime,
                 'created_by' => $userId,
                 'updated_by' => $userId,

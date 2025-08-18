@@ -145,12 +145,15 @@
               </label>
 
               <!-- Input file untuk mobile -->
-              <input type="file" class="form-control d-none" id="imageInput" name="image"
+              <input type="file" class="form-control d-none" id="imageInput" name="image[]"
                 accept="image/*" capture="environment">
 
-              <!-- Hidden existing image URL -->
-              <input type="hidden" id="existingImageUrl" name="existingImageUrl"
-                value="{{ $attendance && $attendance->image ? asset($attendance->image) : '' }}">
+              <!-- Hidden existing image URLs -->
+              @if ($attendance && $attendance->image)
+                  @foreach ($attendance->image as $image)
+                      <input type="hidden" name="existingImageUrls[]" value="{{ asset($image) }}">
+                  @endforeach
+              @endif
 
               <!-- Image preview -->
               <div id="imagePreview" class="image-preview mt-2" style="display:none;">
@@ -254,7 +257,7 @@
                                     </div>
                                     <span>Take Photo</span>
                                 </label>
-                                <input type="file" class="form-control d-none" id="imageInput" name="image"
+                                <input type="file" class="form-control d-none" id="imageInput" name="image[]"
                                     accept="image/*" capture="user">
                                 <div id="imagePreview" class="image-preview mt-2" style="display: none;">
                                     <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">

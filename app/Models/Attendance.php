@@ -41,6 +41,7 @@ class Attendance extends Model
         'time_out' => 'datetime:H:i',
         'time_late' => 'datetime:H:i',
         'is_work_outside' => 'boolean',
+        'image' => 'array',
     ];
 
     /**

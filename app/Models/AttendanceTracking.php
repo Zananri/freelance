@@ -22,6 +22,7 @@ class AttendanceTracking extends Model
     protected $casts = [
         'is_work_outside' => 'boolean',
         'date_time' => 'datetime',
+        'image' => 'array',
     ];
 
     public function attendance()
