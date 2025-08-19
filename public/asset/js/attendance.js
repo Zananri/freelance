@@ -394,84 +394,139 @@ function calculateWorkingHours() {
     }
 }
 
-function updateAttendanceStatus() {
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
+    function updateAttendanceStatus() {
+        const employeeId = document.querySelector(
+            'input[name="employee_id"]'
+        )?.value;
 
-    if (!employeeId) {
-        console.error("Employee ID not found");
-        return;
-    }
+        if (!employeeId) {
+            console.error("Employee ID not found");
+            return;
+        }
 
-    const today = new Date().toISOString().split("T")[0];
-    const urlToday = `${baseUrl}/attendance/today/${employeeId}`;
-    const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
+        const today = new Date().toISOString().split("T")[0];
+        const urlToday = `${baseUrl}/attendance/today/${employeeId}`;
+        const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
 
-    // Fetch latest unclosed check-in (could be from previous day)
-    fetch(urlLatestUnclosed)
-        .then((response) => response.json())
-        .then((latestData) => {
-            // Fetch today's attendance data
-            fetch(urlToday)
-                .then((response) => response.json())
-                .then((todayData) => {
-                    const checkInBtn = document.getElementById("checkInBtn");
-                    const checkOutBtn = document.getElementById("checkOutBtn");
+        // Fetch latest unclosed check-in (could be from previous day)
+        fetch(urlLatestUnclosed)
+            .then((response) => response.json())
+            .then((latestData) => {
+                // Fetch today's attendance data
+                fetch(urlToday)
+                    .then((response) => response.json())
+                    .then((todayData) => {
+                        const checkInBtn = document.getElementById("checkInBtn");
+                        const checkOutBtn = document.getElementById("checkOutBtn");
 
-                    if (!checkInBtn || !checkOutBtn) {
-                        console.error("Check buttons not found");
-                        return;
-                    }
-
-                    console.log("Latest unclosed attendance:", latestData);
-                    console.log("Today's attendance:", todayData);
-
-                    // Handle missing or invalid data
-                    if (!todayData.data || !Array.isArray(todayData.data)) {
-                        console.warn("No attendance record found for today.");
-                        checkInBtn.style.display = "flex";
-                        checkOutBtn.style.display = "none";
-                        return;
-                    }
-
-                    const attendances = todayData.data;
-
-                    if (attendances.length > 0) {
-                        const lastAttendance = attendances[attendances.length - 1];
-
-                        if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
-                            // Last record is check-in without checkout, show checkout button
-                            checkInBtn.style.display = "none";
-                            checkOutBtn.style.display = "flex";
-
-                            // Update hidden time fields
-                            const checkInTimeInput = document.getElementById("checkInTime");
-                            if (checkInTimeInput) {
-                                checkInTimeInput.value = lastAttendance.time_in;
-                            }
+                        if (!checkInBtn || !checkOutBtn) {
+                            console.error("Check buttons not found");
                             return;
-                        } else {
-                            // Last record is checkout or fully checked out, show check-in button
+                        }
+
+                        console.log("Latest unclosed attendance:", latestData);
+                        console.log("Today's attendance:", todayData);
+
+                        // Cek apakah ada check-in yang belum ditutup dari hari sebelumnya
+                        if (latestData.status === "success" && latestData.data) {
+                            const lastCheckIn = latestData.data;
+                            const checkInDate = lastCheckIn.date_attendance;
+                            
+                            // Cek data attendance hari ini
+                            if (todayData.status === "success" && Array.isArray(todayData.data)) {
+                                const todayAttendances = todayData.data;
+                                
+                                if (todayAttendances.length > 0) {
+                                    // Ada aktivitas hari ini
+                                    const lastTodayAttendance = todayAttendances[todayAttendances.length - 1];
+                                    
+                                    if (lastTodayAttendance.type_attendance === "check_in" && !lastTodayAttendance.time_out) {
+                                        // Sudah check-in hari ini, tampilkan tombol checkout
+                                        checkInBtn.style.display = "none";
+                                        checkOutBtn.style.display = "flex";
+                                        return;
+                                    } else if (lastTodayAttendance.type_attendance === "check_out") {
+                                        // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya
+                                        checkInBtn.style.display = "flex";
+                                        checkOutBtn.style.display = "none";
+                                        return;
+                                    }
+                                }
+                            }
+                            
+                            if (checkInDate < today) {
+                                // Ada check-in yang belum ditutup dari hari sebelumnya
+                                console.warn("You forgot to check out yesterday, please contact HR.");
+                                
+                                // Tampilkan tombol check-in untuk hari ini
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "none";
+                                
+                                // Hanya tampilkan alert di halaman dashboard
+                                if (window.location.href.includes('/dashboard')) {
+                                    const alertKey = `attendanceAlertShown_${today}`;
+                                    
+                                    // Cek jika alert belum ditampilkan hari ini
+                                    if (!localStorage.getItem(alertKey)) {
+                                        // Tampilkan pesan warning sekali
+                                        showFloatingAlert(
+                                            `You forgot to check out yesterday. Please contact HR and check in for today.`,
+                                            "warning"
+                                        ).setTimeout(5000);
+
+                                        // Tandai alert sudah ditampilkan untuk hari ini
+                                        localStorage.setItem(alertKey, "true");
+                                    }
+                                }
+                                return;
+                            }
+                        }
+
+                        // Handle missing or invalid data
+                        if (!todayData.data || !Array.isArray(todayData.data)) {
+                            console.warn("No attendance record found for today.");
                             checkInBtn.style.display = "flex";
                             checkOutBtn.style.display = "none";
                             return;
                         }
-                    } else {
-                        // No attendance today, show check-in button
-                        checkInBtn.style.display = "flex";
-                        checkOutBtn.style.display = "none";
-                        return;
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error fetching today's attendance data:", error);
-                });
-        })
-        .catch((error) => {
-            console.error("Error fetching latest unclosed attendance data:", error);
-        });
-}
+
+                        const attendances = todayData.data;
+
+                        if (attendances.length > 0) {
+                            const lastAttendance = attendances[attendances.length - 1];
+
+                            if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
+                                // Last record is check-in without checkout, show checkout button
+                                checkInBtn.style.display = "none";
+                                checkOutBtn.style.display = "flex";
+
+                                // Update hidden time fields
+                                const checkInTimeInput = document.getElementById("checkInTime");
+                                if (checkInTimeInput) {
+                                    checkInTimeInput.value = lastAttendance.time_in;
+                                }
+                                return;
+                            } else {
+                                // Last record is checkout or fully checked out, show check-in button
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "none";
+                                return;
+                            }
+                        } else {
+                            // No attendance today, show check-in button
+                            checkInBtn.style.display = "flex";
+                            checkOutBtn.style.display = "none";
+                            return;
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching today's attendance data:", error);
+                    });
+            })
+            .catch((error) => {
+                console.error("Error fetching latest unclosed attendance data:", error);
+            });
+    }
 
 // Calendar Functions
 let currentDate = new Date();

@@ -117,19 +117,22 @@
             </div>
           </div>
 
-          <!-- Date Attendance -->
-          <div class="mb-3">
-            <label for="date_attendance" class="form-label label-custom">Date</label>
-            <div class="date_attendance">
-              <span id="date_attendance">Loading...</span>
+          <!-- Date and Time Container -->
+          <div class="date-time-container">
+            <!-- Date Attendance -->
+            <div class="mb-3">
+              <label for="date_attendance" class="form-label label-custom" style="margin-bottom: 0">Date</label>
+              <div class="date-time-display" id="date_attendance">
+                Loading...
+              </div>
             </div>
-          </div>
 
-          <!-- Time In -->
-          <div class="mb-3">
-            <label for="time_in" class="form-label label-custom">Time In</label>
-            <div class="time_in">
-              <span id="time_in">Loading...</span>
+            <!-- Time In -->
+            <div class="mb-3">
+              <label for="time_in" class="form-label label-custom" style="margin-bottom: 0">Time In</label>
+              <div class="date-time-display" id="time_in">
+                Loading...
+              </div>
             </div>
           </div>
 
@@ -232,27 +235,30 @@
                             </div>
                         </div>
 
-                        <!-- Time In Display -->
-                        <div class="mb-3">
-                            <label class="form-label label-custom">Time In</label>
-                            <div class="time_in">
-                                <span id="time_in_display">Loading...</span>
+                        <!-- Time Display Container -->
+                        <div class="date-time-container">
+                            <!-- Time In Display -->
+                            <div class="mb-3">
+                                <label class="form-label label-custom">Time In</label>
+                                <div class="date-time-display" id="time_in_display">
+                                    Loading...
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Time Out Display -->
-                        <div class="mb-3">
-                            <label class="form-label label-custom">Time Out</label>
-                            <div class="time_out">
-                                <span id="time_out_display">Loading...</span>
+                            <!-- Time Out Display -->
+                            <div class="mb-3">
+                                <label class="form-label label-custom">Time Out</label>
+                                <div class="date-time-display" id="time_out_display">
+                                    Loading...
+                                </div>
                             </div>
-                        </div>
 
-                        <!-- Total Work Duration -->
-                        <div class="mb-3">
-                            <label class="form-label label-custom">Total Work Duration</label>
-                            <div class="total_work_duration">
-                                <span id="total_work_duration">Loading...</span>
+                            <!-- Total Work Duration -->
+                            <div class="mb-3">
+                                <label class="form-label label-custom">Total Work Duration</label>
+                                <div class="date-time-display" id="total_work_duration">
+                                    Loading...
+                                </div>
                             </div>
                         </div>
 

@@ -137,19 +137,59 @@
     padding: 0;
 }
 
+/* Container untuk date dan time in */
+.date-time-container {
+    display: flex;
+    gap: 15px;
+    align-items: stretch;
+}
+
+.date-time-container .mb-3 {
+    flex: 1;
+    margin-bottom: 0 !important;
+}
+
+.date-time-display {
+    font-size: 14px;
+    color: #495057;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+}
+
 /* Responsive untuk mobile */
 @media (max-width: 576px) {
     .work-outside-container {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .work-outside-container .form-check {
+        flex: 1;
+        margin-right: 10px;
+    }
+    
+    .work-outside-container .form-check:last-child {
+        margin-right: 0;
+    }
+    
+    .date-time-container {
+        flex-direction: row;
+        gap: 10px;
+    }
+    
+    .date-time-display {
+        font-size: 13px;
     }
     
     .form-check-label {
         width: 100%;
-        margin-bottom: 10px;
+        margin-bottom: 0;
+        padding: 10px 15px;
+        font-size: 14px;
     }
 }
-
 .attendance-left {
     flex: 1;
     min-width: 0;
