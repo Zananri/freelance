@@ -46,7 +46,7 @@
                         <div class="log-row d-flex justify-content-between align-items-center my-2">
                             <p class="mb-0">Check In</p>
                             <div class="d-flex align-items-center">
-                                <span id="time_in_display" class="me-2"></span>
+                                <span id="" class="me-2"></span>
                                 <button class="btn p-0">
                                     <span class="material-symbols-outlined"
                                         style="font-size:16px; color:#B3B3B3;">chevron_right</span>
@@ -58,7 +58,7 @@
                         <div class="log-row d-flex justify-content-between align-items-center my-2">
                             <p class="mb-0">Check Out</p>
                             <div class="d-flex align-items-center">
-                                <span id="time_out_display" class="me-2"></span>
+                                <span id="" class="me-2"></span>
                                 <button class="btn p-0">
                                     <span class="material-symbols-outlined"
                                         style="font-size:16px; color:#B3B3B3;">chevron_right</span>
@@ -239,13 +239,28 @@
                     <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                         data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+
+                <!-- Time Display Container -->
+                        <div class="text-center mb-4">
+                            <div class="mb-0">
+                                <div class="date-time-display" id="time_out">
+                                    Loading...
+                                </div>
+                            </div>
+                            <div>
+                                <div class="date-time-display" id="date_attendance_checkout">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+
                 <div class="modal-body">
                     <form id="checkOutForm">
                         <!-- Hidden fields -->
                         <input type="hidden" name="employee_id" id="employee_id"
                             value="{{ $employee ? $employee->id : '' }}">
-                        <input type="hidden" name="date_attendance" id="date_attendance">
-                        <input type="hidden" name="time_out" id="time_out">
+                        <input type="hidden" name="date_attendance" id="date_attendance_hidden">
+                        <input type="hidden" name="time_out" id="time_out_hidden">
                         <input type="hidden" name="type_attendance" value="check_out">
                         <input type="hidden" name="is_work_outside_checkout" id="is_work_outside_checkout"
                             value="0">
@@ -258,13 +273,12 @@
                             </div>
                         </div>
 
-                        <!-- Time Display Container -->
-                        <div class="date-time-container d-flex justify-content-between mb-3">
-                            <!-- Added flex properties for alignment -->
+                        <!-- Hidden Time Display Container - Removed as it's now above -->
+                        <div class="date-time-container d-flex justify-content-between mb-3" style="display: none !important;">
                             <!-- Time In Display -->
-                            <div class="mb-3">
+                            <div class="mb-3" hidden>
                                 <label class="form-label label-custom">Time In</label>
-                                <div class="date-time-display-checkout" id="time_in_display">
+                                <div class="date-time-display-checkout" id="">
                                     Loading...
                                 </div>
                             </div>
@@ -272,7 +286,7 @@
                             <!-- Time Out Display -->
                             <div class="mb-3">
                                 <label class="form-label label-custom">Time Out</label>
-                                <div class="date-time-display-checkout" id="time_out_display">
+                                <div class="date-time-display-checkout" id="">
                                     Loading...
                                 </div>
                             </div>

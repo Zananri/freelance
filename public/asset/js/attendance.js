@@ -293,8 +293,8 @@ function updateModalTimeCheckout() {
     });
 
     // Update tampilan di modal check-out (dengan detik)
-    const dateDisplay = document.getElementById("date_attendance");
-    const timeDisplay = document.getElementById("time_out_display");
+    const dateDisplay = document.getElementById("date_attendance_checkout");
+    const timeDisplay = document.getElementById("time_out");
 
     if (dateDisplay) dateDisplay.textContent = formattedDate;
     if (timeDisplay) timeDisplay.textContent = displayTimeString;
@@ -372,7 +372,6 @@ function openCheckInModal() {
 
     // Set interval untuk update waktu setiap detik
     const timeInterval = setInterval(updateModalTime, 1000);
-
 
     // Clear interval saat modal ditutup
     document.getElementById("checkInModal").addEventListener('hidden.bs.modal', function() {
@@ -1489,48 +1488,35 @@ function submitCheckOut() {
         return;
     }
 
-    // Get and validate all required fields first
-    const requiredFields = {
-        employeeId: document.querySelector('input[name="employee_id"]'),
-        dateAttendance: document.getElementById('date_attendance'),
-        timeOut: document.getElementById('time_out'),
-        typeAttendance: document.querySelector('input[name="type_attendance"]'),
-        isWorkOutside: document.getElementById('is_work_outside_checkout')
-    };
+    // Get current time for checkout
+    const now = new Date();
+    const serverTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 
-    // Validate all required fields exist
-    for (const [key, element] of Object.entries(requiredFields)) {
-        if (!element || !element.value) {
-            console.error(`${key} is missing or empty`);
-            showFloatingAlert(`${key} is missing. Please refresh the page.`, "error");
-            return;
-        }
+    // Get and validate all required fields
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const dateAttendance = document.getElementById('date_attendance')?.value || now.toISOString().split("T")[0];
+    
+    if (!employeeId) {
+        console.error("Employee ID is missing");
+        showFloatingAlert("Employee ID is missing. Please refresh the page.", "error");
+        return;
     }
 
     const formData = new FormData(form);
 
-    // Add or update required fields
-    formData.set("employee_id", requiredFields.employeeId.value);
-    formData.set("date_attendance", requiredFields.dateAttendance.value);
-    formData.set("time_out", requiredFields.timeOut.value);
-    formData.set("type_attendance", "check_out");  // Ensure type_attendance is set correctly
-    formData.set("is_work_outside", requiredFields.isWorkOutside.value);
-
-    // Add is_work_outside dari status check in sebelumnya
-    const isWorkOutsideValue = document.getElementById("is_work_outside_checkout").value;
-    formData.append("is_work_outside", isWorkOutsideValue);
-
-    // Add date dan time untuk checkout
-    const dateAttendance = document.getElementById("date_attendance").value;
-    const timeOut = document.getElementById("time_out").value;
-
-    if (!dateAttendance || !timeOut) {
-        showFloatingAlert("Date and time are required. Please try again.", "error");
-        return;
-    }
-
-    formData.append("date_attendance", dateAttendance);
-    formData.append("time_out", timeOut);
+    // Ensure all required fields are properly set
+    formData.set("employee_id", employeeId);
+    formData.set("date_attendance", dateAttendance);
+    formData.set("time_out", serverTimeString);
+    formData.set("type_attendance", "check_out");
+    
+    // Get work outside value
+    const isWorkOutsideValue = document.getElementById("is_work_outside_checkout")?.value || "0";
+    formData.set("is_work_outside", isWorkOutsideValue);
 
     // Add latitude and longitude for check-out
     const latitude = document.getElementById("latitudeCheckOut")?.value;

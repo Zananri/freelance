@@ -977,3 +977,30 @@
     font-size: 14px;
     color: #495057;
 }
+
+/* Center alignment for time in and date attendance in modal */
+.date-time-display {
+    text-align: center !important;
+    display: block !important;
+}
+
+#time_out {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#date_attendance_checkout {
+    font-size: 14px;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Container untuk time dan date - center alignment */
+.text-center.mb-4 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
