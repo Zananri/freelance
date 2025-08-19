@@ -39,14 +39,14 @@
             </div>
 
             <div class="row profile-card-wrapper">
-                <div class="col-md-3 d-flex flex-column gap-3">
-                    <div class="body-content profile-section p-4 text-center">
+                <div class="col-md-4 d-flex flex-column gap-3">
+                    <div class="body-content profile-section p-5 pt-4 text-center">
                         <img class="profile-photo" src="{{ asset($employee->photo ?? 'asset/img/image.png') }}"
                             alt="">
 
                         <!-- User Info -->
-                        <h5 class="mt-3 mb-3">{{ $employee->name }}</h5>
-                        <p class="text-muted mb-4">
+                        <h5 class="text-employee-name mt-3 mb-2">{{ $employee->name }}</h5>
+                        <p class="text-division mb-4">
                             @if ($employee && $employee->division)
                                 {{ $employee->division->name_division }}
                             @else
@@ -80,18 +80,17 @@
                 </div>
 
                 <!-- Middle Section: originally left section fields -->
-                <div class="col-md-6 d-flex flex-column gap-3">
-                    <div class="body-content personal-info p-4">
+                <div class="col-md-4 d-flex flex-column gap-3">
+                    <div class="body-content personal-info p-5 pe-3">
                         <h5 class="fw-normal mb-4" style="font-size: 24px;">Personal Info</h5>
 
-                        <div class="info-item d-flex align-items-start gap-3 mb-4">
+                        <div class="info-item d-flex align-items-center gap-3 mb-4">
                             <div class="icon-circle email">
                                 <span class="material-symbols-outlined">mail</span>
                             </div>
                             <div>
-                                <p class="label">Email</p>
-                                <input type="text" name="employee_email_work" id="employee_email_work" class="value"
-                                    readonly disabled>
+                                <div class="label">Email</div>
+                                <div class="value">{{ $employee->email_work }}</div>
                             </div>
                         </div>
 
@@ -101,8 +100,7 @@
                             </div>
                             <div>
                                 <p class="label">Phone Number</p>
-                                <input type="text" name="employee_phone" id="employee_phone" class="value" readonly
-                                    disabled>
+                                <div class="value">{{ $employee->phone }}</div>
                             </div>
                         </div>
 
@@ -112,8 +110,20 @@
                             </div>
                             <div>
                                 <p class="label">Department & Division</p>
-                                <input type="text" name="department_id" id="department_id" class="value" readonly
-                                    disabled>
+                                <div class="value">
+                                    @if ($employee && $employee->department)
+                                        {{ $employee->department->name_department }}
+                                    @else
+                                        <span style="color:red;">Department not assigned</span>
+                                    @endif
+                                    <span>|</span>
+                                    @if ($employee && $employee->division)
+                                        {{ $employee->division->name_division }}
+                                    @else
+                                        <span style="color:red;">Division not assigned</span>
+                                    @endif
+                                </div>
+
                             </div>
                         </div>
 
@@ -123,7 +133,7 @@
                             </div>
                             <div>
                                 <p class="label">Job</p>
-                                <input type="text" name="job_id" id="job_id" class="value" readonly disabled>
+                                <div class="value">{{ $employee->job_id }}</div>
                             </div>
                         </div>
 
@@ -133,7 +143,7 @@
                             </div>
                             <div>
                                 <p class="label">Address</p>
-                                <p id="address" class="value"></p>
+                                <div class="value">{{ $employee->address }}</div>
                             </div>
                         </div>
                     </div>

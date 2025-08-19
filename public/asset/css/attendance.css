@@ -237,10 +237,18 @@
 }
 
 .profile-image {
-    width: 100px;
-    height: 100px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.digital-clock {
+    font-size: 22px;
+}
+
+.digital-date {
+    font-size: 12px;
 }
 
 .attendance-logs {

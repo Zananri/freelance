@@ -89,6 +89,15 @@
     border-radius: 50%;
 }
 
+.text-employee-name {
+    font-weight: 400;
+}
+
+.text-division {
+    font-size: 14px;
+    color: #828282;
+}
+
 .custom-password-btn {
     border: none;
     background-color: #f9faff;
@@ -161,9 +170,14 @@
     box-shadow: none;
     margin-top: 0;
     padding: 20px;
+    margin-top: -60px;
   }
 
   .profile-card-mobile .password-form {
+    display: none;
+  }
+
+  .body-content .text-division {
     display: none;
   }
 }

@@ -81,10 +81,10 @@
 
 /* Fixed dimensions for calendar card with spacing */
 .calendar-container {
-    padding: 30px 50px !important;
+    padding: 40px 40px 40px 40px !important;
     height: 420px !important;
     min-height: 420px !important;
-    max-height: 420px    !important;
+    max-height: 420px !important;
     overflow-y: auto;
 }
 

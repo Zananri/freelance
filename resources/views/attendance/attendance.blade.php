@@ -21,23 +21,15 @@
                         <img src="{{ $employee && $employee->profile_picture ? asset($employee->profile_picture) : asset('asset/img/default-profile.png') }}"
                             alt="User Profile" class="profile-image">
                     </div>
-                    <div class="user-info">
+                    <div class="user-info mt-2">
                         <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>
-                        <p class="user-email">{{ $employee ? $employee->email_work : 'user@example.com' }}</p>
-                        <p class="user-division">
-                            @if ($employee && $employee->division)
-                                {{ $employee->division->name_division }}
-                            @else
-                                <span style="color:red;">Division not assigned</span>
-                            @endif
-                        </p>
-                    </div>
-                    <div id="clock" class="digital-clock fw-bold fw-700 mt-3"
-                        style="color: #303030; font-size: 24px;"></div>
-                    <div id="date" class="digital-date mb-3 fw-light text-secondary" style="font-size: 12px;">
+                        <div id="clock" class="digital-clock fw-bold fw-700 mt-3 mb-3"
+                            style="color: #303030; font-size: 24px;"></div>
+                        <div id="date" class="digital-date fw-light text-secondary" style="font-size: 12px;">
+                        </div>
                     </div>
 
-                    <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-center">
+                    <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-between">
                         <button class="btn btn-check-in btn-custom-check w-25 m-2 p-2" id="checkInBtn">
                             <span class="material-symbols-outlined" style="display: none;">check</span>
                             Check In
@@ -46,8 +38,6 @@
                             <span class="material-symbols-outlined" style="display: none;">done_all</span>
                             Check Out
                         </button>
-                        <input type="hidden" id="checkInTime" name="checkInTime" value="">
-                        <input type="hidden" id="checkOutTime" name="checkOutTime" value="">
                     </div>
                     <div class="attendance-logs">
                         <h6 class="fw-bold">Attendance Logs</h6>
