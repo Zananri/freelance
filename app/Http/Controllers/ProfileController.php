@@ -17,7 +17,7 @@ class ProfileController extends Controller
     public function showprofilePage()
     {
         $user = auth()->user();
-        $employee = Employee::with('division', 'department')->where('user_id', $user->id)->first();
+        $employee = Employee::with('division', 'department', 'job')->where('user_id', $user->id)->first();
 
         $today = Carbon::today()->toDateString();
 
@@ -38,6 +38,7 @@ class ProfileController extends Controller
 
         Log::info('Employee Division:', ['division' => $employee ? $employee->division : null]);
         Log::info('Employee Department:', ['department' => $employee ? $employee->department : null]);
+        Log::info('Employee Job:', ['job' => $employee ? $employee->job : null]);
 
         return view('profile/profile', [
             'id' => $user->id,

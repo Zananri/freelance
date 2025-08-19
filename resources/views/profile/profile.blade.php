@@ -133,7 +133,13 @@
                             </div>
                             <div>
                                 <p class="label">Job</p>
-                                <div class="value">{{ $employee->job_id }}</div>
+                                <div class="value">
+                                    @if ($employee && $employee->job)
+                                        {{ $employee->job->job_name }}
+                                    @else
+                                        <span style="color:red;">Division not assigned</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
 
