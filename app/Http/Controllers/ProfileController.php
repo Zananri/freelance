@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
+use App\Models\Attendance;
+use Carbon\Carbon;
 use App\Models\Employee;
 
 class ProfileController extends Controller
@@ -15,7 +16,26 @@ class ProfileController extends Controller
     public function showprofilePage()
     {
         $user = auth()->user();
-        return view('profile/profile', ['id' => $user->id]);
+        $employee = Employee::where('user_id', $user->id)->first();
+
+
+        $today = Carbon::today()->toDateString();
+
+        if ($employee) {
+            // Prefer profile_picture if available, else photo
+            $photo = $employee->profile_picture ?? $employee->photo;
+            $attendance = Attendance::where('employee_id', $employee->id)
+                ->where('date_attendance', $today)
+                ->where('type_attendance', 'check_in')
+                ->first();
+
+        }
+
+        // If photo is a relative path, convert to asset URL
+        if ($photo) {
+            $photo = asset($photo);
+        }
+        return view('profile/profile', ['id' => $user->id], compact('employee'));
     }
 
     public function index()
@@ -75,7 +95,7 @@ class ProfileController extends Controller
         //
     }
 
-   
+
     /**
      * Handle profile update including password and profile photo.
      */
