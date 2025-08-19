@@ -15,10 +15,10 @@
     <div class="dashboard-container justify-content-center align-items-center">
         <div class="row">
             {{-- KIRI --}}
-            <div class="col-md-8 d-flex flex-column">
+            <div class="col-md-8 above-content d-flex flex-column">
                 <div class="row flex-grow-1" style="flex: 1;">
                     {{-- Profile --}}
-                    <div class="col-md-6 my-3">
+                    <div class="col-md-6 my-3 profile-calendar-card">
                         <div class="rounded-4 p-4 body-card h-100">
                             <div class="d-flex justify-content-end align-items-center">
                                 <button class="btn btn-sm toggle-calendar calendar-toggle-btn">
@@ -34,18 +34,19 @@
                                 <p class="user-name fw-light text-secondary">
                                     {{ $employee ? $employee->name : 'User Name :' }}</p>
                                 <div id="clock" class="digital-clock fw-bold fw-700 my-3"></div>
-                                <div id="date" class="digital-date mb-4 fw-light text-secondary"></div>
+                                <div id="date" class="digital-date mb-3 fw-light text-secondary"></div>
                             </div>
-                            <div class="attendance-actions mt-2 w-100 d-flex justify-content-evenly">
+                            <div class="attendance-actions w-100 d-flex justify-content-evenly">
                                 <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkIn"
                                     id="checkInBtn"><span class="material-symbols-outlined check-icon"
                                         style="display: none;">check</span>Check
                                     In</button>
                                 <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut"
-                                    id="checkOutBtn"><span class="material-symbols-outlined done-all-icon" style="display: none;">done_all</span>Check
+                                    id="checkOutBtn"><span class="material-symbols-outlined done-all-icon"
+                                        style="display: none;">done_all</span>Check
                                     Out</button>
                             </div>
-                            <div class="mx-3">
+                            <div class="m-3">
                                 <div class="justify-content-start mt-3">
                                     <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
                                 </div>
@@ -106,17 +107,20 @@
                 <div class="row" style="flex: 1;">
                     <div class="col-12 card-fill">
                         <div class="rounded-4 p-4 body-card">
-                            <div class="project-card row g-3 align-items-stretch">
-                                <!-- Grafik Doughnut -->
-                                <h5 class="mb-0" style="font-size: 24px">Project</h5>
-                                <div class="col-md-6 col-12 mb-3">
-                                    <div
-                                        class="project-card-header d-flex justify-content-between align-items-center mb-3">
+
+                            <!-- Project Card -->
+                            <div class="project-card">
+
+                                <!-- Chart Section -->
+                                <div class="chart-section">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0" style="font-size: 24px">Project</h5>
                                         <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
                                             <span class="material-symbols-outlined"
                                                 style="font-size: 18px;">calendar_month</span>
                                         </button>
                                     </div>
+
                                     <div class="chart-container">
                                         <canvas id="doughnutChart"></canvas>
                                     </div>
@@ -140,8 +144,8 @@
                                     </div>
                                 </div>
 
-                                <!-- Project Timeline -->
-                                <div class="col-md-6 col-12 mb-3 timeline-card-mobile">
+                                <!-- Timeline Section -->
+                                <div class="timeline-card-mobile">
                                     <div class="project-timeline-card h-100">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px">Aug
@@ -150,7 +154,7 @@
                                                 <button class="btn btn-sm me-2" id="prevTimeline">
                                                     <span class="material-symbols-outlined">chevron_left</span>
                                                 </button>
-                                                <button class="btn btn-sm" style="color: " id="nextTimeline">
+                                                <button class="btn btn-sm" id="nextTimeline">
                                                     <span class="material-symbols-outlined">chevron_right</span>
                                                 </button>
                                             </div>
@@ -169,10 +173,15 @@
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
+                            <!-- /project-card -->
+
                         </div>
                     </div>
                 </div>
+
+                <div class="timeline-overlay"></div>
             </div>
 
             {{-- Task Group --}}
@@ -420,10 +429,10 @@
         <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 
         <script src="{{ asset('asset/js/dashboard.js') }}"></script>
-        <script src="{{ asset('asset/js/dashboard_attendance.js') }}"></script>
-        <script src="{{ asset('asset/js/dashboard_callendar.js') }}"></script>
-        <script src="{{ asset('asset/js/dashboard_task.js') }}"></script>
-        <script src="{{ asset('asset/js/dashboard_project.js') }}"></script>
+        <script src="{{ asset('asset/js/attendance_dashboard.js') }}"></script>
+        <script src="{{ asset('asset/js/callendar_dashboard.js') }}"></script>
+        <script src="{{ asset('asset/js/tasks_dashboard.js') }}"></script>
+        <script src="{{ asset('asset/js/project_dashboard.js') }}"></script>
 
     </x-slot>
 </x-office-layout>
