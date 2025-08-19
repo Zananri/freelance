@@ -269,7 +269,7 @@ function openCheckInModal() {
                         // Force map resize untuk memastikan tampilan benar
                         setTimeout(() => {
                             window.mapCheckIn.invalidateSize();
-                        }, 100);
+                        }, 500); // Increased timeout for better rendering
                     }
                 }, function (error) {
                     console.error('Error getting location:', error);
@@ -1110,7 +1110,7 @@ function openCheckOutModal() {
                     // Force map resize untuk memastikan tampilan benar
                     setTimeout(() => {
                         window.mapCheckOut.invalidateSize();
-                    }, 100);
+                    }, 500); // Increased timeout for better rendering
                   }
                 }, function (error) {
                   console.error('Error getting location:', error);

@@ -160,7 +160,7 @@ Route::get('/server-time', function () {
     return response()->json([
         'time' => $now->format('H:i'),
         'date' => $now->toDateString(),
-        'formatted_date' => $now->format('d/m/Y'),
+        'formatted_date' => $now->format('d F Y'),
     ]);
 });
 

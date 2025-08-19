@@ -179,7 +179,7 @@
 
                 <!-- Modal Footer -->
                 <div class="modal-footer modal-footer-custom">
-                    <button type="submit" class="btn btn-primary" id="submitCheckInBtn">
+                    <button type="submit" class="btn btn-submit-black" id="submitCheckInBtn">
                         <span class="material-symbols-outlined">alarm_on</span> Check In
                     </button>
                 </div>
