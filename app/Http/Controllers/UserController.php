@@ -122,14 +122,8 @@ class UserController extends Controller
     {
         $user = auth()->user();
         $photo = null;
-        $employee = null;
-        $attendance = null;
 
-        if (!$user) {
-            return redirect('/login')->with('error', 'Please login to access the dashboard.');
-        }
-
-        try {
+        if ($user) {
             $employee = Employee::where('user_id', $user->id)->first();
             $today = Carbon::today()->toDateString();
 
@@ -141,18 +135,15 @@ class UserController extends Controller
                     ->where('type_attendance', 'check_in')
                     ->first();
 
-                // If photo is a relative path, convert to asset URL
-                if ($photo) {
-                    $photo = asset($photo);
-                }
             }
 
-            return view('dashboard', compact('photo', 'employee', 'attendance'));
-            
-        } catch (\Exception $e) {
-            \Log::error('Dashboard error: ' . $e->getMessage());
-            return redirect('/login')->with('error', 'An error occurred while loading the dashboard.');
+            // If photo is a relative path, convert to asset URL
+            if ($photo) {
+                $photo = asset($photo);
+            }
         }
+
+        return view('dashboard', compact('photo', 'employee', 'attendance'));
     }
 
     /**

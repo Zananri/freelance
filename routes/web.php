@@ -132,7 +132,7 @@ Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
 Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword')->middleware('auth');
 
-Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard')->middleware('auth');
+Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
 
 // Notification routes
 Route::get('/notifications', [NotificationController::class, 'getUserNotifications'])->name('notifications.index');

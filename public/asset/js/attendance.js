@@ -527,41 +527,41 @@ function calculateWorkingHours() {
                         if (latestData.status === "success" && latestData.data) {
                             const lastCheckIn = latestData.data;
                             const checkInDate = lastCheckIn.date_attendance;
-
+                            
                             // Cek data attendance hari ini
                             if (todayData.status === "success" && Array.isArray(todayData.data)) {
                                 const todayAttendances = todayData.data;
-
+                                
                                 if (todayAttendances.length > 0) {
                                     // Ada aktivitas hari ini
                                     const lastTodayAttendance = todayAttendances[todayAttendances.length - 1];
-
+                                    
                                     if (lastTodayAttendance.type_attendance === "check_in" && !lastTodayAttendance.time_out) {
                                         // Sudah check-in hari ini, tampilkan tombol checkout
-                                        checkInBtn.style.display = "flex";
+                                        checkInBtn.style.display = "none";
                                         checkOutBtn.style.display = "flex";
                                         return;
                                     } else if (lastTodayAttendance.type_attendance === "check_out") {
                                         // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya
                                         checkInBtn.style.display = "flex";
-                                        checkOutBtn.style.display = "flex";
+                                        checkOutBtn.style.display = "none";
                                         return;
                                     }
                                 }
                             }
-
+                            
                             if (checkInDate < today) {
                                 // Ada check-in yang belum ditutup dari hari sebelumnya
                                 console.warn("You forgot to check out yesterday, please contact HR.");
-
+                                
                                 // Tampilkan tombol check-in untuk hari ini
                                 checkInBtn.style.display = "flex";
-                                checkOutBtn.style.display = "flex";
-
+                                checkOutBtn.style.display = "none";
+                                
                                 // Hanya tampilkan alert di halaman dashboard
                                 if (window.location.href.includes('/dashboard')) {
                                     const alertKey = `attendanceAlertShown_${today}`;
-
+                                    
                                     // Cek jika alert belum ditampilkan hari ini
                                     if (!localStorage.getItem(alertKey)) {
                                         // Tampilkan pesan warning sekali
@@ -582,7 +582,7 @@ function calculateWorkingHours() {
                         if (!todayData.data || !Array.isArray(todayData.data)) {
                             console.warn("No attendance record found for today.");
                             checkInBtn.style.display = "flex";
-                            checkOutBtn.style.display = "flex";
+                            checkOutBtn.style.display = "none";
                             return;
                         }
 
@@ -593,7 +593,7 @@ function calculateWorkingHours() {
 
                             if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
                                 // Last record is check-in without checkout, show checkout button
-                                checkInBtn.style.display = "flex";
+                                checkInBtn.style.display = "none";
                                 checkOutBtn.style.display = "flex";
 
                                 // Update hidden time fields
@@ -605,13 +605,13 @@ function calculateWorkingHours() {
                             } else {
                                 // Last record is checkout or fully checked out, show check-in button
                                 checkInBtn.style.display = "flex";
-                                checkOutBtn.style.display = "flex";
+                                checkOutBtn.style.display = "none";
                                 return;
                             }
                         } else {
                             // No attendance today, show check-in button
                             checkInBtn.style.display = "flex";
-                            checkOutBtn.style.display = "flex";
+                            checkOutBtn.style.display = "none";
                             return;
                         }
                     })
@@ -756,9 +756,6 @@ function navigateMonth(direction) {
     }
 
     renderCalendar(currentMonth, currentYear);
-}
-
-function submitCheckIn() {
 }
 
 function selectDate(day, month, year) {
@@ -1642,56 +1639,4 @@ function submitCheckOut() {
 // Initialize checkout camera features on DOM ready
 document.addEventListener("DOMContentLoaded", function() {
     initializeCheckoutCameraFeatures();
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    function updateClock() {
-        const now = new Date();
-
-        let hours = now.getHours().toString().padStart(2, "0");
-        let minutes = now.getMinutes().toString().padStart(2, "0");
-        let seconds = now.getSeconds().toString().padStart(2, "0");
-
-        const clockEl = document.getElementById("clock");
-        if (clockEl) {
-            clockEl.textContent = `${hours} : ${minutes} : ${seconds}`;
-        }
-
-        const days = [
-            "Minggu",
-            "Senin",
-            "Selasa",
-            "Rabu",
-            "Kamis",
-            "Jumat",
-            "Sabtu",
-        ];
-        const months = [
-            "Januari",
-            "Februari",
-            "Maret",
-            "April",
-            "Mei",
-            "Juni",
-            "Juli",
-            "Agustus",
-            "September",
-            "Oktober",
-            "November",
-            "Desember",
-        ];
-
-        let dayName = days[now.getDay()];
-        let date = now.getDate();
-        let monthName = months[now.getMonth()];
-        let year = now.getFullYear();
-
-        const dateEl = document.getElementById("date");
-        if (dateEl) {
-            dateEl.textContent = `${dayName}, ${date} ${monthName} ${year}`;
-        }
-    }
-
-    updateClock();
-    setInterval(updateClock, 1000);
 });
