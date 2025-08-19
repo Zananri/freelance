@@ -322,6 +322,16 @@ if ($request->hasFile('image')) {
             ]);
 
             $today = Carbon::today()->toDateString();
+            
+            // Validasi: tidak bisa checkout untuk hari sebelumnya
+            if ($validated['date_attendance'] < $today) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => 'error',
+                    'data' => [],
+                    'message' => 'Cannot checkout for previous day. Please check in for today.'
+                ], 400);
+            }
 
             // Find the latest check-in without checkout, including previous day if any
             $attendance = Attendance::where('employee_id', $validated['employee_id'])
