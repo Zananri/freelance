@@ -19,11 +19,11 @@
                 <div class="col-md-6 mb-3">
                     <div class="rounded-4 p-4 px-5 body-content h-100">
                         <div class="profile-image-container">
-                            <img class="profile-image" src="{{ $photo }}" alt="User Profile">
+                            <img class="profile-image" src="{{ $photo ?? asset('asset/img/default-profile.png') }}" alt="User Profile">
                         </div>
                         <div class="profile-text mt-2">
                             <p class="user-name fw-light text-secondary">
-                                {{ $employee ? $employee->name : 'User Name :' }}</p>
+                                {{ $employee->name ?? auth()->user()->name ?? 'User Name' }}</p>
                             <div id="clock" class="digital-clock fw-bold fw-700"></div>
                             <div id="date" class="digital-date mb-4 fw-light text-secondary"></div>
                         </div>
