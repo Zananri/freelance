@@ -798,6 +798,62 @@
     justify-content: center;
 }
 
+/* Center alignment for time in and date attendance in modal */
+.date-time-display {
+    text-align: center !important;
+    display: block !important;
+}
+
+#time_in {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#date_attendance {
+    font-size: 18px;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Container untuk time dan date - center alignment */
+.text-center.mb-4 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Responsive center alignment for mobile */
+@media (max-width: 576px) {
+    #time_in {
+        font-size: 22px;
+    }
+    
+    #date_attendance {
+        font-size: 16px;
+    }
+}
+
+/* Reduce spacing between modal title and time/date display */
+.modal-header-custom {
+    padding-bottom: 0.5rem !important;
+}
+
+.modal-body {
+    padding-top: 0.5rem !important;
+}
+
+.text-center.mb-4 {
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+#time_in {
+    margin-bottom: 0.15rem !important;
+}
+
 /* Responsive styling untuk modal di perangkat mobile */
 @media (max-width: 576px) {
     .modal-dialog {
