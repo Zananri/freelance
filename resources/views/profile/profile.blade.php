@@ -21,7 +21,7 @@
         </symbol>
     </svg>
 
-    <div class="title-content d-flex align-items-center gap-2">
+    <div class="title-content d-flex align-items-center">
         <h2 class="m-0">Profile</h2>
     </div>
 
@@ -38,106 +38,118 @@
                 <div class="loader-spinner"></div>
             </div>
 
-            <div class="px-3 py-3">
-                <div class="row">
-                    <div class="col-md-3 d-flex flex-column gap-3">
-                        <div class="body-content profile-section p-4 text-center">
-                            <img class="profile-photo" src="{{ asset($employee->photo ?? 'asset/img/image.png') }}"
-                                alt="">
+            <div class="row profile-card-wrapper">
+                <div class="col-md-4 d-flex flex-column gap-3">
+                    <div class="body-content profile-section p-5 pt-4 text-center">
+                        <img class="profile-photo" src="{{ asset($employee->photo ?? 'asset/img/image.png') }}"
+                            alt="">
 
-                            <!-- User Info -->
-                            <h5 class="mt-3 mb-3">{{ $employee->name }}</h5>
-                            <p class="text-muted mb-4">
-                                @if ($employee && $employee->division)
-                                    {{ $employee->division->name_division }}
-                                @else
-                                    <span style="color:red;">Division not assigned</span>
-                                @endif
-                            </p>
+                        <!-- User Info -->
+                        <h5 class="text-employee-name mt-3 mb-2">{{ $employee->name }}</h5>
+                        <p class="text-division mb-4">
+                            @if ($employee && $employee->division)
+                                {{ $employee->division->name_division }}
+                            @else
+                                <span style="color:red;">Division not assigned</span>
+                            @endif
+                        </p>
 
-                            <!-- Current Password -->
-                            <div class="mb-3 text-start">
-                                <input type="password" id="current_password" name="current_password"
-                                    placeholder="Current password"
-                                    class="current custom-password-btn form-control input-text" required />
-                                <div class="valid-feedback">Current password is correct.</div>
-                                <div class="invalid-feedback">Current password is incorrect.</div>
-                            </div>
+                        <!-- Current Password -->
+                        <div class="mb-3 text-start">
+                            <input type="password" id="current_password" name="current_password"
+                                placeholder="Current password"
+                                class="current custom-password-btn form-control input-text" required />
+                            <div class="valid-feedback">Current password is correct.</div>
+                            <div class="invalid-feedback">Current password is incorrect.</div>
+                        </div>
 
-                            <!-- New Password -->
-                            <div class="mb-3 text-start">
-                                <input type="password" id="new_password" name="password" placeholder="New password"
-                                    class="current custom-password-btn form-control input-text" required />
-                                <div class="invalid-feedback">Please enter a new password.</div>
-                            </div>
+                        <!-- New Password -->
+                        <div class="mb-3 text-start">
+                            <input type="password" id="new_password" name="password" placeholder="New password"
+                                class="current custom-password-btn form-control input-text" required />
+                            <div class="invalid-feedback">Please enter a new password.</div>
+                        </div>
 
-                            <!-- Submit Button -->
-                            <div class="mb-3 text-center">
-                                <button type="submit" class="btn-submit custom-submit" disabled>
-                                    Change Password
-                                </button>
-                            </div>
+                        <!-- Submit Button -->
+                        <div class="mb-3 text-center">
+                            <button type="submit" class="btn-submit custom-submit" disabled>
+                                Change Password
+                            </button>
                         </div>
                     </div>
+                </div>
 
+                <!-- Middle Section: originally left section fields -->
+                <div class="col-md-4 d-flex flex-column gap-3">
+                    <div class="body-content personal-info p-5 pe-3">
+                        <h5 class="fw-normal mb-4" style="font-size: 24px;">Personal Info</h5>
 
-                    <!-- Middle Section: originally left section fields -->
-                    <div class="col-md-3 d-flex flex-column gap-3">
-                        <div class="body-content personal-info p-4">
-                            <h5 class="fw-normal mb-4" style="font-size: 24px;">Personal Info</h5>
+                        <div class="info-item d-flex align-items-center gap-3 mb-4">
+                            <div class="icon-circle email">
+                                <span class="material-symbols-outlined">mail</span>
+                            </div>
+                            <div>
+                                <div class="label">Email</div>
+                                <div class="value">{{ $employee->email_work }}</div>
+                            </div>
+                        </div>
 
-                            <div class="info-item d-flex align-items-start gap-3 mb-4">
-                                <div class="icon-circle email">
-                                    <span class="material-symbols-outlined">mail</span>
+                        <div class="info-item d-flex align-items-start gap-3 mb-4">
+                            <div class="icon-circle phone">
+                                <span class="material-symbols-outlined">call</span>
+                            </div>
+                            <div>
+                                <p class="label">Phone Number</p>
+                                <div class="value">{{ $employee->phone }}</div>
+                            </div>
+                        </div>
+
+                        <div class="info-item d-flex align-items-start gap-3 mb-4">
+                            <div class="icon-circle department">
+                                <span class="material-symbols-outlined">work</span>
+                            </div>
+                            <div>
+                                <p class="label">Department & Division</p>
+                                <div class="value">
+                                    @if ($employee && $employee->department)
+                                        {{ $employee->department->name_department }}
+                                    @else
+                                        <span style="color:red;">Department not assigned</span>
+                                    @endif
+                                    <span>|</span>
+                                    @if ($employee && $employee->division)
+                                        {{ $employee->division->name_division }}
+                                    @else
+                                        <span style="color:red;">Division not assigned</span>
+                                    @endif
                                 </div>
-                                <div>
-                                    <p class="label">Email</p>
-                                    <input type="text" name="employee_email_work" id="employee_email_work"
-                                        class="value" readonly disabled>
+
+                            </div>
+                        </div>
+
+                        <div class="info-item d-flex align-items-start gap-3 mb-4">
+                            <div class="icon-circle job">
+                                <span class="material-symbols-outlined">assignment</span>
+                            </div>
+                            <div>
+                                <p class="label">Job</p>
+                                <div class="value">
+                                    @if ($employee && $employee->job)
+                                        {{ $employee->job->job_name }}
+                                    @else
+                                        <span style="color:red;">Division not assigned</span>
+                                    @endif
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="info-item d-flex align-items-start gap-3 mb-4">
-                                <div class="icon-circle phone">
-                                    <span class="material-symbols-outlined">call</span>
-                                </div>
-                                <div>
-                                    <p class="label">Phone Number</p>
-                                    <input type="text" name="employee_phone" id="employee_phone" class="value"
-                                        readonly disabled>
-                                </div>
+                        <div class="info-item d-flex align-items-start gap-3">
+                            <div class="icon-circle address">
+                                <span class="material-symbols-outlined">location_on</span>
                             </div>
-
-                            <div class="info-item d-flex align-items-start gap-3 mb-4">
-                                <div class="icon-circle department">
-                                    <span class="material-symbols-outlined">work</span>
-                                </div>
-                                <div>
-                                    <p class="label">Department & Division</p>
-                                    <input type="text" name="department_id" id="department_id" class="value"
-                                        readonly disabled>
-                                </div>
-                            </div>
-
-                            <div class="info-item d-flex align-items-start gap-3 mb-4">
-                                <div class="icon-circle job">
-                                    <span class="material-symbols-outlined">assignment</span>
-                                </div>
-                                <div>
-                                    <p class="label">Job</p>
-                                    <input type="text" name="job_id" id="job_id" class="value" readonly
-                                        disabled>
-                                </div>
-                            </div>
-
-                            <div class="info-item d-flex align-items-start gap-3">
-                                <div class="icon-circle address">
-                                    <span class="material-symbols-outlined">location_on</span>
-                                </div>
-                                <div>
-                                    <p class="label">Address</p>
-                                    <textarea type="text" name="address" id="address" class="value" readonly disabled></textarea>
-                                </div>
+                            <div>
+                                <p class="label">Address</p>
+                                <div class="value">{{ $employee->address }}</div>
                             </div>
                         </div>
                     </div>

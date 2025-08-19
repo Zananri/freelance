@@ -47,11 +47,7 @@
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center" style="font-size: 12px;">
-                            <p class="mb-0 flex-grow-1">Check Out</p>
-                            <div class="d-flex align-items-center">
-                                <div class="time_in">
-                                    <span id="time_in_display">Loading...</span>
+
                                 </div>
                                 <button class="btn p-0 ms-1" style="line-height: 1; background: none; border: none;">
                                     <span class="material-symbols-outlined text-secondary"
@@ -85,15 +81,7 @@
                 </div>
             </div>
 
-            {{-- Project Card --}}
-            <div class="row" style="flex: 1;">
-                <div class="col-12">
-                    <div class="rounded-4 p-4 body-content card-fill">
-                        <div class="row g-3 row-cols-1 row-cols-md-3">
-                            <div class="col">
-                                <div class="p-4 text-center rounded-3" style="background-color: #FFFAE6;">
-                                    <p class="fw-semibold" style="font-size: 36px;">7</p>
-                                    <p class="text-secondary fw-normal">In Progress</p>
+
                                 </div>
                             </div>
                             <div class="col">
@@ -130,13 +118,6 @@
                     <button class="btn btn-outline-secondary flex-fill">Tomorrow</button>
                 </div>
 
-                <!-- Task List -->
-                <div class="task-list flex-grow-1 overflow-auto">
-                    {{-- Task Content --}}
-                    <div class="task-card p-3 mb-3 rounded" style="background-color: #FFFAE6;">
-                        <div class="d-flex align-items-center mb-2">
-                            <img src="https://via.placeholder.com/40" class="rounded-circle me-2" style="width: 30px; height: 30px;">
-                            <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
                         </div>
                         <p class="mb-2 small text-secondary">
                             Description It is a long established fact that a reader will be distracted by the readable

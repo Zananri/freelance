@@ -57,7 +57,7 @@
     .attendance-wrapper {
         flex-direction: column;
     }
-    
+
     .attendance-left-content,
     .attendance-right-content {
         max-width: 100%;
@@ -164,25 +164,25 @@
         justify-content: space-between;
         align-items: center;
     }
-    
+
     .work-outside-container .form-check {
         flex: 1;
         margin-right: 10px;
     }
-    
+
     .work-outside-container .form-check:last-child {
         margin-right: 0;
     }
-    
+
     .date-time-container {
         flex-direction: row;
         gap: 10px;
     }
-    
+
     .date-time-display {
         font-size: 13px;
     }
-    
+
     .form-check-label {
         width: 100%;
         margin-bottom: 0;
@@ -237,10 +237,36 @@
 }
 
 .profile-image {
-    width: 100px;
-    height: 100px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.digital-clock {
+    font-size: 22px;
+}
+
+.digital-date {
+    font-size: 12px;
+}
+
+.attendance-logs {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.attendance-logs h6 {
+  margin-bottom: 10px;
+}
+
+.attendance-logs .log-row {
+  width: 100%;
+}
+
+.attendance-logs p {
+  color: #757575;
+  font-size: 12px;
 }
 
 .user-info h3 {
@@ -343,22 +369,19 @@
     max-width: 200px;
 }
 
-.btn-check-in {
-    background-color: #007bff;
-    color: white;
+.btn-custom-check {
+    background-color: #e3e4ee;
+    color: #444444;
 }
 
-.btn-check-in:hover {
-    background-color: #0056b3;
+.btn-custom-check:hover {
+    background-color: #e3e4ee;
+    color: #444444;
 }
 
-.btn-check-out {
-    background-color: gray;
-    color: white;
-}
-
-.btn-check-out:hover {
-    background-color: darkgray;
+.btn-custom-check.active {
+    background-color: #454545;
+    color: #f3f3f3;
 }
 
 .btn:disabled {
@@ -511,12 +534,12 @@
     .attendance-container {
         flex-direction: column;
     }
-    
+
     .attendance-right {
         width: 100%;
         margin-top: 30px;
     }
-    
+
     .calendar-container {
         max-width: 500px;
         margin: 0 auto;
@@ -527,20 +550,20 @@
     .body-content {
         padding: 20px !important;
     }
-    
+
     .user-profile-card {
         padding: 20px;
     }
-    
+
     .profile-image {
         width: 80px;
         height: 80px;
     }
-    
+
     .attendance-actions {
         flex-direction: column;
     }
-    
+
     .btn {
         width: 100%;
     }
@@ -777,12 +800,12 @@
         background-color: #e3f2fd;
         opacity: 0.8;
     }
-    
+
     .image-preview {
         max-width: 150px;
         max-height: 150px;
     }
-    
+
     .check-in-label {
         left: -1px !important;
         font-size: 6px !important;
