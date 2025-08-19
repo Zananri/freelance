@@ -132,7 +132,7 @@ Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 
 Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword')->middleware('auth');
 
-Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
+Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard')->middleware('auth');
 
 // Notification routes
 Route::get('/notifications', [NotificationController::class, 'getUserNotifications'])->name('notifications.index');
@@ -160,7 +160,7 @@ Route::get('/server-time', function () {
     return response()->json([
         'time' => $now->format('H:i'),
         'date' => $now->toDateString(),
-        'formatted_date' => $now->format('d/m/Y'),
+        'formatted_date' => $now->format('d F Y'),
     ]);
 });
 

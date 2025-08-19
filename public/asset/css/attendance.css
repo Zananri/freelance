@@ -110,9 +110,9 @@
 }
 
 .form-check-input[type="radio"]:checked + .form-check-label {
-    background-color: #007bff;
+    background-color: #5770D5;
     color: white;
-    border-color: #007bff;
+    border-color: #5770D5;
 }
 
 .form-check-label:hover {
@@ -121,8 +121,8 @@
 }
 
 .form-check-input[type="radio"]:checked + .form-check-label:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
+    background-color: #4e6b94;
+    border-color: #4e6b94;
 }
 
 /* Container untuk Yes/No buttons */
@@ -137,11 +137,11 @@
     padding: 0;
 }
 
-/* Container untuk date dan time in */
+/* Container untuk  dan time in */
 .date-time-container {
     display: flex;
     gap: 15px;
-    align-items: stretch;
+    align-items: center; /* Change to center for better alignment */
 }
 
 .date-time-container .mb-3 {
@@ -621,6 +621,7 @@
     background-repeat: no-repeat;
     background-size: 50%;
     opacity: 0.5;
+    margin-left: 15px;
 }
 
 .image-upload-label:hover {
@@ -713,6 +714,7 @@
 
 /* Modal specific styles */
 .form-label {
+    margin-left: 15px;
     font-weight: 400;
     font-size: 14px;
     color: #555;
@@ -821,6 +823,62 @@
     justify-content: center;
 }
 
+/* Center alignment for time in and date attendance in modal */
+.date-time-display {
+    text-align: center !important;
+    display: block !important;
+}
+
+#time_in {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#date_attendance {
+    font-size: 14px;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Container untuk time dan date - center alignment */
+.text-center.mb-4 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Responsive center alignment for mobile */
+@media (max-width: 576px) {
+    #time_in {
+        font-size: 22px;
+    }
+    
+    #date_attendance {
+        font-size: 16px;
+    }
+}
+
+/* Reduce spacing between modal title and time/date display */
+.modal-header-custom {
+    padding-bottom: 0.5rem !important;
+}
+
+.modal-body {
+    padding-top: 0.5rem !important;
+}
+
+.text-center.mb-4 {
+    margin-top: 0.25rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+#time_in {
+
+}
+
 /* Responsive styling untuk modal di perangkat mobile */
 @media (max-width: 576px) {
     .modal-dialog {
@@ -909,4 +967,13 @@
 .modal-content.camera-active {
   background-color: transparent;
   border: none;
+}
+
+#workOutsideStatusText {
+    margin-left: 15px;
+}
+.date-time-display-checkout {
+    margin-left: 15px;
+    font-size: 14px;
+    color: #495057;
 }

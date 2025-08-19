@@ -110,54 +110,17 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4" id="modalContent">
 
-                <!-- Modal Header -->
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="checkInModalLabel">Check In Attendance</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
                 <!-- Modal Body -->
                 <div class="modal-body">
                     <form id="checkInForm">
                         <input type="hidden" name="employee_id" id="employee_id"
                             value="{{ $employee ? $employee->id : '' }}">
 
-                        <!-- Work Outside -->
-                        <div class="mb-3">
-                            <label for="is_work_outside" class="form-label">Work Outside</label>
-                            <div class="work-outside-container">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="is_work_outside"
-                                        id="work_outside_yes" value="1">
-                                    <label class="form-check-label" for="work_outside_yes">Yes</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="is_work_outside"
-                                        id="work_outside_no" value="0" checked>
-                                    <label class="form-check-label" for="work_outside_no">No</label>
+
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Date and Time Container -->
-                        <div class="date-time-container">
-                            <!-- Date Attendance -->
-                            <div class="mb-3">
-                                <label for="date_attendance" class="form-label label-custom"
-                                    style="margin-bottom: 0">Date</label>
-                                <div class="date-time-display" id="date_attendance">
-                                    Loading...
-                                </div>
-                            </div>
-
-                            <!-- Time In -->
-                            <div class="mb-3">
-                                <label for="time_in" class="form-label label-custom" style="margin-bottom: 0">Time
-                                    In</label>
-                                <div class="date-time-display" id="time_in">
-                                    Loading...
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Image Upload Section -->
@@ -194,23 +157,6 @@
                             </div>
                         </div>
 
-                        <!-- Map Location Section for Check In -->
-                        <div class="mb-3">
-                            <label class="form-label">Location</label>
-                            <div id="mapCheckIn" style="height: 300px;" class="rounded border"></div>
-                            <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
-                            <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Modal Footer -->
-                <div class="modal-footer modal-footer-custom">
-                    <button type="submit" class="btn btn-primary" id="submitCheckInBtn">
-                        <span class="material-symbols-outlined">alarm_on</span> Check In
-                    </button>
-                </div>
-
                 <div id="cameraWrapper" class="d-none position-relative text-center">
                     <!-- Video Stream -->
                     <video id="cameraVideo" autoplay playsinline class="w-100 rounded"
@@ -237,9 +183,11 @@
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4" id="checkOutModalContent">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="checkOutModalLabel">Check Out Attendance</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header modal-header-custom d-flex justify-content-center">
+                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutModalLabel">Check Out
+                        Attendance</h5>
+                    <button type="button" class="btn-close position-absolute" style="right: 1rem;"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="checkOutForm">
@@ -261,11 +209,11 @@
                         </div>
 
                         <!-- Time Display Container -->
-                        <div class="date-time-container">
+                    <div class="date-time-container d-flex justify-content-between mb-3"> <!-- Added flex properties for alignment -->
                             <!-- Time In Display -->
                             <div class="mb-3">
                                 <label class="form-label label-custom">Time In</label>
-                                <div class="date-time-display" id="time_in_display">
+                                <div class="date-time-display-checkout" id="time_in_display">
                                     Loading...
                                 </div>
                             </div>
@@ -273,13 +221,13 @@
                             <!-- Time Out Display -->
                             <div class="mb-3">
                                 <label class="form-label label-custom">Time Out</label>
-                                <div class="date-time-display" id="time_out_display">
+                                <div class="date-time-display-checkout" id="time_out_display">
                                     Loading...
                                 </div>
                             </div>
 
                             <!-- Total Work Duration -->
-                            <div class="mb-3">
+                            <div class="mb-3" hidden>
                                 <label class="form-label label-custom">Total Work Duration</label>
                                 <div class="date-time-display" id="total_work_duration">
                                     Loading...
@@ -310,8 +258,8 @@
 
                         <!-- Map Location Section for Check Out -->
                         <div class="mb-3">
-                            <label class="form-label">Location</label>
-                            <div id="mapCheckOut" style="height: 300px;" class="rounded border"></div>
+                            <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
+                                class="rounded border"></div>
                             <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
                             <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
                         </div>
