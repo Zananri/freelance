@@ -209,78 +209,174 @@ function toggleImageUploadVisibility() {
     }
 }
 
-// Function to open the check-in modal
+// Fungsi untuk update waktu berjalan di modal check-in
+function updateModalTime() {
+    const now = new Date();
+    
+    // Format waktu untuk tampilan dengan detik (untuk UI)
+    const displayTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
+    
+    // Format waktu untuk server (tanpa detik)
+    const serverTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+    
+    // Format tanggal untuk tampilan
+    const dateString = now.toISOString().split("T")[0];
+    const formattedDate = now.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+
+    // Update tampilan di modal check-in (dengan detik)
+    const dateDisplay = document.getElementById("date_attendance");
+    const timeDisplay = document.getElementById("time_in");
+    
+    if (dateDisplay) dateDisplay.textContent = formattedDate;
+    if (timeDisplay) timeDisplay.textContent = displayTimeString;
+
+    // Update hidden inputs (format untuk server tanpa detik)
+    let hiddenDate = document.querySelector('input[name="date_attendance"]');
+    let hiddenTime = document.querySelector('input[name="time_in"]');
+    
+    if (!hiddenDate) {
+        hiddenDate = document.createElement('input');
+        hiddenDate.type = 'hidden';
+        hiddenDate.name = 'date_attendance';
+        document.getElementById('checkInForm').appendChild(hiddenDate);
+    }
+    
+    if (!hiddenTime) {
+        hiddenTime = document.createElement('input');
+        hiddenTime.type = 'hidden';
+        hiddenTime.name = 'time_in';
+        document.getElementById('checkInForm').appendChild(hiddenTime);
+    }
+    
+    hiddenDate.value = dateString;
+    hiddenTime.value = serverTimeString;
+}
+
+// Fungsi untuk update waktu berjalan di modal check-out
+function updateModalTimeCheckout() {
+    const now = new Date();
+    
+    // Format waktu untuk tampilan dengan detik (untuk UI)
+    const displayTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
+    
+    // Format waktu untuk server (tanpa detik)
+    const serverTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+    
+    // Format tanggal untuk tampilan
+    const dateString = now.toISOString().split("T")[0];
+    const formattedDate = now.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+
+    // Update tampilan di modal check-out (dengan detik)
+    const dateDisplay = document.getElementById("date_attendance");
+    const timeDisplay = document.getElementById("time_out_display");
+    
+    if (dateDisplay) dateDisplay.textContent = formattedDate;
+    if (timeDisplay) timeDisplay.textContent = displayTimeString;
+
+    // Update hidden inputs (format untuk server tanpa detik)
+    let hiddenDate = document.querySelector('input[name="date_attendance"]');
+    let hiddenTime = document.querySelector('input[name="time_out"]');
+    
+    if (!hiddenDate) {
+        hiddenDate = document.createElement('input');
+        hiddenDate.type = 'hidden';
+        hiddenDate.name = 'date_attendance';
+        document.getElementById('checkOutForm').appendChild(hiddenDate);
+    }
+    
+    if (!hiddenTime) {
+        hiddenTime = document.createElement('input');
+        hiddenTime.type = 'hidden';
+        hiddenTime.name = 'time_out';
+        document.getElementById('checkOutForm').appendChild(hiddenTime);
+    }
+    
+    hiddenDate.value = dateString;
+    hiddenTime.value = serverTimeString;
+}
+
+// Function to open the check-in modal dengan waktu berjalan
 function openCheckInModal() {
-  fetch(baseUrl + '/server-time')
-    .then(response => response.json())
-    .then(data => {
-      const timeString = data.time;
-      const formattedDate = data.formatted_date;
-      const dateString = data.date;
+    // Update waktu berjalan
+    updateModalTime();
+    
+    // Reset pilihan radio dan visibilitas imageUploadSection
+    const workOutsideNo = document.getElementById("work_outside_no");
+    const imageUploadSection = document.getElementById("imageUploadSection");
 
-      document.getElementById("date_attendance").textContent = formattedDate;
-      document.getElementById("time_in").textContent = timeString;
+    if (workOutsideNo) workOutsideNo.checked = true;
+    if (imageUploadSection) imageUploadSection.style.display = "none";
 
-      document.querySelectorAll('input[name="date_attendance"], input[name="time_in"]').forEach(el => el.remove());
+    // Get current location and zoom map
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            const { latitude, longitude } = position.coords;
 
-      const hiddenDate = document.createElement('input');
-      hiddenDate.type = 'hidden';
-      hiddenDate.name = 'date_attendance';
-      hiddenDate.value = dateString;
-      document.getElementById('checkInForm').appendChild(hiddenDate);
-
-      const hiddenTime = document.createElement('input');
-      hiddenTime.type = 'hidden';
-      hiddenTime.name = 'time_in';
-      hiddenTime.value = timeString;
-      document.getElementById('checkInForm').appendChild(hiddenTime);
-
-      // Reset pilihan radio dan visibilitas imageUploadSection
-      const workOutsideNo = document.getElementById("work_outside_no");
-      const imageUploadSection = document.getElementById("imageUploadSection");
-
-      if (workOutsideNo) workOutsideNo.checked = true;
-      if (imageUploadSection) imageUploadSection.style.display = "none";
-
-            // Get current location and zoom map
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function (position) {
-                    const { latitude, longitude } = position.coords;
-
-                    // Pastikan map sudah diinisialisasi
-                    if (window.mapCheckIn && window.mapCheckIn.setView) {
-                        // Clear existing markers
-                        window.mapCheckIn.eachLayer(function (layer) {
-                            if (layer instanceof L.Marker) {
-                                window.mapCheckIn.removeLayer(layer);
-                            }
-                        });
-                        
-                        // Set view dan tambahkan marker di tengah
-                        window.mapCheckIn.setView([latitude, longitude], 18); // Zoom level 18 for close view
-                        const marker = L.marker([latitude, longitude]).addTo(window.mapCheckIn);
-                        
-                        // Pastikan marker di tengah map
-                        window.mapCheckIn.panTo([latitude, longitude]);
-                        
-                        document.getElementById('latitudeCheckIn').value = latitude;
-                        document.getElementById('longitudeCheckIn').value = longitude;
-                        
-                        // Force map resize untuk memastikan tampilan benar
-                        setTimeout(() => {
-                            window.mapCheckIn.invalidateSize();
-                        }, 500); // Increased timeout for better rendering
+            // Pastikan map sudah diinisialisasi
+            if (window.mapCheckIn && window.mapCheckIn.setView) {
+                // Clear existing markers
+                window.mapCheckIn.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckIn.removeLayer(layer);
                     }
-                }, function (error) {
-                    console.error('Error getting location:', error);
                 });
+                
+                // Set view dan tambahkan marker di tengah
+                window.mapCheckIn.setView([latitude, longitude], 18);
+                const marker = L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+                
+                // Pastikan marker di tengah map
+                window.mapCheckIn.panTo([latitude, longitude]);
+                
+                document.getElementById('latitudeCheckIn').value = latitude;
+                document.getElementById('longitudeCheckIn').value = longitude;
+                
+                // Force map resize untuk memastikan tampilan benar
+                setTimeout(() => {
+                    window.mapCheckIn.invalidateSize();
+                }, 500);
             }
+        }, function (error) {
+            console.error('Error getting location:', error);
+        });
+    }
 
-      const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
-      modal.show();
-    })
-    .catch(error => {
-      console.error('Gagal ambil waktu server:', error);
+    const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
+    modal.show();
+    
+    // Set interval untuk update waktu setiap detik
+    const timeInterval = setInterval(updateModalTime, 1000);
+    
+    
+    // Clear interval saat modal ditutup
+    document.getElementById("checkInModal").addEventListener('hidden.bs.modal', function() {
+        clearInterval(timeInterval);
     });
 }
 
@@ -1054,77 +1150,57 @@ let checkoutStream = null;
 let checkoutCapturedImage = null;
 
 function openCheckOutModal() {
-    fetch(baseUrl + '/server-time')
-        .then(response => response.json())
-        .then(data => {
-            const serverTime = data.time;       // HH:mm
-            const serverDate = data.date;       // YYYY-MM-DD
-            const formattedDate = data.formatted_date; // Formatted date for display
+    // Update waktu berjalan
+    updateModalTimeCheckout();
+    
+    // Load check-in data and set dateAttendance
+    loadCheckInDataForCheckout();
 
-            // Update hidden inputs
-            const dateInput = document.getElementById("date_attendance");
-            const timeInput = document.getElementById("time_out");
+    // Get current location and zoom map
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+          const { latitude, longitude } = position.coords;
+
+          // Pastikan map sudah diinisialisasi
+          if (window.mapCheckOut && window.mapCheckOut.setView) {
+            // Clear existing markers
+            window.mapCheckOut.eachLayer(function (layer) {
+              if (layer instanceof L.Marker) {
+                window.mapCheckOut.removeLayer(layer);
+              }
+            });
             
-            if (dateInput && timeInput) {
-                dateInput.value = serverDate;
-                timeInput.value = serverTime;
-            } else {
-                console.error("Date or time input elements not found");
-                showFloatingAlert("Error loading checkout form. Please refresh the page.", "error");
-                return;
-            }
-
-            // Update tampilan
-            const timeDisplay = document.getElementById("time_out_display");
-            if (timeDisplay) {
-                timeDisplay.textContent = serverTime;
-            }
-
-            // Load check-in data dan hitung durasi kerja
-            loadCheckInDataForCheckout(serverTime);
-
-            // Get current location and zoom map
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function (position) {
-                  const { latitude, longitude } = position.coords;
-
-                  // Pastikan map sudah diinisialisasi
-                  if (window.mapCheckOut && window.mapCheckOut.setView) {
-                    // Clear existing markers
-                    window.mapCheckOut.eachLayer(function (layer) {
-                      if (layer instanceof L.Marker) {
-                        window.mapCheckOut.removeLayer(layer);
-                      }
-                    });
-                    
-                    // Set view dan tambahkan marker di tengah
-                    window.mapCheckOut.setView([latitude, longitude], 18); // Zoom level 18 for close view
-                    const marker = L.marker([latitude, longitude]).addTo(window.mapCheckOut);
-                    
-                    // Pastikan marker di tengah map
-                    window.mapCheckOut.panTo([latitude, longitude]);
-                    
-                    document.getElementById('latitudeCheckOut').value = latitude;
-                    document.getElementById('longitudeCheckOut').value = longitude;
-                    
-                    // Force map resize untuk memastikan tampilan benar
-                    setTimeout(() => {
-                        window.mapCheckOut.invalidateSize();
-                    }, 500); // Increased timeout for better rendering
-                  }
-                }, function (error) {
-                  console.error('Error getting location:', error);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Gagal ambil waktu server:', error);
-            showFloatingAlert("Failed to get server time. Please try again.", "error");
+            // Set view dan tambahkan marker di tengah
+            window.mapCheckOut.setView([latitude, longitude], 18);
+            const marker = L.marker([latitude, longitude]).addTo(window.mapCheckOut);
+            
+            // Pastikan marker di tengah map
+            window.mapCheckOut.panTo([latitude, longitude]);
+            
+            document.getElementById('latitudeCheckOut').value = latitude;
+            document.getElementById('longitudeCheckOut').value = longitude;
+            
+            // Force map resize untuk memastikan tampilan benar
+            setTimeout(() => {
+                window.mapCheckOut.invalidateSize();
+            }, 500);
+          }
+        }, function (error) {
+          console.error('Error getting location:', error);
         });
+    }
 
     // Tampilkan modal
     const modal = new bootstrap.Modal(document.getElementById("checkOutModal"));
     modal.show();
+    
+    // Set interval untuk update waktu setiap detik
+    const timeInterval = setInterval(updateModalTimeCheckout, 1000);
+    
+    // Clear interval saat modal ditutup
+    document.getElementById("checkOutModal").addEventListener('hidden.bs.modal', function() {
+        clearInterval(timeInterval);
+    });
 }
 
 function calculateDuration24h(timeIn, timeOut) {
@@ -1150,8 +1226,14 @@ function loadCheckInDataForCheckout(serverTime) {
         return;
     }
 
-    const selectedDate = document.getElementById("date_attendance")?.value || new Date().toISOString().split("T")[0];
-    const url = `${baseUrl}/attendance/daily/${employeeId}/${selectedDate}`;
+    // Set dateAttendance dengan tanggal hari ini
+    const today = new Date().toISOString().split("T")[0];
+    const dateAttendanceInput = document.getElementById("date_attendance");
+    if (dateAttendanceInput) {
+        dateAttendanceInput.value = today;
+    }
+
+    const url = `${baseUrl}/attendance/daily/${employeeId}/${today}`;
 
     fetch(url)
         .then(res => res.json())

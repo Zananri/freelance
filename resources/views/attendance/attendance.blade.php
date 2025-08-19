@@ -236,11 +236,11 @@
                         </div>
 
                         <!-- Time Display Container -->
-                        <div class="date-time-container">
+                    <div class="date-time-container d-flex justify-content-between mb-3"> <!-- Added flex properties for alignment -->
                             <!-- Time In Display -->
                             <div class="mb-3">
                                 <label class="form-label label-custom">Time In</label>
-                                <div class="date-time-display" id="time_in_display">
+                                <div class="date-time-display-checkout" id="time_in_display">
                                     Loading...
                                 </div>
                             </div>
@@ -248,13 +248,13 @@
                             <!-- Time Out Display -->
                             <div class="mb-3">
                                 <label class="form-label label-custom">Time Out</label>
-                                <div class="date-time-display" id="time_out_display">
+                                <div class="date-time-display-checkout" id="time_out_display">
                                     Loading...
                                 </div>
                             </div>
 
                             <!-- Total Work Duration -->
-                            <div class="mb-3">
+                            <div class="mb-3" hidden>
                                 <label class="form-label label-custom">Total Work Duration</label>
                                 <div class="date-time-display" id="total_work_duration">
                                     Loading...

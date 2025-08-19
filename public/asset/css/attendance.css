@@ -137,11 +137,11 @@
     padding: 0;
 }
 
-/* Container untuk date dan time in */
+/* Container untuk  dan time in */
 .date-time-container {
     display: flex;
     gap: 15px;
-    align-items: stretch;
+    align-items: center; /* Change to center for better alignment */
 }
 
 .date-time-container .mb-3 {
@@ -813,7 +813,7 @@
 }
 
 #date_attendance {
-    font-size: 18px;
+    font-size: 14px;
     color: #6c757d;
     text-align: center;
 }
@@ -853,7 +853,7 @@
 }
 
 #time_in {
-    margin-bottom: 0.15rem !important;
+
 }
 
 /* Responsive styling untuk modal di perangkat mobile */
@@ -944,4 +944,13 @@
 .modal-content.camera-active {
   background-color: transparent;
   border: none;
+}
+
+#workOutsideStatusText {
+    margin-left: 15px;
+}
+.date-time-display-checkout {
+    margin-left: 15px;
+    font-size: 14px;
+    color: #495057;
 }
