@@ -53,7 +53,7 @@
         integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous">
     </script>
     <script>
-          // Auto dismiss alert after 1.5 seconds
+        // Auto dismiss alert after 1.5 seconds
         setTimeout(function() {
             const alertContainer = document.querySelector('.alert-success');
             if (alertContainer) {
@@ -62,6 +62,119 @@
                 setTimeout(() => alertContainer.remove(), 500);
             }
         }, 1500);
+
+        // Geolocation script
+        document.addEventListener('DOMContentLoaded', () => {
+            // Create geolocation UI elements
+            const geolocationContainer = document.createElement('div');
+            geolocationContainer.innerHTML = `
+                <div id="geolocation-section" class="mb-3">
+                    <div id="loading" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 mb-0">Mengambil lokasi Anda...</p>
+                    </div>
+                    
+                    <div id="location-info" class="hidden">
+                        <div class="alert alert-info">
+                            <strong>Lokasi Terdeteksi:</strong><br>
+                            Latitude: <span id="latitude">-</span><br>
+                            Longitude: <span id="longitude">-</span>
+                        </div>
+                    </div>
+                    
+                    <div id="error-message" class="hidden">
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> <span id="error-text">-</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert after login form title
+            const loginForm = document.querySelector('.login-box-form');
+            if (loginForm) {
+                loginForm.insertBefore(geolocationContainer, loginForm.children[1]);
+            }
+
+            // Add CSS for hidden class
+            const style = document.createElement('style');
+            style.textContent = `
+                .hidden { display: none !important; }
+                #geolocation-section { margin-bottom: 20px; }
+            `;
+            document.head.appendChild(style);
+
+            const loadingElement = document.getElementById('loading');
+            const locationInfoElement = document.getElementById('location-info');
+            const latitudeElement = document.getElementById('latitude');
+            const longitudeElement = document.getElementById('longitude');
+            const errorElement = document.getElementById('error-message');
+            const errorTextElement = document.getElementById('error-text');
+
+            function showLocation(position) {
+                loadingElement.classList.add('hidden');
+                locationInfoElement.classList.remove('hidden');
+
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                latitudeElement.textContent = latitude.toFixed(6);
+                longitudeElement.textContent = longitude.toFixed(6);
+                
+                // Store location in hidden inputs for form submission
+                const latInput = document.createElement('input');
+                latInput.type = 'hidden';
+                latInput.name = 'latitude';
+                latInput.value = latitude;
+                
+                const lngInput = document.createElement('input');
+                lngInput.type = 'hidden';
+                lngInput.name = 'longitude';
+                lngInput.value = longitude;
+                
+                const loginForm = document.querySelector('form');
+                if (loginForm) {
+                    loginForm.appendChild(latInput);
+                    loginForm.appendChild(lngInput);
+                }
+            }
+
+            function showError(error) {
+                loadingElement.classList.add('hidden');
+                errorElement.classList.remove('hidden');
+                
+                let errorMessage = '';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "Akses lokasi ditolak. Mohon izinkan akses lokasi di pengaturan browser Anda.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "Informasi lokasi tidak tersedia saat ini.";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "Permintaan untuk mendapatkan lokasi Anda habis waktu.";
+                        break;
+                    default:
+                        errorMessage = "Terjadi kesalahan yang tidak diketahui saat mendapatkan lokasi.";
+                        break;
+                }
+                errorTextElement.textContent = errorMessage;
+                
+                // Tampilkan pesan kesalahan di console
+                console.error(`Error code: ${error.code}, Message: ${errorMessage}`);
+            }
+
+            // Minta lokasi pengguna
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showLocation, showError);
+            } else {
+                loadingElement.classList.add('hidden');
+                errorElement.classList.remove('hidden');
+                errorTextElement.textContent = "Geolocation tidak didukung oleh browser Anda.";
+            }
+        });
     </script>
 
 
