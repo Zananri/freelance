@@ -33,7 +33,7 @@
                             <div class="profile-text mt-2">
                                 <p class="user-name fw-light text-secondary">
                                     {{ $employee ? $employee->name : 'User Name :' }}</p>
-                                <div id="clock" class="digital-clock fw-bold fw-700 my-3"></div>
+                                <div id="clock" class="digital-clock fw-bold fw-700 my-3" style="color: #303030;"></div>
                                 <div id="date" class="digital-date mb-3 fw-light text-secondary"></div>
                             </div>
                             <div class="attendance-actions w-100 d-flex justify-content-evenly">
@@ -127,19 +127,19 @@
                                     <div class="chart-labels d-flex justify-content-between align-items-center mt-3">
                                         <div class="text-center">
                                             <span style="font-weight: bold; color: #222;">10</span><br>
-                                            <span style="color: #888;">Total</span>
+                                            <span style="color: #828282; font-size: 12px;">Total</span>
                                         </div>
                                         <div class="text-center">
                                             <span style="font-weight: bold; color: #4fc97a;">3</span><br>
-                                            <span style="color: #888;">Complete</span>
+                                            <span style="color: #828282; font-size: 12px;">Complete</span>
                                         </div>
                                         <div class="text-center">
                                             <span style="font-weight: bold; color: #5a9be6;">5</span><br>
-                                            <span style="color: #888;">On Progress</span>
+                                            <span style="color: #828282; font-size: 12px;">On Progress</span>
                                         </div>
                                         <div class="text-center">
                                             <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
-                                            <span style="color: #888;">Late</span>
+                                            <span style="color: #828282; font-size: 12px;">Late</span>
                                         </div>
                                     </div>
                                 </div>
@@ -200,7 +200,7 @@
                     </div>
 
                     <!-- Task List -->
-                    <div class="task-list-desktop flex-grow-1 overflow-auto">
+                    <div class="task-list flex-grow-1 overflow-auto">
                         {{-- Task Content --}}
                         <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
                             <div class="d-flex align-items-center mb-2">

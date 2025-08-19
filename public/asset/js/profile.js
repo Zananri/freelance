@@ -21,7 +21,9 @@ function showFloatingAlert(message, type = "success") {
     }
 
     alertDiv.innerHTML = `
-        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
+        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${
+            type.charAt(0).toUpperCase() + type.slice(1)
+        }:">
             <use xlink:href="#${iconId}"/>
         </svg>
         <div>
@@ -41,68 +43,68 @@ function showFloatingAlert(message, type = "success") {
 }
 
 $(document).ready(function () {
-    var appUrl = window.location.origin + window.location.pathname.replace(/\/[^/]+$/, '');
+    var appUrl =
+        window.location.origin +
+        window.location.pathname.replace(/\/[^/]+$/, "");
 
     // Form fields
-    var employeeName = $('#employee_name');
-    var employeeEmail = $('#employee_email');
-    var employeeEmailWork = $('#employee_email_work');
-    var employeePhone = $('#employee_phone');
-    var address = $('#address');
-    var birthDate = $('#birth_date');
-    var departmentId = $('#department_id');
-    var divisionId = $('#division_id');
-    var jobId = $('#job_id');
-    var grade = $('#grade');
-    var office = $('#office');
-    var hireDate = $('#hire_date');
+    var employeeName = $("#employee_name");
+    var employeeEmail = $("#employee_email");
+    var employeeEmailWork = $("#employee_email_work");
+    var employeePhone = $("#employee_phone");
+    var address = $("#address");
+    var birthDate = $("#birth_date");
+    var departmentId = $("#department_id");
+    var divisionId = $("#division_id");
+    var jobId = $("#job_id");
+    var grade = $("#grade");
+    var office = $("#office");
+    var hireDate = $("#hire_date");
 
-    var formAlert = $('#formAlert');
-    var profileForm = $('#profileForm');
+    var formAlert = $("#formAlert");
+    var profileForm = $("#profileForm");
     var submitButton = profileForm.find('button[type="submit"]');
-    var loaderOverlay = $('#profileLoaderOverlay');
+    var loaderOverlay = $("#profileLoaderOverlay");
 
     // Fetch user data from API using AJAX
     $.ajax({
-        url: appUrl + '/profile/index',
-        method: 'GET',
-        dataType: 'json',
+        url: appUrl + "/profile/index",
+        method: "GET",
+        dataType: "json",
         success: function (user) {
-            console.log('Profile data fetched:', user);
-            employeeName.val(user.name || '');
-            employeeEmail.val(user.employee?.email || '');
-            employeeEmailWork.val(user.employee?.email_work || '');
-            employeePhone.val(user.employee?.phone || '');
-            address.val(user.employee?.address || '');
-            birthDate.val(user.employee?.birth_date || '');
-            departmentId.val(user.employee?.department?.name_department || '');
-            divisionId.val(user.employee?.division?.name_division || '');
-            jobId.val(user.employee?.job?.job_name || '');
-            grade.val(user.employee?.grade || '');
-            office.val(user.employee?.office || '');
-            hireDate.val(user.employee?.hire_date || '');
-
-            var photoUrl = user.photo || null;
-            setProfilePhoto(photoUrl);
+            console.log("Profile data fetched:", user);
+            employeeName.val(user.name || "");
+            employeeEmail.val(user.employee?.email || "");
+            employeeEmailWork.val(user.employee?.email_work || "");
+            employeePhone.val(user.employee?.phone || "");
+            address.text(user.employee?.address || "");
+            birthDate.val(user.employee?.birth_date || "");
+            departmentId.val(user.employee?.department?.name_department || "");
+            divisionId.val(user.employee?.division?.name_division || "");
+            jobId.val(user.employee?.job?.job_name || "");
+            grade.val(user.employee?.grade || "");
+            office.val(user.employee?.office || "");
+            hireDate.val(user.employee?.hire_date || "");
         },
         error: function (xhr, status, error) {
-            console.error('Error fetching profile data:', error);
-        }
+            console.error("Error fetching profile data:", error);
+        },
     });
 
     // Current password and new password inputs
-    var currentPasswordInput = $('#current_password');
-    var newPasswordInput = $('#new_password');
+    var currentPasswordInput = $("#current_password");
+    var newPasswordInput = $("#new_password");
 
     // Disable new password input and submit button initially
-    newPasswordInput.prop('readonly', true);
-    submitButton.prop('disabled', true);
+    newPasswordInput.prop("readonly", true);
+    submitButton.prop("disabled", true);
 
     // Debounce function to limit the rate of function calls
     function debounce(func, wait) {
         var timeout;
         return function () {
-            var context = this, args = arguments;
+            var context = this,
+                args = arguments;
             clearTimeout(timeout);
             timeout = setTimeout(function () {
                 func.apply(context, args);
@@ -113,74 +115,83 @@ $(document).ready(function () {
     // Function to validate current password via AJAX
     function validateCurrentPassword() {
         var currentPassword = currentPasswordInput.val().trim();
-        console.log('Validating current password:', currentPassword);
+        console.log("Validating current password:", currentPassword);
         if (currentPassword.length === 0) {
-            currentPasswordInput.removeClass('is-valid is-invalid');
-            newPasswordInput.prop('disabled', true);
-            submitButton.prop('disabled', true);
+            currentPasswordInput.removeClass("is-valid is-invalid");
+            newPasswordInput.prop("disabled", true);
+            submitButton.prop("disabled", true);
             return;
         }
 
         $.ajax({
-            url: appUrl + '/profile/verify-current-password',
-            method: 'POST',
-            contentType: 'application/json',
+            url: appUrl + "/profile/verify-current-password",
+            method: "POST",
+            contentType: "application/json",
             data: JSON.stringify({ current_password: currentPassword }),
             headers: {
-                'X-CSRF-TOKEN': $('input[name="_token"]').val()
+                "X-CSRF-TOKEN": $('input[name="_token"]').val(),
             },
             success: function (data) {
-                console.log('Current password validation response:', data);
+                console.log("Current password validation response:", data);
                 if (data.valid) {
-                    currentPasswordInput.removeClass('is-invalid').addClass('is-valid');
-                    newPasswordInput.prop('readonly', false);
-                    submitButton.prop('disabled', false);
+                    currentPasswordInput
+                        .removeClass("is-invalid")
+                        .addClass("is-valid");
+                    newPasswordInput.prop("readonly", false);
+                    submitButton.prop("disabled", false);
                 } else {
-                    currentPasswordInput.removeClass('is-valid').addClass('is-invalid');
-                    newPasswordInput.prop('readonly', true);
-                    submitButton.prop('disabled', true);
+                    currentPasswordInput
+                        .removeClass("is-valid")
+                        .addClass("is-invalid");
+                    newPasswordInput.prop("readonly", true);
+                    submitButton.prop("disabled", true);
                 }
             },
             error: function () {
-                console.error('Error validating current password');
-                currentPasswordInput.removeClass('is-valid').addClass('is-invalid');
-                newPasswordInput.prop('readonly', true);
-                submitButton.prop('disabled', true);
-            }
+                console.error("Error validating current password");
+                currentPasswordInput
+                    .removeClass("is-valid")
+                    .addClass("is-invalid");
+                newPasswordInput.prop("readonly", true);
+                submitButton.prop("disabled", true);
+            },
         });
     }
 
     // Use debounced version of validateCurrentPassword on input event
-    var debouncedValidateCurrentPassword = debounce(validateCurrentPassword, 300);
+    var debouncedValidateCurrentPassword = debounce(
+        validateCurrentPassword,
+        300
+    );
 
-    currentPasswordInput.on('input', function () {
+    currentPasswordInput.on("input", function () {
         debouncedValidateCurrentPassword();
     });
 
     // Handle form submission with AJAX
-    profileForm.on('submit', function (e) {
+    profileForm.on("submit", function (e) {
         e.preventDefault();
-        console.log('Submitting profile update form');
+        console.log("Submitting profile update form");
 
         var formData = new FormData(this);
 
         // Clear previous alerts
-        formAlert.html('');
+        formAlert.html("");
         // Show loader and disable submit button
-        loaderOverlay.removeClass('d-none');
-        submitButton.prop('disabled', true);
+        loaderOverlay.removeClass("d-none");
+        submitButton.prop("disabled", true);
 
         $.ajax({
-            url: appUrl + '/profile/update',
-            method: 'POST',
+            url: appUrl + "/profile/update",
+            method: "POST",
             data: formData,
             processData: false,
             contentType: false,
             headers: {
-                'X-CSRF-TOKEN': $('input[name="_token"]').val()
+                "X-CSRF-TOKEN": $('input[name="_token"]').val(),
             },
             success: function (response) {
-                console.log('Profile update success:', response);
+                console.log("Profile update success:", response);
                 // Show success alert
                 showFloatingAlert(response.message, "success");
                 // Hide alert after 1.5 seconds and reload page
@@ -189,33 +200,50 @@ $(document).ready(function () {
                 }, 1500);
             },
             error: function (xhr, status, error) {
-                console.error('Profile update error:', error);
-                var errorMessage = xhr.responseJSON?.error || error || 'Error updating profile.';
-                showFloatingAlert('Error updating profile: ' + errorMessage, "danger");
+                console.error("Profile update error:", error);
+                var errorMessage =
+                    xhr.responseJSON?.error ||
+                    error ||
+                    "Error updating profile.";
+                showFloatingAlert(
+                    "Error updating profile: " + errorMessage,
+                    "danger"
+                );
             },
             complete: function () {
                 // Hide loader and enable submit button
-                loaderOverlay.addClass('d-none');
-                submitButton.prop('disabled', false);
-            }
+                loaderOverlay.addClass("d-none");
+                submitButton.prop("disabled", false);
+            },
         });
     });
 });
 
-$(document).ready(function () {
-    const $textarea = $("address");
+function adjustLayout() {
+    if ($(window).width() < 768) {
+        // Gabung profile-section & personal-info ke dalam 1 card
+        if (!$(".profile-card-mobile").length) {
+            $(".profile-section, .personal-info").wrapAll(
+                '<div class="profile-card-mobile card p-0 overflow-hidden" style="background: transparent; border-radius:20px; border: none; box-shadow:0 10px 25px rgba(0,0,0,0.05);"></div>'
+            );
+        }
+    } else {
+        // Desktop
+        $(".password-form").show();
 
-    autoResizeTextarea($textarea);
-
-    $textarea.on("input", function() {
-        autoResizeTextarea($(this));
-    })
-})
-
-function autoResizeTextarea(el) {
-  el.style.height = "auto";
-  el.style.height = el.scrollHeight + "px";
+        // Unwrap kalau ada wrapper mobile
+        if ($(".profile-card-mobile").length) {
+            $(".profile-section, .personal-info").unwrap();
+        }
+    }
 }
 
-const textarea = document.getElementById("address");
-autoResizeTextarea(textarea);
+// jalanin pas load
+$(document).ready(function () {
+    adjustLayout();
+});
+
+// jalanin pas resize
+$(window).resize(function () {
+    adjustLayout();
+});
