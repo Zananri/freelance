@@ -41,10 +41,7 @@ function showFloatingAlert(message, type = "success") {
 }
 
 $(document).ready(function () {
-    var appUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]+$/, '');
-    var profilePhotoLabel = $('.profile-photo-upload');
-    var profilePhotoInput = $('#profile_photo');
-    var profilePhotoClearBtn = $('#profilePhotoClearBtn');
+    var appUrl = window.location.origin + window.location.pathname.replace(/\/[^/]+$/, '');
 
     // Form fields
     var employeeName = $('#employee_name');
@@ -64,19 +61,6 @@ $(document).ready(function () {
     var profileForm = $('#profileForm');
     var submitButton = profileForm.find('button[type="submit"]');
     var loaderOverlay = $('#profileLoaderOverlay');
-
-    // Function to set profile photo background
-    function setProfilePhoto(url) {
-        if (url) {
-            profilePhotoLabel.addClass('has-image');
-            profilePhotoLabel.css('background-image', 'url(' + url + ')');
-            profilePhotoClearBtn.removeClass('d-none');
-        } else {
-            profilePhotoLabel.removeClass('has-image');
-            profilePhotoLabel.css('background-image', "url('" + appUrl + "/asset/img/background/add-image.png')");
-            profilePhotoClearBtn.addClass('d-none');
-        }
-    }
 
     // Fetch user data from API using AJAX
     $.ajax({
@@ -106,36 +90,12 @@ $(document).ready(function () {
         }
     });
 
-    // When user selects a new photo, update the preview
-    profilePhotoInput.on('change', function () {
-        var file = this.files[0];
-        if (file) {
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                profilePhotoLabel.addClass('has-image');
-                profilePhotoLabel.css('background-image', 'url(' + e.target.result + ')');
-                profilePhotoClearBtn.removeClass('d-none');
-                // Enable submit button when new photo is selected
-                submitButton.prop('disabled', false);
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // Add click event handler for clear button to remove image
-    profilePhotoClearBtn.on('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        profilePhotoInput.val(''); // Clear file input
-        setProfilePhoto(null); // Reset background and hide clear button
-    });
-
     // Current password and new password inputs
     var currentPasswordInput = $('#current_password');
     var newPasswordInput = $('#new_password');
 
     // Disable new password input and submit button initially
-    newPasswordInput.prop('disabled', true);
+    newPasswordInput.prop('readonly', true);
     submitButton.prop('disabled', true);
 
     // Debounce function to limit the rate of function calls
@@ -173,18 +133,18 @@ $(document).ready(function () {
                 console.log('Current password validation response:', data);
                 if (data.valid) {
                     currentPasswordInput.removeClass('is-invalid').addClass('is-valid');
-                    newPasswordInput.prop('disabled', false);
+                    newPasswordInput.prop('readonly', false);
                     submitButton.prop('disabled', false);
                 } else {
                     currentPasswordInput.removeClass('is-valid').addClass('is-invalid');
-                    newPasswordInput.prop('disabled', true);
+                    newPasswordInput.prop('readonly', true);
                     submitButton.prop('disabled', true);
                 }
             },
             error: function () {
                 console.error('Error validating current password');
                 currentPasswordInput.removeClass('is-valid').addClass('is-invalid');
-                newPasswordInput.prop('disabled', true);
+                newPasswordInput.prop('readonly', true);
                 submitButton.prop('disabled', true);
             }
         });
@@ -241,3 +201,21 @@ $(document).ready(function () {
         });
     });
 });
+
+$(document).ready(function () {
+    const $textarea = $("address");
+
+    autoResizeTextarea($textarea);
+
+    $textarea.on("input", function() {
+        autoResizeTextarea($(this));
+    })
+})
+
+function autoResizeTextarea(el) {
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+const textarea = document.getElementById("address");
+autoResizeTextarea(textarea);

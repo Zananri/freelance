@@ -124,68 +124,6 @@ $(document).ready(function () {
     });
 });
 
-// Initialize Swiper for mobile task display
-function initializeTaskSwiper() {
-    // Check if we're on mobile (width <= 768px)
-    const isMobile = window.innerWidth <= 768;
-
-    if (isMobile) {
-        // Initialize Swiper if not already initialized
-        if (!window.taskSwiper) {
-            window.taskSwiper = new Swiper(".task-swiper", {
-                slidesPerView: 1,
-                spaceBetween: 5,
-                centeredSlides: true,
-                pagination: {
-                    el: ".swiper-pagination",
-                    clickable: true,
-                },
-                loop: true,
-                grabCursor: false,
-                effect: "slide",
-                speed: 300,
-                breakpoints: {
-                    320: {
-                        slidesPerView: 1,
-                        spaceBetween: 10,
-                    },
-                    480: {
-                        slidesPerView: 1,
-                        spaceBetween: 15,
-                    },
-                    640: {
-                        slidesPerView: 1,
-                        spaceBetween: 20,
-                    },
-                },
-            });
-        }
-    } else {
-        // Destroy Swiper if it exists and we're on desktop
-        if (window.taskSwiper) {
-            window.taskSwiper.destroy();
-            window.taskSwiper = null;
-        }
-    }
-}
-
-$(document).ready(function () {
-    initializeTaskSwiper();
-    $(window).on("resize", function () {
-        handleResize();
-    });
-});
-
-$(document).ready(function () {
-    // existing code...
-    initializeTaskSwiper();
-
-    // render default timeline untuk desktop
-    if ($("#timelineRows").length) {
-        renderTimeline("#timelineRows", "#timelineTitle");
-    }
-});
-
 $(document).on("click", ".toggle-timeline", function () {
     const $timelineCard = $(this)
         .closest(".project-card")
@@ -198,13 +136,3 @@ $(document).on("click", ".toggle-timeline", function () {
     }
 });
 
-// Handle window resize for responsive behavior
-function handleResize() {
-    initializeTaskSwiper();
-}
-
-// Initialize on document ready and window resize
-$(document).ready(function () {
-    initializeTaskSwiper();
-    $(window).on("resize", handleResize);
-});

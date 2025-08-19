@@ -3,6 +3,23 @@
     overflow-x: hidden;
 }
 
+.dashboard-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dashboard-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dashboard-container::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.dashboard-container::-webkit-scrollbar-thumb:hover {
+    background-color: #707070;
+}
+
 /* Adjusted dimensions for better spacing */
 .body-card {
     margin-right: 1.5rem !important;
@@ -78,6 +95,10 @@
     justify-content: center;
 }
 
+.attendance-logs {
+    margin: 20px;
+}
+
 .attendance-actions {
     display: flex;
     justify-content: center;
@@ -146,6 +167,12 @@
     background: #d6d7e2 !important;
     color: #454545;
 }
+
+.chevron-icon-attendance button {
+    text-align: center;
+    background-color: #EBECF4;
+}
+
 /* Form Modal Section */
 .form-check-input[type="radio"] {
     display: none;
@@ -449,6 +476,28 @@
     margin-bottom: 2.5rem;
 }
 
+.task-list-desktop {
+    overflow-y: auto;
+    max-height: 750px;
+}
+
+.task-list-desktop::-webkit-scrollbar {
+    width: 4px;
+}
+
+.task-list-desktop::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-list-desktop::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.task-list-desktop::-webkit-scrollbar-thumb:hover {
+    background-color: #707070;
+}
+
 .task-card {
     border-radius: 15px;
 }
@@ -478,15 +527,6 @@
 
 /* Disable responsive media queries - override all */
 @media (max-width: 768px) {
-    .body-card {
-        padding: 20px;
-    }
-
-    .profile-calendar-card,
-    .calendar-card-mobile {
-        padding: 20px;
-    }
-
     .project-card {
         display: flex;
         flex-direction: column; /* atas-bawah */
@@ -593,11 +633,6 @@
         z-index: 1051;
         overflow-y: auto;
     }
-
-    .profile-calendar-card,
-    .calendar-card-mobile {
-        padding: 20px;
-    }
 }
 
 @media (min-width: 1025px) {
@@ -629,8 +664,17 @@
 }
 
 @media (max-width: 480px) {
+    .body-card {
+        margin-right: 0 !important;
+        margin-left: 0 !important;
+    }
+
+    .profile-image-container {
+        margin-top: -25px;
+    }
+
     .body-card,
-    .profile-card,
+    .profile-calendar-card,
     .calendar-container,
     .card-fill {
         height: auto !important;
@@ -638,14 +682,41 @@
         max-height: none !important;
     }
 
+    .profile-calendar-card {
+        padding: 10px !important;
+    }
+
+    .profile-calendar-card,
+    .calendar-card-mobile {
+        margin-bottom: -20px;
+    }
+
+    .chevron-icon-attendance button {
+        background-color: transparent;
+    }
+
     #doughnutChart {
         width: 150px !important;
         height: 150px !important;
     }
 
-    .profile-calendar-card,
+    .chart-labels {
+        font-size: 12px;
+    }
+
+    .mobile-icon-project {
+        margin-top: -50px;
+    }
+
+    .timeline-card-mobile {
+        height: 100%;
+        max-height: 500px;
+    }
+
     .calendar-card-mobile {
-        padding: 20px;
+        bottom: 20%;
+        height: 60%;
+        max-height: 500px;
     }
 }
 

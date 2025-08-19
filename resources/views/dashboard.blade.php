@@ -8,7 +8,7 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     </x-slot>
 
-    <div class="title-content">
+    <div class="title-content mx-4">
         <h2>Dashboard</h2>
     </div>
 
@@ -18,12 +18,12 @@
             <div class="col-md-8 above-content d-flex flex-column">
                 <div class="row flex-grow-1" style="flex: 1;">
                     {{-- Profile --}}
-                    <div class="col-md-6 my-3 profile-calendar-card">
+                    <div class="col-md-6 profile-calendar-card mb-5">
                         <div class="rounded-4 p-4 body-card h-100">
                             <div class="d-flex justify-content-end align-items-center">
                                 <button class="btn btn-sm toggle-calendar calendar-toggle-btn">
                                     <span class="material-symbols-outlined"
-                                        style="font-size: 18px;">calendar_month</span>
+                                        style="font-size: 18px; color: #858CA0;">calendar_month</span>
                                 </button>
                             </div>
 
@@ -46,31 +46,31 @@
                                         style="display: none;">done_all</span>Check
                                     Out</button>
                             </div>
-                            <div class="m-3">
+                            <div class="attendance-logs">
                                 <div class="justify-content-start mt-3">
                                     <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
                                 </div>
-                                <div class="d-flex justify-content-between align-items-center my-2"
+                                <div class="chevron-icon-attendance d-flex justify-content-between align-items-center my-2"
                                     style="font-size: 12px;">
                                     <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
-                                    <div class="d-flex align-items-center">
+                                    <div class="d-flex align-items-center justify-content-center">
                                         <div class="time_in">
                                             <span id="time_in_display"></span>
                                         </div>
-                                        <button class="btn p-0 ms-1" style="line-height: 1; background-color: #EBECF4;">
+                                        <button class="btn p-0 ms-1" style="line-height: 1;">
                                             <span class="material-symbols-outlined rounded-1"
                                                 style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                <div class="d-flex justify-content-between align-items-center" style="font-size: 12px;">
+                                <div class="chevron-icon-attendance d-flex justify-content-between align-items-center" style="font-size: 12px;">
                                     <p class="mb-0 flex-grow-1" style="color: #757575;">Check Out</p>
-                                    <div class="d-flex align-items-center">
+                                    <div class="d-flex align-items-center justify-content-center">
                                         <div class="time_out">
                                             <span id="time_out_display"></span>
                                         </div>
-                                        <button class="btn p-0 ms-1" style="line-height: 1; background-color: #EBECF4;">
+                                        <button class="btn p-0 ms-1" style="line-height: 1;">
                                             <span class="material-symbols-outlined rounded-1"
                                                 style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
                                         </button>
@@ -81,7 +81,7 @@
                     </div>
 
                     {{-- Calendar --}}
-                    <div class="col-md-6 my-3 calendar-card-mobile">
+                    <div class="col-md-6 calendar-card-mobile mb-5">
                         <div class="rounded-4 body-card calendar-container h-100">
                             <div class="calendar-header">
                                 <button class="btn btn-sm" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
@@ -107,17 +107,17 @@
                 <div class="row" style="flex: 1;">
                     <div class="col-12 card-fill">
                         <div class="rounded-4 p-4 body-card">
+                            <h5 class="mb-3" style="font-size: 24px; color: #4C4D5D;">Project</h5>
 
                             <!-- Project Card -->
                             <div class="project-card">
 
                                 <!-- Chart Section -->
                                 <div class="chart-section">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="mb-0" style="font-size: 24px">Project</h5>
+                                    <div class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
                                         <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
                                             <span class="material-symbols-outlined"
-                                                style="font-size: 18px;">calendar_month</span>
+                                                style="font-size: 18px; color: #858CA0;">calendar_month</span>
                                         </button>
                                     </div>
 
@@ -148,7 +148,7 @@
                                 <div class="timeline-card-mobile">
                                     <div class="project-timeline-card h-100">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px">Aug
+                                            <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">Aug
                                                 week 1</h5>
                                             <div>
                                                 <button class="btn btn-sm me-2" id="prevTimeline">
@@ -173,10 +173,7 @@
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
-                            <!-- /project-card -->
-
                         </div>
                     </div>
                 </div>
@@ -185,8 +182,8 @@
             </div>
 
             {{-- Task Group --}}
-            <div class="col-md-4 my-3">
-                <div class="rounded-4 p-4 body-card d-flex flex-column">
+            <div class="col-md-4 mb-3">
+                <div class="rounded-4 p-4 body-card d-flex flex-column ">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-normal" style="color: #454545">My Task</h5>
                         <button class="btn btn-link p-0">
@@ -196,15 +193,201 @@
 
                     <!-- Tabs -->
                     <div class="d-flex justify-between align-items-center w-100 mb-3">
-                        <button class="btn-tab-task btn btn-tab-custom flex-fill mx-2 rounded-md-4"
+                        <button class="btn-tab-task btn btn-tab-custom flex-fill mx-2 rounded-md-4 active"
                             data-tab-active="today">Today</button>
                         <button class="btn-tab-task btn btn-tab-custom flex-fill rounded-md-4"
                             data-tab-active="tomorrow">Tomorrow</button>
                     </div>
 
-                    <!-- Task List - Desktop View -->
+                    <!-- Task List -->
                     <div class="task-list-desktop flex-grow-1 overflow-auto">
                         {{-- Task Content --}}
+                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
+                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
+                            </div>
+                            <p class="mb-2 small" style="font-size: 10px;">
+                                Description It is a long established fact that a reader will be distracted by the
+                                readable
+                                content...
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center small mt-3"
+                                style="font-size: 10px;">
+                                <div>
+                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
+                                        style="color: #E14F4F">High</span>
+                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
+                                        style="color: #454545">17 Aug
+                                        2025</span>
+                                </div>
+                                <div class="d-flex">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                    </button>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
+                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
+                            </div>
+                            <p class="mb-2 small" style="font-size: 10px;">
+                                Description It is a long established fact that a reader will be distracted by the
+                                readable
+                                content...
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center small mt-3"
+                                style="font-size: 10px;">
+                                <div>
+                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
+                                        style="color: #E14F4F">High</span>
+                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
+                                        style="color: #454545">17 Aug
+                                        2025</span>
+                                </div>
+                                <div class="d-flex">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                    </button>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
+                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
+                            </div>
+                            <p class="mb-2 small" style="font-size: 10px;">
+                                Description It is a long established fact that a reader will be distracted by the
+                                readable
+                                content...
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center small mt-3"
+                                style="font-size: 10px;">
+                                <div>
+                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
+                                        style="color: #E14F4F">High</span>
+                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
+                                        style="color: #454545">17 Aug
+                                        2025</span>
+                                </div>
+                                <div class="d-flex">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                    </button>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
+                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
+                            </div>
+                            <p class="mb-2 small" style="font-size: 10px;">
+                                Description It is a long established fact that a reader will be distracted by the
+                                readable
+                                content...
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center small mt-3"
+                                style="font-size: 10px;">
+                                <div>
+                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
+                                        style="color: #E14F4F">High</span>
+                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
+                                        style="color: #454545">17 Aug
+                                        2025</span>
+                                </div>
+                                <div class="d-flex">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                    </button>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
+                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
+                            </div>
+                            <p class="mb-2 small" style="font-size: 10px;">
+                                Description It is a long established fact that a reader will be distracted by the
+                                readable
+                                content...
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center small mt-3"
+                                style="font-size: 10px;">
+                                <div>
+                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
+                                        style="color: #E14F4F">High</span>
+                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
+                                        style="color: #454545">17 Aug
+                                        2025</span>
+                                </div>
+                                <div class="d-flex">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                    </button>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
+                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
+                            </div>
+                            <p class="mb-2 small" style="font-size: 10px;">
+                                Description It is a long established fact that a reader will be distracted by the
+                                readable
+                                content...
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center small mt-3"
+                                style="font-size: 10px;">
+                                <div>
+                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
+                                        style="color: #E14F4F">High</span>
+                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
+                                        style="color: #454545">17 Aug
+                                        2025</span>
+                                </div>
+                                <div class="d-flex">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                    </button>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
                             <div class="d-flex align-items-center mb-2">
                                 <img src="https://picsum.photos/200" class="rounded-circle me-4">

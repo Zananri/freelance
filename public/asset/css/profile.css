@@ -1,14 +1,20 @@
-/* Profile photo upload container */
 .profile-photo-upload {
     display: block;
-    width: 150px;
-    height: 150px;
+    width: 70px;
+    height: 70px;
     background-size: cover;
     background-position: center;
     border: 1px solid #ced4da;
     border-radius: 50%;
     cursor: pointer;
     position: relative;
+}
+
+.body-content.profile-section,
+.body-content.personal-info {
+    background-color: #f0f1f8;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px 0 rgba(0, 0, 0, 0.05);
 }
 
 /* Loading spinner overlay styles copied from employee-create.css */
@@ -36,65 +42,91 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg);}
-    100% { transform: rotate(360deg);}
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
-.profile-photo-upload:not(.has-image) {
-    background-size: 60px 60px !important;
-    background-repeat: no-repeat !important;
-    background-position: center !important;
-    opacity: 0.5 !important;
+.personal-info {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.profile-photo-upload.has-image {
-    opacity: 1;
+.personal-info .label {
+    font-size: 12px;
+    color: #989eaf;
+    margin: 0;
 }
 
+.personal-info .value {
+    width: 100%;
+    border: none;
+    background: transparent;
+    resize: none;
+    overflow: hidden;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+    white-space: normal;
+    word-break: break-word;
+}
 
-
-/* Clear button for image */
-.image-clear-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #dc3545;
-    color: #fff;
-    font-size: 22px;
-    font-weight: bold;
+.profile-photo {
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
-    width: 26px;
-    height: 26px;
+}
+
+.custom-password-btn {
+    border: none;
+    background-color: #f9faff;
+}
+
+.custom-submit {
+    background-color: #444444;
+    color: #ebecf2;
+    width: 100%;
+    border-radius: 10px;
+    font-size: 14px;
+    padding: 10px;
+    font-weight: 400;
+}
+
+.icon-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    z-index: 2;
-    transition: background 0.2s;
-    opacity: 0.85;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.image-clear-btn:hover {
-    background: #b02a37;
-    opacity: 1;
+    color: #fff;
 }
 
-/* Layout adjustments */
-.body-content form .row {
-    gap: 1rem;
+.icon-circle.email {
+    background: #a9bae0;
+    color: white;
+}
+.icon-circle.phone {
+    background: #9ddad9;
+    color: white;
+}
+.icon-circle.department {
+    background: #ded4ab;
+    color: white;
+}
+.icon-circle.job {
+    background: #c1a8d3;
+    color: white;
+}
+.icon-circle.address {
+    background: #e3bfbf;
+    color: white;
 }
 
-.body-content form .col-md-3,
-.body-content form .col-md-4 {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.form-control.input-text {
-    background-color: #f0f1f8;
-}
-
-.form-control.input-text.current {
-    background-color: #fff;
+.icon-circle span {
+    font-size: 16px;
 }

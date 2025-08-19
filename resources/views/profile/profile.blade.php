@@ -5,7 +5,7 @@
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/profile.css') }}" rel="stylesheet">
     </x-slot>
-    
+
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
         <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
             <path
@@ -25,9 +25,9 @@
         <h2 class="m-0">Profile</h2>
     </div>
 
-    <div class="body-content scrollable-container rounded-4" style="margin-top: 20px; width: 100%; font-size:14px;">
-        <form id="profileForm" class="needs-validation position-relative" enctype="multipart/form-data" novalidate method="POST"
-            action="{{ route('profile.update', ['id' => $id]) }}">
+    <div class="scrollable rounded-4">
+        <form id="profileForm" class="needs-validation position-relative" enctype="multipart/form-data" novalidate
+            method="POST" action="{{ route('profile.update', ['id' => $id]) }}">
             @csrf
 
             <!-- Alert container for Bootstrap alerts -->
@@ -40,141 +40,104 @@
 
             <div class="px-3 py-3">
                 <div class="row">
-                    <!-- Left Section: Profile Image -->
-                    <div class="col-md-3 d-flex flex-column align-items-center gap-3">
-                        <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
-                            <span>Profile Photo</span>
-                        </div>
-                        <label for="profile_photo"
-                            class="custom-image-upload-photo position-relative profile-photo-upload"
-                            style="background-image: url('{{ asset(Auth::user()->photo ?? "asset/img/image.png") }}');">
-                            <input type="file" id="profile_photo" name="profile_photo" accept="image/*"
-                                class="photo-input" hidden />
-                            <span class="image-clear-btn d-none" id="profilePhotoClearBtn"
-                                title="Remove image">&times;</span>
-                        </label>
-                        <div>
-                            <label for="current_password" class="form-label">Current Password</label>
-                            <input type="password" id="current_password" name="current_password" class="form-control input-text current" required />
-                            <div class="valid-feedback">
-                                Current password is correct.
+                    <div class="col-md-3 d-flex flex-column gap-3">
+                        <div class="body-content profile-section p-4 text-center">
+                            <img class="profile-photo" src="{{ asset($employee->photo ?? 'asset/img/image.png') }}"
+                                alt="">
+
+                            <!-- User Info -->
+                            <h5 class="mt-3 mb-3">{{ $employee->name }}</h5>
+                            <p class="text-muted mb-4">
+                                @if ($employee && $employee->division)
+                                    {{ $employee->division->name_division }}
+                                @else
+                                    <span style="color:red;">Division not assigned</span>
+                                @endif
+                            </p>
+
+                            <!-- Current Password -->
+                            <div class="mb-3 text-start">
+                                <input type="password" id="current_password" name="current_password"
+                                    placeholder="Current password"
+                                    class="current custom-password-btn form-control input-text" required />
+                                <div class="valid-feedback">Current password is correct.</div>
+                                <div class="invalid-feedback">Current password is incorrect.</div>
                             </div>
-                            <div class="invalid-feedback">
-                                Current password is incorrect.
+
+                            <!-- New Password -->
+                            <div class="mb-3 text-start">
+                                <input type="password" id="new_password" name="password" placeholder="New password"
+                                    class="current custom-password-btn form-control input-text" required />
+                                <div class="invalid-feedback">Please enter a new password.</div>
                             </div>
-                        </div>
-                        <div>
-                            <label for="new_password" class="form-label">New Password</label>
-                            <input type="password" id="new_password" name="password" class="form-control input-text" required disabled />
-                            <div class="invalid-feedback">
-                                Please enter a new password.
+
+                            <!-- Submit Button -->
+                            <div class="mb-3 text-center">
+                                <button type="submit" class="btn-submit custom-submit" disabled>
+                                    Change Password
+                                </button>
                             </div>
-                        </div>
-                        <div class="text-center px-2 py-3">
-                            <button type="submit" class="btn-submit-black" disabled>Update</button>
                         </div>
                     </div>
+
 
                     <!-- Middle Section: originally left section fields -->
-                    <div class="col-md-4 d-flex flex-column gap-3">
-                        <div>
-                            <label for="employee_name" class="form-label">Employee Name</label>
-                            <input type="text" id="employee_name" name="employee_name" class="form-control input-text" required
-                                readonly disabled />
-                            <div class="invalid-feedback">
-                                Please enter the employee name.
-                            </div>
-                        </div>
-                        <div>
-                            <label for="employee_email" class="form-label">Employee Email</label>
-                            <input type="email" id="employee_email" name="employee_email" class="form-control input-text"
-                                required readonly disabled />
-                            <div class="invalid-feedback">
-                                Please enter a valid email.
-                            </div>
-                        </div>
-                        <div>
-                            <label for="employee_email_work" class="form-label">Email Work</label>
-                            <input type="email" id="employee_email_work" name="employee_email_work"
-                                class="form-control input-text" readonly disabled />
-                            <div class="invalid-feedback">
-                                Please enter a valid email work.
-                            </div>
-                        </div>
-                        <div>
-                            <label for="employee_phone" class="form-label">Employee Phone</label>
-                            <input type="number" id="employee_phone" name="employee_phone" class="form-control input-text"
-                                required readonly disabled />
-                            <div class="invalid-feedback">
-                                Please enter the employee phone.
-                            </div>
-                        </div>
-                        <div>
-                            <label for="address" class="form-label">Address</label>
-                            <textarea id="address" name="address" class="form-control input-text" required readonly disabled></textarea>
-                            <div class="invalid-feedback">
-                                Please enter the address.
-                            </div>
-                        </div>
-                        <div>
-                            <label for="birth_date" class="form-label">Birth Date</label>
-                            <input type="date" id="birth_date" name="birth_date" class="form-control input-text" required
-                                readonly disabled />
-                            <div class="invalid-feedback">
-                                Please enter the birth date.
-                            </div>
-                        </div>
+                    <div class="col-md-3 d-flex flex-column gap-3">
+                        <div class="body-content personal-info p-4">
+                            <h5 class="fw-normal mb-4" style="font-size: 24px;">Personal Info</h5>
 
-                    </div>
+                            <div class="info-item d-flex align-items-start gap-3 mb-4">
+                                <div class="icon-circle email">
+                                    <span class="material-symbols-outlined">mail</span>
+                                </div>
+                                <div>
+                                    <p class="label">Email</p>
+                                    <input type="text" name="employee_email_work" id="employee_email_work"
+                                        class="value" readonly disabled>
+                                </div>
+                            </div>
 
-                    <!-- Right Section: originally middle section fields -->
-                    <div class="col-md-4 d-flex flex-column gap-3">
-                        <div>
-                            <label for="department_id" class="form-label">Department Name</label>
-                            <input type="text" id="department_id" name="department_id" class="form-control input-text" required
-                                readonly disabled />
-                            <div class="invalid-feedback">
-                                Please select a department.
+                            <div class="info-item d-flex align-items-start gap-3 mb-4">
+                                <div class="icon-circle phone">
+                                    <span class="material-symbols-outlined">call</span>
+                                </div>
+                                <div>
+                                    <p class="label">Phone Number</p>
+                                    <input type="text" name="employee_phone" id="employee_phone" class="value"
+                                        readonly disabled>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label for="division_id" class="form-label">Division Name</label>
-                            <input type="text" id="division_id" name="division_id" class="form-control input-text" required
-                                readonly disabled />
-                            <div class="invalid-feedback">
-                                Please select a division.
+
+                            <div class="info-item d-flex align-items-start gap-3 mb-4">
+                                <div class="icon-circle department">
+                                    <span class="material-symbols-outlined">work</span>
+                                </div>
+                                <div>
+                                    <p class="label">Department & Division</p>
+                                    <input type="text" name="department_id" id="department_id" class="value"
+                                        readonly disabled>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label for="job_id" class="form-label">Job Name</label>
-                            <input type="text" id="job_id" name="job_id" class="form-control input-text" required
-                                readonly disabled />
-                            <div class="invalid-feedback">
-                                Please select a job.
+
+                            <div class="info-item d-flex align-items-start gap-3 mb-4">
+                                <div class="icon-circle job">
+                                    <span class="material-symbols-outlined">assignment</span>
+                                </div>
+                                <div>
+                                    <p class="label">Job</p>
+                                    <input type="text" name="job_id" id="job_id" class="value" readonly
+                                        disabled>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label for="grade" class="form-label">Grade</label>
-                            <input type="text" id="grade" name="grade" class="form-control input-text" required
-                                readonly disabled />
-                            <div class="invalid-feedback">
-                                Please select a grade.
-                            </div>
-                        </div>
-                        <div>
-                            <label for="office" class="form-label">Office</label>
-                            <input type="text" id="office" name="office" class="form-control input-text" required
-                                readonly disabled />
-                            <div class="invalid-feedback">
-                                Please select an office.
-                            </div>
-                        </div>
-                        <div>
-                            <label for="hire_date" class="form-label">Hire Date</label>
-                            <input type="date" id="hire_date" name="hire_date" class="form-control input-text" required
-                                readonly disabled />
-                            <div class="invalid-feedback">
-                                Please enter the hire date.
+
+                            <div class="info-item d-flex align-items-start gap-3">
+                                <div class="icon-circle address">
+                                    <span class="material-symbols-outlined">location_on</span>
+                                </div>
+                                <div>
+                                    <p class="label">Address</p>
+                                    <textarea type="text" name="address" id="address" class="value" readonly disabled></textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
