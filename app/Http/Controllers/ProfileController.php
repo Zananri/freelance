@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Attendance;
 use Carbon\Carbon;
 use App\Models\Employee;
+use Log;
 
 class ProfileController extends Controller
 {
@@ -16,8 +17,7 @@ class ProfileController extends Controller
     public function showprofilePage()
     {
         $user = auth()->user();
-        $employee = Employee::where('user_id', $user->id)->first();
-
+        $employee = Employee::with('division', 'department', 'job')->where('user_id', $user->id)->first();
 
         $today = Carbon::today()->toDateString();
 
@@ -35,7 +35,15 @@ class ProfileController extends Controller
         if ($photo) {
             $photo = asset($photo);
         }
-        return view('profile/profile', ['id' => $user->id], compact('employee'));
+
+        Log::info('Employee Division:', ['division' => $employee ? $employee->division : null]);
+        Log::info('Employee Department:', ['department' => $employee ? $employee->department : null]);
+        Log::info('Employee Job:', ['job' => $employee ? $employee->job : null]);
+
+        return view('profile/profile', [
+            'id' => $user->id,
+            'employee' => $employee
+        ], compact('employee'));
     }
 
     public function index()

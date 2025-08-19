@@ -15,6 +15,12 @@
     background-color: #f0f1f8;
     border-radius: 20px;
     box-shadow: 0 10px 25px 0 rgba(0, 0, 0, 0.05);
+    border: none;
+}
+
+.personal-info {
+    max-height: auto;
+    height: auto;
 }
 
 /* Loading spinner overlay styles copied from employee-create.css */
@@ -50,10 +56,15 @@
     }
 }
 
+.profile-card-wrapper {
+  background: transparent;
+  border: none;
+}
+
 .personal-info {
-    background: #fff;
-    border-radius: 12px;
+    border-radius: 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: none;
 }
 
 .personal-info .label {
@@ -66,19 +77,25 @@
     width: 100%;
     border: none;
     background: transparent;
-    resize: none;
     overflow: hidden;
     font-size: 14px;
     color: #333;
     line-height: 1.5;
-    white-space: normal;
-    word-break: break-word;
 }
 
 .profile-photo {
     width: 70px;
     height: 70px;
     border-radius: 50%;
+}
+
+.text-employee-name {
+    font-weight: 400;
+}
+
+.text-division {
+    font-size: 14px;
+    color: #828282;
 }
 
 .custom-password-btn {
@@ -125,8 +142,42 @@
 .icon-circle.address {
     background: #e3bfbf;
     color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .icon-circle span {
     font-size: 16px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .profile-card-mobile {
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .profile-card-mobile .profile-section {
+    border-radius: 20px 20px 0 0;
+    box-shadow: none;
+    padding: 20px;
+  }
+
+  .profile-card-mobile .personal-info {
+    border-radius: 0 0 20px 20px;
+    box-shadow: none;
+    margin-top: 0;
+    padding: 20px;
+    margin-top: -60px;
+  }
+
+  .profile-card-mobile .password-form {
+    display: none;
+  }
+
+  .body-content .text-division {
+    display: none;
+  }
 }
