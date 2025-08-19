@@ -116,7 +116,7 @@
                                     @else
                                         <span style="color:red;">Department not assigned</span>
                                     @endif
-                                    <span>|</span>
+                                    <span>/</span>
                                     @if ($employee && $employee->division)
                                         {{ $employee->division->name_division }}
                                     @else

@@ -21,28 +21,50 @@
                         <img src="{{ $employee && $employee->profile_picture ? asset($employee->profile_picture) : asset('asset/img/default-profile.png') }}"
                             alt="User Profile" class="profile-image">
                     </div>
-                    <div class="user-info">
+                    <div class="user-info mt-2">
                         <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>
-                        <p class="user-email">{{ $employee ? $employee->email_work : 'user@example.com' }}</p>
-                        <p class="user-division">
-                            @if ($employee && $employee->division)
-                                {{ $employee->division->name_division }}
-                            @else
-                                <span style="color:red;">Division not assigned</span>
-                            @endif
-                        </p>
+                        <div id="clock" class="digital-clock fw-bold fw-700 mt-3 mb-3"
+                            style="color: #303030; font-size: 24px;"></div>
+                        <div id="date" class="digital-date fw-light text-secondary" style="font-size: 12px;">
+                        </div>
                     </div>
-                    <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-center">
-                        <button class="btn btn-check-in w-50 mb-2" id="checkInBtn" style="display: none;">
-                            <span class="material-symbols-outlined">alarm_on</span>
+
+                    <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-between">
+                        <button class="btn btn-check-in btn-custom-check w-25 m-2 p-2" id="checkInBtn">
+                            <span class="material-symbols-outlined" style="display: none;">check</span>
                             Check In
                         </button>
-                        <button class="btn btn-check-out w-50 mb-2" id="checkOutBtn" style="display: none;">
-                            <span class="material-symbols-outlined">alarm_off</span>
+                        <button class="btn btn-check-out btn-custom-check w-25 m-2 p-2" id="checkOutBtn">
+                            <span class="material-symbols-outlined" style="display: none;">done_all</span>
                             Check Out
                         </button>
-                        <input type="hidden" id="checkInTime" name="checkInTime" value="">
-                        <input type="hidden" id="checkOutTime" name="checkOutTime" value="">
+                    </div>
+                    <div class="attendance-logs">
+                        <h6 class="fw-bold">Attendance Logs</h6>
+
+                        <!-- Check In -->
+                        <div class="log-row d-flex justify-content-between align-items-center my-2">
+                            <p class="mb-0">Check In</p>
+                            <div class="d-flex align-items-center">
+                                <span id="time_in_display" class="me-2"></span>
+                                <button class="btn p-0">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size:16px; color:#B3B3B3;">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Check Out -->
+                        <div class="log-row d-flex justify-content-between align-items-center my-2">
+                            <p class="mb-0">Check Out</p>
+                            <div class="d-flex align-items-center">
+                                <span id="time_out_display" class="me-2"></span>
+                                <button class="btn p-0">
+                                    <span class="material-symbols-outlined"
+                                        style="font-size:16px; color:#B3B3B3;">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -123,7 +145,8 @@
                                 <div class="form-check" style="width: 45%;">
                                     <input class="form-check-input" type="radio" name="is_work_outside"
                                         id="work_outside_yes" value="1">
-                                    <label class="form-check-label w-100 text-center" for="work_outside_yes">Yes</label>
+                                    <label class="form-check-label w-100 text-center"
+                                        for="work_outside_yes">Yes</label>
                                 </div>
                                 <div class="form-check" style="width: 45%;">
                                     <input class="form-check-input" type="radio" name="is_work_outside"
@@ -236,7 +259,8 @@
                         </div>
 
                         <!-- Time Display Container -->
-                    <div class="date-time-container d-flex justify-content-between mb-3"> <!-- Added flex properties for alignment -->
+                        <div class="date-time-container d-flex justify-content-between mb-3">
+                            <!-- Added flex properties for alignment -->
                             <!-- Time In Display -->
                             <div class="mb-3">
                                 <label class="form-label label-custom">Time In</label>
