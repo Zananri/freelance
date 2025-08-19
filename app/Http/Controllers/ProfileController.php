@@ -36,10 +36,6 @@ class ProfileController extends Controller
             $photo = asset($photo);
         }
 
-        Log::info('Employee Division:', ['division' => $employee ? $employee->division : null]);
-        Log::info('Employee Department:', ['department' => $employee ? $employee->department : null]);
-        Log::info('Employee Job:', ['job' => $employee ? $employee->job : null]);
-
         return view('profile/profile', [
             'id' => $user->id,
             'employee' => $employee
