@@ -422,7 +422,7 @@ if ($request->hasFile('image')) {
                     $attendanceTracking->update([
                         'type' => 'check_out',
                         'image' => $mergedTrackingImages,
-                        'device' => $checkInDevice . ' , ' . $checkOutDevice, // Gabungkan dengan separator |
+                        'device' => $checkInDevice . ',' . $checkOutDevice, // Gabungkan dengan separator |
                         'date_time' => $now,
                         'updated_by' => $userId,
                     ]);
