@@ -54,13 +54,13 @@ function initializeMaps() {
                         window.mapCheckIn.removeLayer(layer);
                     }
                 });
-                
+
                 // Set view dan tambahkan marker di tengah
                 window.mapCheckIn.setView([latitude, longitude], 15);
                 L.marker([latitude, longitude]).addTo(window.mapCheckIn);
                 document.getElementById('latitudeCheckIn').value = latitude;
                 document.getElementById('longitudeCheckIn').value = longitude;
-                
+
                 // Force map resize
                 setTimeout(() => {
                     window.mapCheckIn.invalidateSize();
@@ -74,13 +74,13 @@ function initializeMaps() {
                         window.mapCheckOut.removeLayer(layer);
                     }
                 });
-                
+
                 // Set view dan tambahkan marker di tengah
                 window.mapCheckOut.setView([latitude, longitude], 15);
                 L.marker([latitude, longitude]).addTo(window.mapCheckOut);
                 document.getElementById('latitudeCheckOut').value = latitude;
                 document.getElementById('longitudeCheckOut').value = longitude;
-                
+
                 // Force map resize
                 setTimeout(() => {
                     window.mapCheckOut.invalidateSize();
@@ -338,12 +338,62 @@ function openCheckInModal() {
         navigator.geolocation.getCurrentPosition(function (position) {
             const { latitude, longitude } = position.coords;
 
+<<<<<<< HEAD
             // Pastikan map sudah diinisialisasi
             if (window.mapCheckIn && window.mapCheckIn.setView) {
                 // Clear existing markers
                 window.mapCheckIn.eachLayer(function (layer) {
                     if (layer instanceof L.Marker) {
                         window.mapCheckIn.removeLayer(layer);
+=======
+      const hiddenDate = document.createElement('input');
+      hiddenDate.type = 'hidden';
+      hiddenDate.name = 'date_attendance';
+      hiddenDate.value = dateString;
+      document.getElementById('checkInForm').appendChild(hiddenDate);
+
+      const hiddenTime = document.createElement('input');
+      hiddenTime.type = 'hidden';
+      hiddenTime.name = 'time_in';
+      hiddenTime.value = timeString;
+      document.getElementById('checkInForm').appendChild(hiddenTime);
+
+      // Reset pilihan radio dan visibilitas imageUploadSection
+      const workOutsideNo = document.getElementById("work_outside_no");
+      const imageUploadSection = document.getElementById("imageUploadSection");
+
+      if (workOutsideNo) workOutsideNo.checked = true;
+      if (imageUploadSection) imageUploadSection.style.display = "none";
+
+            // Get current location and zoom map
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const { latitude, longitude } = position.coords;
+
+                    // Pastikan map sudah diinisialisasi
+                    if (window.mapCheckIn && window.mapCheckIn.setView) {
+                        // Clear existing markers
+                        window.mapCheckIn.eachLayer(function (layer) {
+                            if (layer instanceof L.Marker) {
+                                window.mapCheckIn.removeLayer(layer);
+                            }
+                        });
+
+                        // Set view dan tambahkan marker di tengah
+                        window.mapCheckIn.setView([latitude, longitude], 18); // Zoom level 18 for close view
+                        const marker = L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+
+                        // Pastikan marker di tengah map
+                        window.mapCheckIn.panTo([latitude, longitude]);
+
+                        document.getElementById('latitudeCheckIn').value = latitude;
+                        document.getElementById('longitudeCheckIn').value = longitude;
+
+                        // Force map resize untuk memastikan tampilan benar
+                        setTimeout(() => {
+                            window.mapCheckIn.invalidateSize();
+                        }, 100);
+>>>>>>> 86bc7fb65cf0f89a6226684b0cd77d2d0bf7a141
                     }
                 });
                 
@@ -992,149 +1042,6 @@ function resetCheckInModal() {
 // Inisialisasi ketika halaman siap
 document.addEventListener("DOMContentLoaded", initializeCameraFeatures);
 
-function submitCheckIn() {
-    const form = document.getElementById("checkInForm");
-    if (!form) return;
-
-    // Validate employeeId
-    const employeeIdInput = document.querySelector('input[name="employee_id"]');
-    if (!employeeIdInput || !employeeIdInput.value) {
-        console.error("Employee ID not found or is empty.");
-        showFloatingAlert("Employee ID is missing. Please refresh the page.", "error");
-        return;
-    }
-    const employeeId = employeeIdInput.value;
-
-    const formData = new FormData(form);
-
-    // Add latitude and longitude for check-in
-    const latitude = document.getElementById("latitudeCheckIn").value;
-    const longitude = document.getElementById("longitudeCheckIn").value;
-    formData.append("latitudeCheckIn", latitude);
-    formData.append("longitudeCheckIn", longitude);
-
-    // Add employee ID
-    formData.append("employee_id", employeeId);
-
-    // Add required fields
-    const isWorkOutsideRadio = document.querySelector('input[name="is_work_outside"]:checked');
-    if (!isWorkOutsideRadio) {
-        console.error("Work outside selection is missing.");
-        showFloatingAlert("Please select if you are working outside.", "error");
-        return;
-    }
-    formData.append("is_work_outside", isWorkOutsideRadio.value === "1" ? "1" : "0");
-    formData.append("date_attendance", document.querySelector('input[name="date_attendance"]').value);
-    formData.append("time_in", document.querySelector('input[name="time_in"]').value);
-    formData.append("type_attendance", "check_in");
-    
-    // Add optional fields
-    const noteTextarea = document.querySelector('textarea[name="note"]');
-    if (noteTextarea && noteTextarea.value.trim()) {
-        formData.append("note", noteTextarea.value.trim());
-    }
-
-    // Add captured image if exists
-    if (capturedImage) {
-        formData.append("image", capturedImage);
-    } else {
-        // Check if there's a file input
-        const imageInput = document.getElementById("imageInput");
-        if (imageInput && imageInput.files && imageInput.files[0]) {
-            formData.append("image", imageInput.files[0]);
-        }
-    }
-
-    // Add CSRF token
-    const csrfToken = document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute("content");
-    if (!csrfToken) {
-        showFloatingAlert("CSRF token not found. Please refresh the page.", "error");
-        return;
-    }
-    formData.append("_token", csrfToken);
-
-    // Show loading state
-    const submitBtn = document.getElementById("submitCheckInBtn");
-    if (!submitBtn) {
-        console.error("Submit button not found");
-        return;
-    }
-
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML =
-        '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    submitBtn.disabled = true;
-
-    // Get base URL from meta tag
-    const url = `${baseUrl}/attendance/store`;
-
-    // Send data to server
-    fetch(url, {
-        method: "POST",
-        body: formData,
-        headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            "X-CSRF-TOKEN": csrfToken,
-            Accept: "application/json",
-        },
-    })
-        .then((response) => {
-            return response.json().then((data) => {
-                if (!response.ok) {
-                    // Handle validation errors
-                    if (data.errors) {
-                        const errorMessages = Object.values(data.errors).flat().join('\n');
-                        throw new Error(errorMessages || data.message || 'Validation error');
-                    }
-                    throw new Error(data.message || `HTTP error! status: ${response.status}`);
-                }
-                return data;
-            });
-        })
-        .then((data) => {
-            if (data.status === "success") {
-                showFloatingAlert(
-                    data.message || "Check-in submitted successfully!",
-                    "success"
-                );
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(
-                    document.getElementById("checkInModal")
-                );
-                if (modal) modal.hide();
-
-                // Reset form
-                form.reset();
-                clearImage();
-
-                // Reload attendance data
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                showFloatingAlert(
-                    data.message || "Error submitting check-in",
-                    "error"
-                );
-                console.error("Server error:", data);
-            }
-        })
-        .catch((error) => {
-            console.error("Network error:", error);
-            showFloatingAlert(
-                error.message || "Network error. Please check your connection.",
-                "error"
-            );
-        })
-        .finally(() => {
-            // Reset button state
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        });
-}
-
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", function () {
     // Add Font Awesome for icons
@@ -1156,6 +1063,7 @@ function openCheckOutModal() {
     // Load check-in data and set dateAttendance
     loadCheckInDataForCheckout();
 
+<<<<<<< HEAD
     // Get current location and zoom map
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function (position) {
@@ -1187,6 +1095,67 @@ function openCheckOutModal() {
           }
         }, function (error) {
           console.error('Error getting location:', error);
+=======
+            // Update hidden inputs
+            const dateInput = document.getElementById("date_attendance");
+            const timeInput = document.getElementById("time_out");
+
+            if (dateInput && timeInput) {
+                dateInput.value = serverDate;
+                timeInput.value = serverTime;
+            } else {
+                console.error("Date or time input elements not found");
+                showFloatingAlert("Error loading checkout form. Please refresh the page.", "error");
+                return;
+            }
+
+            // Update tampilan
+            const timeDisplay = document.getElementById("time_out_display");
+            if (timeDisplay) {
+                timeDisplay.textContent = serverTime;
+            }
+
+            // Load check-in data dan hitung durasi kerja
+            loadCheckInDataForCheckout(serverTime);
+
+            // Get current location and zoom map
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                  const { latitude, longitude } = position.coords;
+
+                  // Pastikan map sudah diinisialisasi
+                  if (window.mapCheckOut && window.mapCheckOut.setView) {
+                    // Clear existing markers
+                    window.mapCheckOut.eachLayer(function (layer) {
+                      if (layer instanceof L.Marker) {
+                        window.mapCheckOut.removeLayer(layer);
+                      }
+                    });
+
+                    // Set view dan tambahkan marker di tengah
+                    window.mapCheckOut.setView([latitude, longitude], 18); // Zoom level 18 for close view
+                    const marker = L.marker([latitude, longitude]).addTo(window.mapCheckOut);
+
+                    // Pastikan marker di tengah map
+                    window.mapCheckOut.panTo([latitude, longitude]);
+
+                    document.getElementById('latitudeCheckOut').value = latitude;
+                    document.getElementById('longitudeCheckOut').value = longitude;
+
+                    // Force map resize untuk memastikan tampilan benar
+                    setTimeout(() => {
+                        window.mapCheckOut.invalidateSize();
+                    }, 100);
+                  }
+                }, function (error) {
+                  console.error('Error getting location:', error);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Gagal ambil waktu server:', error);
+            showFloatingAlert("Failed to get server time. Please try again.", "error");
+>>>>>>> 86bc7fb65cf0f89a6226684b0cd77d2d0bf7a141
         });
     }
 
@@ -1515,7 +1484,7 @@ function submitCheckOut() {
     formData.set("time_out", requiredFields.timeOut.value);
     formData.set("type_attendance", "check_out");  // Ensure type_attendance is set correctly
     formData.set("is_work_outside", requiredFields.isWorkOutside.value);
-    
+
     // Add is_work_outside dari status check in sebelumnya
     const isWorkOutsideValue = document.getElementById("is_work_outside_checkout").value;
     formData.append("is_work_outside", isWorkOutsideValue);
@@ -1523,25 +1492,25 @@ function submitCheckOut() {
     // Add date dan time untuk checkout
     const dateAttendance = document.getElementById("date_attendance").value;
     const timeOut = document.getElementById("time_out").value;
-    
+
     if (!dateAttendance || !timeOut) {
         showFloatingAlert("Date and time are required. Please try again.", "error");
         return;
     }
-    
+
     formData.append("date_attendance", dateAttendance);
     formData.append("time_out", timeOut);
 
     // Add latitude and longitude for check-out
     const latitude = document.getElementById("latitudeCheckOut")?.value;
     const longitude = document.getElementById("longitudeCheckOut")?.value;
-    
+
     if (!latitude || !longitude) {
         console.error("Location coordinates are missing");
         showFloatingAlert("Could not get your location. Please refresh and try again.", "error");
         return;
     }
-    
+
     formData.set("latitude", latitude);
     formData.set("longitude", longitude);
 

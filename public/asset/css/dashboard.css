@@ -1,3 +1,37 @@
+.dashboard-container {
+    height: calc(100vh - 150px);
+    overflow-x: hidden;
+}
+
+.dashboard-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dashboard-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dashboard-container::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.dashboard-container::-webkit-scrollbar-thumb:hover {
+    background-color: #707070;
+}
+
+/* Adjusted dimensions for better spacing */
+.body-card {
+    margin-right: 1.5rem !important;
+    margin-left: 1.5rem !important;
+    min-height: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding-bottom: 1rem !important;
+    box-shadow: 0px 10px 15px 0px rgba(0, 0, 0, 0.03);
+    background-color: #f0f1f8;
+}
+
 .profile-image-container {
     display: flex;
     justify-content: center;
@@ -5,12 +39,24 @@
     width: 100%;
 }
 
+.calendar-toggle-btn {
+    padding: 10px;
+    display: none;
+    background-color: #e3e4ee;
+    border-radius: 50%;
+    border: none;
+}
+
+.calendar-toggle-btn.active {
+    background-color: #c8c8cd;
+    border: none;
+}
+
 .profile-image {
     width: 70px;
     height: 70px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #ddd;
 }
 
 .profile-text {
@@ -49,6 +95,10 @@
     justify-content: center;
 }
 
+.attendance-logs {
+    margin: 20px;
+}
+
 .attendance-actions {
     display: flex;
     justify-content: center;
@@ -56,6 +106,74 @@
     margin-top: 16px;
 }
 
+.attendance-actions button {
+    display: flex;
+    padding: 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+    max-width: 200px;
+}
+
+/* .btn:disabled,
+.btn[disabled] {
+    opacity: 1 !important;
+    pointer-events: none;
+} */
+
+.btn-custom-check {
+    background-color: #e3e4ee;
+    color: black;
+}
+
+.btn-custom-check:hover {
+    background-color: #e3e4ee;
+    color: black;
+}
+
+.btn-custom-check.active {
+    background-color: #454545;
+    color: #f3f3f3;
+}
+
+.btn-tab-custom {
+    border-color: #e3e4ee !important;
+    background: transparent !important;
+    color: #454545;
+}
+.btn-tab-custom:hover {
+    border-color: #d3d4dd !important;
+    background: transparent !important;
+    color: #323232;
+}
+
+.btn-tab-custom.active {
+    border-color: #e3e4ee !important;
+    background: #e3e4ee !important;
+    color: #454545;
+}
+
+.btn-tab-custom.active:hover {
+    border-color: #d2d3db !important;
+    background: #d6d7e2 !important;
+    color: #454545;
+}
+
+.chevron-icon-attendance button {
+    text-align: center;
+    background-color: #EBECF4;
+}
+
+/* Form Modal Section */
 .form-check-input[type="radio"] {
     display: none;
 }
@@ -90,6 +208,12 @@
     border-color: #0056b3;
 }
 
+/* Radio button styling */
+.form-check-input:checked {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
 /* Container untuk Yes/No buttons */
 .work-outside-container {
     display: flex;
@@ -100,147 +224,6 @@
 .work-outside-container .form-check {
     margin: 0;
     padding: 0;
-}
-
-.btn {
-    display: flex;
-    padding: 16px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    justify-content: center;
-    max-width: 200px;
-}
-
-.btn-check-in {
-    background-color: #454545;
-    color: white;
-}
-
-.btn-check-in:hover {
-    background-color: #E3E4EE;
-    color: black;
-}
-
-.btn-check-out {
-    background-color: #E3E4EE;
-    color: white;
-}
-
-.btn-check-out:hover {
-    background-color: darkgray;
-}
-
-/* .btn:disabled,
-.btn[disabled] {
-    opacity: 1 !important;
-    pointer-events: none;
-} */
-
-/* Calendar Section */
-.calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-}
-
-.calendar-header h4 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
-}
-
-.calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    font-weight: 500;
-    color: #6c757d;
-    font-size: 12px;
-}
-
-.calendar-weekdays div {
-    padding: 4px 2px;
-}
-
-.calendar-header button {
-    background: none;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.calendar-header button:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    flex: 1;
-}
-
-.calendar-day {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.calendar-day:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-day.other-month {
-    color: #adb5bd;
-}
-
-.calendar-day.has-attendance::after {
-    position: absolute;
-    bottom: 3px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-}
-
-.calendar-day.present::after {
-    background-color: #28a745;
-}
-
-.calendar-day.absent::after {
-    background-color: #dc3545;
-}
-
-.calendar-day.late::after {
-    background-color: #ffc107;
-}
-
-.calendar-day.leave::after {
-    background-color: #6f42c1;
-}
-
-.card-fill {
-    min-height: 170px;
 }
 
 /* Uploda Image Styling for Attendance Modal */
@@ -303,174 +286,458 @@
     margin-top: 10px;
 }
 
-/* Label Styling for Calendar */
-.calendar-day.checked-in {
+/* Fixed dimensions for profile card with spacing */
+.above-content .body-card.h-100 {
+    height: 420px !important;
+    min-height: 420px !important;
+    max-height: 420px !important;
+    overflow-y: auto;
+}
+
+.above-content .body-card.h-100,
+.above-content .rounded-4.p-4.px-5.body-card.h-100 {
+    height: 400px !important;
+    margin-bottom: 20px;
+}
+
+.col-md-4 .body-card {
+    /* height: 550px !important; */
+    min-height: 100% !important;
+}
+
+/* Project Timeline Styles */
+.project-timeline-card {
+    background: transparent;
+}
+
+.timeline-toggle-btn {
+    padding: 10px;
+    display: none;
+    background-color: #e3e4ee;
+    border-radius: 50%;
+    border: none;
+}
+
+.timeline-toggle-btn.active {
+    background-color: #c8c8cd;
+    border: none;
+}
+
+.timeline-table {
+    width: 100%;
+    margin-top: 8px;
+    background: transparent;
+    border: 1px solid #e5e7eb;
     position: relative;
-    /* Add half triangular background */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+    overflow: hidden;
+    padding: 24px 16px 16px 16px;
 }
 
-.check-in-label {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+.timeline-header {
+    display: flex;
+    margin-bottom: 8px;
 }
 
-/* New styling for checkout with both In and Out labels - proper positioning */
-.calendar-day.checked-in {
+.timeline-row {
+    display: flex;
     position: relative;
-    /* Add half triangular background for check-in (top-left) */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+    height: 44px;
+    margin-bottom: 0;
 }
 
-.calendar-day.checked-out {
+.timeline-bar {
+    height: 28px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    font-weight: 500;
+    color: #555;
+    padding-left: 36px;
+    padding-right: 12px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    background: #e3f3ff;
+    left: 0;
+    transition: left 0.2s, width 0.2s;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    z-index: 1;
+}
+
+.timeline-cell {
+    flex: 1 1 0;
+    text-align: center;
+    padding: 4px 0;
+    font-size: 15px;
+    color: #444;
     position: relative;
-    /* Add half triangular background for check-out (bottom-right) */
-    background: linear-gradient(315deg, #6c757d 50%, transparent 50%);
 }
 
-.check-in-label {
+.timeline-header .timeline-cell:not(:last-child)::after,
+.timeline-row .timeline-cell:not(:last-child)::after {
+    content: "";
     position: absolute;
-    top: 2px;
-    left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    background: #e5e7eb;
+    z-index: 1;
 }
 
-.check-out-label {
+.timeline-bar .circle {
     position: absolute;
-    bottom: 2px;
-    right: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #b6e7c9;
 }
 
-/* When both check-in and check-out are present */
-.calendar-day.checked-in.checked-out {
-    /* Single gradient with sharp half split without white line */
-    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
-    color: white;
+.timeline-bar.color1 {
+    background: #e3f3ff;
+    border: 1px solid #cbe2f7;
+}
+.timeline-bar.color2 {
+    background: #e9e3f7;
+    border: 1px solid #d7cbe7;
+}
+.timeline-bar.color3 {
+    background: #f7f3e3;
+    border: 1px solid #e7dbc7;
+}
+.timeline-bar.color4 {
+    background: #ffe3e3;
+    border: 1px solid #f7cbcb;
+}
+.timeline-bar .circle.color1 {
+    border-color: #8fb3e8;
+}
+.timeline-bar .circle.color2 {
+    border-color: #b6a7e7;
+}
+.timeline-bar .circle.color3 {
+    border-color: #e7c97a;
+}
+.timeline-bar .circle.color4 {
+    border-color: #ff9c9c;
 }
 
-/* Radio button styling */
-.form-check-input:checked {
-    background-color: #007bff;
-    border-color: #007bff;
+/* Animasi masuk dari kanan + fade */
+@keyframes slideInRight {
+    0% {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
-/* Responsive Design */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .body-content {
-        padding: 10px;
+@keyframes slideOutRight {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+.timeline-card-mobile.animate-in {
+    animation: slideInRight 0.4s ease forwards;
+}
+
+.timeline-card-mobile.animate-out {
+    animation: slideOutRight 0.4s ease forwards;
+}
+
+/* Fixed dimensions for project card with spacing */
+.card-fill {
+    min-height: 100% !important;
+    margin-bottom: 15px;
+}
+
+#doughnutChart {
+    max-width: 300px !important;
+    max-height: 300px !important;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Additional spacing utilities */
+.dashboard-section {
+    margin-bottom: 2.5rem;
+}
+
+.task-list-desktop {
+    overflow-y: auto;
+    max-height: 750px;
+}
+
+.task-list-desktop::-webkit-scrollbar {
+    width: 4px;
+}
+
+.task-list-desktop::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-list-desktop::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.task-list-desktop::-webkit-scrollbar-thumb:hover {
+    background-color: #707070;
+}
+
+.task-card {
+    border-radius: 15px;
+}
+
+.task-card img {
+    width: 30px;
+    height: 30px;
+}
+
+/* Fixed dimensions for task card - reasonable height */
+
+/* Disable flex-grow behavior */
+.row[style*="height: calc(100vh - 150px)"] {
+    height: auto !important;
+    min-height: auto !important;
+}
+
+.row[style*="flex: 1"] {
+    flex: none !important;
+    height: auto !important;
+}
+
+/* Ensure cards don't stretch */
+.d-flex.flex-column {
+    height: auto !important;
+}
+
+/* Disable responsive media queries - override all */
+@media (max-width: 768px) {
+    .project-card {
+        display: flex;
+        flex-direction: column; /* atas-bawah */
+        gap: 1rem;
     }
 
-    .profile-card {
-        margin-bottom: 40px;
+    .chart-section {
+        width: 100%;
+        max-width: 100%;
     }
 
-    .profile-image {
-        width: 50px;
-        height: 50px;
-    }
-
-    .btn.btn-check-in,
-    .btn.btn-check-out {
-        margin-top: 100px;
-        padding: 12px;
-        font-size: 14px;
-        width: 100% !important;
-    }
-
-    .attendance-actions {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .card-fill {
-        min-height: 250px;
+    /* calendar & timeline toggle pake modal */
+    .calendar-card-mobile,
+    .timeline-card-mobile {
+        display: none; /* default hidden */
+        position: fixed;
+        inset: 0; /* ganti top/left 50% jadi langsung full screen bounds */
+        margin: auto; /* biar modalnya auto center */
+        top: 25%;
+        width: 90%;
+        max-width: 450px;
         height: auto;
+        max-height: 70vh;
+        background: #f0f1f8;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        transform: scale(0.8); /* ga perlu translate lagi */
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 1051;
+        overflow-y: auto;
+    }
+
+    .calendar-card-mobile.active,
+    .timeline-card-mobile.active {
+        display: block !important;
+        transform: scale(1);
+        opacity: 1;
     }
 
     .calendar-container {
-        width: 100% !important;
-        max-width: 100% !important;
-        padding: 10px;
+        padding: 15px;
+        height: auto !important;
     }
 
-    .calendar-header h4 {
-        font-size: 16px;
+    .calendar-days {
+        max-height: 50vh;
+        overflow-y: auto;
     }
-    .calendar-weekdays {
-        font-size: 11px;
+
+    .calendar-toggle-btn,
+    .timeline-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
-    .calendar-day {
-        font-size: 13px;
+
+    .calendar-overlay,
+    .timeline-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1050;
+    }
+
+    .calendar-overlay.active,
+    .timeline-overlay.active {
+        display: block;
     }
 }
 
-/* Responsive Design for Mobile */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .project-card {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .chart-section {
+        width: 100%;
+    }
+    .timeline-card-mobile {
+        display: none;
+    }
+    .timeline-toggle-btn {
+        display: inline-flex;
+    }
+    .timeline-card-mobile.active {
+        display: block !important;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 90%;
+        max-width: 500px;
+        height: 65%;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+        z-index: 1051;
+        overflow-y: auto;
+    }
+}
+
+@media (min-width: 1025px) {
+    .project-card {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 1rem;
+    }
+
+    .chart-section,
+    .timeline-card-mobile {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+        display: block !important;
+    }
+
+    .timeline-toggle-btn {
+        display: none !important;
+    }
+
+    .timeline-card-mobile {
+        position: relative !important;
+        transform: none !important;
+        opacity: 1 !important;
+        display: block !important;
+        box-shadow: none !important;
+        height: auto !important;
+    }
+}
+
 @media (max-width: 480px) {
-    .body-content {
-        margin-bottom: 20px;
+    .body-card {
+        margin-right: 0 !important;
+        margin-left: 0 !important;
     }
 
-    .profile-card {
-        margin-bottom: 20px;
+    .profile-image-container {
+        margin-top: -25px;
     }
 
-    .profile-image {
-        width: 50px;
-        height: 50px;
+    .body-card,
+    .profile-calendar-card,
+    .calendar-container,
+    .card-fill {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
     }
 
-    .calendar-container {
-        padding: 10px;
+    .profile-calendar-card {
+        padding: 10px !important;
     }
 
-    .calendar-header h4 {
-        font-size: 16px;
+    .profile-calendar-card,
+    .calendar-card-mobile {
+        margin-bottom: -20px;
     }
 
-    .calendar-day {
+    .chevron-icon-attendance button {
+        background-color: transparent;
+    }
+
+    #doughnutChart {
+        width: 150px !important;
+        height: 150px !important;
+    }
+
+    .chart-labels {
         font-size: 12px;
     }
 
-    .project-card {
-        margin-bottom: 12px;
-        min-width: 0;
-        word-break: break-word;
-        box-sizing: border-box;
+    .mobile-icon-project {
+        margin-top: -50px;
     }
 
-    .card-fill.row {
-        flex-direction: column;
+    .timeline-card-mobile {
+        height: 100%;
+        max-height: 500px;
     }
 
-    .btn {
-        padding: 8px;
-        font-size: 10px;
+    .calendar-card-mobile {
+        bottom: 20%;
+        height: 60%;
+        max-height: 500px;
     }
+}
+
+/* Swiper container styles */
+.task-swiper {
+    width: 100%;
+    height: 100%;
+}
+
+.task-swiper .swiper-wrapper {
+    align-items: center;
+}
+
+.task-swiper .swiper-slide {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.task-swiper .task-card {
+    width: 85%;
+    max-width: 300px;
+    margin: 0 auto;
 }
