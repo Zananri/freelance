@@ -107,83 +107,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3 d-flex align-items-stretch position-relative">
-                        <div class="project-card p-3 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
-
-                            <!-- Header -->
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="d-flex align-items-center">
-                                    <img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;">
-                                    <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
-                                        project.title
-                                    }</h6>
-                                </div>
-                                <div class="dropdown-icon-container">
-                                    <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
-                                            style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
-                                        <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
-                                    </button>
-                                    <div class="dropdown-menu d-none">
-                                        <div class="dropdown-item">Detail</div>
-                                        <div class="dropdown-item">Task</div>
-                                        <div class="dropdown-item">Feedback</div>
-                                        <div class="dropdown-item">Edit</div>
-                                        <div class="dropdown-item text-danger delete-project">Delete</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Description -->
-                            <p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">
-                                ${project.description || "No Description"}
-                            </p>
-
-                            <hr class="my-2 border-3"style="border-top:1px solid #DEDFE7;">
-
-                            <!-- Footer -->
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <div class="d-flex align-items-center">
-                                    ${(project.contributors || [])
-                                        .slice(0, 2)
-                                        .map(
-                                            (c) => `
-                                        <img src="${
-                                            c.user_photo
-                                                ? appUrl +
-                                                  "/file/profile_picture/" +
-                                                  c.user_photo
-                                                : appUrl +
-                                                  "/asset/img/profile_picture/default.png"
-                                        }"
-                                            alt="${
-                                                c.name
-                                            }" class="rounded-circle me-1"
-                                            style="width:28px;height:28px;object-fit:cover;">
-                                    `
-                                        )
-                                        .join("")}
-                                    ${
-                                        project.contributors &&
-                                        project.contributors.length > 2
-                                            ? `<span class="badge bg-light text-dark">+${
-                                                  project.contributors.length -
-                                                  2
-                                              }</span>`
-                                            : ""
-                                    }
-                                </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-2" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
                 `;
                     });
 
@@ -3685,9 +3608,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (ctx) createDoughnut(ctx);
 });
 
-// State untuk timeline
-let currentMonthProject = new Date().getMonth(); // 0 - 11
-let currentWeekProject = 0; // 0-3
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let currentWeek = 0;
+
 const months = [
     "Jan",
     "Feb",
@@ -3703,219 +3627,175 @@ const months = [
     "Dec",
 ];
 
-// Dummy data project (ubah sesuai backend lu)
+// Dummy data project
 const timelineData = [
-    { name: "Name Project", start: 0, end: 3, color: "color1" },
-    { name: "Name Project", start: 1, end: 4, color: "color2" },
-    { name: "Name Project", start: 2, end: 6, color: "color3" },
-    { name: "Name Project", start: 0, end: 6, color: "color4" },
+    { name: "Project 1", start: 0, end: 3, color: "color1" },
+    { name: "Project 2", start: 1, end: 4, color: "color2" },
+    { name: "Project 2", start: 1, end: 4, color: "color2" },
+    { name: "Project 3", start: 2, end: 6, color: "color3" },
+    { name: "Project 3", start: 2, end: 6, color: "color3" },
+    { name: "Project 4", start: 0, end: 6, color: "color4" },
+    { name: "Project 4", start: 0, end: 6, color: "color4" },
 ];
 
-// Fungsi render timeline
-function renderTimeline(
-    targetRows = "#timelineRows",
-    targetTitle = "#timelineTitle",
-    mode = "week" // default
-) {
-    const $timelineRows = $(targetRows);
-    $timelineRows.empty();
-    $(".timeline-lines").remove();
+function renderTimeline(targetHeaderSelector, targetRowsSelector, mode = "week", month = null, year = null, weekIndex = 0) {
+    const headerRow = document.querySelector(targetHeaderSelector);
+    const rowsContainer = document.querySelector(targetRowsSelector);
+    if (!headerRow || !rowsContainer) return;
 
-    let totalCells;
-    let headerLabels = [];
+    headerRow.innerHTML = "";
+    rowsContainer.innerHTML = "";
+
+    let totalCells, headerLabels = [];
 
     if (mode === "week") {
-        $(targetTitle).text(
-            `${months[currentMonthProject]} week ${currentWeekProject + 1}`
-        );
+        headerLabels = ["Mo","Tu","We","Th","Fr","Sa","Su"];
         totalCells = 7;
-        headerLabels = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-    } else {
-        // Full month (daily)
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth(); // 0 = Jan
+    } else { // month
+        month = month ?? new Date().getMonth();
+        year = year ?? new Date().getFullYear();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        $(targetTitle).text(`${months[month]} ${year}`);
+        headerLabels = Array.from({length: daysInMonth}, (_, i) => i + 1);
         totalCells = daysInMonth;
-
-        // Header = tanggal 1-31
-        headerLabels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
     }
 
-    // 🔹 Render header
-    const headerRow = document.querySelector(".timeline-header");
-    headerRow.innerHTML = "";
+    // Render header
     headerLabels.forEach((label, idx) => {
-        const cell = document.createElement("div");
-        cell.className = "timeline-cell fw-bold";
-        cell.textContent = label;
+        const th = document.createElement("th");
+        th.textContent = label;
 
-        // kasih warna merah di hari Minggu
-        if (mode === "week" && idx === 6) {
-            cell.classList.add("sunday");
-        }
+        let isSunday = false;
+        if (mode === "week" && idx === 6) isSunday = true;
         if (mode === "month") {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth();
             const date = new Date(year, month, label);
-            if (date.getDay() === 0) {
-                // 0 = Sunday
-                cell.classList.add("sunday");
+            if (date.getDay() === 0) isSunday = true;
+        }
+
+        if (isSunday) th.style.color = "red";
+        headerRow.appendChild(th);
+    });
+
+    // Render rows
+    timelineData.forEach(proj => {
+        const tr = document.createElement("tr");
+
+        for (let i = 0; i < proj.start; i++) {
+            const td = document.createElement("td");
+            if (mode === "week" && i === 6) td.style.color = "red";
+            if (mode === "month") {
+                const date = new Date(year, month, i + 1);
+                if (date.getDay() === 0) td.style.color = "red";
             }
+            tr.appendChild(td);
         }
 
-        headerRow.appendChild(cell);
+        // Bar
+        const barTd = document.createElement("td");
+        barTd.colSpan = proj.end - proj.start + 1;
+        barTd.innerHTML = `<div class="timeline-bar ${proj.color}"><span class="circle"></span> ${proj.name}</div>`;
+        tr.appendChild(barTd);
+
+        // Kosong setelah bar
+        for (let i = proj.end + 1; i < totalCells; i++) {
+            const td = document.createElement("td");
+            if (mode === "week" && i === 6) td.style.color = "red";
+            if (mode === "month") {
+                const date = new Date(year, month, i + 1);
+                if (date.getDay() === 0) td.style.color = "red";
+            }
+            tr.appendChild(td);
+        }
+
+        rowsContainer.appendChild(tr);
     });
 
-    // 🔹 Buat garis pemisah
-    const $linesContainer = $("<div>").addClass("timeline-lines");
-    for (let i = 1; i < totalCells; i++) {
-        const $line = $("<div>")
-            .addClass("timeline-line")
-            .css({
-                left: `calc(100% / ${totalCells} * ${i})`,
-                top: "0",
-                bottom: "0",
-                width: "1px",
-                background: "#e5e7eb",
-            });
-        $linesContainer.append($line);
+    if(mode === "week") {
+        const title = document.getElementById("timelineTitle");
+        title.textContent = `${months[month]} week ${weekIndex + 1}`;
     }
-    $(".timeline-table").append($linesContainer);
-
-    // 🔹 Generate baris proyek
-    $.each(timelineData, function (_, proj) {
-        const $row = $("<div>").addClass("timeline-row d-flex");
-
-        // Dummy cells
-        for (let i = 0; i < totalCells; i++) {
-            $row.append($("<div>").addClass("timeline-cell"));
-        }
-
-        let barLeft, barWidth;
-        if (mode === "week") {
-            barLeft = (proj.start + 0.3) * (100 / 7);
-            barWidth = (proj.end - proj.start + 1) * (100 / 7);
-        } else {
-            // Full month
-            barLeft = (proj.start - 0.3 )* (100 / totalCells);
-            barWidth = (proj.end - proj.start) * (100 / totalCells);
-        }
-
-        const $bar = $("<div>")
-            .addClass(`timeline-bar ${proj.color}`)
-            .css({
-                left: `${barLeft}%`,
-                width: `${barWidth}%`,
-                position: "absolute",
-                top: "50%",
-            })
-            .html(
-                `<span class="circle ${proj.color} me-3"></span>${proj.name}`
-            );
-
-        $row.append($bar);
-        $timelineRows.append($row);
-    });
 }
 
-$(document).ready(function () {
-    if ($("#timelineRows").length) {
-        renderTimeline("#timelineRows", "#timelineTitle", "week");
+renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+
+document.getElementById("prevTimeline").addEventListener("click", () => {
+    if(currentWeek > 0) currentWeek--;
+    else {
+        currentMonth--;
+        if(currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        currentWeek = 3;
     }
-
-    $("#prevTimeline").on("click", function () {
-        if (currentWeekProject > 0) {
-            currentWeekProject--;
-        } else if (currentMonthProject > 0) {
-            currentMonthProject--;
-            currentWeekProject = 3;
-        }
-        renderTimeline("#timelineRows", "#timelineTitle", "week");
-    });
-
-    $("#nextTimeline").on("click", function () {
-        if (currentWeekProject < 3) {
-            currentWeekProject++;
-        } else if (currentMonthProject < 11) {
-            currentMonthProject++;
-            currentWeekProject = 0;
-        }
-        renderTimeline("#timelineRows", "#timelineTitle", "week");
-    });
+    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
 });
 
-function generateTimelineHeader(mode = "week") {
-    const headerRow = document.querySelector(".timeline-header");
-    headerRow.innerHTML = "";
-
-    if (mode === "week") {
-        const days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
-        days.forEach((day) => {
-            const cell = document.createElement("div");
-            cell.className = "timeline-cell fw-bold";
-            cell.textContent = day;
-            headerRow.appendChild(cell);
-        });
-    } else if (mode === "month") {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        for (let d = 1; d <= daysInMonth; d++) {
-            const cell = document.createElement("div");
-            cell.className = "timeline-cell fw-bold";
-            cell.textContent = d;
-            headerRow.appendChild(cell);
+document.getElementById("nextTimeline").addEventListener("click", () => {
+    if(currentWeek < 3) currentWeek++;
+    else {
+        currentMonth++;
+        if(currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
         }
+        currentWeek = 0;
     }
+    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+});
+
+const fullscreenBtn = document.getElementById("timelineFullscreenBtn");
+const modal = document.getElementById("timelineModal");
+const closeBtn = document.getElementById("timelineModalClose");
+const modalTitle = document.getElementById("timelineModalTitle");
+const prevBtn = document.getElementById("prevTimelineModal");
+const nextBtn = document.getElementById("nextTimelineModal");
+const modalCloseBtn = document.getElementById("timelineModalCloseBtn");
+
+function updateModalTimeline() {
+    modalTitle.textContent = `${months[currentMonth]} ${currentYear}`;
+    renderTimeline(
+        "#timelineHeaderModal",
+        "#timelineRowsModal",
+        "month",
+        currentMonth,
+        currentYear
+    );
 }
 
-// Fullscreen toggle
-document.addEventListener("DOMContentLoaded", function () {
-    const fullscreenBtn = document.getElementById("timelineFullscreenBtn");
-    const fullscreenIcon = document.getElementById("timelineFullscreenIcon");
-    const chartCol = document.querySelector(".col-md-4 .chart-section");
-    const timelineCol = document.querySelector(".col-md-8 .timeline-section");
+fullscreenBtn.addEventListener("click", () => {
+    modal.style.display = "flex";
+    updateModalTimeline();
+});
 
-    let fullscreen = false;
+closeBtn.addEventListener("click", () => {
+    modal.style.display = "none";
+});
 
-    fullscreenBtn.addEventListener("click", () => {
-        fullscreen = !fullscreen;
+prevBtn.addEventListener("click", () => {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    updateModalTimeline();
+});
 
-        if (fullscreen) {
-            // Hide chart
-            chartCol.closest(".col-md-4").classList.add("d-none");
+nextBtn.addEventListener("click", () => {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    updateModalTimeline();
+});
 
-            timelineCol.closest(".col-md-8").classList.remove("col-md-8");
-            timelineCol.closest(".row > div").classList.add("col-12");
-
-            fullscreenIcon.textContent = "fullscreen_exit";
-
-            renderTimeline("#timelineRows", "#timelineTitle", "month");
-        } else {
-            chartCol.closest(".col-md-4").classList.remove("d-none");
-
-            const timelineDiv = timelineCol.closest(".row > div");
-            timelineDiv.classList.remove("col-12");
-            timelineDiv.classList.add("col-md-8");
-
-            fullscreenIcon.textContent = "fullscreen";
-
-            renderTimeline("#timelineRows", "#timelineTitle", "week");
-        }
-    });
-
-    generateTimelineHeader("week");
+modalCloseBtn.addEventListener("click", () => {
+    modal.style.display = "none";
 });
 
 document.addEventListener("DOMContentLoaded", function () {
     // --- Timeline Toggle ---
-    const $timeline = $(".timeline-card-mobile");
+    const $timeline = $(".timeline-card");
     const $timelineOverlay = $("<div class='timeline-overlay'></div>").appendTo(
         "body"
     );

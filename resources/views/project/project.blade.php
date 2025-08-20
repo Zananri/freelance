@@ -19,7 +19,7 @@
                 d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
         </symbol>
     </svg>
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="title-content">
             <h2>Project</h2>
         </div>
@@ -64,14 +64,14 @@
             </div>
             <div class="col-md-8">
                 {{-- timeline project --}}
-                <div class="timeline-card-mobile">
+                <div class="timeline-card">
                     <div class="body-content timeline-section p-4">
                         <div class="project-timeline-card">
                             <div class="timeline-card h-100">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">
-                                        Aug
-                                        week 1</h5>
+                                        Aug week 1
+                                    </h5>
                                     <div>
                                         <button class="btn btn-sm me-2" id="prevTimeline">
                                             <span class="material-symbols-outlined">chevron_left</span>
@@ -85,23 +85,64 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="timeline-table justify-content-center align-items-center">
-                                    <div class="timeline-header d-flex">
-                                        <div class="timeline-cell fw-bold">Mo</div>
-                                        <div class="timeline-cell fw-bold">Tu</div>
-                                        <div class="timeline-cell fw-bold">We</div>
-                                        <div class="timeline-cell fw-bold">Th</div>
-                                        <div class="timeline-cell fw-bold">Fr</div>
-                                        <div class="timeline-cell fw-bold">Sa</div>
-                                        <div class="timeline-cell fw-bold">Su</div>
-                                    </div>
-                                    <div id="timelineRows"></div>
+
+                                <!-- Timeline pakai table -->
+                                <div class="timeline-wrapper">
+                                    <table class="timeline-table">
+                                        <thead>
+                                            <tr id="timelineHeader"></tr>
+                                        </thead>
+                                        <tbody id="timelineRows"></tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {{-- Modal Timeline --}}
+            <div class="timeline-modal-overlay" id="timelineModal">
+                <div class="timeline-modal">
+                    <div class="timeline-card-modal h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <!-- Title -->
+                            <h5 id="timelineModalTitle" class="fw-semibold mb-0">Timeline</h5>
+
+                            <!-- Action buttons -->
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm" id="prevTimelineModal">
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                <button class="btn btn-sm me-3" id="nextTimelineModal">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </button>
+
+                                <!-- Tombol fullscreen exit -->
+                                <button id="timelineModalClose" class="btn btn-sm border-0 bg-transparent me-2">
+                                    <span class="material-symbols-outlined">fullscreen_exit</span>
+                                </button>
+
+                                <!-- Tombol close modal -->
+                                <button id="timelineModalCloseBtn" class="btn btn-sm border-0 bg-transparent">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Timeline table -->
+                        <div class="timeline-wrapper">
+                            <table class="timeline-table">
+                                <thead>
+                                    <tr id="timelineHeaderModal"></tr>
+                                </thead>
+                                <tbody id="timelineRowsModal"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="bottom-project-content mt-5">
                 <div class="d-flex justify-content-between align-items-center">
                     <h6 class="mb-4">All Project</h6>
