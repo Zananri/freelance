@@ -7,6 +7,8 @@
         <link href="{{ asset('asset/css/calendar-dashboard.css') }}" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     </x-slot>
 
     <div class="title-content mx-4">
@@ -599,21 +601,36 @@
                                 </div>
 
                                 <!-- Image Upload Section -->
-                                <div class="mb-3" id="imageUploadSection" style="display: none;">
-                                    <label class="form-label">Photo (Optional)</label>
+                                <div class="mb-3" id="imageUploadSectionCheckout">
+                                    <label class="form-label">Photo</label>
                                     <div class="image-upload-container">
-                                        <label for="imageInput" class="image-upload-label camera-label">
+                                        <!-- Label untuk trigger kamera -->
+                                        <label for="imageInputCheckout" class="image-upload-label camera-label">
                                             <div class="image-upload-icon">
                                                 <i class="fas fa-camera fa-2x text-primary"></i>
                                             </div>
-                                            <span>Take Photo</span>
+                                            <span id="cameraTextCheckout">Take Photo</span>
                                         </label>
-                                        <input type="file" class="form-control d-none" id="imageInput"
-                                            name="image" accept="image/*" capture="user">
-                                        <div id="imagePreview" class="image-preview mt-2" style="display: none;">
-                                            <img id="previewImg" src="" alt="Preview"
-                                                class="img-fluid rounded">
+
+                                        <!-- Input file untuk mobile -->
+                                        <input type="file" class="form-control d-none" id="imageInputCheckout" name="image[]"
+                                            accept="image/*" capture="environment">
+
+                                        <!-- Hidden existing image URLs -->
+                                        @if ($attendance && $attendance->image)
+                                            @foreach ($attendance->image as $image)
+                                                <input type="hidden" name="existingImageUrls[]" value="{{ asset($image) }}">
+                                            @endforeach
+                                        @endif
+
+                                        <!-- Image preview -->
+                                        <div id="imagePreviewCheckout" class="image-preview mt-2" style="display:none;">
+                                            <img id="previewImgCheckout" src="" alt="Preview" class="img-fluid rounded">
                                         </div>
+
+                                        <!-- Clear button -->
+                                        <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
+                                            id="clearImageBtnCheckout">&times;</button>
                                     </div>
                                 </div>
 
