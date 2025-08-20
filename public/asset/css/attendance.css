@@ -1023,3 +1023,19 @@
     justify-content: center;
     width: 100%;
 }
+
+
+.btn-custom-check {
+    background-color: #e3e4ee;
+    color: #444444;
+}
+
+.btn-custom-check:hover {
+    background-color: #e3e4ee;
+    color: #444444;
+}
+
+.btn-custom-check.active {
+    background-color: #454545;
+    color: #f3f3f3;
+}

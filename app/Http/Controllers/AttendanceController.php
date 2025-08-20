@@ -67,17 +67,37 @@ class AttendanceController extends Controller
         // Fetch today's attendance for the employee
         $today = Carbon::today()->toDateString();
         $attendance = null;
+        $attendanceStatus = [
+            'check_in' => 'pending',
+            'check_out' => 'pending'
+        ];
+
         if ($employee) {
             $attendance = Attendance::where('employee_id', $employee->id)
                 ->where('date_attendance', $today)
                 ->where('type_attendance', 'check_in')
                 ->first();
+
+            // Determine attendance status based on today's records
+            if ($attendance) {
+                $attendanceStatus['check_in'] = 'completed';
+                
+                // Check if there's a corresponding check-out
+                $checkOut = Attendance::where('employee_id', $employee->id)
+                    ->where('date_attendance', $today)
+                    ->where('type_attendance', 'check_out')
+                    ->first();
+                
+                if ($checkOut) {
+                    $attendanceStatus['check_out'] = 'completed';
+                }
+            }
         }
 
         // Debug log to check division data
         \Log::info('Employee division:', ['division' => $employee ? $employee->division : null]);
 
-        return view('attendance/attendance', compact('employee', 'attendance'));
+        return view('attendance/attendance', compact('employee', 'attendance', 'attendanceStatus'));
     }
 
     public function index()

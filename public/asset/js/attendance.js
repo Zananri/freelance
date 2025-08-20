@@ -1861,3 +1861,124 @@ document.addEventListener("DOMContentLoaded", function () {
     updateClock();
     setInterval(updateClock, 1000);
 });
+
+// Fungsi untuk mendapatkan status absensi harian
+function getTodayAttendanceStatus() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const urlStatus = `${baseUrl}/attendance/today-status/${employeeId}`;
+
+    fetch(urlStatus)
+        .then((response) => response.json())
+        .then((statusData) => {
+            updateButtonStates(statusData.data);
+        })
+        .catch((error) => {
+            console.error("Error fetching attendance status:", error);
+        });
+}
+
+// Fungsi untuk update state tombol berdasarkan status
+function updateButtonStates(status) {
+    const checkInBtn = document.getElementById("checkInBtn");
+    const checkOutBtn = document.getElementById("checkOutBtn");
+
+    if (!checkInBtn || !checkOutBtn) return;
+
+    // Reset semua state
+    checkInBtn.classList.remove("active");
+    checkOutBtn.classList.remove("active");
+    checkInBtn.disabled = false;
+    checkOutBtn.disabled = false;
+
+    // Hide semua icon
+    $("#checkInBtn .check-icon").hide();
+    $("#checkOutBtn .done-all-icon").hide();
+
+    // Update berdasarkan status
+    if (status.status === "not_started") {
+        // Belum check-in sama sekali
+        checkOutBtn.disabled = true;
+    } else if (status.status === "checked_in") {
+        // Sudah check-in tapi belum check-out
+        checkInBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+    } else if (status.status === "checked_out") {
+        // Sudah check-out (kedua tombol aktif)
+        checkInBtn.classList.add("active");
+        checkOutBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+        $("#checkOutBtn .done-all-icon").show();
+    }
+
+    // Handle unclosed attendance
+    if (status.has_unclosed) {
+        checkInBtn.classList.add("active");
+        checkOutBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+        $("#checkOutBtn .done-all-icon").show();
+    }
+
+    // Update attendance logs
+    if (status.last_check_in_time) {
+        const timeInDisplay = document.getElementById("time_in_display");
+        if (timeInDisplay) {
+            timeInDisplay.textContent = status.last_check_in_time;
+        }
+    }
+
+    if (status.last_check_out_time) {
+        const timeOutDisplay = document.getElementById("time_out_display");
+        if (timeOutDisplay) {
+            timeOutDisplay.textContent = status.last_check_out_time;
+        }
+    }
+}
+
+// Fungsi untuk refresh status setelah check-in/check-out
+function refreshAttendanceStatus() {
+    getTodayAttendanceStatus();
+}
+
+// Fungsi untuk reset state saat berganti hari
+function resetDailyAttendanceState() {
+    const today = new Date().toISOString().split("T")[0];
+    const lastResetDate = localStorage.getItem('lastAttendanceReset');
+    
+    if (lastResetDate !== today) {
+        localStorage.setItem('lastAttendanceReset', today);
+        getTodayAttendanceStatus();
+    }
+}
+
+// Fungsi untuk memastikan status diperbarui saat halaman dimuat
+function initializeAttendanceState() {
+    // Check daily reset
+    resetDailyAttendanceState();
+    
+    // Get initial status
+    getTodayAttendanceStatus();
+    
+    // Set up periodic refresh
+    setInterval(getTodayAttendanceStatus, 30000); // Refresh every 30 seconds
+    
+    // Add event listener untuk refresh setelah check-in/check-out
+    document.addEventListener('attendanceUpdated', refreshAttendanceStatus);
+}
+
+// Initialize saat DOM ready
+document.addEventListener("DOMContentLoaded", function() {
+    initializeAttendanceState();
+});
+
+// Export fungsi untuk digunakan di file lain
+window.AttendanceState = {
+    getTodayAttendanceStatus,
+    refreshAttendanceStatus,
+    updateButtonStates
+};
