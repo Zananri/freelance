@@ -300,6 +300,14 @@
                             </div>
                         </div>
 
+                        
+                        <!-- Map Location Section for Check Out -->
+                        <div class="mb-3">
+                            <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
+                            class="rounded border"></div>
+                            <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
+                            <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
+                        </div>
                         <!-- Image Upload Section for Checkout -->
                         <div class="mb-3" id="imageUploadSectionCheckout" style="display: none;">
                             <label class="form-label">Photo</label>
@@ -321,19 +329,10 @@
                             </div>
                         </div>
 
-                        <!-- Map Location Section for Check Out -->
-                        <div class="mb-3">
-                            <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
-                                class="rounded border"></div>
-                            <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
-                            <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
-                        </div>
-
                     </form>
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-secondary" id="submitCheckOutBtn">
-                        <span class="material-symbols-outlined">alarm_off</span>
                         Check Out
                     </button>
                 </div>

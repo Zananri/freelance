@@ -808,7 +808,6 @@
 }
 
 .modal-header-custom {
-    margin-bottom: -10px;
     border: 0;
 }
 
@@ -904,7 +903,6 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: #000;
     z-index: 1060;
 }
 
@@ -971,4 +969,56 @@
     font-weight: 400;
     font-size: 14px;
     color: #555;
+}
+
+#workOutsideStatusText {
+    margin-left: 15px;
+}
+
+#time_out {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#date_attendance_checkout {
+    font-size: 14px;
+    color: #6c757d;
+    text-align: center;
+}
+
+
+#previewImgCheckout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 180px;
+    height: 250px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 50%;
+    opacity: 1;
+}
+
+#cameraWrapper {
+    padding: 1rem;
+    text-align: center;
+}
+
+#cameraVideo {
+    width: 100%;
+    height: auto;
+    max-height: 90vh;
+    object-fit: cover;
+}
+
+.modal-content.camera-active {
+  background-color: transparent;
+  border: none;
 }

@@ -548,101 +548,129 @@
         </div>
     </div>
 
-            <!-- Modal for Checkout -->
-            <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content rounded-4">
-                        <div class="modal-header modal-header-custom">
-                            <h5 class="modal-title modal-title-custom" id="checkOutModalLabel">Check Out Attendance
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
+            <!-- Modal for Check Out -->
+    <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4" id="checkOutModalContent">
+                <div class="modal-header modal-header-custom d-flex justify-content-center">
+                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutModalLabel">Check Out
+                        Attendance</h5>
+                    <button type="button" class="btn-close position-absolute" style="right: 1rem;"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- Time Display Container -->
+                        <div class="text-center mb-4">
+                            <div class="mb-0">
+                                <div class="date-time-display" id="time_out">
+                                    Loading...
+                                </div>
+                            </div>
+                            <div>
+                                <div class="date-time-display" id="date_attendance_checkout">
+                                    Loading...
+                                </div>
+                            </div>
                         </div>
-                        <div class="modal-body">
-                            <form id="checkOutForm">
-                                <!-- Hidden fields -->
-                                <input type="hidden" name="employee_id" id="employee_id"
-                                    value="{{ $employee ? $employee->id : '' }}">
-                                <input type="hidden" name="date_attendance" id="date_attendance">
-                                <input type="hidden" name="time_out" id="time_out">
-                                <input type="hidden" name="type_attendance" value="check_out">
 
-                                <!-- Work Outside Display -->
-                                <div class="mb-3">
-                                    <label class="form-label label-custom">Work Outside Status</label>
-                                    <div class="work-outside-display">
-                                        <span id="workOutsideStatusText">Loading...</span>
-                                    </div>
-                                </div>
+                <div class="modal-body">
+                    <form id="checkOutForm">
+                        <!-- Hidden fields -->
+                        <input type="hidden" name="employee_id" id="employee_id"
+                            value="{{ $employee ? $employee->id : '' }}">
+                        <input type="hidden" name="date_attendance" id="date_attendance_hidden">
+                        <input type="hidden" name="time_out" id="time_out_hidden">
+                        <input type="hidden" name="type_attendance" value="check_out">
+                        <input type="hidden" name="is_work_outside_checkout" id="is_work_outside_checkout"
+                            value="0">
 
-                                <!-- Time In Display -->
-                                <div class="mb-3">
-                                    <label class="form-label label-custom">Time In</label>
-                                    <div class="time_in">
-                                        <span id="time_in_display">Loading...</span>
-                                    </div>
-                                </div>
-
-                                <!-- Time Out Display -->
-                                <div class="mb-3">
-                                    <label class="form-label label-custom">Time Out</label>
-                                    <div class="time_out">
-                                        <span id="time_out_display">Loading...</span>
-                                    </div>
-                                </div>
-
-                                <!-- Total Work Duration -->
-                                <div class="mb-3">
-                                    <label class="form-label label-custom">Total Work Duration</label>
-                                    <div class="total_work_duration">
-                                        <span id="total_work_duration">Loading...</span>
-                                    </div>
-                                </div>
-
-                                <!-- Image Upload Section -->
-                                <div class="mb-3" id="imageUploadSectionCheckout">
-                                    <label class="form-label">Photo</label>
-                                    <div class="image-upload-container">
-                                        <!-- Label untuk trigger kamera -->
-                                        <label for="imageInputCheckout" class="image-upload-label camera-label">
-                                            <div class="image-upload-icon">
-                                                <i class="fas fa-camera fa-2x text-primary"></i>
-                                            </div>
-                                            <span id="cameraTextCheckout">Take Photo</span>
-                                        </label>
-
-                                        <!-- Input file untuk mobile -->
-                                        <input type="file" class="form-control d-none" id="imageInputCheckout" name="image[]"
-                                            accept="image/*" capture="environment">
-
-                                        <!-- Hidden existing image URLs -->
-                                        @if ($attendance && $attendance->image)
-                                            @foreach ($attendance->image as $image)
-                                                <input type="hidden" name="existingImageUrls[]" value="{{ asset($image) }}">
-                                            @endforeach
-                                        @endif
-
-                                        <!-- Image preview -->
-                                        <div id="imagePreviewCheckout" class="image-preview mt-2" style="display:none;">
-                                            <img id="previewImgCheckout" src="" alt="Preview" class="img-fluid rounded">
-                                        </div>
-
-                                        <!-- Clear button -->
-                                        <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
-                                            id="clearImageBtnCheckout">&times;</button>
-                                    </div>
-                                </div>
-
-                            </form>
+                        <!-- Work Outside Display -->
+                        <div class="mb-3">
+                            <label class="form-label label-custom">Work Outside Status</label>
+                            <div class="work-outside-display">
+                                <span id="workOutsideStatusText">Loading...</span>
+                            </div>
                         </div>
-                        <div class="modal-footer modal-footer-custom">
-                            <button type="button" class="btn btn-secondary" id="submitCheckOutBtn">
-                                <span class="material-symbols-outlined">alarm_off</span>
-                                Check Out
-                            </button>
+
+                        <!-- Hidden Time Display Container - Removed as it's now above -->
+                        <div class="date-time-container d-flex justify-content-between mb-3" style="display: none !important;">
+                            <!-- Time In Display -->
+                            <div class="mb-3" hidden>
+                                <label class="form-label label-custom">Time In</label>
+                                <div class="date-time-display-checkout" id="">
+                                    Loading...
+                                </div>
+                            </div>
+
+                            <!-- Time Out Display -->
+                            <div class="mb-3">
+                                <label class="form-label label-custom">Time Out</label>
+                                <div class="date-time-display-checkout" id="">
+                                    Loading...
+                                </div>
+                            </div>
+
+                            <!-- Total Work Duration -->
+                            <div class="mb-3" hidden>
+                                <label class="form-label label-custom">Total Work Duration</label>
+                                <div class="date-time-display" id="total_work_duration">
+                                    Loading...
+                                </div>
+                            </div>
                         </div>
-                    </div>
+
+                        
+                        <!-- Map Location Section for Check Out -->
+                        <div class="mb-3">
+                            <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
+                            class="rounded border"></div>
+                            <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
+                            <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
+                        </div>
+                        <!-- Image Upload Section for Checkout -->
+                        <div class="mb-3" id="imageUploadSectionCheckout" style="display: none;">
+                            <label class="form-label">Photo</label>
+                            <div class="image-upload-container">
+                                <label for="imageInputCheckout" class="image-upload-label camera-label">
+                                    <div class="image-upload-icon">
+                                        <i class="fas fa-camera fa-2x text-primary"></i>
+                                    </div>
+                                    <span id="cameraTextCheckout">Take Photo</span>
+                                </label>
+                                <input type="file" class="form-control d-none" id="imageInputCheckout"
+                                    name="image[]" accept="image/*" capture="environment">
+                                <div id="imagePreviewCheckout" class="image-preview mt-2" style="display: none;">
+                                    <img id="previewImgCheckout" src="" alt="Preview"
+                                        class="img-fluid rounded">
+                                </div>
+                                <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
+                                    id="clearImageBtnCheckout">&times;</button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-secondary" id="submitCheckOutBtn">
+                        Check Out
+                    </button>
+                </div>
+
+                <div id="cameraWrapperCheckout" class="d-none position-relative text-center">
+                    <!-- Video Stream -->
+                    <video id="cameraVideoCheckout" autoplay playsinline class="w-100 rounded"
+                        style="height: 100vh; object-fit: cover;"></video>
+
+                    <!-- Capture Button Overlay -->
+                    <button type="button"
+                        class="btn btn-primary position-absolute bottom-0 start-50 translate-middle-x mb-4 px-4 py-2"
+                        id="captureBtnCheckout">
+                        <i class="fas fa-camera"></i> Capture Photo
+                    </button>
+
+                    <!-- Hidden Canvas for Capturing -->
+                    <canvas id="cameraCanvasCheckout" class="d-none"></canvas>
                 </div>
             </div>
         </div>

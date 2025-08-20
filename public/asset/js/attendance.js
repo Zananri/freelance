@@ -1537,6 +1537,7 @@ function startCheckoutCamera() {
     const modalHeader = document.querySelector("#checkOutModal .modal-header");
     const modalFooter = document.querySelector("#checkOutModal .modal-footer");
     const modalBody = document.querySelector("#checkOutModal .modal-body");
+    const timeDisplayContainer = document.querySelector("#checkOutModal .text-center.mb-4");
 
     if (checkoutStream) return;
 
@@ -1544,6 +1545,7 @@ function startCheckoutCamera() {
     modalHeader?.classList.add("d-none");
     modalFooter?.classList.add("d-none");
     modalBody?.classList.add("d-none");
+    timeDisplayContainer?.classList.add("d-none");
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
         .then(mediaStream => {
@@ -1566,6 +1568,7 @@ function captureCheckoutPhoto() {
     const modalHeader = document.querySelector("#checkOutModal .modal-header");
     const modalFooter = document.querySelector("#checkOutModal .modal-footer");
     const modalBody = document.querySelector("#checkOutModal .modal-body");
+    const timeDisplayContainer = document.querySelector("#checkOutModal .text-center.mb-4");
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -1586,6 +1589,7 @@ function captureCheckoutPhoto() {
     modalHeader?.classList.remove("d-none");
     modalFooter?.classList.remove("d-none");
     modalBody?.classList.remove("d-none");
+    timeDisplayContainer?.classList.remove("d-none");
     modalContent?.classList.remove("camera-active");
 
     stopCheckoutCamera();
