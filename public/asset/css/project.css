@@ -12,8 +12,154 @@
     padding-right: 0;
 }
 
-.col-md-4 {
-    margin-bottom: 1.5rem;
+.chart-section {
+    border-radius: 20px;
+}
+
+#projectChart {
+    max-width: 256.51px !important;
+    max-height: 256.51px !important;
+    display: block;
+    margin: 0 auto;
+}
+
+.timeline-section {
+    border-radius: 20px;
+}
+
+.timeline-card {
+    background: transparent;
+}
+
+.timeline-toggle-btn.active {
+    background-color: #c8c8cd;
+    border: none;
+}
+
+.timeline-table {
+    width: 100%;
+    margin-top: 8px;
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    position: relative;
+    overflow: hidden;
+    padding: 24px 16px 16px 16px;
+}
+
+.timeline-header {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.timeline-row {
+    display: flex;
+    position: relative;
+    height: 44px;
+    margin-bottom: 0;
+}
+
+.timeline-bar {
+    height: 28px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    padding-left: 36px;
+    padding-right: 12px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    background: #e3f3ff;
+    left: 0;
+    transition: left 0.2s, width 0.2s;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    z-index: 1;
+}
+
+.timeline-cell {
+    flex: 1 1 0;
+    text-align: center;
+    padding: 4px 0;
+    font-size: 15px;
+    color: #444;
+    position: relative;
+}
+
+.timeline-header .timeline-cell:not(:last-child)::after,
+.timeline-row .timeline-cell:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 1px;
+    height: 100%;
+    background: #e5e7eb;
+    z-index: 1;
+}
+
+.timeline-bar .circle {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #b6e7c9;
+}
+
+.timeline-bar.color1 {
+    background: #e3f3ff;
+    border: 1px solid #cbe2f7;
+}
+.timeline-bar.color2 {
+    background: #e9e3f7;
+    border: 1px solid #d7cbe7;
+}
+.timeline-bar.color3 {
+    background: #f7f3e3;
+    border: 1px solid #e7dbc7;
+}
+.timeline-bar.color4 {
+    background: #ffe3e3;
+    border: 1px solid #f7cbcb;
+}
+.timeline-bar .circle.color1 {
+    border-color: #8fb3e8;
+}
+.timeline-bar .circle.color2 {
+    border-color: #b6a7e7;
+}
+.timeline-bar .circle.color3 {
+    border-color: #e7c97a;
+}
+.timeline-bar .circle.color4 {
+    border-color: #ff9c9c;
+}
+
+.cards-project {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  max-height: 100px;
+}
+
+.cards-project .text-muted {
+  font-size: 13px;
+  line-height: 1.4;
+  max-height: 3.5em;
+  overflow: hidden;
+}
+
+.dropdown-icon {
+    background-color: #e8e9f2;
+    border-radius: 50%;
+    padding: 5px;
 }
 
 /* Spinner inside submit button */
@@ -35,12 +181,22 @@
     text-align: center;
 }
 
+.btn-add-project {
+    padding: 12px 20px;
+    background: #444444;
+    border-radius: 10px;
+    color: #ebecf2;
+    font-weight: normal;
+    font-size: 14px;
+    border: none;
+}
+
 .custom-card {
     background-color: rgb(240, 241, 248);
     margin-right: 15px;
     border: none;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     padding: 1rem;
@@ -101,8 +257,6 @@
     font-size: 14px;
     color: #555;
 }
-
-
 
 /* New class for icon container below project name */
 .icon-container-inline {
@@ -271,8 +425,12 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Alert container below modal */
@@ -316,7 +474,7 @@
     background-color: white;
     border: 1px solid #ddd;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     min-width: 160px;
     padding: 8px 0;
     display: none;
@@ -354,7 +512,7 @@
     padding: 10px 20px;
     border-radius: 4px;
     font-weight: bold;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     background-color: #d4edda;
     color: #155724;
     display: flex;
@@ -424,21 +582,18 @@
     font-size: 14px;
     color: #555;
     margin: 0;
-    
 }
 
 .project-detail-right p a {
     font-size: 14px;
     margin: 0;
     text-decoration: none;
-    
 }
 
 .project-detail-left p strong,
 .project-detail-right p strong {
     font-weight: 500;
     color: #555;
-    
 }
 
 /* Responsive adjustments */
@@ -464,7 +619,6 @@
 }
 
 /* Custom styles for Project Feedback Modal */
-
 
 .feedback-modal-dialog {
     max-width: 480px;
@@ -613,7 +767,7 @@
     position: absolute;
     z-index: 1000;
     width: 100%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Dropdown item */
@@ -652,7 +806,7 @@
 }
 
 #co_author_dropdown input[type="checkbox"].co-author-checkbox:checked::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 3px;
     left: 6px;
@@ -728,19 +882,19 @@
 }
 
 .status-new-request {
-    background-color: #FF9B2F;
+    background-color: #ff9b2f;
 }
 
 .status-in-progress {
-    background-color: #FFCC00;
+    background-color: #ffcc00;
 }
 
 .status-completed {
-    background-color: #78C841;
+    background-color: #78c841;
 }
 
 .status-rejected {
-    background-color: #ED3500;
+    background-color: #ed3500;
 }
 
 /* PIC and Executor image styling for task modal */

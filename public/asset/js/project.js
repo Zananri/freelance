@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             data: { filter: filter },
             success: function (data) {
-                let container = document.getElementById("project-cards-container");
+                let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
 
                 if (data.data && data.data.length > 0) {
@@ -28,48 +28,63 @@ document.addEventListener("DOMContentLoaded", function () {
                             ? appUrl + "/file/project/" + project.image
                             : appUrl + "/asset/img/background/add-image.png";
 
-                    rowHtml += `
-                        <div class="col-md-4 mb-4 position-relative" data-project-id="${project.id}">
-                            <div class="card shadow-sm rounded-4 p-0" style="background-color: rgb(240, 241, 248); border:0; position: relative;">
-                                <div class="dropdown-icon-container">
-                                    <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
-                                    <div class="dropdown-menu d-none">
-                                        <div class="dropdown-item">Detail</div>
-                                        <div class="dropdown-item">Task</div>
-                                        <div class="dropdown-item">Feedback</div>
-                                        <div class="dropdown-item">Edit</div>
-                                        <div class="dropdown-item text-danger delete-project">Delete</div>
-                                    </div>
-                                </div>
-                                <div class="card-body">
-                                    <div class="d-flex">
-                                        <div class="me-3">
-                                            <img src="${imageUrl}" alt="Project Image" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex align-items-started mb-1">
-                                                <h6 class="mb-0 title-project">${project.title}</h6>
+                            rowHtml += `
+                                        <div class="col-md-4 mb-3" data-project-id="${project.id}">
+                                            <div class="rounded-4 p-4 body-card d-flex flex-column ">
+                                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                                    <h5 class="fw-normal" style="color: #454545">My Task</h5>
+                                                    <button class="btn btn-link p-0">
+                                                        <span class="material-symbols-outlined text-secondary">chevron_right</span>
+                                                    </button>
+                                                </div>
+
+                                                <!-- Tabs -->
+                                                <div class="d-flex justify-between align-items-center w-100 mb-3">
+                                                    <button class="btn-tab-task btn btn-tab-custom flex-fill mx-2 rounded-md-4 active"
+                                                        data-tab-active="today">Today</button>
+                                                    <button class="btn-tab-task btn btn-tab-custom flex-fill rounded-md-4"
+                                                        data-tab-active="tomorrow">Tomorrow</button>
+                                                </div>
+
+                                                <!-- Task List -->
+                                                <div class="task-list flex-grow-1 overflow-auto">
+                                                    {{-- Task Content --}}
+                                                    <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
+                                                        <div class="d-flex align-items-center mb-2">
+                                                            <img src="${imageUrl}{" class="rounded-circle me-4">
+                                                            <h6 class="mb-0" style="font-size: 14px">${project.title}</h6>
+                                                        </div>
+                                                        <p class="mb-2 small" style="font-size: 10px;">
+                                                            ${project.description || 'No Description'}
+                                                        </p>
+                                                        <div class="d-flex justify-content-between align-items-center small mt-3"
+                                                            style="font-size: 10px;">
+                                                            <div>
+                                                                ${(project.contributors || []).slice(0,2).map(c => `
+                                                                    <img src="${c.user_photo ? appUrl + '/file/profile_picture/' + c.user_photo : appUrl + '/asset/img/profile_picture/default.png'}"
+                                                                        alt="${c.name}" class="rounded-circle me-1"
+                                                                        style="width:24px;height:24px;object-fit:cover;">
+                                                                `).join('')}
+                                                                ${project.contributors && project.contributors.length > 2 ?
+                                                                    `<span class="badge bg-light text-dark">+${project.contributors.length-2}</span>` : ''
+                                                                }
+                                                            </div>
+                                                            <div class="d-flex">
+                                                                <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                                                    <span class="material-symbols-outlined"
+                                                                        style="font-size: 14px; color: #828282;">attach_file</span>
+                                                                </button>
+                                                                <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
+                                                                    <span class="material-symbols-outlined"
+                                                                        style="font-size: 14px; color: #828282;">mode_comment</span>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="d-flex justify-content-start mt-2">
-                                                <div class="d-flex align-items-center me-3">
-                                                    <span class="material-symbols-outlined icon-format_list_bulleted">format_list_bulleted</span>
-                                                    <span class="icon-number">${project.task_counts?.total || 0}</span>
-                                                </div>
-                                                <div class="d-flex align-items-center me-3">
-                                                    <span class="material-symbols-outlined icon-av-timer">av_timer</span>
-                                                    <span class="icon-number">${project.task_counts?.in_progress || 0}</span>
-                                                </div>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="material-symbols-outlined icon-checklist">checklist</span>
-                                                    <span class="icon-number">${project.task_counts?.completed || 0}</span>
-                                                </div>
-                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                                        `;
 
                         if ((index + 1) % 3 === 0 && index !== data.data.length - 1) {
                             rowHtml += '</div><div class="row">';
@@ -671,7 +686,7 @@ $('#editProjectForm').on('submit', function (e) {
             selectedEmployees = contributors.map(ca => {
                 let photoUrl = '';
                 let userPhoto = ca.user_photo;
-                
+
                 if (!userPhoto) {
                     photoUrl = appUrl + '/asset/img/profile_picture/default.png';
                 } else if (userPhoto.startsWith('http')) {
@@ -685,7 +700,7 @@ $('#editProjectForm').on('submit', function (e) {
                 } else {
                     photoUrl = appUrl + '/file/profile_picture/' + userPhoto;
                 }
-                
+
                 return {
                     id: ca.id,
                     name: ca.name,
@@ -713,7 +728,7 @@ function loadFeedbackData(projectId) {
 
         resetAddFeedbackButton();
 
-    
+
 
     fetch(appUrl + '/project-feedbacks/' + projectId)
         .then(response => {
@@ -894,17 +909,17 @@ function showAddFeedbackForm(projectId) {
                         </label>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
                 </div>
-                
+
                 <div class="mb-3">
                     <label for="reference_url" class="form-label">Reference URL (Optional)</label>
                     <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
                 </div>
-                
+
                 <div class="mb-3">
                     <label for="reference_file" class="form-label">Reference File (Optional)</label>
                     <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
@@ -912,7 +927,7 @@ function showAddFeedbackForm(projectId) {
         </form>
     `;
 
-     
+
         // Setup image preview and clear button logic
         const imageInput = modalBody.querySelector("#feedback_image");
         const imageLabel = modalBody.querySelector("#feedbackImageLabel");
@@ -960,13 +975,13 @@ function showAddFeedbackForm(projectId) {
             }
         });
 
-       
+
 }
 
 function submitFeedbackForm(form, projectId) {
     const submitBtn = document.getElementById('addFeedbackButton');
     const originalBtnText = submitBtn.innerHTML;
-    
+
     // Tampilkan loading state
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
     submitBtn.disabled = true;
@@ -996,7 +1011,7 @@ function submitFeedbackForm(form, projectId) {
         `;
         modalBody.prepend(alertDiv);
 
-                
+
         // Muat ulang daftar feedback setelah 1 detik
         setTimeout(() => {
             loadFeedbackData(projectId);
@@ -1269,24 +1284,24 @@ $.ajax({
     // Function to format task date like feedback
     function formatTaskDate(dateStr) {
         if (!dateStr) return '';
-        
+
         const dateObj = new Date(dateStr);
         const now = new Date();
-        
+
         // Helper function to check if two dates are the same day
         function isSameDay(d1, d2) {
             return d1.getFullYear() === d2.getFullYear() &&
                    d1.getMonth() === d2.getMonth() &&
                    d1.getDate() === d2.getDate();
         }
-        
+
         // Helper function to check if d1 is yesterday of d2
         function isYesterday(d1, d2) {
             const yesterday = new Date(d2);
             yesterday.setDate(d2.getDate() - 1);
             return isSameDay(d1, yesterday);
         }
-        
+
         if (isSameDay(dateObj, now)) {
             // Show time only
             return dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -1301,7 +1316,7 @@ $.ajax({
     function loadProjectTasks(projectId) {
         const taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
         const taskListContainer = document.getElementById('taskListContainer');
-        
+
         taskListContainer.innerHTML = `
             <div class="text-center py-4">
                 <div class="spinner-border" role="status">
@@ -1309,7 +1324,7 @@ $.ajax({
                 </div>
             </div>
         `;
-        
+
         taskModal.show();
 
         $.ajax({
@@ -1320,10 +1335,10 @@ $.ajax({
                 if (response.data && response.data.length > 0) {
                     let html = '';
                     response.data.forEach((task, index) => {
-                        const taskImage = task.image 
-                            ? appUrl + '/file/task/' + task.image 
+                        const taskImage = task.image
+                            ? appUrl + '/file/task/' + task.image
                             : appUrl + '/asset/img/profile_picture/default.png';
-                        
+
                         const createdDate = formatTaskDate(task.created_at);
 
                         // Get PIC image
@@ -1341,7 +1356,7 @@ $.ajax({
                         // Get status badge class and text
                         let statusClass = '';
                         let statusText = '';
-                        
+
                         switch(task.status) {
                             case 'new_request':
                             case 'new request':
@@ -1369,17 +1384,17 @@ $.ajax({
                         // Build combined PIC and Executors HTML
                         let combinedImagesHtml = '';
                         let allPeople = [];
-                        
+
                         // Helper function to get correct image URL
                         function getImageUrl(userPhoto) {
                             if (!userPhoto) {
                                 return appUrl + '/asset/img/profile_picture/default.png';
                             }
-                            
+
                             if (userPhoto.startsWith('http')) {
                                 return userPhoto;
                             }
-                            
+
                             // Handle different path formats
                             if (userPhoto.startsWith('/file/photo/')) {
                                 return appUrl + userPhoto;
@@ -1395,7 +1410,7 @@ $.ajax({
                                 return appUrl + '/file/profile_picture/' + userPhoto;
                             }
                         }
-                        
+
                         // Add PIC first
                         if (task.pic) {
                             let picImage = getImageUrl(task.pic.user_photo);
@@ -1406,7 +1421,7 @@ $.ajax({
                                 title: 'PIC'
                             });
                         }
-                        
+
                         // Add executors, excluding PIC duplicates
                         if (task.executors && task.executors.length > 0) {
                             task.executors.forEach((executor) => {
@@ -1451,7 +1466,7 @@ $.ajax({
                                             <div class="d-flex align-items-center pic-executor-container">
                                                 ${combinedImagesHtml}
                                             </div>
-                                           
+
                                         </div>
                                     </div>
                                 </div>
@@ -1468,12 +1483,12 @@ $.ajax({
             }
         });
     }
-    
+
 
 // Reset footer button text and remove submit handler when modal is closed
 const feedbackModalEl = document.getElementById('projectFeedbackModal');
 feedbackModalEl.addEventListener('hidden.bs.modal', function () {
-   
+
 
     // Remove any click event listeners by cloning the button
     const newButton = addFeedbackButton.cloneNode(true);
@@ -1482,17 +1497,17 @@ feedbackModalEl.addEventListener('hidden.bs.modal', function () {
 
 // Reset button text to "Add Feedback" when loading feedback list
 feedbackModalEl.addEventListener('shown.bs.modal', function () {
-   
+
 });
 
 function resetAddFeedbackButton() {
     const addFeedbackButton = document.getElementById('addFeedbackButton');
     addFeedbackButton.textContent = 'Add Feedback';
-    
+
     // Clone tombol untuk menghapus semua event listener sebelumnya
     const newButton = addFeedbackButton.cloneNode(true);
     addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-    
+
     // Tambahkan event listener untuk menampilkan form
     newButton.addEventListener('click', function() {
         const projectId = projectFeedbackModalEl.getAttribute('data-project-id');
@@ -1768,7 +1783,7 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
             input.value = '';
         };
     }
-    
+
     // New implementation for contributor input with checkbox multi-select and search
     function setupContributorInput() {
         const input = document.getElementById('contributor_input');
@@ -2115,7 +2130,7 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
                 var addProjectModal =
                     bootstrap.Modal.getInstance(addProjectModalEl);
                 if (addProjectModal) addProjectModal.hide();
-                
+
                 // Reload page after alert disappears
                 setTimeout(function() {
                     location.reload();
@@ -2149,7 +2164,7 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
     loadProjectCardData();
     // loadEmployees(); // Removed obsolete function call
     setupCoAuthorInput();
-    
+
     // Setup filter dropdown functionality
     setupFilterDropdown();
 
@@ -2662,13 +2677,13 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
                 if (filterStatus) {
                     filterStatus.value = '';
                 }
-                
+
                 // Close the dropdown
                 filterDropdown.style.display = 'none';
-                
+
                 // Reload project cards without filter (show all)
                 loadProjectCardData(null);
-                
+
                 // Provide visual feedback
             });
         }
@@ -2711,3 +2726,125 @@ feedbackModalEl.addEventListener('shown.bs.modal', function () {
     });
 });
 
+// Doughnut Chart Porject
+document.addEventListener("DOMContentLoaded", function () {
+    const createDoughnut = (el) =>
+        new Chart(el, {
+            type: "doughnut",
+            data: {
+                labels: ["Total", "Complete", "On Progress", "Late"],
+                datasets: [
+                    {
+                        data: [3, 5, 2],
+                        backgroundColor: ["#b6e7c9", "#8fb3e8", "#ff9c9c"],
+                        borderWidth: 0,
+                    },
+                ],
+            },
+            options: { cutout: "60%", plugins: { legend: { display: false } } },
+        });
+
+    const ctx = document.getElementById("projectChart");
+    if (ctx) createDoughnut(ctx);
+});
+
+// State untuk timeline
+let currentMonthProject = new Date().getMonth(); // 0 - 11
+let currentWeekProject = 0; // 0-3
+const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+];
+
+// Dummy data project (ubah sesuai backend lu)
+const timelineData = [
+    { name: "Name Project", start: 0, end: 3, color: "color1" },
+    { name: "Name Project", start: 1, end: 4, color: "color2" },
+    { name: "Name Project", start: 2, end: 6, color: "color3" },
+    { name: "Name Project", start: 0, end: 6, color: "color4" },
+];
+
+// Fungsi render timeline
+function renderTimeline(
+    targetRows = "#timelineRows",
+    targetTitle = "#timelineTitle"
+) {
+    $(targetTitle).text(
+        `${months[currentMonthProject]} week ${currentWeekProject + 1}`
+    );
+
+    const $timelineRows = $(targetRows);
+    $timelineRows.empty();
+
+    $.each(timelineData, function (_, proj) {
+        const $row = $("<div>")
+            .addClass("timeline-row d-flex")
+            .css("position", "relative");
+
+        // bikin 7 kolom (hari Senin–Minggu)
+        for (let i = 0; i < 7; i++) {
+            $row.append(
+                $("<div>").addClass("timeline-cell").css("position", "relative")
+            );
+        }
+
+        const barLeft = proj.start * (100 / 7);
+        const barWidth = (proj.end - proj.start + 1) * (100 / 7);
+
+        const $bar = $("<div>")
+            .addClass(`timeline-bar ${proj.color}`)
+            .css({
+                left: `${barLeft}%`,
+                width: `${barWidth}%`,
+                position: "absolute",
+                top: "50%",
+                transform: "translateY(-50%)",
+                border: "none",
+            })
+            .html(
+                `<span class="circle border-0 ${proj.color}"></span>${proj.name}`
+            );
+
+        $row.append($bar);
+        $timelineRows.append($row);
+    });
+}
+
+$(document).ready(function () {
+    // render pertama kali
+    if ($("#timelineRows").length) {
+        renderTimeline("#timelineRows", "#timelineTitle");
+    }
+
+    // event prev
+    $("#prevTimeline").on("click", function () {
+        if (currentWeekProject > 0) {
+            currentWeekProject--;
+        } else if (currentMonthProject > 0) {
+            currentMonthProject--;
+            currentWeekProject = 3;
+        }
+        renderTimeline("#timelineRows", "#timelineTitle");
+    });
+
+    // event next
+    $("#nextTimeline").on("click", function () {
+        if (currentWeekProject < 3) {
+            currentWeekProject++;
+        } else if (currentMonthProject < 11) {
+            currentMonthProject++;
+            currentWeekProject = 0;
+        }
+        renderTimeline("#timelineRows", "#timelineTitle");
+    });
+});

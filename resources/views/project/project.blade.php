@@ -19,12 +19,17 @@
                 d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
         </symbol>
     </svg>
-    <div class="title-content">
-        <h2>Project</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="title-content">
+            <h2>Project</h2>
+        </div>
+        <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+            Add Project
+        </button>
     </div>
 
-    <div class="d-flex justify-content-end mb-3 gap-2 position-relative">
-        <div class="dropdown-filter-container">
+
+    {{-- <div class="dropdown-filter-container">
             <button class="btn btn-icon-toggle" type="button" id="openProjectFilterBtn">
                 <span class="material-symbols-outlined icon">filter_list</span> Filter
             </button>
@@ -48,11 +53,81 @@
                     <button type="button" class="btn btn-submit-reset" id="resetProjectFilterBtn">Reset</button>
                 </div>
             </div>
+        </div> --}}
+
+    <div class="project-card-container">
+        <div class="row">
+            <div class="col-md-4">
+                {{-- project chart --}}
+                <div class="body-content chart-section p-4">
+                    <div class="chart-container">
+                        <canvas id="projectChart"></canvas>
+                    </div>
+                    <div class="chart-labels d-flex justify-content-evenly align-items-center mt-3">
+                        <div class="text-center">
+                            <span style="font-weight: bold; color: #222;">10</span><br>
+                            <span style="color: #828282; font-size: 12px;">Total</span>
+                        </div>
+                        <div class="text-center">
+                            <span style="font-weight: bold; color: #4fc97a;">3</span><br>
+                            <span style="color: #828282; font-size: 12px;">Complete</span>
+                        </div>
+                        <div class="text-center">
+                            <span style="font-weight: bold; color: #5a9be6;">5</span><br>
+                            <span style="color: #828282; font-size: 12px;">On Progress</span>
+                        </div>
+                        <div class="text-center">
+                            <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
+                            <span style="color: #828282; font-size: 12px;">Late</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                {{-- timeline project --}}
+                <div class="body-content timeline-section p-4">
+                    <div class="project-timeline-card">
+                        <div class="timeline-card h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">Aug
+                                    week 1</h5>
+                                <div>
+                                    <button class="btn btn-sm me-2" id="prevTimeline">
+                                        <span class="material-symbols-outlined">chevron_left</span>
+                                    </button>
+                                    <button class="btn btn-sm" id="nextTimeline">
+                                        <span class="material-symbols-outlined">chevron_right</span>
+                                    </button>
+                                    <button class="btn btn-sm" id="fullscreenTimeLine">
+                                        <span class="material-symbols-outlined">
+                                            fullscreen
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="timeline-table justify-content-center align-items-center">
+                                <div class="timeline-header d-flex">
+                                    <div class="timeline-cell fw-bold">Mo</div>
+                                    <div class="timeline-cell fw-bold">Tu</div>
+                                    <div class="timeline-cell fw-bold">We</div>
+                                    <div class="timeline-cell fw-bold">Th</div>
+                                    <div class="timeline-cell fw-bold">Fr</div>
+                                    <div class="timeline-cell fw-bold">Sa</div>
+                                    <div class="timeline-cell fw-bold">Su</div>
+                                </div>
+                                <div id="timelineRows"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bottom-project-content mt-5">
+                <h6 class="mb-4">All Project</h6>
+                <div id="all-cards-container">
+                    {{-- Content Card --}}
+                </div>
+            </div>
         </div>
-        <button class="btn-submit-black" data-bs-toggle="modal" data-bs-target="#addProjectModal">Add Project</button>
-    </div>
-    <div id="project-cards-container" class="container my-4">
-        <!-- Project cards will be dynamically generated here -->
     </div>
 
     <!-- Add Project Modal -->
@@ -79,8 +154,8 @@
                             </div>
                             <label for="image" class="custom-image-upload position-relative" id="imageLabel"
                                 style=" background-position: center center; background-repeat: no-repeat; background-size: 50%;  background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
-                                <input type="file" class="input-image" id="image" name="image" accept="image/*"
-                                    hidden>
+                                <input type="file" class="input-image" id="image" name="image"
+                                    accept="image/*" hidden>
                                 <span class="image-clear-btn d-none" id="imageClearBtn"
                                     title="Remove image">&times;</span>
                             </label>
@@ -300,8 +375,6 @@
         </div>
     </div>
 
-
-
     <!-- View Project Detail Modal -->
     <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel"
         aria-hidden="true">
@@ -340,6 +413,7 @@
             </div>
         </div>
     </div>
+
     <!-- Project Feedback Modal -->
     <div class="modal fade" id="projectFeedbackModal" tabindex="-1" aria-labelledby="projectFeedbackModalLabel"
         aria-hidden="true" data-project-id="{{ $projectId ?? '' }}"
@@ -409,6 +483,7 @@
     </div>
     <x-slot name="script_slot">
 
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="{{ asset('asset/js/project.js') }}"></script>
 
         <script></script>
