@@ -189,8 +189,13 @@ if ($request->hasFile('image')) {
 
             // Update location field for check-in
             if ($validated['type_attendance'] === 'check_in') {
-                $location = $request->input('latitudeCheckIn') . ',' . $request->input('longitudeCheckIn');
-                $attendanceTracking->update(['location' => $location]);
+                $latitude = $request->input('latitudeCheckIn') ?? $request->input('latitude');
+                $longitude = $request->input('longitudeCheckIn') ?? $request->input('longitude');
+                
+                if ($latitude && $longitude) {
+                    $location = $latitude . ',' . $longitude;
+                    $attendanceTracking->update(['location' => $location]);
+                }
             }
 
             DB::commit();

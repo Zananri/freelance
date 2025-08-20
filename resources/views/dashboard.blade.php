@@ -6,6 +6,7 @@
         <link href="{{ asset('asset/css/dashboard.css') }}" rel="stylesheet">
         <link href="{{ asset('asset/css/calendar-dashboard.css') }}" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     </x-slot>
 
     <div class="title-content mx-4">
@@ -423,103 +424,127 @@
                 </div>
             </div>
 
-            {{-- Modal for checkin --}}
-            <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel"
-                aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content rounded-4">
-                        <div class="modal-header modal-header-custom">
-                            <h5 class="modal-title modal-title-custom" id="checkInModalLabel">Check In Attendance</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="checkInForm">
-                                <!-- employee_id -->
-                                <input type="hidden" name="employee_id" id="employee_id"
-                                    value="{{ $employee ? $employee->id : '' }}">
-                                <!-- is_work_outside -->
-                                <div class="mb-3">
-                                    <label for="is_work_outside" class="form-label">Work Outside</label>
-                                    <div class="work-outside-container">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_yes" value="1">
-                                            <label class="form-check-label" for="work_outside_yes">
-                                                Yes
-                                            </label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_no" value="0" checked>
-                                            <label class="form-check-label" for="work_outside_no">
-                                                No
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
+    <!-- Modal for Check In -->
+    <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4" id="modalContent">
 
-                                <!-- date_attendance -->
-                                <div class="mb-3">
-                                    <label for="date_attendance" class="form-label label-custom">Date</label>
-                                    <div class="date_attendance">
-                                        <span id="date_attendance">Loading...</span>
-                                    </div>
-                                </div>
-
-                                <!-- time_in -->
-                                <div class="mb-3">
-                                    <label for="time_in" class="form-label label-custom">Time In</label>
-                                    <div class="time_in">
-                                        <span id="time_in">Loading...</span>
-                                    </div>
-                                </div>
-
-                                <!-- image -->
-                                <div class="mb-3" id="imageUploadSection">
-                                    <label class="form-label">Photo</label>
-                                    <div class="image-upload-container">
-                                        <label for="imageInput" class="image-upload-label camera-label">
-                                            <div class="image-upload-icon">
-                                                <i class="fas fa-camera fa-2x text-primary"></i>
-                                            </div>
-                                            <span id="cameraText">Take Photo</span>
-                                        </label>
-                                        <input type="file" class="form-control d-none" id="imageInput"
-                                            name="image" accept="image/*" capture="user">
-                                        <input type="hidden" id="existingImageUrl" name="existingImageUrl"
-                                            value="{{ $attendance && $attendance->image ? asset($attendance->image) : '' }}">
-                                        <video id="cameraVideo" autoplay playsinline class="w-50 rounded mt-2"
-                                            style="max-height: 250px; display: none;"></video>
-                                        <canvas id="cameraCanvas" class="d-none"></canvas>
-                                        <div id="imagePreview" class="image-preview mt-2" style="display: none;">
-                                            <img id="previewImg" src="" alt="Preview"
-                                                class="img-fluid rounded">
-                                        </div>
-                                        <button type="button" class="image-clear-btn d-none" id="clearImageBtn"
-                                            style="display: none;">
-                                            &times;
-                                        </button>
-                                        <!-- Removed retake button as per user request -->
-                                    </div>
-                                </div>
-
-                                <!-- type_attendance -->
-                                <input type="hidden" id="type_attendance" name="type_attendance" value="check_in">
-                            </form>
-                        </div>
-                        <div class="modal-footer modal-footer-custom">
-                            <button type="submit" class="btn btn-primary" id="submitCheckInBtn">
-                                <span class="material-symbols-outlined">
-                                    alarm_on
-                                </span>
-                                Check In
-                            </button>
-                        </div>
-
-                    </div>
+                <!-- Modal Header -->
+                <div class="modal-header modal-header-custom d-flex justify-content-center">
+                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">Check In
+                        Attendance</h5>
+                    <button type="button" class="btn-close position-absolute" style="right: 1rem;"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body">
+                    <form id="checkInForm">
+                        <input type="hidden" name="employee_id" id="employee_id"
+                            value="{{ $employee ? $employee->id : '' }}">
+
+                        <!-- Time Display Container -->
+                        <div class="text-center mb-4">
+                            <div class="mb-0">
+                                <div class="date-time-display" id="time_in">
+                                    Loading...
+                                </div>
+                            </div>
+                            <div>
+                                <div class="date-time-display" id="date_attendance">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Work Outside -->
+                        <div class="mb-3">
+                            <label for="is_work_outside" class="form-label">Work Outside</label>
+                            <div class="work-outside-container d-flex justify-content-center gap-3">
+                                <div class="form-check" style="width: 45%;">
+                                    <input class="form-check-input" type="radio" name="is_work_outside"
+                                        id="work_outside_yes" value="1">
+                                    <label class="form-check-label w-100 text-center"
+                                        for="work_outside_yes">Yes</label>
+                                </div>
+                                <div class="form-check" style="width: 45%;">
+                                    <input class="form-check-input" type="radio" name="is_work_outside"
+                                        id="work_outside_no" value="0" checked>
+                                    <label class="form-check-label w-100 text-center" for="work_outside_no">No</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Map Location Section for Check In -->
+                        <div class="mb-3">
+                            <div id="mapCheckIn" style="height: 200px; width: 90%; display: block; margin: 0 auto;"
+                                class="rounded border"></div>
+                            <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
+                            <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
+                        </div>
+
+                        <!-- Image Upload Section -->
+                        <div class="mb-3" id="imageUploadSection">
+                            <label class="form-label">Photo</label>
+                            <div class="image-upload-container">
+                                <!-- Label untuk trigger kamera -->
+                                <label for="imageInput" class="image-upload-label camera-label">
+                                    <div class="image-upload-icon">
+                                        <i class="fas fa-camera fa-2x text-primary"></i>
+                                    </div>
+                                    <span id="cameraText">Take Photo</span>
+                                </label>
+
+                                <!-- Input file untuk mobile -->
+                                <input type="file" class="form-control d-none" id="imageInput" name="image[]"
+                                    accept="image/*" capture="environment">
+
+                                <!-- Hidden existing image URLs -->
+                                @if ($attendance && $attendance->image)
+                                    @foreach ($attendance->image as $image)
+                                        <input type="hidden" name="existingImageUrls[]" value="{{ asset($image) }}">
+                                    @endforeach
+                                @endif
+
+                                <!-- Image preview -->
+                                <div id="imagePreview" class="image-preview mt-2" style="display:none;">
+                                    <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
+                                </div>
+
+                                <!-- Clear button -->
+                                <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
+                                    id="clearImageBtn">&times;</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer modal-footer-custom">
+                    <button type="submit" class="btn btn-submit-black" id="submitCheckInBtn">
+                        <span class="material-symbols-outlined">alarm_on</span> Check In
+                    </button>
+                </div>
+
+                <div id="cameraWrapper" class="d-none position-relative text-center">
+                    <!-- Video Stream -->
+                    <video id="cameraVideo" autoplay playsinline class="w-100 rounded"
+                        style="height: 100vh; object-fit: cover;"></video>
+
+                    <!-- Capture Button Overlay -->
+                    <button type="button"
+                        class="btn btn-primary position-absolute bottom-0 start-50 translate-middle-x mb-4 px-4 py-2"
+                        id="captureBtn">
+                        <i class="fas fa-camera"></i> Capture Photo
+                    </button>
+
+                    <!-- Hidden Canvas for Capturing -->
+                    <canvas id="cameraCanvas" class="d-none"></canvas>
+                </div>
+
             </div>
+        </div>
+    </div>
 
             <!-- Modal for Checkout -->
             <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel"
@@ -607,15 +632,14 @@
     </div>
 
     <x-slot name="script_slot">
-
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
         <script src="{{ asset('asset/js/dashboard.js') }}"></script>
         <script src="{{ asset('asset/js/attendance_dashboard.js') }}"></script>
         <script src="{{ asset('asset/js/callendar_dashboard.js') }}"></script>
         <script src="{{ asset('asset/js/tasks_dashboard.js') }}"></script>
         <script src="{{ asset('asset/js/project_dashboard.js') }}"></script>
-
     </x-slot>
 </x-office-layout>

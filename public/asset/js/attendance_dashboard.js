@@ -1,43 +1,594 @@
-// Attendance JavaScript
+// Attendance JavaScript for Dashboard - Identical to attendance.js
 const baseUrl = $('meta[name="app-url"]').attr("content");
+
+// Pastikan Leaflet sudah dimuat sebelum inisialisasi
+let mapCheckIn = null;
+let mapCheckOut = null;
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Tunggu hingga Leaflet tersedia
+    const checkLeaflet = setInterval(() => {
+        if (typeof L !== 'undefined') {
+            clearInterval(checkLeaflet);
+            initializeMaps();
+            initializeAttendance();
+        }
+    }, 100);
+});
+
+function initializeMaps() {
+    // Inisialisasi map dengan aman
+    const mapCheckInEl = document.getElementById('mapCheckIn');
+    const mapCheckOutEl = document.getElementById('mapCheckOut');
+
+    if (mapCheckInEl && typeof L !== 'undefined') {
+        if (!window.mapCheckIn || !window.mapCheckIn._container) {
+            window.mapCheckIn = L.map('mapCheckIn').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+            }).addTo(window.mapCheckIn);
+        }
+    }
+
+    if (mapCheckOutEl && typeof L !== 'undefined') {
+        if (!window.mapCheckOut || !window.mapCheckOut._container) {
+            window.mapCheckOut = L.map('mapCheckOut').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+            }).addTo(window.mapCheckOut);
+        }
+    }
+
+    // Perbaikan Event Listener untuk Geolocation
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            const { latitude, longitude } = position.coords;
+
+            // Pastikan map sudah diinisialisasi
+            if (window.mapCheckIn && window.mapCheckIn.setView) {
+                // Clear existing markers
+                window.mapCheckIn.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckIn.removeLayer(layer);
+                    }
+                });
+
+                // Set view dan tambahkan marker di tengah
+                window.mapCheckIn.setView([latitude, longitude], 15);
+                L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+                document.getElementById('latitudeCheckIn').value = latitude;
+                document.getElementById('longitudeCheckIn').value = longitude;
+
+                // Force map resize
+                setTimeout(() => {
+                    window.mapCheckIn.invalidateSize();
+                }, 100);
+            }
+
+            if (window.mapCheckOut && window.mapCheckOut.setView) {
+                // Clear existing markers
+                window.mapCheckOut.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckOut.removeLayer(layer);
+                    }
+                });
+
+                // Set view dan tambahkan marker di tengah
+                window.mapCheckOut.setView([latitude, longitude], 15);
+                L.marker([latitude, longitude]).addTo(window.mapCheckOut);
+                document.getElementById('latitudeCheckOut').value = latitude;
+                document.getElementById('longitudeCheckOut').value = longitude;
+
+                // Force map resize
+                setTimeout(() => {
+                    window.mapCheckOut.invalidateSize();
+                }, 100);
+            }
+        }, function (error) {
+            console.error('Error getting location:', error);
+        });
+    } else {
+        console.error('Geolocation is not supported by this browser.');
+    }
+};
 
 $(document).ready(function () {
     initializeAttendance();
+    // initializeCalendar();
 
-    $(".btn-custom-check").on("click", function () {
-        let checkBtnActive = $(this).attr("data-check-active");
+    // Setup event listeners with DOM ready check
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupEventListeners);
+    } else {
+        setupEventListeners();
+    }
+});
 
-        if (checkBtnActive === "checkIn") {
+function setupEventListeners() {
+    // Check in/out button - now opens modal
+    const checkInBtn = document.getElementById("checkInBtn");
+    if (checkInBtn) {
+        checkInBtn.addEventListener("click", function () {
             openCheckInModal();
-        } else if (checkBtnActive === "checkOut") {
-            openCheckOutModal();
-        }
-    });
+        });
+    }
 
+    // Check out button
+    const checkOutBtn = document.getElementById("checkOutBtn");
+    if (checkOutBtn) {
+        checkOutBtn.addEventListener("click", function () {
+            openCheckOutModal();
+        });
+    }
+
+    // Modal form submission
     const submitCheckInBtn = document.getElementById("submitCheckInBtn");
     if (submitCheckInBtn) {
         submitCheckInBtn.addEventListener("click", function () {
-            if (localStorage.getItem("checkInDone") === "true") {
-                $("#checkInBtn .check-icon").show();
-                $("#checkInBtn").addClass("active");
-            }
-
             submitCheckIn();
         });
     }
 
+    // Submit checkout
     const submitCheckOutBtn = document.getElementById("submitCheckOutBtn");
     if (submitCheckOutBtn) {
         submitCheckOutBtn.addEventListener("click", function () {
-            if (localStorage.getItem("checkOutDone") === "true") {
-                $("#checkOutBtn .done-all-icon").show();
-                $("#checkOutBtn").addClass("active");
-            }
-
             submitCheckOut();
         });
     }
-});
+
+    // Image input handling
+    const imageInput = document.getElementById("imageInput");
+    if (imageInput) {
+        imageInput.addEventListener("change", handleImagePreview);
+    }
+
+    // Work outside radio buttons event listeners
+    const workOutsideYes = document.getElementById("work_outside_yes");
+    const workOutsideNo = document.getElementById("work_outside_no");
+
+    if (workOutsideYes && workOutsideNo) {
+        workOutsideYes.addEventListener("change", toggleImageUploadVisibility);
+        workOutsideNo.addEventListener("change", toggleImageUploadVisibility);
+    }
+
+    // Camera functionality
+    initializeCameraFeatures();
+
+    // Initialize image upload visibility based on default selection
+    toggleImageUploadVisibility();
+}
+
+// Function to toggle image upload visibility based on work outside selection
+function toggleImageUploadVisibility() {
+    const workOutsideYes = document.getElementById("work_outside_yes");
+    const imageUploadSection = document.getElementById("imageUploadSection");
+
+    if (workOutsideYes && imageUploadSection) {
+        if (workOutsideYes.checked) {
+            // Show image upload section when "Yes" is selected
+            imageUploadSection.style.display = "block";
+        } else {
+            // Hide image upload section when "No" is selected
+            imageUploadSection.style.display = "none";
+
+            // Clear any existing image when hiding
+            clearImage();
+        }
+    }
+}
+
+// Fungsi untuk update waktu berjalan di modal check-in
+function updateModalTime() {
+    const now = new Date();
+
+    // Format waktu untuk tampilan dengan detik (untuk UI)
+    const displayTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
+
+    // Format waktu untuk server (tanpa detik)
+    const serverTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    // Format tanggal untuk tampilan
+    const dateString = now.toISOString().split("T")[0];
+    const formattedDate = now.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+
+    // Update tampilan di modal check-in (dengan detik)
+    const dateDisplay = document.getElementById("date_attendance");
+    const timeDisplay = document.getElementById("time_in");
+
+    if (dateDisplay) dateDisplay.textContent = formattedDate;
+    if (timeDisplay) timeDisplay.textContent = displayTimeString;
+
+    // Update hidden inputs (format untuk server tanpa detik)
+    let hiddenDate = document.querySelector('input[name="date_attendance"]');
+    let hiddenTime = document.querySelector('input[name="time_in"]');
+
+    if (!hiddenDate) {
+        hiddenDate = document.createElement('input');
+        hiddenDate.type = 'hidden';
+        hiddenDate.name = 'date_attendance';
+        document.getElementById('checkInForm').appendChild(hiddenDate);
+    }
+
+    if (!hiddenTime) {
+        hiddenTime = document.createElement('input');
+        hiddenTime.type = 'hidden';
+        hiddenTime.name = 'time_in';
+        document.getElementById('checkInForm').appendChild(hiddenTime);
+    }
+
+    hiddenDate.value = dateString;
+    hiddenTime.value = serverTimeString;
+}
+
+// Fungsi untuk update waktu berjalan di modal check-out
+function updateModalTimeCheckout() {
+    const now = new Date();
+
+    // Format waktu untuk tampilan dengan detik (untuk UI)
+    const displayTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
+
+    // Format waktu untuk server (tanpa detik)
+    const serverTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    // Format tanggal untuk tampilan
+    const dateString = now.toISOString().split("T")[0];
+    const formattedDate = now.toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+
+    // Update tampilan di modal check-out (dengan detik)
+    const dateDisplay = document.getElementById("date_attendance_checkout");
+    const timeDisplay = document.getElementById("time_out");
+
+    if (dateDisplay) dateDisplay.textContent = formattedDate;
+    if (timeDisplay) timeDisplay.textContent = displayTimeString;
+
+    // Update hidden inputs (format untuk server tanpa detik)
+    let hiddenDate = document.querySelector('input[name="date_attendance"]');
+    let hiddenTime = document.querySelector('input[name="time_out"]');
+
+    if (!hiddenDate) {
+        hiddenDate = document.createElement('input');
+        hiddenDate.type = 'hidden';
+        hiddenDate.name = 'date_attendance';
+        document.getElementById('checkOutForm').appendChild(hiddenDate);
+    }
+
+    if (!hiddenTime) {
+        hiddenTime = document.createElement('input');
+        hiddenTime.type = 'hidden';
+        hiddenTime.name = 'time_out';
+        document.getElementById('checkOutForm').appendChild(hiddenTime);
+    }
+
+    hiddenDate.value = dateString;
+    hiddenTime.value = serverTimeString;
+}
+
+// Function to open the check-in modal dengan waktu berjalan
+function openCheckInModal() {
+    // Update waktu berjalan
+    updateModalTime();
+
+    // Reset pilihan radio dan visibilitas imageUploadSection
+    const workOutsideNo = document.getElementById("work_outside_no");
+    const imageUploadSection = document.getElementById("imageUploadSection");
+
+    if (workOutsideNo) workOutsideNo.checked = true;
+    if (imageUploadSection) imageUploadSection.style.display = "none";
+
+    // Get current location and zoom map
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            const { latitude, longitude } = position.coords;
+
+            // Pastikan map sudah diinisialisasi
+            if (window.mapCheckIn && window.mapCheckIn.setView) {
+                // Clear existing markers
+                window.mapCheckIn.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckIn.removeLayer(layer);
+                    }
+                });
+
+                // Set view dan tambahkan marker di tengah
+                window.mapCheckIn.setView([latitude, longitude], 18);
+                const marker = L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+
+                // Pastikan marker di tengah map
+                window.mapCheckIn.panTo([latitude, longitude]);
+
+                document.getElementById('latitudeCheckIn').value = latitude;
+                document.getElementById('longitudeCheckIn').value = longitude;
+
+                // Force map resize untuk memastikan tampilan benar
+                setTimeout(() => {
+                    window.mapCheckIn.invalidateSize();
+                }, 500);
+            }
+        }, function (error) {
+            console.error('Error getting location:', error);
+        });
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
+    modal.show();
+
+    // Set interval untuk update waktu setiap detik
+    const timeInterval = setInterval(updateModalTime, 1000);
+
+    // Clear interval saat modal ditutup
+    document.getElementById("checkInModal").addEventListener('hidden.bs.modal', function() {
+        clearInterval(timeInterval);
+    });
+}
+
+function handleCheckIn() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    document.getElementById("checkInTime").value = timeString;
+    document.getElementById("attendanceStatus").textContent = "Checked In";
+
+    // Disable check in button and enable check out
+    document.getElementById("checkInBtn").disabled = true;
+    document.getElementById("checkOutBtn").disabled = false;
+
+    // Show success message
+    showFloatingAlert("Successfully checked in at " + timeString, "success");
+}
+
+function resetCheckInModal() {
+  // Reset image preview
+  const preview = document.getElementById("imagePreview");
+  const previewImg = document.getElementById("previewImg");
+  const cameraLabel = document.querySelector(".camera-label");
+  const imageInput = document.getElementById("imageInput");
+  const video = document.getElementById("cameraVideo");
+  const captureBtn = document.getElementById("captureBtn");
+  const clearBtn = document.getElementById("clearImageBtn");
+
+  if (previewImg) previewImg.src = "";
+  if (preview) preview.style.display = "none";
+  if (cameraLabel) cameraLabel.style.display = "flex";
+  if (imageInput) imageInput.value = "";
+  if (video) video.style.display = "block";
+  if (captureBtn) captureBtn.classList.remove("d-none");
+  if (clearBtn) clearBtn.classList.add("d-none");
+
+  // Stop camera stream if still active
+  stopCamera();
+
+  // Reset radio button (optional)
+ const workOutsideYes = document.getElementById("work_outside_yes");
+const workOutsideNo = document.getElementById("work_outside_no");
+const imageUploadSection = document.getElementById("imageUploadSection");
+
+if (workOutsideYes) {
+  workOutsideYes.addEventListener("change", () => {
+    if (imageUploadSection) imageUploadSection.style.display = "block";
+  });
+}
+
+if (workOutsideNo) {
+  workOutsideNo.addEventListener("change", () => {
+    if (imageUploadSection) imageUploadSection.style.display = "none";
+  });
+}
+
+
+  // Clear hidden inputs
+  document.querySelectorAll('input[name="date_attendance"], input[name="time_in"]').forEach(el => el.remove());
+
+  // Reset date/time display
+  document.getElementById("date_attendance").textContent = "Loading...";
+  document.getElementById("time_in").textContent = "Loading...";
+}
+
+function handleCheckOut() {
+    const now = new Date();
+    const currentTime = new Date().toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+    document.getElementById("checkOutTime").value = currentTime;
+    document.getElementById("attendanceStatus").textContent = "Checked Out";
+
+    // Calculate working hours
+    calculateWorkingHours();
+
+    // Disable check out button
+    document.getElementById("checkOutBtn").disabled = true;
+
+    // Show success message
+    showFloatingAlert("Successfully checked out at " + timeString, "success");
+}
+
+function calculateWorkingHours() {
+    const checkInTime = document.getElementById("checkInTime").value;
+    const checkOutTime = document.getElementById("checkOutTime").value;
+
+    if (checkInTime && checkOutTime) {
+        const [checkInHour, checkInMin] = checkInTime.split(":").map(Number);
+        const [checkOutHour, checkOutMin] = checkOutTime.split(":").map(Number);
+
+        const checkInTotal = checkInHour * 60 + checkInMin;
+        const checkOutTotal = checkOutHour * 60 + checkOutMin;
+
+        const totalMinutes = checkOutTotal - checkInTotal;
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        document.getElementById(
+            "workingHours"
+        ).textContent = `${hours}h ${minutes}m`;
+    }
+}
+
+    function updateAttendanceStatus() {
+        const employeeId = document.querySelector(
+            'input[name="employee_id"]'
+        )?.value;
+
+        if (!employeeId) {
+            console.error("Employee ID not found");
+            return;
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+        const urlToday = `${baseUrl}/attendance/today/${employeeId}`;
+        const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
+
+        // Fetch latest unclosed check-in (could be from previous day)
+        fetch(urlLatestUnclosed)
+            .then((response) => response.json())
+            .then((latestData) => {
+                // Fetch today's attendance data
+                fetch(urlToday)
+                    .then((response) => response.json())
+                    .then((todayData) => {
+                        const checkInBtn = document.getElementById("checkInBtn");
+                        const checkOutBtn = document.getElementById("checkOutBtn");
+
+                        if (!checkInBtn || !checkOutBtn) {
+                            console.error("Check buttons not found");
+                            return;
+                        }
+
+                        console.log("Latest unclosed attendance:", latestData);
+                        console.log("Today's attendance:", todayData);
+
+                        // Cek apakah ada check-in yang belum ditutup dari hari sebelumnya
+                        if (latestData.status === "success" && latestData.data) {
+                            const lastCheckIn = latestData.data;
+                            const checkInDate = lastCheckIn.date_attendance;
+
+                            // Cek data attendance hari ini
+                            if (todayData.status === "success" && Array.isArray(todayData.data)) {
+                                const todayAttendances = todayData.data;
+
+                                if (todayAttendances.length > 0) {
+                                    // Ada aktivitas hari ini
+                                    const lastTodayAttendance = todayAttendances[todayAttendances.length - 1];
+
+                                    if (lastTodayAttendance.type_attendance === "check_in" && !lastTodayAttendance.time_out) {
+                                        // Sudah check-in hari ini, tampilkan tombol checkout
+                                        checkInBtn.style.display = "flex";
+                                        checkOutBtn.style.display = "flex";
+                                        return;
+                                    } else if (lastTodayAttendance.type_attendance === "check_out") {
+                                        // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya
+                                        checkInBtn.style.display = "flex";
+                                        checkOutBtn.style.display = "flex";
+                                        return;
+                                    }
+                                }
+                            }
+
+                            if (checkInDate < today) {
+                                // Ada check-in yang belum ditutup dari hari sebelumnya
+                                console.warn("You forgot to check out yesterday, please contact HR.");
+
+                                // Tampilkan tombol check-in untuk hari ini
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "flex";
+
+                                // Hanya tampilkan alert di halaman dashboard
+                                if (window.location.href.includes('/dashboard')) {
+                                    const alertKey = `attendanceAlertShown_${today}`;
+
+                                    // Cek jika alert belum ditampilkan hari ini
+                                    if (!localStorage.getItem(alertKey)) {
+                                        // Tampilkan pesan warning sekali
+                                        showFloatingAlert(
+                                            `You forgot to check out yesterday. Please contact HR and check in for today.`,
+                                            "warning"
+                                        ).setTimeout(5000);
+
+                                        // Tandai alert sudah ditampilkan untuk hari ini
+                                        localStorage.setItem(alertKey, "true");
+                                    }
+                                }
+                                return;
+                            }
+                        }
+
+                        // Handle missing or invalid data
+                        if (!todayData.data || !Array.isArray(todayData.data)) {
+                            console.warn("No attendance record found for today.");
+                            checkInBtn.style.display = "flex";
+                            checkOutBtn.style.display = "flex";
+                            return;
+                        }
+
+                        const attendances = todayData.data;
+
+                        if (attendances.length > 0) {
+                            const lastAttendance = attendances[attendances.length - 1];
+
+                            if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
+                                // Last record is check-in without checkout, show checkout button
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "flex";
+
+                                // Update hidden time fields
+                                const checkInTimeInput = document.getElementById("checkInTime");
+                                if (checkInTimeInput) {
+                                    checkInTimeInput.value = lastAttendance.time_in;
+                                }
+                                return;
+                            } else {
+                                // Last record is checkout or fully checked out, show check-in button
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "flex";
+                                return;
+                            }
+                        } else {
+                            // No attendance today, show check-in button
+                            checkInBtn.style.display = "flex";
+                            checkOutBtn.style.display = "flex";
+                            return;
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Error fetching today's attendance data:", error);
+                    });
+            })
+            .catch((error) => {
+                console.error("Error fetching latest unclosed attendance data:", error);
+            });
+    }
 
 document.addEventListener("DOMContentLoaded", function () {
     function updateClock() {
@@ -124,6 +675,50 @@ function openCheckInModal() {
             hiddenTime.value = timeString;
             document.getElementById("checkInForm").appendChild(hiddenTime);
 
+            // Get current location and center map
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const { latitude, longitude } = position.coords;
+
+                    // Pastikan map sudah diinisialisasi
+                    if (window.mapCheckIn && window.mapCheckIn.setView) {
+                        // Clear existing markers
+                        window.mapCheckIn.eachLayer(function (layer) {
+                            if (layer instanceof L.Marker) {
+                                window.mapCheckIn.removeLayer(layer);
+                            }
+                        });
+
+                        // Set view dengan zoom yang lebih tinggi dan tambahkan marker di tengah
+                        window.mapCheckIn.setView([latitude, longitude], 18);
+                        L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+                        
+                        // Update hidden inputs
+                        document.getElementById('latitudeCheckIn').value = latitude;
+                        document.getElementById('longitudeCheckIn').value = longitude;
+
+                        // Force map resize untuk memastikan tampilan benar
+                        setTimeout(() => {
+                            window.mapCheckIn.invalidateSize();
+                        }, 300);
+                    }
+                }, function (error) {
+                    console.error('Error getting location:', error);
+                    // Fallback ke default jika geolocation gagal
+                    if (window.mapCheckIn && window.mapCheckIn.setView) {
+                        setTimeout(() => {
+                            window.mapCheckIn.invalidateSize();
+                        }, 300);
+                    }
+                });
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+                // Fallback ke default jika geolocation tidak tersedia
+                setTimeout(() => {
+                    window.mapCheckIn.invalidateSize();
+                }, 300);
+            }
+
             // Tampilkan modal
             const modal = new bootstrap.Modal(
                 document.getElementById("checkInModal")
@@ -176,6 +771,14 @@ function submitCheckIn() {
         document.querySelector('input[name="time_in"]').value
     );
     formData.append("type_attendance", "check_in");
+    
+    // Tambahkan latitude dan longitude untuk location field
+    const latitude = document.getElementById('latitudeCheckIn')?.value;
+    const longitude = document.getElementById('longitudeCheckIn')?.value;
+    if (latitude && longitude) {
+        formData.append("latitude", latitude);
+        formData.append("longitude", longitude);
+    }
 
     const noteTextarea = document.querySelector('textarea[name="note"]');
     if (noteTextarea && noteTextarea.value.trim()) {
