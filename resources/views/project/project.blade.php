@@ -28,38 +28,17 @@
         </button>
     </div>
 
-
-    {{-- <div class="dropdown-filter-container">
-            <button class="btn btn-icon-toggle" type="button" id="openProjectFilterBtn">
-                <span class="material-symbols-outlined icon">filter_list</span> Filter
-            </button>
-            <div class="dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
-                <div class="dropdown-filter-header">
-                    <h6>Filter Projects</h6>
-                </div>
-                <div class="dropdown-filter-body">
-                    <div class="mb-3">
-                        <label for="filterProjectStatus" class="form-label">Filter by Status</label>
-                        <select id="filterProjectStatus" class="form-select">
-                            <option value="">All Status</option>
-                            <option value="ongoing">Not Started</option>
-                            <option value="pending">In Progress</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="dropdown-filter-footer">
-                    <button type="button" class="btn btn-submit-black" id="applyProjectFilterBtn">Filter</button>
-                    <button type="button" class="btn btn-submit-reset" id="resetProjectFilterBtn">Reset</button>
-                </div>
-            </div>
-        </div> --}}
-
     <div class="project-card-container">
         <div class="row">
             <div class="col-md-4">
                 {{-- project chart --}}
                 <div class="body-content chart-section p-4">
+                    <div class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
+                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+                            <span class="material-symbols-outlined"
+                                style="font-size: 18px; color: #858CA0;">calendar_month</span>
+                        </button>
+                    </div>
                     <div class="chart-container">
                         <canvas id="projectChart"></canvas>
                     </div>
@@ -85,49 +64,94 @@
             </div>
             <div class="col-md-8">
                 {{-- timeline project --}}
-                <div class="body-content timeline-section p-4">
-                    <div class="project-timeline-card">
-                        <div class="timeline-card h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">Aug
-                                    week 1</h5>
-                                <div>
-                                    <button class="btn btn-sm me-2" id="prevTimeline">
-                                        <span class="material-symbols-outlined">chevron_left</span>
-                                    </button>
-                                    <button class="btn btn-sm" id="nextTimeline">
-                                        <span class="material-symbols-outlined">chevron_right</span>
-                                    </button>
-                                    <button class="btn btn-sm" id="fullscreenTimeLine">
-                                        <span class="material-symbols-outlined">
-                                            fullscreen
-                                        </span>
-                                    </button>
+                <div class="timeline-card-mobile">
+                    <div class="body-content timeline-section p-4">
+                        <div class="project-timeline-card">
+                            <div class="timeline-card h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">
+                                        Aug
+                                        week 1</h5>
+                                    <div>
+                                        <button class="btn btn-sm me-2" id="prevTimeline">
+                                            <span class="material-symbols-outlined">chevron_left</span>
+                                        </button>
+                                        <button class="btn btn-sm" id="nextTimeline">
+                                            <span class="material-symbols-outlined">chevron_right</span>
+                                        </button>
+                                        <button id="timelineFullscreenBtn" class="btn btn-sm border-0 bg-transparent">
+                                            <span id="timelineFullscreenIcon"
+                                                class="material-symbols-outlined">fullscreen</span>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="timeline-table justify-content-center align-items-center">
-                                <div class="timeline-header d-flex">
-                                    <div class="timeline-cell fw-bold">Mo</div>
-                                    <div class="timeline-cell fw-bold">Tu</div>
-                                    <div class="timeline-cell fw-bold">We</div>
-                                    <div class="timeline-cell fw-bold">Th</div>
-                                    <div class="timeline-cell fw-bold">Fr</div>
-                                    <div class="timeline-cell fw-bold">Sa</div>
-                                    <div class="timeline-cell fw-bold">Su</div>
+                                <div class="timeline-table justify-content-center align-items-center">
+                                    <div class="timeline-header d-flex">
+                                        <div class="timeline-cell fw-bold">Mo</div>
+                                        <div class="timeline-cell fw-bold">Tu</div>
+                                        <div class="timeline-cell fw-bold">We</div>
+                                        <div class="timeline-cell fw-bold">Th</div>
+                                        <div class="timeline-cell fw-bold">Fr</div>
+                                        <div class="timeline-cell fw-bold">Sa</div>
+                                        <div class="timeline-cell fw-bold">Su</div>
+                                    </div>
+                                    <div id="timelineRows"></div>
                                 </div>
-                                <div id="timelineRows"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="bottom-project-content mt-5">
-                <h6 class="mb-4">All Project</h6>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-4">All Project</h6>
+                    <div class="dropdown-filter-container">
+                        <div class="btn-filter-container mb-3">
+                            <div class="search-input-container position-relative me-3">
+                                <span class="material-symbols-outlined search-icon">search</span>
+                                <input class="form-control custom-form-filter ps-5" type="text" name="search_filter"
+                                    id="search_filter">
+                            </div>
+                            <button class="btn btn-icon-toggle btn-filter-custom me-3" type="button"
+                                id="openProjectFilterBtn">
+                                <span class="material-symbols-outlined icon">filter_list</span> Filter
+                            </button>
+                            <button class="btn btn-icon-toggle btn-timeline-filter-custom" type="button"
+                                id="openProjectFilterBtn">
+                                <span class="material-symbols-outlined icon">view_timeline</span> Timeline
+                            </button>
+                        </div>
+                        <div class="dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
+                            <div class="dropdown-filter-header">
+                                <h6>Filter Projects</h6>
+                            </div>
+                            <div class="dropdown-filter-body">
+                                <div class="mb-3">
+                                    <label for="filterProjectStatus" class="form-label">Filter by Status</label>
+                                    <select id="filterProjectStatus" class="form-select">
+                                        <option value="">All Status</option>
+                                        <option value="ongoing">Not Started</option>
+                                        <option value="pending">In Progress</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="dropdown-filter-footer">
+                                <button type="button" class="btn btn-submit-black"
+                                    id="applyProjectFilterBtn">Filter</button>
+                                <button type="button" class="btn btn-submit-reset"
+                                    id="resetProjectFilterBtn">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div id="all-cards-container">
                     {{-- Content Card --}}
+
                 </div>
             </div>
         </div>
+        <div class="timeline-overlay"></div>
     </div>
 
     <!-- Add Project Modal -->

@@ -19,6 +19,8 @@
 #projectChart {
     max-width: 256.51px !important;
     max-height: 256.51px !important;
+    min-width: 100px;
+    min-height: 100px;
     display: block;
     margin: 0 auto;
 }
@@ -29,6 +31,14 @@
 
 .timeline-card {
     background: transparent;
+}
+
+.timeline-toggle-btn {
+    padding: 10px;
+    display: none;
+    background-color: #e3e4ee;
+    border-radius: 50%;
+    border: none;
 }
 
 .timeline-toggle-btn.active {
@@ -43,12 +53,43 @@
     border: 1px solid #e5e7eb;
     position: relative;
     overflow: hidden;
-    padding: 24px 16px 16px 16px;
+    padding: 16px 16px 16px 16px;
 }
 
 .timeline-header {
     display: flex;
-    margin-bottom: 8px;
+    position: relative;
+}
+
+.timeline-header .timeline-cell {
+    flex: 1 1 auto;
+    text-align: center;
+    font-size: 15px;
+    color: #444;
+    position: relative;
+}
+
+.timeline-header .timeline-cell::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: -9999px;
+    right: 0;
+    width: 1px;
+    background: #e5e7eb;
+}
+
+.timeline-header .timeline-cell:last-child::after {
+    display: none;
+}
+
+.timeline-cell {
+    flex: 1 1 auto;
+    text-align: center;
+    font-size: 15px;
+    color: #444;
+    position: relative;
+    /* border-right: 1px solid #e5e7eb; */
 }
 
 .timeline-row {
@@ -56,46 +97,28 @@
     position: relative;
     height: 44px;
     margin-bottom: 0;
+    margin-right: 20px;
 }
 
+.timeline-row .timeline-cell {
+    border-right: none;
+}
+
+/* Bar */
 .timeline-bar {
     height: 28px;
     border-radius: 18px;
     display: flex;
     align-items: center;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 500;
     color: #555;
-    padding-left: 36px;
-    padding-right: 12px;
-    padding-top: 3px;
-    padding-bottom: 3px;
+    padding: 3px 12px 3px 36px;
     background: #e3f3ff;
     left: 0;
     transition: left 0.2s, width 0.2s;
     box-sizing: border-box;
     margin-bottom: 10px;
-    z-index: 1;
-}
-
-.timeline-cell {
-    flex: 1 1 0;
-    text-align: center;
-    padding: 4px 0;
-    font-size: 15px;
-    color: #444;
-    position: relative;
-}
-
-.timeline-header .timeline-cell:not(:last-child)::after,
-.timeline-row .timeline-cell:not(:last-child)::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 1px;
-    height: 100%;
-    background: #e5e7eb;
     z-index: 1;
 }
 
@@ -108,58 +131,168 @@
     height: 18px;
     border-radius: 50%;
     background: #fff;
-    border: 3px solid #b6e7c9;
+    border: none;
+    margin-right: 20px;
 }
 
+/* Warna bar */
 .timeline-bar.color1 {
     background: #e3f3ff;
-    border: 1px solid #cbe2f7;
 }
 .timeline-bar.color2 {
     background: #e9e3f7;
-    border: 1px solid #d7cbe7;
 }
 .timeline-bar.color3 {
     background: #f7f3e3;
-    border: 1px solid #e7dbc7;
 }
 .timeline-bar.color4 {
     background: #ffe3e3;
-    border: 1px solid #f7cbcb;
-}
-.timeline-bar .circle.color1 {
-    border-color: #8fb3e8;
-}
-.timeline-bar .circle.color2 {
-    border-color: #b6a7e7;
-}
-.timeline-bar .circle.color3 {
-    border-color: #e7c97a;
-}
-.timeline-bar .circle.color4 {
-    border-color: #ff9c9c;
 }
 
-.cards-project {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  max-height: 100px;
+/* Background gelap */
+.timeline-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vh;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
 }
 
-.cards-project .text-muted {
-  font-size: 13px;
-  line-height: 1.4;
-  max-height: 3.5em;
-  overflow: hidden;
+/* Timeline fullscreen */
+.timeline-fullscreen {
+    background: #fff;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    padding: 20px;
+    overflow-x: auto;
+    overflow-y: auto;
+    white-space: nowrap;
 }
 
+.timeline-cell.sunday {
+    color: #d34547 !important;
+    font-weight: 600;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%) scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%) scale(0.8);
+        opacity: 0;
+    }
+}
+
+.timeline-card-mobile.animate-in {
+    animation: slideInRight 0.4s ease forwards;
+}
+
+.timeline-card-mobile.animate-out {
+    animation: slideOutRight 0.4s ease forwards;
+}
+
+.project-card {
+    border-radius: 20px;
+    min-height: 250px;
+}
+
+/* Dropdown icon container positioned at top right of card */
+.dropdown-icon-container {
+    position: absolute;
+    margin-right: 15px;
+    padding: 15px 15px;
+}
+
+/* Dropdown icon style */
 .dropdown-icon {
-    background-color: #e8e9f2;
-    border-radius: 50%;
-    padding: 5px;
+    cursor: pointer;
+    font-size: 24px;
+    color: #555;
+    user-select: none;
+}
+
+/* Dropdown menu container */
+.dropdown-menu {
+    position: absolute;
+    top: 32px;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-width: 160px;
+    padding: 8px 0;
+    display: none;
+    flex-direction: column;
+    font-size: 14px;
+    color: #333;
+}
+
+/* Show dropdown menu */
+.dropdown-menu:not(.d-none) {
+    display: flex;
+}
+
+/* Dropdown menu item */
+.dropdown-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+    color: #555;
+}
+
+/* Hover effect for dropdown items */
+.dropdown-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Special style for delete item */
+.dropdown-item.text-danger {
+    color: #dc3545;
+}
+
+.delete-alert-container {
+    margin-top: 10px;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    background-color: #d4edda;
+    color: #155724;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    word-break: break-word;
+    width: auto;
+}
+
+.dropdown-item:hover {
+    background-color: #f0f0f0;
+}
+
+/* Special style for delete item */
+.dropdown-item.text-danger {
+    color: #dc3545;
 }
 
 /* Spinner inside submit button */
@@ -596,8 +729,23 @@
     color: #555;
 }
 
+@media (max-width: 769px) and (max-width: 1024px) {
+    .timeline-card-mobile {
+        display: block;
+    }
+
+    .timeline-toggle-btn {
+        display: inline-flex;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
+    .dropdown-filter-menu {
+        min-width: 250px;
+        right: -50px;
+    }
+
     .project-detail-columns {
         flex-direction: column;
         gap: 1rem;
@@ -606,6 +754,49 @@
     .project-detail-left,
     .project-detail-right {
         flex: 1 1 100%;
+    }
+
+    .timeline-toggle-btn {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .timeline-card-mobile {
+        display: none;
+        position: fixed;
+        inset: 0;
+        margin: auto;
+        top: 0;
+        width: 90%;
+        max-width: 450px;
+        height: auto;
+        max-height: 70vh;
+        background: #f0f1f8;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        transform: scale(0.8);
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 1051;
+        overflow-y: auto;
+    }
+
+    .timeline-card-mobile.active {
+        display: block;
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    .timeline-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 1050;
     }
 }
 
@@ -934,15 +1125,49 @@
     color: #666;
 }
 
-/* Filter Button Styles - Sama persis dengan task */
-.btn-icon-toggle {
-    color: #333;
-    height: 45px;
-}
-
-/* Dropdown Filter Styles - Sama persis dengan task */
 .dropdown-filter-container {
     position: relative;
+}
+
+.btn-filter-container {
+    display: flex;
+    gap: 8px;
+    background: none;
+}
+
+.custom-form-filter {
+    max-width: 200px;
+    border: none;
+    background: #f0f1f8;
+    border-radius: 10px;
+}
+
+.search-input-container {
+    position: relative;
+    width: 200px;
+}
+
+.search-icon {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    font-size: 24px;
+    color: #888;
+    pointer-events: none;
+}
+
+.btn-filter-custom,
+.btn-timeline-filter-custom {
+    border: none;
+    border-radius: 10px;
+    background: #e9eef4;
+    padding: 6px 12px;
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
 }
 
 .dropdown-filter-menu {
@@ -950,10 +1175,8 @@
     top: 100%;
     right: 0;
     z-index: 1000;
+    border: none;
     min-width: 280px;
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     margin-top: 4px;
 }
@@ -988,14 +1211,6 @@
 .dropdown-filter-footer .btn-sm {
     padding: 4px 12px;
     font-size: 14px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .dropdown-filter-menu {
-        min-width: 250px;
-        right: -50px;
-    }
 }
 
 /* Project Filter Display Styles - Sama persis dengan task */
