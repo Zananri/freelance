@@ -793,10 +793,34 @@ function loadAttendanceForDate(dateString) {
     document.getElementById("checkOutBtn").disabled = true;
 }
 
-// Function to show floating alert with SVG icon - same as task.js
+// Enhanced showFloatingAlert with proper styling and fallback
 function showFloatingAlert(message, type = "success") {
     const alertDiv = document.createElement("div");
-    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
+    
+    // Ensure proper Bootstrap classes and fallback styling
+    let alertClass = `alert alert-${type}`;
+    let iconClass = "fa-exclamation-triangle";
+    let bgColor = "#ffc107"; // Default warning
+    
+    switch(type) {
+        case "success":
+            alertClass = "alert alert-success";
+            iconClass = "fa-check-circle";
+            bgColor = "#d4edda";
+            break;
+        case "warning":
+            alertClass = "alert alert-warning";
+            iconClass = "fa-exclamation-triangle";
+            bgColor = "#fff3cd";
+            break;
+        case "error":
+            alertClass = "alert alert-danger";
+            iconClass = "fa-times-circle";
+            bgColor = "#f8d7da";
+            break;
+    }
+
+    alertDiv.className = `${alertClass} d-flex align-items-center task-status-alert`;
     alertDiv.style.cssText = `
         position: fixed;
         bottom: 20px;
@@ -805,10 +829,10 @@ function showFloatingAlert(message, type = "success") {
         min-width: 300px;
         opacity: 1;
         transition: opacity 0.5s ease;
+        background-color: ${bgColor} !important;
+        border: 1px solid ${type === 'warning' ? '#ffeaa7' : type === 'success' ? '#c3e6cb' : '#f5c6cb'} !important;
+        color: ${type === 'warning' ? '#856404' : type === 'success' ? '#155724' : '#721c24'} !important;
     `;
-
-    let iconClass =
-        type === "success" ? "fa-check-circle" : "fa-exclamation-triangle";
 
     alertDiv.innerHTML = `
         <i class="fas ${iconClass} me-2"></i>
