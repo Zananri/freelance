@@ -1,6 +1,161 @@
 // Attendance JavaScript for Dashboard - Identical to attendance.js
 const baseUrl = $('meta[name="app-url"]').attr("content");
 
+// Fungsi untuk mendapatkan informasi shift karyawan
+async function getEmployeeShiftDetails(employeeId, date) {
+    try {
+        const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${date}`);
+        const data = await response.json();
+        
+        if (data.status === "success") {
+            return data.data;
+        } else {
+            console.error("Error fetching shift details:", data.message);
+            return null;
+        }
+    } catch (error) {
+        console.error("Network error:", error);
+        return null;
+    }
+}
+
+// Fungsi untuk validasi waktu check-in berdasarkan shift
+async function validateCheckInTime(employeeId, date) {
+    const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
+    
+    if (!shiftDetails) {
+        return {
+            valid: false,
+            message: "No shift assigned for this date"
+        };
+    }
+
+    const currentTime = new Date();
+    const [currentHour, currentMinute] = [currentTime.getHours(), currentTime.getMinutes()];
+    const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+    
+    const minCheckInTime = shiftDetails.min_checkin_time;
+    const maxCheckInTime = shiftDetails.max_checkin_time;
+    
+    // Convert time strings to minutes for comparison
+    const currentMinutes = currentHour * 60 + currentMinute;
+    const minMinutes = parseInt(minCheckInTime.split(':')[0]) * 60 + parseInt(minCheckInTime.split(':')[1]);
+    
+    if (currentMinutes < minMinutes) {
+        return {
+            valid: false,
+            message: `Check-in not allowed. You can only check-in 1 hour before your shift starts at ${shiftDetails.time_start}`
+        };
+    }
+    
+    // Tidak ada batasan maksimum untuk check-in setelah shift dimulai
+    
+    return {
+        valid: true,
+        message: "Check-in time is valid",
+        shiftDetails: shiftDetails
+    };
+}
+
+// Fungsi untuk validasi waktu check-out berdasarkan shift
+async function validateCheckOutTime(employeeId, date) {
+    const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
+    
+    if (!shiftDetails) {
+        return {
+            valid: false,
+            message: "No shift assigned for this date"
+        };
+    }
+
+    const currentTime = new Date();
+    const [currentHour, currentMinute] = [currentTime.getHours(), currentTime.getMinutes()];
+    const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+    
+    const minCheckOutTime = shiftDetails.min_checkout_time;
+    
+    // Convert time strings to minutes for comparison
+    const currentMinutes = currentHour * 60 + currentMinute;
+    const minMinutes = parseInt(minCheckOutTime.split(':')[0]) * 60 + parseInt(minCheckOutTime.split(':')[1]);
+    
+    if (currentMinutes < minMinutes) {
+        return {
+            valid: false,
+            message: `Check-out not allowed. You can only check-out after ${minCheckOutTime}`
+        };
+    }
+    
+    return {
+        valid: true,
+        message: "Check-out time is valid",
+        shiftDetails: shiftDetails
+    };
+}
+
+// Fungsi untuk menampilkan informasi shift di modal
+async function displayShiftInfo(employeeId, date) {
+    const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
+    
+    if (shiftDetails) {
+        const shiftInfoDiv = document.getElementById("shiftInfo");
+        if (shiftInfoDiv) {
+            shiftInfoDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <strong>Shift Information:</strong><br>
+                    Time Start: ${shiftDetails.time_start}<br>
+                    Time End: ${shiftDetails.time_end}<br>
+                    Check-in allowed: ${shiftDetails.min_checkin_time} - ${shiftDetails.max_checkin_time}<br>
+                    Check-out allowed: After ${shiftDetails.min_checkout_time}
+                </div>
+            `;
+        }
+    }
+}
+
+// Override fungsi openCheckInModal untuk menambahkan validasi
+const originalOpenCheckInModal = openCheckInModal;
+openCheckInModal = async function() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const today = new Date().toISOString().split("T")[0];
+    
+    if (employeeId) {
+        const validation = await validateCheckInTime(employeeId, today);
+        
+        if (!validation.valid) {
+            showAlertDashboard(validation.message, "error");
+            return;
+        }
+        
+        // Tampilkan informasi shift
+        await displayShiftInfo(employeeId, today);
+    }
+    
+    // Panggil fungsi asli
+    originalOpenCheckInModal();
+};
+
+// Override fungsi openCheckOutModal untuk menambahkan validasi
+const originalOpenCheckOutModal = openCheckOutModal;
+openCheckOutModal = async function() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const today = new Date().toISOString().split("T")[0];
+    
+    if (employeeId) {
+        const validation = await validateCheckOutTime(employeeId, today);
+        
+        if (!validation.valid) {
+            showAlertDashboard(validation.message, "error");
+            return;
+        }
+        
+        // Tampilkan informasi shift
+        await displayShiftInfo(employeeId, today);
+    }
+    
+    // Panggil fungsi asli
+    originalOpenCheckOutModal();
+};
+
 // Pastikan Leaflet sudah dimuat sebelum inisialisasi
 let mapCheckIn = null;
 let mapCheckOut = null;
