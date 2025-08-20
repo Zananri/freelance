@@ -122,6 +122,12 @@ class UserController extends Controller
     {
         $user = auth()->user();
         $photo = null;
+        $employee = null;
+        $attendance = null;
+        $attendanceStatus = [
+            'check_in' => 'pending',
+            'check_out' => 'pending'
+        ];
 
         if ($user) {
             $employee = Employee::where('user_id', $user->id)->first();
@@ -130,11 +136,39 @@ class UserController extends Controller
             if ($employee) {
                 // Prefer profile_picture if available, else photo
                 $photo = $employee->profile_picture ?? $employee->photo;
-                $attendance = Attendance::where('employee_id', $employee->id)
+                
+                // Get today's attendance records
+                $attendances = Attendance::where('employee_id', $employee->id)
                     ->where('date_attendance', $today)
-                    ->where('type_attendance', 'check_in')
-                    ->first();
+                    ->orderBy('time_in', 'asc')
+                    ->get();
 
+                if ($attendances->isEmpty()) {
+                    // No attendance today
+                    $attendanceStatus = [
+                        'check_in' => 'pending',
+                        'check_out' => 'pending'
+                    ];
+                } else {
+                    $lastAttendance = $attendances->last();
+                    
+                    if ($lastAttendance->type_attendance === 'check_in' && !$lastAttendance->time_out) {
+                        // Has checked in but not checked out
+                        $attendanceStatus = [
+                            'check_in' => 'completed',
+                            'check_out' => 'pending'
+                        ];
+                    } elseif ($lastAttendance->type_attendance === 'check_out') {
+                        // Has checked out
+                        $attendanceStatus = [
+                            'check_in' => 'completed',
+                            'check_out' => 'completed'
+                        ];
+                    }
+                }
+
+                // Get the latest check-in attendance
+                $attendance = $attendances->where('type_attendance', 'check_in')->last();
             }
 
             // If photo is a relative path, convert to asset URL
@@ -143,7 +177,7 @@ class UserController extends Controller
             }
         }
 
-        return view('dashboard', compact('photo', 'employee', 'attendance'));
+        return view('dashboard', compact('photo', 'employee', 'attendance', 'attendanceStatus'));
     }
 
     /**

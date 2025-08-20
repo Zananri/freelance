@@ -508,7 +508,7 @@ function handleCheckIn() {
     document.getElementById("checkOutBtn").disabled = false;
 
     // Show success message
-    showFloatingAlert("Successfully checked in at " + timeString, "success");
+    showAlertDashboard("Successfully checked in at " + timeString, "success");
 }
 
 function resetCheckInModal() {
@@ -595,7 +595,7 @@ function handleCheckOut() {
     document.getElementById("checkOutBtn").disabled = true;
 
     // Show success message
-    showFloatingAlert("Successfully checked out at " + timeString, "success");
+    showAlertDashboard("Successfully checked out at " + timeString, "success");
 }
 
 function calculateWorkingHours() {
@@ -694,7 +694,7 @@ function calculateWorkingHours() {
                                     // Cek jika alert belum ditampilkan hari ini
                                     if (!localStorage.getItem(alertKey)) {
                                         // Tampilkan pesan warning sekali
-                                        showFloatingAlert(
+                                        showAlertDashboard(
                                             `You forgot to check out yesterday. Please contact HR and check in for today.`,
                                             "warning"
                                         ).setTimeout(5000);
@@ -1090,7 +1090,7 @@ openCheckOutModal = async function() {
         const validation = await validateCheckOutTime(employeeId, today);
         
         if (!validation.valid) {
-            showFloatingAlert(validation.message, "error");
+            showAlertDashboard(validation.message, "error");
             return;
         }
         
@@ -1179,7 +1179,7 @@ function loadCheckInDataForCheckout(serverTime) {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     if (!employeeId) {
         console.error("Employee ID not found");
-        showFloatingAlert("Employee ID not found. Please refresh the page.", "error");
+        showAlertDashboard("Employee ID not found. Please refresh the page.", "error");
         return;
     }
 
@@ -1199,20 +1199,20 @@ function loadCheckInDataForCheckout(serverTime) {
                 const checkInRecord = data.data.find(r => r.type_attendance === "check_in");
                 if (!checkInRecord) {
                     console.error("No check-in record found");
-                    showFloatingAlert("No check-in record found for today.", "error");
+                    showAlertDashboard("No check-in record found for today.", "error");
                     return setCheckoutModalDefaults();
                 }
 
                 populateCheckoutModal(checkInRecord, serverTime);
             } else {
                 console.warn("No attendance data found");
-                showFloatingAlert("No attendance data found for today.", "error");
+                showAlertDashboard("No attendance data found for today.", "error");
                 setCheckoutModalDefaults();
             }
         })
         .catch(error => {
             console.error("Error loading check-in data:", error);
-            showFloatingAlert("Error loading check-in data. Please try again.", "error");
+            showAlertDashboard("Error loading check-in data. Please try again.", "error");
             setCheckoutModalDefaults();
         });
 }
@@ -1268,7 +1268,7 @@ function populateCheckoutModal(checkInRecord, serverTime) {
 
     } catch (error) {
         console.error("Error populating checkout modal:", error);
-        showFloatingAlert("Error loading checkout data. Please try again.", "error");
+        showAlertDashboard("Error loading checkout data. Please try again.", "error");
         setCheckoutModalDefaults();
     }
 }
@@ -1464,7 +1464,7 @@ function submitCheckOut() {
     
     if (!employeeId) {
         console.error("Employee ID is missing");
-        showFloatingAlert("Employee ID is missing. Please refresh the page.", "error");
+        showAlertDashboard("Employee ID is missing. Please refresh the page.", "error");
         return;
     }
 
@@ -1486,7 +1486,7 @@ function submitCheckOut() {
 
     if (!latitude || !longitude) {
         console.error("Location coordinates are missing");
-        showFloatingAlert("Could not get your location. Please refresh and try again.", "error");
+        showAlertDashboard("Could not get your location. Please refresh and try again.", "error");
         return;
     }
 
@@ -1517,7 +1517,7 @@ function submitCheckOut() {
         .querySelector('meta[name="csrf-token"]')
         ?.getAttribute("content");
     if (!csrfToken) {
-        showFloatingAlert("CSRF token not found. Please refresh the page.", "error");
+        showAlertDashboard("CSRF token not found. Please refresh the page.", "error");
         return;
     }
     formData.append("_token", csrfToken);
@@ -1543,7 +1543,7 @@ function submitCheckOut() {
         .then((response) => response.json())
         .then((data) => {
             if (data.status === "success") {
-                showFloatingAlert(
+                showAlertDashboard(
                     data.message || "Check-out submitted successfully!",
                     "success"
                 );
@@ -1563,7 +1563,7 @@ function submitCheckOut() {
                     location.reload();
                 }, 1000);
             } else {
-                showFloatingAlert(
+                showAlertDashboard(
                     data.message || "Error submitting check-out",
                     "error"
                 );
@@ -1572,7 +1572,7 @@ function submitCheckOut() {
         })
         .catch((error) => {
             console.error("Network error:", error);
-            showFloatingAlert(
+            showAlertDashboard(
                 error.message || "Network error. Please check your connection.",
                 "error"
             );
@@ -1753,3 +1753,124 @@ function handleImagePreview(e) {
 function resetCheckInModal() {
   clearImage();
 }
+
+// Fungsi untuk mendapatkan status absensi harian
+function getTodayAttendanceStatus() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const urlStatus = `${baseUrl}/attendance/today-status/${employeeId}`;
+
+    fetch(urlStatus)
+        .then((response) => response.json())
+        .then((statusData) => {
+            updateButtonStates(statusData.data);
+        })
+        .catch((error) => {
+            console.error("Error fetching attendance status:", error);
+        });
+}
+
+// Fungsi untuk update state tombol berdasarkan status
+function updateButtonStates(status) {
+    const checkInBtn = document.getElementById("checkInBtn");
+    const checkOutBtn = document.getElementById("checkOutBtn");
+
+    if (!checkInBtn || !checkOutBtn) return;
+
+    // Reset semua state
+    checkInBtn.classList.remove("active");
+    checkOutBtn.classList.remove("active");
+    checkInBtn.disabled = false;
+    checkOutBtn.disabled = false;
+
+    // Hide semua icon
+    $("#checkInBtn .check-icon").hide();
+    $("#checkOutBtn .done-all-icon").hide();
+
+    // Update berdasarkan status
+    if (status.status === "not_started") {
+        // Belum check-in sama sekali
+        checkOutBtn.disabled = true;
+    } else if (status.status === "checked_in") {
+        // Sudah check-in tapi belum check-out
+        checkInBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+    } else if (status.status === "checked_out") {
+        // Sudah check-out (kedua tombol aktif)
+        checkInBtn.classList.add("active");
+        checkOutBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+        $("#checkOutBtn .done-all-icon").show();
+    }
+
+    // Handle unclosed attendance
+    if (status.has_unclosed) {
+        checkInBtn.classList.add("active");
+        checkOutBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+        $("#checkOutBtn .done-all-icon").show();
+    }
+
+    // Update attendance logs
+    if (status.last_check_in_time) {
+        const timeInDisplay = document.getElementById("time_in_display");
+        if (timeInDisplay) {
+            timeInDisplay.textContent = status.last_check_in_time;
+        }
+    }
+
+    if (status.last_check_out_time) {
+        const timeOutDisplay = document.getElementById("time_out_display");
+        if (timeOutDisplay) {
+            timeOutDisplay.textContent = status.last_check_out_time;
+        }
+    }
+}
+
+// Fungsi untuk refresh status setelah check-in/check-out
+function refreshAttendanceStatus() {
+    getTodayAttendanceStatus();
+}
+
+// Fungsi untuk reset state saat berganti hari
+function resetDailyAttendanceState() {
+    const today = new Date().toISOString().split("T")[0];
+    const lastResetDate = localStorage.getItem('lastAttendanceReset');
+    
+    if (lastResetDate !== today) {
+        localStorage.setItem('lastAttendanceReset', today);
+        getTodayAttendanceStatus();
+    }
+}
+
+// Fungsi untuk memastikan status diperbarui saat halaman dimuat
+function initializeAttendanceState() {
+    // Check daily reset
+    resetDailyAttendanceState();
+    
+    // Get initial status
+    getTodayAttendanceStatus();
+    
+    // Set up periodic refresh
+    setInterval(getTodayAttendanceStatus, 30000); // Refresh every 30 seconds
+    
+    // Add event listener untuk refresh setelah check-in/check-out
+    document.addEventListener('attendanceUpdated', refreshAttendanceStatus);
+}
+
+// Initialize saat DOM ready
+document.addEventListener("DOMContentLoaded", function() {
+    initializeAttendanceState();
+});
+
+// Export fungsi untuk digunakan di file lain
+window.AttendanceState = {
+    getTodayAttendanceStatus,
+    refreshAttendanceStatus,
+    updateButtonStates
+};

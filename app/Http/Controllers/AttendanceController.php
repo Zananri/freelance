@@ -721,4 +721,87 @@ if ($request->hasFile('image')) {
             ], 500);
         }
     }
+
+    /**
+     * Get today's attendance status for button states
+     */
+    public function getTodayStatus($employeeId)
+    {
+        try {
+            $today = Carbon::today()->toDateString();
+            
+            // Get all attendance records for today
+            $attendances = Attendance::where('employee_id', $employeeId)
+                ->where('date_attendance', $today)
+                ->orderBy('time_in', 'asc')
+                ->get();
+
+            $status = [
+                'has_checked_in' => false,
+                'has_checked_out' => false,
+                'last_check_in_time' => null,
+                'last_check_out_time' => null,
+                'can_check_in' => true,
+                'can_check_out' => false,
+                'status' => 'not_started'
+            ];
+
+            if ($attendances->isEmpty()) {
+                $status['status'] = 'not_started';
+                $status['can_check_in'] = true;
+                $status['can_check_out'] = false;
+            } else {
+                $lastAttendance = $attendances->last();
+                
+                if ($lastAttendance->type_attendance === 'check_in' && !$lastAttendance->time_out) {
+                    // Has checked in but not checked out
+                    $status['has_checked_in'] = true;
+                    $status['last_check_in_time'] = $lastAttendance->time_in;
+                    $status['can_check_in'] = false;
+                    $status['can_check_out'] = true;
+                    $status['status'] = 'checked_in';
+                } elseif ($lastAttendance->type_attendance === 'check_out') {
+                    // Has checked out
+                    $status['has_checked_in'] = true;
+                    $status['has_checked_out'] = true;
+                    $status['last_check_out_time'] = $lastAttendance->time_out;
+                    $status['can_check_in'] = true; // Allow new check-in for next shift
+                    $status['can_check_out'] = false;
+                    $status['status'] = 'checked_out';
+                }
+            }
+
+            // Check for unclosed attendance from previous day
+            $unclosed = Attendance::where('employee_id', $employeeId)
+                ->whereNull('time_out')
+                ->where('date_attendance', '<', $today)
+                ->orderBy('date_attendance', 'desc')
+                ->first();
+
+            if ($unclosed) {
+                $status['has_unclosed'] = true;
+                $status['unclosed_date'] = $unclosed->date_attendance;
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $status,
+                'message' => 'Today\'s attendance status retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error fetching today\'s attendance status:', [
+                'employee_id' => $employeeId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => null,
+                'message' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
