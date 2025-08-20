@@ -97,7 +97,7 @@
 
 .form-check-label {
     display: inline-block;
-    padding: 12px 24px;
+    padding: 10px 24px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     cursor: pointer;
@@ -821,6 +821,26 @@
 .modal-footer-custom {
     border: 0;
     justify-content: center;
+}
+
+/* Membuat button check in dan check out di modal lebih lebar */
+.modal-footer-custom .btn-submit-black,
+.modal-footer-custom #submitCheckOutBtn {
+    width: 100%;
+    max-width: 420px;
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Untuk mobile, pastikan button tetap lebar */
+@media (max-width: 576px) {
+    .modal-footer-custom .btn-submit-black,
+    .modal-footer-custom #submitCheckOutBtn {
+        max-width: 100%;
+        width: 90%;
+        margin: 0 auto;
+    }
 }
 
 /* Center alignment for time in and date attendance in modal */
