@@ -46,13 +46,7 @@
 
                         <!-- User Info -->
                         <h5 class="text-employee-name mt-3 mb-2">{{ $employee->name }}</h5>
-                        <p class="text-division mb-4">
-                            @if ($employee && $employee->division)
-                                {{ $employee->division->name_division }}
-                            @else
-                                <span style="color:red;">Division not assigned</span>
-                            @endif
-                        </p>
+                        <p class="text-division mb-4">{{ $employee->grade }}</p>
 
                         <!-- Current Password -->
                         <div class="mb-3 text-start">
