@@ -952,59 +952,60 @@ function submitCheckIn() {
     submitBtn.innerHTML =
         '<i class="fas fa-spinner fa-spin"></i> Processing...';
     submitBtn.disabled = true;
+fetch(`${baseUrl}/attendance/store`, {
+    method: "POST",
+    body: formData,
+    headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRF-TOKEN": csrfToken,
+        Accept: "application/json",
+    },
+})
+    .then((response) =>
+        response.json().then((data) => {
+            if (!response.ok)
+                throw new Error(data.message || "Validation error");
+            return data;
+        })
+    )
+    .then((data) => {
+        if (data.status === "success") {
+            showAlertDashboard("Check-in submitted successfully!", "success");
 
-    fetch(`${baseUrl}/attendance/store`, {
-        method: "POST",
-        body: formData,
-        headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            "X-CSRF-TOKEN": csrfToken,
-            Accept: "application/json",
-        },
+            // Update UI tanpa reload
+            $("#checkInBtn .check-icon").show();
+            $("#checkInBtn").addClass("active");
+
+            updateAttendanceStatus();
+            renderCalendar(currentMonth, currentYear);
+
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById("checkInModal")
+            );
+            if (modal) modal.hide();
+
+            form.reset();
+            clearImage();
+
+            // Reload halaman setelah alert ditampilkan (misalnya 2 detik)
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            showAlertDashboard(
+                data.message || "Error submitting check-in",
+                "error"
+            );
+        }
     })
-        .then((response) =>
-            response.json().then((data) => {
-                if (!response.ok)
-                    throw new Error(data.message || "Validation error");
-                return data;
-            })
-        )
-        .then((data) => {
-            if (data.status === "success") {
-                showAlertDashboard(
-                    "Check-in submitted successfully!",
-                    "success"
-                );
-
-                // Update UI tanpa reload
-                $("#checkInBtn .check-icon").show();
-                $("#checkInBtn").addClass("active");
-
-                updateAttendanceStatus();
-                renderCalendar(currentMonth, currentYear);
-
-                const modal = bootstrap.Modal.getInstance(
-                    document.getElementById("checkInModal")
-                );
-                if (modal) modal.hide();
-
-                form.reset();
-                clearImage();
-            } else {
-                showAlertDashboard(
-                    data.message || "Error submitting check-in",
-                    "error"
-                );
-            }
-        })
-        .catch((error) => {
-            console.error("Network error:", error);
-            showAlertDashboard(error.message || "Network error", "error");
-        })
-        .finally(() => {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-        });
+    .catch((error) => {
+        console.error("Network error:", error);
+        showAlertDashboard(error.message || "Network error", "error");
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
 }
 
 function showAlertDashboard(message, type = "success") {
@@ -1211,10 +1212,10 @@ function populateCheckoutModal(checkInRecord, serverTime) {
             workOutsideInput.value = checkInRecord.is_work_outside ? "1" : "0";
         }
 
-        // Tampilkan time in
+        // Tampilkan time in dengan format 00:00
         const timeInDisplay = document.getElementById("time_in_display");
         if (timeInDisplay) {
-            timeInDisplay.textContent = checkInRecord.time_in || "Not available";
+            timeInDisplay.textContent = formatTimeDisplay(checkInRecord.time_in) || "--:--";
         }
 
         // Simpan time_in untuk referensi
@@ -1753,62 +1754,86 @@ function getTodayAttendanceStatus() {
         });
 }
 
-// Fungsi untuk update state tombol berdasarkan status
-function updateButtonStates(status) {
-    const checkInBtn = document.getElementById("checkInBtn");
-    const checkOutBtn = document.getElementById("checkOutBtn");
-
-    if (!checkInBtn || !checkOutBtn) return;
-
-    // Reset semua state
-    checkInBtn.classList.remove("active");
-    checkOutBtn.classList.remove("active");
-    checkInBtn.disabled = false;
-    checkOutBtn.disabled = false;
-
-    // Hide semua icon
-    $("#checkInBtn .check-icon").hide();
-    $("#checkOutBtn .done-all-icon").hide();
-
-    // Update berdasarkan status
-    if (status.status === "not_started") {
-        // Belum check-in sama sekali
-        checkOutBtn.disabled = true;
-    } else if (status.status === "checked_in") {
-        // Sudah check-in tapi belum check-out
-        checkInBtn.classList.add("active");
-        $("#checkInBtn .check-icon").show();
-    } else if (status.status === "checked_out") {
-        // Sudah check-out (kedua tombol aktif)
-        checkInBtn.classList.add("active");
-        checkOutBtn.classList.add("active");
-        $("#checkInBtn .check-icon").show();
-        $("#checkOutBtn .done-all-icon").show();
-    }
-
-    // Handle unclosed attendance
-    if (status.has_unclosed) {
-        checkInBtn.classList.add("active");
-        checkOutBtn.classList.add("active");
-        $("#checkInBtn .check-icon").show();
-        $("#checkOutBtn .done-all-icon").show();
-    }
-
-    // Update attendance logs
-    if (status.last_check_in_time) {
-        const timeInDisplay = document.getElementById("time_in_display");
-        if (timeInDisplay) {
-            timeInDisplay.textContent = status.last_check_in_time;
+    // Fungsi untuk memformat waktu menjadi format 00:00
+    function formatTimeDisplay(timeString) {
+        if (!timeString) return '--:--';
+        
+        // Jika sudah dalam format HH:MM, langsung return
+        if (timeString.match(/^\d{2}:\d{2}$/)) {
+            return timeString;
+        }
+        
+        // Jika format ISO atau timestamp, extract jam dan menit
+        try {
+            const date = new Date(timeString);
+            if (isNaN(date.getTime())) {
+                return '--:--';
+            }
+            
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        } catch (error) {
+            return '--:--';
         }
     }
 
-    if (status.last_check_out_time) {
-        const timeOutDisplay = document.getElementById("time_out_display");
-        if (timeOutDisplay) {
-            timeOutDisplay.textContent = status.last_check_out_time;
+    // Fungsi untuk update state tombol berdasarkan status
+    function updateButtonStates(status) {
+        const checkInBtn = document.getElementById("checkInBtn");
+        const checkOutBtn = document.getElementById("checkOutBtn");
+
+        if (!checkInBtn || !checkOutBtn) return;
+
+        // Reset semua state
+        checkInBtn.classList.remove("active");
+        checkOutBtn.classList.remove("active");
+        checkInBtn.disabled = false;
+        checkOutBtn.disabled = false;
+
+        // Hide semua icon
+        $("#checkInBtn .check-icon").hide();
+        $("#checkOutBtn .done-all-icon").hide();
+
+        // Update berdasarkan status
+        if (status.status === "not_started") {
+            // Belum check-in sama sekali
+            checkOutBtn.disabled = true;
+        } else if (status.status === "checked_in") {
+            // Sudah check-in tapi belum check-out
+            checkInBtn.classList.add("active");
+            $("#checkInBtn .check-icon").show();
+        } else if (status.status === "checked_out") {
+            // Sudah check-out (kedua tombol aktif)
+            checkInBtn.classList.add("active");
+            checkOutBtn.classList.add("active");
+            $("#checkInBtn .check-icon").show();
+            $("#checkOutBtn .done-all-icon").show();
+        }
+
+        // Handle unclosed attendance
+        if (status.has_unclosed) {
+            checkInBtn.classList.add("active");
+            checkOutBtn.classList.add("active");
+            $("#checkInBtn .check-icon").show();
+            $("#checkOutBtn .done-all-icon").show();
+        }
+
+        // Update attendance logs dengan format 00:00
+        if (status.last_check_in_time) {
+            const timeInDisplay = document.getElementById("time_in_display");
+            if (timeInDisplay) {
+                timeInDisplay.textContent = formatTimeDisplay(status.last_check_in_time);
+            }
+        }
+
+        if (status.last_check_out_time) {
+            const timeOutDisplay = document.getElementById("time_out_display");
+            if (timeOutDisplay) {
+                timeOutDisplay.textContent = formatTimeDisplay(status.last_check_out_time);
+            }
         }
     }
-}
 
 // Fungsi untuk refresh status setelah check-in/check-out
 function refreshAttendanceStatus() {
