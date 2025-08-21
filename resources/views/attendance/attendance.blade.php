@@ -41,33 +41,37 @@
                             Check Out
                         </button>
                     </div>
-                    <div class="attendance-logs">
-                        <h6 class="fw-bold">Attendance Logs</h6>
+                     <div class="attendance-logs">
+                                <div class="justify-content-start mt-3">
+                                    <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
+                                </div>
+                                <div class="chevron-icon-attendance d-flex justify-content-between align-items-center my-2"
+                                    style="font-size: 12px;">
+                                    <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <div class="time_in">
+                                            <span id="time_in_display"></span>
+                                        </div>
+                                        <button class="btn p-0 ms-1" style="line-height: 1;">
+                                            <span class="material-symbols-outlined rounded-1"
+                                                style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
+                                        </button>
+                                    </div>
+                                </div>
 
-                        <!-- Check In -->
-                        <div class="log-row d-flex justify-content-between align-items-center my-2">
-                            <p class="mb-0">Check In</p>
-                            <div class="d-flex align-items-center">
-                                <span id="" class="me-2"></span>
-                                <button class="btn p-0">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size:16px; color:#B3B3B3;">chevron_right</span>
-                                </button>
+                                <div class="chevron-icon-attendance d-flex justify-content-between align-items-center" style="font-size: 12px;">
+                                    <p class="mb-0 flex-grow-1" style="color: #757575;">Check Out</p>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <div class="time_out">
+                                            <span id="time_out_display"></span>
+                                        </div>
+                                        <button class="btn p-0 ms-1" style="line-height: 1;">
+                                            <span class="material-symbols-outlined rounded-1"
+                                                style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-
-                        <!-- Check Out -->
-                        <div class="log-row d-flex justify-content-between align-items-center my-2">
-                            <p class="mb-0">Check Out</p>
-                            <div class="d-flex align-items-center">
-                                <span id="" class="me-2"></span>
-                                <button class="btn p-0">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size:16px; color:#B3B3B3;">chevron_right</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
