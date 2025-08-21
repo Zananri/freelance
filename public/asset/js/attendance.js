@@ -1889,7 +1889,7 @@ function openCheckInDetailModal() {
                                             <div class="image-checkin">
                                                 <img src="${lastCheckIn.image_path ? (lastCheckIn.image_path.startsWith('http') ? lastCheckIn.image_path : baseUrl + '/' + lastCheckIn.image_path.replace(/^\//, '')) : ''}" 
                                                      alt="Check-in photo" 
-                                                     class="img-fluid rounded"
+                                                     class="img-fluid rounded-3"
                                                      style="max-height: 200px;">
                                             </div>
                                         </div>
