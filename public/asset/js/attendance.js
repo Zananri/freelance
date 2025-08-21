@@ -323,6 +323,13 @@ function updateModalTimeCheckout() {
 
 // Function to open the check-in modal dengan waktu berjalan
 function openCheckInModal() {
+    // Check if already checked in
+    const checkInBtn = document.getElementById("checkInBtn");
+    if (checkInBtn && checkInBtn.classList.contains("active")) {
+        openCheckInDetailModal();
+        return;
+    }
+
     // Update waktu berjalan
     updateModalTime();
 
@@ -1817,6 +1824,182 @@ function submitCheckOut() {
 document.addEventListener("DOMContentLoaded", function() {
     initializeCheckoutCameraFeatures();
 });
+
+// Function to open check-in detail modal
+function openCheckInDetailModal() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const url = `${baseUrl}/attendance/today/${employeeId}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
+                // Cari data check-in yang valid (memiliki time_in dan belum check-out)
+                const lastCheckIn = data.data.find(record => record.time_in && !record.time_out);
+                
+                if (!lastCheckIn) {
+                    showFloatingAlert("No active check-in found for today", "warning");
+                    return;
+                }
+
+                // Log untuk debugging
+                console.log("Check-in data found:", lastCheckIn);
+                
+                // Create modal content
+                const modalContent = `
+                    <div class="modal fade" id="checkInDetailModal" tabindex="-1" role="dialog" aria-labelledby="checkInDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content rounded-4">
+                                <div class="modal-header modal-header-custom">
+                                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkInDetailModalLabel">Check In</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="check-in-details">
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Date:</div>
+                                            <div class="detail-value">${formatDate(lastCheckIn.date_attendance)}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Time In:</div>
+                                            <div class="detail-value">${formatTimeDisplay(lastCheckIn.time_in)}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Work Outside:</div>
+                                            <div class="detail-value">${lastCheckIn.is_work_outside ? "Yes" : "No"}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Shift:</div>
+                                            <div class="detail-value">${lastCheckIn.shift_start || '--:--'} - ${lastCheckIn.shift_end || '--:--'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-2">
+                                        <h6 class="text-center mb-3" style="color: #555; font-size: 14px;">Check-in Location</h6>
+                                        <div id="detailMapCheckIn" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
+                                    </div>
+                                    
+                                    ${lastCheckIn.is_work_outside && lastCheckIn.image_path ? `
+                                        <div class="mt-4">
+                                            <h6 class="text-center mb-3">Check-in Photo</h6>
+                                            <div class="text-center">
+                                                <img src="${baseUrl}/storage/${lastCheckIn.image_path}" 
+                                                     alt="Check-in photo" 
+                                                     class="img-fluid rounded"
+                                                     style="max-height: 200px;">
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Remove existing modal if any
+                const existingModal = document.getElementById('checkInDetailModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                // Add modal to body
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+
+                // Initialize and show modal
+                const modal = new bootstrap.Modal(document.getElementById('checkInDetailModal'));
+                modal.show();
+
+                // Initialize map after modal is shown
+                document.getElementById('checkInDetailModal').addEventListener('shown.bs.modal', function () {
+                    // Log untuk debugging
+                    console.log("Initializing map with coordinates:", {
+                        latitude: lastCheckIn.latitude,
+                        longitude: lastCheckIn.longitude
+                    });
+
+                    if (!lastCheckIn.latitude || !lastCheckIn.longitude) {
+                        console.error('No location data available');
+                        document.getElementById('detailMapCheckIn').innerHTML = 
+                            '<div class="alert alert-warning text-center">Location data not available</div>';
+                        return;
+                    }
+
+                    // Pastikan nilai latitude dan longitude adalah angka yang valid
+                    const lat = parseFloat(lastCheckIn.latitude);
+                    const lng = parseFloat(lastCheckIn.longitude);
+
+                    if (isNaN(lat) || isNaN(lng)) {
+                        console.error('Invalid coordinates:', { lat, lng });
+                        document.getElementById('detailMapCheckIn').innerHTML = 
+                            '<div class="alert alert-warning text-center">Invalid location coordinates</div>';
+                        return;
+                    }
+
+                    try {
+                        const detailMap = L.map('detailMapCheckIn');
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                        }).addTo(detailMap);
+                        
+                        // Add marker with popup using parsed coordinates
+                        const marker = L.marker([lat, lng]).addTo(detailMap);
+                        marker.bindPopup("Check-in location").openPopup();
+
+                        // Set view to marker position with closer zoom
+                        detailMap.setView([lat, lng], 16);
+
+                        // Make sure map is properly centered
+                        detailMap.panTo([lat, lng]);
+
+                        // Force map resize and recenter
+                        setTimeout(() => {
+                            detailMap.invalidateSize();
+                            detailMap.setView([lat, lng], 16);
+                        }, 100);
+                    } catch (error) {
+                        console.error('Error initializing map:', error);
+                        document.getElementById('detailMapCheckIn').innerHTML = 
+                            '<div class="alert alert-warning text-center">Error loading map</div>';
+                    }
+
+                    // Set view to marker position with closer zoom
+                    detailMap.setView([lastCheckIn.latitude, lastCheckIn.longitude], 16);
+
+                    // Make sure map is properly centered
+                    detailMap.panTo([lastCheckIn.latitude, lastCheckIn.longitude]);
+
+                    // Force map resize and recenter
+                    setTimeout(() => {
+                        detailMap.invalidateSize();
+                        detailMap.setView([lastCheckIn.latitude, lastCheckIn.longitude], 16);
+                    }, 100);
+                });
+            } else {
+                showFloatingAlert("No check-in data found for today", "warning");
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching check-in details:", error);
+            showFloatingAlert("Error loading check-in details", "error");
+        });
+}
+
+// Function to format date
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric'
+    };
+    return date.toLocaleDateString('en-US', options);
+}
 
 document.addEventListener("DOMContentLoaded", function () {
     function updateClock() {
