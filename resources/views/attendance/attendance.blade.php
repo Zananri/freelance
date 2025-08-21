@@ -31,13 +31,15 @@
 
                     <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-between">
                         <button class="btn btn-check-in btn-custom-check w-25 m-2 p-2" data-check-active="checkIn"
-                                    id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
-                            <span class="material-symbols-outlined check-icon" style="display: {{ $attendanceStatus['check_in'] === 'completed' ? 'inline' : 'none' }};">check</span>
+                            id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
+                            <span class="material-symbols-outlined check-icon"
+                                style="display: {{ $attendanceStatus['check_in'] === 'completed' ? 'inline' : 'none' }};">check</span>
                             Check In
                         </button>
                         <button class="btn btn-check-out btn-custom-check w-25 m-2 p-2" data-check-active="checkOut"
-                                    id="checkOutBtn" data-status="{{ $attendanceStatus['check_out'] ?? 'pending' }}">
-                            <span class="material-symbols-outlined done-all-icon" style="display: {{ $attendanceStatus['check_out'] === 'completed' ? 'inline' : 'none' }};">done_all</span>
+                            id="checkOutBtn" data-status="{{ $attendanceStatus['check_out'] ?? 'pending' }}">
+                            <span class="material-symbols-outlined done-all-icon"
+                                style="display: {{ $attendanceStatus['check_out'] === 'completed' ? 'inline' : 'none' }};">done_all</span>
                             Check Out
                         </button>
                     </div>
@@ -49,8 +51,8 @@
                                     style="font-size: 12px;">
                                     <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <div class="time_in">
-                                            <span id="time_in_display"></span>
+                                        <div class="time_in" style="color: {{ $isLate ? 'red' : 'inherit' }};">
+                                            <span id="time_in_display">{{ $timeIn }}</span>
                                         </div>
                                         <button class="btn p-0 ms-1" style="line-height: 1;">
                                             <span class="material-symbols-outlined rounded-1"
@@ -119,7 +121,7 @@
                 <!-- Modal Header -->
                 <div class="modal-header modal-header-custom d-flex justify-content-center">
                     <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">Check In
-                        </h5>
+                    </h5>
                     <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                         data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -241,24 +243,24 @@
             <div class="modal-content rounded-4" id="checkOutModalContent">
                 <div class="modal-header modal-header-custom d-flex justify-content-center">
                     <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutModalLabel">Check Out
-                        </h5>
+                    </h5>
                     <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                         data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <!-- Time Display Container -->
-                        <div class="text-center mb-4">
-                            <div class="mb-0">
-                                <div class="date-time-display" id="time_out">
-                                    Loading...
-                                </div>
-                            </div>
-                            <div>
-                                <div class="date-time-display" id="date_attendance_checkout">
-                                    Loading...
-                                </div>
-                            </div>
+                <div class="text-center mb-4">
+                    <div class="mb-0">
+                        <div class="date-time-display" id="time_out">
+                            Loading...
                         </div>
+                    </div>
+                    <div>
+                        <div class="date-time-display" id="date_attendance_checkout">
+                            Loading...
+                        </div>
+                    </div>
+                </div>
 
                 <div class="modal-body">
                     <form id="checkOutForm">
@@ -280,7 +282,8 @@
                         </div>
 
                         <!-- Hidden Time Display Container - Removed as it's now above -->
-                        <div class="date-time-container d-flex justify-content-between mb-3" style="display: none !important;">
+                        <div class="date-time-container d-flex justify-content-between mb-3"
+                            style="display: none !important;">
                             <!-- Time In Display -->
                             <div class="mb-3" hidden>
                                 <label class="form-label label-custom">Time In</label>
@@ -306,11 +309,11 @@
                             </div>
                         </div>
 
-                        
+
                         <!-- Map Location Section for Check Out -->
                         <div class="mb-3">
                             <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
-                            class="rounded border"></div>
+                                class="rounded border"></div>
                             <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
                             <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
                         </div>

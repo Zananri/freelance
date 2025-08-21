@@ -97,7 +97,22 @@ class AttendanceController extends Controller
         // Debug log to check division data
         \Log::info('Employee division:', ['division' => $employee ? $employee->division : null]);
 
-        return view('attendance/attendance', compact('employee', 'attendance', 'attendanceStatus'));
+        if ($employee) {
+            $shift = EmployeeShift::where('employee_id', $employee->id)
+                ->where('date_shift', $today)
+                ->first();
+
+            if ($attendance) {
+                $timeIn = $attendance->time_in;
+                $timeStart = $shift->time_start ?? null;
+                $isLate = isset($timeStart, $timeIn) && strtotime($timeIn) > strtotime($timeStart);
+            } else {
+                $timeIn = null;
+                $isLate = false;
+            }
+        }
+
+        return view('attendance/attendance', compact('employee', 'attendance', 'attendanceStatus', 'timeIn', 'isLate'));
     }
 
     public function index()
