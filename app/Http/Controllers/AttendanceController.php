@@ -345,6 +345,18 @@ if ($request->hasFile('image')) {
                         }
                     }
 
+                    // Provide a single image path for frontend (prefer tracking image, fallback to attendance image)
+                    $attendance->image_path = null;
+                    try {
+                        if ($checkInTracking && !empty($checkInTracking->image) && is_array($checkInTracking->image) && count($checkInTracking->image) > 0) {
+                            $attendance->image_path = $checkInTracking->image[0];
+                        } elseif (!empty($attendance->image) && is_array($attendance->image) && count($attendance->image) > 0) {
+                            $attendance->image_path = $attendance->image[0];
+                        }
+                    } catch (\Exception $e) {
+                        $attendance->image_path = null;
+                    }
+
                     // Attach shift start/end for convenience (format HH:MM) if available
                     try {
                         $shift = EmployeeShift::where('employee_id', $attendance->employee_id)

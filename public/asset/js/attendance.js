@@ -1881,15 +1881,13 @@ function openCheckInDetailModal() {
                                     </div>
                                     
                                     <div class="mt-0">
-                                        <h6 class="text-center mb-3" style="color: #555; font-size: 14px;">Check-in Location</h6>
                                         <div id="detailMapCheckIn" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
                                     </div>
                                     
                                     ${lastCheckIn.is_work_outside && lastCheckIn.image_path ? `
                                         <div class="mt-4">
-                                            <h6 class="text-center mb-3">Check-in Photo</h6>
-                                            <div class="text-center">
-                                                <img src="${baseUrl}/storage/${lastCheckIn.image_path}" 
+                                            <div class="image-checkin">
+                                                <img src="${lastCheckIn.image_path ? (lastCheckIn.image_path.startsWith('http') ? lastCheckIn.image_path : baseUrl + '/' + lastCheckIn.image_path.replace(/^\//, '')) : ''}" 
                                                      alt="Check-in photo" 
                                                      class="img-fluid rounded"
                                                      style="max-height: 200px;">
