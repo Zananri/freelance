@@ -322,10 +322,31 @@ if ($request->hasFile('image')) {
             $today = Carbon::today()->toDateString();
 
             // Return all attendance records for today (multiple check-ins/outs)
-            $attendances = Attendance::where('employee_id', $employeeId)
+            $attendances = Attendance::with(['attendanceTrackings' => function($query) {
+                    $query->where('type', 'check_in');
+                }])
+                ->where('employee_id', $employeeId)
                 ->where('date_attendance', $today)
                 ->orderBy('time_in', 'asc')
-                ->get();
+                ->get()
+                ->map(function($attendance) {
+                    // Expose is_work_outside from the check-in tracking (if exists)
+                    $checkInTracking = $attendance->attendanceTrackings->first();
+                    $attendance->is_work_outside = $checkInTracking ? $checkInTracking->is_work_outside : false;
+
+                    // Parse location into latitude & longitude for frontend convenience
+                    $attendance->latitude = null;
+                    $attendance->longitude = null;
+                    if ($checkInTracking && $checkInTracking->location) {
+                        $parts = explode(',', $checkInTracking->location);
+                        if (count($parts) >= 2) {
+                            $attendance->latitude = trim($parts[0]);
+                            $attendance->longitude = trim($parts[1]);
+                        }
+                    }
+
+                    return $attendance;
+                });
 
             if ($attendances->isEmpty()) {
                 return response()->json([

@@ -1044,12 +1044,10 @@
     background-color: transparent;
     padding: 20px;
     border-radius: 8px;
-    margin-bottom: 20px;
 }
 .detail-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
     padding: 8px 0;
 }
 .detail-row:last-child {

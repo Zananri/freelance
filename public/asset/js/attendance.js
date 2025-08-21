@@ -1880,7 +1880,7 @@ function openCheckInDetailModal() {
                                         </div>
                                     </div>
                                     
-                                    <div class="mt-2">
+                                    <div class="mt-0">
                                         <h6 class="text-center mb-3" style="color: #555; font-size: 14px;">Check-in Location</h6>
                                         <div id="detailMapCheckIn" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
                                     </div>
@@ -1918,67 +1918,70 @@ function openCheckInDetailModal() {
                 // Initialize map after modal is shown
                 document.getElementById('checkInDetailModal').addEventListener('shown.bs.modal', function () {
                     // Log untuk debugging
-                    console.log("Initializing map with coordinates:", {
-                        latitude: lastCheckIn.latitude,
-                        longitude: lastCheckIn.longitude
-                    });
+                    console.log("Check-in data:", lastCheckIn);
+                    
+                    // Pastikan koordinat ada dan valid
+                    // Try multiple sources: attendance.latitude/longitude (server-side parsed),
+                    // fallback to attendanceTrackings[0].location (raw string "lat,lon").
+                    let latVal = lastCheckIn.latitude ?? null;
+                    let lngVal = lastCheckIn.longitude ?? null;
 
-                    if (!lastCheckIn.latitude || !lastCheckIn.longitude) {
-                        console.error('No location data available');
+                    if ((latVal === null || latVal === undefined || latVal === '') && lastCheckIn.attendanceTrackings && lastCheckIn.attendanceTrackings.length) {
+                        const loc = lastCheckIn.attendanceTrackings[0].location;
+                        if (loc) {
+                            const parts = loc.split(',');
+                            if (parts.length >= 2) {
+                                latVal = parts[0].trim();
+                                lngVal = parts[1].trim();
+                            }
+                        }
+                    }
+
+                    const coordinates = {
+                        latitude: parseFloat(latVal),
+                        longitude: parseFloat(lngVal)
+                    };
+
+                    console.log("Parsed coordinates:", coordinates);
+
+                    if (!coordinates.latitude || !coordinates.longitude || 
+                        isNaN(coordinates.latitude) || isNaN(coordinates.longitude)) {
+                        console.error('Invalid or missing coordinates:', coordinates);
                         document.getElementById('detailMapCheckIn').innerHTML = 
                             '<div class="alert alert-warning text-center">Location data not available</div>';
                         return;
                     }
 
-                    // Pastikan nilai latitude dan longitude adalah angka yang valid
-                    const lat = parseFloat(lastCheckIn.latitude);
-                    const lng = parseFloat(lastCheckIn.longitude);
-
-                    if (isNaN(lat) || isNaN(lng)) {
-                        console.error('Invalid coordinates:', { lat, lng });
-                        document.getElementById('detailMapCheckIn').innerHTML = 
-                            '<div class="alert alert-warning text-center">Invalid location coordinates</div>';
-                        return;
-                    }
-
                     try {
-                        const detailMap = L.map('detailMapCheckIn');
+                        // Buat instance peta baru
+                        const detailMap = L.map('detailMapCheckIn', {
+                            center: [coordinates.latitude, coordinates.longitude],
+                            zoom: 16
+                        });
+
+                        // Tambahkan tile layer
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            maxZoom: 19,
+                            attribution: '© OpenStreetMap contributors',
+                            maxZoom: 19
                         }).addTo(detailMap);
                         
-                        // Add marker with popup using parsed coordinates
-                        const marker = L.marker([lat, lng]).addTo(detailMap);
-                        marker.bindPopup("Check-in location").openPopup();
+                        // Tambahkan marker
+                        const marker = L.marker([coordinates.latitude, coordinates.longitude])
+                            .addTo(detailMap)
+                            .bindPopup("Check-in location")
+                            .openPopup();
 
-                        // Set view to marker position with closer zoom
-                        detailMap.setView([lat, lng], 16);
-
-                        // Make sure map is properly centered
-                        detailMap.panTo([lat, lng]);
-
-                        // Force map resize and recenter
+                        // Pastikan peta dirender dengan benar
                         setTimeout(() => {
                             detailMap.invalidateSize();
-                            detailMap.setView([lat, lng], 16);
-                        }, 100);
+                            detailMap.setView([coordinates.latitude, coordinates.longitude], 16);
+                        }, 250);
+
                     } catch (error) {
                         console.error('Error initializing map:', error);
                         document.getElementById('detailMapCheckIn').innerHTML = 
                             '<div class="alert alert-warning text-center">Error loading map</div>';
                     }
-
-                    // Set view to marker position with closer zoom
-                    detailMap.setView([lastCheckIn.latitude, lastCheckIn.longitude], 16);
-
-                    // Make sure map is properly centered
-                    detailMap.panTo([lastCheckIn.latitude, lastCheckIn.longitude]);
-
-                    // Force map resize and recenter
-                    setTimeout(() => {
-                        detailMap.invalidateSize();
-                        detailMap.setView([lastCheckIn.latitude, lastCheckIn.longitude], 16);
-                    }, 100);
                 });
             } else {
                 showFloatingAlert("No check-in data found for today", "warning");
