@@ -345,6 +345,24 @@ if ($request->hasFile('image')) {
                         }
                     }
 
+                    // Attach shift start/end for convenience (format HH:MM) if available
+                    try {
+                        $shift = EmployeeShift::where('employee_id', $attendance->employee_id)
+                            ->where('date_shift', $attendance->date_attendance)
+                            ->first();
+
+                        if ($shift) {
+                            $attendance->shift_start = $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null;
+                            $attendance->shift_end = $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null;
+                        } else {
+                            $attendance->shift_start = null;
+                            $attendance->shift_end = null;
+                        }
+                    } catch (\Exception $e) {
+                        $attendance->shift_start = null;
+                        $attendance->shift_end = null;
+                    }
+
                     return $attendance;
                 });
 
