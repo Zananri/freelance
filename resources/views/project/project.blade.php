@@ -102,7 +102,7 @@
             </div>
 
             {{-- Modal Timeline --}}
-            <div class="timeline-modal-overlay" id="timelineModal">
+            <div class="timeline-modal-overlay animate-in" id="timelineModal">
                 <div class="timeline-modal">
                     <div class="timeline-card-modal h-100">
                         <div class="d-flex justify-content-between align-items-center mb-3">

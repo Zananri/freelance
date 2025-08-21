@@ -228,6 +228,14 @@
     animation: slideOutRight 0.4s ease forwards;
 }
 
+.timeline-modal-overlay.animate-in {
+    animation: slideInRight 0.4s ease forwards;
+}
+
+.timeline-modal-overlay.animate-out {
+    animation: slideOutRight 0.4s ease forwards;
+}
+
 .project-card {
     border-radius: 20px;
     min-height: 250px;
