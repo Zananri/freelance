@@ -665,12 +665,12 @@ function calculateWorkingHours() {
                                     // Ada aktivitas hari ini
                                     const lastTodayAttendance = todayAttendances[todayAttendances.length - 1];
 
-                                    if (lastTodayAttendance.type_attendance === "check_in" && !lastTodayAttendance.time_out) {
+                                    if (lastTodayAttendance.time_in && !lastTodayAttendance.time_out) {
                                         // Sudah check-in hari ini, tampilkan tombol checkout
                                         checkInBtn.style.display = "flex";
                                         checkOutBtn.style.display = "flex";
                                         return;
-                                    } else if (lastTodayAttendance.type_attendance === "check_out") {
+                                    } else if (lastTodayAttendance.time_out) {
                                         // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya
                                         checkInBtn.style.display = "flex";
                                         checkOutBtn.style.display = "flex";
@@ -720,8 +720,9 @@ function calculateWorkingHours() {
                         if (attendances.length > 0) {
                             const lastAttendance = attendances[attendances.length - 1];
 
-                            if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
-                                // Last record is check-in without checkout, show checkout button
+                            // Check based on time_in and time_out fields instead of type_attendance
+                            if (lastAttendance.time_in && !lastAttendance.time_out) {
+                                // Has checked in but not checked out, show checkout button
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
 
@@ -731,8 +732,13 @@ function calculateWorkingHours() {
                                     checkInTimeInput.value = lastAttendance.time_in;
                                 }
                                 return;
+                            } else if (lastAttendance.time_in && lastAttendance.time_out) {
+                                // Has both checked in and checked out, show check-in button for next shift
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "flex";
+                                return;
                             } else {
-                                // Last record is checkout or fully checked out, show check-in button
+                                // Fallback case
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
                                 return;
@@ -1175,7 +1181,8 @@ function loadCheckInDataForCheckout(serverTime) {
         .then(res => res.json())
         .then(data => {
             if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
-                const checkInRecord = data.data.find(r => r.type_attendance === "check_in");
+                // Find record with time_in (check-in record) instead of type_attendance
+                const checkInRecord = data.data.find(r => r.time_in && !r.time_out);
                 if (!checkInRecord) {
                     console.error("No check-in record found");
                     showAlertDashboard("No check-in record found for today.", "error");

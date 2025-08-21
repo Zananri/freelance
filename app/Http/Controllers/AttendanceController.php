@@ -478,7 +478,7 @@ if ($request->hasFile('image')) {
                 
                 $updateData = [
                     'time_out' => $now->format('H:i'),
-                    'type_attendance' => 'check_out',
+                    // Don't change type_attendance - keep it as 'check_in' to preserve check-in time display
                     'image' => $mergedImages,
                     'updated_by' => $userId,
                 ];
@@ -773,17 +773,19 @@ if ($request->hasFile('image')) {
             } else {
                 $lastAttendance = $attendances->last();
                 
-                if ($lastAttendance->type_attendance === 'check_in' && !$lastAttendance->time_out) {
+                // Check based on time_in and time_out fields instead of type_attendance
+                if ($lastAttendance->time_in && !$lastAttendance->time_out) {
                     // Has checked in but not checked out
                     $status['has_checked_in'] = true;
                     $status['last_check_in_time'] = $lastAttendance->time_in;
                     $status['can_check_in'] = false;
                     $status['can_check_out'] = true;
                     $status['status'] = 'checked_in';
-                } elseif ($lastAttendance->type_attendance === 'check_out') {
-                    // Has checked out
+                } elseif ($lastAttendance->time_in && $lastAttendance->time_out) {
+                    // Has both checked in and checked out
                     $status['has_checked_in'] = true;
                     $status['has_checked_out'] = true;
+                    $status['last_check_in_time'] = $lastAttendance->time_in;
                     $status['last_check_out_time'] = $lastAttendance->time_out;
                     $status['can_check_in'] = true; // Allow new check-in for next shift
                     $status['can_check_out'] = false;
