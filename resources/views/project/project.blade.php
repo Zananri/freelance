@@ -44,19 +44,19 @@
                     </div>
                     <div class="chart-labels d-flex justify-content-evenly align-items-center mt-3">
                         <div class="text-center">
-                            <span style="font-weight: bold; color: #222;">10</span><br>
+                            <span style="font-weight: bold; color: #222;">0</span><br>
                             <span style="color: #828282; font-size: 12px;">Total</span>
                         </div>
                         <div class="text-center">
-                            <span style="font-weight: bold; color: #4fc97a;">3</span><br>
+                            <span style="font-weight: bold; color: #4fc97a;">0</span><br>
                             <span style="color: #828282; font-size: 12px;">Complete</span>
                         </div>
                         <div class="text-center">
-                            <span style="font-weight: bold; color: #5a9be6;">5</span><br>
+                            <span style="font-weight: bold; color: #5a9be6;">0</span><br>
                             <span style="color: #828282; font-size: 12px;">On Progress</span>
                         </div>
                         <div class="text-center">
-                            <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
+                            <span style="font-weight: bold; color: #ff6b6b;">0</span><br>
                             <span style="color: #828282; font-size: 12px;">Late</span>
                         </div>
                     </div>
@@ -103,11 +103,11 @@
 
             {{-- Modal Timeline --}}
             <div class="timeline-modal-overlay animate-in" id="timelineModal">
-                <div class="timeline-modal">
+                <div class="timeline-modal animate-in">
                     <div class="timeline-card-modal h-100">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <!-- Title -->
-                            <h5 id="timelineModalTitle" class="fw-semibold mb-0">Timeline</h5>
+                            <h5 id="timelineModalTitle" class="fw-normal mb-0">Timeline</h5>
 
                             <!-- Action buttons -->
                             <div class="d-flex align-items-center gap-2">
@@ -121,11 +121,6 @@
                                 <!-- Tombol fullscreen exit -->
                                 <button id="timelineModalClose" class="btn btn-sm border-0 bg-transparent me-2">
                                     <span class="material-symbols-outlined">fullscreen_exit</span>
-                                </button>
-
-                                <!-- Tombol close modal -->
-                                <button id="timelineModalCloseBtn" class="btn btn-sm border-0 bg-transparent">
-                                    <span class="material-symbols-outlined">close</span>
                                 </button>
                             </div>
                         </div>
@@ -145,7 +140,7 @@
 
             <div class="bottom-project-content mt-5">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-4">All Project</h6>
+                    <h6 class="mb-4 all-projects-title">All Project</h6>
                     <div class="dropdown-filter-container">
                         <div class="btn-filter-container mb-3">
                             <div class="search-input-container position-relative me-3">
@@ -153,13 +148,13 @@
                                 <input class="form-control custom-form-filter ps-5" type="text" name="search_filter"
                                     id="search_filter">
                             </div>
-                            <button class="btn btn-icon-toggle btn-filter-custom me-3" type="button"
+                            <button class="btn btn-icon-toggle btn-filter-custom me-3" type="button" data-label="Filter"
                                 id="openProjectFilterBtn">
-                                <span class="material-symbols-outlined icon">filter_list</span> Filter
+                                <span class="material-symbols-outlined icon">filter_list</span> <span class="btn-text-filter">Filter</span>
                             </button>
-                            <button class="btn btn-icon-toggle btn-timeline-filter-custom" type="button"
+                            <button class="btn btn-icon-toggle btn-timeline-filter-custom" type="button" data-label="Timeline"
                                 id="openProjectFilterBtn">
-                                <span class="material-symbols-outlined icon">view_timeline</span> Timeline
+                                <span class="material-symbols-outlined icon">view_timeline</span> <span class="btn-text-filter">Timeline</span>
                             </button>
                         </div>
                         <div class="dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
@@ -188,7 +183,6 @@
                 </div>
                 <div id="all-cards-container">
                     {{-- Content Card --}}
-
                 </div>
             </div>
         </div>

@@ -30,84 +30,77 @@ document.addEventListener("DOMContentLoaded", function () {
                             : appUrl + "/asset/img/background/add-image.png";
 
                         rowHtml += `
-                    <div class="col-md-4 mb-3 d-flex align-items-stretch position-relative">
-                        <div class="project-card p-3 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
+                            <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${
+                                project.id
+                            }">
+                                <div class="project-card p-4 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
 
-                            <!-- Header -->
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="d-flex align-items-center">
-                                    <img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;">
-                                    <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
-                                        project.title
-                                    }</h6>
-                                </div>
-                                <div class="dropdown-icon-container">
-                                    <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
-                                            style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
-                                        <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
-                                    </button>
-                                    <div class="dropdown-menu d-none">
-                                        <div class="dropdown-item">Detail</div>
-                                        <div class="dropdown-item">Task</div>
-                                        <div class="dropdown-item">Feedback</div>
-                                        <div class="dropdown-item">Edit</div>
-                                        <div class="dropdown-item text-danger delete-project">Delete</div>
+                                    <!-- Header -->
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;">
+                                            <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
+                                                project.title
+                                            }</h6>
+                                        </div>
+                                        <div class="dropdown-icon-container">
+                                            <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
+                                                    style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
+                                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
+                                            </button>
+                                            <div class="dropdown-menu d-none">
+                                                <div class="dropdown-item">Detail</div>
+                                                <div class="dropdown-item">Task</div>
+                                                <div class="dropdown-item">Feedback</div>
+                                                <div class="dropdown-item">Edit</div>
+                                                <div class="dropdown-item text-danger delete-project">Delete</div>
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    <!-- Description -->
+                                    <p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">
+                                        ${
+                                            project.description ||
+                                            "No Description"
+                                        }
+                                    </p>
+
+                                    <hr class="my-2 border-3"style="border-top:1px solid #DEDFE7;">
+
+                                    <!-- Footer -->
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div class="collaborators-image d-flex align-items-center">
+
+                                            <img src="https://picsum.photos/200"
+                                                class="rounded-circle"
+                                                style="width:30px;height:30px;object-fit:cover;">
+
+                                            <img src="https://picsum.photos/200"
+                                                class="rounded-circle"
+                                                style="width:30px;height:30px;object-fit:cover;margin-left:-8px;">
+
+                                            <div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold"
+                                                style="width:30px;height:30px;font-size:12px;margin-left:-8px;">
+                                                +3
+                                            </div>
+
+                                        </div>
+                                        <div class="d-flex">
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon" title="Comment" data-project-id="${
+                                                project.id
+                                            }">
+                                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
+                                            </button>
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
-
-                            <!-- Description -->
-                            <p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">
-                                ${project.description || "No Description"}
-                            </p>
-
-                            <hr class="my-2 border-3"style="border-top:1px solid #DEDFE7;">
-
-                            <!-- Footer -->
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <div class="d-flex align-items-center">
-                                    ${(project.contributors || [])
-                                        .slice(0, 2)
-                                        .map(
-                                            (c) => `
-                                        <img src="${
-                                            c.user_photo
-                                                ? appUrl +
-                                                  "/file/profile_picture/" +
-                                                  c.user_photo
-                                                : appUrl +
-                                                  "/asset/img/profile_picture/default.png"
-                                        }"
-                                            alt="${
-                                                c.name
-                                            }" class="rounded-circle me-1"
-                                            style="width:28px;height:28px;object-fit:cover;">
-                                    `
-                                        )
-                                        .join("")}
-                                    ${
-                                        project.contributors &&
-                                        project.contributors.length > 2
-                                            ? `<span class="badge bg-light text-dark">+${
-                                                  project.contributors.length -
-                                                  2
-                                              }</span>`
-                                            : ""
-                                    }
-                                </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-2" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                `;
+                        `;
                     });
 
                     rowHtml += "</div>";
@@ -1485,40 +1478,73 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     // Event listener for "Feedback" dropdown item click
                     document.addEventListener("click", function (e) {
+                        const target = e.target.closest(
+                            "button[title='Comment'], .dropdown-item"
+                        );
+
+                        if (!target) return;
+
+                        // --- Klik dari dropdown Feedback ---
                         if (
-                            e.target &&
-                            e.target.classList.contains("dropdown-item")
+                            target.classList.contains("dropdown-item") &&
+                            target.textContent.trim() === "Feedback"
                         ) {
-                            const text = e.target.textContent.trim();
-                            if (text === "Feedback") {
-                                e.preventDefault();
-                                e.stopPropagation();
+                            e.preventDefault();
+                            e.stopPropagation();
 
-                                const card = e.target.closest(".col-md-4");
-                                if (!card) {
-                                    alert("Project card not found.");
-                                    return;
-                                }
-
-                                const projectId =
-                                    card.getAttribute("data-project-id");
-                                if (!projectId) {
-                                    alert("Project ID not found.");
-                                    return;
-                                }
-
-                                // Set the project id on the modal data attribute
-                                projectFeedbackModalEl.setAttribute(
-                                    "data-project-id",
-                                    projectId
-                                );
-
-                                // Load feedback data and show modal
-                                loadFeedbackData(projectId);
-                                const projectFeedbackModal =
-                                    new bootstrap.Modal(projectFeedbackModalEl);
-                                projectFeedbackModal.show();
+                            const card = target.closest(".col-md-4");
+                            if (!card) {
+                                alert("Project card not found.");
+                                return;
                             }
+
+                            const projectId =
+                                card.getAttribute("data-project-id");
+                            if (!projectId) {
+                                alert("Project ID not found.");
+                                return;
+                            }
+
+                            projectFeedbackModalEl.setAttribute(
+                                "data-project-id",
+                                projectId
+                            );
+
+                            loadFeedbackData(projectId);
+                            const projectFeedbackModal = new bootstrap.Modal(
+                                projectFeedbackModalEl
+                            );
+                            projectFeedbackModal.show();
+                        }
+
+                        // --- Klik dari tombol Comment ---
+                        if (target.getAttribute("title") === "Comment") {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const card = target.closest(".col-md-4");
+                            if (!card) {
+                                alert("Project card not found.");
+                                return;
+                            }
+
+                            const projectId =
+                                card.getAttribute("data-project-id");
+                            if (!projectId) {
+                                alert("Project ID not found.");
+                                return;
+                            }
+
+                            projectFeedbackModalEl.setAttribute(
+                                "data-project-id",
+                                projectId
+                            );
+
+                            loadFeedbackData(projectId);
+                            const projectFeedbackModal = new bootstrap.Modal(
+                                projectFeedbackModalEl
+                            );
+                            projectFeedbackModal.show();
                         }
                     });
 
@@ -3588,24 +3614,45 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Doughnut Chart Porject
 document.addEventListener("DOMContentLoaded", function () {
-    const createDoughnut = (el) =>
-        new Chart(el, {
+    const createDoughnut = (el, data = []) => {
+        let chartData, colors, labels;
+
+        if (!data || data.length === 0 || data.every((v) => v === 0)) {
+            chartData = [1];
+            colors = ["#E8E9F2"];
+            labels = ["No Data"];
+        } else {
+            chartData = data;
+            colors = ["#b6e7c9", "#8fb3e8", "#ff9c9c"];
+            labels = ["Total", "Complete", "On Progress", "Late"];
+        }
+
+        return new Chart(el, {
             type: "doughnut",
             data: {
-                labels: ["Total", "Complete", "On Progress", "Late"],
+                labels: labels,
                 datasets: [
                     {
-                        data: [3, 5, 2],
-                        backgroundColor: ["#b6e7c9", "#8fb3e8", "#ff9c9c"],
+                        data: chartData,
+                        backgroundColor: colors,
                         borderWidth: 0,
                     },
                 ],
             },
-            options: { cutout: "60%", plugins: { legend: { display: false } } },
+            options: {
+                cutout: "60%",
+                plugins: {
+                    legend: { display: false },
+                },
+            },
         });
+    };
 
     const ctx = document.getElementById("projectChart");
-    if (ctx) createDoughnut(ctx);
+    if (ctx) {
+        const dataset = [];
+        createDoughnut(ctx, dataset);
+    }
 });
 
 let currentMonth = new Date().getMonth();
@@ -3638,7 +3685,14 @@ const timelineData = [
     { name: "Project 4", start: 0, end: 6, color: "color4" },
 ];
 
-function renderTimeline(targetHeaderSelector, targetRowsSelector, mode = "week", month = null, year = null, weekIndex = 0) {
+function renderTimeline(
+    targetHeaderSelector,
+    targetRowsSelector,
+    mode = "week",
+    month = null,
+    year = null,
+    weekIndex = 0
+) {
     const headerRow = document.querySelector(targetHeaderSelector);
     const rowsContainer = document.querySelector(targetRowsSelector);
     if (!headerRow || !rowsContainer) return;
@@ -3646,16 +3700,18 @@ function renderTimeline(targetHeaderSelector, targetRowsSelector, mode = "week",
     headerRow.innerHTML = "";
     rowsContainer.innerHTML = "";
 
-    let totalCells, headerLabels = [];
+    let totalCells,
+        headerLabels = [];
 
     if (mode === "week") {
-        headerLabels = ["Mo","Tu","We","Th","Fr","Sa","Su"];
+        headerLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         totalCells = 7;
-    } else { // month
+    } else {
+        // month
         month = month ?? new Date().getMonth();
         year = year ?? new Date().getFullYear();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        headerLabels = Array.from({length: daysInMonth}, (_, i) => i + 1);
+        headerLabels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
         totalCells = daysInMonth;
     }
 
@@ -3676,7 +3732,7 @@ function renderTimeline(targetHeaderSelector, targetRowsSelector, mode = "week",
     });
 
     // Render rows
-    timelineData.forEach(proj => {
+    timelineData.forEach((proj) => {
         const tr = document.createElement("tr");
 
         for (let i = 0; i < proj.start; i++) {
@@ -3709,38 +3765,59 @@ function renderTimeline(targetHeaderSelector, targetRowsSelector, mode = "week",
         rowsContainer.appendChild(tr);
     });
 
-    if(mode === "week") {
+    if (mode === "week") {
         const title = document.getElementById("timelineTitle");
         title.textContent = `${months[month]} week ${weekIndex + 1}`;
     }
 }
 
-renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+renderTimeline(
+    "#timelineHeader",
+    "#timelineRows",
+    "week",
+    currentMonth,
+    currentYear,
+    currentWeek
+);
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
-    if(currentWeek > 0) currentWeek--;
+    if (currentWeek > 0) currentWeek--;
     else {
         currentMonth--;
-        if(currentMonth < 0) {
+        if (currentMonth < 0) {
             currentMonth = 11;
             currentYear--;
         }
         currentWeek = 3;
     }
-    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+    renderTimeline(
+        "#timelineHeader",
+        "#timelineRows",
+        "week",
+        currentMonth,
+        currentYear,
+        currentWeek
+    );
 });
 
 document.getElementById("nextTimeline").addEventListener("click", () => {
-    if(currentWeek < 3) currentWeek++;
+    if (currentWeek < 3) currentWeek++;
     else {
         currentMonth++;
-        if(currentMonth > 11) {
+        if (currentMonth > 11) {
             currentMonth = 0;
             currentYear++;
         }
         currentWeek = 0;
     }
-    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+    renderTimeline(
+        "#timelineHeader",
+        "#timelineRows",
+        "week",
+        currentMonth,
+        currentYear,
+        currentWeek
+    );
 });
 
 const fullscreenBtn = document.getElementById("timelineFullscreenBtn");
@@ -3749,10 +3826,9 @@ const closeBtn = document.getElementById("timelineModalClose");
 const modalTitle = document.getElementById("timelineModalTitle");
 const prevBtn = document.getElementById("prevTimelineModal");
 const nextBtn = document.getElementById("nextTimelineModal");
-const modalCloseBtn = document.getElementById("timelineModalCloseBtn");
 
 function updateModalTimeline() {
-    modalTitle.textContent = `${months[currentMonth]} ${currentYear}`;
+    modalTitle.textContent = `Timeline ${months[currentMonth]} ${currentYear}`;
     renderTimeline(
         "#timelineHeaderModal",
         "#timelineRowsModal",
@@ -3764,11 +3840,35 @@ function updateModalTimeline() {
 
 fullscreenBtn.addEventListener("click", () => {
     modal.style.display = "flex";
+
+    // reset animasi overlay & modal
+    modal.classList.remove("animate-in", "animate-out");
+    const modalContent = modal.querySelector(".timeline-modal");
+    modalContent.classList.remove("animate-in", "animate-out");
+
+    // trigger reflow biar animasi retrigger
+    void modal.offsetWidth;
+
+    // kasih animasi masuk
+    modal.classList.add("animate-in");
+    modalContent.classList.add("animate-in");
+
     updateModalTimeline();
 });
 
 closeBtn.addEventListener("click", () => {
-    modal.style.display = "none";
+    modal.classList.remove("animate-in");
+    modal.classList.add("animate-out");
+
+    const modalContent = modal.querySelector(".timeline-modal");
+    modalContent.classList.remove("animate-in");
+    modalContent.classList.add("animate-out");
+
+    setTimeout(() => {
+        modal.style.display = "none";
+        modal.classList.remove("animate-out");
+        modalContent.classList.remove("animate-out");
+    }, 400); // sesuaikan sama durasi CSS
 });
 
 prevBtn.addEventListener("click", () => {
@@ -3789,13 +3889,9 @@ nextBtn.addEventListener("click", () => {
     updateModalTimeline();
 });
 
-modalCloseBtn.addEventListener("click", () => {
-    modal.style.display = "none";
-});
-
 document.addEventListener("DOMContentLoaded", function () {
     // --- Timeline Toggle ---
-    const $timeline = $(".timeline-card");
+    const $timeline = $(".timeline-card"); // ini kecil
     const $timelineOverlay = $("<div class='timeline-overlay'></div>").appendTo(
         "body"
     );
@@ -3803,8 +3899,11 @@ document.addEventListener("DOMContentLoaded", function () {
     $(".toggle-timeline").on("click", function (e) {
         e.preventDefault();
 
+        // kalau mau buka fullscreen modal aja
+        const modal = document.getElementById("timelineModal");
+
         if ($timeline.hasClass("active")) {
-            // Tutup
+            // Tutup versi card kecil (optional kalau masih dipakai)
             $timeline.removeClass("animate-in").addClass("animate-out");
             $timelineOverlay.removeClass("active");
 
@@ -3812,20 +3911,87 @@ document.addEventListener("DOMContentLoaded", function () {
                 $timeline.removeClass("active animate-out");
             }, 400);
         } else {
-            // Buka
-            $timeline
-                .addClass("active animate-in p-3")
-                .removeClass("animate-out");
-            $timelineOverlay.addClass("active");
+            // Buka modal fullscreen
+            modal.style.display = "flex";
+
+            const modalContent = modal.querySelector(".timeline-modal");
+            modalContent.classList.remove("animate-out");
+            modalContent.classList.add("animate-in");
+
+            // kalau mau langsung render timeline modal
+            updateModalTimeline();
         }
     });
 
+    $(".btn-timeline-filter-custom").on("click", function (e) {
+        e.preventDefault();
+
+        // kalau mau buka fullscreen modal aja
+        const modal = document.getElementById("timelineModal");
+
+        if ($timeline.hasClass("active")) {
+            // Tutup versi card kecil (optional kalau masih dipakai)
+            $timeline.removeClass("animate-in").addClass("animate-out");
+            $timelineOverlay.removeClass("active");
+
+            setTimeout(() => {
+                $timeline.removeClass("active animate-out");
+            }, 400);
+        } else {
+            // Buka modal fullscreen
+            modal.style.display = "flex";
+
+            const modalContent = modal.querySelector(".timeline-modal");
+            modalContent.classList.remove("animate-out");
+            modalContent.classList.add("animate-in");
+
+            // kalau mau langsung render timeline modal
+            updateModalTimeline();
+        }
+    });
+
+    // Klik overlay masih nutup card kecil, kalau mau nutup modal ubah ke sini:
     $timelineOverlay.on("click", function () {
-        $timeline.removeClass("animate-in").addClass("animate-out");
-        $(this).removeClass("active");
+        const modal = document.getElementById("timelineModal");
+        const modalContent = modal.querySelector(".timeline-modal");
+
+        modalContent.classList.remove("animate-in");
+        modalContent.classList.add("animate-out");
 
         setTimeout(() => {
-            $timeline.removeClass("active animate-out");
+            modal.style.display = "none";
+            modalContent.classList.remove("animate-out");
         }, 400);
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("search_filter");
+
+    searchInput.addEventListener("input", function () {
+        const query = this.value.toLowerCase();
+
+        const cards = document.querySelectorAll(
+            "#all-cards-container [data-project-id]"
+        );
+
+        cards.forEach((card) => {
+            const projectId = card.getAttribute("data-project-id");
+            const title =
+                card.querySelector("h6")?.textContent.toLowerCase() || "";
+            const desc =
+                card.querySelector("p")?.textContent.toLowerCase() || "";
+
+            const match =
+                title.includes(query) ||
+                desc.includes(query) ||
+                projectId.includes(query);
+
+            if (match) {
+                card.classList.remove("d-none");
+            } else {
+                card.classList.add("d-none");
+            }
+        });
     });
 });
