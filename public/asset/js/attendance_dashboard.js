@@ -806,91 +806,69 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function openCheckInModal() {
-    fetch(baseUrl + "/server-time")
-        .then((response) => response.json())
-        .then((data) => {
-            const timeString = data.time;
-            const formattedDate = data.formatted_date;
-            const dateString = data.date;
+    // Reset form sebelum menampilkan modal
+    resetCheckInModal();
+    
+    // Update waktu berjalan dengan real-time clock
+    updateModalTime();
 
-            // Update tampilan modal
-            document.getElementById("date_attendance").textContent =
-                formattedDate;
-            document.getElementById("time_in").textContent = timeString;
+    // Get current location and center map
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            const { latitude, longitude } = position.coords;
 
-            // Hapus input hidden lama
-            document
-                .querySelectorAll(
-                    'input[name="date_attendance"], input[name="time_in"]'
-                )
-                .forEach((el) => el.remove());
-
-            // Tambahkan input hidden baru
-            const hiddenDate = document.createElement("input");
-            hiddenDate.type = "hidden";
-            hiddenDate.name = "date_attendance";
-            hiddenDate.value = dateString;
-            document.getElementById("checkInForm").appendChild(hiddenDate);
-
-            const hiddenTime = document.createElement("input");
-            hiddenTime.type = "hidden";
-            hiddenTime.name = "time_in";
-            hiddenTime.value = timeString;
-            document.getElementById("checkInForm").appendChild(hiddenTime);
-
-            // Get current location and center map
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function (position) {
-                    const { latitude, longitude } = position.coords;
-
-                    // Pastikan map sudah diinisialisasi
-                    if (window.mapCheckIn && window.mapCheckIn.setView) {
-                        // Clear existing markers
-                        window.mapCheckIn.eachLayer(function (layer) {
-                            if (layer instanceof L.Marker) {
-                                window.mapCheckIn.removeLayer(layer);
-                            }
-                        });
-
-                        // Set view dengan zoom yang lebih tinggi dan tambahkan marker di tengah
-                        window.mapCheckIn.setView([latitude, longitude], 18);
-                        L.marker([latitude, longitude]).addTo(window.mapCheckIn);
-                        
-                        // Update hidden inputs
-                        document.getElementById('latitudeCheckIn').value = latitude;
-                        document.getElementById('longitudeCheckIn').value = longitude;
-
-                        // Force map resize untuk memastikan tampilan benar
-                        setTimeout(() => {
-                            window.mapCheckIn.invalidateSize();
-                        }, 300);
-                    }
-                }, function (error) {
-                    console.error('Error getting location:', error);
-                    // Fallback ke default jika geolocation gagal
-                    if (window.mapCheckIn && window.mapCheckIn.setView) {
-                        setTimeout(() => {
-                            window.mapCheckIn.invalidateSize();
-                        }, 300);
+            // Pastikan map sudah diinisialisasi
+            if (window.mapCheckIn && window.mapCheckIn.setView) {
+                // Clear existing markers
+                window.mapCheckIn.eachLayer(function (layer) {
+                    if (layer instanceof L.Marker) {
+                        window.mapCheckIn.removeLayer(layer);
                     }
                 });
-            } else {
-                console.error('Geolocation is not supported by this browser.');
-                // Fallback ke default jika geolocation tidak tersedia
+
+                // Set view dengan zoom yang lebih tinggi dan tambahkan marker di tengah
+                window.mapCheckIn.setView([latitude, longitude], 18);
+                L.marker([latitude, longitude]).addTo(window.mapCheckIn);
+                
+                // Update hidden inputs
+                document.getElementById('latitudeCheckIn').value = latitude;
+                document.getElementById('longitudeCheckIn').value = longitude;
+
+                // Force map resize untuk memastikan tampilan benar
                 setTimeout(() => {
                     window.mapCheckIn.invalidateSize();
                 }, 300);
             }
-
-            // Tampilkan modal
-            const modal = new bootstrap.Modal(
-                document.getElementById("checkInModal")
-            );
-            modal.show();
-        })
-        .catch((error) => {
-            console.error("Gagal ambil waktu server:", error);
+        }, function (error) {
+            console.error('Error getting location:', error);
+            // Fallback ke default jika geolocation gagal
+            if (window.mapCheckIn && window.mapCheckIn.setView) {
+                setTimeout(() => {
+                    window.mapCheckIn.invalidateSize();
+                }, 300);
+            }
         });
+    } else {
+        console.error('Geolocation is not supported by this browser.');
+        // Fallback ke default jika geolocation tidak tersedia
+        setTimeout(() => {
+            window.mapCheckIn.invalidateSize();
+        }, 300);
+    }
+
+    // Tampilkan modal
+    const modal = new bootstrap.Modal(
+        document.getElementById("checkInModal")
+    );
+    modal.show();
+
+    // Set interval untuk update waktu setiap detik
+    const timeInterval = setInterval(updateModalTime, 1000);
+
+    // Clear interval saat modal ditutup
+    document.getElementById("checkInModal").addEventListener('hidden.bs.modal', function() {
+        clearInterval(timeInterval);
+    });
 }
 
 function submitCheckIn() {

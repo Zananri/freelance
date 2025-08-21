@@ -115,7 +115,7 @@
                 <!-- Modal Header -->
                 <div class="modal-header modal-header-custom d-flex justify-content-center">
                     <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">Check In
-                        Attendance</h5>
+                        </h5>
                     <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                         data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -237,7 +237,7 @@
             <div class="modal-content rounded-4" id="checkOutModalContent">
                 <div class="modal-header modal-header-custom d-flex justify-content-center">
                     <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutModalLabel">Check Out
-                        Attendance</h5>
+                        </h5>
                     <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                         data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
