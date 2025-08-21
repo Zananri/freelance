@@ -19,62 +19,80 @@
                 d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
         </symbol>
     </svg>
-    <div class="title-content">
-        <h2>Task</h2>
-        <div class="project-filter-display" id="projectFilterDisplay" style="display: none;">
-            <span class="filter-text">Filter <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">chevron_right</span></span>
-            <span class="project-name" id="currentProjectName" style="font-size: 16px; color: #222;"></span>
-        </div>
-    </div>
-
-    <div class="d-flex justify-content-end mb-3 gap-2 position-relative">
-        <div class="dropdown-filter-container">
-            <button class="btn btn-icon-toggle" type="button" id="openTaskFilterBtn">
-                <span class="material-symbols-outlined icon">filter_list</span> Filter
-            </button>
-            <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
-                <div class="dropdown-filter-header">
-                    <h6>Filter Tasks</h6>
-                </div>
-                <div class="dropdown-filter-body">
-                    <div class="mb-3">
-                        <label for="filterTaskProject" class="form-label">Filter by Project</label>
-                        <select id="filterTaskProject" class="form-select">
-                            <option value="">All Projects</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="filterTaskStatus" class="form-label">Filter by Status</label>
-                        <select id="filterTaskStatus" class="form-select">
-                            <option value="">All Status</option>
-                            <option value="new_request">New Request</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="dropdown-filter-footer">
-                    <button type="button" class="btn btn-submit-black" id="applyTaskFilterBtn">Filter</button>
-                </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="title-content">
+            <h2>Task</h2>
+            <div class="project-filter-display" id="projectFilterDisplay" style="display: none;">
+                <span class="filter-text">Filter
+                    <span class="material-symbols-outlined"
+                        style="font-size: 16px; vertical-align: middle;">chevron_right</span>
+                </span>
+                <span class="project-name" id="currentProjectName" style="font-size: 16px; color: #222;"></span>
             </div>
         </div>
-        <button class="btn-submit-black" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add Task</button>
+
+        <div class="d-flex align-items-center gap-2">
+            <div class="dropdown-filter-container">
+                <div class="search-input-container">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input class="form-control custom-form-filter" type="text" name="search_filter"
+                        id="search_filter">
+                </div>
+
+                <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+                    <span class="material-symbols-outlined"
+                        style="font-size: 24px; color: #858CA0;">calendar_month</span>
+                </button>
+
+                <button class="btn btn-icon-toggle toggle-filter" type="button" id="openTaskFilterBtn">
+                    <span class="material-symbols-outlined icon">filter_list</span> <span class="btn-text-filter">Filter</span>
+                </button>
+
+                <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
+                    <div class="dropdown-filter-header">
+                        <h6>Filter Tasks</h6>
+                    </div>
+                    <div class="dropdown-filter-body">
+                        <div class="mb-3">
+                            <label for="filterTaskProject" class="form-label">Filter by Project</label>
+                            <select id="filterTaskProject" class="form-select">
+                                <option value="">All Projects</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="filterTaskStatus" class="form-label">Filter by Status</label>
+                            <select id="filterTaskStatus" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="new_request">New Request</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="dropdown-filter-footer">
+                        <button type="button" class="btn btn-submit-black" id="applyTaskFilterBtn">Filter</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add <span class="btn-text-add">Task</span></button>
+        </div>
     </div>
 
     <div id="task-cards-container" class="container my-4">
         <div class="row">
             <!-- New Request Section -->
-            <div class="col-md-4">
+            <div class="col-md-4 new-request-container">
                 <h4 class="task-section-title">
                     <span class="status-indicator status-new-request"></span>
-                    New Request
+                    New
                 </h4>
                 <div id="new-request-tasks" class="task-list"></div>
             </div>
 
             <!-- In Progress Section -->
-            <div class="col-md-4">
+            <div class="col-md-4 in-progress-container">
                 <h4 class="task-section-title">
                     <span class="status-indicator status-in-progress"></span>
                     In Progress
@@ -83,7 +101,7 @@
             </div>
 
             <!-- Completed Section -->
-            <div class="col-md-4">
+            <div class="col-md-4 completed-container">
                 <h4 class="task-section-title">
                     <span class="status-indicator status-completed"></span>
                     Completed
@@ -194,7 +212,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black">
+                        <button type="submit">
                             Submit
                         </button>
                     </div>
@@ -391,12 +409,14 @@
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
                     <h4 class="fw-bold text-center mb-2" id="progressStatusTitle">In Progress</h4>
-                    <p class="text-center mb-4" id="progressStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                    <p class="text-center mb-4" id="progressStatusDescription"
+                        style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
                         Task is being worked on
                     </p>
                     <p class="fw-bold fs-5 text-center mb-4">Are you sure want to go back to Request?</p>
                     <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-submit-black" id="confirmProgressStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-submit-black"
+                            id="confirmProgressStatusBtn">Confirm</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
@@ -414,12 +434,14 @@
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
                     <h4 class="fw-bold text-center mb-2" id="completeStatusTitle">Completed</h4>
-                    <p class="text-center mb-4" id="completeStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                    <p class="text-center mb-4" id="completeStatusDescription"
+                        style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
                         Task has been finished
                     </p>
                     <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Complete?</p>
                     <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-submit-black" id="confirmCompleteStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-submit-black"
+                            id="confirmCompleteStatusBtn">Confirm</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
@@ -437,12 +459,14 @@
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
                     <h4 class="fw-bold text-center mb-2" id="rejectStatusTitle">Rejected</h4>
-                    <p class="text-center mb-4" id="rejectStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                    <p class="text-center mb-4" id="rejectStatusDescription"
+                        style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
                         Task has been rejected
                     </p>
                     <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Reject?</p>
                     <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-submit-black" id="confirmRejectStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-submit-black"
+                            id="confirmRejectStatusBtn">Confirm</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>

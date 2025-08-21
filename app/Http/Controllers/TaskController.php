@@ -100,8 +100,8 @@ class TaskController extends Controller
                         $picData = [
                             'id' => $pic->employee->id,
                             'name' => $pic->employee->name,
-                            'image' => $pic->employee->user && $pic->employee->user->photo 
-                                ? asset($pic->employee->user->photo) 
+                            'image' => $pic->employee->user && $pic->employee->user->photo
+                                ? asset($pic->employee->user->photo)
                                 : asset('asset/img/profile_picture/default.png'),
                             'is_receive' => true,
                         ];
@@ -112,8 +112,8 @@ class TaskController extends Controller
                         return [
                             'id' => $executor->employee->id,
                             'name' => $executor->employee->name,
-                            'image' => $executor->employee->user && $executor->employee->user->photo 
-                                ? asset($executor->employee->user->photo) 
+                            'image' => $executor->employee->user && $executor->employee->user->photo
+                                ? asset($executor->employee->user->photo)
                                 : asset('asset/img/profile_picture/default.png'),
                             'is_receive' => $executor->is_receive,
                             'role' => $executor->role,
@@ -124,10 +124,12 @@ class TaskController extends Controller
                         'id' => $task->id,
                         'title' => $task->title,
                         'description' => $task->description,
-                        'project_image' => ($task->project && $task->project->image) 
-                            ? asset('file/project/' . $task->project->image) 
+                        'project_image' => ($task->project && $task->project->image)
+                            ? asset('file/project/' . $task->project->image)
                             : asset('asset/img/profile_picture/sample_project.png'),
                         'project_id' => $task->project_id,
+                        'due_date' => $task->due_date,
+                        'priority' => $task->priority,
                         'pic' => $picData,
                         'executors' => $executorsData,
                         'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
@@ -196,7 +198,7 @@ class TaskController extends Controller
 
         // Initialize reference files array
         $referenceFiles = [];
-        
+
         // Handle reference files upload
         if ($request->hasFile('reference_files')) {
             foreach ($request->file('reference_files') as $index => $file) {
@@ -236,7 +238,7 @@ class TaskController extends Controller
         // Handle executor assignments with improved validation
         if ($request->has('executors')) {
             $executorIds = json_decode($request->input('executors'), true);
-            
+
             // Ensure executors is always an array
             if (!is_array($executorIds)) {
                 $executorIds = [];
@@ -244,7 +246,7 @@ class TaskController extends Controller
 
             $employee = auth()->user()->employee;
 
-            
+
             foreach ($executorIds as $executorId) {
                 // Skip if executor is same as PIC
                 if ($executorId == $employee->id) continue;
@@ -471,7 +473,7 @@ class TaskController extends Controller
 
             // Handle reference files
             $existingFilesToKeep = json_decode($request->input('existing_reference_files'), true) ?? [];
-            
+
             // Delete removed files
             if ($task->reference_files && is_array($task->reference_files)) {
                 foreach ($task->reference_files as $oldFile) {
@@ -595,7 +597,7 @@ class TaskController extends Controller
 
             // Delete task
             $task->deleted_by = auth()->id();
-            
+
             DB::commit();
 
             return response()->json([
@@ -684,7 +686,7 @@ class TaskController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
-                
+
             ]);
 
             if ($validator->fails()) {
@@ -771,8 +773,8 @@ class TaskController extends Controller
                     'employee' => [
                         'id' => $feedback->employee->id,
                         'name' => $feedback->employee->name,
-                        'photo' => $feedback->employee->user && $feedback->employee->user->photo 
-                            ? asset($feedback->employee->user->photo) 
+                        'photo' => $feedback->employee->user && $feedback->employee->user->photo
+                            ? asset($feedback->employee->user->photo)
                             : asset('asset/img/profile_picture/default.png'),
                     ],
                 ];
@@ -840,8 +842,8 @@ class TaskController extends Controller
                     $picData = [
                         'id' => $pic->employee->id,
                         'name' => $pic->employee->name ?? 'Not assigned',
-                        'user_photo' => $pic->employee->user && $pic->employee->user->photo 
-                            ? $pic->employee->user->photo 
+                        'user_photo' => $pic->employee->user && $pic->employee->user->photo
+                            ? $pic->employee->user->photo
                             : null,
                     ];
                 }
@@ -852,8 +854,8 @@ class TaskController extends Controller
                     return [
                         'id' => $executor->employee->id,
                         'name' => $executor->employee->name ?? 'Unknown',
-                        'user_photo' => $executor->employee->user && $executor->employee->user->photo 
-                            ? $executor->employee->user->photo 
+                        'user_photo' => $executor->employee->user && $executor->employee->user->photo
+                            ? $executor->employee->user->photo
                             : null,
                     ];
                 })->values();

@@ -842,7 +842,7 @@ document.addEventListener("click", function (e) {
     if (e.target && e.target.classList.contains("arrow-forward-icon")) {
         const taskId = e.target.getAttribute("data-task-id");
         const currentStatus = e.target.getAttribute("data-task-status");
-        
+
         if (!taskId) {
             alert("Task ID not found.");
             return;
@@ -851,7 +851,7 @@ document.addEventListener("click", function (e) {
         // Determine next status based on current status
         let nextStatus = '';
         let actionDescription = '';
-        
+
         if (currentStatus === 'new_request' || currentStatus === 'new request') {
             nextStatus = 'in_progress';
             actionDescription = 'Progress';
@@ -954,7 +954,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     // Determine status-based menu items
     let statusMenuItem = '';
-    
+
     if (task.status === 'new_request' || task.status === 'new request') {
         statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
     } else if (task.status === 'in_progress' || task.status === 'in progress') {
@@ -966,8 +966,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     }
 
     // Determine if delete should be shown (only for new_request and rejected)
-    const showDelete = task.status === 'new_request' || 
-                      task.status === 'new request' || 
+    const showDelete = task.status === 'new_request' ||
+                      task.status === 'new request' ||
                       task.status === 'rejected';
 
     // Add status badge for rejected tasks
@@ -978,41 +978,40 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     // FIXED: Proper icon logic based on current status
     let iconHtml = '';
+    console.log(task);
+
     if (task.status !== 'completed') {
         if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
             // Show check icon for In Progress and Rejected tasks (both can be completed)
-            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
-                data-bs-toggle="tooltip" 
-                data-placement="bottom" 
-                data-task-id="${task.id}" 
-                data-task-status="${task.status}" 
+            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
+                data-bs-toggle="tooltip"
+                data-placement="bottom"
+                data-task-id="${task.id}"
+                data-task-status="${task.status}"
                 title="Set to Complete"
                 style="cursor: pointer;">
                 check
             </span>`;
         } else if (task.status === 'new_request' || task.status === 'new request') {
             // Show arrow icon for New Request tasks
-            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon" 
-                data-bs-toggle="tooltip" 
-                data-placement="bottom" 
-                data-task-id="${task.id}" 
-                data-task-status="${task.status}" 
+            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
+                data-bs-toggle="tooltip"
+                data-placement="bottom"
+                data-task-id="${task.id}"
+                data-task-status="${task.status}"
                 title="Progress"
                 style="cursor: pointer;">
-                arrow_forward
+                arrow_right_alt
             </span>`;
         }
     }
 
     // Check if description is long enough to need truncation
-    const description = task.description || '';
-    const needsTruncation = description.length > 123; // Approximate 3 lines
-    
     return `
         <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}">
             ${statusBadge}
             <div class="dropdown-icon-container">
-                <span class="material-symbols-outlined dropdown-icon" tabindex="0">more_vert</span>
+                <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                 <div class="dropdown-menu d-none">
                     <div class="dropdown-item">Detail</div>
                     <div class="dropdown-item">Edit</div>
@@ -1024,17 +1023,28 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             ${iconHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                <img src="${task.project_image}" alt="Project Image" class="project-image me-3">
+                <img src="${task.project_image}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px;">
                 <h5 class="mb-0 task-title">${task.title}</h5>
             </div>
             <div class="task-description-container">
-                <p class="task-description ${needsTruncation ? 'truncated' : ''}" data-full-description="${description}">
-                    ${description}
+                <p class="task-description" data-full-description="${task.description}">
+                    ${task.description}
                 </p>
-                ${needsTruncation ? '<span class="task-description-toggle" onclick="toggleDescription(this)">View More</span>' : ''}
             </div>
             <hr class="task-separator rounded-4">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div style="font-size: 10px; font-weight: 400;">
+                    <span style="color: #797E91;">Priority: </span>
+                    <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">
+                        ${task.priority}
+                    </span>
+                </div>
+                <div style="font-size: 10px; font-weight: 400;">
+                    <span style="color: #797E91;">Deadline: </span>
+                    <span style="#color: #4B4F5E">${task.due_date }</span>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="d-flex align-items-center pic-executor-container">
                     ${executorsHtml}
                 </div>
@@ -1067,7 +1077,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         const container = element.closest('.task-description-container');
         const description = container.querySelector('.task-description');
         const isExpanded = description.classList.contains('expanded');
-        
+
         if (isExpanded) {
             // Collapse
             description.classList.remove('expanded');
@@ -1412,7 +1422,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     function updateTaskStatusDirect(taskId, newStatus) {
         // Find the task card element
         const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-        
+
         $.ajax({
             url: appUrl + "/task/" + taskId + "/status",
             type: "PUT",
@@ -1519,7 +1529,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     function handleTaskFeedback(taskId) {
         // Reset feedback submission state
         feedbackSubmitted = false;
-        
+
         // Show the feedback modal
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
         const feedbackModal = new bootstrap.Modal(feedbackModalEl);
@@ -1594,7 +1604,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             <div class="d-flex align-items-center mb-2">
                                 <img src="${feedback.employee.photo}" alt="${
                             feedback.employee.name
-                        }" 
+                        }"
                                      class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                                 <div>
                                     <strong>${feedback.employee.name}</strong>
@@ -1931,7 +1941,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 <input type="hidden" name="employee_id" value="${
                     feedbackModalEl.dataset.employeeId || ""
                 }">
-                
+
                 <div class="mb-3">
                     <label class="form-label">Upload Image</label>
                     <div class="image-upload-container">
@@ -1942,17 +1952,17 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         </label>
                     </div>
                 </div>
-                
+
                 <div class="mb-3">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
                 </div>
-                
+
                 <div class="mb-3">
                     <label for="reference_url" class="form-label">Reference URL (Optional)</label>
                     <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
                 </div>
-                
+
                 <div class="mb-3">
                     <label for="reference_file" class="form-label">Reference File (Optional)</label>
                     <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
@@ -2037,7 +2047,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             success: function (response) {
                 // Mark feedback as submitted
                 feedbackSubmitted = true;
-                
+
                 // Show success alert
                 const feedbackModalEl =
                     document.getElementById("taskFeedbackModal");
@@ -2145,7 +2155,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         });
     }
 
-    
+
 
     // Function to add event listeners for attach_file icon click
     function addAttachFileIconListeners() {
@@ -2787,12 +2797,12 @@ function handleTaskDetail(taskId) {
     function updateProjectFilterDisplay() {
         const displayElement = document.getElementById('projectFilterDisplay');
         const projectNameElement = document.getElementById('currentProjectName');
-        
+
         if (!displayElement || !projectNameElement) return;
-        
+
         const selectedProjectId = filterTaskProjectSelect.value;
         const selectedProjectText = filterTaskProjectSelect.options[filterTaskProjectSelect.selectedIndex]?.text || '';
-        
+
         if (selectedProjectId && selectedProjectId !== '') {
             projectNameElement.textContent = selectedProjectText;
             displayElement.style.display = 'flex';
@@ -2804,7 +2814,7 @@ function handleTaskDetail(taskId) {
     // Load projects for filter select
     function loadProjectsForFilter() {
         if (!filterTaskProjectSelect) return;
-        
+
         fetch(appUrl + "/project/index")
             .then((response) => {
                 if (!response.ok) {
@@ -2819,7 +2829,7 @@ function handleTaskDetail(taskId) {
                     options += `<option value="${project.id}">${project.title}</option>`;
                 });
                 filterTaskProjectSelect.innerHTML = options;
-                
+
                 // Set current filter values if they exist
                 if (currentTaskFilters.project) {
                     filterTaskProjectSelect.value = currentTaskFilters.project;
@@ -2838,12 +2848,12 @@ function handleTaskDetail(taskId) {
         applyTaskFilterBtn.addEventListener("click", function() {
             currentTaskFilters.project = filterTaskProjectSelect.value;
             currentTaskFilters.status = filterTaskStatusSelect.value;
-            
+
             fetchAndRenderFilteredTasks(currentTaskFilters);
-            
+
             // Update project filter display
             updateProjectFilterDisplay();
-            
+
             // Hide the dropdown
             document.getElementById("taskFilterDropdown").style.display = "none";
         });
@@ -2856,15 +2866,15 @@ function handleTaskDetail(taskId) {
                 project: "",
                 status: ""
             };
-            
+
             if (filterTaskProjectSelect) filterTaskProjectSelect.value = "";
             if (filterTaskStatusSelect) filterTaskStatusSelect.value = "";
-            
+
             fetchAndRenderTasks();
-            
+
             // Update project filter display (hide it)
             updateProjectFilterDisplay();
-            
+
             // Hide the dropdown
             document.getElementById("taskFilterDropdown").style.display = "none";
         });
@@ -2876,13 +2886,13 @@ function handleTaskDetail(taskId) {
             e.stopPropagation();
             const dropdown = document.getElementById("taskFilterDropdown");
             const isVisible = dropdown.style.display !== "none";
-            
+
             if (isVisible) {
                 dropdown.style.display = "none";
             } else {
                 loadProjectsForFilter();
                 dropdown.style.display = "block";
-                
+
                 // Position dropdown below button
                 const buttonRect = openTaskFilterBtn.getBoundingClientRect();
                 dropdown.style.position = "absolute";
@@ -2897,7 +2907,7 @@ function handleTaskDetail(taskId) {
     document.addEventListener("click", function(e) {
         const dropdown = document.getElementById("taskFilterDropdown");
         const button = document.getElementById("openTaskFilterBtn");
-        
+
         if (dropdown && button && !dropdown.contains(e.target) && !button.contains(e.target)) {
             dropdown.style.display = "none";
         }
@@ -3004,13 +3014,13 @@ function handleTaskDetail(taskId) {
             project: "",
             status: ""
         };
-        
+
         if (filterTaskProjectSelect) filterTaskProjectSelect.value = "";
         if (filterTaskStatusSelect) {
             filterTaskStatusSelect.value = "";
             filterTaskStatusSelect.disabled = false;
         }
-        
+
         fetchAndRenderTasks();
 
         // Hide project filter display on reset
@@ -3023,7 +3033,7 @@ function handleTaskDetail(taskId) {
     resetFilterBtn.className = 'btn btn-submit-reset';
     resetFilterBtn.textContent = 'Reset';
     resetFilterBtn.addEventListener('click', resetTaskFilters);
-    
+
     if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
         applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
     }
