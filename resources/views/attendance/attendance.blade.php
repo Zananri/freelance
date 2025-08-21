@@ -30,12 +30,14 @@
                     </div>
 
                     <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-between">
-                        <button class="btn btn-check-in btn-custom-check w-25 m-2 p-2" id="checkInBtn">
-                            <span class="material-symbols-outlined" style="display: none;">check</span>
+                        <button class="btn btn-check-in btn-custom-check w-25 m-2 p-2" data-check-active="checkIn"
+                                    id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
+                            <span class="material-symbols-outlined check-icon" style="display: {{ $attendanceStatus['check_in'] === 'completed' ? 'inline' : 'none' }};">check</span>
                             Check In
                         </button>
-                        <button class="btn btn-check-out btn-custom-check w-25 m-2 p-2" id="checkOutBtn">
-                            <span class="material-symbols-outlined" style="display: none;">done_all</span>
+                        <button class="btn btn-check-out btn-custom-check w-25 m-2 p-2" data-check-active="checkOut"
+                                    id="checkOutBtn" data-status="{{ $attendanceStatus['check_out'] ?? 'pending' }}">
+                            <span class="material-symbols-outlined done-all-icon" style="display: {{ $attendanceStatus['check_out'] === 'completed' ? 'inline' : 'none' }};">done_all</span>
                             Check Out
                         </button>
                     </div>
@@ -46,7 +48,7 @@
                         <div class="log-row d-flex justify-content-between align-items-center my-2">
                             <p class="mb-0">Check In</p>
                             <div class="d-flex align-items-center">
-                                <span id="time_in_display" class="me-2"></span>
+                                <span id="" class="me-2"></span>
                                 <button class="btn p-0">
                                     <span class="material-symbols-outlined"
                                         style="font-size:16px; color:#B3B3B3;">chevron_right</span>
@@ -58,7 +60,7 @@
                         <div class="log-row d-flex justify-content-between align-items-center my-2">
                             <p class="mb-0">Check Out</p>
                             <div class="d-flex align-items-center">
-                                <span id="time_out_display" class="me-2"></span>
+                                <span id="" class="me-2"></span>
                                 <button class="btn p-0">
                                     <span class="material-symbols-outlined"
                                         style="font-size:16px; color:#B3B3B3;">chevron_right</span>
@@ -113,7 +115,7 @@
                 <!-- Modal Header -->
                 <div class="modal-header modal-header-custom d-flex justify-content-center">
                     <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">Check In
-                        Attendance</h5>
+                        </h5>
                     <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                         data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -203,7 +205,7 @@
                 <!-- Modal Footer -->
                 <div class="modal-footer modal-footer-custom">
                     <button type="submit" class="btn btn-submit-black" id="submitCheckInBtn">
-                        <span class="material-symbols-outlined">alarm_on</span> Check In
+                        Check In
                     </button>
                 </div>
 
@@ -235,17 +237,32 @@
             <div class="modal-content rounded-4" id="checkOutModalContent">
                 <div class="modal-header modal-header-custom d-flex justify-content-center">
                     <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutModalLabel">Check Out
-                        Attendance</h5>
+                        </h5>
                     <button type="button" class="btn-close position-absolute" style="right: 1rem;"
                         data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+
+                <!-- Time Display Container -->
+                        <div class="text-center mb-4">
+                            <div class="mb-0">
+                                <div class="date-time-display" id="time_out">
+                                    Loading...
+                                </div>
+                            </div>
+                            <div>
+                                <div class="date-time-display" id="date_attendance_checkout">
+                                    Loading...
+                                </div>
+                            </div>
+                        </div>
+
                 <div class="modal-body">
                     <form id="checkOutForm">
                         <!-- Hidden fields -->
                         <input type="hidden" name="employee_id" id="employee_id"
                             value="{{ $employee ? $employee->id : '' }}">
-                        <input type="hidden" name="date_attendance" id="date_attendance">
-                        <input type="hidden" name="time_out" id="time_out">
+                        <input type="hidden" name="date_attendance" id="date_attendance_hidden">
+                        <input type="hidden" name="time_out" id="time_out_hidden">
                         <input type="hidden" name="type_attendance" value="check_out">
                         <input type="hidden" name="is_work_outside_checkout" id="is_work_outside_checkout"
                             value="0">
@@ -258,13 +275,12 @@
                             </div>
                         </div>
 
-                        <!-- Time Display Container -->
-                        <div class="date-time-container d-flex justify-content-between mb-3">
-                            <!-- Added flex properties for alignment -->
+                        <!-- Hidden Time Display Container - Removed as it's now above -->
+                        <div class="date-time-container d-flex justify-content-between mb-3" style="display: none !important;">
                             <!-- Time In Display -->
-                            <div class="mb-3">
+                            <div class="mb-3" hidden>
                                 <label class="form-label label-custom">Time In</label>
-                                <div class="date-time-display-checkout" id="time_in_display">
+                                <div class="date-time-display-checkout" id="">
                                     Loading...
                                 </div>
                             </div>
@@ -272,7 +288,7 @@
                             <!-- Time Out Display -->
                             <div class="mb-3">
                                 <label class="form-label label-custom">Time Out</label>
-                                <div class="date-time-display-checkout" id="time_out_display">
+                                <div class="date-time-display-checkout" id="">
                                     Loading...
                                 </div>
                             </div>
@@ -286,6 +302,14 @@
                             </div>
                         </div>
 
+                        
+                        <!-- Map Location Section for Check Out -->
+                        <div class="mb-3">
+                            <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
+                            class="rounded border"></div>
+                            <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
+                            <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
+                        </div>
                         <!-- Image Upload Section for Checkout -->
                         <div class="mb-3" id="imageUploadSectionCheckout" style="display: none;">
                             <label class="form-label">Photo</label>
@@ -307,19 +331,10 @@
                             </div>
                         </div>
 
-                        <!-- Map Location Section for Check Out -->
-                        <div class="mb-3">
-                            <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
-                                class="rounded border"></div>
-                            <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
-                            <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
-                        </div>
-
                     </form>
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-secondary" id="submitCheckOutBtn">
-                        <span class="material-symbols-outlined">alarm_off</span>
                         Check Out
                     </button>
                 </div>

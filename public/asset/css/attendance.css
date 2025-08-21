@@ -97,7 +97,7 @@
 
 .form-check-label {
     display: inline-block;
-    padding: 12px 24px;
+    padding: 10px 24px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     cursor: pointer;
@@ -823,6 +823,26 @@
     justify-content: center;
 }
 
+/* Membuat button check in dan check out di modal lebih lebar */
+.modal-footer-custom .btn-submit-black,
+.modal-footer-custom #submitCheckOutBtn {
+    width: 100%;
+    max-width: 420px;
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Untuk mobile, pastikan button tetap lebar */
+@media (max-width: 576px) {
+    .modal-footer-custom .btn-submit-black,
+    .modal-footer-custom #submitCheckOutBtn {
+        max-width: 100%;
+        width: 90%;
+        margin: 0 auto;
+    }
+}
+
 /* Center alignment for time in and date attendance in modal */
 .date-time-display {
     text-align: center !important;
@@ -934,8 +954,7 @@
 }
 
 #previewImgCheckout {
-    display: flex
-;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -976,4 +995,47 @@
     margin-left: 15px;
     font-size: 14px;
     color: #495057;
+}
+
+/* Center alignment for time in and date attendance in modal */
+.date-time-display {
+    text-align: center !important;
+    display: block !important;
+}
+
+#time_out {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#date_attendance_checkout {
+    font-size: 14px;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Container untuk time dan date - center alignment */
+.text-center.mb-4 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+
+.btn-custom-check {
+    background-color: #e3e4ee;
+    color: #444444;
+}
+
+.btn-custom-check:hover {
+    background-color: #e3e4ee;
+    color: #444444;
+}
+
+.btn-custom-check.active {
+    background-color: #454545;
+    color: #f3f3f3;
 }

@@ -171,4 +171,6 @@ Route::get('/shift/employees-basic', [ShiftController::class, 'getEmployeesBasic
 Route::put('/shift/update/{id}', [ShiftController::class, 'update'])->name('shift.update');
 Route::get('/attendance/latest-unclosed/{employeeId}', [AttendanceController::class, 'getLatestUnclosedAttendance']);
 Route::get('/attendance/daily/{employeeId}/{date}', [AttendanceController::class, 'getDailyAttendances']);
+Route::get('/attendance/shift-details/{employeeId}/{date}', [AttendanceController::class, 'getEmployeeShiftDetails']);
+Route::get('/attendance/today-status/{employeeId}', [AttendanceController::class, 'getTodayStatus']);
 

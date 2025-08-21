@@ -293,8 +293,8 @@ function updateModalTimeCheckout() {
     });
 
     // Update tampilan di modal check-out (dengan detik)
-    const dateDisplay = document.getElementById("date_attendance");
-    const timeDisplay = document.getElementById("time_out_display");
+    const dateDisplay = document.getElementById("date_attendance_checkout");
+    const timeDisplay = document.getElementById("time_out");
 
     if (dateDisplay) dateDisplay.textContent = formattedDate;
     if (timeDisplay) timeDisplay.textContent = displayTimeString;
@@ -372,7 +372,6 @@ function openCheckInModal() {
 
     // Set interval untuk update waktu setiap detik
     const timeInterval = setInterval(updateModalTime, 1000);
-
 
     // Clear interval saat modal ditutup
     document.getElementById("checkInModal").addEventListener('hidden.bs.modal', function() {
@@ -794,10 +793,34 @@ function loadAttendanceForDate(dateString) {
     document.getElementById("checkOutBtn").disabled = true;
 }
 
-// Function to show floating alert with SVG icon - same as task.js
+// Enhanced showFloatingAlert with proper styling and fallback
 function showFloatingAlert(message, type = "success") {
     const alertDiv = document.createElement("div");
-    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
+    
+    // Ensure proper Bootstrap classes and fallback styling
+    let alertClass = `alert alert-${type}`;
+    let iconClass = "fa-exclamation-triangle";
+    let bgColor = "#ffc107"; // Default warning
+    
+    switch(type) {
+        case "success":
+            alertClass = "alert alert-success";
+            iconClass = "fa-check-circle";
+            bgColor = "#d4edda";
+            break;
+        case "warning":
+            alertClass = "alert alert-warning";
+            iconClass = "fa-exclamation-triangle";
+            bgColor = "#fff3cd";
+            break;
+        case "error":
+            alertClass = "alert alert-danger";
+            iconClass = "fa-times-circle";
+            bgColor = "#f8d7da";
+            break;
+    }
+
+    alertDiv.className = `${alertClass} d-flex align-items-center task-status-alert`;
     alertDiv.style.cssText = `
         position: fixed;
         bottom: 20px;
@@ -806,10 +829,10 @@ function showFloatingAlert(message, type = "success") {
         min-width: 300px;
         opacity: 1;
         transition: opacity 0.5s ease;
+        background-color: ${bgColor} !important;
+        border: 1px solid ${type === 'warning' ? '#ffeaa7' : type === 'success' ? '#c3e6cb' : '#f5c6cb'} !important;
+        color: ${type === 'warning' ? '#856404' : type === 'success' ? '#155724' : '#721c24'} !important;
     `;
-
-    let iconClass =
-        type === "success" ? "fa-check-circle" : "fa-exclamation-triangle";
 
     alertDiv.innerHTML = `
         <i class="fas ${iconClass} me-2"></i>
@@ -1145,6 +1168,161 @@ document.addEventListener("DOMContentLoaded", function () {
     document.head.appendChild(fontAwesome);
 });
 
+// Fungsi untuk mendapatkan informasi shift karyawan
+async function getEmployeeShiftDetails(employeeId, date) {
+    try {
+        const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${date}`);
+        const data = await response.json();
+        
+        if (data.status === "success") {
+            return data.data;
+        } else {
+            console.error("Error fetching shift details:", data.message);
+            return null;
+        }
+    } catch (error) {
+        console.error("Network error:", error);
+        return null;
+    }
+}
+
+// Fungsi untuk validasi waktu check-in berdasarkan shift
+async function validateCheckInTime(employeeId, date) {
+    const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
+    
+    if (!shiftDetails) {
+        return {
+            valid: false,
+            message: "No shift assigned for this date"
+        };
+    }
+
+    const currentTime = new Date();
+    const [currentHour, currentMinute] = [currentTime.getHours(), currentTime.getMinutes()];
+    const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+    
+    const minCheckInTime = shiftDetails.min_checkin_time;
+    const maxCheckInTime = shiftDetails.max_checkin_time;
+    
+    // Convert time strings to minutes for comparison
+    const currentMinutes = currentHour * 60 + currentMinute;
+    const minMinutes = parseInt(minCheckInTime.split(':')[0]) * 60 + parseInt(minCheckInTime.split(':')[1]);
+    
+    if (currentMinutes < minMinutes) {
+        return {
+            valid: false,
+            message: `Check-in not allowed. You can only check-in 1 hour before your shift starts at ${shiftDetails.time_start}`
+        };
+    }
+    
+    // Tidak ada batasan maksimum untuk check-in setelah shift dimulai
+    
+    return {
+        valid: true,
+        message: "Check-in time is valid",
+        shiftDetails: shiftDetails
+    };
+}
+
+// Fungsi untuk validasi waktu check-out berdasarkan shift
+async function validateCheckOutTime(employeeId, date) {
+    const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
+    
+    if (!shiftDetails) {
+        return {
+            valid: false,
+            message: "No shift assigned for this date"
+        };
+    }
+
+    const currentTime = new Date();
+    const [currentHour, currentMinute] = [currentTime.getHours(), currentTime.getMinutes()];
+    const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+    
+    const minCheckOutTime = shiftDetails.min_checkout_time;
+    
+    // Convert time strings to minutes for comparison
+    const currentMinutes = currentHour * 60 + currentMinute;
+    const minMinutes = parseInt(minCheckOutTime.split(':')[0]) * 60 + parseInt(minCheckOutTime.split(':')[1]);
+    
+    if (currentMinutes < minMinutes) {
+        return {
+            valid: false,
+            message: `Check-out not allowed. You can only check-out after ${minCheckOutTime}`
+        };
+    }
+    
+    return {
+        valid: true,
+        message: "Check-out time is valid",
+        shiftDetails: shiftDetails
+    };
+}
+
+// Fungsi untuk menampilkan informasi shift di modal
+async function displayShiftInfo(employeeId, date) {
+    const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
+    
+    if (shiftDetails) {
+        const shiftInfoDiv = document.getElementById("shiftInfo");
+        if (shiftInfoDiv) {
+            shiftInfoDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <strong>Shift Information:</strong><br>
+                    Time Start: ${shiftDetails.time_start}<br>
+                    Time End: ${shiftDetails.time_end}<br>
+                    Check-in allowed: ${shiftDetails.min_checkin_time} - ${shiftDetails.max_checkin_time}<br>
+                    Check-out allowed: After ${shiftDetails.min_checkout_time}
+                </div>
+            `;
+        }
+    }
+}
+
+// Override fungsi openCheckInModal untuk menambahkan validasi
+const originalOpenCheckInModal = openCheckInModal;
+openCheckInModal = async function() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const today = new Date().toISOString().split("T")[0];
+    
+    if (employeeId) {
+        const validation = await validateCheckInTime(employeeId, today);
+        
+        if (!validation.valid) {
+            showFloatingAlert(validation.message, "error");
+            return;
+        }
+        
+        // Tampilkan informasi shift
+        await displayShiftInfo(employeeId, today);
+    }
+    
+    // Panggil fungsi asli
+    originalOpenCheckInModal();
+};
+
+// Override fungsi openCheckOutModal untuk menambahkan validasi
+const originalOpenCheckOutModal = openCheckOutModal;
+openCheckOutModal = async function() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const today = new Date().toISOString().split("T")[0];
+    
+    if (employeeId) {
+        const validation = await validateCheckOutTime(employeeId, today);
+        
+        if (!validation.valid) {
+            showFloatingAlert(validation.message, "error");
+            return;
+        }
+        
+        // Tampilkan informasi shift
+        await displayShiftInfo(employeeId, today);
+    }
+    
+    // Panggil fungsi asli
+    originalOpenCheckOutModal();
+};
+
 // Checkout Modal Functions
 let checkoutStream = null;
 let checkoutCapturedImage = null;
@@ -1359,6 +1537,7 @@ function startCheckoutCamera() {
     const modalHeader = document.querySelector("#checkOutModal .modal-header");
     const modalFooter = document.querySelector("#checkOutModal .modal-footer");
     const modalBody = document.querySelector("#checkOutModal .modal-body");
+    const timeDisplayContainer = document.querySelector("#checkOutModal .text-center.mb-4");
 
     if (checkoutStream) return;
 
@@ -1366,6 +1545,7 @@ function startCheckoutCamera() {
     modalHeader?.classList.add("d-none");
     modalFooter?.classList.add("d-none");
     modalBody?.classList.add("d-none");
+    timeDisplayContainer?.classList.add("d-none");
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
         .then(mediaStream => {
@@ -1388,6 +1568,7 @@ function captureCheckoutPhoto() {
     const modalHeader = document.querySelector("#checkOutModal .modal-header");
     const modalFooter = document.querySelector("#checkOutModal .modal-footer");
     const modalBody = document.querySelector("#checkOutModal .modal-body");
+    const timeDisplayContainer = document.querySelector("#checkOutModal .text-center.mb-4");
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -1408,6 +1589,7 @@ function captureCheckoutPhoto() {
     modalHeader?.classList.remove("d-none");
     modalFooter?.classList.remove("d-none");
     modalBody?.classList.remove("d-none");
+    timeDisplayContainer?.classList.remove("d-none");
     modalContent?.classList.remove("camera-active");
 
     stopCheckoutCamera();
@@ -1489,48 +1671,35 @@ function submitCheckOut() {
         return;
     }
 
-    // Get and validate all required fields first
-    const requiredFields = {
-        employeeId: document.querySelector('input[name="employee_id"]'),
-        dateAttendance: document.getElementById('date_attendance'),
-        timeOut: document.getElementById('time_out'),
-        typeAttendance: document.querySelector('input[name="type_attendance"]'),
-        isWorkOutside: document.getElementById('is_work_outside_checkout')
-    };
+    // Get current time for checkout
+    const now = new Date();
+    const serverTimeString = now.toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit"
+    });
 
-    // Validate all required fields exist
-    for (const [key, element] of Object.entries(requiredFields)) {
-        if (!element || !element.value) {
-            console.error(`${key} is missing or empty`);
-            showFloatingAlert(`${key} is missing. Please refresh the page.`, "error");
-            return;
-        }
+    // Get and validate all required fields
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const dateAttendance = document.getElementById('date_attendance')?.value || now.toISOString().split("T")[0];
+    
+    if (!employeeId) {
+        console.error("Employee ID is missing");
+        showFloatingAlert("Employee ID is missing. Please refresh the page.", "error");
+        return;
     }
 
     const formData = new FormData(form);
 
-    // Add or update required fields
-    formData.set("employee_id", requiredFields.employeeId.value);
-    formData.set("date_attendance", requiredFields.dateAttendance.value);
-    formData.set("time_out", requiredFields.timeOut.value);
-    formData.set("type_attendance", "check_out");  // Ensure type_attendance is set correctly
-    formData.set("is_work_outside", requiredFields.isWorkOutside.value);
-
-    // Add is_work_outside dari status check in sebelumnya
-    const isWorkOutsideValue = document.getElementById("is_work_outside_checkout").value;
-    formData.append("is_work_outside", isWorkOutsideValue);
-
-    // Add date dan time untuk checkout
-    const dateAttendance = document.getElementById("date_attendance").value;
-    const timeOut = document.getElementById("time_out").value;
-
-    if (!dateAttendance || !timeOut) {
-        showFloatingAlert("Date and time are required. Please try again.", "error");
-        return;
-    }
-
-    formData.append("date_attendance", dateAttendance);
-    formData.append("time_out", timeOut);
+    // Ensure all required fields are properly set
+    formData.set("employee_id", employeeId);
+    formData.set("date_attendance", dateAttendance);
+    formData.set("time_out", serverTimeString);
+    formData.set("type_attendance", "check_out");
+    
+    // Get work outside value
+    const isWorkOutsideValue = document.getElementById("is_work_outside_checkout")?.value || "0";
+    formData.set("is_work_outside", isWorkOutsideValue);
 
     // Add latitude and longitude for check-out
     const latitude = document.getElementById("latitudeCheckOut")?.value;
@@ -1692,3 +1861,124 @@ document.addEventListener("DOMContentLoaded", function () {
     updateClock();
     setInterval(updateClock, 1000);
 });
+
+// Fungsi untuk mendapatkan status absensi harian
+function getTodayAttendanceStatus() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const urlStatus = `${baseUrl}/attendance/today-status/${employeeId}`;
+
+    fetch(urlStatus)
+        .then((response) => response.json())
+        .then((statusData) => {
+            updateButtonStates(statusData.data);
+        })
+        .catch((error) => {
+            console.error("Error fetching attendance status:", error);
+        });
+}
+
+// Fungsi untuk update state tombol berdasarkan status
+function updateButtonStates(status) {
+    const checkInBtn = document.getElementById("checkInBtn");
+    const checkOutBtn = document.getElementById("checkOutBtn");
+
+    if (!checkInBtn || !checkOutBtn) return;
+
+    // Reset semua state
+    checkInBtn.classList.remove("active");
+    checkOutBtn.classList.remove("active");
+    checkInBtn.disabled = false;
+    checkOutBtn.disabled = false;
+
+    // Hide semua icon
+    $("#checkInBtn .check-icon").hide();
+    $("#checkOutBtn .done-all-icon").hide();
+
+    // Update berdasarkan status
+    if (status.status === "not_started") {
+        // Belum check-in sama sekali
+        checkOutBtn.disabled = true;
+    } else if (status.status === "checked_in") {
+        // Sudah check-in tapi belum check-out
+        checkInBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+    } else if (status.status === "checked_out") {
+        // Sudah check-out (kedua tombol aktif)
+        checkInBtn.classList.add("active");
+        checkOutBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+        $("#checkOutBtn .done-all-icon").show();
+    }
+
+    // Handle unclosed attendance
+    if (status.has_unclosed) {
+        checkInBtn.classList.add("active");
+        checkOutBtn.classList.add("active");
+        $("#checkInBtn .check-icon").show();
+        $("#checkOutBtn .done-all-icon").show();
+    }
+
+    // Update attendance logs
+    if (status.last_check_in_time) {
+        const timeInDisplay = document.getElementById("time_in_display");
+        if (timeInDisplay) {
+            timeInDisplay.textContent = status.last_check_in_time;
+        }
+    }
+
+    if (status.last_check_out_time) {
+        const timeOutDisplay = document.getElementById("time_out_display");
+        if (timeOutDisplay) {
+            timeOutDisplay.textContent = status.last_check_out_time;
+        }
+    }
+}
+
+// Fungsi untuk refresh status setelah check-in/check-out
+function refreshAttendanceStatus() {
+    getTodayAttendanceStatus();
+}
+
+// Fungsi untuk reset state saat berganti hari
+function resetDailyAttendanceState() {
+    const today = new Date().toISOString().split("T")[0];
+    const lastResetDate = localStorage.getItem('lastAttendanceReset');
+    
+    if (lastResetDate !== today) {
+        localStorage.setItem('lastAttendanceReset', today);
+        getTodayAttendanceStatus();
+    }
+}
+
+// Fungsi untuk memastikan status diperbarui saat halaman dimuat
+function initializeAttendanceState() {
+    // Check daily reset
+    resetDailyAttendanceState();
+    
+    // Get initial status
+    getTodayAttendanceStatus();
+    
+    // Set up periodic refresh
+    setInterval(getTodayAttendanceStatus, 30000); // Refresh every 30 seconds
+    
+    // Add event listener untuk refresh setelah check-in/check-out
+    document.addEventListener('attendanceUpdated', refreshAttendanceStatus);
+}
+
+// Initialize saat DOM ready
+document.addEventListener("DOMContentLoaded", function() {
+    initializeAttendanceState();
+});
+
+// Export fungsi untuk digunakan di file lain
+window.AttendanceState = {
+    getTodayAttendanceStatus,
+    refreshAttendanceStatus,
+    updateButtonStates
+};

@@ -236,8 +236,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 50%;
-    height: 150px;
+    width: 180px;
+    height: 250px;
     border: 2px dashed #dee2e6;
     border-radius: 8px;
     cursor: pointer;
@@ -247,6 +247,7 @@
     background-repeat: no-repeat;
     background-size: 50%;
     opacity: 0.5;
+    margin-left: 15px;
 }
 
 .image-upload-label:hover {
@@ -268,12 +269,13 @@
 
 .image-preview {
     margin-top: 10px;
-    max-width: 200px;
-    max-height: 200px;
+    max-width: 180px;
+    max-height: 250px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     overflow: hidden;
     position: relative;
+    margin-left: 15px;
 }
 
 .image-preview img {
@@ -282,10 +284,68 @@
     object-fit: cover;
 }
 
+#previewImg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 180px;
+    height: 250px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 50%;
+    opacity: 1;
+}
+
+
 #clearImageBtn {
     margin-top: 10px;
 }
 
+.image-clear-btn {
+    padding: 0;
+    position: absolute;
+    top: -20px;
+    right: 260px;
+    width: 25px;
+    height: 25px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    display: flex
+;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    z-index: 10;
+    transition: all 0.3s ease;
+}
+
+.image-clear-btn:hover {
+    background-color: #c82333;
+    transform: scale(1.1);
+}
+
+#clearImageBtn, #retakeBtn {
+    margin-top: 10px;
+    margin-right: 5px;
+}
+
+.fa-solid, .fas {
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+}
+.fa-2x {
+    font-size: 2em;
+}
 /* Fixed dimensions for profile card with spacing */
 .above-content .body-card.h-100 {
     height: 420px !important;
@@ -746,3 +806,220 @@
     max-width: 300px;
     margin: 0 auto;
 }
+
+.modal-header-custom {
+    border: 0;
+}
+
+/* Attendance Modal Styles - Copied from attendance.css */
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    color: rgb(103, 111, 122);
+}
+
+.modal-footer-custom {
+    border: 0;
+    justify-content: center;
+}
+
+.date-time-display {
+    font-size: 14px;
+    color: #495057;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+}
+
+.date-time-display {
+    text-align: center !important;
+    display: block !important;
+}
+
+#time_in {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#date_attendance {
+    font-size: 14px;
+    color: #6c757d;
+    text-align: center;
+}
+
+.work-outside-container {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.work-outside-container .form-check {
+    margin: 0;
+    padding: 0;
+}
+
+.form-check-label {
+    display: inline-block;
+    padding: 12px 24px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    text-align: center;
+    min-width: 80px;
+    background-color: #ffffff;
+    color: #495057;
+}
+
+.form-check-input[type="radio"]:checked + .form-check-label {
+    background-color: #5770D5;
+    color: white;
+    border-color: #5770D5;
+}
+
+.form-check-label:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.form-check-input[type="radio"]:checked + .form-check-label:hover {
+    background-color: #4e6b94;
+    border-color: #4e6b94;
+}
+
+/* Map styling */
+#mapCheckIn, #mapCheckOut {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+
+/* Camera wrapper styling */
+#cameraWrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1060;
+}
+
+#cameraWrapper video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#cameraWrapper button {
+    z-index: 1061;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .work-outside-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .work-outside-container .form-check {
+        width: 100% !important;
+    }
+    
+    .image-upload-label {
+        width: 80%;
+    }
+}
+
+/* Membuat button check in dan check out di modal lebih lebar */
+.modal-footer-custom .btn-submit-black,
+.modal-footer-custom #submitCheckOutBtn {
+    width: 100%;
+    max-width: 420px;
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Untuk mobile, pastikan button tetap lebar */
+@media (max-width: 576px) {
+    .modal-footer-custom .btn-submit-black,
+    .modal-footer-custom #submitCheckOutBtn {
+        max-width: 100%;
+        width: 90%;
+        margin: 0 auto;
+    }
+}
+
+.text-center.mb-4 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.mb-4 {
+    margin-bottom: 1rem !important;
+}
+
+.form-label {
+    margin-left: 15px;
+    font-weight: 400;
+    font-size: 14px;
+    color: #555;
+}
+
+#workOutsideStatusText {
+    margin-left: 15px;
+}
+
+#time_out {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+#date_attendance_checkout {
+    font-size: 14px;
+    color: #6c757d;
+    text-align: center;
+}
+
+
+#previewImgCheckout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 180px;
+    height: 250px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 50%;
+    opacity: 1;
+}
+
+#cameraWrapper {
+    padding: 1rem;
+    text-align: center;
+}
+
+#cameraVideo {
+    width: 100%;
+    height: auto;
+    max-height: 90vh;
+    object-fit: cover;
+}
+
+.modal-content.camera-active {
+  background-color: transparent;
+  border: none;
+}
+
