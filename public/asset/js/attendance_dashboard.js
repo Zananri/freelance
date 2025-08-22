@@ -273,11 +273,22 @@ $(document).ready(function () {
 });
 
 function setupEventListeners() {
-    // Check in/out button - now opens modal
+    // Check in/out button - open detail when active, otherwise open check-in modal
     const checkInBtn = document.getElementById("checkInBtn");
     if (checkInBtn) {
         checkInBtn.addEventListener("click", function () {
-            openCheckInModal();
+            try {
+                if (checkInBtn.classList.contains('active')) {
+                    // If already checked in (active), show detail modal
+                    openCheckInDetailModal();
+                } else {
+                    // Otherwise, open check-in form
+                    openCheckInModal();
+                }
+            } catch (err) {
+                console.error('Error handling checkInBtn click:', err);
+                openCheckInModal();
+            }
         });
     }
 
@@ -510,6 +521,172 @@ function openCheckInModal() {
     document.getElementById("checkInModal").addEventListener('hidden.bs.modal', function() {
         clearInterval(timeInterval);
     });
+}
+
+// Function to open the check-in detail modal (adapted to match attendance.js styling/format)
+function openCheckInDetailModal() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const url = `${baseUrl}/attendance/today/${employeeId}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
+                // Cari data check-in yang valid (memiliki time_in dan belum check-out)
+                const lastCheckIn = data.data.find(record => record.time_in && !record.time_out);
+                
+                if (!lastCheckIn) {
+                    showAlertDashboard("No active check-in found for today", "warning");
+                    return;
+                }
+
+                // Log untuk debugging
+                console.log("Check-in data found:", lastCheckIn);
+                
+                // Create modal content (match attendance.js markup and classes)
+                const modalContent = `
+                    <div class="modal fade" id="checkInDetailModal" tabindex="-1" role="dialog" aria-labelledby="checkInDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content rounded-4">
+                                <div class="modal-header modal-header-custom">
+                                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkInDetailModalLabel">Check In</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="check-in-details">
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Date:</div>
+                                            <div class="detail-value">${formatDate(lastCheckIn.date_attendance)}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Time In:</div>
+                                            <div class="detail-value">${formatTimeDisplay(lastCheckIn.time_in)}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Work Outside:</div>
+                                            <div class="detail-value">${lastCheckIn.is_work_outside ? "Yes" : "No"}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Shift:</div>
+                                            <div class="detail-value">${lastCheckIn.shift_start || '--:--'} - ${lastCheckIn.shift_end || '--:--'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-0">
+                                        <div id="detailMapCheckIn" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
+                                    </div>
+                                    
+                                    ${lastCheckIn.is_work_outside && lastCheckIn.image_path ? `
+                                        <div class="mt-4">
+                                            <div class="image-checkin">
+                                                <img src="${lastCheckIn.image_path ? (lastCheckIn.image_path.startsWith('http') ? lastCheckIn.image_path : baseUrl + '/' + lastCheckIn.image_path.replace(/^\//, '')) : ''}" 
+                                                     alt="Check-in photo" 
+                                                     class="img-fluid rounded-3"
+                                                     style="max-height: 200px;">
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Remove existing modal if any
+                const existingModal = document.getElementById('checkInDetailModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                // Add modal to body
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+
+                // Initialize and show modal
+                const modal = new bootstrap.Modal(document.getElementById('checkInDetailModal'));
+                modal.show();
+
+                // Initialize map after modal is shown
+                document.getElementById('checkInDetailModal').addEventListener('shown.bs.modal', function () {
+                    // Log untuk debugging
+                    console.log("Check-in data:", lastCheckIn);
+                    
+                    // Pastikan koordinat ada dan valid
+                    // Try multiple sources: attendance.latitude/longitude (server-side parsed),
+                    // fallback to attendanceTrackings[0].location (raw string "lat,lon").
+                    let latVal = lastCheckIn.latitude ?? null;
+                    let lngVal = lastCheckIn.longitude ?? null;
+
+                    if ((latVal === null || latVal === undefined || latVal === '') && lastCheckIn.attendanceTrackings && lastCheckIn.attendanceTrackings.length) {
+                        const loc = lastCheckIn.attendanceTrackings[0].location;
+                        if (loc) {
+                            const parts = loc.split(',');
+                            if (parts.length >= 2) {
+                                latVal = parts[0].trim();
+                                lngVal = parts[1].trim();
+                            }
+                        }
+                    }
+
+                    const coordinates = {
+                        latitude: parseFloat(latVal),
+                        longitude: parseFloat(lngVal)
+                    };
+
+                    console.log("Parsed coordinates:", coordinates);
+
+                    if (!coordinates.latitude || !coordinates.longitude || 
+                        isNaN(coordinates.latitude) || isNaN(coordinates.longitude)) {
+                        console.error('Invalid or missing coordinates:', coordinates);
+                        document.getElementById('detailMapCheckIn').innerHTML = 
+                            '<div class="alert alert-warning text-center">Location data not available</div>';
+                        return;
+                    }
+
+                    try {
+                        // Buat instance peta baru
+                        const detailMap = L.map('detailMapCheckIn', {
+                            center: [coordinates.latitude, coordinates.longitude],
+                            zoom: 16
+                        });
+
+                        // Tambahkan tile layer
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors',
+                            maxZoom: 19
+                        }).addTo(detailMap);
+                        
+                        // Tambahkan marker
+                        const marker = L.marker([coordinates.latitude, coordinates.longitude])
+                            .addTo(detailMap)
+                            .bindPopup("Check-in location")
+                            .openPopup();
+
+                        // Pastikan peta dirender dengan benar
+                        setTimeout(() => {
+                            detailMap.invalidateSize();
+                            detailMap.setView([coordinates.latitude, coordinates.longitude], 16);
+                        }, 250);
+
+                    } catch (error) {
+                        console.error('Error initializing map:', error);
+                        document.getElementById('detailMapCheckIn').innerHTML = 
+                            '<div class="alert alert-warning text-center">Error loading map</div>';
+                    }
+                });
+            } else {
+                showAlertDashboard("No check-in data found for today", "warning");
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching check-in details:", error);
+            showAlertDashboard("Error loading check-in details", "error");
+        });
 }
 
 function handleCheckIn() {
@@ -1845,6 +2022,17 @@ function getTodayAttendanceStatus() {
             return '--:--';
         }
     }
+
+// Function to format date (same as attendance.js)
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const options = {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    };
+    return date.toLocaleDateString('en-US', options);
+}
 
     // Fungsi untuk update state tombol berdasarkan status
     function updateButtonStates(status) {
