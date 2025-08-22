@@ -97,7 +97,22 @@ class AttendanceController extends Controller
         // Debug log to check division data
         \Log::info('Employee division:', ['division' => $employee ? $employee->division : null]);
 
-        return view('attendance/attendance', compact('employee', 'attendance', 'attendanceStatus'));
+        if ($employee) {
+            $shift = EmployeeShift::where('employee_id', $employee->id)
+                ->where('date_shift', $today)
+                ->first();
+
+            if ($attendance) {
+                $timeIn = $attendance->time_in;
+                $timeStart = $shift->time_start ?? null;
+                $isLate = isset($timeStart, $timeIn) && strtotime($timeIn) > strtotime($timeStart);
+            } else {
+                $timeIn = null;
+                $isLate = false;
+            }
+        }
+
+        return view('attendance/attendance', compact('employee', 'attendance', 'attendanceStatus', 'timeIn', 'isLate'));
     }
 
     public function index()
@@ -307,10 +322,108 @@ if ($request->hasFile('image')) {
             $today = Carbon::today()->toDateString();
 
             // Return all attendance records for today (multiple check-ins/outs)
-            $attendances = Attendance::where('employee_id', $employeeId)
+            // Include all trackings (we may update type to check_out on checkout) and preserve order
+            $attendances = Attendance::with(['attendanceTrackings' => function($query) {
+                    $query->orderBy('date_time', 'asc');
+                }])
+                ->where('employee_id', $employeeId)
                 ->where('date_attendance', $today)
                 ->orderBy('time_in', 'asc')
-                ->get();
+                ->get()
+                ->map(function($attendance) {
+                    // Use the first tracking (we keep one row and update it on checkout)
+                    $tracking = $attendance->attendanceTrackings->first();
+                    $attendance->is_work_outside = $tracking ? (bool)$tracking->is_work_outside : false;
+
+                    // Initialize coordinates
+                    $attendance->latitude = null;            // check-in lat
+                    $attendance->longitude = null;           // check-in lng
+                    $attendance->checkout_latitude = null;   // checkout lat
+                    $attendance->checkout_longitude = null;  // checkout lng
+
+                    // Parse location: "lat,lng|lat,lng" -> set both pairs
+                    if ($tracking && $tracking->location) {
+                        $pairs = explode('|', $tracking->location);
+                        if (!empty($pairs[0])) {
+                            $first = explode(',', $pairs[0]);
+                            if (count($first) >= 2) {
+                                $attendance->latitude = trim($first[0]);
+                                $attendance->longitude = trim($first[1]);
+                            }
+                        }
+                        if (!empty($pairs[1])) {
+                            $second = explode(',', $pairs[1]);
+                            if (count($second) >= 2) {
+                                $attendance->checkout_latitude = trim($second[0]);
+                                $attendance->checkout_longitude = trim($second[1]);
+                            }
+                        }
+                    }
+
+                    // Provide image paths: prefer tracking images; include checkout image as the last if available
+                    $attendance->image_path = null;
+                    $attendance->checkout_image_path = null;
+                    try {
+                        $trackingImages = [];
+                        if ($tracking && !empty($tracking->image)) {
+                            if (is_array($tracking->image)) {
+                                $trackingImages = $tracking->image;
+                            } elseif (is_string($tracking->image)) {
+                                $trackingImages = [$tracking->image];
+                            }
+                        }
+
+                        $attendanceImages = [];
+                        if (!empty($attendance->image)) {
+                            if (is_array($attendance->image)) {
+                                $attendanceImages = $attendance->image;
+                            } elseif (is_string($attendance->image)) {
+                                $attendanceImages = [$attendance->image];
+                            }
+                        }
+
+                        // image_path: first available image
+                        if (!empty($trackingImages)) {
+                            $attendance->image_path = $trackingImages[0];
+                        } elseif (!empty($attendanceImages)) {
+                            $attendance->image_path = $attendanceImages[0];
+                        }
+
+                        // checkout image: prefer last tracking image; fallback to last attendance image
+                        if (count($trackingImages) > 1) {
+                            $attendance->checkout_image_path = end($trackingImages);
+                        } elseif (!empty($trackingImages)) {
+                            $attendance->checkout_image_path = $trackingImages[count($trackingImages) - 1];
+                        } elseif (count($attendanceImages) > 1) {
+                            $attendance->checkout_image_path = end($attendanceImages);
+                        } elseif (!empty($attendanceImages)) {
+                            $attendance->checkout_image_path = $attendanceImages[count($attendanceImages) - 1];
+                        }
+                    } catch (\Exception $e) {
+                        $attendance->image_path = $attendance->image_path ?? null;
+                        $attendance->checkout_image_path = $attendance->checkout_image_path ?? null;
+                    }
+
+                    // Attach shift start/end for convenience (format HH:MM) if available
+                    try {
+                        $shift = EmployeeShift::where('employee_id', $attendance->employee_id)
+                            ->where('date_shift', $attendance->date_attendance)
+                            ->first();
+
+                        if ($shift) {
+                            $attendance->shift_start = $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null;
+                            $attendance->shift_end = $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null;
+                        } else {
+                            $attendance->shift_start = null;
+                            $attendance->shift_end = null;
+                        }
+                    } catch (\Exception $e) {
+                        $attendance->shift_start = null;
+                        $attendance->shift_end = null;
+                    }
+
+                    return $attendance;
+                });
 
             if ($attendances->isEmpty()) {
                 return response()->json([
@@ -478,7 +591,7 @@ if ($request->hasFile('image')) {
                 
                 $updateData = [
                     'time_out' => $now->format('H:i'),
-                    'type_attendance' => 'check_out',
+                    // Don't change type_attendance - keep it as 'check_in' to preserve check-in time display
                     'image' => $mergedImages,
                     'updated_by' => $userId,
                 ];
@@ -624,16 +737,40 @@ if ($request->hasFile('image')) {
             }
 
             $attendances = Attendance::with(['attendanceTrackings' => function($query) {
-                $query->where('type', 'check_in');
+                $query->orderBy('date_time', 'asc');
             }])
             ->where('employee_id', $employeeId)
             ->where('date_attendance', $dateObj->toDateString())
             ->orderBy('time_in', 'asc')
             ->get()
             ->map(function($attendance) {
-                // Get is_work_outside from attendance_trackings
-                $checkInTracking = $attendance->attendanceTrackings->first();
-                $attendance->is_work_outside = $checkInTracking ? $checkInTracking->is_work_outside : false;
+                // Expose work outside and coordinates from tracking (which may hold combined locations)
+                $tracking = $attendance->attendanceTrackings->first();
+                $attendance->is_work_outside = $tracking ? (bool)$tracking->is_work_outside : false;
+
+                // Initialize coordinates
+                $attendance->latitude = null;
+                $attendance->longitude = null;
+                $attendance->checkout_latitude = null;
+                $attendance->checkout_longitude = null;
+
+                if ($tracking && $tracking->location) {
+                    $pairs = explode('|', $tracking->location);
+                    if (!empty($pairs[0])) {
+                        $first = explode(',', $pairs[0]);
+                        if (count($first) >= 2) {
+                            $attendance->latitude = trim($first[0]);
+                            $attendance->longitude = trim($first[1]);
+                        }
+                    }
+                    if (!empty($pairs[1])) {
+                        $second = explode(',', $pairs[1]);
+                        if (count($second) >= 2) {
+                            $attendance->checkout_latitude = trim($second[0]);
+                            $attendance->checkout_longitude = trim($second[1]);
+                        }
+                    }
+                }
                 return $attendance;
             });
 
@@ -773,17 +910,19 @@ if ($request->hasFile('image')) {
             } else {
                 $lastAttendance = $attendances->last();
                 
-                if ($lastAttendance->type_attendance === 'check_in' && !$lastAttendance->time_out) {
+                // Check based on time_in and time_out fields instead of type_attendance
+                if ($lastAttendance->time_in && !$lastAttendance->time_out) {
                     // Has checked in but not checked out
                     $status['has_checked_in'] = true;
                     $status['last_check_in_time'] = $lastAttendance->time_in;
                     $status['can_check_in'] = false;
                     $status['can_check_out'] = true;
                     $status['status'] = 'checked_in';
-                } elseif ($lastAttendance->type_attendance === 'check_out') {
-                    // Has checked out
+                } elseif ($lastAttendance->time_in && $lastAttendance->time_out) {
+                    // Has both checked in and checked out
                     $status['has_checked_in'] = true;
                     $status['has_checked_out'] = true;
+                    $status['last_check_in_time'] = $lastAttendance->time_in;
                     $status['last_check_out_time'] = $lastAttendance->time_out;
                     $status['can_check_in'] = true; // Allow new check-in for next shift
                     $status['can_check_out'] = false;

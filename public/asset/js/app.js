@@ -29,14 +29,18 @@ function initCommonFunctions() {
         console.log(`${type}: ${message}`);
     };
     
-    // Fungsi untuk format tanggal
+    // Fungsi untuk format tanggal - menggunakan format "22 August 2025"
     window.formatDate = function(dateString) {
         const date = new Date(dateString);
-        return date.toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
+        if (isNaN(date.getTime())) return dateString || '';
+        const day = date.getDate();
+        const months = [
+            'January','February','March','April','May','June',
+            'July','August','September','October','November','December'
+        ];
+        const monthName = months[date.getMonth()];
+        const year = date.getFullYear();
+        return `${day} ${monthName} ${year}`;
     };
 }
 

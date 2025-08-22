@@ -1023,3 +1023,33 @@
   border: none;
 }
 
+.check-in-details {
+    background-color: transparent;
+    padding: 20px;
+    border-radius: 8px;
+}
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+}
+.detail-row:last-child {
+    border-bottom: none;
+}
+.detail-value {
+    color: #555;
+    font-size: 14px;
+}
+
+.image-checkin {
+    margin-left: 20px;
+}
+
+.check-out-details {
+    background-color: transparent;
+    padding: 20px;
+    border-radius: 8px;
+}
+.image-checkout {
+    margin-left: 20px;
+}
