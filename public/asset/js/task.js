@@ -2807,7 +2807,7 @@ function handleTaskDetail(taskId) {
             projectNameElement.textContent = selectedProjectText;
             displayElement.style.display = 'flex';
         } else {
-            displayElement.style.display = 'none';
+            displayElement.style.display = 'flex';
         }
     }
 
@@ -3038,3 +3038,46 @@ function handleTaskDetail(taskId) {
         applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
     }
 });
+
+$(document).ready(function () {
+  const mobileCardHtml = `
+    <div id="mobile-task-container" class="d-md-none">
+        <div class="task-mobile-card-header">
+            <select id="mobileTaskStatus" class="form-select">
+                <option value="new_request">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+            </select>
+            <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+                <span class="material-symbols-outlined">calendar_month</span>
+            </button>
+            <button class="btn btn-sm toggle-filter" id="openTaskFilterBtn">
+                <span class="material-symbols-outlined">filter_list</span>
+            </button>
+        </div>
+        <div id="mobile-task-list"></div>
+    </div>
+  `;
+
+  $("#task-cards-container").before(mobileCardHtml);
+
+  // handle status change
+  $("#mobileTaskStatus").on("change", function () {
+    let status = $(this).val();
+    let container = $("#mobile-task-list");
+
+    container.empty();
+
+    if (status === "new_request") {
+      container.html($("#new-request-tasks").html());
+    } else if (status === "in_progress") {
+      container.html($("#in-progress-tasks").html());
+    } else if (status === "completed") {
+      container.html($("#completed-tasks").html());
+    }
+  });
+
+  // set default
+  $("#mobileTaskStatus").val("new_request").trigger("change");
+});
+
