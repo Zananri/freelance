@@ -544,14 +544,29 @@ function calculateWorkingHours() {
 
                                     // Check based on time_in and time_out fields instead of type_attendance
                                     if (lastTodayAttendance.time_in && !lastTodayAttendance.time_out) {
-                                        // Sudah check-in hari ini, tampilkan tombol checkout
-                                        checkInBtn.style.display = "flex";
-                                        checkOutBtn.style.display = "flex";
+                                        // Sudah check-in hari ini: tampilkan tombol checkout.
+                                        // Jangan disable checkInBtn — biarkan clickable untuk membuka detail.
+                                            checkInBtn.style.display = "flex";
+                                            checkInBtn.disabled = false;
+                                            checkInBtn.classList.add('active');
+                                            try { $("#checkInBtn .check-icon").show(); } catch(e){}
+
+                                            checkOutBtn.style.display = "flex";
+                                            checkOutBtn.disabled = false;
+                                            checkOutBtn.classList.remove('active');
+                                            try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
                                         return;
                                     } else if (lastTodayAttendance.time_in && lastTodayAttendance.time_out) {
-                                        // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya
+                                        // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya (default)
                                         checkInBtn.style.display = "flex";
+                                        checkInBtn.disabled = false;
+                                        checkInBtn.classList.remove('active');
+                                        try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+
                                         checkOutBtn.style.display = "flex";
+                                        checkOutBtn.disabled = true;
+                                        checkOutBtn.classList.remove('active');
+                                        try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
                                         return;
                                     }
                                 }
@@ -559,25 +574,44 @@ function calculateWorkingHours() {
 
                             if (checkInDate < today) {
                                 // Ada check-in yang belum ditutup dari hari sebelumnya
-                                console.warn("You forgot to check out yesterday, please contact HR.");
+                                    console.warn("You forgot to check out yesterday, please contact HR.");
 
-                                // Tampilkan tombol check-in untuk hari ini
-                                checkInBtn.style.display = "flex";
-                                checkOutBtn.style.display = "flex";
+                                    // Reset UI for a new day: allow check-in for today, disable check-out
+                                    // Untuk hari ini: biarkan tombol Check-in dan Check-out aktif
+                                    checkInBtn.style.display = "flex";
+                                    checkInBtn.disabled = false;
+                                    checkInBtn.classList.remove('active');
+                                    // hide check icons
+                                    try { $("#checkInBtn .check-icon").hide(); } catch(e){}
 
-                                // Hanya tampilkan alert di halaman dashboard
+                                    checkOutBtn.style.display = "flex";
+                                    // Jangan disable checkOutBtn hanya karena ada unclosed dari kemarin
+                                    checkOutBtn.disabled = false;
+                                    checkOutBtn.classList.remove('active');
+                                    try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+
+                                    // Clear any displayed check-in/check-out times and status for today's UI
+                                    const checkInTimeInput = document.getElementById("checkInTime");
+                                    const checkOutTimeInput = document.getElementById("checkOutTime");
+                                    if (checkInTimeInput) checkInTimeInput.value = "";
+                                    if (checkOutTimeInput) checkOutTimeInput.value = "";
+                                    const attendanceStatusEl = document.getElementById('attendanceStatus');
+                                    if (attendanceStatusEl) attendanceStatusEl.textContent = "";
+
+                                // Hanya tampilkan alert di halaman dashboard, sekali saja per user
                                 if (window.location.href.includes('/dashboard')) {
-                                    const alertKey = `attendanceAlertShown_${today}`;
+                                    const employeeId = document.querySelector('input[name="employee_id"]')?.value || 'guest';
+                                    const alertKey = `attendanceForgotCheckoutShown_${employeeId}`;
 
-                                    // Cek jika alert belum ditampilkan hari ini
+                                    // Cek jika alert belum pernah ditampilkan untuk user ini
                                     if (!localStorage.getItem(alertKey)) {
                                         // Tampilkan pesan warning sekali
                                         showFloatingAlert(
                                             `You forgot to check out yesterday. Please contact HR and check in for today.`,
                                             "warning"
-                                        ).setTimeout(5000);
+                                        );
 
-                                        // Tandai alert sudah ditampilkan untuk hari ini
+                                        // Tandai alert sudah ditampilkan untuk user ini
                                         localStorage.setItem(alertKey, "true");
                                     }
                                 }
