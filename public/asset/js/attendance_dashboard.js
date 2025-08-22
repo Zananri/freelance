@@ -377,18 +377,20 @@ function updateModalTime() {
     });
 
     // Format tanggal untuk tampilan
+    // Format tanggal untuk tampilan menggunakan formatDate helper (e.g. "22 August 2025")
     const dateString = now.toISOString().split("T")[0];
-    const formattedDate = now.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    });
+    const formattedDate = formatDate(now.toISOString());
 
     // Update tampilan di modal check-in (dengan detik)
     const dateDisplay = document.getElementById("date_attendance");
     const timeDisplay = document.getElementById("time_in");
 
     if (dateDisplay) dateDisplay.textContent = formattedDate;
+    if (dateDisplay) {
+        // Debugging: store formatted date for inspection
+        try { dateDisplay.dataset.formatted = formattedDate; } catch(e){}
+    }
+    console.debug('attendance_dashboard updateModalTime formattedDate ->', formattedDate);
     if (timeDisplay) timeDisplay.textContent = displayTimeString;
 
     // Update hidden inputs (format untuk server tanpa detik)
@@ -433,18 +435,19 @@ function updateModalTimeCheckout() {
     });
 
     // Format tanggal untuk tampilan
+    // Format tanggal untuk tampilan menggunakan formatDate helper (e.g. "22 August 2025")
     const dateString = now.toISOString().split("T")[0];
-    const formattedDate = now.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    });
+    const formattedDate = formatDate(now.toISOString());
 
     // Update tampilan di modal check-out (dengan detik)
     const dateDisplay = document.getElementById("date_attendance_checkout");
     const timeDisplay = document.getElementById("time_out");
 
     if (dateDisplay) dateDisplay.textContent = formattedDate;
+    if (dateDisplay) {
+        try { dateDisplay.dataset.formatted = formattedDate; } catch(e){}
+    }
+    console.debug('attendance_dashboard updateModalTimeCheckout formattedDate ->', formattedDate);
     if (timeDisplay) timeDisplay.textContent = displayTimeString;
 
     // Update hidden inputs (format untuk server tanpa detik)
@@ -574,7 +577,7 @@ function openCheckInDetailModal() {
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Shift:</div>
-                                            <div class="detail-value">${lastCheckIn.shift_start || '--:--'} - ${lastCheckIn.shift_end || '--:--'}</div>
+                                            <div class="detail-value">${formatTimeDisplay(lastCheckIn.shift_start) || '--:--'} - ${formatTimeDisplay(lastCheckIn.shift_end) || '--:--'}</div>
                                         </div>
                                     </div>
                                     
@@ -1108,6 +1111,12 @@ function openCheckInModal() {
 
     // Set interval untuk update waktu setiap detik
     const timeInterval = setInterval(updateModalTime, 1000);
+
+    // Ensure displayed date uses formatted month name immediately
+    try {
+        const dateEl = document.getElementById('date_attendance');
+        if (dateEl) dateEl.textContent = formatDate(new Date().toISOString());
+    } catch (e) { console.error(e); }
 
     // Clear interval saat modal ditutup
     document.getElementById("checkInModal").addEventListener('hidden.bs.modal', function() {
@@ -2025,13 +2034,22 @@ function getTodayAttendanceStatus() {
 
 // Function to format date (same as attendance.js)
 function formatDate(dateString) {
+    // Return format: "22 August 2025"
     const date = new Date(dateString);
-    const options = {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    };
-    return date.toLocaleDateString('en-US', options);
+    if (isNaN(date.getTime())) return dateString || '';
+    const day = date.getDate();
+    const months = [
+        'January','February','March','April','May','June',
+        'July','August','September','October','November','December'
+    ];
+    const monthName = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${monthName} ${year}`;
+}
+
+// Override global formatDate function untuk halaman ini
+if (typeof window !== 'undefined') {
+    window.formatDate = formatDate;
 }
 
     // Fungsi untuk update state tombol berdasarkan status
