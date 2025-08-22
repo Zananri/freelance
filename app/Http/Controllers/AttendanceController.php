@@ -322,39 +322,86 @@ if ($request->hasFile('image')) {
             $today = Carbon::today()->toDateString();
 
             // Return all attendance records for today (multiple check-ins/outs)
+            // Include all trackings (we may update type to check_out on checkout) and preserve order
             $attendances = Attendance::with(['attendanceTrackings' => function($query) {
-                    $query->where('type', 'check_in');
+                    $query->orderBy('date_time', 'asc');
                 }])
                 ->where('employee_id', $employeeId)
                 ->where('date_attendance', $today)
                 ->orderBy('time_in', 'asc')
                 ->get()
                 ->map(function($attendance) {
-                    // Expose is_work_outside from the check-in tracking (if exists)
-                    $checkInTracking = $attendance->attendanceTrackings->first();
-                    $attendance->is_work_outside = $checkInTracking ? $checkInTracking->is_work_outside : false;
+                    // Use the first tracking (we keep one row and update it on checkout)
+                    $tracking = $attendance->attendanceTrackings->first();
+                    $attendance->is_work_outside = $tracking ? (bool)$tracking->is_work_outside : false;
 
-                    // Parse location into latitude & longitude for frontend convenience
-                    $attendance->latitude = null;
-                    $attendance->longitude = null;
-                    if ($checkInTracking && $checkInTracking->location) {
-                        $parts = explode(',', $checkInTracking->location);
-                        if (count($parts) >= 2) {
-                            $attendance->latitude = trim($parts[0]);
-                            $attendance->longitude = trim($parts[1]);
+                    // Initialize coordinates
+                    $attendance->latitude = null;            // check-in lat
+                    $attendance->longitude = null;           // check-in lng
+                    $attendance->checkout_latitude = null;   // checkout lat
+                    $attendance->checkout_longitude = null;  // checkout lng
+
+                    // Parse location: "lat,lng|lat,lng" -> set both pairs
+                    if ($tracking && $tracking->location) {
+                        $pairs = explode('|', $tracking->location);
+                        if (!empty($pairs[0])) {
+                            $first = explode(',', $pairs[0]);
+                            if (count($first) >= 2) {
+                                $attendance->latitude = trim($first[0]);
+                                $attendance->longitude = trim($first[1]);
+                            }
+                        }
+                        if (!empty($pairs[1])) {
+                            $second = explode(',', $pairs[1]);
+                            if (count($second) >= 2) {
+                                $attendance->checkout_latitude = trim($second[0]);
+                                $attendance->checkout_longitude = trim($second[1]);
+                            }
                         }
                     }
 
-                    // Provide a single image path for frontend (prefer tracking image, fallback to attendance image)
+                    // Provide image paths: prefer tracking images; include checkout image as the last if available
                     $attendance->image_path = null;
+                    $attendance->checkout_image_path = null;
                     try {
-                        if ($checkInTracking && !empty($checkInTracking->image) && is_array($checkInTracking->image) && count($checkInTracking->image) > 0) {
-                            $attendance->image_path = $checkInTracking->image[0];
-                        } elseif (!empty($attendance->image) && is_array($attendance->image) && count($attendance->image) > 0) {
-                            $attendance->image_path = $attendance->image[0];
+                        $trackingImages = [];
+                        if ($tracking && !empty($tracking->image)) {
+                            if (is_array($tracking->image)) {
+                                $trackingImages = $tracking->image;
+                            } elseif (is_string($tracking->image)) {
+                                $trackingImages = [$tracking->image];
+                            }
+                        }
+
+                        $attendanceImages = [];
+                        if (!empty($attendance->image)) {
+                            if (is_array($attendance->image)) {
+                                $attendanceImages = $attendance->image;
+                            } elseif (is_string($attendance->image)) {
+                                $attendanceImages = [$attendance->image];
+                            }
+                        }
+
+                        // image_path: first available image
+                        if (!empty($trackingImages)) {
+                            $attendance->image_path = $trackingImages[0];
+                        } elseif (!empty($attendanceImages)) {
+                            $attendance->image_path = $attendanceImages[0];
+                        }
+
+                        // checkout image: prefer last tracking image; fallback to last attendance image
+                        if (count($trackingImages) > 1) {
+                            $attendance->checkout_image_path = end($trackingImages);
+                        } elseif (!empty($trackingImages)) {
+                            $attendance->checkout_image_path = $trackingImages[count($trackingImages) - 1];
+                        } elseif (count($attendanceImages) > 1) {
+                            $attendance->checkout_image_path = end($attendanceImages);
+                        } elseif (!empty($attendanceImages)) {
+                            $attendance->checkout_image_path = $attendanceImages[count($attendanceImages) - 1];
                         }
                     } catch (\Exception $e) {
-                        $attendance->image_path = null;
+                        $attendance->image_path = $attendance->image_path ?? null;
+                        $attendance->checkout_image_path = $attendance->checkout_image_path ?? null;
                     }
 
                     // Attach shift start/end for convenience (format HH:MM) if available
@@ -690,16 +737,40 @@ if ($request->hasFile('image')) {
             }
 
             $attendances = Attendance::with(['attendanceTrackings' => function($query) {
-                $query->where('type', 'check_in');
+                $query->orderBy('date_time', 'asc');
             }])
             ->where('employee_id', $employeeId)
             ->where('date_attendance', $dateObj->toDateString())
             ->orderBy('time_in', 'asc')
             ->get()
             ->map(function($attendance) {
-                // Get is_work_outside from attendance_trackings
-                $checkInTracking = $attendance->attendanceTrackings->first();
-                $attendance->is_work_outside = $checkInTracking ? $checkInTracking->is_work_outside : false;
+                // Expose work outside and coordinates from tracking (which may hold combined locations)
+                $tracking = $attendance->attendanceTrackings->first();
+                $attendance->is_work_outside = $tracking ? (bool)$tracking->is_work_outside : false;
+
+                // Initialize coordinates
+                $attendance->latitude = null;
+                $attendance->longitude = null;
+                $attendance->checkout_latitude = null;
+                $attendance->checkout_longitude = null;
+
+                if ($tracking && $tracking->location) {
+                    $pairs = explode('|', $tracking->location);
+                    if (!empty($pairs[0])) {
+                        $first = explode(',', $pairs[0]);
+                        if (count($first) >= 2) {
+                            $attendance->latitude = trim($first[0]);
+                            $attendance->longitude = trim($first[1]);
+                        }
+                    }
+                    if (!empty($pairs[1])) {
+                        $second = explode(',', $pairs[1]);
+                        if (count($second) >= 2) {
+                            $attendance->checkout_latitude = trim($second[0]);
+                            $attendance->checkout_longitude = trim($second[1]);
+                        }
+                    }
+                }
                 return $attendance;
             });
 

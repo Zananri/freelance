@@ -1919,11 +1919,17 @@ function openCheckInDetailModal() {
         .then(response => response.json())
         .then(data => {
             if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
-                // Cari data check-in yang valid (memiliki time_in dan belum check-out)
-                const lastCheckIn = data.data.find(record => record.time_in && !record.time_out);
-                
+                // Prefer active (unclosed) check-in; fallback to latest check-in record of today
+                let lastCheckIn = data.data.find(record => record.time_in && !record.time_out);
                 if (!lastCheckIn) {
-                    showFloatingAlert("No active check-in found for today", "warning");
+                    const checkIns = data.data.filter(record => record.time_in);
+                    if (checkIns.length > 0) {
+                        lastCheckIn = checkIns[checkIns.length - 1];
+                    }
+                }
+
+                if (!lastCheckIn) {
+                    showFloatingAlert("No check-in data found for today", "warning");
                     return;
                 }
 
@@ -1997,67 +2003,75 @@ function openCheckInDetailModal() {
                     // Log untuk debugging
                     console.log("Check-in data:", lastCheckIn);
                     
-                    // Pastikan koordinat ada dan valid
-                    // Try multiple sources: attendance.latitude/longitude (server-side parsed),
-                    // fallback to attendanceTrackings[0].location (raw string "lat,lon").
-                    let latVal = lastCheckIn.latitude ?? null;
-                    let lngVal = lastCheckIn.longitude ?? null;
+                    // Extract both check-in and check-out coordinates
+                    let checkInLat = lastCheckIn.latitude ?? null;
+                    let checkInLng = lastCheckIn.longitude ?? null;
+                    let checkOutLat = lastCheckIn.checkout_latitude ?? null;
+                    let checkOutLng = lastCheckIn.checkout_longitude ?? null;
 
-                    if ((latVal === null || latVal === undefined || latVal === '') && lastCheckIn.attendanceTrackings && lastCheckIn.attendanceTrackings.length) {
+                    // Fallback to tracking combined location: "lat,lng|lat,lng"
+                    if (lastCheckIn.attendanceTrackings && lastCheckIn.attendanceTrackings.length) {
                         const loc = lastCheckIn.attendanceTrackings[0].location;
-                        if (loc) {
-                            const parts = loc.split(',');
-                            if (parts.length >= 2) {
-                                latVal = parts[0].trim();
-                                lngVal = parts[1].trim();
+                        if (loc && (!checkInLat || !checkInLng || !checkOutLat || !checkOutLng)) {
+                            const pairs = loc.split('|');
+                            if (pairs[0]) {
+                                const first = pairs[0].split(',');
+                                if (first.length >= 2) {
+                                    checkInLat = checkInLat ?? first[0].trim();
+                                    checkInLng = checkInLng ?? first[1].trim();
+                                }
+                            }
+                            if (pairs[1]) {
+                                const second = pairs[1].split(',');
+                                if (second.length >= 2) {
+                                    checkOutLat = checkOutLat ?? second[0].trim();
+                                    checkOutLng = checkOutLng ?? second[1].trim();
+                                }
                             }
                         }
                     }
 
-                    const coordinates = {
-                        latitude: parseFloat(latVal),
-                        longitude: parseFloat(lngVal)
-                    };
+                    const inLat = parseFloat(checkInLat);
+                    const inLng = parseFloat(checkInLng);
+                    const outLat = checkOutLat !== null && checkOutLat !== undefined && checkOutLat !== '' ? parseFloat(checkOutLat) : NaN;
+                    const outLng = checkOutLng !== null && checkOutLng !== undefined && checkOutLng !== '' ? parseFloat(checkOutLng) : NaN;
 
-                    console.log("Parsed coordinates:", coordinates);
-
-                    if (!coordinates.latitude || !coordinates.longitude || 
-                        isNaN(coordinates.latitude) || isNaN(coordinates.longitude)) {
-                        console.error('Invalid or missing coordinates:', coordinates);
-                        document.getElementById('detailMapCheckIn').innerHTML = 
-                            '<div class="alert alert-warning text-center">Location data not available</div>';
+                    if (!inLat || !inLng || isNaN(inLat) || isNaN(inLng)) {
+                        console.error('Invalid or missing check-in coordinates:', { inLat, inLng });
+                        document.getElementById('detailMapCheckIn').innerHTML = '<div class="alert alert-warning text-center">Location data not available</div>';
                         return;
                     }
 
                     try {
-                        // Buat instance peta baru
                         const detailMap = L.map('detailMapCheckIn', {
-                            center: [coordinates.latitude, coordinates.longitude],
+                            center: [inLat, inLng],
                             zoom: 16
                         });
-
-                        // Tambahkan tile layer
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             attribution: '© OpenStreetMap contributors',
                             maxZoom: 19
                         }).addTo(detailMap);
-                        
-                        // Tambahkan marker
-                        const marker = L.marker([coordinates.latitude, coordinates.longitude])
-                            .addTo(detailMap)
-                            .bindPopup("Check-in location")
-                            .openPopup();
 
-                        // Pastikan peta dirender dengan benar
+                        // Marker for Check-in
+                        L.marker([inLat, inLng]).addTo(detailMap).bindPopup("Check-in location");
+
+                        // Marker for Check-out if available
+                        if (!isNaN(outLat) && !isNaN(outLng)) {
+                            L.marker([outLat, outLng]).addTo(detailMap).bindPopup("Check-out location");
+                        }
+
                         setTimeout(() => {
                             detailMap.invalidateSize();
-                            detailMap.setView([coordinates.latitude, coordinates.longitude], 16);
+                            if (!isNaN(outLat) && !isNaN(outLng)) {
+                                const bounds = L.latLngBounds([[inLat, inLng], [outLat, outLng]]);
+                                detailMap.fitBounds(bounds.pad(0.25));
+                            } else {
+                                detailMap.setView([inLat, inLng], 16);
+                            }
                         }, 250);
-
                     } catch (error) {
                         console.error('Error initializing map:', error);
-                        document.getElementById('detailMapCheckIn').innerHTML = 
-                            '<div class="alert alert-warning text-center">Error loading map</div>';
+                        document.getElementById('detailMapCheckIn').innerHTML = '<div class="alert alert-warning text-center">Error loading map</div>';
                     }
                 });
             } else {
@@ -2170,67 +2184,73 @@ function openCheckOutDetailModal() {
                     // Log untuk debugging
                     console.log("Check-out data:", lastCheckOut);
                     
-                    // Pastikan koordinat ada dan valid untuk checkout
-                    let latVal = lastCheckOut.checkout_latitude ?? null;
-                    let lngVal = lastCheckOut.checkout_longitude ?? null;
+                    // Prefer explicit fields
+                    let outLat = lastCheckOut.checkout_latitude ?? null;
+                    let outLng = lastCheckOut.checkout_longitude ?? null;
+                    // Also try to fetch check-in for bounds
+                    let inLat = lastCheckOut.latitude ?? null;
+                    let inLng = lastCheckOut.longitude ?? null;
 
-                    // Fallback ke attendanceTrackings jika ada
-                    if ((latVal === null || latVal === undefined || latVal === '') && lastCheckOut.attendanceTrackings && lastCheckOut.attendanceTrackings.length > 1) {
-                        // Ambil tracking terakhir (checkout)
-                        const checkoutTracking = lastCheckOut.attendanceTrackings[lastCheckOut.attendanceTrackings.length - 1];
-                        if (checkoutTracking && checkoutTracking.location) {
-                            const parts = checkoutTracking.location.split(',');
-                            if (parts.length >= 2) {
-                                latVal = parts[0].trim();
-                                lngVal = parts[1].trim();
+                    // Fallback: parse combined location "lat,lng|lat,lng" from first tracking
+                    if (lastCheckOut.attendanceTrackings && lastCheckOut.attendanceTrackings.length) {
+                        const loc = lastCheckOut.attendanceTrackings[0].location;
+                        if (loc && (!outLat || !outLng || !inLat || !inLng)) {
+                            const pairs = loc.split('|');
+                            if (pairs[0]) {
+                                const first = pairs[0].split(',');
+                                if (first.length >= 2) {
+                                    inLat = inLat ?? first[0].trim();
+                                    inLng = inLng ?? first[1].trim();
+                                }
+                            }
+                            if (pairs[1]) {
+                                const second = pairs[1].split(',');
+                                if (second.length >= 2) {
+                                    outLat = outLat ?? second[0].trim();
+                                    outLng = outLng ?? second[1].trim();
+                                }
                             }
                         }
                     }
 
-                    const coordinates = {
-                        latitude: parseFloat(latVal),
-                        longitude: parseFloat(lngVal)
-                    };
+                    const outLatNum = parseFloat(outLat);
+                    const outLngNum = parseFloat(outLng);
+                    const inLatNum = inLat !== null && inLat !== undefined && inLat !== '' ? parseFloat(inLat) : NaN;
+                    const inLngNum = inLng !== null && inLng !== undefined && inLng !== '' ? parseFloat(inLng) : NaN;
 
-                    console.log("Parsed checkout coordinates:", coordinates);
-
-                    if (!coordinates.latitude || !coordinates.longitude || 
-                        isNaN(coordinates.latitude) || isNaN(coordinates.longitude)) {
-                        console.error('Invalid or missing checkout coordinates:', coordinates);
-                        document.getElementById('detailMapCheckOut').innerHTML = 
-                            '<div class="alert alert-warning text-center">Checkout location data not available</div>';
+                    if (!outLatNum || !outLngNum || isNaN(outLatNum) || isNaN(outLngNum)) {
+                        console.error('Invalid or missing checkout coordinates:', { outLatNum, outLngNum });
+                        document.getElementById('detailMapCheckOut').innerHTML = '<div class=\"alert alert-warning text-center\">Checkout location data not available</div>';
                         return;
                     }
 
                     try {
-                        // Buat instance peta baru untuk checkout
                         const detailMapCheckOut = L.map('detailMapCheckOut', {
-                            center: [coordinates.latitude, coordinates.longitude],
+                            center: [outLatNum, outLngNum],
                             zoom: 16
                         });
-
-                        // Tambahkan tile layer
                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                             attribution: '© OpenStreetMap contributors',
                             maxZoom: 19
                         }).addTo(detailMapCheckOut);
-                        
-                        // Tambahkan marker untuk checkout
-                        const marker = L.marker([coordinates.latitude, coordinates.longitude])
-                            .addTo(detailMapCheckOut)
-                            .bindPopup("Check-out location")
-                            .openPopup();
 
-                        // Pastikan peta dirender dengan benar
+                        L.marker([outLatNum, outLngNum]).addTo(detailMapCheckOut).bindPopup("Check-out location");
+                        if (!isNaN(inLatNum) && !isNaN(inLngNum)) {
+                            L.marker([inLatNum, inLngNum]).addTo(detailMapCheckOut).bindPopup("Check-in location");
+                        }
+
                         setTimeout(() => {
                             detailMapCheckOut.invalidateSize();
-                            detailMapCheckOut.setView([coordinates.latitude, coordinates.longitude], 16);
+                            if (!isNaN(inLatNum) && !isNaN(inLngNum)) {
+                                const bounds = L.latLngBounds([[inLatNum, inLngNum], [outLatNum, outLngNum]]);
+                                detailMapCheckOut.fitBounds(bounds.pad(0.25));
+                            } else {
+                                detailMapCheckOut.setView([outLatNum, outLngNum], 16);
+                            }
                         }, 250);
-
                     } catch (error) {
                         console.error('Error initializing checkout map:', error);
-                        document.getElementById('detailMapCheckOut').innerHTML = 
-                            '<div class="alert alert-warning text-center">Error loading checkout map</div>';
+                        document.getElementById('detailMapCheckOut').innerHTML = '<div class=\"alert alert-warning text-center\">Error loading checkout map</div>';
                     }
                 });
             } else {
