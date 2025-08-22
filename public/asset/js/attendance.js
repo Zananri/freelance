@@ -97,6 +97,10 @@ function initializeMaps() {
 document.addEventListener("DOMContentLoaded", function () {
     // Initialize attendance page
     initializeAttendance();
+    
+    // Initialize attendance state immediately
+    initializeAttendanceState();
+    
     initializeCalendar();
 
     // Setup event listeners with DOM ready check
@@ -115,8 +119,8 @@ function initializeAttendance() {
         currentDateInput.value = today.toISOString().split("T")[0];
     }
 
-    // Update check in/out times if available
-    updateAttendanceStatus();
+    // Get attendance status immediately using the new function
+    getTodayAttendanceStatus();
 }
 
 function setupEventListeners() {
@@ -132,23 +136,18 @@ function setupEventListeners() {
     const checkOutBtn = document.getElementById("checkOutBtn");
     if (checkOutBtn) {
         checkOutBtn.addEventListener("click", function () {
-            openCheckOutModal();
-        });
-    }
-
-    // Calendar navigation
-    const prevMonthBtn = document.getElementById("prevMonth");
-    const nextMonthBtn = document.getElementById("nextMonth");
-
-    if (prevMonthBtn) {
-        prevMonthBtn.addEventListener("click", function () {
-            navigateMonth(-1);
-        });
-    }
-
-    if (nextMonthBtn) {
-        nextMonthBtn.addEventListener("click", function () {
-            navigateMonth(1);
+            try {
+                if (checkOutBtn.classList.contains('active')) {
+                    // If already checked out (active), show detail modal
+                    openCheckOutDetailModal();
+                } else {
+                    // Otherwise, open check-out form
+                    openCheckOutModal();
+                }
+            } catch (err) {
+                console.error('Error handling checkOutBtn click:', err);
+                openCheckOutModal();
+            }
         });
     }
 
@@ -228,19 +227,19 @@ function updateModalTime() {
         minute: "2-digit"
     });
 
-    // Format tanggal untuk tampilan
+    // Format tanggal untuk tampilan menggunakan formatDate helper (e.g. "22 August 2025")
     const dateString = now.toISOString().split("T")[0];
-    const formattedDate = now.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    });
+    const formattedDate = formatDate(now.toISOString());
 
     // Update tampilan di modal check-in (dengan detik)
     const dateDisplay = document.getElementById("date_attendance");
     const timeDisplay = document.getElementById("time_in");
 
     if (dateDisplay) dateDisplay.textContent = formattedDate;
+    if (dateDisplay) {
+        try { dateDisplay.dataset.formatted = formattedDate; } catch(e){}
+    }
+    console.debug('attendance updateModalTime formattedDate ->', formattedDate);
     if (timeDisplay) timeDisplay.textContent = displayTimeString;
 
     // Update hidden inputs (format untuk server tanpa detik)
@@ -284,19 +283,19 @@ function updateModalTimeCheckout() {
         minute: "2-digit"
     });
 
-    // Format tanggal untuk tampilan
+    // Format tanggal untuk tampilan menggunakan formatDate helper (e.g. "22 August 2025")
     const dateString = now.toISOString().split("T")[0];
-    const formattedDate = now.toLocaleDateString("en-US", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    });
+    const formattedDate = formatDate(now.toISOString());
 
     // Update tampilan di modal check-out (dengan detik)
     const dateDisplay = document.getElementById("date_attendance_checkout");
     const timeDisplay = document.getElementById("time_out");
 
     if (dateDisplay) dateDisplay.textContent = formattedDate;
+    if (dateDisplay) {
+        try { dateDisplay.dataset.formatted = formattedDate; } catch(e){}
+    }
+    console.debug('attendance updateModalTimeCheckout formattedDate ->', formattedDate);
     if (timeDisplay) timeDisplay.textContent = displayTimeString;
 
     // Update hidden inputs (format untuk server tanpa detik)
@@ -323,6 +322,13 @@ function updateModalTimeCheckout() {
 
 // Function to open the check-in modal dengan waktu berjalan
 function openCheckInModal() {
+    // Check if already checked in
+    const checkInBtn = document.getElementById("checkInBtn");
+    if (checkInBtn && checkInBtn.classList.contains("active")) {
+        openCheckInDetailModal();
+        return;
+    }
+
     // Update waktu berjalan
     updateModalTime();
 
@@ -369,6 +375,12 @@ function openCheckInModal() {
 
     const modal = new bootstrap.Modal(document.getElementById("checkInModal"));
     modal.show();
+
+    // Ensure displayed date uses formatted month name immediately
+    try {
+        const dateEl = document.getElementById('date_attendance');
+        if (dateEl) dateEl.textContent = formatDate(new Date().toISOString());
+    } catch (e) { console.error(e); }
 
     // Set interval untuk update waktu setiap detik
     const timeInterval = setInterval(updateModalTime, 1000);
@@ -521,6 +533,15 @@ function calculateWorkingHours() {
 
                         console.log("Latest unclosed attendance:", latestData);
                         console.log("Today's attendance:", todayData);
+                        // Reset default UI state: by default user can check in, cannot check out
+                        checkInBtn.style.display = "flex";
+                        checkOutBtn.style.display = "flex";
+                        checkInBtn.disabled = false;
+                        checkOutBtn.disabled = true;
+                        checkInBtn.classList.remove('active');
+                        checkOutBtn.classList.remove('active');
+                        try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+                        try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
 
                         // Cek apakah ada check-in yang belum ditutup dari hari sebelumnya
                         if (latestData.status === "success" && latestData.data) {
@@ -535,15 +556,31 @@ function calculateWorkingHours() {
                                     // Ada aktivitas hari ini
                                     const lastTodayAttendance = todayAttendances[todayAttendances.length - 1];
 
-                                    if (lastTodayAttendance.type_attendance === "check_in" && !lastTodayAttendance.time_out) {
-                                        // Sudah check-in hari ini, tampilkan tombol checkout
-                                        checkInBtn.style.display = "flex";
-                                        checkOutBtn.style.display = "flex";
+                                    // Check based on time_in and time_out fields instead of type_attendance
+                                    if (lastTodayAttendance.time_in && !lastTodayAttendance.time_out) {
+                                        // Sudah check-in hari ini: tampilkan tombol checkout.
+                                        // Jangan disable checkInBtn — biarkan clickable untuk membuka detail.
+                                            checkInBtn.style.display = "flex";
+                                            checkInBtn.disabled = false;
+                                            checkInBtn.classList.add('active');
+                                            try { $("#checkInBtn .check-icon").show(); } catch(e){}
+
+                                            checkOutBtn.style.display = "flex";
+                                            checkOutBtn.disabled = false;
+                                            checkOutBtn.classList.remove('active');
+                                            try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
                                         return;
-                                    } else if (lastTodayAttendance.type_attendance === "check_out") {
-                                        // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya
+                                    } else if (lastTodayAttendance.time_in && lastTodayAttendance.time_out) {
+                                        // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya (default)
                                         checkInBtn.style.display = "flex";
+                                        checkInBtn.disabled = false;
+                                        checkInBtn.classList.remove('active');
+                                        try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+
                                         checkOutBtn.style.display = "flex";
+                                        checkOutBtn.disabled = true;
+                                        checkOutBtn.classList.remove('active');
+                                        try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
                                         return;
                                     }
                                 }
@@ -551,25 +588,43 @@ function calculateWorkingHours() {
 
                             if (checkInDate < today) {
                                 // Ada check-in yang belum ditutup dari hari sebelumnya
-                                console.warn("You forgot to check out yesterday, please contact HR.");
+                                    console.warn("You forgot to check out yesterday, please contact HR.");
 
-                                // Tampilkan tombol check-in untuk hari ini
-                                checkInBtn.style.display = "flex";
-                                checkOutBtn.style.display = "flex";
+                                    // Reset UI for a new day: allow check-in for today, but keep check-out disabled
+                                    checkInBtn.style.display = "flex";
+                                    checkInBtn.disabled = false;
+                                    checkInBtn.classList.remove('active');
+                                    // hide check icons
+                                    try { $("#checkInBtn .check-icon").hide(); } catch(e){}
 
-                                // Hanya tampilkan alert di halaman dashboard
+                                    checkOutBtn.style.display = "flex";
+                                    // Keep checkout disabled until user actually checks in today
+                                    checkOutBtn.disabled = true;
+                                    checkOutBtn.classList.remove('active');
+                                    try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+
+                                    // Clear any displayed check-in/check-out times and status for today's UI
+                                    const checkInTimeInput = document.getElementById("checkInTime");
+                                    const checkOutTimeInput = document.getElementById("checkOutTime");
+                                    if (checkInTimeInput) checkInTimeInput.value = "";
+                                    if (checkOutTimeInput) checkOutTimeInput.value = "";
+                                    const attendanceStatusEl = document.getElementById('attendanceStatus');
+                                    if (attendanceStatusEl) attendanceStatusEl.textContent = "";
+
+                                // Hanya tampilkan alert di halaman dashboard, sekali saja per user
                                 if (window.location.href.includes('/dashboard')) {
-                                    const alertKey = `attendanceAlertShown_${today}`;
+                                    const employeeId = document.querySelector('input[name="employee_id"]')?.value || 'guest';
+                                    const alertKey = `attendanceForgotCheckoutShown_${employeeId}`;
 
-                                    // Cek jika alert belum ditampilkan hari ini
+                                    // Cek jika alert belum pernah ditampilkan untuk user ini
                                     if (!localStorage.getItem(alertKey)) {
                                         // Tampilkan pesan warning sekali
                                         showFloatingAlert(
                                             `You forgot to check out yesterday. Please contact HR and check in for today.`,
                                             "warning"
-                                        ).setTimeout(5000);
+                                        );
 
-                                        // Tandai alert sudah ditampilkan untuk hari ini
+                                        // Tandai alert sudah ditampilkan untuk user ini
                                         localStorage.setItem(alertKey, "true");
                                     }
                                 }
@@ -582,6 +637,8 @@ function calculateWorkingHours() {
                             console.warn("No attendance record found for today.");
                             checkInBtn.style.display = "flex";
                             checkOutBtn.style.display = "flex";
+                            checkInBtn.disabled = false;
+                            checkOutBtn.disabled = true;
                             return;
                         }
 
@@ -590,10 +647,17 @@ function calculateWorkingHours() {
                         if (attendances.length > 0) {
                             const lastAttendance = attendances[attendances.length - 1];
 
-                            if (lastAttendance.type_attendance === "check_in" && !lastAttendance.time_out) {
-                                // Last record is check-in without checkout, show checkout button
+                            // Check based on time_in and time_out fields instead of type_attendance
+                            if (lastAttendance.time_in && !lastAttendance.time_out) {
+                                // Has checked in but not checked out, show checkout button
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
+                                // User already checked in today: mark checkIn active and allow checkout
+                                checkInBtn.disabled = false;
+                                checkInBtn.classList.add('active');
+                                try { $("#checkInBtn .check-icon").show(); } catch(e){}
+                                checkOutBtn.disabled = false;
+                                try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
 
                                 // Update hidden time fields
                                 const checkInTimeInput = document.getElementById("checkInTime");
@@ -601,16 +665,27 @@ function calculateWorkingHours() {
                                     checkInTimeInput.value = lastAttendance.time_in;
                                 }
                                 return;
-                            } else {
-                                // Last record is checkout or fully checked out, show check-in button
+                            } else if (lastAttendance.time_in && lastAttendance.time_out) {
+                                // Has both checked in and checked out, show check-in button for next shift
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
+                                checkInBtn.disabled = false;
+                                checkOutBtn.disabled = true;
+                                return;
+                            } else {
+                                // Fallback case
+                                checkInBtn.style.display = "flex";
+                                checkOutBtn.style.display = "flex";
+                                checkInBtn.disabled = false;
+                                checkOutBtn.disabled = true;
                                 return;
                             }
                         } else {
                             // No attendance today, show check-in button
                             checkInBtn.style.display = "flex";
                             checkOutBtn.style.display = "flex";
+                            checkInBtn.disabled = false;
+                            checkOutBtn.disabled = true;
                             return;
                         }
                     })
@@ -685,11 +760,11 @@ function renderCalendar(month, year) {
                         };
                     }
 
-                    // Tandai check-in dan check-out terpisah
-                    if (record.type_attendance === "check_in") {
+                    // Tandai check-in dan check-out berdasarkan time_in dan time_out
+                    if (record.time_in) {
                         attendanceData[day].hasCheckIn = true;
                     }
-                    if (record.type_attendance === "check_out") {
+                    if (record.time_out) {
                         attendanceData[day].hasCheckOut = true;
                     }
                 });
@@ -1132,10 +1207,18 @@ function submitCheckIn() {
                 form.reset();
                 clearImage();
 
-                // Reload attendance data
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                // Update status without reload
+                getTodayAttendanceStatus();
+                
+                // Update UI to show check-in as active and enable check-out
+                const checkInBtn = document.getElementById("checkInBtn");
+                const checkOutBtn = document.getElementById("checkOutBtn");
+                if (checkInBtn && checkOutBtn) {
+                    checkInBtn.classList.add("active");
+                    checkInBtn.disabled = false;
+                    checkOutBtn.disabled = false;
+                    $("#checkInBtn .check-icon").show();
+                }
             } else {
                 showFloatingAlert(
                     data.message || "Error submitting check-in",
@@ -1417,7 +1500,8 @@ function loadCheckInDataForCheckout(serverTime) {
         .then(res => res.json())
         .then(data => {
             if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
-                const checkInRecord = data.data.find(r => r.type_attendance === "check_in");
+                // Find record with time_in (check-in record) instead of type_attendance
+                const checkInRecord = data.data.find(r => r.time_in && !r.time_out);
                 if (!checkInRecord) {
                     console.error("No check-in record found");
                     showFloatingAlert("No check-in record found for today.", "error");
@@ -1454,10 +1538,10 @@ function populateCheckoutModal(checkInRecord, serverTime) {
             workOutsideInput.value = checkInRecord.is_work_outside ? "1" : "0";
         }
 
-        // Tampilkan time in
+        // Tampilkan time in dengan format 00:00
         const timeInDisplay = document.getElementById("time_in_display");
         if (timeInDisplay) {
-            timeInDisplay.textContent = checkInRecord.time_in || "Not available";
+            timeInDisplay.textContent = formatTimeDisplay(checkInRecord.time_in) || "--:--";
         }
 
         // Simpan time_in untuk referensi
@@ -1489,7 +1573,7 @@ function populateCheckoutModal(checkInRecord, serverTime) {
 
     } catch (error) {
         console.error("Error populating checkout modal:", error);
-        showFloatingAlert("Error loading checkout data. Please try again.", "error");
+        showAlertDashboard("Error loading checkout data. Please try again.", "error");
         setCheckoutModalDefaults();
     }
 }
@@ -1779,10 +1863,20 @@ function submitCheckOut() {
                 form.reset();
                 resetCheckoutModal();
 
-                // Reload attendance data
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                // Update status without reload
+                getTodayAttendanceStatus();
+                
+                // Update UI to show both buttons as active
+                const checkInBtn = document.getElementById("checkInBtn");
+                const checkOutBtn = document.getElementById("checkOutBtn");
+                if (checkInBtn && checkOutBtn) {
+                    checkInBtn.classList.add("active");
+                    checkOutBtn.classList.add("active");
+                    checkInBtn.disabled = false;
+                    checkOutBtn.disabled = false;
+                    $("#checkInBtn .check-icon").show();
+                    $("#checkOutBtn .done-all-icon").show();
+                }
             } else {
                 showFloatingAlert(
                     data.message || "Error submitting check-out",
@@ -1810,6 +1904,373 @@ document.addEventListener("DOMContentLoaded", function() {
     initializeCheckoutCameraFeatures();
 });
 
+// Function to open check-in detail modal
+function openCheckInDetailModal() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const url = `${baseUrl}/attendance/today/${employeeId}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
+                // Prefer active (unclosed) check-in; fallback to latest check-in record of today
+                let lastCheckIn = data.data.find(record => record.time_in && !record.time_out);
+                if (!lastCheckIn) {
+                    const checkIns = data.data.filter(record => record.time_in);
+                    if (checkIns.length > 0) {
+                        lastCheckIn = checkIns[checkIns.length - 1];
+                    }
+                }
+
+                if (!lastCheckIn) {
+                    showFloatingAlert("No check-in data found for today", "warning");
+                    return;
+                }
+
+                // Log untuk debugging
+                console.log("Check-in data found:", lastCheckIn);
+                
+                // Create modal content
+                const modalContent = `
+                    <div class="modal fade" id="checkInDetailModal" tabindex="-1" role="dialog" aria-labelledby="checkInDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content rounded-4">
+                                <div class="modal-header modal-header-custom">
+                                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkInDetailModalLabel">Check In</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="check-in-details">
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Date:</div>
+                                            <div class="detail-value">${formatDate(lastCheckIn.date_attendance)}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Time In:</div>
+                                            <div class="detail-value">${formatTimeDisplay(lastCheckIn.time_in)}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Work Outside:</div>
+                                            <div class="detail-value">${lastCheckIn.is_work_outside ? "Yes" : "No"}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Shift:</div>
+                                            <div class="detail-value">${lastCheckIn.shift_start || '--:--'} - ${lastCheckIn.shift_end || '--:--'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-0">
+                                        <div id="detailMapCheckIn" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
+                                    </div>
+                                    
+                                    ${lastCheckIn.is_work_outside && lastCheckIn.image_path ? `
+                                        <div class="mt-4">
+                                            <div class="image-checkin">
+                                                <img src="${lastCheckIn.image_path ? (lastCheckIn.image_path.startsWith('http') ? lastCheckIn.image_path : baseUrl + '/' + lastCheckIn.image_path.replace(/^\//, '')) : ''}" 
+                                                     alt="Check-in photo" 
+                                                     class="img-fluid rounded-3"
+                                                     style="max-height: 200px;">
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Remove existing modal if any
+                const existingModal = document.getElementById('checkInDetailModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                // Add modal to body
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+
+                // Initialize and show modal
+                const modal = new bootstrap.Modal(document.getElementById('checkInDetailModal'));
+                modal.show();
+
+                // Initialize map after modal is shown
+                document.getElementById('checkInDetailModal').addEventListener('shown.bs.modal', function () {
+                    // Log untuk debugging
+                    console.log("Check-in data:", lastCheckIn);
+                    
+                    // Extract both check-in and check-out coordinates
+                    let checkInLat = lastCheckIn.latitude ?? null;
+                    let checkInLng = lastCheckIn.longitude ?? null;
+                    let checkOutLat = lastCheckIn.checkout_latitude ?? null;
+                    let checkOutLng = lastCheckIn.checkout_longitude ?? null;
+
+                    // Fallback to tracking combined location: "lat,lng|lat,lng"
+                    if (lastCheckIn.attendanceTrackings && lastCheckIn.attendanceTrackings.length) {
+                        const loc = lastCheckIn.attendanceTrackings[0].location;
+                        if (loc && (!checkInLat || !checkInLng || !checkOutLat || !checkOutLng)) {
+                            const pairs = loc.split('|');
+                            if (pairs[0]) {
+                                const first = pairs[0].split(',');
+                                if (first.length >= 2) {
+                                    checkInLat = checkInLat ?? first[0].trim();
+                                    checkInLng = checkInLng ?? first[1].trim();
+                                }
+                            }
+                            if (pairs[1]) {
+                                const second = pairs[1].split(',');
+                                if (second.length >= 2) {
+                                    checkOutLat = checkOutLat ?? second[0].trim();
+                                    checkOutLng = checkOutLng ?? second[1].trim();
+                                }
+                            }
+                        }
+                    }
+
+                    const inLat = parseFloat(checkInLat);
+                    const inLng = parseFloat(checkInLng);
+                    const outLat = checkOutLat !== null && checkOutLat !== undefined && checkOutLat !== '' ? parseFloat(checkOutLat) : NaN;
+                    const outLng = checkOutLng !== null && checkOutLng !== undefined && checkOutLng !== '' ? parseFloat(checkOutLng) : NaN;
+
+                    if (!inLat || !inLng || isNaN(inLat) || isNaN(inLng)) {
+                        console.error('Invalid or missing check-in coordinates:', { inLat, inLng });
+                        document.getElementById('detailMapCheckIn').innerHTML = '<div class="alert alert-warning text-center">Location data not available</div>';
+                        return;
+                    }
+
+                    try {
+                        const detailMap = L.map('detailMapCheckIn', {
+                            center: [inLat, inLng],
+                            zoom: 16
+                        });
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors',
+                            maxZoom: 19
+                        }).addTo(detailMap);
+
+                        // Marker for Check-in with label (only show check-in location in this modal)
+                        const inMarker = L.marker([inLat, inLng]).addTo(detailMap);
+                        inMarker.bindPopup("Check in Location");
+                        inMarker.bindTooltip("Check in Location", { permanent: true, direction: 'top', offset: [0, -10] });
+
+                        setTimeout(() => {
+                            detailMap.invalidateSize();
+                            // Only center on check-in location for this modal
+                            detailMap.setView([inLat, inLng], 16);
+                        }, 250);
+                    } catch (error) {
+                        console.error('Error initializing map:', error);
+                        document.getElementById('detailMapCheckIn').innerHTML = '<div class="alert alert-warning text-center">Error loading map</div>';
+                    }
+                });
+            } else {
+                showFloatingAlert("No check-in data found for today", "warning");
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching check-in details:", error);
+            showFloatingAlert("Error loading check-in details", "error");
+        });
+}
+
+// Function to open the check-out detail modal
+function openCheckOutDetailModal() {
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    if (!employeeId) {
+        console.error("Employee ID not found");
+        return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const url = `${baseUrl}/attendance/today/${employeeId}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
+                // Cari data check-out yang valid (memiliki time_in dan time_out)
+                const lastCheckOut = data.data.find(record => record.time_in && record.time_out);
+                
+                if (!lastCheckOut) {
+                    showFloatingAlert("No check-out data found for today", "warning");
+                    return;
+                }
+
+                // Log untuk debugging
+                console.log("Check-out data found:", lastCheckOut);
+                
+                // Calculate work duration
+                const workDuration = calculateDuration24h(lastCheckOut.time_in, lastCheckOut.time_out);
+                
+                // Create modal content
+                const modalContent = `
+                    <div class="modal fade" id="checkOutDetailModal" tabindex="-1" role="dialog" aria-labelledby="checkOutDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content rounded-4">
+                                <div class="modal-header modal-header-custom">
+                                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutDetailModalLabel">Check Out</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="check-out-details">
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Date:</div>
+                                            <div class="detail-value">${formatDate(lastCheckOut.date_attendance)}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Total Work Duration:</div>
+                                            <div class="detail-value">${workDuration}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Time Out:</div>
+                                            <div class="detail-value">${formatTimeDisplay(lastCheckOut.time_out)}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Work Outside:</div>
+                                            <div class="detail-value">${lastCheckOut.is_work_outside ? "Yes" : "No"}</div>
+                                        </div>
+                                        <div class="detail-row">
+                                            <div class="form-label label-custom">Shift:</div>
+                                            <div class="detail-value">${formatTimeDisplay(lastCheckOut.shift_start) || '--:--'} - ${formatTimeDisplay(lastCheckOut.shift_end) || '--:--'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-0">
+                                        <div id="detailMapCheckOut" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
+                                    </div>
+                                    
+                                    ${lastCheckOut.is_work_outside && lastCheckOut.checkout_image_path ? `
+                                        <div class="mt-4">
+                                            <div class="image-checkout">
+                                                <img src="${lastCheckOut.checkout_image_path ? (lastCheckOut.checkout_image_path.startsWith('http') ? lastCheckOut.checkout_image_path : baseUrl + '/' + lastCheckOut.checkout_image_path.replace(/^\//, '')) : ''}" 
+                                                     alt="Check-out photo" 
+                                                     class="img-fluid rounded-3"
+                                                     style="max-height: 200px;">
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Remove existing modal if any
+                const existingModal = document.getElementById('checkOutDetailModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                // Add modal to body
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+
+                // Initialize and show modal
+                const modal = new bootstrap.Modal(document.getElementById('checkOutDetailModal'));
+                modal.show();
+
+                // Initialize map after modal is shown
+                document.getElementById('checkOutDetailModal').addEventListener('shown.bs.modal', function () {
+                    // Log untuk debugging
+                    console.log("Check-out data:", lastCheckOut);
+                    
+                    // Prefer explicit fields
+                    let outLat = lastCheckOut.checkout_latitude ?? null;
+                    let outLng = lastCheckOut.checkout_longitude ?? null;
+                    // Also try to fetch check-in for bounds
+                    let inLat = lastCheckOut.latitude ?? null;
+                    let inLng = lastCheckOut.longitude ?? null;
+
+                    // Fallback: parse combined location "lat,lng|lat,lng" from first tracking
+                    if (lastCheckOut.attendanceTrackings && lastCheckOut.attendanceTrackings.length) {
+                        const loc = lastCheckOut.attendanceTrackings[0].location;
+                        if (loc && (!outLat || !outLng || !inLat || !inLng)) {
+                            const pairs = loc.split('|');
+                            if (pairs[0]) {
+                                const first = pairs[0].split(',');
+                                if (first.length >= 2) {
+                                    inLat = inLat ?? first[0].trim();
+                                    inLng = inLng ?? first[1].trim();
+                                }
+                            }
+                            if (pairs[1]) {
+                                const second = pairs[1].split(',');
+                                if (second.length >= 2) {
+                                    outLat = outLat ?? second[0].trim();
+                                    outLng = outLng ?? second[1].trim();
+                                }
+                            }
+                        }
+                    }
+
+                    const outLatNum = parseFloat(outLat);
+                    const outLngNum = parseFloat(outLng);
+                    const inLatNum = inLat !== null && inLat !== undefined && inLat !== '' ? parseFloat(inLat) : NaN;
+                    const inLngNum = inLng !== null && inLng !== undefined && inLng !== '' ? parseFloat(inLng) : NaN;
+
+                    if (!outLatNum || !outLngNum || isNaN(outLatNum) || isNaN(outLngNum)) {
+                        console.error('Invalid or missing checkout coordinates:', { outLatNum, outLngNum });
+                        document.getElementById('detailMapCheckOut').innerHTML = '<div class=\"alert alert-warning text-center\">Checkout location data not available</div>';
+                        return;
+                    }
+
+                    try {
+                        const detailMapCheckOut = L.map('detailMapCheckOut', {
+                            center: [outLatNum, outLngNum],
+                            zoom: 16
+                        });
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors',
+                            maxZoom: 19
+                        }).addTo(detailMapCheckOut);
+
+                        const outMarker = L.marker([outLatNum, outLngNum]).addTo(detailMapCheckOut);
+                        outMarker.bindPopup("Check out Location");
+                        outMarker.bindTooltip("Check out Location", { permanent: true, direction: 'top', offset: [0, -10] });
+
+                        setTimeout(() => {
+                            detailMapCheckOut.invalidateSize();
+                            // Only center on check-out location for this modal
+                            detailMapCheckOut.setView([outLatNum, outLngNum], 16);
+                        }, 250);
+                    } catch (error) {
+                        console.error('Error initializing checkout map:', error);
+                        document.getElementById('detailMapCheckOut').innerHTML = '<div class=\"alert alert-warning text-center\">Error loading checkout map</div>';
+                    }
+                });
+            } else {
+                showFloatingAlert("No check-out data found for today", "warning");
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching check-out details:", error);
+            showFloatingAlert("Error loading check-out details", "error");
+        });
+}
+
+// Function to format date
+function formatDate(dateString) {
+    // Return format: "22 August 2025"
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString || '';
+    const day = date.getDate();
+    const months = [
+        'January','February','March','April','May','June',
+        'July','August','September','October','November','December'
+    ];
+    const monthName = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${monthName} ${year}`;
+}
+
+// Override global formatDate function untuk halaman ini
+if (typeof window !== 'undefined') {
+    window.formatDate = formatDate;
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     function updateClock() {
         const now = new Date();
@@ -1824,27 +2285,27 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const days = [
-            "Minggu",
-            "Senin",
-            "Selasa",
-            "Rabu",
-            "Kamis",
-            "Jumat",
-            "Sabtu",
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
         ];
         const months = [
-            "Januari",
-            "Februari",
-            "Maret",
+            "January",
+            "February",
+            "March",
             "April",
-            "Mei",
-            "Juni",
-            "Juli",
-            "Agustus",
+            "May",
+            "June",
+            "July",
+            "August",
             "September",
-            "Oktober",
+            "October",
             "November",
-            "Desember",
+            "December",
         ];
 
         let dayName = days[now.getDay()];
@@ -1863,11 +2324,14 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Fungsi untuk mendapatkan status absensi harian
+// Fungsi untuk mendapatkan status absensi harian
 function getTodayAttendanceStatus() {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     
     if (!employeeId) {
         console.error("Employee ID not found");
+        // Set default state if no employee ID
+        updateButtonStates({ status: "not_started" });
         return;
     }
 
@@ -1876,69 +2340,105 @@ function getTodayAttendanceStatus() {
     fetch(urlStatus)
         .then((response) => response.json())
         .then((statusData) => {
+            console.log('Status data received:', statusData); // Debug log
             updateButtonStates(statusData.data);
         })
         .catch((error) => {
             console.error("Error fetching attendance status:", error);
+            // Set default state on error
+            updateButtonStates({ status: "not_started" });
         });
 }
 
-// Fungsi untuk update state tombol berdasarkan status
-function updateButtonStates(status) {
-    const checkInBtn = document.getElementById("checkInBtn");
-    const checkOutBtn = document.getElementById("checkOutBtn");
-
-    if (!checkInBtn || !checkOutBtn) return;
-
-    // Reset semua state
-    checkInBtn.classList.remove("active");
-    checkOutBtn.classList.remove("active");
-    checkInBtn.disabled = false;
-    checkOutBtn.disabled = false;
-
-    // Hide semua icon
-    $("#checkInBtn .check-icon").hide();
-    $("#checkOutBtn .done-all-icon").hide();
-
-    // Update berdasarkan status
-    if (status.status === "not_started") {
-        // Belum check-in sama sekali
-        checkOutBtn.disabled = true;
-    } else if (status.status === "checked_in") {
-        // Sudah check-in tapi belum check-out
-        checkInBtn.classList.add("active");
-        $("#checkInBtn .check-icon").show();
-    } else if (status.status === "checked_out") {
-        // Sudah check-out (kedua tombol aktif)
-        checkInBtn.classList.add("active");
-        checkOutBtn.classList.add("active");
-        $("#checkInBtn .check-icon").show();
-        $("#checkOutBtn .done-all-icon").show();
-    }
-
-    // Handle unclosed attendance
-    if (status.has_unclosed) {
-        checkInBtn.classList.add("active");
-        checkOutBtn.classList.add("active");
-        $("#checkInBtn .check-icon").show();
-        $("#checkOutBtn .done-all-icon").show();
-    }
-
-    // Update attendance logs
-    if (status.last_check_in_time) {
-        const timeInDisplay = document.getElementById("time_in_display");
-        if (timeInDisplay) {
-            timeInDisplay.textContent = status.last_check_in_time;
+ // Fungsi untuk memformat waktu menjadi format 00:00
+    function formatTimeDisplay(timeString) {
+        if (!timeString) return '--:--';
+        
+        // Jika sudah dalam format HH:MM, langsung return
+        if (timeString.match(/^\d{2}:\d{2}$/)) {
+            return timeString;
+        }
+        
+        // Jika format ISO atau timestamp, extract jam dan menit
+        try {
+            const date = new Date(timeString);
+            if (isNaN(date.getTime())) {
+                return '--:--';
+            }
+            
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        } catch (error) {
+            return '--:--';
         }
     }
 
-    if (status.last_check_out_time) {
-        const timeOutDisplay = document.getElementById("time_out_display");
-        if (timeOutDisplay) {
-            timeOutDisplay.textContent = status.last_check_out_time;
+    // Fungsi untuk update state tombol berdasarkan status
+    function updateButtonStates(status) {
+        console.log('Updating button states with status:', status); // Debug log
+        const checkInBtn = document.getElementById("checkInBtn");
+        const checkOutBtn = document.getElementById("checkOutBtn");
+
+        if (!checkInBtn || !checkOutBtn) return;
+
+        // Reset semua state
+        checkInBtn.classList.remove("active");
+        checkOutBtn.classList.remove("active");
+        checkInBtn.disabled = false;
+        checkOutBtn.disabled = false;
+
+        // Hide semua icon
+        $("#checkInBtn .check-icon").hide();
+        $("#checkOutBtn .done-all-icon").hide();
+
+        // Update berdasarkan status
+        if (status.status === "not_started") {
+            // Belum check-in sama sekali
+            checkOutBtn.disabled = true;
+        } else if (status.status === "checked_in") {
+            // Sudah check-in tapi belum check-out
+            checkInBtn.classList.add("active");
+            $("#checkInBtn .check-icon").show();
+        } else if (status.status === "checked_out") {
+            // Sudah check-out (kedua tombol aktif)
+            checkInBtn.classList.add("active");
+            checkOutBtn.classList.add("active");
+            $("#checkInBtn .check-icon").show();
+            $("#checkOutBtn .done-all-icon").show();
+        }
+
+        // Handle unclosed attendance: do NOT automatically mark buttons as active.
+        // Instead show a one-time, non-blocking warning to the user.
+        if (status.has_unclosed) {
+            try {
+                const employeeId = document.querySelector('input[name="employee_id"]')?.value || 'guest';
+                const alertKey = `attendanceForgotCheckoutShown_${employeeId}`;
+                if (!localStorage.getItem(alertKey)) {
+                    showFloatingAlert('You have an unclosed check-in from a previous day. Please contact HR if needed.', 'warning');
+                    localStorage.setItem(alertKey, 'true');
+                }
+            } catch (e) {
+                // ignore
+            }
+            // Do not change button active/disabled state here.
+        }
+
+        // Update attendance logs dengan format 00:00
+        if (status.last_check_in_time) {
+            const timeInDisplay = document.getElementById("time_in_display");
+            if (timeInDisplay) {
+                timeInDisplay.textContent = formatTimeDisplay(status.last_check_in_time);
+            }
+        }
+
+        if (status.last_check_out_time) {
+            const timeOutDisplay = document.getElementById("time_out_display");
+            if (timeOutDisplay) {
+                timeOutDisplay.textContent = formatTimeDisplay(status.last_check_out_time);
+            }
         }
     }
-}
 
 // Fungsi untuk refresh status setelah check-in/check-out
 function refreshAttendanceStatus() {
@@ -1971,9 +2471,13 @@ function initializeAttendanceState() {
     document.addEventListener('attendanceUpdated', refreshAttendanceStatus);
 }
 
-// Initialize saat DOM ready
+// Initialize saat DOM ready - call multiple times to ensure quick loading
 document.addEventListener("DOMContentLoaded", function() {
+    // Call immediately
     initializeAttendanceState();
+    
+    // Call again after short delay to ensure all elements are ready
+    setTimeout(initializeAttendanceState, 100);
 });
 
 // Export fungsi untuk digunakan di file lain

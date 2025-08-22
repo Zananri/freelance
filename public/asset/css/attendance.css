@@ -85,7 +85,11 @@
     }
 
     .calendar-day.checked-in.checked-out {
-        background: linear-gradient(135deg, #007bff 50%, #6c757d 50%) !important;
+        background: linear-gradient(
+            135deg,
+            #007bff 50%,
+            #6c757d 50%
+        ) !important;
         color: white !important;
     }
 }
@@ -110,9 +114,9 @@
 }
 
 .form-check-input[type="radio"]:checked + .form-check-label {
-    background-color: #5770D5;
+    background-color: #5770d5;
     color: white;
-    border-color: #5770D5;
+    border-color: #5770d5;
 }
 
 .form-check-label:hover {
@@ -252,21 +256,21 @@
 }
 
 .attendance-logs {
-  width: 100%;
-  margin-top: 1rem;
+    width: 100%;
+    margin-top: 1rem;
 }
 
 .attendance-logs h6 {
-  margin-bottom: 10px;
+    margin-bottom: 10px;
 }
 
 .attendance-logs .log-row {
-  width: 100%;
+    width: 100%;
 }
 
 .attendance-logs p {
-  color: #757575;
-  font-size: 12px;
+    color: #757575;
+    font-size: 12px;
 }
 
 .user-info h3 {
@@ -465,7 +469,7 @@
 }
 
 .calendar-day.has-attendance::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 3px;
     left: 50%;
@@ -675,7 +679,6 @@
     opacity: 1;
 }
 
-
 #clearImageBtn {
     margin-top: 10px;
 }
@@ -690,8 +693,7 @@
     background-color: #dc3545;
     color: white;
     border-radius: 50%;
-    display: flex
-;
+    display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
@@ -707,7 +709,8 @@
     transform: scale(1.1);
 }
 
-#clearImageBtn, #retakeBtn {
+#clearImageBtn,
+#retakeBtn {
     margin-top: 10px;
     margin-right: 5px;
 }
@@ -779,22 +782,22 @@
 /* Responsive adjustments */
 @media (max-width: 576px) {
     .image-upload-label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 180px;
-    height: 250px;
-    border: 2px dashed #dee2e6;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: #f8f9fa;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: 50%;
-    opacity: 0.5;
-}
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 180px;
+        height: 250px;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+        background-position: center center;
+        background-repeat: no-repeat;
+        background-size: 50%;
+        opacity: 0.5;
+    }
     .image-upload-label:hover {
         border-color: #007bff;
         background-color: #e3f2fd;
@@ -875,7 +878,7 @@
     #time_in {
         font-size: 22px;
     }
-    
+
     #date_attendance {
         font-size: 16px;
     }
@@ -896,7 +899,6 @@
 }
 
 #time_in {
-
 }
 
 /* Responsive styling untuk modal di perangkat mobile */
@@ -934,23 +936,22 @@
     }
 
     #previewImg {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 180px !important;
-    height: 250px !important;
-    border: 2px dashed #dee2e6;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: #f8f9fa;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: 50%;
-    opacity: 1;
-}
-
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 180px !important;
+        height: 250px !important;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+        background-position: center center;
+        background-repeat: no-repeat;
+        background-size: 50%;
+        opacity: 1;
+    }
 }
 
 #previewImgCheckout {
@@ -984,8 +985,8 @@
 }
 
 .modal-content.camera-active {
-  background-color: transparent;
-  border: none;
+    background-color: transparent;
+    border: none;
 }
 
 #workOutsideStatusText {
@@ -1024,7 +1025,6 @@
     width: 100%;
 }
 
-
 .btn-custom-check {
     background-color: #e3e4ee;
     color: #444444;
@@ -1038,4 +1038,54 @@
 .btn-custom-check.active {
     background-color: #454545;
     color: #f3f3f3;
+}
+
+.check-in-details {
+    background-color: transparent;
+    padding: 20px;
+    border-radius: 8px;
+}
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+}
+.detail-row:last-child {
+    border-bottom: none;
+}
+.detail-value {
+    color: #555;
+    font-size: 14px;
+}
+
+.image-checkin {
+    margin-left: 20px;
+}
+
+.attendance-actions button {
+    display: flex;
+    padding: 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+    max-width: 200px;
+}
+
+.check-out-details {
+    background-color: transparent;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.image-checkout {
+    margin-left: 20px;
 }

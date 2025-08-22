@@ -61,8 +61,8 @@
                                     style="font-size: 12px;">
                                     <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <div class="time_in">
-                                            <span id="time_in_display"></span>
+                                       <div class="time_in" style="color: {{ $isLate ? 'red' : 'inherit' }};">
+                                            <span id="time_in_display">{{ $timeIn }}</span>
                                         </div>
                                         <button class="btn p-0 ms-1" style="line-height: 1;">
                                             <span class="material-symbols-outlined rounded-1"

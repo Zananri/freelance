@@ -124,19 +124,24 @@ class UserController extends Controller
         $photo = null;
         $employee = null;
         $attendance = null;
+        $shift = null;
+        $timeIn = null;
         $attendanceStatus = [
             'check_in' => 'pending',
             'check_out' => 'pending'
         ];
+        $isLate = false;
 
         if ($user) {
             $employee = Employee::where('user_id', $user->id)->first();
             $today = Carbon::today()->toDateString();
 
             if ($employee) {
-                // Prefer profile_picture if available, else photo
                 $photo = $employee->profile_picture ?? $employee->photo;
-                
+
+                // Get today's shift
+                $shift = $employee->shifts()->where('date_shift', $today)->first();
+
                 // Get today's attendance records
                 $attendances = Attendance::where('employee_id', $employee->id)
                     ->where('date_attendance', $today)
@@ -144,22 +149,19 @@ class UserController extends Controller
                     ->get();
 
                 if ($attendances->isEmpty()) {
-                    // No attendance today
                     $attendanceStatus = [
                         'check_in' => 'pending',
                         'check_out' => 'pending'
                     ];
                 } else {
                     $lastAttendance = $attendances->last();
-                    
+
                     if ($lastAttendance->type_attendance === 'check_in' && !$lastAttendance->time_out) {
-                        // Has checked in but not checked out
                         $attendanceStatus = [
                             'check_in' => 'completed',
                             'check_out' => 'pending'
                         ];
                     } elseif ($lastAttendance->type_attendance === 'check_out') {
-                        // Has checked out
                         $attendanceStatus = [
                             'check_in' => 'completed',
                             'check_out' => 'completed'
@@ -167,8 +169,12 @@ class UserController extends Controller
                     }
                 }
 
-                // Get the latest check-in attendance
                 $attendance = $attendances->where('type_attendance', 'check_in')->last();
+
+                // Calculate if late
+                $timeStart = $shift ? $shift->time_start : null;
+                $timeIn = $attendance ? $attendance->time_in : null;
+                $isLate = isset($timeStart, $timeIn) && !empty($timeStart) && !empty($timeIn) && strtotime($timeIn) > strtotime($timeStart);
             }
 
             // If photo is a relative path, convert to asset URL
@@ -177,7 +183,7 @@ class UserController extends Controller
             }
         }
 
-        return view('dashboard', compact('photo', 'employee', 'attendance', 'attendanceStatus'));
+        return view('dashboard', compact('photo', 'employee', 'attendance', 'attendanceStatus', 'shift', 'isLate', 'timeIn'));
     }
 
     /**
