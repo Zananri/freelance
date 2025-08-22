@@ -19,75 +19,79 @@
                 d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
         </symbol>
     </svg>
-    <div class="title-content">
-        <h2>Task</h2>
-        <div class="project-filter-display" id="projectFilterDisplay" style="display: none;">
-            <span class="filter-text">Filter <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">chevron_right</span></span>
-            <span class="project-name" id="currentProjectName" style="font-size: 16px; color: #222;"></span>
-        </div>
-    </div>
-
-    <div class="d-flex justify-content-end mb-3 gap-2 position-relative">
-        <div class="dropdown-filter-container">
-            <button class="btn btn-icon-toggle" type="button" id="openTaskFilterBtn">
-                <span class="material-symbols-outlined icon">filter_list</span> Filter
-            </button>
-            <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
-                <div class="dropdown-filter-header">
-                    <h6>Filter Tasks</h6>
-                </div>
-                <div class="dropdown-filter-body">
-                    <div class="mb-3">
-                        <label for="filterTaskProject" class="form-label">Filter by Project</label>
-                        <select id="filterTaskProject" class="form-select">
-                            <option value="">All Projects</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="filterTaskStatus" class="form-label">Filter by Status</label>
-                        <select id="filterTaskStatus" class="form-select">
-                            <option value="">All Status</option>
-                            <option value="new_request">New Request</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="dropdown-filter-footer">
-                    <button type="button" class="btn btn-submit-black" id="applyTaskFilterBtn">Filter</button>
-                </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="title-content">
+            <h2>Task</h2>
+            <div class="project-filter-display" id="projectFilterDisplay" style="display: none;">
+                <span class="filter-text">Filter
+                    <span class="material-symbols-outlined">chevron_right</span>
+                </span>
+                <span class="project-name" id="currentProjectName"></span>
             </div>
         </div>
-        <button class="btn-submit-black" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add Task</button>
+
+        <div class="d-flex align-items-center gap-2">
+            <div class="dropdown-filter-container">
+                <div class="search-input-container">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input class="form-control custom-form-filter" type="text" name="search_filter"
+                        id="search_filter">
+                </div>
+
+                <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+                    <span class="material-symbols-outlined">calendar_month</span>
+                </button>
+
+                <button class="btn btn-icon-toggle toggle-filter" type="button" id="openTaskFilterBtn">
+                    <span class="material-symbols-outlined icon">filter_list</span> <span
+                        class="btn-text-filter">Filter</span>
+                </button>
+
+                <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
+                    <div class="dropdown-filter-header">
+                        <h6>Filter Tasks</h6>
+                    </div>
+                    <div class="dropdown-filter-body">
+                        <div class="mb-3">
+                            <label for="filterTaskProject" class="form-label">Filter by Project</label>
+                            <select id="filterTaskProject" class="form-select">
+                                <option value="">All Projects</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="filterTaskStatus" class="form-label">Filter by Status</label>
+                            <select id="filterTaskStatus" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="new_request">New Request</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="dropdown-filter-footer">
+                        <button type="button" class="btn btn-submit-black" id="applyTaskFilterBtn">Filter</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add <span
+                    class="btn-text-add">Task</span></button>
+        </div>
     </div>
 
-    <div id="task-cards-container" class="container my-4">
+    <div id="task-cards-container" class="task-container container">
         <div class="row">
-            <!-- New Request Section -->
-            <div class="col-md-4">
-                <h4 class="task-section-title">
-                    <span class="status-indicator status-new-request"></span>
-                    New Request
-                </h4>
+            <div class="col-md-4 new-request-container">
+                <h4 class="task-section-title">New</h4>
                 <div id="new-request-tasks" class="task-list"></div>
             </div>
-
-            <!-- In Progress Section -->
-            <div class="col-md-4">
-                <h4 class="task-section-title">
-                    <span class="status-indicator status-in-progress"></span>
-                    In Progress
-                </h4>
+            <div class="col-md-4 in-progress-container">
+                <h4 class="task-section-title">In Progress</h4>
                 <div id="in-progress-tasks" class="task-list"></div>
             </div>
-
-            <!-- Completed Section -->
-            <div class="col-md-4">
-                <h4 class="task-section-title">
-                    <span class="status-indicator status-completed"></span>
-                    Completed
-                </h4>
+            <div class="col-md-4 completed-container">
+                <h4 class="task-section-title">Completed</h4>
                 <div id="completed-tasks" class="task-list"></div>
             </div>
         </div>
@@ -108,7 +112,7 @@
                 <form id="addTaskForm" enctype="multipart/form-data">
                     <div class="modal-body modal-body-custom">
                         <div id="addTaskAlert" class="alert alert-success d-none" role="alert"
-                            style="margin-bottom: 1rem; display:none;">
+                            style="display:none;">
                             Task added successfully!
                         </div>
                         <div class="mb-3">
@@ -116,7 +120,7 @@
                                 <span>Upload image</span>
                             </div>
                             <label for="task_image" class="custom-image-upload position-relative" id="taskImageLabel"
-                                style=" background-position: center center; background-repeat: no-repeat; background-size: 50%;  background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
+                                style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
                                 <input type="file" class="input-image" id="task_image" name="image"
                                     accept="image/*" hidden>
                                 <span class="image-clear-btn d-none" id="taskImageClearBtn"
@@ -169,12 +173,12 @@
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
-                            <div style="width: 48%;">
+                            <div class="date-form">
                                 <label for="task_start_date" class="form-label label-custom">Start Date</label>
                                 <input type="date" class="form-control input-text" id="task_start_date"
                                     name="start_date" required>
                             </div>
-                            <div style="width: 48%;">
+                            <div class="date-form">
                                 <label for="task_due_date" class="form-label label-custom">Due Date</label>
                                 <input type="date" class="form-control input-text" id="task_due_date"
                                     name="due_date" required>
@@ -184,8 +188,7 @@
                             <label for="executor_input" class="form-label label-custom">Executor</label>
                             <input type="text" class="form-control input-text" id="executor_input"
                                 name="executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="executor_dropdown" class="dropdown-list mt-1"
-                                style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
+                            <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
                             </div>
                             <div id="selected_executors" class="mt-2 d-flex flex-wrap gap-2">
                                 <!-- Selected executors will appear here -->
@@ -194,13 +197,13 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black">
+                        <button type="submit">
                             Submit
                         </button>
                     </div>
                 </form>
             </div>
-            <div class="alert-container mt-2" style="width: 100%;"></div>
+            <div class="alert-container mt-2"></div>
         </div>
     </div>
 
@@ -224,8 +227,7 @@
                                 <span>Upload image</span>
                             </div>
                             <label for="edit_task_image" class="custom-image-upload position-relative"
-                                id="editTaskImageLabel"
-                                style=" background-position: center center; background-repeat: no-repeat; background-size: 50%;  background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
+                                id="editTaskImageLabel" style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
                                 <input type="file" class="input-image" id="edit_task_image" name="image"
                                     accept="image/*" hidden>
                                 <span class="image-clear-btn d-none" id="editTaskImageClearBtn"
@@ -285,12 +287,12 @@
                         </div>
 
                         <div class="mb-3 d-flex justify-content-between">
-                            <div style="width: 48%;">
+                            <div class="date-form">
                                 <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
                                 <input type="date" class="form-control input-text" id="edit_task_start_date"
                                     name="start_date" required>
                             </div>
-                            <div style="width: 48%;">
+                            <div class="date-form">
                                 <label for="edit_task_due_date" class="form-label label-custom">Due Date</label>
                                 <input type="date" class="form-control input-text" id="edit_task_due_date"
                                     name="due_date" required>
@@ -300,8 +302,7 @@
                             <label for="edit_executor_input" class="form-label label-custom">Executor</label>
                             <input type="text" class="form-control input-text" id="edit_executor_input"
                                 name="edit_executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_executor_dropdown" class="dropdown-list mt-1"
-                                style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
+                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list">
                             </div>
                             <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2">
                                 <!-- Selected executors will appear here -->
@@ -316,23 +317,22 @@
                     </div>
                 </form>
             </div>
-            <div class="alert-container mt-2" style="width: 100%;"></div>
+            <div class="alert-container mt-2"></div>
         </div>
     </div>
 
     <!-- Task Detail Modal -->
     <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-            <div class="modal-content modal-content-custom" style="box-shadow: none;">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
                     <button type="button" class="btn-close float-end" data-bs-dismiss="modal"
                         aria-label="Close"></button>
                     <div class="task-detail-modal">
                         <div class="task-photo-title-author">
-                            <img id="taskDetailImage" src="" alt="Task Image" class="task-photo"
-                                style="border-radius: 8px;">
-                            <h2 class="task-title" id="taskDetailTitle" style="text-align: justify;"></h2>
+                            <img id="taskDetailImage" src="" alt="Task Image" class="task-photo">
+                            <h2 class="task-title" id="taskDetailTitle"></h2>
                             <p class="task-description" id="taskDetailDescription"></p>
                         </div>
                         <div class="task-detail-columns">
@@ -362,15 +362,14 @@
     <!-- Delete Task Confirmation Modal -->
     <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
                     <h5 class="modal-title modal-title-custom" id="deleteTaskModalLabel">Delete Task</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <img id="deleteTaskImage" src="" alt="Task Image"
-                        style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
+                    <img id="deleteTaskImage" src="" alt="Task Image" class="delete-image-confim">
                     <p id="deleteTaskTitle" class="fw-bold fs-5 text-center mb-4"></p>
                     <div class="d-flex justify-content-center gap-3 w-100">
                         <button type="button" class="btn btn-danger" id="confirmDeleteTaskBtn">Delete</button>
@@ -384,19 +383,20 @@
     <!-- Back to Request Status Modal -->
     <div class="modal fade" id="progressStatusModal" tabindex="-1" aria-labelledby="progressStatusModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
                     <h4 class="fw-bold text-center mb-2" id="progressStatusTitle">In Progress</h4>
-                    <p class="text-center mb-4" id="progressStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                    <p class="text-center mb-4 modal-description" id="progressStatusDescription">
                         Task is being worked on
                     </p>
                     <p class="fw-bold fs-5 text-center mb-4">Are you sure want to go back to Request?</p>
                     <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-submit-black" id="confirmProgressStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-submit-black"
+                            id="confirmProgressStatusBtn">Confirm</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
@@ -407,19 +407,20 @@
     <!-- Complete Status Modal -->
     <div class="modal fade" id="completeStatusModal" tabindex="-1" aria-labelledby="completeStatusModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
                     <h4 class="fw-bold text-center mb-2" id="completeStatusTitle">Completed</h4>
-                    <p class="text-center mb-4" id="completeStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                    <p class="text-center mb-4 modal-description" id="completeStatusDescription">
                         Task has been finished
                     </p>
                     <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Complete?</p>
                     <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-submit-black" id="confirmCompleteStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-submit-black"
+                            id="confirmCompleteStatusBtn">Confirm</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
@@ -430,19 +431,20 @@
     <!-- Reject Status Modal -->
     <div class="modal fade" id="rejectStatusModal" tabindex="-1" aria-labelledby="rejectStatusModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
                     <h4 class="fw-bold text-center mb-2" id="rejectStatusTitle">Rejected</h4>
-                    <p class="text-center mb-4" id="rejectStatusDescription" style="font-size: 0.9rem; color: #666; max-width: 300px; word-break: break-word;">
+                    <p class="text-center mb-4 modal-description" id="rejectStatusDescription">
                         Task has been rejected
                     </p>
                     <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Reject?</p>
                     <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-submit-black" id="confirmRejectStatusBtn">Confirm</button>
+                        <button type="button" class="btn btn-submit-black"
+                            id="confirmRejectStatusBtn">Confirm</button>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
@@ -453,8 +455,8 @@
     <!-- Reference Files Modal -->
     <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-            <div class="modal-content modal-content-custom" style="box-shadow: none;">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
                     <h5 class="modal-title modal-title-custom" id="referenceFilesModalLabel">Reference Files</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -486,11 +488,11 @@
                 <div class="modal-body feedback-modal-body" id="taskFeedbackList">
                 </div>
                 <div class="modal-footer feedback-modal-footer">
-                    <button type="button" class="btn btn-submit-black btn-submit-custom" id="addFeedbackButton"
-                        style="width: 120px; white-space: nowrap;">Add Feedback</button>
+                    <button type="button" class="btn btn-submit-black btn-submit-custom" id="addFeedbackButton">Add
+                        Feedback</button>
                 </div>
             </div>
-            <div class="alert-container mt-2" style="width: 100%;"></div>
+            <div class="alert-container mt-2"></div>
         </div>
     </div>
 

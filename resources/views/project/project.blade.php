@@ -34,9 +34,9 @@
                 {{-- project chart --}}
                 <div class="body-content chart-section p-4">
                     <div class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
-                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
                             <span class="material-symbols-outlined"
-                                style="font-size: 18px; color: #858CA0;">calendar_month</span>
+                                style="font-size: 18px; color: #4C5060;">calendar_month</span>
                         </button>
                     </div>
                     <div class="chart-container">
@@ -44,19 +44,19 @@
                     </div>
                     <div class="chart-labels d-flex justify-content-evenly align-items-center mt-3">
                         <div class="text-center">
-                            <span style="font-weight: bold; color: #222;">10</span><br>
+                            <span style="font-weight: bold; color: #222;">0</span><br>
                             <span style="color: #828282; font-size: 12px;">Total</span>
                         </div>
                         <div class="text-center">
-                            <span style="font-weight: bold; color: #4fc97a;">3</span><br>
+                            <span style="font-weight: bold; color: #4fc97a;">0</span><br>
                             <span style="color: #828282; font-size: 12px;">Complete</span>
                         </div>
                         <div class="text-center">
-                            <span style="font-weight: bold; color: #5a9be6;">5</span><br>
+                            <span style="font-weight: bold; color: #5a9be6;">0</span><br>
                             <span style="color: #828282; font-size: 12px;">On Progress</span>
                         </div>
                         <div class="text-center">
-                            <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
+                            <span style="font-weight: bold; color: #ff6b6b;">0</span><br>
                             <span style="color: #828282; font-size: 12px;">Late</span>
                         </div>
                     </div>
@@ -79,7 +79,7 @@
                                         <button class="btn btn-sm" id="nextTimeline">
                                             <span class="material-symbols-outlined">chevron_right</span>
                                         </button>
-                                        <button id="timelineFullscreenBtn" class="btn btn-sm border-0 bg-transparent">
+                                        <button data-bs-toggle="modal" data-bs-target="#timelineModal" class="btn btn-sm border-0 bg-transparent">
                                             <span id="timelineFullscreenIcon"
                                                 class="material-symbols-outlined">fullscreen</span>
                                         </button>
@@ -102,14 +102,14 @@
             </div>
 
             {{-- Modal Timeline --}}
-            <div class="timeline-modal-overlay animate-in" id="timelineModal">
-                <div class="timeline-modal">
-                    <div class="timeline-card-modal h-100">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <!-- Title -->
-                            <h5 id="timelineModalTitle" class="fw-semibold mb-0">Timeline</h5>
+            <div class="modal fade timeline-modal-overlay" id="timelineModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+                aria-labelledby="timelineModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content timeline-modal">
 
-                            <!-- Action buttons -->
+                        <!-- Header -->
+                        <div class="modal-header d-flex justify-content-between align-items-center">
+                            <h5 class="modal-title fw-normal mb-0" id="timelineModalTitle">Timeline</h5>
                             <div class="d-flex align-items-center gap-2">
                                 <button class="btn btn-sm" id="prevTimelineModal">
                                     <span class="material-symbols-outlined">chevron_left</span>
@@ -117,27 +117,22 @@
                                 <button class="btn btn-sm me-3" id="nextTimelineModal">
                                     <span class="material-symbols-outlined">chevron_right</span>
                                 </button>
-
-                                <!-- Tombol fullscreen exit -->
-                                <button id="timelineModalClose" class="btn btn-sm border-0 bg-transparent me-2">
+                                <button class="exit-fullscreen-btn" type="button" data-bs-dismiss="modal">
                                     <span class="material-symbols-outlined">fullscreen_exit</span>
-                                </button>
-
-                                <!-- Tombol close modal -->
-                                <button id="timelineModalCloseBtn" class="btn btn-sm border-0 bg-transparent">
-                                    <span class="material-symbols-outlined">close</span>
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Timeline table -->
-                        <div class="timeline-wrapper">
-                            <table class="timeline-table">
-                                <thead>
-                                    <tr id="timelineHeaderModal"></tr>
-                                </thead>
-                                <tbody id="timelineRowsModal"></tbody>
-                            </table>
+                        <!-- Body -->
+                        <div class="modal-body p-0">
+                            <div class="timeline-wrapper">
+                                <table class="timeline-table w-100">
+                                    <thead>
+                                        <tr id="timelineHeaderModal"></tr>
+                                    </thead>
+                                    <tbody id="timelineRowsModal"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -145,21 +140,23 @@
 
             <div class="bottom-project-content mt-5">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-4">All Project</h6>
+                    <h6 class="mb-4 all-projects-title">All Project</h6>
                     <div class="dropdown-filter-container">
                         <div class="btn-filter-container mb-3">
                             <div class="search-input-container position-relative me-3">
                                 <span class="material-symbols-outlined search-icon">search</span>
-                                <input class="form-control custom-form-filter ps-5" type="text" name="search_filter"
-                                    id="search_filter">
+                                <input class="form-control custom-form-filter ps-5" type="text"
+                                    name="search_filter" id="search_filter">
                             </div>
                             <button class="btn btn-icon-toggle btn-filter-custom me-3" type="button"
-                                id="openProjectFilterBtn">
-                                <span class="material-symbols-outlined icon">filter_list</span> Filter
+                                data-label="Filter" id="openProjectFilterBtn">
+                                <span class="material-symbols-outlined icon">filter_list</span> <span
+                                    class="btn-text-filter">Filter</span>
                             </button>
                             <button class="btn btn-icon-toggle btn-timeline-filter-custom" type="button"
-                                id="openProjectFilterBtn">
-                                <span class="material-symbols-outlined icon">view_timeline</span> Timeline
+                                data-bs-toggle="modal" data-bs-target="#timelineModal" data-label="TImeline" id="openProjectFilterBtn">
+                                <span class="material-symbols-outlined icon">view_timeline</span> <span
+                                    class="btn-text-filter">Timeline</span>
                             </button>
                         </div>
                         <div class="dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
@@ -188,7 +185,6 @@
                 </div>
                 <div id="all-cards-container">
                     {{-- Content Card --}}
-
                 </div>
             </div>
         </div>
@@ -196,7 +192,7 @@
     </div>
 
     <!-- Add Project Modal -->
-    <div class="modal fade" id="addProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    <div class="modal fade add-project-modal" id="addProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labelledby="addProjectModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
