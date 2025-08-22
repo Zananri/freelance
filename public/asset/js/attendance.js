@@ -137,6 +137,12 @@ function setupEventListeners() {
     if (checkOutBtn) {
         checkOutBtn.addEventListener("click", function () {
             try {
+                // If user hasn't checked in yet, just show alert and do nothing
+                const currentStatus = (window.AttendanceState && window.AttendanceState.currentStatus) ? window.AttendanceState.currentStatus.status : undefined;
+                if (currentStatus === 'not_started') {
+                    showFloatingAlert("You have not checked in yet.", "warning");
+                    return;
+                }
                 if (checkOutBtn.classList.contains('active')) {
                     // If already checked out (active), show detail modal
                     openCheckOutDetailModal();
@@ -2237,7 +2243,7 @@ function openCheckOutDetailModal() {
                             detailMapCheckOut.setView([outLatNum, outLngNum], 16);
                         }, 250);
                     } catch (error) {
-                        console.error('Error initializing checkout map:', error);
+                        console.    error('Error initializing checkout map:', error);
                         document.getElementById('detailMapCheckOut').innerHTML = '<div class=\"alert alert-warning text-center\">Error loading checkout map</div>';
                     }
                 });
@@ -2399,8 +2405,8 @@ function getTodayAttendanceStatus() {
 
         // Update berdasarkan status
         if (status.status === "not_started") {
-            // Belum check-in sama sekali
-            checkOutBtn.disabled = true;
+            // Belum check-in sama sekali (jangan disable checkout; tampilkan alert saat diklik)
+            // checkOutBtn.disabled = false; // keep enabled
         } else if (status.status === "checked_in") {
             // Sudah check-in tapi belum check-out
             checkInBtn.classList.add("active");
@@ -2443,6 +2449,12 @@ function getTodayAttendanceStatus() {
                 timeOutDisplay.textContent = formatTimeDisplay(status.last_check_out_time);
             }
         }
+
+        // Simpan status terkini untuk handler click
+        try {
+            if (!window.AttendanceState) window.AttendanceState = {};
+            window.AttendanceState.currentStatus = status;
+        } catch (e) { /* ignore */ }
     }
 
 // Fungsi untuk refresh status setelah check-in/check-out

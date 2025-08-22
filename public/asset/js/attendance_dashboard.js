@@ -278,6 +278,12 @@ function setupEventListeners() {
     if (checkOutBtn) {
         checkOutBtn.addEventListener("click", function () {
             try {
+                // If user hasn't checked in yet, show alert instead of opening modal
+                const currentStatus = (window.AttendanceState && window.AttendanceState.currentStatus) ? window.AttendanceState.currentStatus.status : undefined;
+                if (currentStatus === 'not_started') {
+                    showAlertDashboard("You have not checked in yet.", "warning");
+                    return;
+                }
                 if (checkOutBtn.classList.contains('active')) {
                     // If already checked out (active), show detail modal
                     openCheckOutDetailModal();
@@ -2281,9 +2287,8 @@ if (typeof window !== 'undefined') {
 
         // Update berdasarkan status
         if (status.status === "not_started") {
-            // Belum check-in sama sekali: disable check-out
-            checkOutBtn.disabled = true;
-            console.log('Dashboard - Set state: not_started (checkout disabled)');
+            // Belum check-in sama sekali: jangan disable checkout, tampilkan alert saat diklik
+            console.log('Dashboard - Set state: not_started (checkout enabled with alert)');
         } else if (status.status === "checked_in") {
             // Sudah check-in tapi belum check-out: enable both buttons
             checkInBtn.classList.add("active");
@@ -2335,6 +2340,12 @@ if (typeof window !== 'undefined') {
                 timeOutDisplay.textContent = formatTimeDisplay(status.last_check_out_time);
             }
         }
+
+        // Simpan status terkini untuk handler click
+        try {
+            if (!window.AttendanceState) window.AttendanceState = {};
+            window.AttendanceState.currentStatus = status;
+        } catch (e) { /* ignore */ }
     }
 
 // Fungsi untuk refresh status setelah check-in/check-out
