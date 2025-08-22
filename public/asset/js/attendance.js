@@ -2071,27 +2071,27 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const days = [
-            "Minggu",
-            "Senin",
-            "Selasa",
-            "Rabu",
-            "Kamis",
-            "Jumat",
-            "Sabtu",
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
         ];
         const months = [
-            "Januari",
-            "Februari",
-            "Maret",
+            "January",
+            "February",
+            "March",
             "April",
-            "Mei",
-            "Juni",
-            "Juli",
-            "Agustus",
+            "May",
+            "June",
+            "July",
+            "August",
             "September",
-            "Oktober",
+            "October",
             "November",
-            "Desember",
+            "December",
         ];
 
         let dayName = days[now.getDay()];
