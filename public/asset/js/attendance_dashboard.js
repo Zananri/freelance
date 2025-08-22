@@ -19,6 +19,11 @@ async function getEmployeeShiftDetails(employeeId, date) {
     }
 }
 
+// Run once on initial load to set chevron visibility correctly
+document.addEventListener('DOMContentLoaded', function () {
+    try { updateChevronVisibility(); } catch (e) {}
+});
+
 // Fungsi untuk validasi waktu check-in berdasarkan shift
 async function validateCheckInTime(employeeId, date) {
     const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
@@ -1422,17 +1427,11 @@ fetch(`${baseUrl}/attendance/store`, {
             clearImage();
 
             // Update status without reload
-            getTodayAttendanceStatus();
-            
-            // Update UI to show check-in as active and enable check-out
-            const checkInBtn = document.getElementById("checkInBtn");
-            const checkOutBtn = document.getElementById("checkOutBtn");
-            if (checkInBtn && checkOutBtn) {
-                checkInBtn.classList.add("active");
-                checkInBtn.disabled = false;
-                checkOutBtn.disabled = false;
-                $("#checkInBtn .check-icon").show();
-            }
+            // After showing success alert, reload the page once the alert has disappeared
+            // showAlertDashboard uses a 3s display + 0.5s fade; reload after ~3.6s
+            setTimeout(() => {
+                try { window.location.reload(); } catch (e) { /* ignore */ }
+            }, 3600);
         } else {
             showAlertDashboard(
                 data.message || "Error submitting check-in",
@@ -1659,6 +1658,13 @@ function populateCheckoutModal(checkInRecord, serverTime) {
         const timeInDisplay = document.getElementById("time_in_display");
         if (timeInDisplay) {
             timeInDisplay.textContent = formatTimeDisplay(checkInRecord.time_in) || "--:--";
+            try {
+                if (checkInRecord.is_late) {
+                    timeInDisplay.classList.add('text-danger');
+                } else {
+                    timeInDisplay.classList.remove('text-danger');
+                }
+            } catch (e) {}
         }
 
         // Simpan time_in untuk referensi
@@ -2331,6 +2337,14 @@ if (typeof window !== 'undefined') {
             const timeInDisplay = document.getElementById("time_in_display");
             if (timeInDisplay) {
                 timeInDisplay.textContent = formatTimeDisplay(status.last_check_in_time);
+                // Apply red color immediately if server says this check-in is late
+                try {
+                    if (status.is_late) {
+                        timeInDisplay.classList.add('text-danger');
+                    } else {
+                        timeInDisplay.classList.remove('text-danger');
+                    }
+                } catch (e) { /* ignore */ }
             }
         }
 
@@ -2346,7 +2360,41 @@ if (typeof window !== 'undefined') {
             if (!window.AttendanceState) window.AttendanceState = {};
             window.AttendanceState.currentStatus = status;
         } catch (e) { /* ignore */ }
+        // Update chevron visibility after times have been updated
+        try { updateChevronVisibility(); } catch (e) {}
     }
+
+// Hide chevron buttons until their corresponding time is available
+function updateChevronVisibility() {
+    const timeInEl = document.getElementById('time_in_display');
+    const timeOutEl = document.getElementById('time_out_display');
+
+    const hasTime = (el) => {
+        if (!el) return false;
+        const txt = (el.textContent || '').trim();
+        if (!txt) return false;
+        if (txt === 'Loading...' || txt === '--:--') return false;
+        return true;
+    };
+
+    try {
+        const inWrapper = document.querySelector('.chevron-icon-attendance .time_in');
+        if (inWrapper) {
+            const btn = inWrapper.parentElement.querySelector('button');
+            if (btn) btn.style.display = hasTime(timeInEl) ? 'inline-flex' : 'none';
+        }
+    } catch (e) {}
+
+    try {
+        const outWrapper = document.querySelectorAll('.chevron-icon-attendance .time_out')[0];
+        const outEl = document.querySelector('.chevron-icon-attendance .time_out');
+        const targetOut = outWrapper || outEl;
+        if (targetOut) {
+            const btn = targetOut.parentElement.querySelector('button');
+            if (btn) btn.style.display = hasTime(timeOutEl) ? 'inline-flex' : 'none';
+        }
+    } catch (e) {}
+}
 
 // Fungsi untuk refresh status setelah check-in/check-out
 function refreshAttendanceStatus() {
