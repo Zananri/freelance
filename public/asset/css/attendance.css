@@ -1061,3 +1061,21 @@
 .image-checkin {
     margin-left: 20px;
 }
+
+.attendance-actions button {
+    display: flex;
+    padding: 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+    max-width: 200px;
+}

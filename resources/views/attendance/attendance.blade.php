@@ -29,14 +29,14 @@
                         </div>
                     </div>
 
-                    <div class="attendance-actions-left mt-4 w-100 d-flex justify-content-between">
-                        <button class="btn btn-check-in btn-custom-check w-25 m-2 p-2" data-check-active="checkIn"
+                    <div class="attendance-actions mt-4 w-100 d-flex justify-content-between">
+                        <button class="btn btn-check-in btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkIn"
                             id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
                             <span class="material-symbols-outlined check-icon"
                                 style="display: {{ $attendanceStatus['check_in'] === 'completed' ? 'inline' : 'none' }};">check</span>
                             Check In
                         </button>
-                        <button class="btn btn-check-out btn-custom-check w-25 m-2 p-2" data-check-active="checkOut"
+                        <button class="btn btn-check-out btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut"
                             id="checkOutBtn" data-status="{{ $attendanceStatus['check_out'] ?? 'pending' }}">
                             <span class="material-symbols-outlined done-all-icon"
                                 style="display: {{ $attendanceStatus['check_out'] === 'completed' ? 'inline' : 'none' }};">done_all</span>

@@ -136,22 +136,6 @@ function setupEventListeners() {
         });
     }
 
-    // Calendar navigation
-    const prevMonthBtn = document.getElementById("prevMonth");
-    const nextMonthBtn = document.getElementById("nextMonth");
-
-    if (prevMonthBtn) {
-        prevMonthBtn.addEventListener("click", function () {
-            navigateMonth(-1);
-        });
-    }
-
-    if (nextMonthBtn) {
-        nextMonthBtn.addEventListener("click", function () {
-            navigateMonth(1);
-        });
-    }
-
     // Modal form submission
     const submitCheckInBtn = document.getElementById("submitCheckInBtn");
     if (submitCheckInBtn) {
@@ -528,6 +512,15 @@ function calculateWorkingHours() {
 
                         console.log("Latest unclosed attendance:", latestData);
                         console.log("Today's attendance:", todayData);
+                        // Reset default UI state: by default user can check in, cannot check out
+                        checkInBtn.style.display = "flex";
+                        checkOutBtn.style.display = "flex";
+                        checkInBtn.disabled = false;
+                        checkOutBtn.disabled = true;
+                        checkInBtn.classList.remove('active');
+                        checkOutBtn.classList.remove('active');
+                        try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+                        try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
 
                         // Cek apakah ada check-in yang belum ditutup dari hari sebelumnya
                         if (latestData.status === "success" && latestData.data) {
@@ -576,8 +569,7 @@ function calculateWorkingHours() {
                                 // Ada check-in yang belum ditutup dari hari sebelumnya
                                     console.warn("You forgot to check out yesterday, please contact HR.");
 
-                                    // Reset UI for a new day: allow check-in for today, disable check-out
-                                    // Untuk hari ini: biarkan tombol Check-in dan Check-out aktif
+                                    // Reset UI for a new day: allow check-in for today, but keep check-out disabled
                                     checkInBtn.style.display = "flex";
                                     checkInBtn.disabled = false;
                                     checkInBtn.classList.remove('active');
@@ -585,8 +577,8 @@ function calculateWorkingHours() {
                                     try { $("#checkInBtn .check-icon").hide(); } catch(e){}
 
                                     checkOutBtn.style.display = "flex";
-                                    // Jangan disable checkOutBtn hanya karena ada unclosed dari kemarin
-                                    checkOutBtn.disabled = false;
+                                    // Keep checkout disabled until user actually checks in today
+                                    checkOutBtn.disabled = true;
                                     checkOutBtn.classList.remove('active');
                                     try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
 
@@ -624,6 +616,8 @@ function calculateWorkingHours() {
                             console.warn("No attendance record found for today.");
                             checkInBtn.style.display = "flex";
                             checkOutBtn.style.display = "flex";
+                            checkInBtn.disabled = false;
+                            checkOutBtn.disabled = true;
                             return;
                         }
 
@@ -637,6 +631,12 @@ function calculateWorkingHours() {
                                 // Has checked in but not checked out, show checkout button
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
+                                // User already checked in today: mark checkIn active and allow checkout
+                                checkInBtn.disabled = false;
+                                checkInBtn.classList.add('active');
+                                try { $("#checkInBtn .check-icon").show(); } catch(e){}
+                                checkOutBtn.disabled = false;
+                                try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
 
                                 // Update hidden time fields
                                 const checkInTimeInput = document.getElementById("checkInTime");
@@ -648,17 +648,23 @@ function calculateWorkingHours() {
                                 // Has both checked in and checked out, show check-in button for next shift
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
+                                checkInBtn.disabled = false;
+                                checkOutBtn.disabled = true;
                                 return;
                             } else {
                                 // Fallback case
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
+                                checkInBtn.disabled = false;
+                                checkOutBtn.disabled = true;
                                 return;
                             }
                         } else {
                             // No attendance today, show check-in button
                             checkInBtn.style.display = "flex";
                             checkOutBtn.style.display = "flex";
+                            checkInBtn.disabled = false;
+                            checkOutBtn.disabled = true;
                             return;
                         }
                     })
@@ -2166,12 +2172,20 @@ function getTodayAttendanceStatus() {
             $("#checkOutBtn .done-all-icon").show();
         }
 
-        // Handle unclosed attendance
+        // Handle unclosed attendance: do NOT automatically mark buttons as active.
+        // Instead show a one-time, non-blocking warning to the user.
         if (status.has_unclosed) {
-            checkInBtn.classList.add("active");
-            checkOutBtn.classList.add("active");
-            $("#checkInBtn .check-icon").show();
-            $("#checkOutBtn .done-all-icon").show();
+            try {
+                const employeeId = document.querySelector('input[name="employee_id"]')?.value || 'guest';
+                const alertKey = `attendanceForgotCheckoutShown_${employeeId}`;
+                if (!localStorage.getItem(alertKey)) {
+                    showFloatingAlert('You have an unclosed check-in from a previous day. Please contact HR if needed.', 'warning');
+                    localStorage.setItem(alertKey, 'true');
+                }
+            } catch (e) {
+                // ignore
+            }
+            // Do not change button active/disabled state here.
         }
 
         // Update attendance logs dengan format 00:00

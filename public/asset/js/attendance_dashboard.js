@@ -1852,12 +1852,21 @@ function getTodayAttendanceStatus() {
             $("#checkOutBtn .done-all-icon").show();
         }
 
-        // Handle unclosed attendance
+        // Handle unclosed attendance: do NOT automatically mark buttons as active.
+        // Showing buttons as "active" should reflect an actual today's action.
+        // Instead, show a non-blocking warning once per user session.
         if (status.has_unclosed) {
-            checkInBtn.classList.add("active");
-            checkOutBtn.classList.add("active");
-            $("#checkInBtn .check-icon").show();
-            $("#checkOutBtn .done-all-icon").show();
+            try {
+                const employeeId = document.querySelector('input[name="employee_id"]')?.value || 'guest';
+                const alertKey = `attendanceForgotCheckoutShown_${employeeId}`;
+                if (!localStorage.getItem(alertKey)) {
+                    showAlertDashboard('You have an unclosed check-in from a previous day. Please contact HR if needed.', 'warning');
+                    localStorage.setItem(alertKey, 'true');
+                }
+            } catch (e) {
+                // ignore
+            }
+            // Do not change checkInBtn/checkOutBtn active/disabled state here.
         }
 
         // Update attendance logs dengan format 00:00
