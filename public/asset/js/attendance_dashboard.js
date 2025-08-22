@@ -339,6 +339,30 @@ function setupEventListeners() {
 
     // Initialize image upload visibility based on default selection
     toggleImageUploadVisibility();
+
+    // Chevron detail buttons - use event delegation
+    document.body.addEventListener('click', function (e) {
+        // Handle chevron buttons
+        const chevronBtn = e.target.closest && e.target.closest('.chevron-detail-btn');
+        if (chevronBtn) {
+            const type = chevronBtn.getAttribute('data-type');
+            if (type === 'in') openCheckInDetailModal();
+            else if (type === 'out') openCheckOutDetailModal();
+            return;
+        }
+
+        // Handle clicking on the time text/area itself
+        const timeBtn = e.target.closest && e.target.closest('.time-detail-btn');
+        if (timeBtn) {
+            const type = timeBtn.getAttribute('data-type');
+            // Only open modal if time text exists
+            const span = timeBtn.querySelector('span');
+            const txt = span ? (span.textContent || '').trim() : '';
+            if (!txt || txt === 'Loading...' || txt === '--:--') return;
+            if (type === 'in') openCheckInDetailModal();
+            else if (type === 'out') openCheckOutDetailModal();
+        }
+    });
 }
 
 // Function to toggle image upload visibility based on work outside selection
