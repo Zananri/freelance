@@ -2052,22 +2052,15 @@ function openCheckInDetailModal() {
                             maxZoom: 19
                         }).addTo(detailMap);
 
-                        // Marker for Check-in
-                        L.marker([inLat, inLng]).addTo(detailMap).bindPopup("Check-in location");
-
-                        // Marker for Check-out if available
-                        if (!isNaN(outLat) && !isNaN(outLng)) {
-                            L.marker([outLat, outLng]).addTo(detailMap).bindPopup("Check-out location");
-                        }
+                        // Marker for Check-in with label (only show check-in location in this modal)
+                        const inMarker = L.marker([inLat, inLng]).addTo(detailMap);
+                        inMarker.bindPopup("Check in Location");
+                        inMarker.bindTooltip("Check in Location", { permanent: true, direction: 'top', offset: [0, -10] });
 
                         setTimeout(() => {
                             detailMap.invalidateSize();
-                            if (!isNaN(outLat) && !isNaN(outLng)) {
-                                const bounds = L.latLngBounds([[inLat, inLng], [outLat, outLng]]);
-                                detailMap.fitBounds(bounds.pad(0.25));
-                            } else {
-                                detailMap.setView([inLat, inLng], 16);
-                            }
+                            // Only center on check-in location for this modal
+                            detailMap.setView([inLat, inLng], 16);
                         }, 250);
                     } catch (error) {
                         console.error('Error initializing map:', error);
@@ -2234,19 +2227,14 @@ function openCheckOutDetailModal() {
                             maxZoom: 19
                         }).addTo(detailMapCheckOut);
 
-                        L.marker([outLatNum, outLngNum]).addTo(detailMapCheckOut).bindPopup("Check-out location");
-                        if (!isNaN(inLatNum) && !isNaN(inLngNum)) {
-                            L.marker([inLatNum, inLngNum]).addTo(detailMapCheckOut).bindPopup("Check-in location");
-                        }
+                        const outMarker = L.marker([outLatNum, outLngNum]).addTo(detailMapCheckOut);
+                        outMarker.bindPopup("Check out Location");
+                        outMarker.bindTooltip("Check out Location", { permanent: true, direction: 'top', offset: [0, -10] });
 
                         setTimeout(() => {
                             detailMapCheckOut.invalidateSize();
-                            if (!isNaN(inLatNum) && !isNaN(inLngNum)) {
-                                const bounds = L.latLngBounds([[inLatNum, inLngNum], [outLatNum, outLngNum]]);
-                                detailMapCheckOut.fitBounds(bounds.pad(0.25));
-                            } else {
-                                detailMapCheckOut.setView([outLatNum, outLngNum], 16);
-                            }
+                            // Only center on check-out location for this modal
+                            detailMapCheckOut.setView([outLatNum, outLngNum], 16);
                         }, 250);
                     } catch (error) {
                         console.error('Error initializing checkout map:', error);
