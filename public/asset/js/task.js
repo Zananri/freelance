@@ -3041,43 +3041,79 @@ function handleTaskDetail(taskId) {
 
 $(document).ready(function () {
   const mobileCardHtml = `
-    <div id="mobile-task-container" class="d-md-none">
-        <div class="task-mobile-card-header">
-            <select id="mobileTaskStatus" class="form-select">
-                <option value="new_request">New</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-            </select>
-            <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
-                <span class="material-symbols-outlined">calendar_month</span>
-            </button>
-            <button class="btn btn-sm toggle-filter" id="openTaskFilterBtn">
-                <span class="material-symbols-outlined">filter_list</span>
-            </button>
+    <div class="mobile-task-container p-3 rounded-4 d-md-none">
+      <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
+        <select id="mobileTaskStatus" class="form-select border-0 bg-transparent" style="max-width:140px;">
+          <option value="all">All Status</option>
+          <option value="new_request">New</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+        </select>
+        <div class="action-buttons d-flex gap-2">
+          <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+            <span class="material-symbols-outlined">calendar_month</span>
+          </button>
+          <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+            <span class="material-symbols-outlined">filter_list</span>
+          </button>
         </div>
-        <div id="mobile-task-list"></div>
+      </div>
+      <div id="mobile-task-list"></div>
     </div>
   `;
 
+  // sisipkan ke sebelum container desktop
   $("#task-cards-container").before(mobileCardHtml);
 
-  // handle status change
+  // hide filter desktop di mobile
+  function toggleDropdownFilter() {
+    let dropdown = $(".dropdown-filter-container");
+    if ($(window).width() <= 768) {
+      dropdown.addClass("d-none");
+    } else {
+      dropdown.removeClass("d-none");
+    }
+  }
+  toggleDropdownFilter();
+  $(window).on("resize", toggleDropdownFilter);
+
+  // handler ganti status
   $("#mobileTaskStatus").on("change", function () {
     let status = $(this).val();
-    let container = $("#mobile-task-list");
+    let container = $(".mobile-task-container");
+    let list = $("#mobile-task-list");
 
-    container.empty();
+    container.removeClass("task-mobile-new task-mobile-progress task-mobile-completed");
+    list.empty(); // clear dulu biar ga numpuk
 
     if (status === "new_request") {
-      container.html($("#new-request-tasks").html());
+      container.addClass("task-mobile-new");
+      let newClone = $("#new-request-tasks").clone(true, true);
+      newClone.removeAttr("id"); // hindari duplikat id
+      list.append(newClone);
     } else if (status === "in_progress") {
-      container.html($("#in-progress-tasks").html());
+      container.addClass("task-mobile-progress");
+      let progressClone = $("#in-progress-tasks").clone(true, true);
+      progressClone.removeAttr("id");
+      list.append(progressClone);
     } else if (status === "completed") {
-      container.html($("#completed-tasks").html());
+      container.addClass("task-mobile-completed");
+      let completedClone = $("#completed-tasks").clone(true, true);
+      completedClone.removeAttr("id");
+      list.append(completedClone);
+    } else if (status === "all") {
+      let newClone = $("#new-request-tasks").clone(true, true).removeAttr("id");
+      let progressClone = $("#in-progress-tasks").clone(true, true).removeAttr("id");
+      let completedClone = $("#completed-tasks").clone(true, true).removeAttr("id");
+      list.append(newClone).append(progressClone).append(completedClone);
     }
   });
 
-  // set default
-  $("#mobileTaskStatus").val("new_request").trigger("change");
+  // ✅ default ke "All Status"
+  $("#mobileTaskStatus").val("all").trigger("change");
 });
 
+// Toggle dropdown filter di mobile
+$(document).on("click", "#openTaskFilterBtnMobile", function () {
+  $("#taskFilterDropdownMobile").toggle();
+});
