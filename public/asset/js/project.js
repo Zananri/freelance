@@ -3820,12 +3820,14 @@ document.getElementById("nextTimeline").addEventListener("click", () => {
     );
 });
 
-const fullscreenBtn = document.getElementById("timelineFullscreenBtn");
-const modal = document.getElementById("timelineModal");
-const closeBtn = document.getElementById("timelineModalClose");
 const modalTitle = document.getElementById("timelineModalTitle");
 const prevBtn = document.getElementById("prevTimelineModal");
 const nextBtn = document.getElementById("nextTimelineModal");
+const timelineModal = document.getElementById("timelineModal");
+
+timelineModal.addEventListener("show.bs.modal", () => {
+    updateModalTimeline()
+})
 
 function updateModalTimeline() {
     modalTitle.textContent = `Timeline ${months[currentMonth]} ${currentYear}`;
@@ -3837,39 +3839,6 @@ function updateModalTimeline() {
         currentYear
     );
 }
-
-fullscreenBtn.addEventListener("click", () => {
-    modal.style.display = "flex";
-
-    // reset animasi overlay & modal
-    modal.classList.remove("animate-in", "animate-out");
-    const modalContent = modal.querySelector(".timeline-modal");
-    modalContent.classList.remove("animate-in", "animate-out");
-
-    // trigger reflow biar animasi retrigger
-    void modal.offsetWidth;
-
-    // kasih animasi masuk
-    modal.classList.add("animate-in");
-    modalContent.classList.add("animate-in");
-
-    updateModalTimeline();
-});
-
-closeBtn.addEventListener("click", () => {
-    modal.classList.remove("animate-in");
-    modal.classList.add("animate-out");
-
-    const modalContent = modal.querySelector(".timeline-modal");
-    modalContent.classList.remove("animate-in");
-    modalContent.classList.add("animate-out");
-
-    setTimeout(() => {
-        modal.style.display = "none";
-        modal.classList.remove("animate-out");
-        modalContent.classList.remove("animate-out");
-    }, 400); // sesuaikan sama durasi CSS
-});
 
 prevBtn.addEventListener("click", () => {
     currentMonth--;
@@ -3889,109 +3858,33 @@ nextBtn.addEventListener("click", () => {
     updateModalTimeline();
 });
 
-document.addEventListener("DOMContentLoaded", function () {
-    // --- Timeline Toggle ---
-    const $timeline = $(".timeline-card"); // ini kecil
-    const $timelineOverlay = $("<div class='timeline-overlay'></div>").appendTo(
-        "body"
-    );
+// document.addEventListener("DOMContentLoaded", function () {
+//     const searchInput = document.getElementById("search_filter");
 
-    $(".toggle-timeline").on("click", function (e) {
-        e.preventDefault();
+//     searchInput.addEventListener("input", function () {
+//         const query = this.value.toLowerCase();
 
-        // kalau mau buka fullscreen modal aja
-        const modal = document.getElementById("timelineModal");
+//         const cards = document.querySelectorAll(
+//             "#all-cards-container [data-project-id]"
+//         );
 
-        if ($timeline.hasClass("active")) {
-            // Tutup versi card kecil (optional kalau masih dipakai)
-            $timeline.removeClass("animate-in").addClass("animate-out");
-            $timelineOverlay.removeClass("active");
+//         cards.forEach((card) => {
+//             const projectId = card.getAttribute("data-project-id");
+//             const title =
+//                 card.querySelector("h6")?.textContent.toLowerCase() || "";
+//             const desc =
+//                 card.querySelector("p")?.textContent.toLowerCase() || "";
 
-            setTimeout(() => {
-                $timeline.removeClass("active animate-out");
-            }, 400);
-        } else {
-            // Buka modal fullscreen
-            modal.style.display = "flex";
+//             const match =
+//                 title.includes(query) ||
+//                 desc.includes(query) ||
+//                 projectId.includes(query);
 
-            const modalContent = modal.querySelector(".timeline-modal");
-            modalContent.classList.remove("animate-out");
-            modalContent.classList.add("animate-in");
-
-            // kalau mau langsung render timeline modal
-            updateModalTimeline();
-        }
-    });
-
-    $(".btn-timeline-filter-custom").on("click", function (e) {
-        e.preventDefault();
-
-        // kalau mau buka fullscreen modal aja
-        const modal = document.getElementById("timelineModal");
-
-        if ($timeline.hasClass("active")) {
-            // Tutup versi card kecil (optional kalau masih dipakai)
-            $timeline.removeClass("animate-in").addClass("animate-out");
-            $timelineOverlay.removeClass("active");
-
-            setTimeout(() => {
-                $timeline.removeClass("active animate-out");
-            }, 400);
-        } else {
-            // Buka modal fullscreen
-            modal.style.display = "flex";
-
-            const modalContent = modal.querySelector(".timeline-modal");
-            modalContent.classList.remove("animate-out");
-            modalContent.classList.add("animate-in");
-
-            // kalau mau langsung render timeline modal
-            updateModalTimeline();
-        }
-    });
-
-    // Klik overlay masih nutup card kecil, kalau mau nutup modal ubah ke sini:
-    $timelineOverlay.on("click", function () {
-        const modal = document.getElementById("timelineModal");
-        const modalContent = modal.querySelector(".timeline-modal");
-
-        modalContent.classList.remove("animate-in");
-        modalContent.classList.add("animate-out");
-
-        setTimeout(() => {
-            modal.style.display = "none";
-            modalContent.classList.remove("animate-out");
-        }, 400);
-    });
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById("search_filter");
-
-    searchInput.addEventListener("input", function () {
-        const query = this.value.toLowerCase();
-
-        const cards = document.querySelectorAll(
-            "#all-cards-container [data-project-id]"
-        );
-
-        cards.forEach((card) => {
-            const projectId = card.getAttribute("data-project-id");
-            const title =
-                card.querySelector("h6")?.textContent.toLowerCase() || "";
-            const desc =
-                card.querySelector("p")?.textContent.toLowerCase() || "";
-
-            const match =
-                title.includes(query) ||
-                desc.includes(query) ||
-                projectId.includes(query);
-
-            if (match) {
-                card.classList.remove("d-none");
-            } else {
-                card.classList.add("d-none");
-            }
-        });
-    });
-});
+//             if (match) {
+//                 card.classList.remove("d-none");
+//             } else {
+//                 card.classList.add("d-none");
+//             }
+//         });
+//     });
+// });
