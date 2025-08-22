@@ -229,7 +229,7 @@ function updateModalTime() {
 
     // Format tanggal untuk tampilan menggunakan formatDate helper (e.g. "22 August 2025")
     const dateString = now.toISOString().split("T")[0];
-    const formattedDate = formatDate(now.toISOString());
+    const formattedDate = formatDateWithDay(now.toISOString());
 
     // Update tampilan di modal check-in (dengan detik)
     const dateDisplay = document.getElementById("date_attendance");
@@ -285,7 +285,7 @@ function updateModalTimeCheckout() {
 
     // Format tanggal untuk tampilan menggunakan formatDate helper (e.g. "22 August 2025")
     const dateString = now.toISOString().split("T")[0];
-    const formattedDate = formatDate(now.toISOString());
+    const formattedDate = formatDateWithDay(now.toISOString());
 
     // Update tampilan di modal check-out (dengan detik)
     const dateDisplay = document.getElementById("date_attendance_checkout");
@@ -379,7 +379,7 @@ function openCheckInModal() {
     // Ensure displayed date uses formatted month name immediately
     try {
         const dateEl = document.getElementById('date_attendance');
-        if (dateEl) dateEl.textContent = formatDate(new Date().toISOString());
+    if (dateEl) dateEl.textContent = formatDateWithDay(new Date().toISOString());
     } catch (e) { console.error(e); }
 
     // Set interval untuk update waktu setiap detik
@@ -1949,7 +1949,7 @@ function openCheckInDetailModal() {
                                     <div class="check-in-details">
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Date:</div>
-                                            <div class="detail-value">${formatDate(lastCheckIn.date_attendance)}</div>
+                                            <div class="detail-value">${formatDateWithDay(lastCheckIn.date_attendance)}</div>
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Time In:</div>
@@ -2119,7 +2119,7 @@ function openCheckOutDetailModal() {
                                     <div class="check-out-details">
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Date:</div>
-                                            <div class="detail-value">${formatDate(lastCheckOut.date_attendance)}</div>
+                                            <div class="detail-value">${formatDateWithDay(lastCheckOut.date_attendance)}</div>
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Total Work Duration:</div>
@@ -2252,8 +2252,8 @@ function openCheckOutDetailModal() {
 }
 
 // Function to format date
-function formatDate(dateString) {
-    // Return format: "22 August 2025"
+function formatDateWithDay(dateString) {
+    // Return format: "Friday, 22 August 2025"
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString || '';
     const day = date.getDate();
@@ -2261,14 +2261,19 @@ function formatDate(dateString) {
         'January','February','March','April','May','June',
         'July','August','September','October','November','December'
     ];
+    const days = [
+        'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
+    ];
     const monthName = months[date.getMonth()];
+    const dayName = days[date.getDay()];
     const year = date.getFullYear();
-    return `${day} ${monthName} ${year}`;
+    return `${dayName}, ${day} ${monthName} ${year}`;
 }
 
 // Override global formatDate function untuk halaman ini
 if (typeof window !== 'undefined') {
-    window.formatDate = formatDate;
+    // Keep exporting to window if needed elsewhere
+    window.formatDateWithDay = formatDateWithDay;
 }
 
 document.addEventListener("DOMContentLoaded", function () {
