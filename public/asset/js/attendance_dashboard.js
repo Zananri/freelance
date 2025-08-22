@@ -160,6 +160,26 @@ function initializeAttendance() {
         currentDateInput.value = today.toISOString().split("T")[0];
     }
 
+    // Default button state immediately: allow check-in, disable check-out until status fetched
+    try {
+        const checkInBtn = document.getElementById("checkInBtn");
+        const checkOutBtn = document.getElementById("checkOutBtn");
+        if (checkInBtn) {
+            checkInBtn.style.display = "flex";
+            checkInBtn.disabled = false;
+            checkInBtn.classList.remove('active');
+            try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+        }
+        if (checkOutBtn) {
+            checkOutBtn.style.display = "flex";
+            checkOutBtn.disabled = true;
+            checkOutBtn.classList.remove('active');
+            try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+        }
+    } catch (e) {
+        // ignore
+    }
+
     // Update check in/out times if available
     updateAttendanceStatus();
 }
@@ -672,8 +692,8 @@ function calculateWorkingHours() {
                                         checkInBtn.disabled = false;
                                         checkInBtn.classList.add('active');
                                         try { $("#checkInBtn .check-icon").show(); } catch(e){}
-
                                         checkOutBtn.style.display = "flex";
+                                        // Enable check-out because user has checked in today and hasn't checked out yet.
                                         checkOutBtn.disabled = false;
                                         checkOutBtn.classList.remove('active');
                                         try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
@@ -706,9 +726,10 @@ function calculateWorkingHours() {
                                 checkInBtn.classList.remove('active');
                                 try { $("#checkInBtn .check-icon").hide(); } catch(e){}
 
-                                checkOutBtn.style.display = "flex";
-                                // Keep checkout enabled so user can perform today's actions
-                                checkOutBtn.disabled = false;
+                                        checkOutBtn.style.display = "flex";
+                                        // Do not enable checkout here — by default checkout stays disabled
+                                        // until user actually checks in today.
+                                        checkOutBtn.disabled = true;
                                 checkOutBtn.classList.remove('active');
                                 try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
 
@@ -759,6 +780,8 @@ function calculateWorkingHours() {
                                 // Has checked in but not checked out, show checkout button
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
+                                // Enable checkout for today's checked-in record
+                                checkOutBtn.disabled = false;
 
                                 // Update hidden time fields
                                 const checkInTimeInput = document.getElementById("checkInTime");
@@ -770,17 +793,21 @@ function calculateWorkingHours() {
                                 // Has both checked in and checked out, show check-in button for next shift
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
+                                // No active checkout available
+                                checkOutBtn.disabled = true;
                                 return;
                             } else {
                                 // Fallback case
                                 checkInBtn.style.display = "flex";
                                 checkOutBtn.style.display = "flex";
+                                checkOutBtn.disabled = true;
                                 return;
                             }
                         } else {
                             // No attendance today, show check-in button
                             checkInBtn.style.display = "flex";
                             checkOutBtn.style.display = "flex";
+                            checkOutBtn.disabled = true;
                             return;
                         }
                     })
@@ -1826,11 +1853,12 @@ function getTodayAttendanceStatus() {
 
         if (!checkInBtn || !checkOutBtn) return;
 
-        // Reset semua state
-        checkInBtn.classList.remove("active");
-        checkOutBtn.classList.remove("active");
-        checkInBtn.disabled = false;
-        checkOutBtn.disabled = false;
+    // Reset semua state
+    checkInBtn.classList.remove("active");
+    checkOutBtn.classList.remove("active");
+    // Default: allow check-in, but keep check-out disabled until we know the user has checked in today.
+    checkInBtn.disabled = false;
+    checkOutBtn.disabled = true;
 
         // Hide semua icon
         $("#checkInBtn .check-icon").hide();
@@ -1838,16 +1866,18 @@ function getTodayAttendanceStatus() {
 
         // Update berdasarkan status
         if (status.status === "not_started") {
-            // Belum check-in sama sekali
+            // Belum check-in sama sekali: keep default (check-in enabled, check-out disabled)
             checkOutBtn.disabled = true;
         } else if (status.status === "checked_in") {
-            // Sudah check-in tapi belum check-out
+            // Sudah check-in tapi belum check-out: enable check-out so user can checkout
             checkInBtn.classList.add("active");
             $("#checkInBtn .check-icon").show();
+            checkOutBtn.disabled = false;
         } else if (status.status === "checked_out") {
-            // Sudah check-out (kedua tombol aktif)
-            checkInBtn.classList.add("active");
-            checkOutBtn.classList.add("active");
+            // Sudah check-out: check-out should remain disabled until next action
+            checkInBtn.classList.remove("active");
+            checkOutBtn.disabled = true;
+            // Optionally show icons to indicate last actions
             $("#checkInBtn .check-icon").show();
             $("#checkOutBtn .done-all-icon").show();
         }
