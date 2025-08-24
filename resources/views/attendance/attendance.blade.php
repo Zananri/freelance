@@ -51,10 +51,10 @@
                                     style="font-size: 12px;">
                                     <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <div class="time_in" style="color: {{ $isLate ? 'red' : 'inherit' }};">
+                                        <div class="time_in time-detail-btn" data-type="in" style="color: {{ $isLate ? 'red' : 'inherit' }}; cursor: pointer;">
                                             <span id="time_in_display">{{ $timeIn }}</span>
                                         </div>
-                                        <button class="btn p-0 ms-1" style="line-height: 1;">
+                                        <button class="btn p-0 ms-1 chevron-detail-btn" data-type="in" style="line-height: 1;">
                                             <span class="material-symbols-outlined rounded-1"
                                                 style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
                                         </button>
@@ -64,10 +64,10 @@
                                 <div class="chevron-icon-attendance d-flex justify-content-between align-items-center" style="font-size: 12px;">
                                     <p class="mb-0 flex-grow-1" style="color: #757575;">Check Out</p>
                                     <div class="d-flex align-items-center justify-content-center">
-                                        <div class="time_out">
+                                        <div class="time_out time-detail-btn" data-type="out" style="cursor: pointer;">
                                             <span id="time_out_display"></span>
                                         </div>
-                                        <button class="btn p-0 ms-1" style="line-height: 1;">
+                                        <button class="btn p-0 ms-1 chevron-detail-btn" data-type="out" style="line-height: 1;">
                                             <span class="material-symbols-outlined rounded-1"
                                                 style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
                                         </button>

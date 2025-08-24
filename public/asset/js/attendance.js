@@ -123,6 +123,11 @@ function initializeAttendance() {
     getTodayAttendanceStatus();
 }
 
+// Run once on initial load to set chevron visibility correctly
+document.addEventListener('DOMContentLoaded', function () {
+    try { updateChevronVisibility(); } catch (e) {}
+});
+
 function setupEventListeners() {
     // Check in/out button - now opens modal
     const checkInBtn = document.getElementById("checkInBtn");
@@ -137,6 +142,12 @@ function setupEventListeners() {
     if (checkOutBtn) {
         checkOutBtn.addEventListener("click", function () {
             try {
+                // If user hasn't checked in yet, just show alert and do nothing
+                const currentStatus = (window.AttendanceState && window.AttendanceState.currentStatus) ? window.AttendanceState.currentStatus.status : undefined;
+                if (currentStatus === 'not_started') {
+                    showFloatingAlert("You have not checked in yet.", "warning");
+                    return;
+                }
                 if (checkOutBtn.classList.contains('active')) {
                     // If already checked out (active), show detail modal
                     openCheckOutDetailModal();
@@ -187,6 +198,30 @@ function setupEventListeners() {
 
     // Initialize image upload visibility based on default selection
     toggleImageUploadVisibility();
+
+    // Chevron detail buttons - use event delegation
+    document.body.addEventListener('click', function (e) {
+        // Handle chevron buttons
+        const chevronBtn = e.target.closest && e.target.closest('.chevron-detail-btn');
+        if (chevronBtn) {
+            const type = chevronBtn.getAttribute('data-type');
+            if (type === 'in') openCheckInDetailModal();
+            else if (type === 'out') openCheckOutDetailModal();
+            return;
+        }
+
+        // Handle clicking on the time text/area itself
+        const timeBtn = e.target.closest && e.target.closest('.time-detail-btn');
+        if (timeBtn) {
+            const type = timeBtn.getAttribute('data-type');
+            // Only open modal if time text exists
+            const span = timeBtn.querySelector('span');
+            const txt = span ? (span.textContent || '').trim() : '';
+            if (!txt || txt === 'Loading...' || txt === '--:--') return;
+            if (type === 'in') openCheckInDetailModal();
+            else if (type === 'out') openCheckOutDetailModal();
+        }
+    });
 }
 
 // Function to toggle image upload visibility based on work outside selection
@@ -229,7 +264,7 @@ function updateModalTime() {
 
     // Format tanggal untuk tampilan menggunakan formatDate helper (e.g. "22 August 2025")
     const dateString = now.toISOString().split("T")[0];
-    const formattedDate = formatDate(now.toISOString());
+    const formattedDate = formatDateWithDay(now.toISOString());
 
     // Update tampilan di modal check-in (dengan detik)
     const dateDisplay = document.getElementById("date_attendance");
@@ -285,7 +320,7 @@ function updateModalTimeCheckout() {
 
     // Format tanggal untuk tampilan menggunakan formatDate helper (e.g. "22 August 2025")
     const dateString = now.toISOString().split("T")[0];
-    const formattedDate = formatDate(now.toISOString());
+    const formattedDate = formatDateWithDay(now.toISOString());
 
     // Update tampilan di modal check-out (dengan detik)
     const dateDisplay = document.getElementById("date_attendance_checkout");
@@ -379,7 +414,7 @@ function openCheckInModal() {
     // Ensure displayed date uses formatted month name immediately
     try {
         const dateEl = document.getElementById('date_attendance');
-        if (dateEl) dateEl.textContent = formatDate(new Date().toISOString());
+    if (dateEl) dateEl.textContent = formatDateWithDay(new Date().toISOString());
     } catch (e) { console.error(e); }
 
     // Set interval untuk update waktu setiap detik
@@ -1208,17 +1243,11 @@ function submitCheckIn() {
                 clearImage();
 
                 // Update status without reload
-                getTodayAttendanceStatus();
-                
-                // Update UI to show check-in as active and enable check-out
-                const checkInBtn = document.getElementById("checkInBtn");
-                const checkOutBtn = document.getElementById("checkOutBtn");
-                if (checkInBtn && checkOutBtn) {
-                    checkInBtn.classList.add("active");
-                    checkInBtn.disabled = false;
-                    checkOutBtn.disabled = false;
-                    $("#checkInBtn .check-icon").show();
-                }
+                // After showing success alert, reload the page once the alert has disappeared
+                // showFloatingAlert uses a 3s display + 0.5s fade; reload after ~3.6s
+                setTimeout(() => {
+                    try { window.location.reload(); } catch (e) { /* ignore */ }
+                }, 3600);
             } else {
                 showFloatingAlert(
                     data.message || "Error submitting check-in",
@@ -1542,6 +1571,13 @@ function populateCheckoutModal(checkInRecord, serverTime) {
         const timeInDisplay = document.getElementById("time_in_display");
         if (timeInDisplay) {
             timeInDisplay.textContent = formatTimeDisplay(checkInRecord.time_in) || "--:--";
+            try {
+                if (checkInRecord.is_late) {
+                    timeInDisplay.classList.add('text-danger');
+                } else {
+                    timeInDisplay.classList.remove('text-danger');
+                }
+            } catch (e) {}
         }
 
         // Simpan time_in untuk referensi
@@ -1949,7 +1985,7 @@ function openCheckInDetailModal() {
                                     <div class="check-in-details">
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Date:</div>
-                                            <div class="detail-value">${formatDate(lastCheckIn.date_attendance)}</div>
+                                            <div class="detail-value">${formatDateWithDay(lastCheckIn.date_attendance)}</div>
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Time In:</div>
@@ -2119,7 +2155,7 @@ function openCheckOutDetailModal() {
                                     <div class="check-out-details">
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Date:</div>
-                                            <div class="detail-value">${formatDate(lastCheckOut.date_attendance)}</div>
+                                            <div class="detail-value">${formatDateWithDay(lastCheckOut.date_attendance)}</div>
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Total Work Duration:</div>
@@ -2237,7 +2273,7 @@ function openCheckOutDetailModal() {
                             detailMapCheckOut.setView([outLatNum, outLngNum], 16);
                         }, 250);
                     } catch (error) {
-                        console.error('Error initializing checkout map:', error);
+                        console.    error('Error initializing checkout map:', error);
                         document.getElementById('detailMapCheckOut').innerHTML = '<div class=\"alert alert-warning text-center\">Error loading checkout map</div>';
                     }
                 });
@@ -2252,8 +2288,8 @@ function openCheckOutDetailModal() {
 }
 
 // Function to format date
-function formatDate(dateString) {
-    // Return format: "22 August 2025"
+function formatDateWithDay(dateString) {
+    // Return format: "Friday, 22 August 2025"
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString || '';
     const day = date.getDate();
@@ -2261,14 +2297,19 @@ function formatDate(dateString) {
         'January','February','March','April','May','June',
         'July','August','September','October','November','December'
     ];
+    const days = [
+        'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
+    ];
     const monthName = months[date.getMonth()];
+    const dayName = days[date.getDay()];
     const year = date.getFullYear();
-    return `${day} ${monthName} ${year}`;
+    return `${dayName}, ${day} ${monthName} ${year}`;
 }
 
 // Override global formatDate function untuk halaman ini
 if (typeof window !== 'undefined') {
-    window.formatDate = formatDate;
+    // Keep exporting to window if needed elsewhere
+    window.formatDateWithDay = formatDateWithDay;
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -2394,8 +2435,8 @@ function getTodayAttendanceStatus() {
 
         // Update berdasarkan status
         if (status.status === "not_started") {
-            // Belum check-in sama sekali
-            checkOutBtn.disabled = true;
+            // Belum check-in sama sekali (jangan disable checkout; tampilkan alert saat diklik)
+            // checkOutBtn.disabled = false; // keep enabled
         } else if (status.status === "checked_in") {
             // Sudah check-in tapi belum check-out
             checkInBtn.classList.add("active");
@@ -2429,6 +2470,14 @@ function getTodayAttendanceStatus() {
             const timeInDisplay = document.getElementById("time_in_display");
             if (timeInDisplay) {
                 timeInDisplay.textContent = formatTimeDisplay(status.last_check_in_time);
+                // Apply red color immediately if server says this check-in is late
+                try {
+                    if (status.is_late) {
+                        timeInDisplay.classList.add('text-danger');
+                    } else {
+                        timeInDisplay.classList.remove('text-danger');
+                    }
+                } catch (e) { /* ignore */ }
             }
         }
 
@@ -2438,7 +2487,50 @@ function getTodayAttendanceStatus() {
                 timeOutDisplay.textContent = formatTimeDisplay(status.last_check_out_time);
             }
         }
+
+        // Simpan status terkini untuk handler click
+        try {
+            if (!window.AttendanceState) window.AttendanceState = {};
+            window.AttendanceState.currentStatus = status;
+        } catch (e) { /* ignore */ }
+        // Update chevron visibility after times have been updated
+        try { updateChevronVisibility(); } catch (e) {}
     }
+
+// Hide chevron buttons until their corresponding time is available
+function updateChevronVisibility() {
+    const timeInEl = document.getElementById('time_in_display');
+    const timeOutEl = document.getElementById('time_out_display');
+
+    // Helper to decide if a time is considered 'present'
+    const hasTime = (el) => {
+        if (!el) return false;
+        const txt = (el.textContent || '').trim();
+        if (!txt) return false;
+        if (txt === 'Loading...' || txt === '--:--') return false;
+        return true;
+    };
+
+    // Find chevron buttons in the attendance log rows
+    try {
+        const inWrapper = document.querySelector('.chevron-icon-attendance .time_in');
+        if (inWrapper) {
+            const btn = inWrapper.parentElement.querySelector('button');
+            if (btn) btn.style.display = hasTime(timeInEl) ? 'inline-flex' : 'none';
+        }
+    } catch (e) {}
+
+    try {
+        const outWrapper = document.querySelectorAll('.chevron-icon-attendance .time_out')[0];
+        // fallback: query single
+        const outEl = document.querySelector('.chevron-icon-attendance .time_out');
+        const targetOut = outWrapper || outEl;
+        if (targetOut) {
+            const btn = targetOut.parentElement.querySelector('button');
+            if (btn) btn.style.display = hasTime(timeOutEl) ? 'inline-flex' : 'none';
+        }
+    } catch (e) {}
+}
 
 // Fungsi untuk refresh status setelah check-in/check-out
 function refreshAttendanceStatus() {

@@ -738,3 +738,37 @@ const taskImage = (response.data && response.data.image)
     // Refresh notification count every 30 seconds
     setInterval(fetchNotificationCount, 30000);
 });
+
+// cara menggunakan tinggal panggil fungsi)
+// showAlertMsg('Teks pesan yang di tampilkan');
+// showAlertMsg('Teks pesan yang di tampilkan','error');
+
+function showAlertMsg(msgHtml = '',msgType = 'light', delay = 2500){
+
+    // msgType = 'light','success','warning','error'
+
+    $('.box-alert-messages .box-message').removeClass('error warning success');
+    
+    $('.box-alert-messages .box-message').addClass(msgType);
+
+
+    $('.box-alert-messages .message-content').html(msgHtml);
+
+    $('.box-alert-messages').stop().fadeIn('fast').delay(delay).fadeOut('fast',function(){
+        $('.nsa_message_box .message_content').html('');  
+    });
+
+}
+
+function hideAlertMsg(){
+    
+    $('.box-alert-messages').stop().fadeOut('fast',function(){
+        $('.nsa_message_box .message_content').html('');
+    });
+
+}
+
+$(document).on('click','.btn-close-alert-messages',function(){
+    hideAlertMsg();
+});
+
