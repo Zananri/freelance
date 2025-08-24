@@ -1,0 +1,279 @@
+
+.bg-card-1{
+    background-color: rgb(240, 241, 248);
+}
+
+.card-content{
+    background-color: rgb(240, 241, 248);
+    border-radius: 20px;
+    padding: 25px 25px;
+}
+
+.title-content{
+    margin-bottom: 30px;
+}
+
+.text-title-content{
+    font-size: 48px;
+    font-weight: 300;
+    color: #2A3542;
+    padding: 0px;
+    margin:0px;
+}
+
+.text-card-title{
+    font-size: 16px;
+    font-weight: 400;
+    color: #2A3542;
+    padding: 0px;
+    margin:0px;
+}
+
+.box-header-card-content{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+
+.box-card-action{
+    display: flex;
+    align-items: top;
+}
+
+.box-card-action .box-input{
+    width: 100%;
+    margin-right: 15px;
+} 
+
+.input-card-action{
+    width: 100px;
+    border:0px;
+    font-size: 14px;
+    font-weight: 300;
+    border-radius: 10px;
+    background-color: rgb(248, 248, 252);
+    color: #2A3542;
+    padding: 11px 10px 11px 30px !important;
+    display: inline-block;
+
+    padding-right: calc(1.5em + .75rem);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3e%3cpath fill='%238C909A' d='M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: left calc(.375em + .1875rem) center;
+    background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+
+    transition: width .3s;
+    outline: none; /* Removes the default browser outline */
+    border: none; /* Removes the border */
+}
+
+
+.btn-card-action{
+    font-size: 14px;
+    font-weight: 300;
+    border-radius: 10px;
+    background-color: #444;
+    color: #EBECF2;
+    padding: 11px 45px;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.btn-card-action:hover{
+    background-color: #2a2c2e;
+    color: #ffffff;
+}
+
+@media screen and (min-width: 580px) {
+    .col-user-management .input-card-action:focus {
+        width: 200px;
+    }
+}
+
+
+
+.card-content .table>:not(caption)>*>* {
+    padding: .5rem .5rem;
+    color: #2A3542;
+    background-color: rgb(232, 232, 242);
+    border-bottom-width: 0;
+}
+
+.card-content .table-striped>tbody>tr:nth-of-type(odd)>* {
+    --bs-table-color-type: #2A3542;
+    --bs-table-bg-type:   rgb(238, 238, 247);
+}
+
+.card-content .table td,
+.card-content .table th{
+    vertical-align: middle;
+    padding-top: 10px;
+    padding-bottom: 10px; 
+}
+
+.card-content .table-hover>tbody>tr:hover>* {
+    color: #181d22;
+    --bs-table-bg-state: rgb(242, 242, 247);
+}
+
+.col-user-management .employee-image{
+    width: 22px;
+    height: 22px;
+    border-radius: 20px;
+    background-color: #e3e7eb;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    margin-right: 15px;
+    margin-left: 10px;
+}
+
+
+.box-card-table .btn-action{
+    width: 30px;
+    height: 30px;
+    border-radius: 20px;
+    padding: 7px 1px 1px 2px;
+    display: inline-block;
+    margin-right: 7px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.box-card-table .btn-action .material-symbols-outlined{
+    font-size: 16px;
+    color: #5b6269;
+}
+.box-card-table .btn-action:hover{
+    background-color: #e3e7eb;
+}
+
+.box-card-table .btn-action:hover .material-symbols-outlined{
+    color: #0b0f14;
+    font-variation-settings:
+    'FILL' 1
+}
+ 
+.modal .modal-title{
+    color: #4C4D5D;
+    font-size: 24px;
+    font-weight: 300;
+}
+
+
+.modal .modal-content{
+    border: 0px;
+    border-radius: 20px;
+    background-color: rgb(240, 241, 248) !important;
+}
+
+.modal .btn-close{
+    width: 5px;
+    height: 5px;
+}
+ 
+
+.btn-default {
+    background-color: #e3e4ee;
+    color: #313131;
+    font-weight: 300;
+}
+
+
+.btn-default:hover,
+.btn-default:active,
+.btn-default:focus{
+    background-color: #f1f2f8;
+    color: #242424;
+}
+
+.btn-submit{
+    background-color: #313131;
+    color: #e3e4ee;
+    font-weight: 300;
+}
+
+.btn-submit:hover,
+.btn-submit:active,
+.btn-submit:focus{
+    background-color: #242424;
+    color: #f1f2f8;
+}
+
+.modal .form-select{
+
+    border:0px;
+    font-size: 14px;
+    font-weight: 300;
+    border-radius: 10px;
+    background-color: rgb(248, 248, 252);
+    color: #2A3542;
+    padding: 12px 12px 12px 14px !important;
+
+}
+.modal .form-label{
+    font-size: 14px;
+    color: #434d58;
+}
+#modalEdit .employee-name{
+    font-size: 16px;
+    font-weight: 300;
+    color: #2A3542;
+}
+
+.box-loader{
+    background-color: rgba(255, 255, 255,0.3);
+    position: absolute;
+    top:0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loader{ 
+    display: none;
+    position: absolute;
+    top:0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+@media screen and (max-width: 576px) {
+
+    .col-user-management .employee-image{
+        width: 35px;
+        height: 35px;
+        border-radius: 20px;
+    }
+    
+    .text-title-content{
+        font-size: 34px;   
+    }
+    .text-card-title{
+        margin-bottom: 15px;
+    }
+
+    .box-header-card-content{
+        flex-direction: column;
+        align-items: start;
+        justify-content: space-between;
+    }
+
+    .box-header-card-content .col-action{
+        width: 100%;
+    }
+    
+    .btn-card-action{
+        padding: 11px 25px;
+    }
+
+    .col-user-management .input-card-action{
+        width: 100%;
+    }
+      
+}

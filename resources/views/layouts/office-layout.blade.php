@@ -5,12 +5,24 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Office NSA Performance</title>
+    <title>
+        
+        @php
+            $head_stitle = 'Office NSA Performance';
+
+            if (isset($head_stitle_slot)) {
+                $head_stitle_slot;
+            }
+
+        @endphp
+        
+        {{ $head_stitle }}
+    </title>
 
     <meta name="description" content="Office NSA Performance">
     <meta name="keywords" content="nsaperformance, nsa performance">
-    <meta name="author" content="nsaperformance.id">
-    <meta name="robots" content="index, nofollow">
+    <meta name="author" content="office.nsaperformance.id">
+    <meta name="robots" content="noindex, nofollow">
 
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -18,16 +30,13 @@
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     {{-- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" /> --}}
 
 
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=groups" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=groups" />
     <style>
         .material-symbols-outlined {
             font-variation-settings:
@@ -234,7 +243,7 @@
                         </a> --}}
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="{{ route('settings') }}" class="{{ $menu_active == 'settings' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">settings</span>
                             <span class="text-menu">Settings</span>
                         </a>
@@ -249,6 +258,17 @@
     <footer>
 
     </footer>
+
+    @isset($body_end_slot)
+        {{ $body_end_slot }}
+    @endisset
+
+    <div class="box-alert-messages">
+        <div class="box-message" role="">
+            <div class="message-content fs-14">Cek</div>
+            <div class="btn-close-alert-messages"></div>
+        </div>
+    </div>
 
     <script src="{{ asset('asset/js/jquery-3.7.1.min.js') }}"></script>
 
@@ -298,6 +318,10 @@
                 d="M8.982 1.566a.75.75 0 0 0-1.132 0L1.75 13.5A.75.75 0 0 0 2.482 15h11.036a.75.75 0 0 0 .732-1.5L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
         </symbol>
     </svg>
+
+
+    
+
 
 </body>
 

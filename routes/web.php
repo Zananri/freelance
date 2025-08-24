@@ -12,6 +12,9 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ShiftController;
+
+use App\Http\Controllers\SettingsController;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
@@ -174,3 +177,7 @@ Route::get('/attendance/daily/{employeeId}/{date}', [AttendanceController::class
 Route::get('/attendance/shift-details/{employeeId}/{date}', [AttendanceController::class, 'getEmployeeShiftDetails']);
 Route::get('/attendance/today-status/{employeeId}', [AttendanceController::class, 'getTodayStatus']);
 
+
+Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
+Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
+Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');
