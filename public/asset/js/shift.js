@@ -4,12 +4,19 @@ document.addEventListener("DOMContentLoaded", function () {
     setupEventListeners();
 });
 
-// Function to load employee data with proper error handling
+// Global variables
+let currentDate = new Date();
+let employees = [];
+
+// Load employee data
 async function loadEmployeeData() {
     try {
+        const month = currentDate.getMonth() + 1;
+        const year = currentDate.getFullYear();
+
         const basePath =
             window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/shift/employees-basic`;
+        const endpoint = `${basePath}/shift/employees-basic?month=${month}&year=${year}`;
 
         const response = await fetch(endpoint);
 
@@ -20,7 +27,9 @@ async function loadEmployeeData() {
         const data = await response.json();
 
         if (data.success && data.data) {
-            renderEmployeeTable(data.data);
+            employees = data.data;
+            renderHeader(month, year);
+            renderEmployeeTable(employees, month, year);
         } else {
             console.error("Invalid data format:", data);
             renderError("Failed to load employee data");
@@ -31,72 +40,196 @@ async function loadEmployeeData() {
     }
 }
 
-// Function to render employee table with time_start and time_end
-function renderEmployeeTable(employees) {
-    const tableBody = document.getElementById("shiftTableBody");
-    if (!tableBody) return;
+// Year Dropdown
+function populateYearDropdown() {
+    const yearSelect = document.getElementById("yearSelect");
+    const currentYear = currentDate.getFullYear();
+    yearSelect.innerHTML = "";
 
+    for (let y = currentYear - 5; y <= currentYear + 5; y++) {
+        const option = document.createElement("option");
+        option.value = y;
+        option.textContent = y;
+        if (y === currentYear) option.selected = true;
+        yearSelect.appendChild(option);
+    }
+
+    yearSelect.addEventListener("change", () => {
+        currentDate.setFullYear(parseInt(yearSelect.value));
+        loadEmployeeData();
+    });
+}
+
+// Event tombol prev/next bulan
+document.getElementById("prevMonthBtn").addEventListener("click", () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    loadEmployeeData();
+});
+
+document.getElementById("nextMonthBtn").addEventListener("click", () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    loadEmployeeData();
+});
+
+// Panggil pertama kali
+populateYearDropdown();
+loadEmployeeData();
+
+// Render header tanggal
+function renderHeader(month, year) {
+    const headerRow = document.getElementById("shiftTableHeader");
+    headerRow.innerHTML = `<th class="sticky-col">Employee</th>`;
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    for (let i = 1; i <= daysInMonth; i++) {
+        const th = document.createElement("th");
+        const day = new Date(year, month - 1, i).getDay();
+
+        th.textContent = i;
+        if (day === 0) th.classList.add("sunday");
+        headerRow.appendChild(th);
+    }
+}
+
+// Render isi tabel
+function renderEmployeeTable(employees, month, year) {
+    const tableBody = document.getElementById("shiftTableBody");
+    const monthTitle = document.getElementById("shiftMonthTitle");
+
+    if (!tableBody) return;
     tableBody.innerHTML = "";
 
     if (!employees || employees.length === 0) {
         tableBody.innerHTML =
-            '<tr><td colspan="4" class="text-center">No employees found</td></tr>';
+            '<tr><td colspan="32" class="text-center">No employees found</td></tr>';
         return;
     }
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const monthName = new Date(year, month - 1, 1).toLocaleString("default", {
+        month: "long",
+    });
+    monthTitle.textContent = `${monthName} ${year}`;
 
     employees.forEach((employee) => {
         const row = document.createElement("tr");
 
-        const employeeDisplay = `
-            <div class="d-flex align-items-center gap-3">
+        // Kolom nama
+        const employeeCell = document.createElement("td");
+        employeeCell.classList.add("sticky-col");
+        employeeCell.innerHTML = `
+            <div class="d-flex align-items-center gap-2">
                 <img src="${
                     employee.profile_picture || "/asset/img/default-profile.png"
-                }" 
-                     alt="Profile Picture" 
-                     class="table-image rounded-circle" 
-                     width="40" 
-                     height="40" />
+                }"
+                     alt="Profile Picture"
+                     class="table-image rounded-circle"
+                     width="28px"
+                     height="28px" />
                 <div>
                     <div class="fw-semibold" style="font-size: 14px;">${
                         employee.name
                     }</div>
-                    <div style="font-size: 10px; color: #6c757d;">${
-                        employee.email
-                    }</div>
                 </div>
             </div>
         `;
+        row.appendChild(employeeCell);
 
-        // Handle multiple dates
-        const dateShifts = Array.isArray(employee.date_shift) ? employee.date_shift : [employee.date_shift];
-        const dateDisplay = dateShifts.filter(d => d).join(', ') || "No shifts";
-        
-        const startTimeDisplay = employee.start_time || "Not set";
-        const endTimeDisplay = employee.end_time || "Not set";
+        // Kolom tanggal
+        for (let i = 1; i <= daysInMonth; i++) {
+            const td = document.createElement("td");
+            td.classList.add("shift-cell");
+            td.style.position = "relative";
+            const day = new Date(year, month - 1, i).getDay();
+            if (day === 0) td.classList.add("sunday");
 
-        row.innerHTML = `
-            <td>${employeeDisplay}</td>
-            <td>
-                <span>${startTimeDisplay}</span>
-            </td>
-            <td>
-                <span>${endTimeDisplay}</span>
-            </td>
-            <td>
-            <button class="btn-icon-toggle btn-edit" 
-                    data-id="${employee.id}" 
-                    data-name="${employee.name}" 
-                    data-dates='${JSON.stringify(dateShifts)}' 
-                    data-start="${employee.start_time || ''}" 
-                    data-end="${employee.end_time || ''}" 
-                    title="Edit">
-                <span class="material-symbols-outlined icon">edit</span> Edit Shift
-            </button>
-            </td>
-        `;
+            const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(
+                i
+            ).padStart(2, "0")}`;
+
+            const shift = employee.shifts.find((s) => s.date_shift === dateKey);
+
+            let start = shift ? shift.time_start : "";
+            let end = shift ? shift.time_end : "";
+            let shiftId = shift ? shift.shift_id : "";
+
+            td.innerHTML = `
+                <div class="shift-wrapper" style="width:100%; height:100%; position:relative;">
+                    <span class="shift-text">${
+                        shift ? `${start || "??"} - ${end || "??"}` : ""
+                    }</span>
+                    <div class="overlay-edit"
+                         style="position:absolute; top:0; left:0; width:100%; height:100%;
+                                display:flex; align-items:center; justify-content:center;
+                                background:rgba(255,255,255,0.9); display:none;">
+                        <button class="btn btn-sm btn-light btn-edit-shift"
+                                data-shift-id="${shiftId}"
+                                data-employee-id="${employee.id}"
+                                data-employee-name="${employee.name}"
+                                data-date="${dateKey}"
+                                data-start="${start}"
+                                data-end="${end}">
+                            <span class="material-symbols-outlined" style="font-size:20px;">edit</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            const overlay = td.querySelector(".overlay-edit");
+            const editBtn = td.querySelector(".btn-edit-shift");
+
+            td.addEventListener("mouseenter", () => {
+                overlay.style.display = "flex";
+            });
+            td.addEventListener("mouseleave", () => {
+                overlay.style.display = "none";
+            });
+
+            editBtn.addEventListener("click", (e) => {
+                e.preventDefault();
+                const btn = e.currentTarget;
+
+                document.getElementById("editShiftId").value =
+                    btn.dataset.shiftId;
+                document.getElementById("editEmployeeId").value =
+                    btn.dataset.employeeId;
+                document.getElementById("editEmployeeName").value =
+                    btn.dataset.employeeName;
+                document.getElementById("editDateShiftDisplay").value =
+                    btn.dataset.date;
+                document.getElementById("editDateShift").value =
+                    btn.dataset.date;
+                document.getElementById("editTimeStart").value =
+                    btn.dataset.start;
+                document.getElementById("editTimeEnd").value = btn.dataset.end;
+
+                const modal = new bootstrap.Modal(
+                    document.getElementById("editShiftModal")
+                );
+                modal.show();
+            });
+
+            row.appendChild(td);
+        }
+
         tableBody.appendChild(row);
     });
 }
+
+// Jalankan
+loadEmployeeData();
+
+// tombol prev/next bulan
+document.getElementById("prevMonthBtn").addEventListener("click", () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    loadEmployeeData();
+});
+
+document.getElementById("nextMonthBtn").addEventListener("click", () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    loadEmployeeData();
+});
 
 // Function to render error message
 function renderError(message) {
@@ -109,30 +242,32 @@ function renderError(message) {
 // Setup event listeners for edit buttons
 function setupEventListeners() {
     // Event delegation for edit buttons
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.btn-edit')) {
-            const button = e.target.closest('.btn-edit');
+    document.addEventListener("click", function (e) {
+        if (e.target.closest(".btn-edit")) {
+            const button = e.target.closest(".btn-edit");
             openEditModal(button);
         }
     });
 
     // Save shift button
-    document.getElementById('saveShiftBtn').addEventListener('click', saveShiftChanges);
+    document
+        .getElementById("saveShiftBtn")
+        .addEventListener("click", saveShiftChanges);
 }
 
 // Initialize date picker for shift dates
 let selectedShiftDates = [];
 
 function initializeShiftDatePicker() {
-    const dateDisplay = document.getElementById('editDateShiftDisplay');
-    const dateInput = document.getElementById('editDateShift');
-    
+    const dateDisplay = document.getElementById("editDateShiftDisplay");
+    const dateInput = document.getElementById("editDateShift");
+
     if (!dateDisplay || !dateInput) return;
 
     // Create datepicker container
-    const datepickerContainer = document.createElement('div');
-    datepickerContainer.id = 'shift-datepicker';
-    datepickerContainer.className = 'datepicker-container';
+    const datepickerContainer = document.createElement("div");
+    datepickerContainer.id = "shift-datepicker";
+    datepickerContainer.className = "datepicker-container";
     datepickerContainer.style.cssText = `
         position: absolute;
         background: white;
@@ -144,82 +279,108 @@ function initializeShiftDatePicker() {
         display: none;
         max-width: 300px;
     `;
-    
-    dateDisplay.parentNode.style.position = 'relative';
+
+    dateDisplay.parentNode.style.position = "relative";
     dateDisplay.parentNode.appendChild(datepickerContainer);
 
     // Create calendar
-    const calendar = document.createElement('div');
-    calendar.className = 'calendar-grid';
+    const calendar = document.createElement("div");
+    calendar.className = "calendar-grid";
     calendar.style.cssText = `
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         gap: 2px;
         font-size: 12px;
     `;
-    
+
     // Header
-    const header = document.createElement('div');
-    header.style.cssText = 'grid-column: span 7; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;';
+    const header = document.createElement("div");
+    header.style.cssText =
+        "grid-column: span 7; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;";
     header.innerHTML = `
         <button type="button" class="btn-prev-month" style="border: none; background: none; cursor: pointer;"><</button>
         <span class="month-year"></span>
         <button type="button" class="btn-next-month" style="border: none; background: none; cursor: pointer;">></button>
     `;
-    
+
     // Weekday headers
-    const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-    weekdays.forEach(day => {
-        const dayHeader = document.createElement('div');
+    const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+    weekdays.forEach((day) => {
+        const dayHeader = document.createElement("div");
         dayHeader.textContent = day;
-        dayHeader.style.cssText = 'text-align: center; font-weight: bold; padding: 5px;';
+        dayHeader.style.cssText =
+            "text-align: center; font-weight: bold; padding: 5px;";
         calendar.appendChild(dayHeader);
     });
-    
+
     datepickerContainer.appendChild(header);
     datepickerContainer.appendChild(calendar);
 
     let currentDate = new Date();
-    
+
     function renderCalendar() {
-        calendar.innerHTML = '';
-        weekdays.forEach(day => {
-            const dayHeader = document.createElement('div');
+        calendar.innerHTML = "";
+        weekdays.forEach((day) => {
+            const dayHeader = document.createElement("div");
             dayHeader.textContent = day;
-            dayHeader.style.cssText = 'text-align: center; font-weight: bold; padding: 5px;';
+            dayHeader.style.cssText =
+                "text-align: center; font-weight: bold; padding: 5px;";
             calendar.appendChild(dayHeader);
         });
 
-        const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        const firstDay = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            1
+        );
+        const lastDay = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth() + 1,
+            0
+        );
         const startDate = new Date(firstDay);
         startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-        header.querySelector('.month-year').textContent = 
-            currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        header.querySelector(".month-year").textContent =
+            currentDate.toLocaleDateString("en-US", {
+                month: "long",
+                year: "numeric",
+            });
 
         for (let i = 0; i < 42; i++) {
             const date = new Date(startDate);
             date.setDate(startDate.getDate() + i);
-            
-            const dayElement = document.createElement('div');
+
+            const dayElement = document.createElement("div");
             dayElement.textContent = date.getDate();
             dayElement.style.cssText = `
                 text-align: center;
                 padding: 8px;
                 cursor: pointer;
                 border-radius: 4px;
-                ${date.getMonth() !== currentDate.getMonth() ? 'color: #ccc;' : ''}
-                ${selectedShiftDates.some(d => d.toDateString() === date.toDateString()) ? 'background: #007bff; color: white;' : ''}
+                ${
+                    date.getMonth() !== currentDate.getMonth()
+                        ? "color: #ccc;"
+                        : ""
+                }
+                ${
+                    selectedShiftDates.some(
+                        (d) => d.toDateString() === date.toDateString()
+                    )
+                        ? "background: #007bff; color: white;"
+                        : ""
+                }
             `;
-            
-            dayElement.addEventListener('click', () => toggleShiftDate(date));
+
+            dayElement.addEventListener("click", () => toggleShiftDate(date));
             calendar.appendChild(dayElement);
         }
     }
 
     function toggleShiftDate(date) {
-        const index = selectedShiftDates.findIndex(d => d.toDateString() === date.toDateString());
+        const index = selectedShiftDates.findIndex(
+            (d) => d.toDateString() === date.toDateString()
+        );
         if (index > -1) {
             selectedShiftDates.splice(index, 1);
         } else {
@@ -231,42 +392,51 @@ function initializeShiftDatePicker() {
 
     function updateDisplay() {
         selectedShiftDates.sort((a, b) => a - b);
-        const formattedDates = selectedShiftDates.map(d => {
+        const formattedDates = selectedShiftDates.map((d) => {
             // Format as YYYY-MM-DD to avoid year issues
             const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
             return `${year}-${month}-${day}`;
         });
-        
-        dateDisplay.value = formattedDates.map(d => {
-            const date = new Date(d);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }).join(', ');
-        
+
+        dateDisplay.value = formattedDates
+            .map((d) => {
+                const date = new Date(d);
+                return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                });
+            })
+            .join(", ");
+
         dateInput.value = JSON.stringify(formattedDates);
     }
 
     // Event listeners
-    dateDisplay.addEventListener('click', () => {
-        datepickerContainer.style.display = datepickerContainer.style.display === 'none' ? 'block' : 'none';
+    dateDisplay.addEventListener("click", () => {
+        datepickerContainer.style.display =
+            datepickerContainer.style.display === "none" ? "block" : "none";
         renderCalendar();
     });
 
-    header.querySelector('.btn-prev-month').addEventListener('click', () => {
+    header.querySelector(".btn-prev-month").addEventListener("click", () => {
         currentDate.setMonth(currentDate.getMonth() - 1);
         renderCalendar();
     });
 
-    header.querySelector('.btn-next-month').addEventListener('click', () => {
+    header.querySelector(".btn-next-month").addEventListener("click", () => {
         currentDate.setMonth(currentDate.getMonth() + 1);
         renderCalendar();
     });
 
     // Close datepicker when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#shift-datepicker') && e.target !== dateDisplay) {
-            datepickerContainer.style.display = 'none';
+    document.addEventListener("click", (e) => {
+        if (
+            !e.target.closest("#shift-datepicker") &&
+            e.target !== dateDisplay
+        ) {
+            datepickerContainer.style.display = "none";
         }
     });
 
@@ -283,66 +453,75 @@ function openEditModal(button) {
 
     // Reset selected dates
     selectedShiftDates = [];
-    
+
     // Parse existing dates
-    if (datesData && datesData !== 'null' && datesData !== '') {
+    if (datesData && datesData !== "null" && datesData !== "") {
         try {
             const dates = JSON.parse(datesData);
             if (Array.isArray(dates)) {
-                selectedShiftDates = dates.filter(d => d).map(d => new Date(d));
+                selectedShiftDates = dates
+                    .filter((d) => d)
+                    .map((d) => new Date(d));
             } else {
                 selectedShiftDates = [new Date(datesData)];
             }
         } catch (e) {
-            console.error('Error parsing dates:', e);
+            console.error("Error parsing dates:", e);
             selectedShiftDates = [];
         }
     }
 
     // Populate modal fields
-    document.getElementById('editEmployeeId').value = employeeId;
-    document.getElementById('editEmployeeName').value = employeeName;
-    document.getElementById('editTimeStart').value = timeStart || '';
-    document.getElementById('editTimeEnd').value = timeEnd || '';
+    document.getElementById("editEmployeeId").value = employeeId;
+    document.getElementById("editEmployeeName").value = employeeName;
+    document.getElementById("editTimeStart").value = timeStart || "";
+    document.getElementById("editTimeEnd").value = timeEnd || "";
 
     // Update date display
-    const dateDisplay = document.getElementById('editDateShiftDisplay');
-    const dateInput = document.getElementById('editDateShift');
-    
+    const dateDisplay = document.getElementById("editDateShiftDisplay");
+    const dateInput = document.getElementById("editDateShift");
+
     if (selectedShiftDates.length > 0) {
-        const formattedDates = selectedShiftDates.map(d => {
+        const formattedDates = selectedShiftDates.map((d) => {
             // Format as YYYY-MM-DD to avoid year issues
             const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
             return `${year}-${month}-${day}`;
         });
-        
-        dateDisplay.value = formattedDates.map(d => {
-            const date = new Date(d);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }).join(', ');
-        
+
+        dateDisplay.value = formattedDates
+            .map((d) => {
+                const date = new Date(d);
+                return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                });
+            })
+            .join(", ");
+
         dateInput.value = JSON.stringify(formattedDates);
     } else {
-        dateDisplay.value = '';
-        dateInput.value = '';
+        dateDisplay.value = "";
+        dateInput.value = "";
     }
 
     // Initialize date picker
     initializeShiftDatePicker();
 
     // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('editShiftModal'));
+    const modal = new bootstrap.Modal(
+        document.getElementById("editShiftModal")
+    );
     modal.show();
 }
 
 // Save shift changes via AJAX
 async function saveShiftChanges() {
-    const form = document.getElementById('editShiftForm');
+    const form = document.getElementById("editShiftForm");
     const formData = new FormData(form);
 
-    const dateShiftData = formData.get('date_shift');
+    const dateShiftData = formData.get("date_shift");
     let dateShifts = [];
 
     try {
@@ -352,12 +531,18 @@ async function saveShiftChanges() {
     }
 
     // Validate required fields
-    const timeStart = formData.get('time_start');
-    const timeEnd = formData.get('time_end');
-    const employeeId = formData.get('employee_id');
+    const timeStart = formData.get("time_start");
+    const timeEnd = formData.get("time_end");
+    const employeeId = formData.get("employee_id");
 
-    if (!dateShifts || dateShifts.length === 0 || !timeStart || !timeEnd || !employeeId) {
-        alert('Please fill all required fields');
+    if (
+        !dateShifts ||
+        dateShifts.length === 0 ||
+        !timeStart ||
+        !timeEnd ||
+        !employeeId
+    ) {
+        alert("Please fill all required fields");
         return;
     }
 
@@ -372,74 +557,87 @@ async function saveShiftChanges() {
 
     const durationHours = (endDate - startDate) / (1000 * 60 * 60);
     if (durationHours <= 0) {
-        alert('Invalid time range');
+        alert("Invalid time range");
         return;
     }
 
     // Format dates to YYYY-MM-DD
-    const formattedDates = dateShifts.map(date => {
-        if (typeof date === 'string') {
+    const formattedDates = dateShifts.map((date) => {
+        if (typeof date === "string") {
             if (date.match(/^\d{4}-\d{2}-\d{2}$/)) return date;
             const parsedDate = new Date(date);
             const year = parsedDate.getFullYear();
-            const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-            const day = String(parsedDate.getDate()).padStart(2, '0');
+            const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+            const day = String(parsedDate.getDate()).padStart(2, "0");
             return `${year}-${month}-${day}`;
         } else if (date instanceof Date) {
             const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
             return `${year}-${month}-${day}`;
         }
         return date;
     });
 
     try {
-        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const basePath =
+            window.location.pathname.split("/").slice(0, -1).join("/") || "";
         const endpoint = `${basePath}/shift/update/${employeeId}`;
 
         const response = await fetch(endpoint, {
-            method: 'PUT',
+            method: "PUT",
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                    'meta[name="csrf-token"]'
+                ).content,
             },
             body: JSON.stringify({
                 employee_id: employeeId,
                 date_shifts: formattedDates,
                 time_start: timeStart,
-                time_end: timeEnd
-            })
+                time_end: timeEnd,
+            }),
         });
 
         if (!response.ok) {
-            showFloatingAlert('Failed to update shift: ' + response.statusText, 'danger');
+            showFloatingAlert(
+                "Failed to update shift: " + response.statusText,
+                "danger"
+            );
             return;
         }
 
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
             const text = await response.text();
-            showFloatingAlert('Server returned non-JSON response: ' + text, 'danger');
+            showFloatingAlert(
+                "Server returned non-JSON response: " + text,
+                "danger"
+            );
             return;
         }
 
         const result = await response.json();
 
         if (result.success) {
-            const modal = bootstrap.Modal.getInstance(document.getElementById('editShiftModal'));
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById("editShiftModal")
+            );
             modal.hide();
             loadEmployeeData();
-            showFloatingAlert('Shift updated successfully', 'success');
+            showFloatingAlert("Shift updated successfully", "success");
         } else {
-            showFloatingAlert('Failed to update shift: ' + result.message, 'danger');
+            showFloatingAlert(
+                "Failed to update shift: " + result.message,
+                "danger"
+            );
         }
     } catch (error) {
-        console.error('Error updating shift:', error);
-        showFloatingAlert('Error updating shift: ' + error.message, 'danger');
+        console.error("Error updating shift:", error);
+        showFloatingAlert("Error updating shift: " + error.message, "danger");
     }
 }
-
 
 // Function to show floating alert with SVG icon - same as task.js
 function showFloatingAlert(message, type = "success") {
@@ -470,3 +668,73 @@ function showFloatingAlert(message, type = "success") {
         setTimeout(() => alertDiv.remove(), 500);
     }, 3000);
 }
+
+$(document).ready(function () {
+    const today = new Date();
+    const month = today.getMonth(); // 0 = Jan
+    const year = today.getFullYear();
+
+    // Jumlah hari dalam bulan ini
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // Generate header
+    let headerRow = $("#shiftHeader");
+    for (let i = 1; i <= daysInMonth; i++) {
+        const date = new Date(year, month, i);
+        const isSunday = date.getDay() === 0 ? "sunday" : "";
+        headerRow.append(`<th class="${isSunday}">${i}</th>`);
+    }
+
+    // Dummy data employee
+    const employees = [
+        {
+            name: "Employeename",
+            avatar: "https://via.placeholder.com/32",
+            shifts: {
+                1: "09:00 - 18:00",
+                2: "09:00 - 18:00",
+                3: "09:00 - 18:00",
+                4: "edit",
+            },
+        },
+    ];
+
+    // Generate body
+    let body = $("#shiftBody");
+    employees.forEach((emp) => {
+        let row = $("<tr></tr>");
+
+        // Kolom employee
+        row.append(`
+            <td class="sticky-col">
+                <div class="d-flex align-items-center gap-2">
+                    <img src="${emp.avatar}" class="rounded-circle" alt="avatar">
+                    <span>${emp.name}</span>
+                </div>
+            </td>
+        `);
+
+        // Kolom shift per tanggal
+        for (let i = 1; i <= daysInMonth; i++) {
+            const date = new Date(year, month, i);
+            const isSunday = date.getDay() === 0 ? "sunday" : "";
+
+            let cellContent = "";
+            if (emp.shifts[i]) {
+                if (emp.shifts[i] === "edit") {
+                    cellContent = `
+                        <button class="btn btn-sm btn-light">
+                            <span class="material-symbols-outlined">edit</span>
+                        </button>
+                    `;
+                } else {
+                    cellContent = emp.shifts[i];
+                }
+            }
+
+            row.append(`<td class="${isSunday}">${cellContent}</td>`);
+        }
+
+        body.append(row);
+    });
+});

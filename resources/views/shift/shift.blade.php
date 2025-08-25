@@ -22,133 +22,102 @@
         </symbol>
     </svg>
 
-    <div class="title-content d-flex align-items-center gap-2">
-        <h2 class="m-0 mb-3">Shift</h2>
+    <div class="title-content d-flex justify-content-between align-items-center mb-3 py-3">
+        <h2 class="m-0">Shift</h2>
+        <div class="d-flex gap-2">
+            <div class="search-input-container">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input class="form-control custom-form-filter" type="text" name="search_filter" id="search_filter">
+            </div>
+
+            <button class="btn btn-icon-toggle filter-shift-btn border-dddd" type="button" data-bs-toggle="modal"
+                data-bs-target="#filterModal">
+                <span class="material-symbols-outlined icon">filter_list</span><span class="icon-text">Filter</span>
+            </button>
+            <button class="btn btn-icon-toggle config-shift-btn border-dddd" type="button" data-bs-toggle="modal"
+                data-bs-target="#filterModal">
+                <span class="material-symbols-outlined icon">settings</span><span class="icon-text">Config</span>
+            </button>
+        </div>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 px-3 py-3">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="mb-0 table-title">Employee Shift</h5>
+    <div class="body-content scrollable-container rounded-4 px-3 p-5">
+        <div class="d-flex justify-content-start align-items-center mb-3 gap-2">
+            <h4 id="shiftMonthTitle" class="fw-normal mb-0">August 2025</h4>
 
-            <div class="d-flex gap-1 ml-neg-5">
-                <div class="input-group min-width-200 height-38">
-                    <input type="text" id="searchInput" class="form-control input-soft border-dddd height-38"
-                        placeholder="Search" />
-                </div>
-                <!-- Filter button to open modal -->
-                <button class="btn btn-icon-toggle border-dddd" type="button" id="openFilterModalBtn">
-                    <span class="material-symbols-outlined icon">filter_list</span> Filter
-                </button>
+            <div class="year-dropdown-wrapper">
+                <select id="yearSelect"></select>
+            </div>
 
-                <!-- Filter Modal -->
-                <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel"
-                    aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="filterModalLabel">Filter Employee Shifts</h5>
-                                <button type="button" class="btn-close mt-1" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
+            <button id="prevMonthBtn" class="btn btn-pagination-table">
+                <span class="material-symbols-outlined me-1">chevron_left</span>
+            </button>
+            <button id="nextMonthBtn" class="btn btn-pagination-table">
+                <span class="material-symbols-outlined me-1">chevron_right</span>
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <div class="table-scroll-wrapper">
+                <table class="table table-bordered align-middle shift-table">
+                    <thead>
+                        <thead>
+                            <tr id="shiftTableHeader"></tr>
+                        </thead>
+                    <tbody id="shiftTableBody"></tbody>
+
+                </table>
+            </div>
+        </div>
+
+        {{-- Edit Modal --}}
+        <div class="modal fade" id="editShiftModal" tabindex="-1" aria-labelledby="editShiftModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom" id="editShiftModalLabel">Edit Employee Shift</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body modal-body-custom">
+                        <form id="editShiftForm">
+                            <input type="hidden" id="editShiftId" name="shift_id">
+                            <input type="hidden" id="editEmployeeId" name="employee_id">
+
+                            <div class="mb-3">
+                                <label for="editEmployeeName" class="form-label label-custom">Employee Name</label>
+                                <input type="text" class="form-control input-text" id="editEmployeeName" readonly>
                             </div>
-                            <div class="modal-body">
-                                <form id="filterForm">
-                                    <div class="mb-3">
-                                        <label for="filterDepartment" class="form-label">Filter by Department</label>
-                                        <select id="filterDepartment" class="form-select">
-                                            <option value="">Select Department</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="filterDivision" class="form-label">Filter by Division</label>
-                                        <select id="filterDivision" class="form-select" disabled>
-                                            <option value="">Select Division</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="filterShift" class="form-label">Filter by Shift</label>
-                                        <select id="filterShift" class="form-select">
-                                            <option value="">Select Shift</option>
-                                            <option value="Morning">Morning</option>
-                                            <option value="Afternoon">Afternoon</option>
-                                            <option value="Night">Night</option>
-                                        </select>
-                                    </div>
-                                </form>
+
+                            <div class="mb-3">
+                                <label for="editDateShiftDisplay" class="form-label label-custom">Date Shift</label>
+                                <input type="text" id="editDateShiftDisplay" class="form-control input-text"
+                                    placeholder="Click calendar to select dates" readonly />
+                                <input type="hidden" id="editDateShift" name="date_shift" />
+                                <small class="text-muted">Click calendar icon to select multiple dates</small>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-primary" id="applyFilterBtn">Filter</button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+
+                            <div class="mb-3">
+                                <label for="editTimeStart" class="form-label label-custom">Start Time</label>
+                                <input type="time" class="form-control input-text" id="editTimeStart"
+                                    name="time_start" required>
                             </div>
-                        </div>
+
+                            <div class="mb-3">
+                                <label for="editTimeEnd" class="form-label label-custom">End Time</label>
+                                <input type="time" class="form-control input-text" id="editTimeEnd"
+                                    name="time_end" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-submit-black" id="saveShiftBtn">Save Changes</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="table-responsive">
-            <div class="table-scroll-wrapper">
-                <table class="table table-borderless align-middle table-transparent">
-                    <thead>
-                        <tr>
-                            <th scope="col">Employee</th>
-                            <th scope="col">Start Time</th>
-                            <th scope="col">End Time</th>
-                            <th scope="col"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="shiftTableBody">
-                        <!-- Data will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Shift Modal -->
-    <div class="modal fade" id="editShiftModal" tabindex="-1" aria-labelledby="editShiftModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="editShiftModalLabel">Edit Employee Shift</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body modal-body-custom">
-                    <form id="editShiftForm">
-                        <input type="hidden" id="editShiftId" name="shift_id">
-                        <input type="hidden" id="editEmployeeId" name="employee_id">
-                        
-                        <div class="mb-3">
-                            <label for="editEmployeeName" class="form-label label-custom">Employee Name</label>
-                            <input type="text" class="form-control input-text" id="editEmployeeName" readonly>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="editDateShiftDisplay" class="form-label label-custom">Date Shift</label>
-                            <input type="text" id="editDateShiftDisplay" class="form-control input-text" 
-                                   placeholder="Click calendar to select dates" readonly />
-                            <input type="hidden" id="editDateShift" name="date_shift" />
-                            <small class="text-muted">Click calendar icon to select multiple dates</small>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="editTimeStart" class="form-label label-custom">Start Time</label>
-                            <input type="time" class="form-control input-text" id="editTimeStart" name="time_start" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="editTimeEnd" class="form-label label-custom">End Time</label>
-                            <input type="time" class="form-control input-text" id="editTimeEnd" name="time_end" required>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-submit-black" id="saveShiftBtn">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/shift.js') }}"></script>
-    </x-slot>
+        <x-slot name="script_slot">
+            <script src="{{ asset('asset/js/shift.js') }}"></script>
+        </x-slot>
 </x-office-layout>

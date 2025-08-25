@@ -19,11 +19,21 @@ class ShiftController extends Controller
     /**
      * Get employees with their shift data from employee_shifts table
      */
-    public function getEmployeesBasic()
+    public function getEmployeesBasic(Request $request)
     {
-        // Get all employees with ALL their shift data
+        $month = $request->input('month', date('m'));
+        $year = $request->input('year', date('Y'));
+
+        // Calculate start and end dates for the selected month
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+        // Get all employees with their shift data for the selected month
         $employees = Employee::select('employees.id', 'employees.name', 'employees.email', 'employees.profile_picture')
-            ->leftJoin('employee_shifts', 'employees.id', '=', 'employee_shifts.employee_id')
+            ->leftJoin('employee_shifts', function($join) use ($startDate, $endDate) {
+                $join->on('employees.id', '=', 'employee_shifts.employee_id')
+                     ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+            })
             ->select(
                 'employees.id',
                 'employees.name',
@@ -41,15 +51,13 @@ class ShiftController extends Controller
             ->groupBy('id');
 
         $employeeData = [];
-        
+
         foreach ($employees as $employeeId => $shifts) {
             $employee = $shifts->first();
-            $dateShifts = [];
             $shiftDetails = [];
-            
+
             foreach ($shifts as $shift) {
                 if ($shift->date_shift) {
-                    $dateShifts[] = Carbon::parse($shift->date_shift)->format('Y-m-d');
                     $shiftDetails[] = [
                         'shift_id' => $shift->shift_id,
                         'date_shift' => Carbon::parse($shift->date_shift)->format('Y-m-d'),
@@ -64,16 +72,15 @@ class ShiftController extends Controller
                 'name' => $employee->name,
                 'email' => $employee->email,
                 'profile_picture' => $employee->profile_picture ?? '/asset/img/default-profile.png',
-                'start_time' => $shifts->first()->time_start ? Carbon::parse($shifts->first()->time_start)->format('H:i') : null,
-                'end_time' => $shifts->first()->time_end ? Carbon::parse($shifts->first()->time_end)->format('H:i') : null,
-                'date_shift' => $dateShifts, // Array of all dates
-                'shifts' => $shiftDetails // Array of all shift details
+                'shifts' => $shiftDetails // Array of shift details for the selected month
             ];
         }
 
         return response()->json([
             'success' => true,
-            'data' => $employeeData
+            'data' => $employeeData,
+            'month' => (int)$month,
+            'year' => (int)$year
         ]);
     }
 
@@ -106,7 +113,7 @@ class ShiftController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             // Validasi input
            $validated = $request->validate([
     'employee_id' => 'required|exists:employees,id',
@@ -128,10 +135,10 @@ $totalHour = $end->diffInHours($start);
 
 
             $employeeId = $validated['employee_id'];
-            
+
             // Delete existing shifts for this employee
             EmployeeShift::where('employee_id', $employeeId)->delete();
-            
+
             // Create new shifts for each date
           foreach ($validated['date_shifts'] as $date) {
     $formattedDate = Carbon::parse($date)->format('Y-m-d');

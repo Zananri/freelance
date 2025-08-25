@@ -38,7 +38,8 @@
                         id="search_filter">
                 </div>
 
-                <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+                <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal"
+                    data-bs-target="#timelineModal">
                     <span class="material-symbols-outlined">calendar_month</span>
                 </button>
 
@@ -91,6 +92,42 @@
             <div class="col-md-4 completed-container">
                 <h4 class="task-section-title">Completed</h4>
                 <div id="completed-tasks" class="task-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade timeline-modal-overlay" id="timelineModal" data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-labelledby="timelineModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content timeline-modal">
+
+                <!-- Header -->
+                <div class="modal-header d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title fw-normal mb-0" id="timelineModalTitle">Timeline</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm" id="prevTimelineModal">
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+                        <button class="btn btn-sm me-3" id="nextTimelineModal">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                        <button class="exit-fullscreen-btn" type="button" data-bs-dismiss="modal">
+                            <span class="material-symbols-outlined">fullscreen_exit</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body p-0">
+                    <div class="timeline-wrapper">
+                        <table class="timeline-table w-100">
+                            <thead>
+                                <tr id="timelineHeaderModal"></tr>
+                            </thead>
+                            <tbody id="timelineRowsModal"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -206,116 +243,39 @@
     </div>
 
     <!-- Edit Task Modal -->
-    <div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="editTaskModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content modal-content-custom">
-                <div class="modal-loading-overlay d-none" id="editTaskModalLoader">
-                    <div class="loader-spinner"></div>
-                </div>
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="editTaskModalLabel">Edit Task</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <form id="editTaskForm" enctype="multipart/form-data">
-                    <input type="hidden" id="edit_task_id" name="id" value="">
-                    <div class="modal-body modal-body-custom">
-                        <div class="mb-3">
-                            <div class="title-label-image">
-                                <span>Upload image</span>
-                            </div>
-                            <label for="edit_task_image" class="custom-image-upload position-relative"
-                                id="editTaskImageLabel" style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
-                                <input type="file" class="input-image" id="edit_task_image" name="image"
-                                    accept="image/*" hidden>
-                                <span class="image-clear-btn d-none" id="editTaskImageClearBtn"
-                                    title="Remove image">&times;</span>
-                            </label>
-                            <div class="invalid-feedback">
-                                Please select an image file.
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_task_title" class="form-label label-custom">Title</label>
-                            <input type="text" class="form-control input-text" id="edit_task_title"
-                                name="title" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_task_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_task_project_id" class="form-label label-custom">Project</label>
-                            <select class="form-select input-select" id="edit_task_project_id" name="project_id"
-                                required>
-                                <option value="">Select Project</option>
-                                <!-- Options to be populated dynamically -->
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_task_point" class="form-label label-custom">Point</label>
-                            <input type="number" class="form-control input-text" id="edit_task_point"
-                                name="point" value="1" min="1" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_task_priority" class="form-label label-custom">Priority</label>
-                            <select class="form-select input-select" id="edit_task_priority" name="priority"
-                                required>
-                                <option value="">Select Priority</option>
-                                <option value="HIGH">HIGH</option>
-                                <option value="MEDIUM">MEDIUM</option>
-                                <option value="LOW">LOW</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_task_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="edit_task_reference_url"
-                                name="reference_url">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_task_reference_files" class="form-label label-custom">Reference
-                                Files</label>
-                            <input type="file" class="form-control input-text" id="edit_task_reference_files"
-                                name="reference_files[]" accept=".pdf,.doc,.docx" multiple>
-                            <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
-                            <div id="edit_reference_files_preview" class="mt-2"></div>
-                            <div id="existing_reference_files" class="mt-2"></div>
-                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"
-                                value="">
-                        </div>
+    <div class="modal fade" id="timelineModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+        aria-labelledby="timelineModalTitle" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content timeline-modal">
 
-                        <div class="mb-3 d-flex justify-content-between">
-                            <div class="date-form">
-                                <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
-                                <input type="date" class="form-control input-text" id="edit_task_start_date"
-                                    name="start_date" required>
-                            </div>
-                            <div class="date-form">
-                                <label for="edit_task_due_date" class="form-label label-custom">Due Date</label>
-                                <input type="date" class="form-control input-text" id="edit_task_due_date"
-                                    name="due_date" required>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_executor_input" class="form-label label-custom">Executor</label>
-                            <input type="text" class="form-control input-text" id="edit_executor_input"
-                                name="edit_executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list">
-                            </div>
-                            <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2">
-                                <!-- Selected executors will appear here -->
-                            </div>
-                            <input type="hidden" id="edit_executors" name="executors" value="">
-                        </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black">
-                            Update
+                <!-- Header -->
+                <div class="modal-header d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title fw-normal mb-0" id="timelineModalTitle">Timeline</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm" id="prevTimelineModal">
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+                        <button class="btn btn-sm me-3" id="nextTimelineModal">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                        <button class="exit-fullscreen-btn" type="button" data-bs-dismiss="modal">
+                            <span class="material-symbols-outlined">fullscreen_exit</span>
                         </button>
                     </div>
-                </form>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body p-0">
+                    <div class="timeline-wrapper">
+                        <table class="timeline-table w-100">
+                            <thead>
+                                <tr id="timelineHeaderModal"></tr>
+                            </thead>
+                            <tbody id="timelineRowsModal"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="alert-container mt-2"></div>
         </div>
     </div>
 
