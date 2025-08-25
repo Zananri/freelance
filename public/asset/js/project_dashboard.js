@@ -49,9 +49,10 @@
     function updateChartAndLabels(projects) {
         projects = Array.isArray(projects) ? projects : [];
 
+        // Project-level counts: a project contributes to one bucket based on its task mix
         let total = projects.length;
         let complete = 0;
-        let onProgress = 0;
+        let onProgress = 0; // include rejected via in_progress
         let late = 0;
         let notStarted = 0;
 
@@ -59,29 +60,27 @@
             const tc = p.task_counts || {};
             const tTotal = tc.total || 0;
             const tCompleted = tc.completed || 0;
-            const tInProgress = tc.in_progress || 0;
-            const tRejected = tc.rejected || 0;
+            const tInProgress = tc.in_progress || 0; // already includes rejected
             const tLate = tc.late || 0;
 
             if (tLate > 0) late += 1;
             else if (tTotal > 0 && tCompleted === tTotal) complete += 1;
-            else if (tInProgress > 0 || tRejected > 0) onProgress += 1;
+            else if (tInProgress > 0) onProgress += 1;
             else notStarted += 1;
         });
 
         // Update labels under chart: Total, Complete, On Progress, Late (in that order)
         try {
-            const blocks = document.querySelectorAll(".chart-labels .text-center");
+            const blocks = document.querySelectorAll('.chart-labels .text-center');
             if (blocks && blocks.length >= 4) {
                 const nums = [total, complete, onProgress, late];
                 blocks.forEach((el, idx) => {
-                    const numSpan = el.querySelector("span:first-child");
+                    const numSpan = el.querySelector('span:first-child');
                     if (numSpan) numSpan.textContent = String(nums[idx] || 0);
                 });
             }
         } catch (e) {}
 
-        // Update chart: slices order Not Started, Complete, On Progress, Late
         if (chartInstance) {
             if (total === 0) {
                 chartInstance.data.labels = ["No Data"]; 
