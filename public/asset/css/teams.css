@@ -1,0 +1,231 @@
+.card-department{
+    background-color: rgba(89, 140, 197,0.03);
+    border-radius: 20px;
+    border-bottom: 1px solid rgba(89, 140, 197,0.3);
+    margin-bottom: 25px;
+    padding: 25px 25px;
+}
+
+.card-content{
+    background-color: rgb(240, 241, 248);
+    border-radius: 20px;
+    padding: 0px;
+    padding-bottom: 25px;
+}
+
+.title-content{
+    margin-bottom: 30px;
+}
+
+.text-title-content{
+    font-size: 48px;
+    font-weight: 300;
+    color: #2A3542;
+    padding: 0px;
+    margin:0px;
+}
+
+
+.input-card-action{
+    width: 200px;
+    border:0px;
+    font-size: 14px;
+    font-weight: 300;
+    border-radius: 10px;
+    background-color: rgb(248, 248, 252);
+    color: #2A3542;
+    display: inline-block;
+    
+    padding: 11px 10px 11px 10px !important;
+    
+    transition: width .3s;
+    outline: none; /* Removes the default browser outline */
+    border: none; /* Removes the border */
+}
+
+.input-card-action.search-query{
+    padding: 11px 10px 11px 40px !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3e%3cpath fill='%238C909A' d='M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3e%3c/svg%3e");
+    
+    background-repeat: no-repeat;
+    background-position: left calc(.875em + .1875rem) center;
+    background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+
+}
+
+
+.btn-default {
+    background-color: #e3e4ee;
+    color: #313131;
+    font-weight: 300;
+}
+
+
+.btn-default:hover,
+.btn-default:active,
+.btn-default:focus{
+    background-color: #f1f2f8;
+    color: #242424;
+}
+
+
+.text-card-title{
+    font-size: 18px;
+    font-weight: 400;
+    color: #2A3542;
+    padding: 0px;
+    margin:0px;
+    margin-bottom: 15px;
+}
+
+.header-card-content{
+    padding-left: 25px;
+    padding-right: 15px;
+    padding-top: 15px;
+    padding-bottom: 5px;;
+}
+.box-header-card-content{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-employee{
+    background-color: #F0F1F8;
+    border-radius: 20px;
+    padding: 20px 18px;
+    margin-bottom: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+
+.card-employee:hover{
+    background-color: #f7f8ff;
+    box-shadow: 3px 0px 15px rgba(89, 140, 197,0.03);
+}
+
+.card-employee .employee-photo{
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    margin-right: 16px;
+}
+
+.card-employee .employee-name{
+    font-size: 16px;
+    font-weight: 400;
+    color: #2A3542;
+    cursor: pointer;
+    margin-bottom: 2px;
+}
+
+.card-employee .employee-job{
+    font-size: 12px;
+    font-weight: 400;
+    color: #797E91;
+}
+
+.btn-action{
+    background-color: #E8E9F2;
+    width: 30px;
+    height: 30px;
+    border-radius: 20px;
+    padding: 3px 1px 1px 3px;
+    display: inline-block;
+    margin-right: 7px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.btn-action .material-symbols-outlined{
+    font-size: 22px;
+    color: #2A3542;
+}
+
+.modal .employee-photo{
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+}
+
+
+.modal .employee-name{
+    font-size: 20px;
+    font-weight: 400;
+    color: #2A3542;
+}
+
+.modal .employee-grade{
+    font-size: 12px;
+    font-weight: 400;
+    color: #878d9c;
+}
+
+
+.modal .modal-content{
+    border: 0px;
+    border-radius: 20px;
+    background-color: rgb(240, 241, 248) !important;
+}
+
+.modal .btn-close{
+    width: 5px;
+    height: 5px;
+}
+
+.personal-info .label {
+    font-size: 12px;
+    color: #989eaf;
+    margin: 0;
+}
+
+.personal-info .value {
+    width: 100%;
+    border: none;
+    background: transparent;
+    overflow: hidden;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+}
+
+
+.icon-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.icon-circle.email {
+    background: #a9bae0;
+    color: white;
+}
+.icon-circle.phone {
+    background: #9ddad9;
+    color: white;
+}
+.icon-circle.department {
+    background: #ded4ab;
+    color: white;
+}
+.icon-circle.job {
+    background: #c1a8d3;
+    color: white;
+}
+.icon-circle.address {
+    background: #e3bfbf;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.icon-circle span {
+    font-size: 16px;
+}

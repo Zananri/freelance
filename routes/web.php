@@ -13,6 +13,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ShiftController;
 
+use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
 
 use Illuminate\Http\Request;
@@ -177,7 +178,9 @@ Route::get('/attendance/daily/{employeeId}/{date}', [AttendanceController::class
 Route::get('/attendance/shift-details/{employeeId}/{date}', [AttendanceController::class, 'getEmployeeShiftDetails']);
 Route::get('/attendance/today-status/{employeeId}', [AttendanceController::class, 'getTodayStatus']);
 
-
 Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
 Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
 Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');
+
+Route::get('/teams', [TeamsController::class, 'showTeamsPage'])->name('teams');
+Route::get('/teams/get-teams-detail', [TeamsController::class, 'getTeamsDetail'])->name('teams.getTeamsDetail');
