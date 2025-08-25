@@ -311,27 +311,79 @@ class ProjectController extends Controller
                 // Get task counts for this project
                 $totalTasks = Task::where('project_id', $project->id)->count();
                 $inProgressTasks = Task::where('project_id', $project->id)
-                    ->whereIn('status', ['in_progress', 'rejected'])
+                    ->whereIn('status', ['in_progress'])
+                    ->count();
+                $rejectedTasks = Task::where('project_id', $project->id)
+                    ->where('status', 'rejected')
                     ->count();
                 $completedTasks = Task::where('project_id', $project->id)
                     ->where('status', 'completed')
                     ->count();
+                $lateTasks = Task::where('project_id', $project->id)
+                    ->where('status', '!=', 'completed')
+                    ->whereNotNull('due_date')
+                    ->where('due_date', '<', now())
+                    ->count();
 
-                return [
-                    'id' => $project->id,
-                    'title' => $project->title,
-                    'description' => $project->description,
-                    'image' => $project->image,
-                    'department' => $project->department,
-                    'division' => $project->division,
-                    'status' => $project->status,
-                    'project_assignments' => $projectAssignments,
-                    'task_counts' => [
-                        'total' => $totalTasks,
-                        'in_progress' => $inProgressTasks,
-                        'completed' => $completedTasks
-                    ]
-                ];
+                    // build author, co_authors and contributors with photo URLs if available
+                    $author = null;
+                    $coAuthors = [];
+                    $contributors = [];
+
+                    foreach ($project->projectAssignments as $assignment) {
+                        $employee = $assignment->employee;
+                        if (!$employee) continue;
+
+                        // try to get user photo from related user record or employee photo
+                        $userPhoto = null;
+                        $rawPhoto = null;
+                        if ($employee->user && $employee->user->photo) {
+                            $rawPhoto = $employee->user->photo;
+                        } elseif ($employee->photo) {
+                            $rawPhoto = $employee->photo;
+                        }
+
+                        if ($rawPhoto) {
+                            // If stored path already points to public 'file/...' folder, use asset(raw)
+                            if (Str::startsWith($rawPhoto, 'file/') || Str::startsWith($rawPhoto, '/file/')) {
+                                $userPhoto = asset($rawPhoto);
+                            } elseif (Str::startsWith($rawPhoto, 'storage/') || Str::startsWith($rawPhoto, '/storage/')) {
+                                $userPhoto = asset($rawPhoto);
+                            } else {
+                                // otherwise assume it's a storage filename and use storage path
+                                $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
+                            }
+                        }
+
+                        if ($assignment->role === 'author') {
+                            $author = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        } elseif ($assignment->role === 'co_author') {
+                            $coAuthors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        } elseif ($assignment->role === 'contributor') {
+                            $contributors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        }
+                    }
+
+                    return [
+                        'id' => $project->id,
+                        'title' => $project->title,
+                        'description' => $project->description,
+                        'image' => $project->image,
+                        'department' => $project->department,
+                        'division' => $project->division,
+                        'status' => $project->status,
+                        'project_assignments' => $projectAssignments,
+                        'author' => $author,
+                        'co_authors' => $coAuthors,
+                        'contributors' => $contributors,
+                        'task_counts' => [
+                            'total' => $totalTasks,
+                            'in_progress' => $inProgressTasks,
+                            'rejected' => $rejectedTasks,
+                            'completed' => $completedTasks,
+                            'late' => $lateTasks,
+                        ]
+                    ];
             });
 
             return response()->json([

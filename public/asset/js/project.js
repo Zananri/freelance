@@ -10,6 +10,103 @@ document.addEventListener("DOMContentLoaded", function () {
     const referenceFileInput = document.getElementById("reference_file");
     const addProjectForm = document.getElementById("addProjectForm");
 
+    // Helper to resolve employee photo URL and return img HTML string
+    function resolvePhotoHtml(emp, size = 30, marginLeft = 0, role = '') {
+        let userPhoto = emp && (emp.profile_picture || emp.user_photo || emp.user_photo_path || emp.user_photo_url);
+        let photoUrl = "";
+        if (userPhoto) {
+            try {
+                // full URL
+                if (typeof userPhoto === 'string' && userPhoto.startsWith('http')) {
+                    photoUrl = userPhoto;
+                }
+                // paths already starting with /file or file/ or /storage
+                else if (typeof userPhoto === 'string' && (userPhoto.startsWith('/file/') || userPhoto.startsWith('file/') || userPhoto.startsWith('/storage/') || userPhoto.startsWith('storage/'))) {
+                    // make absolute via appUrl if it doesn't already contain host
+                    if (userPhoto.startsWith('/')) {
+                        photoUrl = appUrl + userPhoto;
+                    } else {
+                        photoUrl = appUrl + '/' + userPhoto;
+                    }
+                }
+                // absolute path starting with /
+                else if (typeof userPhoto === 'string' && userPhoto.startsWith('/')) {
+                    photoUrl = appUrl + userPhoto;
+                }
+                // contains a slash (maybe relative path like file/photo/..., keep appending)
+                else if (typeof userPhoto === 'string' && userPhoto.indexOf('/') !== -1) {
+                    photoUrl = appUrl + '/' + userPhoto;
+                }
+                // otherwise treat as filename stored in storage and use storage URL
+                else {
+                    photoUrl = appUrl + '/storage/' + userPhoto;
+                }
+            } catch (e) {
+                photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+            }
+        } else {
+            photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+        }
+
+        const name = (emp && (emp.name || emp.username || emp.full_name)) ? (emp.name || emp.username || emp.full_name) : 'Unknown';
+        const roleText = role ? ` (${role.replace('_', ' ')})` : '';
+        const titleText = `${name}${roleText}`;
+
+    return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}">`;
+    }
+
+    // Build collaborators HTML: author first, then co_authors, then executors. Shows up to 3 images and +N overflow.
+    function renderCollaborators(project) {
+        try {
+            const maxVisible = 3;
+            let coll = [];
+
+            // Author (put first)
+            if (project.author) {
+                coll.push({ type: 'author', emp: project.author });
+            }
+
+            // Co-authors
+            if (project.co_authors && Array.isArray(project.co_authors)) {
+                project.co_authors.forEach((c) => coll.push({ type: 'co_author', emp: c }));
+            }
+
+            // Executors / contributors (try multiple property names)
+            if (project.executors && Array.isArray(project.executors)) {
+                project.executors.forEach((c) => coll.push({ type: 'executor', emp: c }));
+            } else if (project.contributors && Array.isArray(project.contributors)) {
+                project.contributors.forEach((c) => coll.push({ type: 'executor', emp: c }));
+            }
+
+            if (coll.length === 0) {
+                // fallback: show default placeholder
+                return resolvePhotoHtml(null, 30, 0) + resolvePhotoHtml(null, 30, -8);
+            }
+
+            let html = "";
+            const visible = coll.slice(0, maxVisible);
+            visible.forEach((c, idx) => {
+                const margin = idx === 0 ? 0 : -8;
+                html += resolvePhotoHtml(c.emp, 30, margin, c.type);
+            });
+
+            const overflow = coll.length - maxVisible;
+            if (overflow > 0) {
+                const hidden = coll.slice(maxVisible).map(h => {
+                    const n = h.emp && (h.emp.name || h.emp.username || h.emp.full_name) ? (h.emp.name || h.emp.username || h.emp.full_name) : 'Unknown';
+                    return `${n} (${h.type.replace('_',' ')})`;
+                }).join(', ');
+
+                html += `<div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold" title="${hidden}" data-bs-toggle="tooltip" data-bs-placement="bottom" style="width:30px;height:30px;font-size:12px;margin-left:-8px;">+${overflow}</div>`;
+            }
+
+            return html;
+        } catch (e) {
+            console.error('renderCollaborators error', e);
+            return resolvePhotoHtml(null, 30, 0);
+        }
+    }
+
     // Load project card data and generate cards dynamically
     function loadProjectCardData(filter = null) {
         $.ajax({
@@ -21,10 +118,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
 
-                if (data.data && data.data.length > 0) {
+                // support API returning either array or { data: [...] }
+                const projects = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+
+                // compute chart counts even if zero or empty
+                try {
+                    updateProjectChartFromData(projects);
+                } catch (e) {
+                    console.error('updateProjectChartFromData error', e);
+                }
+
+                if (projects && projects.length > 0) {
                     let rowHtml = '<div class="row">';
 
-                    data.data.forEach((project) => {
+                    projects.forEach((project) => {
                         let imageUrl = project.image
                             ? appUrl + "/file/project/" + project.image
                             : appUrl + "/asset/img/background/add-image.png";
@@ -72,18 +179,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <div class="d-flex justify-content-between align-items-center mt-2">
                                         <div class="collaborators-image d-flex align-items-center">
 
-                                            <img src="https://picsum.photos/200"
-                                                class="rounded-circle"
-                                                style="width:30px;height:30px;object-fit:cover;">
-
-                                            <img src="https://picsum.photos/200"
-                                                class="rounded-circle"
-                                                style="width:30px;height:30px;object-fit:cover;margin-left:-8px;">
-
-                                            <div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold"
-                                                style="width:30px;height:30px;font-size:12px;margin-left:-8px;">
-                                                +3
-                                            </div>
+                                            <!-- collaborators will be injected here -->
+                                            ${renderCollaborators(project)}
 
                                         </div>
                                         <div class="d-flex">
@@ -105,6 +202,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     rowHtml += "</div>";
                     container.innerHTML = rowHtml;
+
+                    // Initialize Bootstrap tooltips for newly injected collaborator images and +N badges
+                    try {
+                        const tooltipTriggerList = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+                        tooltipTriggerList.forEach(function (el) {
+                            // dispose existing (safe) then init bottom placement
+                            try {
+                                if (el._tooltip) {
+                                    el._tooltip.dispose && el._tooltip.dispose();
+                                }
+                            } catch (e) {}
+                            try {
+                                const tip = new bootstrap.Tooltip(el, { placement: 'bottom' });
+                                // store ref to allow future disposal
+                                el._tooltip = tip;
+                            } catch (e) {
+                                // bootstrap not available or init failed
+                                // fallback silently
+                                // console.warn('tooltip init failed', e);
+                            }
+                        });
+                    } catch (e) {
+                        // ignore
+                    }
 
                     // Add event listeners for dropdown toggle
                     document
@@ -2236,6 +2357,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     );
                 }
+                else {
+                    // no projects - ensure chart shows zero state
+                    updateProjectChartFromData([]);
+                }
             },
             error: function () {
                 console.error("Failed to load project card data.");
@@ -3623,8 +3748,9 @@ document.addEventListener("DOMContentLoaded", function () {
             labels = ["No Data"];
         } else {
             chartData = data;
-            colors = ["#b6e7c9", "#8fb3e8", "#ff9c9c"];
-            labels = ["Total", "Complete", "On Progress", "Late"];
+            // expect slices: Not Started, Complete, On Progress, Late
+            colors = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
+            labels = ["Not Started", "Complete", "On Progress", "Late"];
         }
 
         return new Chart(el, {
@@ -3649,9 +3775,105 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     const ctx = document.getElementById("projectChart");
+    let projectChartInstance = null;
     if (ctx) {
         const dataset = [];
-        createDoughnut(ctx, dataset);
+        projectChartInstance = createDoughnut(ctx, dataset);
+    }
+
+    // update chart and label counts based on project array
+    function updateProjectChartFromData(projects) {
+        // projects is array of project objects with task_counts
+        let totalProjects = 0;
+        let complete = 0;
+        let onProgress = 0;
+        let late = 0;
+        let notStarted = 0;
+
+        projects = projects || [];
+
+        totalProjects = projects.length;
+
+        // Only projects that have tasks should be part of the doughnut slices
+        const projectsWithTasks = projects.filter((p) => {
+            const tc = p.task_counts || {};
+            return (tc.total || 0) > 0;
+        });
+
+        // Count numbers
+        projectsWithTasks.forEach((p) => {
+            const tc = p.task_counts || {};
+            const tTotal = tc.total || 0;
+            const tCompleted = tc.completed || 0;
+            const tInProgress = tc.in_progress || 0;
+            const tRejected = tc.rejected || 0;
+            const tLate = tc.late || 0;
+
+            // Priority: Late > Complete > On Progress > Not Started(with tasks)
+            if (tLate > 0) {
+                late += 1;
+            } else if (tTotal > 0 && tCompleted === tTotal) {
+                complete += 1;
+            } else if (tInProgress > 0 || tRejected > 0) {
+                // Only count as On Progress when there are explicit in_progress or rejected tasks
+                onProgress += 1;
+            } else {
+                // has tasks but none are in_progress/rejected and not completed -> treat as 'not started (has tasks)'
+                notStarted += 1;
+            }
+        });
+
+        // Projects with zero tasks will still be counted in Total but excluded from doughnut slices
+        // Chart slices: Not Started (only projectsWithTasks that aren't started), Complete, On Progress, Late
+        const chartData = [notStarted, complete, onProgress, late];
+
+        // update chart instance: set labels and colors accordingly
+        try {
+            if (projectChartInstance && projectChartInstance.data) {
+                if (totalProjects === 0) {
+                    // no projects at all -> show No Data
+                    projectChartInstance.data.labels = ["No Data"];
+                    projectChartInstance.data.datasets[0].data = [1];
+                    projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
+                } else if (projectsWithTasks.length === 0) {
+                    // There are projects, but none have tasks -> show single 'Not Started' (gray) slice
+                    projectChartInstance.data.labels = ["Not Started"];
+                    projectChartInstance.data.datasets[0].data = [1];
+                    projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
+                } else {
+                    projectChartInstance.data.labels = ["Not Started", "Complete", "On Progress", "Late"];
+                    projectChartInstance.data.datasets[0].data = chartData;
+                    projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
+                }
+                projectChartInstance.update();
+            } else if (ctx) {
+                // create chart if missing
+                projectChartInstance = createDoughnut(ctx, totalProjects === 0 ? [] : chartData);
+            }
+        } catch (e) {
+            console.error('chart update failed', e);
+        }
+
+        // Update label numbers in the UI (Total, Complete, On Progress, Late)
+        try {
+            const labelsContainer = document.querySelector('.chart-labels');
+            if (labelsContainer) {
+                const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
+                if (spans && spans.length >= 4) {
+                    spans[0].textContent = totalProjects;
+                    spans[1].textContent = complete;
+                    spans[2].textContent = onProgress;
+                    spans[3].textContent = late;
+                }
+            }
+        } catch (e) {}
+    }
+    // expose updater to global scope so other code can call it safely
+    try {
+        window.updateProjectChartFromData = updateProjectChartFromData;
+        window.getProjectChartInstance = function () { return projectChartInstance; };
+    } catch (e) {
+        // ignore
     }
 });
 
