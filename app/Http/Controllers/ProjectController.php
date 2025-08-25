@@ -311,27 +311,79 @@ class ProjectController extends Controller
                 // Get task counts for this project
                 $totalTasks = Task::where('project_id', $project->id)->count();
                 $inProgressTasks = Task::where('project_id', $project->id)
-                    ->whereIn('status', ['in_progress', 'rejected'])
+                    ->whereIn('status', ['in_progress'])
+                    ->count();
+                $rejectedTasks = Task::where('project_id', $project->id)
+                    ->where('status', 'rejected')
                     ->count();
                 $completedTasks = Task::where('project_id', $project->id)
                     ->where('status', 'completed')
                     ->count();
+                $lateTasks = Task::where('project_id', $project->id)
+                    ->where('status', '!=', 'completed')
+                    ->whereNotNull('due_date')
+                    ->where('due_date', '<', now())
+                    ->count();
 
-                return [
-                    'id' => $project->id,
-                    'title' => $project->title,
-                    'description' => $project->description,
-                    'image' => $project->image,
-                    'department' => $project->department,
-                    'division' => $project->division,
-                    'status' => $project->status,
-                    'project_assignments' => $projectAssignments,
-                    'task_counts' => [
-                        'total' => $totalTasks,
-                        'in_progress' => $inProgressTasks,
-                        'completed' => $completedTasks
-                    ]
-                ];
+                    // build author, co_authors and contributors with photo URLs if available
+                    $author = null;
+                    $coAuthors = [];
+                    $contributors = [];
+
+                    foreach ($project->projectAssignments as $assignment) {
+                        $employee = $assignment->employee;
+                        if (!$employee) continue;
+
+                        // try to get user photo from related user record or employee photo
+                        $userPhoto = null;
+                        $rawPhoto = null;
+                        if ($employee->user && $employee->user->photo) {
+                            $rawPhoto = $employee->user->photo;
+                        } elseif ($employee->photo) {
+                            $rawPhoto = $employee->photo;
+                        }
+
+                        if ($rawPhoto) {
+                            // If stored path already points to public 'file/...' folder, use asset(raw)
+                            if (Str::startsWith($rawPhoto, 'file/') || Str::startsWith($rawPhoto, '/file/')) {
+                                $userPhoto = asset($rawPhoto);
+                            } elseif (Str::startsWith($rawPhoto, 'storage/') || Str::startsWith($rawPhoto, '/storage/')) {
+                                $userPhoto = asset($rawPhoto);
+                            } else {
+                                // otherwise assume it's a storage filename and use storage path
+                                $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
+                            }
+                        }
+
+                        if ($assignment->role === 'author') {
+                            $author = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        } elseif ($assignment->role === 'co_author') {
+                            $coAuthors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        } elseif ($assignment->role === 'contributor') {
+                            $contributors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        }
+                    }
+
+                    return [
+                        'id' => $project->id,
+                        'title' => $project->title,
+                        'description' => $project->description,
+                        'image' => $project->image,
+                        'department' => $project->department,
+                        'division' => $project->division,
+                        'status' => $project->status,
+                        'project_assignments' => $projectAssignments,
+                        'author' => $author,
+                        'co_authors' => $coAuthors,
+                        'contributors' => $contributors,
+                        'task_counts' => [
+                            'total' => $totalTasks,
+                            'in_progress' => $inProgressTasks,
+                            'rejected' => $rejectedTasks,
+                            'completed' => $completedTasks,
+                            'late' => $lateTasks,
+                        ]
+                    ];
             });
 
             return response()->json([
@@ -391,7 +443,9 @@ class ProjectController extends Controller
                 'contributors.*' => 'nullable|exists:employees,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+                // allow multiple files via reference_file[]
+                'reference_file' => 'nullable',
+                'reference_file.*' => 'file|mimes:pdf,doc,docx|max:10240',
 
             ]);
 
@@ -418,12 +472,21 @@ class ProjectController extends Controller
                 $project->image = $imageName;
             }
 
-            // Handle reference file upload
+            // Handle reference file uploads (support multiple files) -> store into reference_files (JSON)
+            $uploadedFiles = [];
             if ($request->hasFile('reference_file')) {
-                $file = $request->file('reference_file');
-                $fileName = 'PROJECT_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('file/project'), $fileName);
-                $project->reference_file = $fileName;
+                $files = $request->file('reference_file');
+                if (!is_array($files)) $files = [$files];
+                foreach ($files as $file) {
+                    if (!$file) continue;
+                    $fileName = 'PROJECT_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/project'), $fileName);
+                    $uploadedFiles[] = $fileName;
+                }
+            }
+            // If any files uploaded, set as array; otherwise keep null
+            if (count($uploadedFiles)) {
+                $project->reference_files = $uploadedFiles; // primary storage
             }
 
             $project->save();
@@ -555,6 +618,15 @@ class ProjectController extends Controller
                 }
             }
 
+            // Normalize reference files (prefer JSON column reference_files)
+            $files = $project->reference_files ?? $project->reference_file;
+            if (is_string($files) && $files !== '') {
+                $files = [$files];
+            }
+            if (!is_array($files)) {
+                $files = [];
+            }
+
             $response = [
                 'id' => $project->id,
                 'title' => $project->title,
@@ -563,7 +635,10 @@ class ProjectController extends Controller
                 'department' => $project->department ? $project->department->name_department ?? $project->department->name : null,
                 'division' => $project->division ? $project->division->name_division ?? $project->division->name : null,
                 'reference_url' => $project->reference_url,
-                'reference_file' => $project->reference_file,
+                // Backward-compat alias for frontend
+                'reference_file' => $files,
+                // Preferred field
+                'reference_files' => $files,
                 'start_date' => $project->start_date,
                 'due_date' => $project->due_date,
                 'author' => $author ? ['id' => $author->id, 'name' => $author->name] : null,
@@ -593,7 +668,7 @@ class ProjectController extends Controller
     /**
      * Show the form for editing the specified project.
      */
-       public function edit(string $id)
+    public function edit(string $id)
     {
         $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
 
@@ -624,6 +699,16 @@ class ProjectController extends Controller
         }
 
         $response = $project->toArray();
+        // Normalize files: include both reference_files (preferred) and reference_file (alias array)
+        $files = $project->reference_files ?? $project->reference_file;
+        if (is_string($files) && $files !== '') {
+            $files = [$files];
+        }
+        if (!is_array($files)) {
+            $files = [];
+        }
+        $response['reference_files'] = $files;
+        $response['reference_file'] = $files;
         $response['co_authors'] = $coAuthors;
         $response['contributors'] = $contributors;
 
@@ -657,7 +742,9 @@ class ProjectController extends Controller
                 'part_of_project' => 'nullable|exists:projects,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+                // allow multiple files via reference_file[] on update
+                'reference_file' => 'nullable',
+                'reference_file.*' => 'file|mimes:pdf,doc,docx|max:10240',
                 'co_author' => 'nullable|array',
                 'co_author.*' => 'nullable|exists:employees,id',
                 'contributors' => 'nullable|array',
@@ -688,17 +775,47 @@ class ProjectController extends Controller
                 $project->image = $imageName;
             }
 
-            // Handle reference file upload
-            if ($request->hasFile('reference_file')) {
-                // Delete old file if exists
-                if ($project->reference_file && file_exists(public_path('file/project/' . $project->reference_file))) {
-                    unlink(public_path('file/project/' . $project->reference_file));
-                }
-                $file = $request->file('reference_file');
-                $fileName = 'PROJECT_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('file/project'), $fileName);
-                $project->reference_file = $fileName;
+            // Handle reference file uploads on update and deletion of removed files
+            // existing_reference_files should be a JSON array (filenames to keep)
+            $existing = [];
+            if ($request->has('existing_reference_files')) {
+                $existing = json_decode($request->existing_reference_files, true) ?: [];
             }
+
+            $existing = is_array($existing) ? $existing : [];
+
+            // Current files stored on model (prefer JSON column)
+            $currentFiles = $project->reference_files ?? $project->reference_file ?? [];
+            if (!is_array($currentFiles) && $currentFiles) {
+                $currentFiles = [$currentFiles];
+            }
+
+            // Remove files that are present in currentFiles but not in existing
+            $toDelete = array_diff($currentFiles, $existing);
+            foreach ($toDelete as $del) {
+                $path = public_path('file/project/' . $del);
+                if ($del && file_exists($path)) {
+                    @unlink($path);
+                }
+            }
+
+            // Start with preserved files
+            $finalFiles = $existing;
+
+            // Handle newly uploaded files
+            if ($request->hasFile('reference_file')) {
+                $files = $request->file('reference_file');
+                if (!is_array($files)) $files = [$files];
+                foreach ($files as $file) {
+                    if (!$file) continue;
+                    $fileName = 'PROJECT_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/project'), $fileName);
+                    $finalFiles[] = $fileName;
+                }
+            }
+
+            // Set final files (empty array allowed) -> primary JSON column
+            $project->reference_files = $finalFiles;
 
             $project->save();
 
@@ -829,10 +946,17 @@ class ProjectController extends Controller
             
             // Delete project files
             if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
-                unlink(public_path('file/project/' . $project->image));
+                @unlink(public_path('file/project/' . $project->image));
             }
-            if ($project->reference_file && file_exists(public_path('file/project/' . $project->reference_file))) {
-                unlink(public_path('file/project/' . $project->reference_file));
+            // reference files can be array or string; handle both, prefer JSON column
+            $refFiles = $project->reference_files ?? $project->reference_file ?? [];
+            if (!is_array($refFiles) && $refFiles) {
+                $refFiles = [$refFiles];
+            }
+            foreach ($refFiles as $rf) {
+                if ($rf && file_exists(public_path('file/project/' . $rf))) {
+                    @unlink(public_path('file/project/' . $rf));
+                }
             }
             
             // Finally delete the project
