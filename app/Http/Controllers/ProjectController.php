@@ -296,7 +296,7 @@ class ProjectController extends Controller
                 'projectAssignments.project'
             ])->get();
 
-            $projectsTransformed = $projects->map(function ($project) use ($employeeId) {
+            $projectsTransformed = $projects->map(function ($project) {
                 $projectAssignments = $project->projectAssignments->map(function ($assignment) {
                     return [
                         'id' => $assignment->id,
@@ -308,34 +308,18 @@ class ProjectController extends Controller
                     ];
                 });
 
-                // Get task counts for this project limited to current employee's tasks (PIC or accepted EXECUTOR)
-                $taskBase = Task::where('project_id', $project->id)
-                    ->whereHas('assignments', function ($q) use ($employeeId) {
-                        $q->where('employee_id', $employeeId)
-                          ->where(function ($r) {
-                              $r->where('role', 'PIC')
-                                ->orWhere(function ($r2) {
-                                    $r2->where('role', 'EXECUTOR')
-                                       ->where(function ($r3) {
-                                           // accepted executors only (treat null as false)
-                                           $r3->where('is_receive', true);
-                                       });
-                                });
-                          });
-                    });
-
-                $totalTasks = (clone $taskBase)->count();
-                // Treat 'rejected' the same as 'in_progress' for counts
-                $inProgressTasks = (clone $taskBase)
+                // Get task counts for this project (all tasks), treating 'rejected' as 'in_progress'
+                $totalTasks = Task::where('project_id', $project->id)->count();
+                $inProgressTasks = Task::where('project_id', $project->id)
                     ->whereIn('status', ['in_progress', 'rejected'])
                     ->count();
-                $rejectedTasks = (clone $taskBase)
+                $rejectedTasks = Task::where('project_id', $project->id)
                     ->where('status', 'rejected')
                     ->count();
-                $completedTasks = (clone $taskBase)
+                $completedTasks = Task::where('project_id', $project->id)
                     ->where('status', 'completed')
                     ->count();
-                $lateTasks = (clone $taskBase)
+                $lateTasks = Task::where('project_id', $project->id)
                     ->where('status', '!=', 'completed')
                     ->whereNotNull('due_date')
                     ->where('due_date', '<', now())
