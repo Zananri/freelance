@@ -229,3 +229,9 @@
 .icon-circle span {
     font-size: 16px;
 }
+
+@media screen and (max-width: 568px) {
+    .text-title-content{
+        font-size: 34px;
+    }
+}
