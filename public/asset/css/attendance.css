@@ -160,6 +160,27 @@
     align-items: center;
 }
 
+.shift-time-display {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: -5px;
+}
+
+/* Spacing adjustments for modal time display container */
+.text-center .mb-1 {
+    margin-bottom: 0.25rem !important;
+}
+
+.text-center .shift-time-display {
+    margin-top: -20px;
+    color: #6c757d;
+}
+
 /* Responsive untuk mobile */
 @media (max-width: 576px) {
     .work-outside-container {

@@ -139,8 +139,13 @@
                                     Loading...
                                 </div>
                             </div>
-                            <div>
+                            <div class="mb-0">
                                 <div class="date-time-display" id="date_attendance">
+                                    Loading...
+                                </div>
+                            </div>
+                            <div>
+                                <div class="shift-time-display" id="shift_time_checkin">
                                     Loading...
                                 </div>
                             </div>
@@ -255,8 +260,13 @@
                             Loading...
                         </div>
                     </div>
-                    <div>
+                    <div class="mb-0">
                         <div class="date-time-display" id="date_attendance_checkout">
+                            Loading...
+                        </div>
+                    </div>
+                    <div>
+                        <div class="shift-time-display" id="shift_time_checkout">
                             Loading...
                         </div>
                     </div>

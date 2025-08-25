@@ -384,6 +384,99 @@ function toggleImageUploadVisibility() {
     }
 }
 
+// Cache untuk shift data
+let shiftCache = {};
+
+// Fungsi untuk mengambil dan menampilkan shift time
+function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
+    if (!employeeId || !date) return;
+
+    const shiftDisplay = document.getElementById(modalType === 'checkin' ? 'shift_time_checkin' : 'shift_time_checkout');
+    if (!shiftDisplay) return;
+
+    // Check cache first
+    const cacheKey = `${employeeId}_${date}`;
+    if (shiftCache[cacheKey]) {
+        shiftDisplay.textContent = shiftCache[cacheKey];
+        return;
+    }
+
+    // Set loading only if not cached
+    shiftDisplay.textContent = 'Loading shift...';
+
+    const url = `${baseUrl}/attendance/today/${employeeId}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data && data.data.length > 0) {
+                const attendanceData = data.data[0];
+                if (attendanceData.shift_start && attendanceData.shift_end) {
+                    const shiftText = `${attendanceData.shift_start} - ${attendanceData.shift_end}`;
+                    shiftDisplay.textContent = shiftText;
+                    shiftCache[cacheKey] = shiftText;
+                } else {
+                    const shiftText = 'No shift assigned';
+                    shiftDisplay.textContent = shiftText;
+                    shiftCache[cacheKey] = shiftText;
+                }
+            } else {
+                // Jika tidak ada data attendance hari ini, coba ambil dari API shift
+                fetchEmployeeShift(employeeId, date, modalType);
+            }
+        })
+        .catch(error => {
+            console.warn('Error fetching shift from attendance:', error);
+            fetchEmployeeShift(employeeId, date, modalType);
+        });
+}
+
+// Fungsi alternatif untuk mengambil shift langsung dari EmployeeShift
+function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
+    const shiftDisplay = document.getElementById(modalType === 'checkin' ? 'shift_time_checkin' : 'shift_time_checkout');
+    if (!shiftDisplay) return;
+
+    const cacheKey = `${employeeId}_${date}`;
+    
+    const url = `${baseUrl}/attendance/shift-details/${employeeId}/${date}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && data.data && data.data.shift) {
+                const shift = data.data.shift;
+                if (shift.time_start && shift.time_end) {
+                    const startTime = new Date(`2000-01-01 ${shift.time_start}`).toLocaleTimeString('en-US', {
+                        hour12: false,
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const endTime = new Date(`2000-01-01 ${shift.time_end}`).toLocaleTimeString('en-US', {
+                        hour12: false,
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const shiftText = `${startTime} - ${endTime}`;
+                    shiftDisplay.textContent = shiftText;
+                    shiftCache[cacheKey] = shiftText;
+                } else {
+                    const shiftText = 'No shift assigned';
+                    shiftDisplay.textContent = shiftText;
+                    shiftCache[cacheKey] = shiftText;
+                }
+            } else {
+                const shiftText = 'No shift assigned';
+                shiftDisplay.textContent = shiftText;
+                shiftCache[cacheKey] = shiftText;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching employee shift:', error);
+            const shiftText = 'Error loading shift';
+            shiftDisplay.textContent = shiftText;
+        });
+}
+
 // Fungsi untuk update waktu berjalan di modal check-in
 function updateModalTime() {
     const now = new Date();
@@ -1267,6 +1360,13 @@ function openCheckInModal() {
     // Update waktu berjalan dengan real-time clock
     updateModalTime();
 
+    // Update shift display sekali saja
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const dateString = new Date().toISOString().split("T")[0];
+    if (employeeId) {
+        updateShiftDisplay(employeeId, dateString, 'checkin');
+    }
+
     // Get current location and center map
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function (position) {
@@ -1553,6 +1653,13 @@ let checkoutCapturedImage = null;
 function openCheckOutModal() {
     // Update waktu berjalan
     updateModalTimeCheckout();
+
+    // Update shift display sekali saja
+    const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+    const dateString = new Date().toISOString().split("T")[0];
+    if (employeeId) {
+        updateShiftDisplay(employeeId, dateString, 'checkout');
+    }
 
     // Load check-in data and set dateAttendance
     loadCheckInDataForCheckout();
