@@ -475,6 +475,23 @@
         </div>
     </div>
 
+    <!-- Project Files Modal (styled like Task modal) -->
+    <div class="modal fade" id="projectFilesModal" tabindex="-1" aria-labelledby="projectFilesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom mb-2 border-bottom">
+                    <h5 class="modal-title modal-title-custom" id="projectFilesModalLabel">Project Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom mt-2" id="projectFilesModalBody">
+                    <div class="text-center py-4">
+                        <div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Project Feedback Modal -->
     <div class="modal fade" id="projectFeedbackModal" tabindex="-1" aria-labelledby="projectFeedbackModalLabel"
         aria-hidden="true" data-project-id="{{ $projectId ?? '' }}"

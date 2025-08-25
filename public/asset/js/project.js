@@ -237,13 +237,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                         </div>
                                         <div class="d-flex">
-                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon" title="Comment" data-project-id="${
-                                                project.id
-                                            }">
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center" title="Comment" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
+                                                <span class="project-feedback-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;">0</span>
                                             </button>
-                                            <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
+                                                <span class="project-file-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;">0</span>
                                             </button>
                                         </div>
                                     </div>
@@ -1463,6 +1463,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 );
                             });
                     }
+
+                    // ...existing code...
 
                     // Function to show add feedback form
                     function showAddFeedbackForm(projectId) {
@@ -3384,6 +3386,151 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Initialize contributor input
     setupContributorInput();
+
+                    // Attach click handler for attach_file buttons on project cards
+                    document.querySelectorAll('.project-attach-file').forEach(btn => {
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const projectId = this.getAttribute('data-project-id');
+                            if (!projectId) return;
+                            showProjectFiles(projectId);
+                        });
+                    });
+
+                    // Also add delegated handler as fallback (catches dynamically added/changed elements)
+                    document.addEventListener('click', function (e) {
+                        const btn = e.target.closest && e.target.closest('.project-attach-file');
+                        if (!btn) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const projectId = btn.getAttribute('data-project-id') || btn.dataset.projectId;
+                        console.debug('project-attach-file clicked (delegated)', projectId);
+                        if (projectId) window.showProjectFiles && window.showProjectFiles(projectId);
+                    });
+
+                    // Expose global showProjectFiles so delegated handlers (or other scripts) can call it
+                    window.showProjectFiles = function(projectId) {
+                        const modalEl = document.getElementById('projectFilesModal');
+                        const modalBody = document.getElementById('projectFilesModalBody');
+                        if (!modalEl || !modalBody) return;
+
+                        modalBody.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+                        fetch(appUrl + '/project/' + projectId)
+                            .then(r => {
+                                if (!r.ok) throw new Error('Failed to fetch project');
+                                return r.json();
+                            })
+                            .then(resp => {
+                                const data = resp.data || resp;
+                                const baseFileUrl = appUrl + '/file/project/';
+                                const parts = [];
+
+                                if (data.reference_url) {
+                                    parts.push(`<div class="mb-2"><strong>Reference Link:</strong> <a href="${data.reference_url}" target="_blank">${data.reference_url}</a></div>`);
+                                }
+
+                                if (data.reference_file) {
+                                    // support either single filename or array
+                                    if (Array.isArray(data.reference_file)) {
+                                        parts.push('<div><strong>Files:</strong></div>');
+                                        parts.push('<ul class="list-unstyled ms-3">');
+                                        data.reference_file.forEach(f => {
+                                            parts.push(`<li><a href="${baseFileUrl + f}" target="_blank" download>${f}</a></li>`);
+                                        });
+                                        parts.push('</ul>');
+                                    } else {
+                                        parts.push(`<div class="mb-2"><strong>File:</strong> <a href="${baseFileUrl + data.reference_file}" target="_blank" download>${data.reference_file}</a></div>`);
+                                    }
+                                }
+
+                                if (parts.length === 0) {
+                                    modalBody.innerHTML = '<div class="text-center text-muted py-4">No reference files or links for this project.</div>';
+                                } else {
+                                    modalBody.innerHTML = parts.join('');
+                                }
+
+                                const modal = new bootstrap.Modal(modalEl);
+                                modal.show();
+                            })
+                            .catch(err => {
+                                modalBody.innerHTML = '<div class="alert alert-danger">Failed to load project files.</div>';
+                                console.error('showProjectFiles error', err);
+                                const modal = new bootstrap.Modal(modalEl);
+                                modal.show();
+                            });
+                    };
+
+                    // Populate feedback and file counts for each card
+                    // Retry a few times if cards are not yet present (cards are loaded via AJAX)
+                    (function populateCounts(retry = 0) {
+                        const MAX_RETRIES = 12; // total ~12 * 250ms = 3s max wait
+                        const RETRY_DELAY = 250;
+
+                        const containerEl = document.getElementById('all-cards-container');
+                        if (!containerEl) {
+                            if (retry < MAX_RETRIES) {
+                                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+                            }
+                            return; // give up
+                        }
+
+                        const cards = containerEl.querySelectorAll('[data-project-id]');
+                        if (!cards || cards.length === 0) {
+                            if (retry < MAX_RETRIES) {
+                                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+                            }
+                            return;
+                        }
+
+                        cards.forEach(card => {
+                            const pid = card.getAttribute('data-project-id');
+                            // find badges
+                            const fbBadge = card.querySelector('.project-feedback-count');
+                            const fileBadge = card.querySelector('.project-file-count');
+
+                            // request feedback count (robust parsing)
+                            fetch(appUrl + '/project-feedbacks/' + pid)
+                                .then(r => r.ok ? r.json() : Promise.reject(r))
+                                .then(resp => {
+                                    let count = 0;
+                                    // resp can be array, { data: [...] }, { total: n }, or single object
+                                    if (Array.isArray(resp)) {
+                                        count = resp.length;
+                                    } else if (Array.isArray(resp.data)) {
+                                        count = resp.data.length;
+                                    } else if (typeof resp.total === 'number') {
+                                        count = resp.total;
+                                    } else if (resp.meta && typeof resp.meta.total === 'number') {
+                                        count = resp.meta.total;
+                                    } else if (resp.data && typeof resp.data === 'object') {
+                                        // single item
+                                        count = 1;
+                                    }
+                                    if (fbBadge) fbBadge.textContent = count;
+                                })
+                                .catch(err => {
+                                    if (fbBadge) fbBadge.textContent = '0';
+                                });
+
+                            // request project detail to read reference_file
+                            fetch(appUrl + '/project/' + pid)
+                                .then(r => r.ok ? r.json() : Promise.reject(r))
+                                .then(resp => {
+                                    const data = resp.data || resp;
+                                    let count = 0;
+                                    if (data.reference_file) {
+                                        if (Array.isArray(data.reference_file)) count = data.reference_file.length;
+                                        else if (typeof data.reference_file === 'string' && data.reference_file.trim() !== '') count = 1;
+                                    }
+                                    if (fileBadge) fileBadge.textContent = count;
+                                })
+                                .catch(err => {
+                                    if (fileBadge) fileBadge.textContent = '0';
+                                });
+                        });
+                    })(0);
 
     // Function to refresh contributor dropdown when co-author selection changes
     window.refreshContributorDropdown = function () {
