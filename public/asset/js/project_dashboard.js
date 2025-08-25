@@ -49,32 +49,42 @@
     function updateChartAndLabels(projects) {
         projects = Array.isArray(projects) ? projects : [];
 
-        let total = projects.length;
-        let complete = 0;
-        let onProgress = 0;
-        let late = 0;
-        let notStarted = 0;
+        // Aggregate task-level counts across all projects with exclusive priority:
+        // Late > Complete > On Progress > Not Started
+        let totalTasks = 0;
+        let completedTasks = 0;
+        let onProgressTasks = 0; // includes rejected as in_progress (backend-provided)
+        let lateTasks = 0;
+        let notStartedTasks = 0;
 
         projects.forEach((p) => {
             const tc = p.task_counts || {};
-            const tTotal = tc.total || 0;
-            const tCompleted = tc.completed || 0;
-            // Backend includes rejected into in_progress semantics
-            const tInProgress = tc.in_progress || 0;
-            const tRejected = tc.rejected || 0; // retained if needed in UI elsewhere
-            const tLate = tc.late || 0;
+            const tTotal = Number(tc.total || 0);
+            const tCompleted = Number(tc.completed || 0);
+            const tInProgress = Number(tc.in_progress || 0); // already includes rejected
+            const tLate = Number(tc.late || 0);
 
-            if (tLate > 0) late += 1;
-            else if (tTotal > 0 && tCompleted === tTotal) complete += 1;
-            else if (tInProgress > 0) onProgress += 1;
-            else notStarted += 1;
+            totalTasks += tTotal;
+
+            // Exclusive categorization per project
+            const lateEx = Math.min(tLate, tTotal);
+            const afterLate = Math.max(tTotal - lateEx, 0);
+            const completedEx = Math.min(tCompleted, afterLate);
+            const afterCompleted = Math.max(afterLate - completedEx, 0);
+            const inProgEx = Math.min(tInProgress, afterCompleted);
+            const notStartedEx = Math.max(afterCompleted - inProgEx, 0);
+
+            lateTasks += lateEx;
+            completedTasks += completedEx;
+            onProgressTasks += inProgEx;
+            notStartedTasks += notStartedEx;
         });
 
         // Update labels under chart: Total, Complete, On Progress, Late (in that order)
         try {
             const blocks = document.querySelectorAll(".chart-labels .text-center");
             if (blocks && blocks.length >= 4) {
-                const nums = [total, complete, onProgress, late];
+                const nums = [totalTasks, completedTasks, onProgressTasks, lateTasks];
                 blocks.forEach((el, idx) => {
                     const numSpan = el.querySelector("span:first-child");
                     if (numSpan) numSpan.textContent = String(nums[idx] || 0);
@@ -82,9 +92,9 @@
             }
         } catch (e) {}
 
-        // Update chart: slices order Not Started, Complete, On Progress, Late
+        // Update chart: slices order Not Started, Complete, On Progress, Late (task-level)
         if (chartInstance) {
-            if (total === 0) {
+            if (totalTasks === 0) {
                 chartInstance.data.labels = ["No Data"]; 
                 chartInstance.data.datasets[0].data = [1];
                 chartInstance.data.datasets[0].backgroundColor = [CHART_COLORS[0]];
@@ -96,10 +106,10 @@
                     "Late",
                 ];
                 chartInstance.data.datasets[0].data = [
-                    notStarted,
-                    complete,
-                    onProgress,
-                    late,
+                    notStartedTasks,
+                    completedTasks,
+                    onProgressTasks,
+                    lateTasks,
                 ];
                 chartInstance.data.datasets[0].backgroundColor = CHART_COLORS;
             }

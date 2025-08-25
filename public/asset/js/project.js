@@ -4439,47 +4439,45 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // update chart and label counts based on project array
     function updateProjectChartFromData(projects) {
-        // projects is array of project objects with task_counts
-        let totalProjects = 0;
-        let complete = 0;
-        let onProgress = 0;
-        let late = 0;
-        let notStarted = 0;
-
+        // projects is array of project objects with task_counts; compute task-level totals
         projects = projects || [];
 
-        totalProjects = projects.length;
+        let totalTasks = 0;
+        let completedTasks = 0;
+        let onProgressTasks = 0; // includes rejected via backend semantics
+        let lateTasks = 0;
+        let notStartedTasks = 0;
 
-        // Count numbers for all projects; include projects with zero tasks as Not Started
         projects.forEach((p) => {
             const tc = p.task_counts || {};
-            const tTotal = tc.total || 0;
-            const tCompleted = tc.completed || 0;
-            // Backend now includes rejected inside in_progress count semantics for charts
-            const tInProgress = (tc.in_progress || 0);
-            const tRejected = tc.rejected || 0; // keep for display if needed elsewhere
-            const tLate = tc.late || 0;
+            const tTotal = Number(tc.total || 0);
+            const tCompleted = Number(tc.completed || 0);
+            const tInProgress = Number(tc.in_progress || 0); // already includes rejected
+            const tLate = Number(tc.late || 0);
 
-            // Priority: Late > Complete > On Progress > Not Started
-            if (tLate > 0) {
-                late += 1;
-            } else if (tTotal > 0 && tCompleted === tTotal) {
-                complete += 1;
-            } else if (tInProgress > 0) {
-                onProgress += 1;
-            } else {
-                // covers both tTotal === 0 (no tasks) and has tasks but none in progress/rejected
-                notStarted += 1;
-            }
+            totalTasks += tTotal;
+
+            // Exclusive: Late > Complete > On Progress > Not Started
+            const lateEx = Math.min(tLate, tTotal);
+            const afterLate = Math.max(tTotal - lateEx, 0);
+            const completedEx = Math.min(tCompleted, afterLate);
+            const afterCompleted = Math.max(afterLate - completedEx, 0);
+            const inProgEx = Math.min(tInProgress, afterCompleted);
+            const notStartedEx = Math.max(afterCompleted - inProgEx, 0);
+
+            lateTasks += lateEx;
+            completedTasks += completedEx;
+            onProgressTasks += inProgEx;
+            notStartedTasks += notStartedEx;
         });
 
-        // Chart slices: Not Started, Complete, On Progress, Late
-        const chartData = [notStarted, complete, onProgress, late];
+        // Chart slices: Not Started, Complete, On Progress, Late (task counts)
+        const chartData = [notStartedTasks, completedTasks, onProgressTasks, lateTasks];
 
         // update chart instance: set labels and colors accordingly
         try {
             if (projectChartInstance && projectChartInstance.data) {
-                if (totalProjects === 0) {
+                if (totalTasks === 0) {
                     // no projects at all -> show No Data
                     projectChartInstance.data.labels = ["No Data"];
                     projectChartInstance.data.datasets[0].data = [1];
@@ -4492,7 +4490,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 projectChartInstance.update();
             } else if (ctx) {
                 // create chart if missing
-                projectChartInstance = createDoughnut(ctx, totalProjects === 0 ? [] : chartData);
+                projectChartInstance = createDoughnut(ctx, totalTasks === 0 ? [] : chartData);
             }
         } catch (e) {
             console.error('chart update failed', e);
@@ -4504,10 +4502,10 @@ document.addEventListener("DOMContentLoaded", function () {
             if (labelsContainer) {
                 const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
                 if (spans && spans.length >= 4) {
-                    spans[0].textContent = totalProjects;
-                    spans[1].textContent = complete;
-                    spans[2].textContent = onProgress;
-                    spans[3].textContent = late;
+                    spans[0].textContent = totalTasks;
+                    spans[1].textContent = completedTasks;
+                    spans[2].textContent = onProgressTasks;
+                    spans[3].textContent = lateTasks;
                 }
             }
         } catch (e) {}
