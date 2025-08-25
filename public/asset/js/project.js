@@ -3794,14 +3794,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         totalProjects = projects.length;
 
-        // Only projects that have tasks should be part of the doughnut slices
-        const projectsWithTasks = projects.filter((p) => {
-            const tc = p.task_counts || {};
-            return (tc.total || 0) > 0;
-        });
-
-        // Count numbers
-        projectsWithTasks.forEach((p) => {
+        // Count numbers for all projects; include projects with zero tasks as Not Started
+        projects.forEach((p) => {
             const tc = p.task_counts || {};
             const tTotal = tc.total || 0;
             const tCompleted = tc.completed || 0;
@@ -3809,22 +3803,20 @@ document.addEventListener("DOMContentLoaded", function () {
             const tRejected = tc.rejected || 0;
             const tLate = tc.late || 0;
 
-            // Priority: Late > Complete > On Progress > Not Started(with tasks)
+            // Priority: Late > Complete > On Progress > Not Started
             if (tLate > 0) {
                 late += 1;
             } else if (tTotal > 0 && tCompleted === tTotal) {
                 complete += 1;
             } else if (tInProgress > 0 || tRejected > 0) {
-                // Only count as On Progress when there are explicit in_progress or rejected tasks
                 onProgress += 1;
             } else {
-                // has tasks but none are in_progress/rejected and not completed -> treat as 'not started (has tasks)'
+                // covers both tTotal === 0 (no tasks) and has tasks but none in progress/rejected
                 notStarted += 1;
             }
         });
 
-        // Projects with zero tasks will still be counted in Total but excluded from doughnut slices
-        // Chart slices: Not Started (only projectsWithTasks that aren't started), Complete, On Progress, Late
+        // Chart slices: Not Started, Complete, On Progress, Late
         const chartData = [notStarted, complete, onProgress, late];
 
         // update chart instance: set labels and colors accordingly
@@ -3833,11 +3825,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (totalProjects === 0) {
                     // no projects at all -> show No Data
                     projectChartInstance.data.labels = ["No Data"];
-                    projectChartInstance.data.datasets[0].data = [1];
-                    projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
-                } else if (projectsWithTasks.length === 0) {
-                    // There are projects, but none have tasks -> show single 'Not Started' (gray) slice
-                    projectChartInstance.data.labels = ["Not Started"];
                     projectChartInstance.data.datasets[0].data = [1];
                     projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
                 } else {
