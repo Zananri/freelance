@@ -118,22 +118,71 @@ function renderEmployeeTable(employees, month, year) {
         // Kolom nama
         const employeeCell = document.createElement("td");
         employeeCell.classList.add("sticky-col");
+
         employeeCell.innerHTML = `
-            <div class="d-flex align-items-center gap-2">
+            <div class="employee-wrapper d-flex align-items-center gap-2">
                 <img src="${
                     employee.profile_picture || "/asset/img/default-profile.png"
                 }"
-                     alt="Profile Picture"
-                     class="table-image rounded-circle"
-                     width="28px"
-                     height="28px" />
+                    alt="Profile Picture"
+                    class="table-image rounded-circle"
+                    width="28px"
+                    height="28px" />
                 <div>
                     <div class="fw-semibold" style="font-size: 14px;">${
                         employee.name
                     }</div>
                 </div>
+                <div class="overlay-edit-employee">
+                    <button class="btn btn-sm btn-light btn-edit-employee"
+                            data-employee-id="${employee.id}"
+                            data-employee-name="${employee.name}"
+                            data-employee-picture="${
+                                employee.profile_picture ||
+                                "/asset/img/default-profile.png"
+                            }">
+                        <span class="material-symbols-outlined">edit</span>
+                    </button>
+                </div>
             </div>
         `;
+
+        // Hover show edit button
+        const overlayEmp = employeeCell.querySelector(".overlay-edit-employee");
+        employeeCell.addEventListener("mouseenter", () => {
+            overlayEmp.style.display = "flex";
+        });
+        employeeCell.addEventListener("mouseleave", () => {
+            overlayEmp.style.display = "none";
+        });
+
+        // Klik tombol edit employee
+        const editEmployeeBtn =
+            employeeCell.querySelector(".btn-edit-employee");
+        const employeeModalEl = document.getElementById("editEmployeeModal");
+        const employeeModal = new bootstrap.Modal(employeeModalEl);
+
+        editEmployeeBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const btn = e.currentTarget;
+
+            employeeModalEl.querySelector("#editShiftId").value = "";
+            employeeModalEl.querySelector("#editEmployeeId").value =
+                btn.dataset.employeeId;
+            employeeModalEl.querySelector("#editEmployeeName").value =
+                btn.dataset.employeeName;
+            employeeModalEl.querySelector("#editEmployeePicture").src =
+                btn.dataset.employeePicture;
+
+            // kosongin shift karena ini edit employee
+            employeeModalEl.querySelector("#editDateShiftDisplay").value = "";
+            employeeModalEl.querySelector("#editDateShift").value = "";
+            employeeModalEl.querySelector("#editTimeStart").value = "";
+            employeeModalEl.querySelector("#editTimeEnd").value = "";
+
+            employeeModal.show();
+        });
+
         row.appendChild(employeeCell);
 
         // Kolom tanggal
@@ -155,22 +204,23 @@ function renderEmployeeTable(employees, month, year) {
             let shiftId = shift ? shift.shift_id : "";
 
             td.innerHTML = `
-                <div class="shift-wrapper" style="width:100%; height:100%; position:relative;">
+                <div class="shift-wrapper">
                     <span class="shift-text">${
-                        shift ? `${start || "??"} - ${end || "??"}` : ""
+                        shift ? `${start || "??"}  ${end || "??"}` : ""
                     }</span>
-                    <div class="overlay-edit"
-                         style="position:absolute; top:0; left:0; width:100%; height:100%;
-                                display:flex; align-items:center; justify-content:center;
-                                background:rgba(255,255,255,0.9); display:none;">
+                    <div class="overlay-edit">
                         <button class="btn btn-sm btn-light btn-edit-shift"
                                 data-shift-id="${shiftId}"
                                 data-employee-id="${employee.id}"
                                 data-employee-name="${employee.name}"
+                                data-employee-picture="${
+                                    employee.profile_picture ||
+                                    "/asset/img/default-profile.png"
+                                }"
                                 data-date="${dateKey}"
                                 data-start="${start}"
                                 data-end="${end}">
-                            <span class="material-symbols-outlined" style="font-size:20px;">edit</span>
+                            <span class="material-symbols-outlined">edit</span>
                         </button>
                     </div>
                 </div>
@@ -186,28 +236,49 @@ function renderEmployeeTable(employees, month, year) {
                 overlay.style.display = "none";
             });
 
+            const shiftModalEl = document.getElementById("editShiftModal");
+            const shiftModal = new bootstrap.Modal(shiftModalEl);
+
             editBtn.addEventListener("click", (e) => {
                 e.preventDefault();
                 const btn = e.currentTarget;
 
+                // isi hidden input
                 document.getElementById("editShiftId").value =
                     btn.dataset.shiftId;
                 document.getElementById("editEmployeeId").value =
                     btn.dataset.employeeId;
-                document.getElementById("editEmployeeName").value =
+                document.getElementById("editEmployeeNameInput").value =
                     btn.dataset.employeeName;
-                document.getElementById("editDateShiftDisplay").value =
-                    btn.dataset.date;
                 document.getElementById("editDateShift").value =
                     btn.dataset.date;
                 document.getElementById("editTimeStart").value =
                     btn.dataset.start;
                 document.getElementById("editTimeEnd").value = btn.dataset.end;
 
-                const modal = new bootstrap.Modal(
-                    document.getElementById("editShiftModal")
-                );
-                modal.show();
+                // isi tampilan modal
+                document.getElementById("editEmployeeName").textContent =
+                    btn.dataset.employeeName;
+                document.getElementById("editEmployeePicture").src =
+                    btn.dataset.employeePicture;
+
+                // Format date for display
+                const date = new Date(btn.dataset.date);
+                const formattedDate = date.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                });
+
+                document.getElementById("editDateShiftDisplay").textContent =
+                    formattedDate;
+                document.getElementById("editTimeStartDisplay").textContent =
+                    btn.dataset.start;
+                document.getElementById("editTimeEndDisplay").textContent =
+                    btn.dataset.end;
+
+                shiftModal.show();
             });
 
             row.appendChild(td);
@@ -245,7 +316,7 @@ function setupEventListeners() {
     document.addEventListener("click", function (e) {
         if (e.target.closest(".btn-edit")) {
             const button = e.target.closest(".btn-edit");
-            openEditModal(button);
+            openEditEmployeeModal(button);
         }
     });
 
@@ -444,7 +515,7 @@ function initializeShiftDatePicker() {
 }
 
 // Open edit modal with employee data
-function openEditModal(button) {
+function openEditEmployeeModal(button) {
     const employeeId = button.dataset.id;
     const employeeName = button.dataset.name;
     const datesData = button.dataset.dates;
@@ -685,20 +756,6 @@ $(document).ready(function () {
         headerRow.append(`<th class="${isSunday}">${i}</th>`);
     }
 
-    // Dummy data employee
-    const employees = [
-        {
-            name: "Employeename",
-            avatar: "https://via.placeholder.com/32",
-            shifts: {
-                1: "09:00 - 18:00",
-                2: "09:00 - 18:00",
-                3: "09:00 - 18:00",
-                4: "edit",
-            },
-        },
-    ];
-
     // Generate body
     let body = $("#shiftBody");
     employees.forEach((emp) => {
@@ -737,4 +794,30 @@ $(document).ready(function () {
 
         body.append(row);
     });
+});
+
+const dropdownSelected = document.getElementById("dropdownSelected");
+const dropdownList = document.getElementById("dropdownList");
+const items = document.querySelectorAll(".dropdown-item");
+
+dropdownSelected.addEventListener("click", () => {
+    dropdownList.style.display =
+        dropdownList.style.display === "block" ? "none" : "block";
+});
+
+items.forEach((item) => {
+    item.addEventListener("click", () => {
+        dropdownSelected.innerHTML = `
+      ${item.querySelector(".title").textContent}
+      <span class="time">${item.querySelector(".time").textContent}</span>
+      <span class="arrow">▼</span>
+    `;
+        dropdownList.style.display = "none";
+    });
+});
+
+document.addEventListener("click", (e) => {
+    if (!e.target.closest(".dropdown-container")) {
+        dropdownList.style.display = "none";
+    }
 });
