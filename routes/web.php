@@ -108,6 +108,8 @@ Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
 Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
 Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
 Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
+// Dashboard: Today tasks for current user
+Route::get('/task/dashboard/today', [TaskController::class, 'getDashboardTasksToday'])->name('task.dashboard.today');
 
  // Task Feedback routes
  Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
@@ -137,6 +139,8 @@ Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword')->middleware('auth');
 
 Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
+// Client-side routes JSON
+Route::get('/client-routes', [UserController::class, 'clientRoutes'])->name('client.routes');
 
 // Notification routes
 Route::get('/notifications', [NotificationController::class, 'getUserNotifications'])->name('notifications.index');

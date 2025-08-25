@@ -973,7 +973,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Add status badge for rejected tasks
     let statusBadge = '';
     if (task.status === 'rejected') {
-        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 4.5%; right: 70px;">REJECTED</span>';
+        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 10%; right: 90px;">REJECTED</span>';
     }
 
     // FIXED: Proper icon logic based on current status

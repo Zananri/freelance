@@ -187,6 +187,21 @@ class UserController extends Controller
     }
 
     /**
+     * Expose selected route URLs for client-side as JSON (to avoid inline Blade <script>).
+     */
+    public function clientRoutes(Request $request)
+    {
+        $base = rtrim($request->getBaseUrl(), '/'); // e.g., /nsa-office/public or ''
+        $tasksTodayPath = route('task.dashboard.today', [], false); // relative path, e.g., /task/dashboard/today
+        $tasksTodayUrl = ($base ? $base : '') . $tasksTodayPath; // prepend base if exists
+
+        return response()->json([
+            'baseUrl' => $base ?: '',
+            'tasksToday' => $tasksTodayUrl,
+        ]);
+    }
+
+    /**
      * Log the user out of the application.
      */
     public function logout(Request $request)

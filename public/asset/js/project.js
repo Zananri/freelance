@@ -4439,35 +4439,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // update chart and label counts based on project array
     function updateProjectChartFromData(projects) {
-        // projects is array of project objects with task_counts
-        let totalProjects = 0;
+        // projects is array of project objects with task_counts (project-level buckets)
+        projects = projects || [];
+
+        let totalProjects = projects.length;
         let complete = 0;
         let onProgress = 0;
         let late = 0;
         let notStarted = 0;
 
-        projects = projects || [];
-
-        totalProjects = projects.length;
-
-        // Count numbers for all projects; include projects with zero tasks as Not Started
         projects.forEach((p) => {
             const tc = p.task_counts || {};
             const tTotal = tc.total || 0;
             const tCompleted = tc.completed || 0;
-            const tInProgress = tc.in_progress || 0;
-            const tRejected = tc.rejected || 0;
+            const tInProgress = tc.in_progress || 0; // already includes rejected
             const tLate = tc.late || 0;
 
-            // Priority: Late > Complete > On Progress > Not Started
             if (tLate > 0) {
                 late += 1;
             } else if (tTotal > 0 && tCompleted === tTotal) {
                 complete += 1;
-            } else if (tInProgress > 0 || tRejected > 0) {
+            } else if (tInProgress > 0) {
                 onProgress += 1;
             } else {
-                // covers both tTotal === 0 (no tasks) and has tasks but none in progress/rejected
                 notStarted += 1;
             }
         });
