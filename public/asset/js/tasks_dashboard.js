@@ -56,30 +56,88 @@ function getTaskToday() {
 
             tasks.forEach(t => {
                 const priorityColor = t.priority === 'HIGH' ? '#E14F4F' : (t.priority === 'MEDIUM' ? '#E6A15A' : '#4fc97a');
-                const dueText = t.due_date ? new Date(t.due_date).toLocaleDateString() : '-';
+                const rawDue = t.due_date || '';
+                // Prefer raw YYYY-MM-DD if provided, else fallback to locale date
+                const dueText = /^\d{4}-\d{2}-\d{2}/.test(rawDue) ? rawDue : (rawDue ? new Date(rawDue).toLocaleDateString() : '-');
                 const statusNorm = (t.status || '').toLowerCase();
                 const bg = statusNorm === 'completed' ? '#E9FFF0' : (statusNorm === 'rejected' ? '#FFEAEA' : (statusNorm.includes('progress') ? '#E6F2FF' : '#FFFAE6'));
                 const rejectedBadge = statusNorm === 'rejected'
                     ? '<span style="position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:#B00020;background:#FFD6D6;padding:2px 6px;border-radius:8px;letter-spacing:.3px;">REJECTED</span>'
                     : '';
 
-                const executors = (t.executors || []).slice(0,3).map(e => `<img src="${e.photo}" class="rounded-circle me-1" style="width:18px;height:18px;object-fit:cover;">`).join('');
+                // Build PIC + Executors list with de-dup
+                const getPhoto = (obj) => obj?.photo || obj?.image || obj?.user_photo || obj || '';
+                const getId = (obj) => obj?.id || obj?.employee_id || null;
+                const people = [];
+                if (t.pic || t.pic_photo) {
+                    people.push(t.pic || { id: t.pic_id || null, photo: t.pic_photo, name: t.pic_name || 'PIC' });
+                }
+                if (Array.isArray(t.executors)) {
+                    t.executors.forEach(e => people.push(e));
+                }
+                // unique by id then by photo url
+                const seen = new Set();
+                const avatars = [];
+                people.forEach(p => {
+                    const pid = getId(p) ? 'id:' + getId(p) : 'ph:' + getPhoto(p);
+                    if (pid && !seen.has(pid)) {
+                        seen.add(pid);
+                        avatars.push(getPhoto(p));
+                    }
+                });
+                // Use the same status color used for card background
+                let borderColor = bg;
+
+                const avatarHtml = avatars.slice(0, 5).map((url, idx) => {
+                    const size = idx === 0 ? 22 : 20; // PIC slightly bigger at base
+                    const overlap = idx > 0 ? '-10px' : '0';
+                    const z = idx + 1; // later avatars (executors) on top
+                    const safeUrl = url || '/asset/img/profile_picture/default.png';
+                    return `
+                        <span class="avatar-overlap" style="position: relative; display:inline-block; margin-left:${overlap}; z-index:${z};">
+                            <img src="${safeUrl}" alt="member" style="width:${size}px;height:${size}px;object-fit:cover;border:2px solid ${borderColor};border-radius:50%;">
+                        </span>
+                    `;
+                }).join('');
+
+                const commentsCount = t.feedback_comments_count || t.comments_count || 0;
+                const filesCount = t.reference_files_count || t.attachments_count || 0;
+
+                const topTitle = `
+                    <div class="d-flex align-items-center mb-1">
+                        <img src="${t.project_image}" class="rounded-circle me-3" style="width:28px;height:28px;object-fit:cover;">
+                        <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-')}</h6>
+                    </div>`;
+
+                const descHtml = t.description
+                    ? `<p class="mb-2 small" style="font-size: 10px;">${escapeHtml(t.description).slice(0,140)}${t.description.length>140?'…':''}</p>`
+                    : '';
+
+                const priorityRow = `
+                    <div class="d-flex justify-content-between align-items-center small" style="font-size:10px;">
+                        <div><span style="color:#828282;">Priority:</span><span class="mx-2" style="color:${priorityColor}">${t.priority || '-'}</span></div>
+                        <div><span style="color:#828282;">Deadline:</span><span class="mx-2" style="color:#454545">${dueText}</span></div>
+                    </div>`;
+
+                const actionsRow = `
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="d-flex align-items-center">${avatarHtml}</div>
+                        <div class="d-flex align-items-center">
+                            <span class="material-symbols-outlined" style="font-size:18px;color:#828282;">mode_comment</span>
+                            ${commentsCount>0?`<span class="ms-1 small" style="color:#555;">${commentsCount}</span>`:''}
+                            <span class="material-symbols-outlined ms-3" style="font-size:18px;color:#828282;">attach_file</span>
+                            ${filesCount>0?`<span class="ms-1 small" style="color:#555;">${filesCount}</span>`:''}
+                        </div>
+                    </div>`;
 
                 const card = `
-                    <div class="task-card p-3 mb-3" style="background: ${bg}; position: relative;">
+                    <div class="task-card p-3 mb-3" style="background:${bg};position:relative;">
                         ${rejectedBadge}
-                        <div class="d-flex align-items-center mb-2">
-                            <img src="${t.project_image}" class="rounded-circle me-3" style="width:28px;height:28px;object-fit:cover;">
-                            <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-') }</h6>
-                        </div>
-                        ${t.description ? `<p class="mb-2 small" style="font-size: 10px;">${escapeHtml(t.description).slice(0,140)}${t.description.length>140?'…':''}</p>` : ''}
-                        <div class="d-flex justify-content-between align-items-center small mt-2" style="font-size: 10px;">
-                            <div>
-                                <span style="color:#828282;">Priority:</span><span class="mx-2" style="color:${priorityColor}">${t.priority || '-'}</span>
-                                <span style="color:#828282;">Deadline:</span><span class="mx-2" style="color:#454545">${dueText}</span>
-                            </div>
-                            <div class="d-flex align-items-center">${executors}</div>
-                        </div>
+                        ${topTitle}
+                        ${descHtml}
+                        <hr class="my-2" style="opacity:.25;">
+                        ${priorityRow}
+                        ${actionsRow}
                     </div>`;
                 $list.append(card);
             });
