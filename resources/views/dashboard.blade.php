@@ -219,23 +219,26 @@
                                 readable
                                 content...
                             </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
-                                        style="color: #E14F4F">High</span>
-                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
-                                        style="color: #454545">17 Aug
-                                        2025</span>
+                            <div class="small mt-3" style="font-size: 10px;">
+                                <div class="mb-2">
+                                    <span style="color: #828282;">Priority:</span>
+                                    <span class="mx-2" style="color: #E14F4F">High</span>
                                 </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
+                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
+                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="Executor 1">
+                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 20px; height: 20px; object-fit: cover;" alt="Executor 2">
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #828282">Deadline:</span>
+                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
+                                </div>
+                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
@@ -250,23 +253,26 @@
                                 readable
                                 content...
                             </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
-                                        style="color: #E14F4F">High</span>
-                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
-                                        style="color: #454545">17 Aug
-                                        2025</span>
+                            <div class="small mt-3" style="font-size: 10px;">
+                                <div class="mb-2">
+                                    <span style="color: #828282;">Priority:</span>
+                                    <span class="mx-2" style="color: #E14F4F">High</span>
                                 </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
+                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
+                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
+                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #828282">Deadline:</span>
+                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
+                                </div>
+                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
@@ -281,23 +287,26 @@
                                 readable
                                 content...
                             </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
-                                        style="color: #E14F4F">High</span>
-                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
-                                        style="color: #454545">17 Aug
-                                        2025</span>
+                            <div class="small mt-3" style="font-size: 10px;">
+                                <div class="mb-2">
+                                    <span style="color: #828282;">Priority:</span>
+                                    <span class="mx-2" style="color: #E14F4F">High</span>
                                 </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
+                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
+                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
+                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #828282">Deadline:</span>
+                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
+                                </div>
+                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
@@ -312,23 +321,26 @@
                                 readable
                                 content...
                             </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
-                                        style="color: #E14F4F">High</span>
-                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
-                                        style="color: #454545">17 Aug
-                                        2025</span>
+                            <div class="small mt-3" style="font-size: 10px;">
+                                <div class="mb-2">
+                                    <span style="color: #828282;">Priority:</span>
+                                    <span class="mx-2" style="color: #E14F4F">High</span>
                                 </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
+                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
+                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
+                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #828282">Deadline:</span>
+                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
+                                </div>
+                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
@@ -343,23 +355,26 @@
                                 readable
                                 content...
                             </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
-                                        style="color: #E14F4F">High</span>
-                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
-                                        style="color: #454545">17 Aug
-                                        2025</span>
+                            <div class="small mt-3" style="font-size: 10px;">
+                                <div class="mb-2">
+                                    <span style="color: #828282;">Priority:</span>
+                                    <span class="mx-2" style="color: #E14F4F">High</span>
                                 </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
+                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
+                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
+                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #828282">Deadline:</span>
+                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
+                                </div>
+                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
@@ -374,23 +389,26 @@
                                 readable
                                 content...
                             </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
-                                        style="color: #E14F4F">High</span>
-                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
-                                        style="color: #454545">17 Aug
-                                        2025</span>
+                            <div class="small mt-3" style="font-size: 10px;">
+                                <div class="mb-2">
+                                    <span style="color: #828282;">Priority:</span>
+                                    <span class="mx-2" style="color: #E14F4F">High</span>
                                 </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
+                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
+                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
+                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #828282">Deadline:</span>
+                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
+                                </div>
+                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
@@ -405,23 +423,26 @@
                                 readable
                                 content...
                             </p>
-                            <div class="d-flex justify-content-between align-items-center small mt-3"
-                                style="font-size: 10px;">
-                                <div>
-                                    <span style="color: #828282;">Priority:</span><span class="mx-2"
-                                        style="color: #E14F4F">High</span>
-                                    <span style="color: #828282">Deadline:</span><span class="mx-2"
-                                        style="color: #454545">17 Aug
-                                        2025</span>
+                            <div class="small mt-3" style="font-size: 10px;">
+                                <div class="mb-2">
+                                    <span style="color: #828282;">Priority:</span>
+                                    <span class="mx-2" style="color: #E14F4F">High</span>
                                 </div>
-                                <div class="d-flex">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">attach_file</span>
+                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
+                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
+                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
+                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
+                                </div>
+                                <div class="mb-1">
+                                    <span style="color: #828282">Deadline:</span>
+                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
+                                </div>
+                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent ms-2" title="Comment">
-                                        <span class="material-symbols-outlined"
-                                            style="font-size: 14px; color: #828282;">mode_comment</span>
+                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
+                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
