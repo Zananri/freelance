@@ -253,9 +253,11 @@
                                 name="reference_url">
                         </div>
                         <div class="mb-3">
-                            <label for="reference_file" class="form-label label-custom">Reference File</label>
+                            <label for="reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="reference_file"
-                                name="reference_file" accept=".pdf,.doc,.docx">
+                                name="reference_file[]" accept=".pdf,.doc,.docx" multiple>
+                            <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
+                            <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;">
@@ -378,7 +380,10 @@
                         <div class="mb-3">
                             <label for="edit_reference_file" class="form-label label-custom">Reference File</label>
                             <input type="file" class="form-control input-text" id="edit_reference_file"
-                                name="reference_file" accept=".pdf,.doc,.docx">
+                                name="reference_file[]" accept=".pdf,.doc,.docx" multiple>
+                            <div id="edit_reference_files_preview" class="mt-2"></div>
+                            <div id="existing_reference_files" class="mt-2"></div>
+                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files" value="[]">
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;">
@@ -469,6 +474,25 @@
                                 <p><strong>Due Date:</strong> <span id="projectDetailDueDate"></span></p>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Reference Files Modal (exactly like Task modal) -->
+    <div class="modal fade" id="projectFilesModal" tabindex="-1" aria-labelledby="projectFilesModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="projectFilesModalLabel">Reference Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <hr>
+                <div class="modal-body modal-body-custom">
+                    <div id="projectReferenceFilesList" class="d-flex flex-column gap-2">
+                        <!-- File links will be inserted here -->
                     </div>
                 </div>
             </div>

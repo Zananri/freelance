@@ -17,7 +17,7 @@ class Project extends Model
         'division_id',
         'status',
         'reference_url',
-        'reference_file',
+    'reference_files',
         'start_date',
         'due_date',
         'part_of_project',
@@ -25,6 +25,13 @@ class Project extends Model
         'created_by',
         'updated_by',
         'deleted_by',
+    ];
+
+    /**
+     * Cast reference_file to array so we can store multiple filenames as JSON
+     */
+    protected $casts = [
+        'reference_files' => 'array',
     ];
 
     public function department()
