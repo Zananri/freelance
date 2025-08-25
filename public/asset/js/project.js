@@ -4455,8 +4455,9 @@ document.addEventListener("DOMContentLoaded", function () {
             const tc = p.task_counts || {};
             const tTotal = tc.total || 0;
             const tCompleted = tc.completed || 0;
-            const tInProgress = tc.in_progress || 0;
-            const tRejected = tc.rejected || 0;
+            // Backend now includes rejected inside in_progress count semantics for charts
+            const tInProgress = (tc.in_progress || 0);
+            const tRejected = tc.rejected || 0; // keep for display if needed elsewhere
             const tLate = tc.late || 0;
 
             // Priority: Late > Complete > On Progress > Not Started
@@ -4464,7 +4465,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 late += 1;
             } else if (tTotal > 0 && tCompleted === tTotal) {
                 complete += 1;
-            } else if (tInProgress > 0 || tRejected > 0) {
+            } else if (tInProgress > 0) {
                 onProgress += 1;
             } else {
                 // covers both tTotal === 0 (no tasks) and has tasks but none in progress/rejected

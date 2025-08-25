@@ -310,8 +310,9 @@ class ProjectController extends Controller
 
                 // Get task counts for this project
                 $totalTasks = Task::where('project_id', $project->id)->count();
+                // Treat 'rejected' the same as 'in_progress' for counts (dashboard & project page)
                 $inProgressTasks = Task::where('project_id', $project->id)
-                    ->whereIn('status', ['in_progress'])
+                    ->whereIn('status', ['in_progress', 'rejected'])
                     ->count();
                 $rejectedTasks = Task::where('project_id', $project->id)
                     ->where('status', 'rejected')
