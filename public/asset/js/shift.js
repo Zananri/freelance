@@ -155,7 +155,7 @@ function renderEmployeeTable(employees, month, year) {
             let shiftId = shift ? shift.shift_id : "";
 
             td.innerHTML = `
-                <div class="shift-wrapper" style="width:100%; height:100%; position:relative;">
+                <div class="shift-wrapper" style="width:100%; height:100%;">
                     <span class="shift-text">${
                         shift ? `${start || "??"} - ${end || "??"}` : ""
                     }</span>
