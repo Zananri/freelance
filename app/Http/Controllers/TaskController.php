@@ -244,6 +244,11 @@ class TaskController extends Controller
                                     ->whereDate('updated_at', $today);
                              });
                        });
+                })
+                // f) Rejected today (status changed to rejected today)
+                ->orWhere(function ($rq) use ($today) {
+                    $rq->where('status', 'rejected')
+                       ->whereDate('updated_at', $today);
                 });
                         })
                         // Global guard: exclude completed tasks unless they were completed today
@@ -254,6 +259,11 @@ class TaskController extends Controller
                          ->orWhere(function ($ok2) use ($today) {
                              $ok2->whereNull('complete_date')
                                  ->whereDate('updated_at', $today);
+                         })
+                         // Allow rejected updated today as Today
+                         ->orWhere(function ($rej) use ($today) {
+                             $rej->where('status', 'rejected')
+                                 ->whereDate('updated_at', $today);
                          });
                   });
                         });
@@ -262,11 +272,16 @@ class TaskController extends Controller
 
             // Final safety filter: only include completed if completed today
             $tasks = $tasks->filter(function ($task) use ($today) {
-                if (strtolower($task->status) === 'completed') {
+                $status = strtolower($task->status);
+                if ($status === 'completed') {
                     if ($task->complete_date) {
                         return \Carbon\Carbon::parse($task->complete_date)->toDateString() === $today;
                     }
                     // fallback: consider updated_at as completion moment if complete_date missing
+                    return $task->updated_at && \Carbon\Carbon::parse($task->updated_at)->toDateString() === $today;
+                }
+                if ($status === 'rejected') {
+                    // Only show rejected if it became rejected today
                     return $task->updated_at && \Carbon\Carbon::parse($task->updated_at)->toDateString() === $today;
                 }
                 return true;

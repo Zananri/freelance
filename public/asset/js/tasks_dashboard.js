@@ -58,12 +58,16 @@ function getTaskToday() {
                 const priorityColor = t.priority === 'HIGH' ? '#E14F4F' : (t.priority === 'MEDIUM' ? '#E6A15A' : '#4fc97a');
                 const dueText = t.due_date ? new Date(t.due_date).toLocaleDateString() : '-';
                 const statusNorm = (t.status || '').toLowerCase();
-                const bg = statusNorm === 'completed' ? '#E9FFF0' : (statusNorm.includes('progress') ? '#E6F2FF' : '#FFFAE6');
+                const bg = statusNorm === 'completed' ? '#E9FFF0' : (statusNorm === 'rejected' ? '#FFEAEA' : (statusNorm.includes('progress') ? '#E6F2FF' : '#FFFAE6'));
+                const rejectedBadge = statusNorm === 'rejected'
+                    ? '<span style="position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:#B00020;background:#FFD6D6;padding:2px 6px;border-radius:8px;letter-spacing:.3px;">REJECTED</span>'
+                    : '';
 
                 const executors = (t.executors || []).slice(0,3).map(e => `<img src="${e.photo}" class="rounded-circle me-1" style="width:18px;height:18px;object-fit:cover;">`).join('');
 
                 const card = `
-                    <div class="task-card p-3 mb-3" style="background: ${bg};">
+                    <div class="task-card p-3 mb-3" style="background: ${bg}; position: relative;">
+                        ${rejectedBadge}
                         <div class="d-flex align-items-center mb-2">
                             <img src="${t.project_image}" class="rounded-circle me-3" style="width:28px;height:28px;object-fit:cover;">
                             <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-') }</h6>
