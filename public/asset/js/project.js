@@ -128,6 +128,59 @@ document.addEventListener("DOMContentLoaded", function () {
                     console.error('updateProjectChartFromData error', e);
                 }
 
+                // Build timeline from actual projects and render. If list items lack start/due, fetch details.
+                (function () {
+                    // Helper to decide if project has valid date fields
+                    function hasValidDates(p) {
+                        if (!p) return false;
+                        const s = p.start_date || p.start || p.startDate || p.startAt;
+                        const e = p.due_date || p.due || p.end_date || p.endDate || p.dueAt;
+                        return !!(s && e);
+                    }
+
+                    const needsFetch = projects.filter((p) => !hasValidDates(p));
+
+                    if (needsFetch.length === 0) {
+                        try {
+                            buildTimelineFromProjects(projects);
+                            renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                            updateModalTimeline();
+                        } catch (e) {
+                            console.error('timeline build/render error', e);
+                        }
+                    } else {
+                        // Fetch details for projects missing dates (parallel)
+                        const fetches = needsFetch.map((p) => {
+                            return $.ajax({
+                                url: appUrl + "/project/" + p.id,
+                                type: "GET",
+                                dataType: "json",
+                            })
+                                .then((resp) => {
+                                    const data = resp.data || resp;
+                                    // merge date fields back into list item
+                                    p.start_date = p.start_date || data.start_date || data.start || data.startDate;
+                                    p.due_date = p.due_date || data.due_date || data.due || data.endDate || data.end_date;
+                                    return p;
+                                })
+                                .catch((err) => {
+                                    console.warn('failed to fetch project detail for', p.id, err);
+                                    return p;
+                                });
+                        });
+
+                        Promise.all(fetches).then(() => {
+                            try {
+                                buildTimelineFromProjects(projects);
+                                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                                updateModalTimeline();
+                            } catch (e) {
+                                console.error('timeline build/render error', e);
+                            }
+                        });
+                    }
+                })();
+
                 if (projects && projects.length > 0) {
                     let rowHtml = '<div class="row">';
 
@@ -3883,16 +3936,64 @@ const months = [
     "Dec",
 ];
 
-// Dummy data project
-const timelineData = [
-    { name: "Project 1", start: 0, end: 3, color: "color1" },
-    { name: "Project 2", start: 1, end: 4, color: "color2" },
-    { name: "Project 2", start: 1, end: 4, color: "color2" },
-    { name: "Project 3", start: 2, end: 6, color: "color3" },
-    { name: "Project 3", start: 2, end: 6, color: "color3" },
-    { name: "Project 4", start: 0, end: 6, color: "color4" },
-    { name: "Project 4", start: 0, end: 6, color: "color4" },
-];
+// timeline projects (will be populated from backend projects)
+let timelineData = [];
+
+// color palette cycles every 4
+const TIMELINE_COLORS = ["color1", "color2", "color3", "color4"];
+
+/**
+ * Build timelineData from projects array. Expects each project to have
+ * - title
+ * - start_date (ISO string)
+ * - due_date (ISO string)
+ * - id
+ * Colors will cycle every 4 projects.
+ * This function stores normalized start/end indexes for the given mode (week/month) later used by renderTimeline.
+ */
+function buildTimelineFromProjects(projects) {
+    timelineData = [];
+    if (!Array.isArray(projects)) return;
+
+    projects.forEach((p, idx) => {
+        // parse dates as local (avoid timezone shifts from Date(string))
+        function parseLocal(dateStr, fallback) {
+            const src = (dateStr || "" ).toString().trim();
+            if (!src) {
+                if (fallback) return parseLocal(fallback);
+                return null;
+            }
+            // extract YYYY-MM-DD using regex to be robust against ' ' or 'T' separators and time parts
+            const m = src.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+            if (m) {
+                const y = parseInt(m[1], 10);
+                const mon = parseInt(m[2], 10) - 1;
+                const d = parseInt(m[3], 10);
+                return new Date(y, mon, d);
+            }
+            return new Date(src);
+        }
+
+        let start = p.start_date ? parseLocal(p.start_date) : new Date();
+        let due = p.due_date ? parseLocal(p.due_date, p.start_date) : new Date(start);
+        // normalize to day boundaries (start at 00:00:00, due at 23:59:59)
+        if (start) start.setHours(0,0,0,0);
+        if (due) due.setHours(23,59,59,999);
+
+        timelineData.push({
+            id: p.id,
+            name: p.title || `Project ${p.id || idx + 1}`,
+            start_date: start,
+            due_date: due,
+            color: TIMELINE_COLORS[idx % TIMELINE_COLORS.length],
+        });
+    });
+
+    // debug: print timeline entries used for rendering
+    try {
+        console.debug('timelineData built:', timelineData.map(t => ({ id: t.id, name: t.name, start: t.start_date && t.start_date.toISOString(), due: t.due_date && t.due_date.toISOString(), color: t.color })));
+    } catch(e) {}
+}
 
 function renderTimeline(
     targetHeaderSelector,
@@ -3940,35 +4041,90 @@ function renderTimeline(
         headerRow.appendChild(th);
     });
 
-    // Render rows
+    // Render rows based on timelineData date ranges
     timelineData.forEach((proj) => {
         const tr = document.createElement("tr");
 
-        for (let i = 0; i < proj.start; i++) {
-            const td = document.createElement("td");
-            if (mode === "week" && i === 6) td.style.color = "red";
-            if (mode === "month") {
-                const date = new Date(year, month, i + 1);
-                if (date.getDay() === 0) td.style.color = "red";
+        if (mode === "week") {
+            // determine week start (Monday) for the given month/weekIndex
+            const firstOfMonth = new Date(year, month, 1);
+            const weekStartDate = new Date(firstOfMonth);
+            weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
+            // ensure weekStartDate is Monday
+            while (weekStartDate.getDay() !== 1) {
+                weekStartDate.setDate(weekStartDate.getDate() - 1);
             }
-            tr.appendChild(td);
-        }
 
-        // Bar
-        const barTd = document.createElement("td");
-        barTd.colSpan = proj.end - proj.start + 1;
-        barTd.innerHTML = `<div class="timeline-bar ${proj.color}"><span class="circle"></span> ${proj.name}</div>`;
-        tr.appendChild(barTd);
+            for (let i = 0; i < totalCells; i++) {
+                const cellDate = new Date(weekStartDate);
+                cellDate.setDate(weekStartDate.getDate() + i);
 
-        // Kosong setelah bar
-        for (let i = proj.end + 1; i < totalCells; i++) {
-            const td = document.createElement("td");
-            if (mode === "week" && i === 6) td.style.color = "red";
-            if (mode === "month") {
-                const date = new Date(year, month, i + 1);
-                if (date.getDay() === 0) td.style.color = "red";
+                const td = document.createElement("td");
+                if (cellDate.getDay() === 0) td.style.color = "red";
+
+                // If proj covers this cellDate, add bar cell later
+                tr.appendChild(td);
             }
-            tr.appendChild(td);
+
+            // Helper: difference in days using UTC to avoid timezone/DST edges
+            function diffDaysUTC(a, b) {
+                const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+                const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+                return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+            }
+
+            // Compute start/end index (0..6) for this project within the week (may be outside 0..6)
+            const rawStart = diffDaysUTC(proj.start_date, weekStartDate);
+            const rawEnd = diffDaysUTC(proj.due_date, weekStartDate);
+            const projStartIdx = Math.max(0, rawStart);
+            const projEndIdx = Math.min(6, rawEnd);
+            try { console.debug('weekStartDate', weekStartDate.toISOString(), 'proj', proj.name, 'start', proj.start_date && proj.start_date.toISOString(), 'due', proj.due_date && proj.due_date.toISOString(), 'rawStart', rawStart, 'rawEnd', rawEnd, 'projStartIdx', projStartIdx, 'projEndIdx', projEndIdx); } catch(e) {}
+
+            // If project overlaps this week, replace cells with a colspan bar in correct position
+            if (projEndIdx >= 0 && projStartIdx <= 6 && projStartIdx <= projEndIdx) {
+                // remove child nodes and rebuild with bar
+                while (tr.firstChild) tr.removeChild(tr.firstChild);
+
+                // empty before
+                for (let i = 0; i < projStartIdx; i++) tr.appendChild(document.createElement('td'));
+
+                const barTd = document.createElement('td');
+                barTd.colSpan = projEndIdx - projStartIdx + 1;
+                const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+                tr.appendChild(barTd);
+
+                for (let i = projEndIdx + 1; i < totalCells; i++) tr.appendChild(document.createElement('td'));
+            }
+        } else {
+            // month mode: cells are days 1..daysInMonth
+            const daysInMonth = totalCells;
+
+            // compute overlap between project and this month
+            const monthStart = new Date(year, month, 1);
+            const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59, 999);
+
+            const startDate = proj.start_date < monthStart ? monthStart : proj.start_date;
+            const endDate = proj.due_date > monthEnd ? monthEnd : proj.due_date;
+
+            if (endDate >= monthStart && startDate <= monthEnd) {
+                const startIdx = startDate.getDate() - 1; // 0-based
+                const endIdx = endDate.getDate() - 1;
+
+                // empty before
+                for (let i = 0; i < startIdx; i++) tr.appendChild(document.createElement('td'));
+
+                const barTd = document.createElement('td');
+                barTd.colSpan = endIdx - startIdx + 1;
+                const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+                tr.appendChild(barTd);
+
+                for (let i = endIdx + 1; i < daysInMonth; i++) tr.appendChild(document.createElement('td'));
+            } else {
+                // no overlap -> empty row
+                for (let i = 0; i < daysInMonth; i++) tr.appendChild(document.createElement('td'));
+            }
         }
 
         rowsContainer.appendChild(tr);
