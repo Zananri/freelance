@@ -755,6 +755,142 @@ p {
     color: #444444;
 }
 
+.timeline-section {
+    max-height: 380px;
+    border-radius: 20px;
+}
+
+.timeline-card {
+    background: transparent;
+}
+
+.timeline-wrapper {
+    max-height: 275px;
+    overflow-y: auto;
+    overflow-x: auto;
+    position: relative;
+}
+
+.timeline-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #dae3ed;
+    table-layout: fixed;
+}
+
+.timeline-wrapper::-webkit-scrollbar {
+    width: 4px;
+}
+
+.timeline-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.timeline-wrapper::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
+
+.timeline-table thead th {
+    position: sticky;
+    top: 0px;
+    z-index: 10;
+    background: #f0f1f8;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.timeline-table th,
+.timeline-table td {
+    border-right: 2px solid #dae3ed;
+    border-left: 2px solid #dae3ed;
+    padding: 6px;
+    text-align: center;
+}
+
+.timeline-table th {
+    font-weight: bold;
+    font-size: 15px;
+    color: #444;
+}
+
+.timeline-table th:first-child,
+.timeline-table td:first-child {
+    border-left: none;
+}
+
+.timeline-table th:last-child,
+.timeline-table td:last-child {
+    border-right: none;
+}
+
+/* Bar */
+.timeline-bar {
+    height: 28px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 500;
+    padding-left: 36px;
+    position: relative;
+    background: #e3f3ff;
+    margin: 4px 0;
+}
+
+.timeline-bar .circle {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+/* Warna bar */
+.timeline-bar.color1 {
+    background: #e3f3ff;
+}
+.timeline-bar.color2 {
+    background: #e9e3f7;
+}
+.timeline-bar.color3 {
+    background: #f7f3e3;
+}
+.timeline-bar.color4 {
+    background: #ffe3e3;
+}
+
+.timeline-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.timeline-modal {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.exit-fullscreen-btn {
+    background: transparent;
+    border: none;
+}
+
+.timeline-cell.sunday {
+    color: #d34547 !important;
+    font-weight: 600;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .header-task-container {
@@ -764,11 +900,12 @@ p {
     }
 
     .dropdown-filter-menu {
-        padding: 10px;
+        display: block !important;
+        visibility: hidden;
         position: absolute;
         z-index: 1100;
         width: 250px;
-        background: white;
+        background: #fff;
         border: 1px solid #dee2e6;
         border-radius: 8px;
     }
@@ -783,9 +920,39 @@ p {
         flex: 1 1 100%;
     }
 
-    .search-icon,
-    .custom-form-filter {
-        display: none;
+    .search-input-container {
+        display: flex;
+        align-items: center;
+        background: #ecedf5;
+        border-radius: 8px;
+        padding: 2px 6px;
+        max-width: 100px;
+    }
+
+    .search-input-container input {
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        width: 100%;
+        outline: none;
+    }
+
+    .search-icon {
+        font-size: 18px;
+        margin-right: 4px;
+        color: #666;
+    }
+
+    #taskFilterDropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 2000;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 12px;
+        min-width: 220px;
     }
 
     .toggle-filter,
@@ -806,6 +973,10 @@ p {
 
     .btn-text-add {
         display: none;
+    }
+
+    .timeline-table {
+        min-width: 450%;
     }
 
     #task-cards-container .col-md-4 {
@@ -839,6 +1010,7 @@ p {
     }
 
     .task-mobile-card-header .actions-buttons {
+        position: relative;
         margin-left: auto;
         display: flex;
         gap: 6px;

@@ -2792,6 +2792,7 @@ function handleTaskDetail(taskId) {
     const applyTaskFilterBtn = document.getElementById("applyTaskFilterBtn");
     const openTaskFilterBtn = document.getElementById("openTaskFilterBtn");
     const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
+    const openTaskFilterBtnMobile = document.getElementById("openTaskFilterBtnMobile");
 
     // Function to update project filter display
     function updateProjectFilterDisplay() {
@@ -3041,26 +3042,57 @@ function handleTaskDetail(taskId) {
 
 $(document).ready(function () {
   const mobileCardHtml = `
-    <div class="mobile-task-container p-3 rounded-4 d-md-none">
-      <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
-        <select id="mobileTaskStatus" class="form-select border-0 bg-transparent" style="max-width:140px;">
-          <option value="all">All Status</option>
-          <option value="new_request">New</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-        </select>
-        <div class="action-buttons d-flex gap-2">
-          <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
-            <span class="material-symbols-outlined">calendar_month</span>
-          </button>
-          <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
-            <span class="material-symbols-outlined">filter_list</span>
-          </button>
+  <div class="mobile-task-container p-3 rounded-4 d-md-none">
+    <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
+      <select id="taskStatusSelect" class="form-select border-0 bg-transparent" style="max-width:140px;">
+        <option value="new_request">New</option>
+        <option value="in_progress">In Progress</option>
+        <option value="completed">Completed</option>
+      </select>
+
+      <div class="action-buttons d-flex align-items-center gap-2">
+        <div class="search-input-container">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input class="form-control custom-form-filter" type="text" name="search_filter"
+            id="search_filter">
         </div>
+
+        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
+          <span class="material-symbols-outlined">calendar_month</span>
+        </button>
+
+        <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+          <span class="material-symbols-outlined">filter_list</span>
+        </button>
+
+                        <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
+                    <div class="dropdown-filter-body">
+                        <div class="mb-3">
+                            <label for="filterTaskProject" class="form-label">Project</label>
+                            <select id="filterTaskProject" class="form-select">
+                                <option value="">All Projects</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="filterTaskStatus" class="form-label">Status</label>
+                            <select id="filterTaskStatus" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="new_request">New Request</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="dropdown-filter-footer">
+                        <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtn">Filter</button>
+                    </div>
+                </div>
       </div>
-      <div id="mobile-task-list"></div>
     </div>
-  `;
+    <div id="mobile-task-list"></div>
+  </div>
+`;
 
   // sisipkan ke sebelum container desktop
   $("#task-cards-container").before(mobileCardHtml);
@@ -3078,7 +3110,7 @@ $(document).ready(function () {
   $(window).on("resize", toggleDropdownFilter);
 
   // handler ganti status
-  $("#mobileTaskStatus").on("change", function () {
+  $("#taskStatusSelect").on("change", function () {
     let status = $(this).val();
     let container = $(".mobile-task-container");
     let list = $("#mobile-task-list");
@@ -3101,19 +3133,111 @@ $(document).ready(function () {
       let completedClone = $("#completed-tasks").clone(true, true);
       completedClone.removeAttr("id");
       list.append(completedClone);
-    } else if (status === "all") {
-      let newClone = $("#new-request-tasks").clone(true, true).removeAttr("id");
-      let progressClone = $("#in-progress-tasks").clone(true, true).removeAttr("id");
-      let completedClone = $("#completed-tasks").clone(true, true).removeAttr("id");
-      list.append(newClone).append(progressClone).append(completedClone);
     }
   });
 
   // ✅ default ke "All Status"
-  $("#mobileTaskStatus").val("all").trigger("change");
+  $("#taskStatusSelect").val("new_request").trigger("change");
 });
 
 // Toggle dropdown filter di mobile
 $(document).on("click", "#openTaskFilterBtnMobile", function () {
   $("#taskFilterDropdownMobile").toggle();
 });
+
+ let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    // Dummy task data
+    const timelineData = [
+        { name: "Task A", start: 1, end: 4, color: "color1" },
+        { name: "Task B", start: 3, end: 8, color: "color2" },
+        { name: "Task C", start: 10, end: 15, color: "color3" },
+        { name: "Task D", start: 20, end: 29, color: "color4" },
+    ];
+
+    function renderTimeline(targetHeaderSelector, targetRowsSelector, month, year) {
+    const headerRow = document.querySelector(targetHeaderSelector);
+    const rowsContainer = document.querySelector(targetRowsSelector);
+    if (!headerRow || !rowsContainer) return;
+
+    headerRow.innerHTML = "";
+    rowsContainer.innerHTML = "";
+
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const headerLabels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+    // Header
+    headerLabels.forEach((day) => {
+        const th = document.createElement("th");
+        th.textContent = day;
+        th.classList.add("timeline-cell");                 // << wajib
+        if (new Date(year, month, day).getDay() === 0) {
+        th.classList.add("sunday");                      // << jadi match .timeline-cell.sunday
+        }
+        headerRow.appendChild(th);
+    });
+
+    // Rows (tasks)
+    timelineData.forEach((task) => {
+        const tr = document.createElement("tr");
+
+        // Kosong sebelum task
+        for (let i = 1; i < task.start; i++) {
+        const td = document.createElement("td");
+        td.classList.add("timeline-cell");               // << wajib
+        if (new Date(year, month, i).getDay() === 0) {
+            td.classList.add("sunday");
+        }
+        tr.appendChild(td);
+        }
+
+        // Bar task (colspan)
+        const barTd = document.createElement("td");
+        barTd.colSpan = task.end - task.start + 1;
+        barTd.classList.add("timeline-cell");              // biar konsisten
+        barTd.innerHTML = `<div class="timeline-bar ${task.color}"><span class="circle"></span>${task.name}</div>`;
+        tr.appendChild(barTd);
+
+        // Kosong setelah task
+        for (let i = task.end + 1; i <= daysInMonth; i++) {
+        const td = document.createElement("td");
+        td.classList.add("timeline-cell");               // << wajib
+        if (new Date(year, month, i).getDay() === 0) {
+            td.classList.add("sunday");
+        }
+        tr.appendChild(td);
+        }
+
+        rowsContainer.appendChild(tr);
+    });
+
+    document.getElementById("timelineModalTitle").textContent = `Timeline ${months[month]} ${year}`;
+    }
+
+    // First render on modal show
+    const timelineModal = document.getElementById("timelineModal");
+    timelineModal.addEventListener("show.bs.modal", () => {
+        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+    });
+
+    // Prev / Next bulan
+    document.getElementById("prevTimelineModal").addEventListener("click", () => {
+        currentMonth--;
+        if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+    });
+
+    document.getElementById("nextTimelineModal").addEventListener("click", () => {
+        currentMonth++;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        }
+        renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+    });
