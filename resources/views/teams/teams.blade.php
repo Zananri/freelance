@@ -10,7 +10,7 @@
     </x-slot>
 
     <div class="title-content">
-        <div class="d-flex">
+        <div class="d-flex align-items-center">
             <div class="w-100">
                 <h2 class="text-title-content" >Teams</h2>
             </div>
