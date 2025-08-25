@@ -224,6 +224,11 @@
                             <span class="text-menu">Profile</span>
                         </a>
                     </li>
+
+                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
+                        
+                    
+
                     <li>
                         <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">database</span>
@@ -254,6 +259,8 @@
                             <span class="text-menu">Settings</span>
                         </a>
                     </li>
+
+                    @endif
                 </ul>
             </div>
 
