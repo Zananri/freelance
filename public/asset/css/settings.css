@@ -6,7 +6,8 @@
 .card-content{
     background-color: rgb(240, 241, 248);
     border-radius: 20px;
-    padding: 25px 25px;
+    padding: 0px;
+    padding-bottom: 25px;
 }
 
 .title-content{
@@ -29,6 +30,12 @@
     margin:0px;
 }
 
+.header-card-content{
+    padding-left: 25px;
+    padding-right: 15px;
+    padding-top: 15px;
+    padding-bottom: 5px;;
+}
 .box-header-card-content{
     display: flex;
     justify-content: space-between;
@@ -54,18 +61,23 @@
     border-radius: 10px;
     background-color: rgb(248, 248, 252);
     color: #2A3542;
-    padding: 11px 10px 11px 30px !important;
     display: inline-block;
+    
+    padding: 11px 10px 11px 10px !important;
+    
+    transition: width .3s;
+    outline: none; /* Removes the default browser outline */
+    border: none; /* Removes the border */
+}
 
-    padding-right: calc(1.5em + .75rem);
+.input-card-action.search-query{
+    padding: 11px 10px 11px 30px !important;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3e%3cpath fill='%238C909A' d='M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3e%3c/svg%3e");
+    
     background-repeat: no-repeat;
     background-position: left calc(.375em + .1875rem) center;
     background-size: calc(.75em + .375rem) calc(.75em + .375rem);
 
-    transition: width .3s;
-    outline: none; /* Removes the default browser outline */
-    border: none; /* Removes the border */
 }
 
 
@@ -92,17 +104,16 @@
 }
 
 
-
 .card-content .table>:not(caption)>*>* {
     padding: .5rem .5rem;
-    color: #2A3542;
-    background-color: rgb(232, 232, 242);
+    color: #595e64;
+    background-color: rgb(240, 241, 248);
     border-bottom-width: 0;
 }
 
 .card-content .table-striped>tbody>tr:nth-of-type(odd)>* {
-    --bs-table-color-type: #2A3542;
-    --bs-table-bg-type:   rgb(238, 238, 247);
+    --bs-table-color-type: #595e64;
+    --bs-table-bg-type: #E8E8F2;
 }
 
 .card-content .table td,
@@ -114,7 +125,12 @@
 
 .card-content .table-hover>tbody>tr:hover>* {
     color: #181d22;
-    --bs-table-bg-state: rgb(242, 242, 247);
+    --bs-table-bg-state: rgb(242, 243, 250);
+}
+
+
+.card-content .table th { 
+    color: #181d22; 
 }
 
 .col-user-management .employee-image{
@@ -161,6 +177,11 @@
     font-weight: 300;
 }
 
+.modal .employee-photo{
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+}
 
 .modal .modal-content{
     border: 0px;

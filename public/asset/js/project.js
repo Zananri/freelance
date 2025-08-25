@@ -10,6 +10,77 @@ document.addEventListener("DOMContentLoaded", function () {
     const referenceFileInput = document.getElementById("reference_file");
     const addProjectForm = document.getElementById("addProjectForm");
 
+    // --- Multi-file preview for Add Project modal (match task behavior) ---
+    // Array to store selected files for add project
+    let projectSelectedFiles = [];
+
+    function displayProjectSelectedFiles() {
+        const preview = document.getElementById("reference_files_preview");
+        if (!preview) return;
+        preview.innerHTML = "";
+
+        if (projectSelectedFiles.length > 0) {
+            const fileList = document.createElement("div");
+            fileList.className = "selected-files-list mt-2";
+
+            projectSelectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement("div");
+                fileItem.className =
+                    "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+
+                const fileInfo = document.createElement("div");
+                fileInfo.className = "d-flex align-items-center flex-grow-1";
+
+                const fileIcon = document.createElement("span");
+                fileIcon.className = "material-symbols-outlined me-2";
+                fileIcon.textContent = "description";
+
+                const fileName = document.createElement("span");
+                fileName.textContent = file.name;
+                fileName.className = "file-name";
+
+                const fileSize = document.createElement("small");
+                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileSize.className = "text-muted ms-1";
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn btn-sm btn-outline-danger";
+                removeBtn.innerHTML = "&times;";
+                removeBtn.onclick = function () {
+                    projectSelectedFiles.splice(index, 1);
+                    displayProjectSelectedFiles();
+                };
+
+                fileInfo.appendChild(fileIcon);
+                fileInfo.appendChild(fileName);
+                fileInfo.appendChild(fileSize);
+
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(removeBtn);
+                fileList.appendChild(fileItem);
+            });
+
+            preview.appendChild(fileList);
+        }
+    }
+
+    function setupProjectReferenceFilesInput() {
+        const input = document.getElementById("reference_file");
+        const preview = document.getElementById("reference_files_preview");
+        if (!input || !preview) return;
+
+        input.addEventListener("change", function () {
+            const files = Array.from(this.files || []);
+            projectSelectedFiles = [...projectSelectedFiles, ...files];
+            displayProjectSelectedFiles();
+            // clear native input so same file can be reselected later
+            this.value = "";
+        });
+    }
+
+    setupProjectReferenceFilesInput();
+
     // Helper to resolve employee photo URL and return img HTML string
     function resolvePhotoHtml(emp, size = 30, marginLeft = 0, role = '') {
         let userPhoto = emp && (emp.profile_picture || emp.user_photo || emp.user_photo_path || emp.user_photo_url);
@@ -239,11 +310,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div class="d-flex">
                                             <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center" title="Comment" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-                                                <span class="project-feedback-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;">0</span>
+                                                <span class="project-feedback-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
                                             </button>
                                             <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
-                                                <span class="project-file-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;">0</span>
+                                                <span class="project-file-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
                                             </button>
                                         </div>
                                     </div>
@@ -433,6 +504,160 @@ document.addEventListener("DOMContentLoaded", function () {
                                         // Clear file input for reference file
                                         $("#edit_reference_file").val("");
 
+                                        // --- Reference files preview / management for edit modal (match Task UI) ---
+                                        // Normalize existing files array from API (supports reference_files or reference_file)
+                                        var existingFiles = Array.isArray(data.reference_files)
+                                            ? data.reference_files.slice()
+                                            : (Array.isArray(data.reference_file) ? data.reference_file.slice() : (data.reference_file ? [data.reference_file] : []));
+
+                                        // Hidden input holds JSON of files to keep
+                                        var existingInput = document.getElementById('existing_reference_files_input');
+                                        if (!existingInput) {
+                                            existingInput = document.createElement('input');
+                                            existingInput.type = 'hidden';
+                                            existingInput.id = 'existing_reference_files_input';
+                                            existingInput.name = 'existing_reference_files';
+                                            document.getElementById('editProjectForm').appendChild(existingInput);
+                                        }
+                                        existingInput.value = JSON.stringify(existingFiles);
+
+                                        // Containers
+                                        var previewEdit = document.getElementById('edit_reference_files_preview');
+                                        var existingContainer = document.getElementById('existing_reference_files');
+                                        if (previewEdit) previewEdit.innerHTML = '';
+                                        if (existingContainer) existingContainer.innerHTML = '';
+
+                                        // Local state for newly selected files
+                                        window.editProjectSelectedFiles = [];
+
+                                        // Render existing files list (Task-style)
+                                        function renderExistingProjectFiles() {
+                                            if (!existingContainer) return;
+                                            existingContainer.innerHTML = '';
+                                            if (existingFiles.length > 0) {
+                                                var title = document.createElement('div');
+                                                title.className = 'fw-bold mb-2';
+                                                title.textContent = 'Current Files:';
+                                                existingContainer.appendChild(title);
+
+                                                var fileList = document.createElement('div');
+                                                fileList.className = 'existing-files-list';
+
+                                                existingFiles.forEach(function (fileName, idx) {
+                                                    var fileItem = document.createElement('div');
+                                                    fileItem.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+
+                                                    var fileInfo = document.createElement('div');
+                                                    fileInfo.className = 'd-flex align-items-center flex-grow-1';
+
+                                                    var fileIcon = document.createElement('span');
+                                                    fileIcon.className = 'material-symbols-outlined me-2';
+                                                    fileIcon.textContent = 'description';
+
+                                                    var fileLink = document.createElement('a');
+                                                    fileLink.href = appUrl + '/file/project/' + fileName;
+                                                    fileLink.textContent = fileName;
+                                                    fileLink.className = 'text-decoration-none';
+                                                    fileLink.target = '_blank';
+
+                                                    var removeBtn = document.createElement('button');
+                                                    removeBtn.type = 'button';
+                                                    removeBtn.className = 'btn btn-sm btn-outline-danger';
+                                                    removeBtn.innerHTML = '&times;';
+                                                    removeBtn.onclick = function () {
+                                                        // remove from list and re-render
+                                                        existingFiles = existingFiles.filter(function (f) { return f !== fileName; });
+                                                        existingInput.value = JSON.stringify(existingFiles);
+                                                        renderExistingProjectFiles();
+
+                                                        // update badge count on project card immediately (decrement)
+                                                        try {
+                                                            var pid = data.id;
+                                                            var card = document.querySelector('[data-project-id="' + pid + '"]');
+                                                            if (card) {
+                                                                var fileBadge = card.querySelector('.project-file-count');
+                                                                if (fileBadge) {
+                                                                    var cur = parseInt(fileBadge.textContent || '0', 10) || 0;
+                                                                    fileBadge.textContent = Math.max(0, cur - 1);
+                                                                }
+                                                            }
+                                                        } catch (e) {}
+                                                    };
+
+                                                    fileInfo.appendChild(fileIcon);
+                                                    fileInfo.appendChild(fileLink);
+                                                    fileItem.appendChild(fileInfo);
+                                                    fileItem.appendChild(removeBtn);
+                                                    fileList.appendChild(fileItem);
+                                                });
+
+                                                existingContainer.appendChild(fileList);
+                                            }
+                                        }
+
+                                        // Render newly selected files (Task-style)
+                                        function renderEditProjectSelectedFiles() {
+                                            if (!previewEdit) return;
+                                            previewEdit.innerHTML = '';
+
+                                            if (window.editProjectSelectedFiles.length > 0) {
+                                                var fileList = document.createElement('div');
+                                                fileList.className = 'selected-files-list mt-2';
+
+                                                window.editProjectSelectedFiles.forEach(function (file, index) {
+                                                    var fileItem = document.createElement('div');
+                                                    fileItem.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+
+                                                    var fileInfo = document.createElement('div');
+                                                    fileInfo.className = 'd-flex align-items-center flex-grow-1';
+
+                                                    var fileIcon = document.createElement('span');
+                                                    fileIcon.className = 'material-symbols-outlined me-2';
+                                                    fileIcon.textContent = 'description';
+
+                                                    var fileName = document.createElement('span');
+                                                    fileName.textContent = file.name;
+                                                    fileName.className = 'file-name';
+
+                                                    var fileSize = document.createElement('small');
+                                                    fileSize.textContent = ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+                                                    fileSize.className = 'text-muted ms-1';
+
+                                                    var removeBtn = document.createElement('button');
+                                                    removeBtn.type = 'button';
+                                                    removeBtn.className = 'btn btn-sm btn-outline-danger';
+                                                    removeBtn.innerHTML = '&times;';
+                                                    removeBtn.onclick = function () {
+                                                        window.editProjectSelectedFiles.splice(index, 1);
+                                                        renderEditProjectSelectedFiles();
+                                                    };
+
+                                                    fileInfo.appendChild(fileIcon);
+                                                    fileInfo.appendChild(fileName);
+                                                    fileInfo.appendChild(fileSize);
+                                                    fileItem.appendChild(fileInfo);
+                                                    fileItem.appendChild(removeBtn);
+                                                    fileList.appendChild(fileItem);
+                                                });
+
+                                                previewEdit.appendChild(fileList);
+                                            }
+                                        }
+
+                                        // Bind change handler for selecting new files (Task-style behavior)
+                                        $("#edit_reference_file").off('change').on('change', function () {
+                                            var files = Array.from(this.files || []);
+                                            if (files.length > 0) {
+                                                window.editProjectSelectedFiles = window.editProjectSelectedFiles.concat(files);
+                                                renderEditProjectSelectedFiles();
+                                                this.value = '';
+                                            }
+                                        });
+
+                                        // Initial renders
+                                        renderExistingProjectFiles();
+                                        renderEditProjectSelectedFiles();
+
                                         // Populate co-author and contributor inputs
                                         // Clear previous selections
                                         window.clearSelectedCoAuthorsEdit &&
@@ -526,6 +751,18 @@ document.addEventListener("DOMContentLoaded", function () {
                             $("#edit_contributors").val()
                         );
 
+                        // Append newly selected reference files (if any) to FormData as reference_file[]
+                        if (window.editProjectSelectedFiles && window.editProjectSelectedFiles.length) {
+                            window.editProjectSelectedFiles.forEach(function (f) {
+                                try {
+                                    formData.append('reference_file[]', f);
+                                } catch (e) {
+                                    // some browsers may not allow appending File-like objects from other contexts; ignore
+                                    console.warn('Failed to append new reference file to FormData', e);
+                                }
+                            });
+                        }
+
                         // Show loading overlay and disable submit button
                         $("#editModalLoader").removeClass("d-none");
                         const submitBtn = $(
@@ -565,9 +802,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                     if (editProjectModal)
                                         editProjectModal.hide();
 
-                                    // Reload project cards
+                                    // Refresh project data without page reload
                                     loadProjectCardData();
-                                }, 1500);
+                                }, 800);
                             },
                             error: function (xhr) {
                                 if (xhr.status === 422) {
@@ -627,6 +864,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                 window.clearSelectedCoAuthorsEdit();
                             window.clearSelectedContributorsEdit &&
                                 window.clearSelectedContributorsEdit();
+
+                            // Clear temporary reference files arrays and preview list (Task-style containers)
+                            try {
+                                window.editProjectSelectedFiles = [];
+                                const previewEdit = document.getElementById('edit_reference_files_preview');
+                                if (previewEdit) previewEdit.innerHTML = '';
+                                const existingContainer = document.getElementById('existing_reference_files');
+                                if (existingContainer) existingContainer.innerHTML = '';
+                                const hiddenExisting = document.getElementById('existing_reference_files_input');
+                                if (hiddenExisting) hiddenExisting.value = '[]';
+                                $("#edit_reference_file").off('change');
+                            } catch (e) {}
 
                             $("#editProjectAlert").addClass("d-none").hide();
                         }
@@ -1218,6 +1467,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             .then((data) => {
                                 modalBody.innerHTML = ""; // Clear loading spinner
 
+                                // Update feedback badge count on project card
+                                const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                                if (card) {
+                                    const feedbackBadge = card.querySelector('.project-feedback-count');
+                                    if (feedbackBadge) {
+                                        const feedbackCount = (data.data && data.data.length) || 0;
+                                        feedbackBadge.textContent = feedbackCount;
+                                    }
+                                }
+
                                 if (!data.data || data.data.length === 0) {
                                     modalBody.innerHTML =
                                         "<p>No feedback available for this project.</p>";
@@ -1604,9 +1863,37 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
                                 modalBody.prepend(alertDiv);
 
+                                // Update feedback badge count immediately
+                                const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                                if (card) {
+                                    const feedbackBadge = card.querySelector('.project-feedback-count');
+                                    if (feedbackBadge) {
+                                        const currentCount = parseInt(feedbackBadge.textContent) || 0;
+                                        feedbackBadge.textContent = currentCount + 1;
+                                    }
+                                }
+
                                 // Muat ulang daftar feedback setelah 1 detik
                                 setTimeout(() => {
                                     loadFeedbackData(projectId);
+                                    
+                                    // Reset form setelah sukses untuk memungkinkan tambah feedback lagi
+                                    form.reset();
+                                    
+                                    // Reset image preview
+                                    const imageLabel = form.querySelector('#feedbackImageLabel');
+                                    const imageClearBtn = form.querySelector('#feedbackImageClearBtn');
+                                    if (imageLabel) {
+                                        imageLabel.style.backgroundImage = "url('" + appUrl + "/asset/img/background/add-image.png')";
+                                        imageLabel.style.backgroundPosition = "center center";
+                                        imageLabel.style.backgroundRepeat = "no-repeat";
+                                        imageLabel.style.backgroundSize = "50%";
+                                        imageLabel.classList.remove("has-image");
+                                        imageLabel.style.opacity = "0.5";
+                                    }
+                                    if (imageClearBtn) {
+                                        imageClearBtn.classList.add("d-none");
+                                    }
                                 }, 1000);
                             })
                             .catch((error) => {
@@ -2411,6 +2698,23 @@ document.addEventListener("DOMContentLoaded", function () {
                             resetAddFeedbackButton();
                         }
                     );
+
+                    // Update badge counts for all project cards after rendering - optimized for speed
+                    setTimeout(() => {
+                        // Batch update all badges in parallel for faster performance
+                        const updatePromises = projects.map(project => {
+                            return new Promise((resolve) => {
+                                if (typeof window.updateProjectBadges === 'function') {
+                                    window.updateProjectBadges(project.id);
+                                }
+                                resolve();
+                            });
+                        });
+                        
+                        Promise.all(updatePromises).then(() => {
+                            console.log('All project badges updated successfully');
+                        });
+                    }, 50); // Further reduced delay for instant update
                 }
                 else {
                     // no projects - ensure chart shows zero state
@@ -3001,8 +3305,7 @@ document.addEventListener("DOMContentLoaded", function () {
         alertContainer.style.display = "block";
         setTimeout(() => {
             alertContainer.style.display = "none";
-            // Reload the page after alert disappears
-            location.reload();
+            // No reload needed - let the individual functions handle data refresh
         }, 1500);
     }
 
@@ -3067,6 +3370,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const formData = new FormData(addProjectForm);
 
+        // Append project selected reference files (if any)
+        if (projectSelectedFiles && projectSelectedFiles.length) {
+            projectSelectedFiles.forEach(function (f) {
+                formData.append('reference_file[]', f);
+            });
+        }
+
         $.ajax({
             url: appUrl + "/project/store",
             type: "POST",
@@ -3102,10 +3412,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         bootstrap.Modal.getInstance(addProjectModalEl);
                     if (addProjectModal) addProjectModal.hide();
 
-                    // Reload page after alert disappears
-                    setTimeout(function () {
-                        location.reload();
-                    }, 1500);
+                    // Refresh project data without page reload
+                    loadProjectCardData();
                 }, 1500);
             },
             error: function (xhr) {
@@ -3412,50 +3720,40 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Expose global showProjectFiles so delegated handlers (or other scripts) can call it
                     window.showProjectFiles = function(projectId) {
                         const modalEl = document.getElementById('projectFilesModal');
-                        const modalBody = document.getElementById('projectFilesModalBody');
-                        if (!modalEl || !modalBody) return;
+                        const listEl = document.getElementById('projectReferenceFilesList');
+                        if (!modalEl || !listEl) return;
 
-                        modalBody.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+                        // loading state
+                        listEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
 
                         fetch(appUrl + '/project/' + projectId)
-                            .then(r => {
-                                if (!r.ok) throw new Error('Failed to fetch project');
-                                return r.json();
-                            })
+                            .then(r => { if (!r.ok) throw new Error('Failed to fetch project'); return r.json(); })
                             .then(resp => {
                                 const data = resp.data || resp;
-                                const baseFileUrl = appUrl + '/file/project/';
-                                const parts = [];
+                                const files = Array.isArray(data.reference_files) ? data.reference_files
+                                    : (Array.isArray(data.reference_file) ? data.reference_file
+                                    : (data.reference_file ? [data.reference_file] : []));
 
-                                if (data.reference_url) {
-                                    parts.push(`<div class="mb-2"><strong>Reference Link:</strong> <a href="${data.reference_url}" target="_blank">${data.reference_url}</a></div>`);
-                                }
+                                listEl.innerHTML = '';
 
-                                if (data.reference_file) {
-                                    // support either single filename or array
-                                    if (Array.isArray(data.reference_file)) {
-                                        parts.push('<div><strong>Files:</strong></div>');
-                                        parts.push('<ul class="list-unstyled ms-3">');
-                                        data.reference_file.forEach(f => {
-                                            parts.push(`<li><a href="${baseFileUrl + f}" target="_blank" download>${f}</a></li>`);
-                                        });
-                                        parts.push('</ul>');
-                                    } else {
-                                        parts.push(`<div class="mb-2"><strong>File:</strong> <a href="${baseFileUrl + data.reference_file}" target="_blank" download>${data.reference_file}</a></div>`);
-                                    }
-                                }
-
-                                if (parts.length === 0) {
-                                    modalBody.innerHTML = '<div class="text-center text-muted py-4">No reference files or links for this project.</div>';
+                                if (files && files.length > 0) {
+                                    files.forEach((fileName) => {
+                                        const link = document.createElement('a');
+                                        link.href = appUrl + '/file/project/' + fileName;
+                                        link.target = '_blank';
+                                        link.className = 'd-block text-decoration-none mb-1';
+                                        link.innerHTML = `<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ${fileName}`;
+                                        listEl.appendChild(link);
+                                    });
                                 } else {
-                                    modalBody.innerHTML = parts.join('');
+                                    listEl.textContent = 'No reference files available.';
                                 }
 
                                 const modal = new bootstrap.Modal(modalEl);
                                 modal.show();
                             })
                             .catch(err => {
-                                modalBody.innerHTML = '<div class="alert alert-danger">Failed to load project files.</div>';
+                                listEl.innerHTML = '<div class="alert alert-danger">Failed to load reference files.</div>';
                                 console.error('showProjectFiles error', err);
                                 const modal = new bootstrap.Modal(modalEl);
                                 modal.show();
@@ -3531,6 +3829,153 @@ document.addEventListener("DOMContentLoaded", function () {
                                 });
                         });
                     })(0);
+
+                    // Expose helper to update badges for a single project id (used after edit)
+                    window.updateProjectBadges = function(pid, attempt = 0) {
+                        try {
+                            const containerEl = document.getElementById('all-cards-container');
+                            if (!containerEl) return;
+                            const card = containerEl.querySelector('[data-project-id="' + pid + '"]');
+                            if (!card) {
+                                // retry a few times until card is rendered
+                                if (attempt < 5) {
+                                    return setTimeout(() => window.updateProjectBadges(pid, attempt + 1), 50);
+                                }
+                                return;
+                            }
+
+                            const fbBadge = card.querySelector('.project-feedback-count');
+                            const fileBadge = card.querySelector('.project-file-count');
+
+                            // Parallel fetch for faster loading
+                            const feedbackPromise = fetch(appUrl + '/project-feedbacks/' + pid)
+                                .then(r => r.ok ? r.json() : Promise.reject(r))
+                                .then(resp => {
+                                    let count = 0;
+                                    if (Array.isArray(resp)) count = resp.length;
+                                    else if (Array.isArray(resp.data)) count = resp.data.length;
+                                    else if (typeof resp.total === 'number') count = resp.total;
+                                    else if (resp.meta && typeof resp.meta.total === 'number') count = resp.meta.total;
+                                    else if (resp.data && typeof resp.data === 'object') count = 1;
+                                    if (fbBadge) fbBadge.textContent = count;
+                                })
+                                .catch(() => { if (fbBadge) fbBadge.textContent = '0'; });
+
+                            const filePromise = fetch(appUrl + '/project/' + pid)
+                                .then(r => r.ok ? r.json() : Promise.reject(r))
+                                .then(resp => {
+                                    const data = resp.data || resp;
+                                    let files = [];
+                                    if (Array.isArray(data.reference_file)) files = data.reference_file;
+                                    else if (Array.isArray(data.reference_files)) files = data.reference_files;
+                                    else if (typeof data.reference_file === 'string' && data.reference_file.trim() !== '') files = [data.reference_file];
+                                    if (fileBadge) fileBadge.textContent = files.length;
+                                })
+                                .catch(() => { if (fileBadge) fileBadge.textContent = '0'; });
+
+                            // Wait for both requests to complete
+                            Promise.all([feedbackPromise, filePromise]).then(() => {
+                                // Both badges updated
+                            });
+                        } catch (e) {}
+                    };
+
+                    // Refresh only one project card in-place using fresh data
+                    window.refreshSingleProjectCard = function(pid, attempt = 0) {
+                        try {
+                            const containerEl = document.getElementById('all-cards-container');
+                            if (!containerEl) return;
+                            const col = containerEl.querySelector('[data-project-id="' + pid + '"]');
+                            if (!col) {
+                                if (attempt < 10) return setTimeout(() => window.refreshSingleProjectCard(pid, attempt + 1), 200);
+                                return;
+                            }
+
+                            // Keep current badge counts while refreshing content to avoid flashing 0
+                            const currentFb = col.querySelector('.project-feedback-count')?.textContent || '';
+                            const currentFiles = col.querySelector('.project-file-count')?.textContent || '';
+
+                            fetch(appUrl + '/project/' + pid)
+                                .then(r => r.ok ? r.json() : Promise.reject(r))
+                                .then(resp => {
+                                    const p = resp.data || resp;
+
+                                    // Rebuild only the inner content of the card body with latest fields
+                                    let imageUrl = p.image ? (appUrl + '/file/project/' + p.image)
+                                                           : (appUrl + '/asset/img/background/add-image.png');
+
+                                    const newHeader = `
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;">
+                                                <h6 class="mb-0" style="font-size:14px; font-weight:600;">${p.title || ''}</h6>
+                                            </div>
+                                            <div class="dropdown-icon-container">
+                                                <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
+                                                        style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
+                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
+                                                </button>
+                                                <div class="dropdown-menu d-none">
+                                                    <div class="dropdown-item">Detail</div>
+                                                    <div class="dropdown-item">Task</div>
+                                                    <div class="dropdown-item">Feedback</div>
+                                                    <div class="dropdown-item">Edit</div>
+                                                    <div class="dropdown-item text-danger delete-project">Delete</div>
+                                                </div>
+                                            </div>
+                                        </div>`;
+
+                                    const newDesc = `<p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${(p.description || 'No Description')}</p>`;
+
+                                    const newFooter = `
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <div class="collaborators-image d-flex align-items-center">${renderCollaborators(p)}</div>
+                                            <div class="d-flex">
+                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center" title="Comment" data-project-id="${p.id}">
+                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
+                                                    <span class="project-feedback-count ms-1" data-project-id="${p.id}" style="font-size:12px; color:#454545;">${currentFb}</span>
+                                                </button>
+                                                <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${p.id}">
+                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
+                                                    <span class="project-file-count ms-1" data-project-id="${p.id}" style="font-size:12px; color:#454545;">${currentFiles}</span>
+                                                </button>
+                                            </div>
+                                        </div>`;
+
+                                    const cardEl = col.querySelector('.project-card');
+                                    if (cardEl) {
+                                        // Replace sections inside card
+                                        const oldDropdown = cardEl.querySelector('.dropdown-menu');
+                                    }
+
+                                    // Re-bind dropdown and attach-file handlers and tooltips
+                                    try {
+                                        cardEl.querySelectorAll('.dropdown-icon').forEach(icon => {
+                                            icon.addEventListener('click', function (e) {
+                                                e.stopPropagation();
+                                                const dropdownMenu = this.nextElementSibling;
+                                                const isVisible = !dropdownMenu.classList.contains('d-none');
+                                                document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('d-none'));
+                                                if (!isVisible) dropdownMenu.classList.remove('d-none');
+                                            });
+                                        });
+                                        const tooltipTriggerList = cardEl.querySelectorAll('[data-bs-toggle="tooltip"]');
+                                        tooltipTriggerList.forEach(function (el) { try { new bootstrap.Tooltip(el, { placement: 'bottom' }); } catch (e) {} });
+                                    } catch (e) {}
+
+                                    // Finally, update badges with live values
+                                    if (typeof window.updateProjectBadges === 'function') {
+                                        window.updateProjectBadges(pid);
+                                    }
+                                })
+                                .catch(() => {
+                                    // As a fallback, update badges only
+                                    if (typeof window.updateProjectBadges === 'function') {
+                                        window.updateProjectBadges(pid);
+                                    }
+                                });
+                        } catch (e) {}
+                    };
 
     // Function to refresh contributor dropdown when co-author selection changes
     window.refreshContributorDropdown = function () {
@@ -3930,6 +4375,17 @@ document.addEventListener("DOMContentLoaded", function () {
         divisionSelect.innerHTML =
             '<option value="" disabled selected>Select Division</option>';
         loadProjects();
+
+        // Clear selected reference files and preview
+        try {
+            if (typeof projectSelectedFiles !== 'undefined') {
+                projectSelectedFiles = [];
+            }
+            const preview = document.getElementById("reference_files_preview");
+            if (preview) preview.innerHTML = "";
+            const input = document.getElementById("reference_file");
+            if (input) input.value = "";
+        } catch (e) {}
 
         if (window.clearSelectedCoAuthors) {
             window.clearSelectedCoAuthors();

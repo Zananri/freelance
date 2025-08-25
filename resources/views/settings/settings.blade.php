@@ -20,7 +20,7 @@
 
                 <div class="card-content  ">
 
-                    <div class="header-card-content mb-3">
+                    <div class="header-card-content">
                         <div class="box-header-card-content">
                             <div class="col-action">
                                 <h3 class="text-card-title">User Management</h3>
@@ -38,7 +38,7 @@
                         <table id="table-user-management" class="table table-striped table-hover">
                             <thead>
                                 <tr>
-                                    <th scope="col" class="ps-3">User</th>
+                                    <th scope="col" class="ps-4">User</th>
                                     <th scope="col" class="d-none d-md-table-cell">Role</th>
                                     <th scope="col"></th>
                                 </tr>
@@ -98,27 +98,7 @@
             </di>
 
             <div class="col-12 col-md-4 col-configuration">
-
-                 <div class="card-content  ">
-
-                    <div class="header-card-content">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h3 class="text-card-title">Configuration</h3>
-                            </div>
-                            <div>
-                                <div class="box-card-action">
-                                    <div>
-                                        <input type="text" class="input-card-action">
-                                    </div>
-                                    <div class="btn-card-action">Add</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-                
+  
             </div>
 
         </div>
@@ -142,7 +122,7 @@
                         <div class="mb-4 p-3">
 
                             <div class="box-user-photo text-center mb-3">
-                                <img class="employee-photo rounded-circle" src="" alt="" width="70" height="70" class="rounded-circle">
+                                <img class="employee-photo rounded-circle" src="" class="rounded-circle">
                             </div>
 
                             <div class="text-center mb-4">

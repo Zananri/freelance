@@ -194,6 +194,12 @@
                             <span class="text-menu">Project</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('teams') }}" class="{{ $menu_active == 'teams' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">group</span>
+                            <span class="text-menu">Teams</span>
+                        </a>
+                    </li>
 
                     {{-- <li class="has-submenu">
                         <a href="#" data-bs-toggle="collapse" data-bs-toggle="collapse" data-bs-target="#sub-project" aria-expanded="false" aria-controls="sub-project">
