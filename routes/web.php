@@ -137,6 +137,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
     Route::get('/shift/employees-with-shifts', [ShiftController::class, 'getEmployeesWithShifts'])->name('shift.employees-with-shifts');
     Route::get('/shift/employees-basic', [ShiftController::class, 'getEmployeesBasic'])->name('shift.employees-basic');
+    Route::get('/shift/list', [ShiftController::class, 'getShifts'])->name('shift.list');
+    Route::post('/shift/store', [ShiftController::class, 'store'])->name('shift.store');
     Route::put('/shift/update/{id}', [ShiftController::class, 'update'])->name('shift.update');
 
     Route::get('/attendance/latest-unclosed/{employeeId}', [AttendanceController::class, 'getLatestUnclosedAttendance']);

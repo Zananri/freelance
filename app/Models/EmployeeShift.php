@@ -11,21 +11,21 @@ class EmployeeShift extends Model
 
     protected $fillable = [
         'employee_id',
+        'shift_id',
         'date_shift',
-        'time_start',
-        'time_end',
-        'total_hour',
     ];
 
     protected $casts = [
         'date_shift' => 'date',
-        'time_start' => 'datetime:H:i',
-        'time_end' => 'datetime:H:i',
-        'total_hour' => 'decimal:2',
     ];
 
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
     }
 }
