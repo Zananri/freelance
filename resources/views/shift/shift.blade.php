@@ -117,45 +117,75 @@
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="addShiftModalLabel">Add Shift</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body modal-body-custom">
-                        <form id="addShiftForm">
-                            <input type="hidden" id="addShiftId" name="shift_id">
-                            <input type="hidden" id="addEmployeeId" name="employee_id">
-                            <input type="hidden" id="addDateShift" name="date_shift">
+                    <form id="addShiftForm" method="POST">
+                        @csrf
+                        @method('POST')
 
-                            <div class="mb-3">
-                                <label for="addTitle" class="form-label label-custom">Title</label>
-                                <input type="text" class="form-control input-text" id="addTitle" name="title">
-                            </div>
+                        <!-- hidden input -->
+                        <input type="hidden" id="addShiftId" name="shift_id">
+                        <input type="hidden" id="addEmployeeId" name="employee_id">
+                        <input type="hidden" id="addDateShift" name="date">
+                        <input type="hidden" id="addEmployeeNameInput" name="employee_name">
+                        <input type="hidden" id="addTimeStart" name="time_in">
+                        <input type="hidden" id="addTimeEnd" name="time_out">
 
-                            <div class="mb-3">
-                                <label for="addDescription" class="form-label label-custom">Description</label>
-                                <input type="text" class="form-control input-text" id="addDescription"
-                                    name="description">
-                            </div>
+                        <div class="modal-header modal-header-custom">
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
 
-                            <div class="mb-3">
-                                <label for="addTimeStart" class="form-label label-custom">Time In</label>
-                                <input type="time" class="form-control input-text" id="addTimeStart"
-                                    name="time_start" required>
-                            </div>
+                        <div class="modal-body modal-body-custom text-center">
+                            <img id="addEmployeePicture" src="" class="rounded-circle mb-2" width="70"
+                                height="70">
+                            <h5 id="addShiftEmployeeName"></h5>
+                            <small id="addEmployeeGrade" class="text-muted">employee grade</small>
 
-                            <div class="mb-3">
-                                <label for="addTimeEnd" class="form-label label-custom">Time Out</label>
-                                <input type="time" class="form-control input-text" id="addTimeEnd"
-                                    name="time_end" required>
+                            <div class="mt-3 text-start">
+                                <p>Shift : <span id="addTitleShiftDisplay"></span></p>
+
+                                <hr class="border-3 rounded">
+
+                                <p class="text-shift-diplay">Date : <span id="addDateShiftDisplayText"></span></p>
+                                <p class="text-shift-diplay">Time In : <span id="addTimeStartDisplay"></span></p>
+                                <p class="text-shift-diplay">Time Out : <span id="addTimeEndDisplay"></span></p>
                             </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-submit-black" id="saveShiftBtn">Submit</button>
-                    </div>
+                        </div>
+
+                        <!-- Dropdown pilih shift -->
+                        <div class="dropdown-container">
+                            <div class="dropdown-selected" id="addDropdownSelected">
+                                Select shift
+                                <span class="material-symbols-outlined">arrow_drop_down</span>
+                            </div>
+                            <div class="dropdown-list" id="addDropdownList">
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">09:00 - 18:00</span>
+                                </div>
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">13:00 - 22:00</span>
+                                </div>
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">22:00 - 07:00</span>
+                                </div>
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">07:00 - 16:00</span>
+                                </div>
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">10:00 - 19:00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-submit-black">Submit</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

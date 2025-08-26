@@ -1876,10 +1876,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                 // Muat ulang daftar feedback setelah 1 detik
                                 setTimeout(() => {
                                     loadFeedbackData(projectId);
-                                    
+
                                     // Reset form setelah sukses untuk memungkinkan tambah feedback lagi
                                     form.reset();
-                                    
+
                                     // Reset image preview
                                     const imageLabel = form.querySelector('#feedbackImageLabel');
                                     const imageClearBtn = form.querySelector('#feedbackImageClearBtn');
@@ -2710,7 +2710,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 resolve();
                             });
                         });
-                        
+
                         Promise.all(updatePromises).then(() => {
                             console.log('All project badges updated successfully');
                         });
@@ -2785,25 +2785,49 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Load projects for "part_of_project" select
-    function loadProjects() {
-        $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                let options =
-                    '<option value="" disabled selected>Select Project</option>';
-                (data.data || []).forEach((proj) => {
-                    options += `<option value="${proj.id}">${proj.title}</option>`;
-                });
-                partOfProjectSelect.innerHTML = options;
-            },
-            error: function () {
-                // Suppress alert on failed projects load
-                // Do nothing
-            },
+let allProjectsCache = [];
+
+// Load semua project dari API
+function loadProjects() {
+    $.ajax({
+        url: appUrl + "/project/index",
+        type: "GET",
+        dataType: "json",
+        success: function (data) {
+            allProjectsCache = data.data || [];
+            renderProjects(allProjectsCache);
+        },
+        error: function () {
+            console.error("Failed to load projects");
+        }
+    });
+}
+
+function initProjectFilter() {
+    const searchInput = document.getElementById("search_filter");
+    if (!searchInput) return;
+
+    searchInput.addEventListener("keyup", function () {
+        const query = this.value.toLowerCase().trim();
+
+        // Ambil semua card project yang udah ada di container
+        const cards = document.querySelectorAll("#all-cards-container .card");
+
+        cards.forEach(card => {
+            const text = card.innerText.toLowerCase();
+            if (text.includes(query)) {
+                card.style.display = "";  // tampil
+            } else {
+                card.style.display = "none"; // sembunyi
+            }
         });
-    }
+    });
+}
+
+// init pas ready
+$(document).ready(function () {
+    initProjectFilter();
+});
 
     // New implementation for co-author input with checkbox multi-select and search
     function setupCoAuthorInput() {

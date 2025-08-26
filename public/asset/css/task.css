@@ -797,7 +797,6 @@ p {
     position: sticky;
     top: 0px;
     z-index: 10;
-    background: #f0f1f8;
     font-size: 12px;
     font-weight: normal;
 }
