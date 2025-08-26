@@ -34,9 +34,51 @@
                 data-bs-target="#filterModal">
                 <span class="material-symbols-outlined icon">filter_list</span><span class="icon-text">Filter</span>
             </button>
+            <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="filterModalLabel">Filter Employee Shifts</h5>
+                            <button type="button" class="btn-close mt-1" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="filterForm">
+                                <div class="mb-3">
+                                    <label for="filterDepartment" class="form-label">Filter by Department</label>
+                                    <select id="filterDepartment" class="form-select">
+                                        <option value="">Select Department</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="filterDivision" class="form-label">Filter by Division</label>
+                                    <select id="filterDivision" class="form-select" disabled>
+                                        <option value="">Select Division</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="filterShift" class="form-label">Filter by Shift</label>
+                                    <select id="filterShift" class="form-select">
+                                        <option value="">Select Shift</option>
+                                        <option value="Morning">Morning</option>
+                                        <option value="Afternoon">Afternoon</option>
+                                        <option value="Night">Night</option>
+                                    </select>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-submit-black" id="applyFilterBtn">Filter</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <button class="btn btn-icon-toggle config-shift-btn border-dddd" type="button" data-bs-toggle="modal"
-                data-bs-target="#filterModal">
-                <span class="material-symbols-outlined icon">settings</span><span class="icon-text">Config</span>
+                data-bs-target="#shiftConfigModal">
+                <span class="material-symbols-outlined icon" type="button">settings</span><span
+                    class="icon-text">Config</span>
             </button>
         </div>
     </div>
@@ -70,49 +112,137 @@
             </div>
         </div>
 
-        {{-- Edit Employee Modal --}}
-        <div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel"
+        {{-- Add Shift Modal --}}
+        <div class="modal fade" id="addShiftModal" tabindex="-1" aria-labelledby="addShiftModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal-content-custom">
                     <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="editEmployeeModalLabel">Edit Employee</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <h5 class="modal-title modal-title-custom" id="addShiftModalLabel">Add Shift</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
                     <div class="modal-body modal-body-custom">
-                        <form id="editShiftForm">
-                            <input type="hidden" id="editShiftId" name="shift_id">
-                            <input type="hidden" id="editEmployeeId" name="employee_id">
+                        <form id="addShiftForm">
+                            <input type="hidden" id="addShiftId" name="shift_id">
+                            <input type="hidden" id="addEmployeeId" name="employee_id">
+                            <input type="hidden" id="addDateShift" name="date_shift">
 
                             <div class="mb-3">
-                                <label for="editEmployeeName" class="form-label label-custom">Employee Name</label>
-                                <input type="text" class="form-control input-text" id="editEmployeeName" readonly>
+                                <label for="addTitle" class="form-label label-custom">Title</label>
+                                <input type="text" class="form-control input-text" id="addTitle" name="title">
                             </div>
 
                             <div class="mb-3">
-                                <label for="editDateShiftDisplay" class="form-label label-custom">Date Shift</label>
-                                <input type="text" id="editDateShiftDisplay" class="form-control input-text"
-                                    placeholder="Click calendar to select dates" readonly />
-                                <input type="hidden" id="editDateShift" name="date_shift" />
-                                <small class="text-muted">Click calendar icon to select multiple dates</small>
+                                <label for="addDescription" class="form-label label-custom">Description</label>
+                                <input type="text" class="form-control input-text" id="addDescription"
+                                    name="description">
                             </div>
 
                             <div class="mb-3">
-                                <label for="editTimeStart" class="form-label label-custom">Start Time</label>
-                                <input type="time" class="form-control input-text" id="editTimeStart"
+                                <label for="addTimeStart" class="form-label label-custom">Time In</label>
+                                <input type="time" class="form-control input-text" id="addTimeStart"
                                     name="time_start" required>
                             </div>
 
                             <div class="mb-3">
-                                <label for="editTimeEnd" class="form-label label-custom">End Time</label>
-                                <input type="time" class="form-control input-text" id="editTimeEnd"
+                                <label for="addTimeEnd" class="form-label label-custom">Time Out</label>
+                                <input type="time" class="form-control input-text" id="addTimeEnd"
                                     name="time_end" required>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-submit-black" id="saveShiftBtn">Save Changes</button>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-submit-black" id="saveShiftBtn">Submit</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Shift Config Modal --}}
+        <div class="modal fade" id="shiftConfigModal" tabindex="-1" aria-labelledby="shiftConfigModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-md modal-dialog-scrollable">
+                <div class="modal-content">
+
+                    <div class="modal-header d-flex justify-content-between align-items-center">
+                        <h5 class="modal-title shift-config-title" id="shiftConfigModalLabel">Shift Config</h5>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-dark btn-sm add-shift-button"
+                                data-bs-toggle="modal" data-bs-target="#addShiftModal">
+                                Add
+                            </button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Time In & Out</th>
+                                        <th class="text-center" style="width: 100px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td data-field="title">Shift title</td>
+                                        <td data-field="time">09:00 - 18:00</td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm edit-btn"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-sm save-btn d-none"><i
+                                                    class="bi bi-check"></i></button>
+                                            <button class="btn btn-sm"><i class="bi bi-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Edit Employee Modal --}}
+        <div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editEmployeeModalLabel">Edit Employee</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <form id="editEmployeeForm">
+                            <input type="hidden" id="editShiftId" name="shift_id">
+                            <input type="hidden" id="editEmployeeId" name="employee_id">
+
+                            <div class="mb-3 text-center">
+                                <img id="editEmployeePicture" src="" alt="Employee Picture"
+                                    class="rounded-circle border"
+                                    style="width:100px; height:100px; object-fit:cover;">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="editEmployeeName" class="form-label">Employee Name</label>
+                                <input type="text" class="form-control" id="editEmployeeName"   >
+                            </div>
+
+                        </form>
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-dark" id="saveEmployeeBtn">Update</button>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -135,7 +265,7 @@
                         <input type="hidden" id="editTimeEnd" name="time_out">
 
                         <div class="modal-header modal-header-custom">
-                            <h5 class="modal-title modal-title-custom" id="editShiftModalLabel">Edit Shift</h5>
+                            <h5 class="modal-title modal-title-custom" id="addProjectModalLabel">Edit Shift</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
@@ -143,7 +273,7 @@
                         <div class="modal-body modal-body-custom text-center">
                             <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
                                 height="70">
-                            <h5 id="editEmployeeNameDisplay"></h5>
+                            <h5 id="editShiftEmployeeName"></h5>
                             <small id="editEmployeeGrade" class="text-muted">employee grade</small>
 
                             <div class="mt-3 text-start">
@@ -151,7 +281,7 @@
 
                                 <hr class="border-3 rounded">
 
-                                <p>Date : <span id="editDateShiftDisplay"></span></p>
+                                <p>Date : <span id="editDateShiftDisplayText"></span></p>
                                 <p>Time In : <span id="editTimeStartDisplay"></span></p>
                                 <p>Time Out : <span id="editTimeEndDisplay"></span></p>
                             </div>
