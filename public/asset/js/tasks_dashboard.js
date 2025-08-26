@@ -103,8 +103,29 @@ function getTaskToday() {
                     `;
                 }).join('');
 
-                const commentsCount = t.feedback_comments_count || t.comments_count || 0;
-                const filesCount = t.reference_files_count || t.attachments_count || 0;
+                // Derive counts with robust fallbacks
+                const commentsCount = (
+                    t.feedback_comments_count ||
+                    t.comments_count ||
+                    t.feedbacks_count ||
+                    (Array.isArray(t.feedbacks) ? t.feedbacks.length : 0) ||
+                    0
+                );
+
+                let filesCount = t.reference_files_count || t.attachments_count || 0;
+                if (!filesCount) {
+                    let rf = t.reference_files;
+                    if (typeof rf === 'string') {
+                        try {
+                            const parsed = JSON.parse(rf);
+                            if (Array.isArray(parsed)) rf = parsed;
+                        } catch (e) {
+                            // comma-separated fallback
+                            rf = rf.includes('[') ? [] : rf.split(',').map(s => s.trim()).filter(Boolean);
+                        }
+                    }
+                    if (Array.isArray(rf)) filesCount = rf.length;
+                }
 
                 const topTitle = `
                     <div class="d-flex align-items-center mb-1">
@@ -127,9 +148,9 @@ function getTaskToday() {
                         <div class="d-flex align-items-center">${avatarHtml}</div>
                         <div class="d-flex align-items-center">
                             <span class="material-symbols-outlined task-feedback-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">mode_comment</span>
-                            ${commentsCount>0?`<span class="ms-1 small" style="color:#555;">${commentsCount}</span>`:''}
+                            ${commentsCount>0?`<span class="ms-1 small feedback-comments-count" data-task-id="${t.id}" style="color:#555;">${commentsCount}</span>`:''}
                             <span class="material-symbols-outlined ms-3 task-attach-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">attach_file</span>
-                            ${filesCount>0?`<span class="ms-1 small" style="color:#555;">${filesCount}</span>`:''}
+                            ${filesCount>0?`<span class="ms-1 small reference-files-count" data-task-id="${t.id}" style="color:#555;">${filesCount}</span>`:''}
                         </div>
                     </div>`;
 
@@ -444,7 +465,7 @@ function showDashboardAddFeedbackForm(taskId) {
             body: formData
         })
         .then(r => r.json())
-        .then(res => {
+    .then(res => {
             // Show global floating alert (same UX as check-in)
             const msg = res.message || 'Feedback submitted successfully!';
             if (typeof showFloatingAlert === 'function') {
@@ -473,6 +494,27 @@ function showDashboardAddFeedbackForm(taskId) {
                     freshBtn.addEventListener('click', () => showDashboardAddFeedbackForm(taskId));
                 }
                 loadDashboardTaskFeedbackData(taskId);
+
+                // Also update the feedback count on the dashboard card immediately
+                try {
+                    const selector = `.feedback-comments-count[data-task-id="${taskId}"]`;
+                    let countEl = document.querySelector(selector);
+                    if (countEl) {
+                        const cur = parseInt(countEl.textContent || '0', 10) || 0;
+                        countEl.textContent = cur + 1;
+                    } else {
+                        // If not present (was zero), insert a new counter span after the icon
+                        const iconEl = document.querySelector(`.task-feedback-trigger[data-task-id="${taskId}"]`);
+                        if (iconEl && iconEl.parentElement) {
+                            const span = document.createElement('span');
+                            span.className = 'ms-1 small feedback-comments-count';
+                            span.style.color = '#555';
+                            span.setAttribute('data-task-id', String(taskId));
+                            span.textContent = '1';
+                            iconEl.insertAdjacentElement('afterend', span);
+                        }
+                    }
+                } catch(_){}
             } catch (e) { /* noop */ }
     })
     .catch(() => {

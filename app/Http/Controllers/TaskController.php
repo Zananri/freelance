@@ -177,6 +177,7 @@ class TaskController extends Controller
             // Base: tasks where current employee is PIC or accepted EXECUTOR
             $base = Task::query()
                 ->with(['project', 'assignments.employee.user'])
+                ->withCount(['feedback_comments'])
                 ->whereHas('assignments', function ($q) use ($employeeId) {
                     $q->where('employee_id', $employeeId)
                       ->where(function ($roleQ) {
@@ -230,7 +231,7 @@ class TaskController extends Controller
             })->values();
 
             // Map response minimal fields needed for dashboard
-            $data = $tasks->map(function ($task) {
+        $data = $tasks->map(function ($task) {
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $executors = $task->assignments->where('role', 'EXECUTOR');
 
@@ -242,6 +243,9 @@ class TaskController extends Controller
                     'status' => $task->status,
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
+            // counts for dashboard badges
+            'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
+            'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                     'project_image' => ($task->project && $task->project->image)
                         ? asset('file/project/' . $task->project->image)
                         : asset('asset/img/profile_picture/sample_project.png'),
