@@ -188,77 +188,27 @@ class TaskController extends Controller
                       });
                 });
 
-            // Build the Today filters
-            $base->where(function ($q) use ($today, $yesterday, $employeeId) {
-                // a) Assignment created today for this employee
-                $q->whereHas('assignments', function ($aq) use ($today, $employeeId) {
-                    $aq->where('employee_id', $employeeId)
-                       ->whereDate('created_at', $today);
-                })
-                // b) New Request created today
-                ->orWhere(function ($nq) use ($today) {
-                    $nq->whereIn('status', ['new_request', 'new request'])
-                       ->whereDate('created_at', $today);
-                })
-                // c) In Progress started today for this employee (accepted today)
-                ->orWhere(function ($pq) use ($today, $employeeId) {
-                    $pq->whereIn('status', ['in_progress', 'in progress'])
-                       ->whereHas('assignments', function ($aq) use ($today, $employeeId) {
-                           $aq->where('employee_id', $employeeId)
-                              ->where('role', 'EXECUTOR')
-                              ->where('is_receive', true)
-                              ->whereDate('date_receive', $today);
-                       });
-                })
-                // d) In Progress from yesterday and not completed yet (carryover)
-                ->orWhere(function ($cq) use ($yesterday, $employeeId, $today) {
-                    $cq->whereIn('status', ['in_progress', 'in progress'])
-                       ->whereNull('complete_date')
-                       // started yesterday (date_receive yesterday) for this employee OR start_date <= yesterday
-                       ->where(function ($sq) use ($yesterday, $employeeId) {
-                           $sq->whereHas('assignments', function ($aq) use ($yesterday, $employeeId) {
-                               $aq->where('employee_id', $employeeId)
-                                  ->where('is_receive', true)
-                                  ->whereDate('date_receive', $yesterday);
-                           })
-                           ->orWhereDate('start_date', '<=', $yesterday);
-                       })
-                       // still relevant today (due today or later)
-                       ->whereDate('due_date', '>=', $today);
-                })
-                // e) Completed today only
-                ->orWhere(function ($cq) use ($today) {
-                    $cq->where('status', 'completed')
-                       ->where(function ($w) use ($today) {
-                           $w->whereDate('complete_date', $today)
-                             ->orWhere(function ($w2) use ($today) {
-                                 $w2->whereNull('complete_date')
-                                    ->whereDate('updated_at', $today);
-                             });
-                       });
-                })
-                // f) Rejected today (status changed to rejected today)
-                ->orWhere(function ($rq) use ($today) {
-                    $rq->where('status', 'rejected')
-                       ->whereDate('updated_at', $today);
-                });
-                        })
-                        // Global guard: exclude completed tasks unless they were completed today
-            ->where(function ($g) use ($today) {
-                $g->whereNotIn('status', ['completed', 'Completed'])
-                  ->orWhere(function ($ok) use ($today) {
-                      $ok->whereDate('complete_date', $today)
-                         ->orWhere(function ($ok2) use ($today) {
-                             $ok2->whereNull('complete_date')
-                                 ->whereDate('updated_at', $today);
-                         })
-                         // Allow rejected updated today as Today
-                         ->orWhere(function ($rej) use ($today) {
-                             $rej->where('status', 'rejected')
-                                 ->whereDate('updated_at', $today);
+            // Build the Today filters (broadened):
+            // - Always include non-completed ongoing tasks (new_request, in_progress) for this user
+            // - Include completed only if completed today (or updated today w/o complete_date)
+            // - Include rejected only if status changed to rejected today
+            $base->where(function ($q) use ($today) {
+                $q->whereIn('status', ['new_request', 'new request', 'in_progress', 'in progress'])
+                  ->orWhere(function ($cq) use ($today) {
+                      $cq->where('status', 'completed')
+                         ->where(function ($w) use ($today) {
+                             $w->whereDate('complete_date', $today)
+                               ->orWhere(function ($w2) use ($today) {
+                                   $w2->whereNull('complete_date')
+                                      ->whereDate('updated_at', $today);
+                               });
                          });
+                  })
+                  ->orWhere(function ($rq) use ($today) {
+                      $rq->where('status', 'rejected')
+                         ->whereDate('updated_at', $today);
                   });
-                        });
+            });
 
             $tasks = $base->orderByDesc('created_at')->get();
 
