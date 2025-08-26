@@ -156,14 +156,6 @@ class TaskController extends Controller
 
     /**
      * Dashboard: Get "Today" tasks for current logged-in employee.
-     * Rules:
-     * - Only tasks where the employee is PIC or accepted EXECUTOR (is_receive = true).
-     * - Include tasks:
-     *   a) created today for that employee (assignment created today) OR
-     *   b) status new_request and created today OR
-     *   c) status in_progress that started today (date_receive today for this employee) OR
-     *   d) status in_progress from yesterday that are not completed yet (due_date >= today and complete_date null)
-     *   e) status completed today (complete_date = today).
      */
     public function getDashboardTasksToday(Request $request)
     {
