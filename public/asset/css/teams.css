@@ -56,7 +56,7 @@
 
 .btn-default {
     background-color: #e3e4ee;
-    color: #313131;
+    color: #313238;
     font-weight: 300;
 }
 
@@ -64,8 +64,8 @@
 .btn-default:hover,
 .btn-default:active,
 .btn-default:focus{
-    background-color: #f1f2f8;
-    color: #242424;
+    background-color: #dcdde8 !important;
+    color: #1c1d21;
 }
 
 
@@ -170,9 +170,15 @@
 }
 
 .modal .btn-close{
-    width: 5px;
-    height: 5px;
+    width: 7px;
+    height: 7px;
+    opacity: 0.5;
 }
+
+.modal .btn-close:hover{
+    opacity: 1;
+}
+
 
 .personal-info .label {
     font-size: 12px;

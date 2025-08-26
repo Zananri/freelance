@@ -87,9 +87,9 @@
                     <div class="modal-body position-relative">
 
                         <div class="text-center mb-3">
-                            <button type="button" class="btn-close btn-sm float-end mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close btn-sm float-end mt-2 me-1" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="mb-4 p-4">
+                        <div class="mb-4 p-4 pt-0">
 
                             <div class="box-user-photo text-center mb-3">
                                 <img class="employee-photo rounded-circle" src="" alt="" width="70" height="70" class="rounded-circle">
@@ -154,7 +154,7 @@
                         <div class="p-3">
                             <div class="row">
                                 <div class="col-12">
-                                    <div class="btn btn-default w-100 p-2" data-bs-dismiss="modal">Close</div>
+                                    <div class="btn border-0 btn-default w-100 p-2" data-bs-dismiss="modal">Close</div>
                                 </div>
                             </div>
                         </div>

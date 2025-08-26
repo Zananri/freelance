@@ -194,10 +194,9 @@
     height: 5px;
 }
  
-
 .btn-default {
     background-color: #e3e4ee;
-    color: #313131;
+    color: #313238;
     font-weight: 300;
 }
 
@@ -205,9 +204,11 @@
 .btn-default:hover,
 .btn-default:active,
 .btn-default:focus{
-    background-color: #f1f2f8;
-    color: #242424;
+    background-color: #dcdde8 !important;
+    color: #1c1d21;
 }
+
+
 
 .btn-submit{
     background-color: #313131;
@@ -218,8 +219,8 @@
 .btn-submit:hover,
 .btn-submit:active,
 .btn-submit:focus{
-    background-color: #242424;
-    color: #f1f2f8;
+    background-color: #242424 !important;
+    color: #f1f2f8 !important;
 }
 
 .modal .form-select{

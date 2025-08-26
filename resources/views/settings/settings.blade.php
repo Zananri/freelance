@@ -161,10 +161,10 @@
                         <div class="p-3">
                             <div class="row">
                                 <div class="col-6">
-                                    <div class="btn btn-default w-100 p-2" data-bs-dismiss="modal">Close</div>
+                                    <div class="btn btn-default border-0 w-100 p-2" data-bs-dismiss="modal">Close</div>
                                 </div>
                                 <div class="col-6">
-                                    <button type="submit" class="btn btn-submit w-100 p-2">Save</button>
+                                    <button type="submit" class="btn border-0 btn-submit w-100 p-2">Save</button>
                                 </div>
                             </div>
                         </div>
