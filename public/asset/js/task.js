@@ -3281,6 +3281,7 @@ $(document).on("click", "#openTaskFilterBtnMobile", function () {
         return { name, start, due, color };
     }).filter(x => x.start || x.due);
 
+    let rendered = 0;
     monthRows.forEach((task) => {
         const tr = document.createElement("tr");
 
@@ -3328,7 +3329,23 @@ $(document).on("click", "#openTaskFilterBtnMobile", function () {
         }
 
         rowsContainer.appendChild(tr);
+        rendered++;
     });
+
+    // Ensure consistent modal/table height by padding with empty rows
+    const MIN_ROWS = 6; // baseline number of rows to maintain look and feel
+    if (rendered < MIN_ROWS) {
+        for (let r = rendered; r < MIN_ROWS; r++) {
+            const tr = document.createElement("tr");
+            for (let d = 1; d <= daysInMonth; d++) {
+                const td = document.createElement("td");
+                td.classList.add("timeline-cell");
+                if (new Date(year, month, d).getDay() === 0) td.classList.add("sunday");
+                tr.appendChild(td);
+            }
+            rowsContainer.appendChild(tr);
+        }
+    }
 
     document.getElementById("timelineModalTitle").textContent = `Timeline ${months[month]} ${year}`;
     }
