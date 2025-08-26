@@ -244,7 +244,6 @@ function createShiftCell(employee, shift, dateKey) {
     return td;
 }
 
-
 function setEditEmployeeModal(btn) {
     const employeeModalEl = document.getElementById("editEmployeeModal");
     const employeeModal = new bootstrap.Modal(employeeModalEl);
@@ -264,18 +263,20 @@ function setEditShiftModal(btn) {
     const shiftModalEl = document.getElementById("editShiftModal");
     const shiftModal = new bootstrap.Modal(shiftModalEl);
 
-    document.getElementById("editShiftId").value = btn.dataset.shiftId;
-    document.getElementById("editEmployeeId").value = btn.dataset.employeeId;
-    document.getElementById("editShiftEmployeeName").textContent =
+    shiftModalEl.querySelector("#editShiftId").value = btn.dataset.shiftId;
+    shiftModalEl.querySelector("#editEmployeeId").value = btn.dataset.employeeId;
+    shiftModalEl.querySelector("#editShiftEmployeeName").textContent =
         btn.dataset.employeeName;
+    shiftModalEl.querySelector("#editEmployeePicture").src =
+        btn.dataset.employeePicture;
 
     // FIX: set ke input juga biar muncul
-    document.getElementById("editTimeStart").value = btn.dataset.start;
-    document.getElementById("editTimeEnd").value = btn.dataset.end;
+    shiftModalEl.querySelector("#editTimeStart").value = btn.dataset.start;
+    shiftModalEl.querySelector("#editTimeEnd").value = btn.dataset.end;
 
-    document.getElementById("editTimeStartDisplay").textContent =
+    shiftModalEl.querySelector("#editTimeStartDisplay").textContent =
         btn.dataset.start || "--";
-    document.getElementById("editTimeEndDisplay").textContent =
+    shiftModalEl.querySelector("#editTimeEndDisplay").textContent =
         btn.dataset.end || "--";
 
     let rawDate = btn.dataset.date;
@@ -287,12 +288,12 @@ function setEditShiftModal(btn) {
             day: "numeric",
         });
 
-        document.getElementById("editDateShiftDisplayText").textContent =
+        shiftModalEl.querySelector("#editDateShiftDisplayText").textContent =
             formattedDate;
-        document.getElementById("editDateShift").value = rawDate;
+        shiftModalEl.querySelector("#editDateShift").value = rawDate;
     }
 
-    document.getElementById("editEmployeePicture").src =
+    shiftModalEl.querySelector("#editEmployeePicture").src =
         btn.dataset.employeePicture;
 
     shiftModal.show();

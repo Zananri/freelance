@@ -227,8 +227,7 @@
 
                             <div class="mb-3 text-center">
                                 <img id="editEmployeePicture" src="" alt="Employee Picture"
-                                    class="rounded-circle border"
-                                    style="width:100px; height:100px; object-fit:cover;">
+                                    class="rounded-circle border" width="70" height="70">
                             </div>
 
                             <div class="mb-3">
