@@ -30,12 +30,9 @@ document.addEventListener('DOMContentLoaded', function () {
 // Fungsi untuk validasi waktu check-in berdasarkan shift
 async function validateCheckInTime(employeeId, date) {
     const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
-    
+    // If no shift details available, allow check-in without blocking
     if (!shiftDetails) {
-        return {
-            valid: false,
-            message: "No shift assigned for this date"
-        };
+        return { valid: true, message: "", shiftDetails: null };
     }
 
     const currentTime = new Date();
@@ -47,13 +44,18 @@ async function validateCheckInTime(employeeId, date) {
     
     // Convert time strings to minutes for comparison
     const currentMinutes = currentHour * 60 + currentMinute;
-    const minMinutes = parseInt(minCheckInTime.split(':')[0]) * 60 + parseInt(minCheckInTime.split(':')[1]);
-    
-    if (currentMinutes < minMinutes) {
-        return {
-            valid: false,
-            message: `Check-in not allowed. You can only check-in 1 hour before your shift starts at ${shiftDetails.time_start}`
-        };
+    // Enforce minimum only if we have minCheckInTime
+    if (minCheckInTime) {
+        const minParts = minCheckInTime.split(':');
+        if (minParts.length >= 2) {
+            const minMinutes = parseInt(minParts[0]) * 60 + parseInt(minParts[1]);
+            if (currentMinutes < minMinutes) {
+                return {
+                    valid: false,
+                    message: `Check-in not allowed. You can only check-in 1 hour before your shift starts at ${shiftDetails.time_start}`
+                };
+            }
+        }
     }
     
     // Tidak ada batasan maksimum untuk check-in setelah shift dimulai
@@ -68,12 +70,9 @@ async function validateCheckInTime(employeeId, date) {
 // Fungsi untuk validasi waktu check-out berdasarkan shift
 async function validateCheckOutTime(employeeId, date) {
     const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
-    
+    // If no shift details available, allow checkout without blocking
     if (!shiftDetails) {
-        return {
-            valid: false,
-            message: "No shift assigned for this date"
-        };
+        return { valid: true, message: "", shiftDetails: null };
     }
 
     const currentTime = new Date();
@@ -84,13 +83,18 @@ async function validateCheckOutTime(employeeId, date) {
     
     // Convert time strings to minutes for comparison
     const currentMinutes = currentHour * 60 + currentMinute;
-    const minMinutes = parseInt(minCheckOutTime.split(':')[0]) * 60 + parseInt(minCheckOutTime.split(':')[1]);
-    
-    if (currentMinutes < minMinutes) {
-        return {
-            valid: false,
-            message: `Check-out not allowed. You can only check-out after ${minCheckOutTime}`
-        };
+    // Enforce minimum only if we have minCheckOutTime
+    if (minCheckOutTime) {
+        const minParts = minCheckOutTime.split(':');
+        if (minParts.length >= 2) {
+            const minMinutes = parseInt(minParts[0]) * 60 + parseInt(minParts[1]);
+            if (currentMinutes < minMinutes) {
+                return {
+                    valid: false,
+                    message: `Check-out not allowed. You can only check-out after ${minCheckOutTime}`
+                };
+            }
+        }
     }
     
     return {
@@ -423,7 +427,7 @@ function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
         .then(response => response.json())
         .then(data => {
             console.log('Shift data response:', data);
-            if (data.status === 'success' && data.data && data.data.length > 0) {
+        if (data.status === 'success' && data.data && data.data.length > 0) {
                 const attendanceData = data.data[0];
                 if (attendanceData.shift_start && attendanceData.shift_end) {
                     const shiftText = `${attendanceData.shift_start} - ${attendanceData.shift_end}`;
@@ -431,9 +435,9 @@ function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
                     shiftCache[cacheKey] = shiftText;
                     console.log('Shift display updated:', shiftText);
                 } else {
-                    const shiftText = 'No shift assigned';
-                    shiftDisplay.textContent = shiftText;
-                    shiftCache[cacheKey] = shiftText;
+            const shiftText = '-';
+            shiftDisplay.textContent = shiftText;
+            shiftCache[cacheKey] = shiftText;
                     console.log('No shift data in attendance, trying shift API...');
                 }
             } else {
@@ -467,15 +471,17 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
         .then(response => response.json())
         .then(data => {
             console.log('Direct shift data response:', data);
-            if (data.status === 'success' && data.data && data.data.shift) {
-                const shift = data.data.shift;
-                if (shift.time_start && shift.time_end) {
-                    const startTime = new Date(`2000-01-01 ${shift.time_start}`).toLocaleTimeString('en-US', {
+            if (data.status === 'success' && data.data) {
+                // Use top-level time_start/time_end which may come from base shift
+                const ts = data.data.time_start;
+                const te = data.data.time_end;
+                if (ts && te) {
+                    const startTime = new Date(`2000-01-01 ${ts}`).toLocaleTimeString('en-US', {
                         hour12: false,
                         hour: '2-digit',
                         minute: '2-digit'
                     });
-                    const endTime = new Date(`2000-01-01 ${shift.time_end}`).toLocaleTimeString('en-US', {
+                    const endTime = new Date(`2000-01-01 ${te}`).toLocaleTimeString('en-US', {
                         hour12: false,
                         hour: '2-digit',
                         minute: '2-digit'
@@ -485,13 +491,13 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
                     shiftCache[cacheKey] = shiftText;
                     console.log('Direct shift display updated:', shiftText);
                 } else {
-                    const shiftText = 'No shift assigned';
+                    const shiftText = '-';
                     shiftDisplay.textContent = shiftText;
                     shiftCache[cacheKey] = shiftText;
-                    console.log('No shift times in direct API response');
+                    console.log('No shift times available in API response (per-date or base)');
                 }
             } else {
-                const shiftText = 'No shift assigned';
+                const shiftText = '-';
                 shiftDisplay.textContent = shiftText;
                 shiftCache[cacheKey] = shiftText;
                 console.log('No shift data in direct API response');

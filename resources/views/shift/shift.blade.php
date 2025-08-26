@@ -353,6 +353,6 @@
         </div>
 
         <x-slot name="script_slot">
-            <script src="{{ asset('asset/js/shift.js') }}"></script>
+            <script src="{{ asset('asset/js/shift.js?v=' . time()) }}"></script>
         </x-slot>
 </x-office-layout>

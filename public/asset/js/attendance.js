@@ -275,9 +275,8 @@ function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
                     shiftDisplay.textContent = shiftText;
                     shiftCache[cacheKey] = shiftText;
                 } else {
-                    const shiftText = 'No shift assigned';
-                    shiftDisplay.textContent = shiftText;
-                    shiftCache[cacheKey] = shiftText;
+                    // No per-date shift from today API; try fallback API
+                    fetchEmployeeShift(employeeId, date, modalType);
                 }
             } else {
                 // Jika tidak ada data attendance hari ini, coba ambil dari API shift
@@ -302,9 +301,11 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.status === 'success' && data.data && data.data.shift) {
-                const shift = data.data.shift;
-                if (shift.time_start && shift.time_end) {
+            if (data.status === 'success' && data.data) {
+                const shift = data.data.shift; // may be null when using base
+                const startVal = data.data.time_start || (shift && shift.time_start) || null;
+                const endVal = data.data.time_end || (shift && shift.time_end) || null;
+                if (startVal && endVal) {
                     const startTime = new Date(`2000-01-01 ${shift.time_start}`).toLocaleTimeString('en-US', {
                         hour12: false,
                         hour: '2-digit',
@@ -319,20 +320,17 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
                     shiftDisplay.textContent = shiftText;
                     shiftCache[cacheKey] = shiftText;
                 } else {
-                    const shiftText = 'No shift assigned';
-                    shiftDisplay.textContent = shiftText;
-                    shiftCache[cacheKey] = shiftText;
+                    shiftDisplay.textContent = '-';
+                    shiftCache[cacheKey] = '-';
                 }
             } else {
-                const shiftText = 'No shift assigned';
-                shiftDisplay.textContent = shiftText;
-                shiftCache[cacheKey] = shiftText;
+                shiftDisplay.textContent = '-';
+                shiftCache[cacheKey] = '-';
             }
         })
         .catch(error => {
             console.error('Error fetching employee shift:', error);
-            const shiftText = 'Error loading shift';
-            shiftDisplay.textContent = shiftText;
+            shiftDisplay.textContent = '-';
         });
 }
 
@@ -460,7 +458,7 @@ function openCheckInModal() {
     // Update waktu berjalan
     updateModalTime();
 
-    // Update shift display sekali saja
+    // Update shift display sekali saja (fallback to base shift or '-')
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     const dateString = new Date().toISOString().split("T")[0];
     if (employeeId) {
