@@ -1821,14 +1821,15 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         });
     }
 
-    // Function to submit task feedback form
+    // Function to submit task feedback form (Task page legacy path) – use floating alert and keep modal open
     function submitTaskFeedbackForm(form, taskId) {
-        const submitBtn = form.querySelector("button[type='submit']");
-        const originalText = submitBtn.textContent;
+        const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
 
-        submitBtn.innerHTML =
-            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
-        submitBtn.disabled = true;
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            submitBtn.disabled = true;
+        }
 
         const formData = new FormData(form);
         formData.append("task_id", taskId);
@@ -1845,45 +1846,74 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     .getAttribute("content"),
             },
             success: function (response) {
-                // Show success message
-                const alertDiv = document.createElement("div");
-                alertDiv.className =
-                    "alert alert-success alert-dismissible fade show";
-                alertDiv.innerHTML = `
-                    ${response.message || "Feedback submitted successfully!"}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
+                // Floating success alert
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || "Feedback submitted successfully!", "success");
+                }
 
-                const modalBody = document.getElementById("taskFeedbackList");
-                modalBody.prepend(alertDiv);
-
-                // Reset form and reload feedback
-                setTimeout(() => {
-                    feedbackModal.hide();
-                    loadTaskFeedbackData(taskId);
-                }, 2000);
-            },
-            error: function (xhr, status, error) {
-                const feedbackModalEl =
-                    document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(
-                    ".feedback-modal-body"
-                );
-                const alertDiv = document.createElement("div");
-                alertDiv.className =
-                    "alert alert-danger alert-dismissible fade show";
-                alertDiv.innerHTML = `
-                    ${
-                        error.message ||
-                        "Failed to submit feedback. Please try again."
+                // Switch back to list view inside the modal (keep modal open)
+                try {
+                    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                    const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
+                    if (titleEl) titleEl.textContent = 'Task Feedback';
+                    const addBtnRef = document.getElementById('addFeedbackButton');
+                    if (addBtnRef) {
+                        addBtnRef.textContent = 'Add Feedback';
+                        const freshBtn = addBtnRef.cloneNode(true);
+                        addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                        freshBtn.disabled = false;
+                        freshBtn.removeAttribute('disabled');
+                        freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                modalBody.prepend(alertDiv);
+                    loadTaskFeedbackData(taskId);
+                } catch (e) { /* noop */ }
+
+                // Update feedback count dynamically on the task card
+                $.ajax({
+                    url: appUrl + "/task-feedbacks/count/" + taskId,
+                    type: "GET",
+                    dataType: "json",
+                    success: function (countResponse) {
+                        const count = countResponse.count || 0;
+                        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                        if (taskCard) {
+                            let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
+                            if (count > 0) {
+                                if (feedbackCountSpan) {
+                                    feedbackCountSpan.textContent = count;
+                                } else {
+                                    feedbackCountSpan = document.createElement("span");
+                                    feedbackCountSpan.className = "feedback-comments-count ms-1";
+                                    feedbackCountSpan.style.color = "#555";
+                                    feedbackCountSpan.textContent = count;
+                                    const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
+                                    if (modeCommentIcon && modeCommentIcon.parentNode) {
+                                        modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
+                                    }
+                                }
+                            } else if (feedbackCountSpan) {
+                                feedbackCountSpan.remove();
+                            }
+                        }
+                    }
+                });
+            },
+            error: function (xhr) {
+                let errorMessage = "Failed to submit feedback. Please try again.";
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, "danger");
+                } else {
+                    alert(errorMessage);
+                }
             },
             complete: function () {
                 if (submitBtn) {
-                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.innerHTML = originalBtnHtml;
                     submitBtn.disabled = false;
                 }
             },
@@ -2018,16 +2048,15 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         });
     }
 
-    // Function to submit feedback form via AJAX
+    // Function to submit feedback form via AJAX (unified spinner + floating alert)
     function submitFeedbackForm(form, taskId) {
         const submitBtn =
             form.querySelector("button[type='submit']") ||
             document.getElementById("addFeedbackButton");
-        const originalBtnText = submitBtn ? submitBtn.innerHTML : "";
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
 
         if (submitBtn) {
-            submitBtn.innerHTML =
-                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             submitBtn.disabled = true;
         }
 
@@ -2045,25 +2074,31 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     .getAttribute("content"),
             },
             success: function (response) {
-                // Mark feedback as submitted
+                // mark to reload after modal closes
                 feedbackSubmitted = true;
+                // floating success alert
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || "Feedback submitted successfully!", "success");
+                }
+                // Switch back to list view inside the modal (keep modal open)
+                try {
+                    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                    const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
+                    if (titleEl) titleEl.textContent = 'Task Feedback';
+                    const addBtnRef = document.getElementById('addFeedbackButton');
+                    if (addBtnRef) {
+                        addBtnRef.textContent = 'Add Feedback';
+                        const freshBtn = addBtnRef.cloneNode(true);
+                        addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                        // ensure the new button is enabled and clickable
+                        freshBtn.disabled = false;
+                        freshBtn.removeAttribute('disabled');
+                        freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                    }
+                    loadTaskFeedbackData(taskId);
+                } catch (e) { /* noop */ }
 
-                // Show success alert
-                const feedbackModalEl =
-                    document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(
-                    ".feedback-modal-body"
-                );
-                const alertDiv = document.createElement("div");
-                alertDiv.className =
-                    "alert alert-success alert-dismissible fade show";
-                alertDiv.innerHTML = `
-                    ${response.message || "Feedback submitted successfully!"}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                modalBody.prepend(alertDiv);
-
-                // Update feedback count dynamically on task card
+                // Also try to update feedback count in-place (best-effort)
                 $.ajax({
                     url: appUrl + "/task-feedbacks/count/" + taskId,
                     type: "GET",
@@ -2071,84 +2106,43 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     success: function (countResponse) {
                         const count = countResponse.count || 0;
                         const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-                        if (taskCard) {
-                            let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
-                            if (count > 0) {
-                                if (feedbackCountSpan) {
-                                    feedbackCountSpan.textContent = count;
-                                } else {
-                                    // Create span if not exists
-                                    feedbackCountSpan = document.createElement("span");
-                                    feedbackCountSpan.className = "feedback-comments-count ms-1";
-                                    feedbackCountSpan.style.color = "#555";
-                                    feedbackCountSpan.textContent = count;
-                                    const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
-                                    if (modeCommentIcon && modeCommentIcon.parentNode) {
-                                        modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
-                                    }
-                                }
+                        if (!taskCard) return;
+                        let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
+                        if (count > 0) {
+                            if (feedbackCountSpan) {
+                                feedbackCountSpan.textContent = count;
                             } else {
-                                // Remove span if count is zero
-                                if (feedbackCountSpan) {
-                                    feedbackCountSpan.remove();
+                                feedbackCountSpan = document.createElement("span");
+                                feedbackCountSpan.className = "feedback-comments-count ms-1";
+                                feedbackCountSpan.style.color = "#555";
+                                feedbackCountSpan.textContent = count;
+                                const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
+                                if (modeCommentIcon && modeCommentIcon.parentNode) {
+                                    modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
                                 }
                             }
+                        } else if (feedbackCountSpan) {
+                            feedbackCountSpan.remove();
                         }
-                    },
-                    error: function () {
-                        console.error("Failed to update feedback count");
                     }
                 });
-
-                // Reset form and reload feedback list
-                setTimeout(() => {
-                    loadTaskFeedbackData(taskId);
-
-                    // Reset Add Feedback button text
-                    const addFeedbackButton =
-                        document.getElementById("addFeedbackButton");
-                    addFeedbackButton.textContent = "Add Feedback";
-
-                    // Re-attach event listener
-                    const newButton = addFeedbackButton.cloneNode(true);
-                    addFeedbackButton.parentNode.replaceChild(
-                        newButton,
-                        addFeedbackButton
-                    );
-                    newButton.addEventListener("click", function () {
-                        showAddFeedbackForm(taskId);
-                    });
-                }, 1500);
             },
             error: function (xhr) {
-                const feedbackModalEl =
-                    document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(
-                    ".feedback-modal-body"
-                );
-                const alertDiv = document.createElement("div");
-                alertDiv.className =
-                    "alert alert-danger alert-dismissible fade show";
-
-                let errorMessage =
-                    "Failed to submit feedback. Please try again.";
+                let errorMessage = "Failed to submit feedback. Please try again.";
                 if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMessage = Object.values(xhr.responseJSON.errors)
-                        .flat()
-                        .join("\n");
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
                 } else if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
                 }
-
-                alertDiv.innerHTML = `
-                    ${errorMessage}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                modalBody.prepend(alertDiv);
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, "danger");
+                } else {
+                    alert(errorMessage);
+                }
             },
             complete: function () {
                 if (submitBtn) {
-                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.innerHTML = originalBtnHtml;
                     submitBtn.disabled = false;
                 }
             },

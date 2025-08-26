@@ -1072,3 +1072,159 @@
 .image-checkout {
     margin-left: 20px;
 }
+
+/* Dashboard-local Task Feedback Modal styles (mirrors task.css) */
+.feedback-modal-dialog {
+    max-width: 480px;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.feedback-modal-content {
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.feedback-modal-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #ddd;
+    padding: 1rem 1.5rem;
+}
+
+.feedback-modal-title {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #333;
+}
+
+.feedback-modal-body {
+    padding: 1rem 1.5rem;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.feedback-modal-footer {
+    background: transparent;
+    border-top: none;
+    padding: 1rem 1.5rem;
+}
+
+#addFeedbackButton {
+    background-color: black;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#addFeedbackButton:hover {
+    background-color: #333;
+    color: white;
+}
+
+.feedback-item {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.feedback-reference-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.feedback-reference-url,
+.feedback-reference-file {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.feedback-reference-url:hover,
+.feedback-reference-file:hover {
+    text-decoration: underline;
+}
+
+.feedback-reference-url .material-symbols-outlined,
+.feedback-reference-file .material-symbols-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+    color: #007bff;
+}
+
+/* Image upload control parity for Add Feedback form */
+.custom-image-upload {
+    position: relative;
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    background-size: 50%;
+    background-repeat: no-repeat;
+    background-position: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5;
+}
+
+.custom-image-upload.has-image {
+    opacity: 1;
+}
+
+.custom-image-upload:hover {
+    border-color: #333;
+}
+
+.image-clear-btn {
+    position: absolute;
+    top: -13px;
+    right: -13px;
+    background: #dc3545;
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s;
+    opacity: 0.85;
+}
+.image-clear-btn:hover {
+    background: #b02a37;
+    opacity: 1;
+}
+
+.title-label-image {
+    display: block;
+    font-size: 14px;
+    color: #222;
+    margin-bottom: 6px;
+    margin-left: 2px;
+    font-family: inherit;
+    line-height: 1.5;
+    margin-top: 8px;
+}

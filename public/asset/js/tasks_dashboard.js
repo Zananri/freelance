@@ -75,27 +75,30 @@ function getTaskToday() {
                 if (Array.isArray(t.executors)) {
                     t.executors.forEach(e => people.push(e));
                 }
-                // unique by id then by photo url
+                // unique by id then by photo url and keep names for tooltips
                 const seen = new Set();
                 const avatars = [];
+                const getName = (obj) => obj?.name || obj?.full_name || obj?.employee_name || 'Member';
                 people.forEach(p => {
-                    const pid = getId(p) ? 'id:' + getId(p) : 'ph:' + getPhoto(p);
+                    const photo = getPhoto(p);
+                    const pid = getId(p) ? 'id:' + getId(p) : 'ph:' + photo;
                     if (pid && !seen.has(pid)) {
                         seen.add(pid);
-                        avatars.push(getPhoto(p));
+                        avatars.push({ url: photo, name: getName(p) });
                     }
                 });
                 // Use the same status color used for card background
                 let borderColor = bg;
 
-                const avatarHtml = avatars.slice(0, 5).map((url, idx) => {
+                const avatarHtml = avatars.slice(0, 5).map((av, idx) => {
                     const size = idx === 0 ? 22 : 20; // PIC slightly bigger at base
                     const overlap = idx > 0 ? '-10px' : '0';
                     const z = idx + 1; // later avatars (executors) on top
-                    const safeUrl = url || '/asset/img/profile_picture/default.png';
+                    const safeUrl = av.url || '/asset/img/profile_picture/default.png';
+                    const safeName = escapeHtml(av.name || '');
                     return `
                         <span class="avatar-overlap" style="position: relative; display:inline-block; margin-left:${overlap}; z-index:${z};">
-                            <img src="${safeUrl}" alt="member" style="width:${size}px;height:${size}px;object-fit:cover;border:2px solid ${borderColor};border-radius:50%;">
+                            <img src="${safeUrl}" alt="${safeName}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${safeName}" style="width:${size}px;height:${size}px;object-fit:cover;border:2px solid ${borderColor};border-radius:50%;">
                         </span>
                     `;
                 }).join('');
@@ -123,7 +126,7 @@ function getTaskToday() {
                     <div class="d-flex justify-content-between align-items-center mt-2">
                         <div class="d-flex align-items-center">${avatarHtml}</div>
                         <div class="d-flex align-items-center">
-                            <span class="material-symbols-outlined" style="font-size:18px;color:#828282;">mode_comment</span>
+                            <span class="material-symbols-outlined task-feedback-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">mode_comment</span>
                             ${commentsCount>0?`<span class="ms-1 small" style="color:#555;">${commentsCount}</span>`:''}
                             <span class="material-symbols-outlined ms-3" style="font-size:18px;color:#828282;">attach_file</span>
                             ${filesCount>0?`<span class="ms-1 small" style="color:#555;">${filesCount}</span>`:''}
@@ -141,6 +144,15 @@ function getTaskToday() {
                     </div>`;
                 $list.append(card);
             });
+            // Initialize Bootstrap tooltips for new avatars
+            setTimeout(() => {
+                if (window.bootstrap && typeof window.bootstrap.Tooltip === 'function') {
+                    const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    triggers.forEach(el => {
+                        try { new bootstrap.Tooltip(el); } catch(e) {}
+                    });
+                }
+            }, 50);
         })
         .catch(err => {
             console.error(err);
@@ -167,4 +179,248 @@ function escapeHtml(str) {
 document.addEventListener('DOMContentLoaded', () => {
     showTask();
 });
+
+// Feedback modal logic (mirrors task.js simplified)
+document.addEventListener('click', function(e) {
+    const trigger = e.target.closest('.task-feedback-trigger');
+    if (!trigger) return;
+    const taskId = trigger.getAttribute('data-task-id');
+    openDashboardTaskFeedback(taskId);
+});
+
+function openDashboardTaskFeedback(taskId) {
+    const modalEl = document.getElementById('taskFeedbackModal');
+    if (!modalEl) return;
+    modalEl.dataset.taskId = taskId;
+
+    const modal = (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
+        ? bootstrap.Modal.getOrCreateInstance(modalEl)
+        : new bootstrap.Modal(modalEl);
+    // reset title and button
+    const titleEl = modalEl.querySelector('.feedback-modal-title');
+    const addBtn = document.getElementById('addFeedbackButton');
+    const bodyEl = modalEl.querySelector('.feedback-modal-body');
+    titleEl.textContent = 'Task Feedback';
+    bodyEl.innerHTML = '';
+    addBtn.textContent = 'Add Feedback';
+
+    // bind add feedback click
+    const newBtn = addBtn.cloneNode(true);
+    addBtn.parentNode.replaceChild(newBtn, addBtn);
+    newBtn.addEventListener('click', () => showDashboardAddFeedbackForm(taskId));
+
+    loadDashboardTaskFeedbackData(taskId);
+    modal.show();
+}
+
+function loadDashboardTaskFeedbackData(taskId) {
+    const bodyEl = document.getElementById('taskFeedbackList');
+    if (!bodyEl) return;
+    bodyEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+    fetch((appUrl ? appUrl : '') + '/task-feedbacks/' + taskId, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(res => {
+            const data = res.data || [];
+            if (!data.length) {
+                bodyEl.innerHTML = '<p class="text-center text-muted">No feedback available for this task.</p>';
+                return;
+            }
+
+            // helper functions to match Task page formatting
+            const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+            const isYesterday = (d1, d2) => {
+                const y = new Date(d2);
+                y.setDate(d2.getDate() - 1);
+                return isSameDay(d1, y);
+            };
+
+            const html = data.map(fb => {
+                let formattedDate = '';
+                if (fb.created_at) {
+                    const created = new Date(fb.created_at);
+                    const now = new Date();
+                    if (isSameDay(created, now)) {
+                        formattedDate = created.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                    } else if (isYesterday(created, now)) {
+                        formattedDate = 'yesterday';
+                    } else {
+                        formattedDate = created.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                    }
+                }
+
+                const name = fb.employee?.name || 'Unknown';
+                const photo = fb.employee?.photo || ((appUrl ? appUrl : '') + '/asset/img/profile_picture/default.png');
+                const imgHtml = fb.image ? `<img src="${fb.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : '';
+                const urlHtml = fb.reference_url ? `<a href="${fb.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : '';
+                const fileHtml = fb.reference_file ? `<a href="${fb.reference_file}" download class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_FILE</a>` : '';
+                const refs = (urlHtml || fileHtml) ? `<div class="feedback-reference-container">${urlHtml}${fileHtml}</div>` : '';
+                return `
+                    <div class="feedback-item mb-3 p-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <img src="${photo}" alt="${escapeHtml(name)}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                            <div>
+                                <strong>${escapeHtml(name)}</strong>
+                                <small class="text-muted d-block">${formattedDate}</small>
+                            </div>
+                        </div>
+                        <p class="mb-2">${escapeHtml(fb.feedback_comment || '')}</p>
+                        ${refs}
+                        ${imgHtml}
+                    </div>`;
+            }).join('');
+            bodyEl.innerHTML = html;
+        })
+        .catch(() => {
+            bodyEl.innerHTML = '<p class="text-center text-danger">Failed to load feedback.</p>';
+        });
+}
+
+function showDashboardAddFeedbackForm(taskId) {
+    const modalEl = document.getElementById('taskFeedbackModal');
+    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+    const titleEl = modalEl.querySelector('.feedback-modal-title');
+    const bodyEl = modalEl.querySelector('.feedback-modal-body');
+    const addBtn = document.getElementById('addFeedbackButton');
+    titleEl.textContent = 'Add Feedback';
+
+    // Use the exact Task page markup and IDs for parity
+    bodyEl.innerHTML = `
+        <form id="addFeedbackForm" enctype="multipart/form-data">
+            <input type="hidden" name="task_id" value="${taskId}">
+            <input type="hidden" name="employee_id" value="${modalEl.dataset.employeeId || ''}">
+
+            <div class="mb-3">
+                <label class="form-label">Upload Image</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
+                        style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
+                        <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
+                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                <textarea class="form-control input-text" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                <input type="url" class="form-control input-text" id="reference_url" name="reference_url" placeholder="https://example.com">
+            </div>
+
+            <div class="mb-3">
+                <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                <input type="file" class="form-control input-text" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+            </div>
+        </form>`;
+
+    // setup image preview/clear
+    const imgInput = bodyEl.querySelector('#feedback_image');
+    const imgLabel = bodyEl.querySelector('#feedbackImageLabel');
+    const imgClear = bodyEl.querySelector('#feedbackImageClearBtn');
+    imgInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imgLabel.style.backgroundImage = `url('${e.target.result}')`;
+                imgLabel.classList.add('has-image');
+                imgLabel.style.backgroundSize = 'cover';
+                imgLabel.style.opacity = '1';
+                imgClear.classList.remove('d-none');
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+    imgClear.addEventListener('click', function(e) {
+        e.preventDefault();
+        imgInput.value = '';
+    imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+        imgLabel.classList.remove('has-image');
+        imgLabel.style.opacity = '0.5';
+        imgClear.classList.add('d-none');
+    });
+
+    // rebind Add Feedback button to submit
+    const newBtn = addBtn.cloneNode(true);
+    addBtn.parentNode.replaceChild(newBtn, addBtn);
+    newBtn.textContent = 'Submit';
+    newBtn.addEventListener('click', function() {
+    const form = document.getElementById('addFeedbackForm');
+        if (!form) return;
+        // show unified spinner on the button
+        const originalBtnHtml = newBtn.innerHTML;
+        newBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        newBtn.disabled = true;
+
+        const formData = new FormData(form);
+        fetch((appUrl ? appUrl : '') + '/task-feedbacks', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(res => {
+            // Show global floating alert (same UX as check-in)
+            const msg = res.message || 'Feedback submitted successfully!';
+            if (typeof showFloatingAlert === 'function') {
+                showFloatingAlert(msg, 'success');
+            } else {
+                // lightweight fallback if global util missing
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success d-flex align-items-center';
+                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '9999', opacity: '1', minWidth: '300px', margin: '0' });
+                alertDiv.textContent = msg;
+                document.body.appendChild(alertDiv);
+                setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1500);
+            }
+            // Keep modal open and switch back to list view
+            try {
+                const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title');
+                if (titleEl) titleEl.textContent = 'Task Feedback';
+                const addBtnRef = document.getElementById('addFeedbackButton');
+                if (addBtnRef) {
+                    addBtnRef.textContent = 'Add Feedback';
+                    const freshBtn = addBtnRef.cloneNode(true);
+                    addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                    // ensure the new button is enabled and clickable
+                    freshBtn.disabled = false;
+                    freshBtn.removeAttribute('disabled');
+                    freshBtn.addEventListener('click', () => showDashboardAddFeedbackForm(taskId));
+                }
+                loadDashboardTaskFeedbackData(taskId);
+            } catch (e) { /* noop */ }
+    })
+    .catch(() => {
+            const msg = 'Failed to submit feedback. Please try again.';
+            if (typeof showFloatingAlert === 'function') {
+                showFloatingAlert(msg, 'danger');
+            } else {
+                alert(msg);
+            }
+    })
+    .finally(() => {
+            newBtn.innerHTML = originalBtnHtml;
+            newBtn.disabled = false;
+    });
+    });
+}
+
+// ensure floating alert util exists (fallback only). Prefer global one from attendance.js
+if (typeof window.showFloatingAlert !== 'function') {
+    window.showFloatingAlert = function(message, type = 'success') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} d-flex align-items-center`;
+        Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '9999', opacity: '1', minWidth: '300px', margin: '0' });
+        alertDiv.textContent = message;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1500);
+    };
+}
 
