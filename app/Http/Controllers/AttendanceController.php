@@ -592,19 +592,11 @@ if ($request->hasFile('image')) {
             $checkOutTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_out']);
             
             // Handle night shift (where start time > end time)
-            if ($shiftStartTime->gt($shiftEndTime) && $checkOutTime->lt($shiftStartTime)) {
+            if ($shiftStartTime && $shiftEndTime && $shiftStartTime->gt($shiftEndTime) && $checkOutTime->lt($shiftStartTime)) {
                 $shiftEndTime->addDay();
             }
             
-            // Validasi waktu check-out: tidak boleh sebelum time_end, only if we have shift times
-            if ($shiftEndTime && $checkOutTime->lt($shiftEndTime)) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => 'error',
-                    'data' => [],
-                    'message' => 'Check-out not allowed. You can only check-out after your shift ends at ' . $shiftEndTime->format('H:i')
-                ], 400);
-            }
+            // Allow early checkout: do not block if before time_end. We keep the computed times for potential UI display only.
 
             $now = Carbon::now();
             $userId = auth()->id();
