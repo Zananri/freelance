@@ -24,14 +24,15 @@ class ShiftController extends Controller
                 $join->on('employees.id', '=', 'employee_shifts.employee_id')
                     ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
             })
+            ->leftJoin('shifts', 'employee_shifts.shift_id', '=', 'shifts.id')
             ->select(
                 'employees.id',
                 'employees.name',
                 'employees.email',
                 'employees.profile_picture',
                 'employee_shifts.id as shift_id',
-                'employee_shifts.time_start',
-                'employee_shifts.time_end',
+                'shifts.time_start',
+                'shifts.time_end',
                 'employee_shifts.date_shift'
             )
             ->where('employees.status', 'active')
@@ -87,14 +88,15 @@ class ShiftController extends Controller
                 $join->on('employees.id', '=', 'employee_shifts.employee_id')
                     ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
             })
+            ->leftJoin('shifts', 'employee_shifts.shift_id', '=', 'shifts.id')
             ->select(
                 'employees.id',
                 'employees.name',
                 'employees.email',
                 'employees.profile_picture',
                 'employee_shifts.id as shift_id',
-                'employee_shifts.time_start',
-                'employee_shifts.time_end',
+                'shifts.time_start',
+                'shifts.time_end',
                 'employee_shifts.date_shift'
             )
             ->where('employees.status', 'active')
@@ -137,6 +139,28 @@ class ShiftController extends Controller
         ]);
     }
 
+    /**
+     * Get all available shifts
+     */
+    public function getShifts()
+    {
+        try {
+            $shifts = \App\Models\Shift::select('id', 'title', 'description', 'time_start', 'time_end', 'total_hour')
+                ->orderBy('title')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $shifts
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load shifts: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function index()
     {
         //
@@ -149,7 +173,58 @@ class ShiftController extends Controller
 
     public function store(Request $request)
     {
-        //
+        try {
+            DB::beginTransaction();
+
+            // Validasi input
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'time_start' => 'required|date_format:H:i',
+                'time_end' => 'required|date_format:H:i|after:time_start',
+            ]);
+
+            $start = Carbon::createFromFormat('H:i', $validated['time_start']);
+            $end = Carbon::createFromFormat('H:i', $validated['time_end']);
+
+            // Allow overnight shift: if end < start, assume it's next day
+            if ($end->lessThanOrEqualTo($start)) {
+                $end->addDay();
+            }
+
+            $totalHour = $end->diffInHours($start, true); // true for absolute value
+
+            // Create new shift
+            $shift = \App\Models\Shift::create([
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'time_start' => $validated['time_start'],
+                'time_end' => $validated['time_end'],
+                'total_hour' => $totalHour,
+                'created_by' => auth()->id(),
+            ]);
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Shift created successfully',
+                'data' => $shift
+            ]);
+
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error: ' . $e->getMessage(),
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create shift: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function show(string $id)
@@ -172,25 +247,18 @@ class ShiftController extends Controller
                 'employee_id' => 'required|exists:employees,id',
                 'date_shifts' => 'required|array',
                 'date_shifts.*' => 'required|date_format:Y-m-d',
-                'time_start' => 'required|date_format:H:i',
-                'time_end' => 'required|date_format:H:i',
+                'shift_id' => 'required|exists:shifts,id',
             ]);
 
-            $start = Carbon::createFromFormat('H:i', $validated['time_start']);
-            $end = Carbon::createFromFormat('H:i', $validated['time_end']);
-
-            // Allow overnight shift: if end < start, assume it's next day
-            if ($end->lessThanOrEqualTo($start)) {
-                $end->addDay();
-            }
-
-            $totalHour = $end->diffInHours($start);
-
-
             $employeeId = $validated['employee_id'];
+            $shiftId = $validated['shift_id'];
 
-            // Delete existing shifts for this employee
-            EmployeeShift::where('employee_id', $employeeId)->delete();
+            // Delete existing shifts for this employee for the specified dates
+            foreach ($validated['date_shifts'] as $date) {
+                EmployeeShift::where('employee_id', $employeeId)
+                    ->where('date_shift', $date)
+                    ->delete();
+            }
 
             // Create new shifts for each date
             foreach ($validated['date_shifts'] as $date) {
@@ -198,10 +266,8 @@ class ShiftController extends Controller
 
                 EmployeeShift::create([
                     'employee_id' => $employeeId,
+                    'shift_id' => $shiftId,
                     'date_shift' => $formattedDate,
-                    'time_start' => $validated['time_start'],
-                    'time_end' => $validated['time_end'],
-                    'total_hour' => $totalHour
                 ]);
             }
 

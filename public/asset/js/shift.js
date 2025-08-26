@@ -380,10 +380,91 @@ function renderError(message) {
 
 // Setup event listeners for edit buttons
 function setupEventListeners() {
-    // Save shift button
+    // Save shift button for Add Shift Modal
     document
         .getElementById("saveShiftBtn")
-        .addEventListener("click", saveShiftChanges);
+        .addEventListener("click", saveNewShift);
+}
+
+// Save new shift (for Add Shift Modal)
+async function saveNewShift() {
+    const form = document.getElementById("addShiftForm");
+    const formData = new FormData(form);
+
+    // Validate required fields
+    const title = formData.get("title");
+    const timeStart = formData.get("time_start");
+    const timeEnd = formData.get("time_end");
+
+    if (!title || !timeStart || !timeEnd) {
+        alert("Please fill all required fields");
+        return;
+    }
+
+    try {
+        const basePath =
+            window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/shift/store`;
+
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                    'meta[name="csrf-token"]'
+                ).content,
+            },
+            body: JSON.stringify({
+                title: title,
+                description: formData.get("description") || "",
+                time_start: timeStart,
+                time_end: timeEnd,
+            }),
+        });
+
+        if (!response.ok) {
+            showFloatingAlert(
+                "Failed to create shift: " + response.statusText,
+                "danger"
+            );
+            return;
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            showFloatingAlert(
+                "Server returned non-JSON response: " + text,
+                "danger"
+            );
+            return;
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById("addShiftModal")
+            );
+            modal.hide();
+            
+            // Reset form
+            form.reset();
+            
+            showFloatingAlert("Shift created successfully", "success");
+            
+            // Optionally reload data or update UI
+            loadEmployeeData();
+        } else {
+            showFloatingAlert(
+                "Failed to create shift: " + result.message,
+                "danger"
+            );
+        }
+    } catch (error) {
+        console.error("Error creating shift:", error);
+        showFloatingAlert("Error creating shift: " + error.message, "danger");
+    }
 }
 
 // Initialize date picker for shift dates
@@ -579,63 +660,32 @@ async function saveShiftChanges() {
     const form = document.getElementById("editShiftForm");
     const formData = new FormData(form);
 
-    const dateShiftData = formData.get("date_shift");
+    // Get selected shift from dropdown (you may need to implement this)
+    const selectedShiftId = getSelectedShiftId(); // This function needs to be implemented
+    
+    if (!selectedShiftId) {
+        alert("Please select a shift");
+        return;
+    }
+
+    const dateShiftData = formData.get("date");
     let dateShifts = [];
 
-    try {
-        dateShifts = JSON.parse(dateShiftData);
-    } catch (e) {
+    // Handle single date for edit modal
+    if (dateShiftData) {
         dateShifts = [dateShiftData];
+    } else {
+        alert("Please provide a valid date");
+        return;
     }
 
     // Validate required fields
-    const timeStart = formData.get("time_start");
-    const timeEnd = formData.get("time_end");
     const employeeId = formData.get("employee_id");
 
-    if (
-        !dateShifts ||
-        dateShifts.length === 0 ||
-        !timeStart ||
-        !timeEnd ||
-        !employeeId
-    ) {
+    if (!employeeId || dateShifts.length === 0) {
         alert("Please fill all required fields");
         return;
     }
-
-    // Parse time and calculate duration
-    const startDate = new Date(`1970-01-01T${timeStart}:00`);
-    let endDate = new Date(`1970-01-01T${timeEnd}:00`);
-
-    if (endDate <= startDate) {
-        // Overnight shift: add 1 day to end time
-        endDate.setDate(endDate.getDate() + 1);
-    }
-
-    const durationHours = (endDate - startDate) / (1000 * 60 * 60);
-    if (durationHours <= 0) {
-        alert("Invalid time range");
-        return;
-    }
-
-    // Format dates to YYYY-MM-DD
-    const formattedDates = dateShifts.map((date) => {
-        if (typeof date === "string") {
-            if (date.match(/^\d{4}-\d{2}-\d{2}$/)) return date;
-            const parsedDate = new Date(date);
-            const year = parsedDate.getFullYear();
-            const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
-            const day = String(parsedDate.getDate()).padStart(2, "0");
-            return `${year}-${month}-${day}`;
-        } else if (date instanceof Date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, "0");
-            const day = String(date.getDate()).padStart(2, "0");
-            return `${year}-${month}-${day}`;
-        }
-        return date;
-    });
 
     try {
         const basePath =
@@ -652,9 +702,8 @@ async function saveShiftChanges() {
             },
             body: JSON.stringify({
                 employee_id: employeeId,
-                date_shifts: formattedDates,
-                time_start: timeStart,
-                time_end: timeEnd,
+                date_shifts: dateShifts,
+                shift_id: selectedShiftId,
             }),
         });
 
@@ -695,6 +744,14 @@ async function saveShiftChanges() {
         console.error("Error updating shift:", error);
         showFloatingAlert("Error updating shift: " + error.message, "danger");
     }
+}
+
+// Helper function to get selected shift ID from dropdown
+function getSelectedShiftId() {
+    // You need to implement this based on your dropdown implementation
+    // For now, return a placeholder
+    const dropdown = document.getElementById("dropdownSelected");
+    return dropdown.dataset.shiftId || null;
 }
 
 // Function to show floating alert with SVG icon - same as task.js
