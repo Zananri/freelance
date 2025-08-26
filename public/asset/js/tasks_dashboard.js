@@ -182,7 +182,162 @@ function getTaskToday() {
 }
 
 function getTaskTomorrow() {
-    console.log("task aktive today");
+    const $list = $(".task-list");
+    $list.empty().append(`<div class="text-center py-3 text-secondary small">Loading tasks…</div>`);
+
+    const ensureRoute = () => {
+        if (window.NSA_ROUTES && window.NSA_ROUTES.tasksTomorrow) return Promise.resolve(window.NSA_ROUTES.tasksTomorrow);
+        return fetch('client-routes', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.ok ? r.json() : Promise.reject(new Error('Failed to load routes')))
+            .then(j => {
+                window.NSA_ROUTES = Object.assign({}, window.NSA_ROUTES, j || {});
+                const finalUrl = (j && j.tasksTomorrow) ? j.tasksTomorrow : 'task/dashboard/tomorrow';
+                window.NSA_ROUTES.tasksTomorrow = finalUrl;
+                return finalUrl;
+            })
+            .catch(() => 'task/dashboard/tomorrow');
+    };
+
+    ensureRoute().then(url => {
+        const finalUrl = url.startsWith('http') || url.startsWith('/') ? url : ('/' + url);
+        return fetch(finalUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    })
+        .then(async res => {
+            const text = await res.text();
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                throw new Error('Non-JSON response: ' + text.slice(0, 120));
+            }
+        })
+        .then(json => {
+            if (json.status !== 'success') throw new Error(json.message || 'Failed to fetch tasks');
+            const tasks = json.data || [];
+            $list.empty();
+            if (!tasks.length) {
+                $list.append(`<div class="text-center py-3 text-secondary small">No tasks for tomorrow.</div>`);
+                return;
+            }
+
+            tasks.forEach(t => {
+                const priorityColor = t.priority === 'HIGH' ? '#E14F4F' : (t.priority === 'MEDIUM' ? '#E6A15A' : '#4fc97a');
+                const rawDue = t.due_date || '';
+                const dueText = /^\d{4}-\d{2}-\d{2}/.test(rawDue) ? rawDue : (rawDue ? new Date(rawDue).toLocaleDateString() : '-');
+                const statusNorm = (t.status || '').toLowerCase();
+                const bg = statusNorm === 'completed' ? '#E9FFF0' : (statusNorm === 'rejected' ? '#FFEAEA' : (statusNorm.includes('progress') ? '#E6F2FF' : '#FFFAE6'));
+                const rejectedBadge = statusNorm === 'rejected'
+                    ? '<span style="position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:#B00020;background:#FFD6D6;padding:2px 6px;border-radius:8px;letter-spacing:.3px;">REJECTED</span>'
+                    : '';
+
+                const getPhoto = (obj) => obj?.photo || obj?.image || obj?.user_photo || obj || '';
+                const getId = (obj) => obj?.id || obj?.employee_id || null;
+                const people = [];
+                if (t.pic || t.pic_photo) {
+                    people.push(t.pic || { id: t.pic_id || null, photo: t.pic_photo, name: t.pic_name || 'PIC' });
+                }
+                if (Array.isArray(t.executors)) {
+                    t.executors.forEach(e => people.push(e));
+                }
+                const seen = new Set();
+                const avatars = [];
+                const getName = (obj) => obj?.name || obj?.full_name || obj?.employee_name || 'Member';
+                people.forEach(p => {
+                    const photo = getPhoto(p);
+                    const pid = getId(p) ? 'id:' + getId(p) : 'ph:' + photo;
+                    if (pid && !seen.has(pid)) {
+                        seen.add(pid);
+                        avatars.push({ url: photo, name: getName(p) });
+                    }
+                });
+                let borderColor = bg;
+
+                const avatarHtml = avatars.slice(0, 5).map((av, idx) => {
+                    const size = idx === 0 ? 22 : 20;
+                    const overlap = idx > 0 ? '-10px' : '0';
+                    const z = idx + 1;
+                    const safeUrl = av.url || '/asset/img/profile_picture/default.png';
+                    const safeName = escapeHtml(av.name || '');
+                    return `
+                        <span class="avatar-overlap" style="position: relative; display:inline-block; margin-left:${overlap}; z-index:${z};">
+                            <img src="${safeUrl}" alt="${safeName}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${safeName}" style="width:${size}px;height:${size}px;object-fit:cover;border:2px solid ${borderColor};border-radius:50%;">
+                        </span>
+                    `;
+                }).join('');
+
+                const commentsCount = (
+                    t.feedback_comments_count ||
+                    t.comments_count ||
+                    t.feedbacks_count ||
+                    (Array.isArray(t.feedbacks) ? t.feedbacks.length : 0) ||
+                    0
+                );
+
+                let filesCount = t.reference_files_count || t.attachments_count || 0;
+                if (!filesCount) {
+                    let rf = t.reference_files;
+                    if (typeof rf === 'string') {
+                        try {
+                            const parsed = JSON.parse(rf);
+                            if (Array.isArray(parsed)) rf = parsed;
+                        } catch (e) {
+                            rf = rf.includes('[') ? [] : rf.split(',').map(s => s.trim()).filter(Boolean);
+                        }
+                    }
+                    if (Array.isArray(rf)) filesCount = rf.length;
+                }
+
+                const topTitle = `
+                    <div class="d-flex align-items-center mb-1">
+                        <img src="${t.project_image}" class="rounded-circle me-3" style="width:28px;height:28px;object-fit:cover;">
+                        <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-')}</h6>
+                    </div>`;
+
+                const descHtml = t.description
+                    ? `<p class="mb-2 small" style="font-size: 10px;">${escapeHtml(t.description).slice(0,140)}${t.description.length>140?'…':''}</p>`
+                    : '';
+
+                const priorityRow = `
+                    <div class="d-flex justify-content-between align-items-center small" style="font-size:10px;">
+                        <div><span style="color:#828282;">Priority:</span><span class="mx-2" style="color:${priorityColor}">${t.priority || '-'}</span></div>
+                        <div><span style="color:#828282;">Deadline:</span><span class="mx-2" style="color:#454545">${dueText}</span></div>
+                    </div>`;
+
+                const actionsRow = `
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="d-flex align-items-center">${avatarHtml}</div>
+                        <div class="d-flex align-items-center">
+                            <span class="material-symbols-outlined task-feedback-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">mode_comment</span>
+                            ${commentsCount>0?`<span class="ms-1 small feedback-comments-count" data-task-id="${t.id}" style="color:#555;">${commentsCount}</span>`:''}
+                            <span class="material-symbols-outlined ms-3 task-attach-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">attach_file</span>
+                            ${filesCount>0?`<span class="ms-1 small reference-files-count" data-task-id="${t.id}" style="color:#555;">${filesCount}</span>`:''}
+                        </div>
+                    </div>`;
+
+                const card = `
+                    <div class="task-card p-3 mb-3" style="background:${bg};position:relative;">
+                        ${rejectedBadge}
+                        ${topTitle}
+                        ${descHtml}
+                        <hr class="my-2" style="opacity:.25;">
+                        ${priorityRow}
+                        ${actionsRow}
+                    </div>`;
+                $list.append(card);
+            });
+
+            setTimeout(() => {
+                if (window.bootstrap && typeof window.bootstrap.Tooltip === 'function') {
+                    const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    triggers.forEach(el => {
+                        try { new bootstrap.Tooltip(el); } catch(e) {}
+                    });
+                }
+            }, 50);
+        })
+        .catch(err => {
+            console.error(err);
+            $list.empty().append(`<div class="text-center py-3 text-danger small">Failed to load tasks.</div>`);
+        });
 }
 
 // util
