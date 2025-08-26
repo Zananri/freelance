@@ -3199,13 +3199,56 @@ $(document).on("click", "#openTaskFilterBtnMobile", function () {
 
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    // Dummy task data
-    const timelineData = [
-        { name: "Task A", start: 1, end: 4, color: "color1" },
-        { name: "Task B", start: 3, end: 8, color: "color2" },
-        { name: "Task C", start: 10, end: 15, color: "color3" },
-        { name: "Task D", start: 20, end: 29, color: "color4" },
-    ];
+    // Task timeline data cache
+    let timelineTasksCache = [];
+    const TL_COLORS = ["color1","color2","color3","color4"];
+    const appUrlTimeline = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+
+    function parseDateLoose(s) {
+        if (!s) return null;
+        const m = String(s).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function colorForStatus(t, idx) {
+        const s = (t.status || '').toLowerCase();
+        if (s.includes('completed')) return 'color2';
+        if (s.includes('in') && s.includes('progress')) return 'color3';
+        if (s.includes('reject') || s.includes('late')) return 'color4';
+        return TL_COLORS[idx % TL_COLORS.length];
+    }
+
+    async function fetchTimelineTasksOnce() {
+        if (timelineTasksCache.length) return;
+        try {
+            const r = await fetch(appUrlTimeline + '/task/index', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const j = await r.json();
+            const buckets = j && j.data ? j.data : {};
+            const flat = [];
+            Object.keys(buckets).forEach(k => {
+                const arr = buckets[k];
+                if (Array.isArray(arr)) arr.forEach(t => flat.push(t));
+            });
+            // Enrich missing dates
+            await Promise.all(flat.map(async (t) => {
+                if (t.start_date && t.due_date) return;
+                try {
+                    const rr = await fetch(appUrlTimeline + '/task/' + t.id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    const dd = await rr.json();
+                    const d = dd && (dd.data || dd);
+                    if (d) {
+                        t.start_date = t.start_date || d.start_date || d.start || d.startDate || null;
+                        t.due_date = t.due_date || d.due_date || d.end_date || d.endDate || d.due || null;
+                    }
+                } catch(_){ }
+            }));
+            timelineTasksCache = flat.filter(t => t.start_date || t.due_date);
+        } catch(_) {
+            timelineTasksCache = [];
+        }
+    }
 
     function renderTimeline(targetHeaderSelector, targetRowsSelector, month, year) {
     const headerRow = document.querySelector(targetHeaderSelector);
@@ -3229,35 +3272,59 @@ $(document).on("click", "#openTaskFilterBtnMobile", function () {
         headerRow.appendChild(th);
     });
 
-    // Rows (tasks)
-    timelineData.forEach((task) => {
+    // Rows (tasks) – build from cache for the requested month
+    const monthRows = (timelineTasksCache || []).map((t, idx) => {
+        const name = t.title || t.name || ('Task ' + (t.id || idx+1));
+        const color = colorForStatus(t, idx);
+        const start = parseDateLoose(t.start_date);
+        const due = parseDateLoose(t.due_date) || start || new Date(year, month, 1);
+        return { name, start, due, color };
+    }).filter(x => x.start || x.due);
+
+    monthRows.forEach((task) => {
         const tr = document.createElement("tr");
 
-        // Kosong sebelum task
-        for (let i = 1; i < task.start; i++) {
-        const td = document.createElement("td");
-        td.classList.add("timeline-cell");               // << wajib
-        if (new Date(year, month, i).getDay() === 0) {
-            td.classList.add("sunday");
-        }
-        tr.appendChild(td);
+        // Visible month window
+        const monthStart = new Date(year, month, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59, 999);
+
+        // Task span (prefer start..due, fallback to single-day when one side missing)
+        const s = task.start ? new Date(task.start) : (task.due ? new Date(task.due) : null);
+        const e = task.due ? new Date(task.due) : (task.start ? new Date(task.start) : null);
+        if (!s || !e) return; // nothing to render
+
+        // If the task is completely outside this month, skip
+        if (e < monthStart || s > monthEnd) return;
+
+        // Clamp to month window so bars end exactly at due_date and not beyond
+        const clampedStart = new Date(Math.max(s.getTime(), monthStart.getTime()));
+        const clampedEnd = new Date(Math.min(e.getTime(), monthEnd.getTime()));
+
+        let startDay = clampedStart.getDate();
+        let endDay = clampedEnd.getDate();
+        if (endDay < startDay) endDay = startDay; // safety
+
+        // Empty cells before the bar
+        for (let i = 1; i < startDay; i++) {
+            const td = document.createElement("td");
+            td.classList.add("timeline-cell");
+            if (new Date(year, month, i).getDay() === 0) td.classList.add("sunday");
+            tr.appendChild(td);
         }
 
-        // Bar task (colspan)
+        // Bar cell spanning the exact number of days
         const barTd = document.createElement("td");
-        barTd.colSpan = task.end - task.start + 1;
-        barTd.classList.add("timeline-cell");              // biar konsisten
+        barTd.colSpan = endDay - startDay + 1;
+        barTd.classList.add("timeline-cell");
         barTd.innerHTML = `<div class="timeline-bar ${task.color}"><span class="circle"></span>${task.name}</div>`;
         tr.appendChild(barTd);
 
-        // Kosong setelah task
-        for (let i = task.end + 1; i <= daysInMonth; i++) {
-        const td = document.createElement("td");
-        td.classList.add("timeline-cell");               // << wajib
-        if (new Date(year, month, i).getDay() === 0) {
-            td.classList.add("sunday");
-        }
-        tr.appendChild(td);
+        // Empty cells after the bar
+        for (let i = endDay + 1; i <= daysInMonth; i++) {
+            const td = document.createElement("td");
+            td.classList.add("timeline-cell");
+            if (new Date(year, month, i).getDay() === 0) td.classList.add("sunday");
+            tr.appendChild(td);
         }
 
         rowsContainer.appendChild(tr);
@@ -3268,7 +3335,8 @@ $(document).on("click", "#openTaskFilterBtnMobile", function () {
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");
-    timelineModal.addEventListener("show.bs.modal", () => {
+    timelineModal.addEventListener("show.bs.modal", async () => {
+        await fetchTimelineTasksOnce();
         renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
     });
 
