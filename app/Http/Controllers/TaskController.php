@@ -175,8 +175,9 @@ class TaskController extends Controller
             $yesterday = now()->subDay()->toDateString();
 
             // Base: tasks where current employee is PIC or accepted EXECUTOR
-            $base = Task::query()
+                        $base = Task::query()
                 ->with(['project', 'assignments.employee.user'])
+                ->withCount(['feedback_comments'])
                 ->whereHas('assignments', function ($q) use ($employeeId) {
                     $q->where('employee_id', $employeeId)
                       ->where(function ($roleQ) {
@@ -186,79 +187,31 @@ class TaskController extends Controller
                                          ->where('is_receive', true);
                                });
                       });
-                });
+                                })
+                                // Do not show tasks that start in the future (e.g., tomorrow) on Today's tab
+                                ->where(function ($d) use ($today) {
+                                        $d->whereNull('start_date')
+                                            ->orWhereDate('start_date', '<=', $today);
+                                });
 
-            // Build the Today filters
-            $base->where(function ($q) use ($today, $yesterday, $employeeId) {
-                // a) Assignment created today for this employee
-                $q->whereHas('assignments', function ($aq) use ($today, $employeeId) {
-                    $aq->where('employee_id', $employeeId)
-                       ->whereDate('created_at', $today);
-                })
-                // b) New Request created today
-                ->orWhere(function ($nq) use ($today) {
-                    $nq->whereIn('status', ['new_request', 'new request'])
-                       ->whereDate('created_at', $today);
-                })
-                // c) In Progress started today for this employee (accepted today)
-                ->orWhere(function ($pq) use ($today, $employeeId) {
-                    $pq->whereIn('status', ['in_progress', 'in progress'])
-                       ->whereHas('assignments', function ($aq) use ($today, $employeeId) {
-                           $aq->where('employee_id', $employeeId)
-                              ->where('role', 'EXECUTOR')
-                              ->where('is_receive', true)
-                              ->whereDate('date_receive', $today);
-                       });
-                })
-                // d) In Progress from yesterday and not completed yet (carryover)
-                ->orWhere(function ($cq) use ($yesterday, $employeeId, $today) {
-                    $cq->whereIn('status', ['in_progress', 'in progress'])
-                       ->whereNull('complete_date')
-                       // started yesterday (date_receive yesterday) for this employee OR start_date <= yesterday
-                       ->where(function ($sq) use ($yesterday, $employeeId) {
-                           $sq->whereHas('assignments', function ($aq) use ($yesterday, $employeeId) {
-                               $aq->where('employee_id', $employeeId)
-                                  ->where('is_receive', true)
-                                  ->whereDate('date_receive', $yesterday);
-                           })
-                           ->orWhereDate('start_date', '<=', $yesterday);
-                       })
-                       // still relevant today (due today or later)
-                       ->whereDate('due_date', '>=', $today);
-                })
-                // e) Completed today only
-                ->orWhere(function ($cq) use ($today) {
-                    $cq->where('status', 'completed')
-                       ->where(function ($w) use ($today) {
-                           $w->whereDate('complete_date', $today)
-                             ->orWhere(function ($w2) use ($today) {
-                                 $w2->whereNull('complete_date')
-                                    ->whereDate('updated_at', $today);
-                             });
-                       });
-                })
-                // f) Rejected today (status changed to rejected today)
-                ->orWhere(function ($rq) use ($today) {
-                    $rq->where('status', 'rejected')
-                       ->whereDate('updated_at', $today);
-                });
-                        })
-                        // Global guard: exclude completed tasks unless they were completed today
-            ->where(function ($g) use ($today) {
-                $g->whereNotIn('status', ['completed', 'Completed'])
-                  ->orWhere(function ($ok) use ($today) {
-                      $ok->whereDate('complete_date', $today)
-                         ->orWhere(function ($ok2) use ($today) {
-                             $ok2->whereNull('complete_date')
-                                 ->whereDate('updated_at', $today);
-                         })
-                         // Allow rejected updated today as Today
-                         ->orWhere(function ($rej) use ($today) {
-                             $rej->where('status', 'rejected')
-                                 ->whereDate('updated_at', $today);
+            // Build the Today filters (broadened)
+            $base->where(function ($q) use ($today) {
+                $q->whereIn('status', ['new_request', 'new request', 'in_progress', 'in progress'])
+                  ->orWhere(function ($cq) use ($today) {
+                      $cq->where('status', 'completed')
+                         ->where(function ($w) use ($today) {
+                             $w->whereDate('complete_date', $today)
+                               ->orWhere(function ($w2) use ($today) {
+                                   $w2->whereNull('complete_date')
+                                      ->whereDate('updated_at', $today);
+                               });
                          });
+                  })
+                  ->orWhere(function ($rq) use ($today) {
+                      $rq->where('status', 'rejected')
+                         ->whereDate('updated_at', $today);
                   });
-                        });
+            });
 
             $tasks = $base->orderByDesc('created_at')->get();
 
@@ -280,6 +233,97 @@ class TaskController extends Controller
             })->values();
 
             // Map response minimal fields needed for dashboard
+        $data = $tasks->map(function ($task) {
+                $pic = $task->assignments->firstWhere('role', 'PIC');
+                $executors = $task->assignments->where('role', 'EXECUTOR');
+
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'description' => $task->description,
+                    'priority' => $task->priority,
+                    'status' => $task->status,
+                    'due_date' => $task->due_date,
+                    'complete_date' => $task->complete_date,
+            // counts for dashboard badges
+            'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
+            'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
+                    'project_image' => ($task->project && $task->project->image)
+                        ? asset('file/project/' . $task->project->image)
+                        : asset('asset/img/profile_picture/sample_project.png'),
+                    'pic' => $pic && $pic->employee ? [
+                        'id' => $pic->employee->id,
+                        'name' => $pic->employee->name,
+                        'photo' => ($pic->employee->user && $pic->employee->user->photo)
+                            ? asset($pic->employee->user->photo)
+                            : asset('asset/img/profile_picture/default.png'),
+                    ] : null,
+                    'executors' => $executors->map(function ($ex) {
+                        return [
+                            'id' => $ex->employee->id,
+                            'name' => $ex->employee->name,
+                            'photo' => ($ex->employee->user && $ex->employee->user->photo)
+                                ? asset($ex->employee->user->photo)
+                                : asset('asset/img/profile_picture/default.png'),
+                            'is_receive' => (bool) $ex->is_receive,
+                        ];
+                    })->values(),
+                ];
+            })->values();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * Dashboard: Get "Tomorrow" tasks for current logged-in employee (start_date = tomorrow).
+     */
+    public function getDashboardTasksTomorrow(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            if (!$user || !$user->employee) {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => []
+                ]);
+            }
+
+            $employeeId = $user->employee->id;
+
+            $tomorrow = now()->addDay()->toDateString();
+
+            // Base: tasks where current employee is PIC or accepted EXECUTOR
+            $base = Task::query()
+                ->with(['project', 'assignments.employee.user'])
+                ->withCount(['feedback_comments'])
+                ->whereHas('assignments', function ($q) use ($employeeId) {
+                    $q->where('employee_id', $employeeId)
+                      ->where(function ($roleQ) {
+                          $roleQ->where('role', 'PIC')
+                               ->orWhere(function ($execQ) {
+                                   $execQ->where('role', 'EXECUTOR')
+                                         ->where('is_receive', true);
+                               });
+                      });
+                })
+                ->whereDate('start_date', $tomorrow);
+
+            $tasks = $base->orderByDesc('created_at')->get();
+
+            // Map response minimal fields needed for dashboard (same shape as Today)
             $data = $tasks->map(function ($task) {
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $executors = $task->assignments->where('role', 'EXECUTOR');
@@ -292,6 +336,9 @@ class TaskController extends Controller
                     'status' => $task->status,
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
+                    'start_date' => $task->start_date,
+                    'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
+                    'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                     'project_image' => ($task->project && $task->project->image)
                         ? asset('file/project/' . $task->project->image)
                         : asset('asset/img/profile_picture/sample_project.png'),

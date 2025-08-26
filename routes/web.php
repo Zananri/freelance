@@ -87,6 +87,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
     // Dashboard: Today tasks for current user
     Route::get('/task/dashboard/today', [TaskController::class, 'getDashboardTasksToday'])->name('task.dashboard.today');
+    // Dashboard: Tomorrow tasks for current user
+    Route::get('/task/dashboard/tomorrow', [TaskController::class, 'getDashboardTasksTomorrow'])->name('task.dashboard.tomorrow');
 
     // Task Feedback routes
     Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
@@ -135,6 +137,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
     Route::get('/shift/employees-with-shifts', [ShiftController::class, 'getEmployeesWithShifts'])->name('shift.employees-with-shifts');
     Route::get('/shift/employees-basic', [ShiftController::class, 'getEmployeesBasic'])->name('shift.employees-basic');
+    Route::get('/shift/list', [ShiftController::class, 'getShifts'])->name('shift.list');
+    Route::post('/shift/store', [ShiftController::class, 'store'])->name('shift.store');
     Route::put('/shift/update/{id}', [ShiftController::class, 'update'])->name('shift.update');
 
     Route::get('/attendance/latest-unclosed/{employeeId}', [AttendanceController::class, 'getLatestUnclosedAttendance']);

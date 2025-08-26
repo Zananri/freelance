@@ -132,7 +132,6 @@
 .shift-table td.sunday {
     color: #d34547;
     font-weight: 600;
-    background: #fdf2f2;
 }
 
 .sticky-col {
@@ -156,8 +155,31 @@
 
 .year-dropdown-wrapper {
     position: relative;
-    width: 20px;
+    width: 25px;
     overflow: hidden;
+}
+
+#yearSelect {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#yearSelect:hover {
+    border-color: #000;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+#yearSelect option {
+    padding: 8px;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 #yearSelect {
@@ -204,6 +226,7 @@
 }
 
 .btn-edit-employee {
+    background: #fcfcff;
     position: absolute;
     top: 0;
     left: 0;
@@ -217,12 +240,62 @@
 }
 
 .btn-edit-shift {
+    background: #fcfcff;
     position: absolute;
     top: 0;
     left: 0;
     height: 100%;
     width: 100%;
     border: 0px;
+}
+
+.btn-add-shift {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    border: 0px;
+}
+
+.shift-config-title {
+    font-size: 20px;
+    font-weight: normal;
+    font-weight: 400;
+}
+
+.add-shift-button {
+    padding: 10px;
+    border-radius: 10px;
+    width: 100px;
+}
+
+.filter-shift-btn,
+.config-shift-btn {
+    background: #e9eef4;
+    border: none;
+}
+
+.filter-shift-btn:hover,
+.config-shift-btn:hover {
+    background: #e9eef4;
+    border: none;
+}
+
+.modal-footer-custom {
+    width: 100%;
+}
+
+.modal-footer-custom button {
+    height: 50px;
+    border-radius: 10px;
+    width: 45%;
+    font-size: 14px;
+}
+
+.modal-footer-custom .btn-light {
+    background: #e3e4ee;
+    color: #596069;
 }
 
 .overlay-edit {
@@ -379,9 +452,13 @@
 .modal-content-custom {
     border-radius: 16px;
     padding: 24px;
-    background: #f7f7f8;
+    background: #f0f1f8;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: none;
+}
+
+.shift-config-table {
+    background: #f0f1f8;
 }
 
 .modal-body-custom {

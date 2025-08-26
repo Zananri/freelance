@@ -765,7 +765,9 @@ p {
 }
 
 .timeline-wrapper {
+    /* Keep timeline area height consistent irrespective of rows */
     max-height: 275px;
+    min-height: 275px;
     overflow-y: auto;
     overflow-x: auto;
     position: relative;

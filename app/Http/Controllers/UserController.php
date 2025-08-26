@@ -194,10 +194,13 @@ class UserController extends Controller
         $base = rtrim($request->getBaseUrl(), '/'); // e.g., /nsa-office/public or ''
         $tasksTodayPath = route('task.dashboard.today', [], false); // relative path, e.g., /task/dashboard/today
         $tasksTodayUrl = ($base ? $base : '') . $tasksTodayPath; // prepend base if exists
+        $tasksTomorrowPath = route('task.dashboard.tomorrow', [], false);
+        $tasksTomorrowUrl = ($base ? $base : '') . $tasksTomorrowPath;
 
         return response()->json([
             'baseUrl' => $base ?: '',
             'tasksToday' => $tasksTodayUrl,
+            'tasksTomorrow' => $tasksTomorrowUrl,
         ]);
     }
 
