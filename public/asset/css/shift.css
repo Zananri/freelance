@@ -132,7 +132,6 @@
 .shift-table td.sunday {
     color: #d34547;
     font-weight: 600;
-    background: #fdf2f2;
 }
 
 .sticky-col {
@@ -161,26 +160,26 @@
 }
 
 #yearSelect {
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s ease;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 #yearSelect:hover {
-  border-color: #000;
-  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    border-color: #000;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
 }
 
 #yearSelect option {
-  padding: 8px;
-  font-size: 14px;
-  font-weight: 500;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 #yearSelect {
@@ -227,6 +226,7 @@
 }
 
 .btn-edit-employee {
+    background: #fcfcff;
     position: absolute;
     top: 0;
     left: 0;
@@ -240,6 +240,7 @@
 }
 
 .btn-edit-shift {
+    background: #fcfcff;
     position: absolute;
     top: 0;
     left: 0;
@@ -271,13 +272,13 @@
 
 .filter-shift-btn,
 .config-shift-btn {
-    background: #E9EEF4;
+    background: #e9eef4;
     border: none;
 }
 
 .filter-shift-btn:hover,
 .config-shift-btn:hover {
-    background: #E9EEF4;
+    background: #e9eef4;
     border: none;
 }
 
@@ -451,9 +452,13 @@
 .modal-content-custom {
     border-radius: 16px;
     padding: 24px;
-    background: #f7f7f8;
+    background: #f0f1f8;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: none;
+}
+
+.shift-config-table {
+    background: #f0f1f8;
 }
 
 .modal-body-custom {

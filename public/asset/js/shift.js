@@ -155,7 +155,7 @@ function createEmployeeCell(employee) {
                 }</div>
             </div>
             <div class="overlay-edit-employee">
-                <button class="btn btn-sm btn-light btn-edit-employee"
+                <button class="btn-edit-employee"
                         data-employee-id="${employee.id}"
                         data-employee-name="${employee.name}"
                         data-employee-picture="${
@@ -208,9 +208,7 @@ function createShiftCell(employee, shift, dateKey) {
                 shift ? `${start || "??"}  ${end || "??"}` : ""
             }</span>
             <div class="overlay-edit">
-                <button class="btn btn-sm btn-light ${
-                    shift ? "btn-edit-shift" : "btn-add-shift"
-                }"
+                <button class="btn-edit-shift"
                         data-shift-id="${shiftId}"
                         data-employee-id="${employee.id}"
                         data-employee-name="${employee.name}"
@@ -222,7 +220,7 @@ function createShiftCell(employee, shift, dateKey) {
                         data-start="${shift?.time_start || ""}"
                         data-end="${shift?.time_end || ""}">
                     <span class="material-symbols-outlined">${
-                        shift ? "edit" : "add"
+                        "edit"
                     }</span>
                 </button>
             </div>
