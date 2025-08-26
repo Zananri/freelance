@@ -21,7 +21,10 @@ return new class extends Migration
                 $table->bigInteger('deleted_by')->nullable();
                 $table->timestamps();
 
-                $table->index('title');
+                // Check if the index already exists before creating it
+                if (!Schema::hasIndex('shifts', 'shifts_title_index')) {
+                    $table->index('title', 'shifts_title_index');
+                }
             });
         } else {
             Schema::table('shifts', function (Blueprint $table) {
@@ -57,10 +60,8 @@ return new class extends Migration
                 }
 
                 // Ensure index on title exists
-                try {
-                    $table->index('title');
-                } catch (\Throwable $e) {
-                    // ignore if already indexed
+                if (!Schema::hasIndex('shifts', 'shifts_title_index')) {
+                    $table->index('title', 'shifts_title_index');
                 }
             });
         }
