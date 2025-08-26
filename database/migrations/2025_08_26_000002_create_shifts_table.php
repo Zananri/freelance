@@ -64,27 +64,10 @@ return new class extends Migration
                 }
             });
         }
-
-        // Add FK from employee_shifts.shift_id to shifts.id
-        Schema::table('employee_shifts', function (Blueprint $table) {
-            if (Schema::hasColumn('employee_shifts', 'shift_id')) {
-                $table->foreign('shift_id')
-                    ->references('id')->on('shifts')
-                    ->onDelete('restrict');
-            }
-        });
     }
 
     public function down(): void
     {
-        // Drop FK first if exists
-        Schema::table('employee_shifts', function (Blueprint $table) {
-            if (Schema::hasColumn('employee_shifts', 'shift_id')) {
-                // Use the convention-based name when dropping foreign key
-                $table->dropForeign(['shift_id']);
-            }
-        });
-
         Schema::dropIfExists('shifts');
     }
 };

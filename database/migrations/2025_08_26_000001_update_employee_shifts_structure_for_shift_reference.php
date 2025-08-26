@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('employee_shifts', function (Blueprint $table) {
             // Add new shift_id column if it doesn't exist yet
             if (!Schema::hasColumn('employee_shifts', 'shift_id')) {
-                $table->unsignedBigInteger('shift_id')->after('employee_id');
+                $table->unsignedBigInteger('shift_id')->nullable()->after('employee_id');
                 $table->index('shift_id');
             }
 
