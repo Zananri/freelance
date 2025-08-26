@@ -164,7 +164,7 @@
         <div class="modal fade" id="shiftConfigModal" tabindex="-1" aria-labelledby="shiftConfigModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-md modal-dialog-scrollable">
-                <div class="modal-content">
+                <div class="modal-content modal-content-custom">
 
                     <div class="modal-header d-flex justify-content-between align-items-center">
                         <h5 class="modal-title shift-config-title" id="shiftConfigModalLabel">Shift Config</h5>
@@ -180,7 +180,7 @@
                     </div>
 
                     <div class="modal-body">
-                        <div class="table-responsive">
+                        <div class="table-responsive shift-config-table">
                             <table class="table table-bordered align-middle">
                                 <thead>
                                     <tr>
@@ -212,10 +212,9 @@
         <div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
+                <div class="modal-content modal-content-custom">
 
                     <div class="modal-header">
-                        <h5 class="modal-title" id="editEmployeeModalLabel">Edit Employee</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"
                             aria-label="Close"></button>
                     </div>
@@ -232,7 +231,7 @@
 
                             <div class="mb-3">
                                 <label for="editEmployeeName" class="form-label">Employee Name</label>
-                                <input type="text" class="form-control" id="editEmployeeName"   >
+                                <input type="text" class="form-control" id="editEmployeeName">
                             </div>
 
                         </form>
@@ -264,7 +263,6 @@
                         <input type="hidden" id="editTimeEnd" name="time_out">
 
                         <div class="modal-header modal-header-custom">
-                            <h5 class="modal-title modal-title-custom" id="addProjectModalLabel">Edit Shift</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
@@ -280,9 +278,9 @@
 
                                 <hr class="border-3 rounded">
 
-                                <p>Date : <span id="editDateShiftDisplayText"></span></p>
-                                <p>Time In : <span id="editTimeStartDisplay"></span></p>
-                                <p>Time Out : <span id="editTimeEndDisplay"></span></p>
+                                <p class="text-shift-diplay">Date : <span id="editDateShiftDisplayText"></span></p>
+                                <p class="text-shift-diplay">Time In : <span id="editTimeStartDisplay"></span></p>
+                                <p class="text-shift-diplay">Time Out : <span id="editTimeEndDisplay"></span></p>
                             </div>
                         </div>
 
