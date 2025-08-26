@@ -128,7 +128,7 @@ function getTaskToday() {
                         <div class="d-flex align-items-center">
                             <span class="material-symbols-outlined task-feedback-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">mode_comment</span>
                             ${commentsCount>0?`<span class="ms-1 small" style="color:#555;">${commentsCount}</span>`:''}
-                            <span class="material-symbols-outlined ms-3" style="font-size:18px;color:#828282;">attach_file</span>
+                            <span class="material-symbols-outlined ms-3 task-attach-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">attach_file</span>
                             ${filesCount>0?`<span class="ms-1 small" style="color:#555;">${filesCount}</span>`:''}
                         </div>
                     </div>`;
@@ -187,6 +187,84 @@ document.addEventListener('click', function(e) {
     const taskId = trigger.getAttribute('data-task-id');
     openDashboardTaskFeedback(taskId);
 });
+
+// Handle attach_file click and open Reference Files modal (parity with Task page)
+document.addEventListener('click', function(e) {
+    const attach = e.target.closest('.task-attach-trigger');
+    if (!attach) return;
+    const taskId = attach.getAttribute('data-task-id');
+    openDashboardReferenceFiles(taskId);
+});
+
+function ensureReferenceFilesModal() {
+    let modalEl = document.getElementById('referenceFilesModal');
+    if (modalEl) return modalEl;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = `
+        <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom" id="referenceFilesModalLabel">Reference Files</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <hr>
+                    <div class="modal-body modal-body-custom">
+                        <div id="referenceFilesList" class="d-flex flex-column gap-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(wrapper.firstElementChild);
+    return document.getElementById('referenceFilesModal');
+}
+
+function openDashboardReferenceFiles(taskId) {
+    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+    const modalEl = ensureReferenceFilesModal();
+    const listEl = modalEl.querySelector('#referenceFilesList');
+    listEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+    fetch((appUrl ? appUrl : '') + '/task/' + taskId, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(res => {
+            // Support {data:{...}} or direct payload
+            const payload = res && (res.data || res);
+            let referenceFiles = payload && payload.reference_files;
+
+            if (typeof referenceFiles === 'string') {
+                try {
+                    referenceFiles = JSON.parse(referenceFiles);
+                } catch (e) {
+                    referenceFiles = referenceFiles.includes('[') ? [] : referenceFiles.split(',').map(s => s.trim()).filter(Boolean);
+                }
+            }
+
+            listEl.innerHTML = '';
+            if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
+                referenceFiles.forEach(fileName => {
+                    if (!fileName) return;
+                    const a = document.createElement('a');
+                    a.href = (appUrl ? appUrl : '') + '/file/task_reference_files/' + fileName;
+                    a.target = '_blank';
+                    a.className = 'd-block text-decoration-none mb-1';
+                    a.innerHTML = '<span class="material-symbols-outlined me-1" style="font-size:16px;vertical-align:middle;">description</span> ' + fileName;
+                    listEl.appendChild(a);
+                });
+            } else {
+                listEl.textContent = 'No reference files available.';
+            }
+        })
+        .catch(() => {
+            listEl.innerHTML = '<div class="alert alert-danger">Failed to load reference files.</div>';
+        })
+        .finally(() => {
+            const modal = (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
+                ? bootstrap.Modal.getOrCreateInstance(modalEl)
+                : new bootstrap.Modal(modalEl);
+            modal.show();
+        });
+}
 
 function openDashboardTaskFeedback(taskId) {
     const modalEl = document.getElementById('taskFeedbackModal');
@@ -292,7 +370,7 @@ function showDashboardAddFeedbackForm(taskId) {
             <input type="hidden" name="employee_id" value="${modalEl.dataset.employeeId || ''}">
 
             <div class="mb-3">
-                <label class="form-label">Upload Image</label>
+                <div class="title-label-image">Upload Image</div>
                 <div class="image-upload-container">
                     <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
                         style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
@@ -303,17 +381,17 @@ function showDashboardAddFeedbackForm(taskId) {
             </div>
 
             <div class="mb-3">
-                <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
                 <textarea class="form-control input-text" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
             </div>
 
             <div class="mb-3">
-                <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                <label for="reference_url" class="form-label label-custom">Reference URL (Optional)</label>
                 <input type="url" class="form-control input-text" id="reference_url" name="reference_url" placeholder="https://example.com">
             </div>
 
             <div class="mb-3">
-                <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                <label for="reference_file" class="form-label label-custom">Reference File (Optional)</label>
                 <input type="file" class="form-control input-text" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
             </div>
         </form>`;

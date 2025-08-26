@@ -2179,42 +2179,44 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     url: appUrl + "/task/" + taskId,
                     type: "GET",
                     dataType: "json",
-                    success: function (data) {
-                        const referenceFiles = data.reference_files;
-                        const referenceFilesList =
-                            document.getElementById("referenceFilesList");
-                        if (!referenceFilesList) return;
+                    success: function (res) {
+                        // Support both { status, data: {...} } and direct payloads
+                        const payload = res && (res.data || res);
+                        let referenceFiles = payload && payload.reference_files;
 
-                        // Clear previous content
+                        // If backend sends a JSON string, parse it
+                        if (typeof referenceFiles === 'string') {
+                            try {
+                                referenceFiles = JSON.parse(referenceFiles);
+                            } catch (e) {
+                                // fallback: treat as single filename or comma-separated
+                                referenceFiles = referenceFiles.includes('[') ? [] : referenceFiles.split(',').map(s => s.trim()).filter(Boolean);
+                            }
+                        }
+
+                        const referenceFilesList = document.getElementById("referenceFilesList");
+                        if (!referenceFilesList) return;
                         referenceFilesList.innerHTML = "";
 
-                        if (
-                            referenceFiles &&
-                            Array.isArray(referenceFiles) &&
-                            referenceFiles.length > 0
-                        ) {
+                        if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
                             referenceFiles.forEach((fileName) => {
+                                if (!fileName) return;
                                 const link = document.createElement("a");
-                                link.href =
-                                    appUrl +
-                                    "/file/task_reference_files/" +
-                                    fileName;
+                                link.href = appUrl + "/file/task_reference_files/" + fileName;
                                 link.target = "_blank";
-                                link.className =
-                                    "d-block text-decoration-none mb-1";
+                                link.className = "d-block text-decoration-none mb-1";
                                 link.innerHTML = `<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ${fileName}`;
                                 referenceFilesList.appendChild(link);
                             });
                         } else {
-                            referenceFilesList.textContent =
-                                "No reference files available.";
+                            referenceFilesList.textContent = "No reference files available.";
                         }
 
-                        // Show the modal
-                        const referenceFilesModal = new bootstrap.Modal(
-                            document.getElementById("referenceFilesModal")
-                        );
-                        referenceFilesModal.show();
+                        const modalEl = document.getElementById("referenceFilesModal");
+                        if (modalEl) {
+                            const referenceFilesModal = new bootstrap.Modal(modalEl);
+                            referenceFilesModal.show();
+                        }
                     },
                     error: function () {
                         alert("Failed to load reference files.");
@@ -2238,8 +2240,27 @@ function handleTaskDetail(taskId) {
 
             const data = res.data;
 
-            // Gambar task
-            $("#taskDetailImage").attr("src", data.image);
+            // Gambar task (normalize URL + fallback)
+            (function() {
+                const imgEl = document.getElementById('taskDetailImage');
+                if (!imgEl) return;
+                const placeholder = appUrl + '/asset/img/background/add-image.png';
+                let imgUrl = data.image || '';
+                if (!imgUrl) {
+                    imgEl.src = placeholder;
+                } else {
+                    const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                    const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
+                    const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+                    if (!isAbsolute && !isFileTask && !isPublicPath) {
+                        imgUrl = appUrl + '/file/task/' + imgUrl;
+                    } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                        imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                    }
+                    imgEl.onerror = function() { this.onerror = null; this.src = placeholder; };
+                    imgEl.src = imgUrl;
+                }
+            })();
 
             // Judul & Deskripsi
             $("#taskDetailTitle").text(data.title || "");
@@ -2304,86 +2325,7 @@ function handleTaskDetail(taskId) {
     });
 }
 
-    // Function to handle task edit
-    function handleTaskEdit(taskId) {
-        $.ajax({
-            url: appUrl + "/task/" + taskId + "/edit",
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                // Load projects first, then populate form
-                loadProjectsForEdit(function () {
-                    // Populate edit modal form fields
-                    $("#edit_task_id").val(data.id);
-                    $("#edit_task_title").val(data.title);
-                    $("#edit_task_description").val(data.description);
-                    $("#edit_task_project_id").val(data.project_id);
-                    $("#edit_task_point").val(data.point);
-                    $("#edit_task_priority").val(data.priority);
-                    $("#edit_task_reference_url").val(data.reference_url);
-                    $("#edit_task_start_date").val(data.start_date);
-                    $("#edit_task_due_date").val(data.due_date);
-
-                    // Reset image preview
-                    if (data.image) {
-                        $("#editTaskImageLabel").css(
-                            "background-image",
-                            "url(" + appUrl + "/file/task/" + data.image + ")"
-                        );
-                        $("#editTaskImageLabel").addClass("has-image");
-                        $("#editTaskImageLabel").css(
-                            "background-size",
-                            "cover"
-                        );
-                        $("#editTaskImageLabel").css("opacity", "1");
-                        $("#editTaskImageClearBtn").removeClass("d-none");
-                    } else {
-                        $("#editTaskImageLabel").css(
-                            "background-image",
-                            "url('" +
-                                appUrl +
-                                "/asset/img/background/add-image.png')"
-                        );
-                        $("#editTaskImageLabel").removeClass("has-image");
-                        $("#editTaskImageLabel").css("opacity", "0.5");
-                        $("#editTaskImageClearBtn").addClass("d-none");
-                    }
-
-                    // Clear file input for reference files
-                    $("#edit_task_reference_files").val("");
-
-                    // Display existing reference files
-                    if (data.reference_files) {
-                        window.displayExistingReferenceFiles(
-                            data.reference_files
-                        );
-                    }
-
-                    // Set executors
-                    if (data.executors) {
-                        var executors = data.executors.map(function (ex) {
-                            return {
-                                id: ex.id,
-                                name: ex.name,
-                                user_photo: ex.user_photo || null,
-                            };
-                        });
-                        window.setSelectedExecutorsEdit &&
-                            window.setSelectedExecutorsEdit(executors);
-                    }
-
-                    // Show edit modal
-                    const editTaskModal = new bootstrap.Modal(
-                        document.getElementById("editTaskModal")
-                    );
-                    editTaskModal.show();
-                });
-            },
-            error: function () {
-                alert("Failed to load task data for editing.");
-            },
-        });
-    }
+    // Function to handle task edit (removed old implementation)
 
     // Function to load projects for edit modal
     function loadProjectsForEdit(callback) {
@@ -2772,6 +2714,119 @@ function handleTaskDetail(taskId) {
             });
     }
 
+    // Open and populate Edit Task Modal
+    function handleTaskEdit(taskId) {
+        const modalEl = document.getElementById("editTaskModal");
+        if (!modalEl) {
+            if (typeof showFloatingAlert === 'function') showFloatingAlert('Edit modal not found.', 'danger');
+            return;
+        }
+        const form = document.getElementById("editTaskForm");
+        form && form.reset();
+        const idInput = document.getElementById("edit_task_id");
+        if (idInput) idInput.value = taskId;
+
+        const loader = document.getElementById("editTaskModalLoader");
+        if (loader) loader.classList.remove("d-none");
+
+        // Open modal immediately to show loader
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+    $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const t = res.data || {};
+
+                // Basic fields
+                const titleEl = document.getElementById("edit_task_title");
+                const descEl = document.getElementById("edit_task_description");
+                if (titleEl) titleEl.value = t.title || "";
+                if (descEl) descEl.value = t.description || "";
+
+                // Project select: load options first, then set value
+                const projSel = document.getElementById("edit_task_project_id");
+                if (projSel && typeof loadProjectsForEdit === 'function') {
+                    const projectId = (t.project_id != null) ? t.project_id : (t.project && t.project.id != null ? t.project.id : '');
+                    loadProjectsForEdit(function() {
+                        projSel.value = projectId != null ? String(projectId) : '';
+                    });
+                }
+
+                // Point, Priority
+                const pointEl = document.getElementById("edit_task_point");
+                if (pointEl) pointEl.value = t.point || 1;
+                const prioEl = document.getElementById("edit_task_priority");
+                if (prioEl) prioEl.value = (t.priority || '').toUpperCase();
+
+                // Reference URL
+                const refUrlEl = document.getElementById("edit_task_reference_url");
+                if (refUrlEl) refUrlEl.value = t.reference_url || '';
+
+                // Dates
+                const startEl = document.getElementById("edit_task_start_date");
+                const dueEl = document.getElementById("edit_task_due_date");
+                if (startEl) startEl.value = (t.start_date || '').slice(0, 10);
+                if (dueEl) dueEl.value = (t.due_date || '').slice(0, 10);
+
+                // Image label preview
+                const imgLabel = document.getElementById("editTaskImageLabel");
+                const clearBtn = document.getElementById("editTaskImageClearBtn");
+                if (imgLabel) {
+                    if (t.image) {
+                        // Normalize image URL: accept absolute URL or existing /file/task path; else prefix
+                        let imgUrl = t.image;
+                        if (typeof imgUrl === 'string') {
+                            const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                            const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
+                            const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+                            if (!isAbsolute && !isFileTask && !isPublicPath) {
+                                imgUrl = appUrl + '/file/task/' + imgUrl;
+                            } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                                // Ensure leading slash and appUrl prefix
+                                imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                            }
+                        }
+                        imgLabel.style.backgroundImage = `url('${imgUrl}')`;
+                        imgLabel.classList.add('has-image');
+                        imgLabel.style.backgroundSize = 'cover';
+                        imgLabel.style.opacity = '1';
+                        clearBtn && clearBtn.classList.remove('d-none');
+                    } else {
+                        imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                        imgLabel.classList.remove('has-image');
+                        imgLabel.style.opacity = '0.5';
+                        clearBtn && clearBtn.classList.add('d-none');
+                    }
+                }
+
+                // Executors
+                if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
+                    window.setSelectedExecutorsEdit(t.executors.map(e => ({ id: e.id, name: e.name, user_photo: e.user_photo || e.photo || e.image || '' })));
+                }
+
+                // Existing reference files
+                let refFiles = t.reference_files;
+                if (typeof refFiles === 'string') {
+                    try { refFiles = JSON.parse(refFiles); }
+                    catch (e) { refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean); }
+                }
+                if (typeof window.displayExistingReferenceFiles === 'function') {
+                    window.displayExistingReferenceFiles(Array.isArray(refFiles) ? refFiles : []);
+                }
+
+                // Fields populated; loader will be hidden in complete
+            },
+            error: function () {
+                showFloatingAlert('Failed to load task data.', 'danger');
+            },
+            complete: function () {
+                if (loader) loader.classList.add('d-none');
+            }
+        });
+    }
     // Fetch and render tasks on page load
     fetchAndRenderTasks();
 

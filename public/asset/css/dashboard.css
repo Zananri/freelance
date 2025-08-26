@@ -817,6 +817,19 @@
     color: rgb(103, 111, 122);
 }
 
+/* Task modal visual parity (copied from task.css) */
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 24px;
+    background: #f7f7f8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.modal-body-custom {
+    padding: 0;
+}
+
 .modal-footer-custom {
     border: 0;
     justify-content: center;
@@ -1227,4 +1240,54 @@
     font-family: inherit;
     line-height: 1.5;
     margin-top: 8px;
+}
+
+/* Task form control parity */
+.label-custom {
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.form-control {
+    font-size: 14px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:not(textarea) {
+    height: 45px !important;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-select {
+    font-size: 14px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    height: 45px !important;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s ease;
+}
+
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.input-text {
+    width: 100%;
+}
+
+#referenceFilesModalLabel {
+    font-weight: 300;
+    font-size: 28px;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: rgb(103, 111, 122);
 }
