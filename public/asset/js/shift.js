@@ -259,13 +259,26 @@ function setAddShiftModal(btn) {
     const addShiftModalEl = document.getElementById("addShiftModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
 
-    addShiftModal.getElementById("addEmployeeId").value = btn.dataset.employeeId;
-    addShiftModal.getElementById("addDateShift").value = btn.dataset.date;
-    addShiftModal.querySelector("#editEmployeePicture").src =
+    addShiftModalEl.querySelector("#addEmployeeId").value = btn.dataset.employeeId;
+    addShiftModalEl.querySelector("#addEmployeePicture").src =
         btn.dataset.employeePicture;
 
-    addShiftModal.getElementById("addTimeStart").value = "";
-    addShiftModal.("addTimeEnd").value = "";
+    addShiftModalEl.querySelector("#addTimeStart").value = "";
+    addShiftModalEl.querySelector("#addTimeEnd").value = "";
+
+    let rawDate = btn.dataset.date;
+    if (rawDate) {
+        const dateObj = new Date(rawDate);
+        const formattedDate = dateObj.toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+            day: "numeric",
+        });
+
+        addShiftModalEl.querySelector("#addDateShiftDisplayText").textContent =
+            formattedDate;
+        addShiftModalEl.querySelector("#addDateShift").value = rawDate;
+    }
 
     addShiftModal.show();
 }
@@ -304,9 +317,6 @@ function setEditShiftModal(btn) {
             formattedDate;
         shiftModalEl.querySelector("#editDateShift").value = rawDate;
     }
-
-    shiftModalEl.querySelector("#editEmployeePicture").src =
-        btn.dataset.employeePicture;
 
     shiftModal.show();
 }

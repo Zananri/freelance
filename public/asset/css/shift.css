@@ -477,3 +477,8 @@
 .d-flex.gap-3 {
     gap: 1rem;
 }
+
+.text-shift-display {
+    color: #737681;
+    font-size: 14px;
+}
