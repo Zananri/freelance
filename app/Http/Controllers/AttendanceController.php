@@ -271,6 +271,46 @@ if ($request->hasFile('image')) {
                 }
             }
 
+            // Auto-create per-date EmployeeShift on first check-in if none exists, using base shift
+            try {
+                if ($validated['type_attendance'] === 'check_in') {
+                    // Only create if there's no per-date shift yet for this employee and date
+                    $existingPerDate = EmployeeShift::where('employee_id', $validated['employee_id'])
+                        ->where('date_shift', $validated['date_attendance'])
+                        ->first();
+
+                    if (!$existingPerDate) {
+                        // Get employee base shift_id
+                        $empForShift = Employee::select('id', 'shift_id')->find($validated['employee_id']);
+                        if ($empForShift && $empForShift->shift_id) {
+                            // Create or update per-date shift with base shift
+                            EmployeeShift::updateOrCreate(
+                                [
+                                    'employee_id' => $empForShift->id,
+                                    'date_shift' => $validated['date_attendance'],
+                                ],
+                                [
+                                    'shift_id' => $empForShift->shift_id,
+                                ]
+                            );
+
+                            \Log::info('Auto-created per-date EmployeeShift from base shift on check-in', [
+                                'employee_id' => $empForShift->id,
+                                'date_shift' => $validated['date_attendance'],
+                                'shift_id' => $empForShift->shift_id,
+                            ]);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // Do not fail attendance on shift creation issues; log and continue
+                \Log::warning('Failed to auto-create per-date EmployeeShift on check-in', [
+                    'employee_id' => $validated['employee_id'] ?? null,
+                    'date_shift' => $validated['date_attendance'] ?? null,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             DB::commit();
 
             return response()->json([
