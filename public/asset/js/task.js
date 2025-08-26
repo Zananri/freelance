@@ -978,7 +978,6 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     // FIXED: Proper icon logic based on current status
     let iconHtml = '';
-    console.log(task);
 
     if (task.status !== 'completed') {
         if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
@@ -1093,71 +1092,78 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     window.toggleDescription = toggleDescription;
 
     // Function to fetch and render tasks
+    let allTasksCache = null; // simpen semua data task
+
     function fetchAndRenderTasks() {
         $.ajax({
             url: appUrl + "/task/index",
             type: "GET",
             dataType: "json",
             success: function (response) {
-                console.log("DEBUG: Received task data from backend:", response);
-
                 if (!response || response.code !== 200 || !response.data) {
                     console.error("Invalid response data format");
                     return;
                 }
 
-                const data = response.data;
-
-                // Clear existing task lists
-                document.getElementById("new-request-tasks").innerHTML = "";
-                document.getElementById("in-progress-tasks").innerHTML = "";
-                document.getElementById("completed-tasks").innerHTML = "";
-
-                // Use empty arrays if any category missing
-                const newRequestTasks = Array.isArray(data.new_request) ? data.new_request : [];
-                const inProgressTasks = Array.isArray(data.in_progress) ? data.in_progress : [];
-                const completedTasks = Array.isArray(data.completed) ? data.completed : [];
-                const rejectedTasks = Array.isArray(data.rejected) ? data.rejected : [];
-
-                // Render tasks in respective sections
-                newRequestTasks.forEach(task => {
-                    document.getElementById("new-request-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-
-                inProgressTasks.forEach(task => {
-                    document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-
-                completedTasks.forEach(task => {
-                    document.getElementById("completed-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-
-                // Render rejected tasks in in-progress section with badge
-                rejectedTasks.forEach(task => {
-                    document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-
-                // Setup event listeners after rendering
-                setupTaskDropdownListeners();
-                addAttachFileIconListeners();
-
-                // Initialize Bootstrap tooltips
-                setTimeout(() => {
-                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    tooltipTriggerList.map(function (tooltipTriggerEl) {
-                        return new bootstrap.Tooltip(tooltipTriggerEl);
-                    });
-                }, 100);
+                allTasksCache = response.data; // simpen data asli
+                renderTasks(allTasksCache);
             },
             error: function (xhr, status, error) {
                 console.error("Error fetching tasks:", error);
-                const taskContainer = document.getElementById("task-cards-container");
-                if (taskContainer) {
-                    taskContainer.innerHTML = '<div class="alert alert-danger">Failed to load tasks. Please refresh the page.</div>';
-                }
             }
         });
     }
+
+    function renderTasks(data, query = "") {
+        // Clear section
+        document.getElementById("new-request-tasks").innerHTML = "";
+        document.getElementById("in-progress-tasks").innerHTML = "";
+        document.getElementById("completed-tasks").innerHTML = "";
+
+        // Function filter by query
+        const filterTasks = (tasks) => {
+            if (!Array.isArray(tasks)) return [];
+            if (!query) return tasks;
+            return tasks.filter(task =>
+                JSON.stringify(task).toLowerCase().includes(query.toLowerCase())
+            );
+        };
+
+        // Filter + render
+        filterTasks(data.new_request).forEach(task => {
+            document.getElementById("new-request-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
+        });
+
+        filterTasks(data.in_progress).forEach(task => {
+            document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
+        });
+
+        filterTasks(data.completed).forEach(task => {
+            document.getElementById("completed-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
+        });
+
+        filterTasks(data.rejected).forEach(task => {
+            document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
+        });
+    }
+
+    function initTaskFilter() {
+        const searchInput = document.getElementById("search_filter");
+        if (!searchInput) return;
+
+        searchInput.addEventListener("keyup", function () {
+            const query = this.value.trim();
+            if (allTasksCache) {
+                renderTasks(allTasksCache, query);
+            }
+        });
+    }
+
+    // init
+    $(document).ready(function () {
+        fetchAndRenderTasks(); // load awal
+        initTaskFilter();      // aktifin filter
+    });
 
     // Function to setup dropdown event listeners for task cards
     function setupTaskDropdownListeners() {
@@ -2530,7 +2536,6 @@ function handleTaskDetail(taskId) {
         input.addEventListener("change", function () {
             const files = Array.from(this.files);
             // Add debug log to check files selected
-            console.log("Files selected in edit modal:", files);
             window.editSelectedFiles = [...window.editSelectedFiles, ...files];
             displayEditSelectedFiles();
 
@@ -2661,10 +2666,6 @@ function handleTaskDetail(taskId) {
                     .appendChild(existingFilesInput);
             }
             existingFilesInput.value = JSON.stringify(files);
-            console.log(
-                "Initialized existing_reference_files_input:",
-                existingFilesInput.value
-            );
         };
 
         // Function to update existing files array
@@ -2693,10 +2694,6 @@ function handleTaskDetail(taskId) {
                     .appendChild(existingFilesInput);
             }
             existingFilesInput.value = JSON.stringify(existingFiles);
-            console.log(
-                "Updated existing_reference_files_input:",
-                existingFilesInput.value
-            );
         }
 
         // Initialize
@@ -3251,85 +3248,85 @@ $(document).on("click", "#openTaskFilterBtnMobile", function () {
     }
 
     function renderTimeline(targetHeaderSelector, targetRowsSelector, month, year) {
-    const headerRow = document.querySelector(targetHeaderSelector);
-    const rowsContainer = document.querySelector(targetRowsSelector);
-    if (!headerRow || !rowsContainer) return;
+        const headerRow = document.querySelector(targetHeaderSelector);
+        const rowsContainer = document.querySelector(targetRowsSelector);
+        if (!headerRow || !rowsContainer) return;
 
-    headerRow.innerHTML = "";
-    rowsContainer.innerHTML = "";
+        headerRow.innerHTML = "";
+        rowsContainer.innerHTML = "";
 
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const headerLabels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const headerLabels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-    // Header
-    headerLabels.forEach((day) => {
-        const th = document.createElement("th");
-        th.textContent = day;
-        th.classList.add("timeline-cell");                 // << wajib
-        if (new Date(year, month, day).getDay() === 0) {
-        th.classList.add("sunday");                      // << jadi match .timeline-cell.sunday
-        }
-        headerRow.appendChild(th);
-    });
+        // Header
+        headerLabels.forEach((day) => {
+            const th = document.createElement("th");
+            th.textContent = day;
+            th.classList.add("timeline-cell");                 // << wajib
+            if (new Date(year, month, day).getDay() === 0) {
+            th.classList.add("sunday");                      // << jadi match .timeline-cell.sunday
+            }
+            headerRow.appendChild(th);
+        });
 
-    // Rows (tasks) – build from cache for the requested month
-    const monthRows = (timelineTasksCache || []).map((t, idx) => {
-        const name = t.title || t.name || ('Task ' + (t.id || idx+1));
-        const color = colorForStatus(t, idx);
-        const start = parseDateLoose(t.start_date);
-        const due = parseDateLoose(t.due_date) || start || new Date(year, month, 1);
-        return { name, start, due, color };
-    }).filter(x => x.start || x.due);
+        // Rows (tasks) – build from cache for the requested month
+        const monthRows = (timelineTasksCache || []).map((t, idx) => {
+            const name = t.title || t.name || ('Task ' + (t.id || idx+1));
+            const color = colorForStatus(t, idx);
+            const start = parseDateLoose(t.start_date);
+            const due = parseDateLoose(t.due_date) || start || new Date(year, month, 1);
+            return { name, start, due, color };
+        }).filter(x => x.start || x.due);
 
-    let rendered = 0;
-    monthRows.forEach((task) => {
-        const tr = document.createElement("tr");
+        let rendered = 0;
+        monthRows.forEach((task) => {
+            const tr = document.createElement("tr");
 
-        // Visible month window
-        const monthStart = new Date(year, month, 1, 0, 0, 0, 0);
-        const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59, 999);
+            // Visible month window
+            const monthStart = new Date(year, month, 1, 0, 0, 0, 0);
+            const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59, 999);
 
-        // Task span (prefer start..due, fallback to single-day when one side missing)
-        const s = task.start ? new Date(task.start) : (task.due ? new Date(task.due) : null);
-        const e = task.due ? new Date(task.due) : (task.start ? new Date(task.start) : null);
-        if (!s || !e) return; // nothing to render
+            // Task span (prefer start..due, fallback to single-day when one side missing)
+            const s = task.start ? new Date(task.start) : (task.due ? new Date(task.due) : null);
+            const e = task.due ? new Date(task.due) : (task.start ? new Date(task.start) : null);
+            if (!s || !e) return; // nothing to render
 
-        // If the task is completely outside this month, skip
-        if (e < monthStart || s > monthEnd) return;
+            // If the task is completely outside this month, skip
+            if (e < monthStart || s > monthEnd) return;
 
-        // Clamp to month window so bars end exactly at due_date and not beyond
-        const clampedStart = new Date(Math.max(s.getTime(), monthStart.getTime()));
-        const clampedEnd = new Date(Math.min(e.getTime(), monthEnd.getTime()));
+            // Clamp to month window so bars end exactly at due_date and not beyond
+            const clampedStart = new Date(Math.max(s.getTime(), monthStart.getTime()));
+            const clampedEnd = new Date(Math.min(e.getTime(), monthEnd.getTime()));
 
-        let startDay = clampedStart.getDate();
-        let endDay = clampedEnd.getDate();
-        if (endDay < startDay) endDay = startDay; // safety
+            let startDay = clampedStart.getDate();
+            let endDay = clampedEnd.getDate();
+            if (endDay < startDay) endDay = startDay; // safety
 
-        // Empty cells before the bar
-        for (let i = 1; i < startDay; i++) {
-            const td = document.createElement("td");
-            td.classList.add("timeline-cell");
-            if (new Date(year, month, i).getDay() === 0) td.classList.add("sunday");
-            tr.appendChild(td);
-        }
+            // Empty cells before the bar
+            for (let i = 1; i < startDay; i++) {
+                const td = document.createElement("td");
+                td.classList.add("timeline-cell");
+                if (new Date(year, month, i).getDay() === 0) td.classList.add("sunday");
+                tr.appendChild(td);
+            }
 
-        // Bar cell spanning the exact number of days
-        const barTd = document.createElement("td");
-        barTd.colSpan = endDay - startDay + 1;
-        barTd.classList.add("timeline-cell");
-        barTd.innerHTML = `<div class="timeline-bar ${task.color}"><span class="circle"></span>${task.name}</div>`;
-        tr.appendChild(barTd);
+            // Bar cell spanning the exact number of days
+            const barTd = document.createElement("td");
+            barTd.colSpan = endDay - startDay + 1;
+            barTd.classList.add("timeline-cell");
+            barTd.innerHTML = `<div class="timeline-bar ${task.color}"><span class="circle"></span>${task.name}</div>`;
+            tr.appendChild(barTd);
 
-        // Empty cells after the bar
-        for (let i = endDay + 1; i <= daysInMonth; i++) {
-            const td = document.createElement("td");
-            td.classList.add("timeline-cell");
-            if (new Date(year, month, i).getDay() === 0) td.classList.add("sunday");
-            tr.appendChild(td);
-        }
+            // Empty cells after the bar
+            for (let i = endDay + 1; i <= daysInMonth; i++) {
+                const td = document.createElement("td");
+                td.classList.add("timeline-cell");
+                if (new Date(year, month, i).getDay() === 0) td.classList.add("sunday");
+                tr.appendChild(td);
+            }
 
-        rowsContainer.appendChild(tr);
-        rendered++;
+            rowsContainer.appendChild(tr);
+            rendered++;
     });
 
     // Ensure consistent modal/table height by padding with empty rows

@@ -219,9 +219,7 @@ function createShiftCell(employee, shift, dateKey) {
                         data-date="${dateKey}"
                         data-start="${shift?.time_start || ""}"
                         data-end="${shift?.time_end || ""}">
-                    <span class="material-symbols-outlined">${
-                        "edit"
-                    }</span>
+                    <span class="material-symbols-outlined">${"edit"}</span>
                 </button>
             </div>
         </div>
@@ -257,12 +255,28 @@ function setEditEmployeeModal(btn) {
     employeeModal.show();
 }
 
+function setAddShiftModal(btn) {
+    const addShiftModalEl = document.getElementById("addShiftModal");
+    const addShiftModal = new bootstrap.Modal(addShiftModalEl);
+
+    addShiftModal.getElementById("addEmployeeId").value = btn.dataset.employeeId;
+    addShiftModal.getElementById("addDateShift").value = btn.dataset.date;
+    addShiftModal.querySelector("#editEmployeePicture").src =
+        btn.dataset.employeePicture;
+
+    addShiftModal.getElementById("addTimeStart").value = "";
+    addShiftModal.("addTimeEnd").value = "";
+
+    addShiftModal.show();
+}
+
 function setEditShiftModal(btn) {
     const shiftModalEl = document.getElementById("editShiftModal");
     const shiftModal = new bootstrap.Modal(shiftModalEl);
 
     shiftModalEl.querySelector("#editShiftId").value = btn.dataset.shiftId;
-    shiftModalEl.querySelector("#editEmployeeId").value = btn.dataset.employeeId;
+    shiftModalEl.querySelector("#editEmployeeId").value =
+        btn.dataset.employeeId;
     shiftModalEl.querySelector("#editShiftEmployeeName").textContent =
         btn.dataset.employeeName;
     shiftModalEl.querySelector("#editEmployeePicture").src =
@@ -295,19 +309,6 @@ function setEditShiftModal(btn) {
         btn.dataset.employeePicture;
 
     shiftModal.show();
-}
-
-function setAddShiftModal(btn) {
-    const addShiftModalEl = document.getElementById("addShiftModal");
-    const addShiftModal = new bootstrap.Modal(addShiftModalEl);
-
-    document.getElementById("addEmployeeId").value = btn.dataset.employeeId;
-    document.getElementById("addDateShift").value = btn.dataset.date;
-
-    document.getElementById("addTimeStart").value = "";
-    document.getElementById("addTimeEnd").value = "";
-
-    addShiftModal.show();
 }
 
 function shiftConfigModal(btn) {
@@ -445,12 +446,12 @@ async function saveNewShift() {
                 document.getElementById("addShiftModal")
             );
             modal.hide();
-            
+
             // Reset form
             form.reset();
-            
+
             showFloatingAlert("Shift created successfully", "success");
-            
+
             // Optionally reload data or update UI
             loadEmployeeData();
         } else {
@@ -660,7 +661,7 @@ async function saveShiftChanges() {
 
     // Get selected shift from dropdown (you may need to implement this)
     const selectedShiftId = getSelectedShiftId(); // This function needs to be implemented
-    
+
     if (!selectedShiftId) {
         alert("Please select a shift");
         return;

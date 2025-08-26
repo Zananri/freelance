@@ -22,12 +22,6 @@
     <div class="d-flex justify-content-between align-items-center mb-4 mt-1 header-task-container">
         <div class="title-content">
             <h2>Task</h2>
-            <div class="project-filter-display" id="projectFilterDisplay" style="display: none;">
-                <span class="filter-text">Filter
-                    <span class="material-symbols-outlined">chevron_right</span>
-                </span>
-                <span class="project-name" id="currentProjectName"></span>
-            </div>
         </div>
 
         <div class="d-flex align-items-center gap-2">
