@@ -25,6 +25,7 @@ async function loadEmployeeData() {
         }
 
         const data = await response.json();
+        console.log(data);
 
         if (data.success && data.data) {
             employees = data.data;
@@ -205,7 +206,9 @@ function createShiftCell(employee, shift, dateKey) {
     td.innerHTML = `
         <div class="shift-wrapper">
             <span class="shift-text">${
-                shift ? `${start || "??"}  ${end || "??"}` : ""
+                shift
+                    ? `<div>${start || "??"}</div><div>${end || "??"}</div>`
+                    : ""
             }</span>
             <div class="overlay-edit">
                 <button class="btn-edit-shift"
@@ -219,7 +222,7 @@ function createShiftCell(employee, shift, dateKey) {
                         data-date="${dateKey}"
                         data-start="${shift?.time_start || ""}"
                         data-end="${shift?.time_end || ""}">
-                    <span class="material-symbols-outlined">${"edit"}</span>
+                    <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
         </div>
@@ -247,7 +250,7 @@ function setEditEmployeeModal(btn) {
     employeeModalEl.querySelector("#editShiftId").value = "";
     employeeModalEl.querySelector("#editEmployeeId").value =
         btn.dataset.employeeId;
-    employeeModalEl.querySelector("#editEmployeeName").value =
+    employeeModalEl.querySelector("#editEmployeeName").textContent =
         btn.dataset.employeeName;
     employeeModalEl.querySelector("#editEmployeePicture").src =
         btn.dataset.employeePicture;
@@ -259,13 +262,13 @@ function setAddShiftModal(btn) {
     const addShiftModalEl = document.getElementById("addShiftModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
 
-    addShiftModalEl.querySelector("#addEmployeeId").value = btn.dataset.employeeId;
+    // employee
+    addShiftModalEl.querySelector("#addEmployeeId").value =
+        btn.dataset.employeeId;
     addShiftModalEl.querySelector("#addEmployeePicture").src =
         btn.dataset.employeePicture;
 
-    addShiftModalEl.querySelector("#addTimeStart").value = "";
-    addShiftModalEl.querySelector("#addTimeEnd").value = "";
-
+    // date
     let rawDate = btn.dataset.date;
     if (rawDate) {
         const dateObj = new Date(rawDate);
@@ -278,6 +281,24 @@ function setAddShiftModal(btn) {
         addShiftModalEl.querySelector("#addDateShiftDisplayText").textContent =
             formattedDate;
         addShiftModalEl.querySelector("#addDateShift").value = rawDate;
+    }
+
+    // default shift data dari button (kalau ada)
+    addShiftModalEl.querySelector("#addTitleShiftDisplay").textContent =
+        btn.dataset.shiftTitle || "-";
+    addShiftModalEl.querySelector("#addTimeStartDisplay").textContent =
+        btn.dataset.timeStart || "-";
+    addShiftModalEl.querySelector("#addTimeEndDisplay").textContent =
+        btn.dataset.timeEnd || "-";
+
+    addShiftModalEl.querySelector("#addTimeStart").value =
+        btn.dataset.timeStart || "";
+    addShiftModalEl.querySelector("#addTimeEnd").value =
+        btn.dataset.timeEnd || "";
+
+    // isi dropdown dengan daftar shift
+    if (window.shifts && window.shifts.length > 0) {
+        populateShiftDropdown(window.shifts);
     }
 
     addShiftModal.show();
@@ -844,32 +865,6 @@ $(document).ready(function () {
 
         body.append(row);
     });
-});
-
-const dropdownSelected = document.getElementById("dropdownSelected");
-const dropdownList = document.getElementById("dropdownList");
-const items = document.querySelectorAll(".dropdown-item");
-
-dropdownSelected.addEventListener("click", () => {
-    dropdownList.style.display =
-        dropdownList.style.display === "block" ? "none" : "block";
-});
-
-items.forEach((item) => {
-    item.addEventListener("click", () => {
-        dropdownSelected.innerHTML = `
-      ${item.querySelector(".title").textContent}
-      <span class="time">${item.querySelector(".time").textContent}</span>
-      <span class="arrow">▼</span>
-    `;
-        dropdownList.style.display = "none";
-    });
-});
-
-document.addEventListener("click", (e) => {
-    if (!e.target.closest(".dropdown-container")) {
-        dropdownList.style.display = "none";
-    }
 });
 
 document.getElementById("search_filter").addEventListener("keyup", function () {
