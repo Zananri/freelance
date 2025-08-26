@@ -14,6 +14,7 @@ class Employee extends Model
         'department_id',
         'division_id',
         'job_id',
+        'shift_id',
         'profile_picture',
         'name',
         'email',
@@ -46,6 +47,11 @@ class Employee extends Model
     public function job()
     {
         return $this->belongsTo(Job::class);
+    }
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
     }
 
     public function createdBy()

@@ -30,4 +30,9 @@ class Shift extends Model
     {
         return $this->hasMany(EmployeeShift::class);
     }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
 }
