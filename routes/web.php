@@ -87,6 +87,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
     // Dashboard: Today tasks for current user
     Route::get('/task/dashboard/today', [TaskController::class, 'getDashboardTasksToday'])->name('task.dashboard.today');
+    // Dashboard: Tomorrow tasks for current user
+    Route::get('/task/dashboard/tomorrow', [TaskController::class, 'getDashboardTasksTomorrow'])->name('task.dashboard.tomorrow');
 
     // Task Feedback routes
     Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');

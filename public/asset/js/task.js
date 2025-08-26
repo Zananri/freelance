@@ -1821,14 +1821,15 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         });
     }
 
-    // Function to submit task feedback form
+    // Function to submit task feedback form (Task page legacy path) – use floating alert and keep modal open
     function submitTaskFeedbackForm(form, taskId) {
-        const submitBtn = form.querySelector("button[type='submit']");
-        const originalText = submitBtn.textContent;
+        const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
 
-        submitBtn.innerHTML =
-            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
-        submitBtn.disabled = true;
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            submitBtn.disabled = true;
+        }
 
         const formData = new FormData(form);
         formData.append("task_id", taskId);
@@ -1845,45 +1846,74 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     .getAttribute("content"),
             },
             success: function (response) {
-                // Show success message
-                const alertDiv = document.createElement("div");
-                alertDiv.className =
-                    "alert alert-success alert-dismissible fade show";
-                alertDiv.innerHTML = `
-                    ${response.message || "Feedback submitted successfully!"}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
+                // Floating success alert
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || "Feedback submitted successfully!", "success");
+                }
 
-                const modalBody = document.getElementById("taskFeedbackList");
-                modalBody.prepend(alertDiv);
-
-                // Reset form and reload feedback
-                setTimeout(() => {
-                    feedbackModal.hide();
-                    loadTaskFeedbackData(taskId);
-                }, 2000);
-            },
-            error: function (xhr, status, error) {
-                const feedbackModalEl =
-                    document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(
-                    ".feedback-modal-body"
-                );
-                const alertDiv = document.createElement("div");
-                alertDiv.className =
-                    "alert alert-danger alert-dismissible fade show";
-                alertDiv.innerHTML = `
-                    ${
-                        error.message ||
-                        "Failed to submit feedback. Please try again."
+                // Switch back to list view inside the modal (keep modal open)
+                try {
+                    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                    const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
+                    if (titleEl) titleEl.textContent = 'Task Feedback';
+                    const addBtnRef = document.getElementById('addFeedbackButton');
+                    if (addBtnRef) {
+                        addBtnRef.textContent = 'Add Feedback';
+                        const freshBtn = addBtnRef.cloneNode(true);
+                        addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                        freshBtn.disabled = false;
+                        freshBtn.removeAttribute('disabled');
+                        freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                modalBody.prepend(alertDiv);
+                    loadTaskFeedbackData(taskId);
+                } catch (e) { /* noop */ }
+
+                // Update feedback count dynamically on the task card
+                $.ajax({
+                    url: appUrl + "/task-feedbacks/count/" + taskId,
+                    type: "GET",
+                    dataType: "json",
+                    success: function (countResponse) {
+                        const count = countResponse.count || 0;
+                        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                        if (taskCard) {
+                            let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
+                            if (count > 0) {
+                                if (feedbackCountSpan) {
+                                    feedbackCountSpan.textContent = count;
+                                } else {
+                                    feedbackCountSpan = document.createElement("span");
+                                    feedbackCountSpan.className = "feedback-comments-count ms-1";
+                                    feedbackCountSpan.style.color = "#555";
+                                    feedbackCountSpan.textContent = count;
+                                    const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
+                                    if (modeCommentIcon && modeCommentIcon.parentNode) {
+                                        modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
+                                    }
+                                }
+                            } else if (feedbackCountSpan) {
+                                feedbackCountSpan.remove();
+                            }
+                        }
+                    }
+                });
+            },
+            error: function (xhr) {
+                let errorMessage = "Failed to submit feedback. Please try again.";
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, "danger");
+                } else {
+                    alert(errorMessage);
+                }
             },
             complete: function () {
                 if (submitBtn) {
-                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.innerHTML = originalBtnHtml;
                     submitBtn.disabled = false;
                 }
             },
@@ -2018,16 +2048,15 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         });
     }
 
-    // Function to submit feedback form via AJAX
+    // Function to submit feedback form via AJAX (unified spinner + floating alert)
     function submitFeedbackForm(form, taskId) {
         const submitBtn =
             form.querySelector("button[type='submit']") ||
             document.getElementById("addFeedbackButton");
-        const originalBtnText = submitBtn ? submitBtn.innerHTML : "";
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
 
         if (submitBtn) {
-            submitBtn.innerHTML =
-                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             submitBtn.disabled = true;
         }
 
@@ -2045,25 +2074,31 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     .getAttribute("content"),
             },
             success: function (response) {
-                // Mark feedback as submitted
+                // mark to reload after modal closes
                 feedbackSubmitted = true;
+                // floating success alert
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || "Feedback submitted successfully!", "success");
+                }
+                // Switch back to list view inside the modal (keep modal open)
+                try {
+                    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                    const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
+                    if (titleEl) titleEl.textContent = 'Task Feedback';
+                    const addBtnRef = document.getElementById('addFeedbackButton');
+                    if (addBtnRef) {
+                        addBtnRef.textContent = 'Add Feedback';
+                        const freshBtn = addBtnRef.cloneNode(true);
+                        addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                        // ensure the new button is enabled and clickable
+                        freshBtn.disabled = false;
+                        freshBtn.removeAttribute('disabled');
+                        freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                    }
+                    loadTaskFeedbackData(taskId);
+                } catch (e) { /* noop */ }
 
-                // Show success alert
-                const feedbackModalEl =
-                    document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(
-                    ".feedback-modal-body"
-                );
-                const alertDiv = document.createElement("div");
-                alertDiv.className =
-                    "alert alert-success alert-dismissible fade show";
-                alertDiv.innerHTML = `
-                    ${response.message || "Feedback submitted successfully!"}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                modalBody.prepend(alertDiv);
-
-                // Update feedback count dynamically on task card
+                // Also try to update feedback count in-place (best-effort)
                 $.ajax({
                     url: appUrl + "/task-feedbacks/count/" + taskId,
                     type: "GET",
@@ -2071,84 +2106,43 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     success: function (countResponse) {
                         const count = countResponse.count || 0;
                         const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-                        if (taskCard) {
-                            let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
-                            if (count > 0) {
-                                if (feedbackCountSpan) {
-                                    feedbackCountSpan.textContent = count;
-                                } else {
-                                    // Create span if not exists
-                                    feedbackCountSpan = document.createElement("span");
-                                    feedbackCountSpan.className = "feedback-comments-count ms-1";
-                                    feedbackCountSpan.style.color = "#555";
-                                    feedbackCountSpan.textContent = count;
-                                    const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
-                                    if (modeCommentIcon && modeCommentIcon.parentNode) {
-                                        modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
-                                    }
-                                }
+                        if (!taskCard) return;
+                        let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
+                        if (count > 0) {
+                            if (feedbackCountSpan) {
+                                feedbackCountSpan.textContent = count;
                             } else {
-                                // Remove span if count is zero
-                                if (feedbackCountSpan) {
-                                    feedbackCountSpan.remove();
+                                feedbackCountSpan = document.createElement("span");
+                                feedbackCountSpan.className = "feedback-comments-count ms-1";
+                                feedbackCountSpan.style.color = "#555";
+                                feedbackCountSpan.textContent = count;
+                                const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
+                                if (modeCommentIcon && modeCommentIcon.parentNode) {
+                                    modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
                                 }
                             }
+                        } else if (feedbackCountSpan) {
+                            feedbackCountSpan.remove();
                         }
-                    },
-                    error: function () {
-                        console.error("Failed to update feedback count");
                     }
                 });
-
-                // Reset form and reload feedback list
-                setTimeout(() => {
-                    loadTaskFeedbackData(taskId);
-
-                    // Reset Add Feedback button text
-                    const addFeedbackButton =
-                        document.getElementById("addFeedbackButton");
-                    addFeedbackButton.textContent = "Add Feedback";
-
-                    // Re-attach event listener
-                    const newButton = addFeedbackButton.cloneNode(true);
-                    addFeedbackButton.parentNode.replaceChild(
-                        newButton,
-                        addFeedbackButton
-                    );
-                    newButton.addEventListener("click", function () {
-                        showAddFeedbackForm(taskId);
-                    });
-                }, 1500);
             },
             error: function (xhr) {
-                const feedbackModalEl =
-                    document.getElementById("taskFeedbackModal");
-                const modalBody = feedbackModalEl.querySelector(
-                    ".feedback-modal-body"
-                );
-                const alertDiv = document.createElement("div");
-                alertDiv.className =
-                    "alert alert-danger alert-dismissible fade show";
-
-                let errorMessage =
-                    "Failed to submit feedback. Please try again.";
+                let errorMessage = "Failed to submit feedback. Please try again.";
                 if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMessage = Object.values(xhr.responseJSON.errors)
-                        .flat()
-                        .join("\n");
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
                 } else if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
                 }
-
-                alertDiv.innerHTML = `
-                    ${errorMessage}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                modalBody.prepend(alertDiv);
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, "danger");
+                } else {
+                    alert(errorMessage);
+                }
             },
             complete: function () {
                 if (submitBtn) {
-                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.innerHTML = originalBtnHtml;
                     submitBtn.disabled = false;
                 }
             },
@@ -2185,42 +2179,44 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     url: appUrl + "/task/" + taskId,
                     type: "GET",
                     dataType: "json",
-                    success: function (data) {
-                        const referenceFiles = data.reference_files;
-                        const referenceFilesList =
-                            document.getElementById("referenceFilesList");
-                        if (!referenceFilesList) return;
+                    success: function (res) {
+                        // Support both { status, data: {...} } and direct payloads
+                        const payload = res && (res.data || res);
+                        let referenceFiles = payload && payload.reference_files;
 
-                        // Clear previous content
+                        // If backend sends a JSON string, parse it
+                        if (typeof referenceFiles === 'string') {
+                            try {
+                                referenceFiles = JSON.parse(referenceFiles);
+                            } catch (e) {
+                                // fallback: treat as single filename or comma-separated
+                                referenceFiles = referenceFiles.includes('[') ? [] : referenceFiles.split(',').map(s => s.trim()).filter(Boolean);
+                            }
+                        }
+
+                        const referenceFilesList = document.getElementById("referenceFilesList");
+                        if (!referenceFilesList) return;
                         referenceFilesList.innerHTML = "";
 
-                        if (
-                            referenceFiles &&
-                            Array.isArray(referenceFiles) &&
-                            referenceFiles.length > 0
-                        ) {
+                        if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
                             referenceFiles.forEach((fileName) => {
+                                if (!fileName) return;
                                 const link = document.createElement("a");
-                                link.href =
-                                    appUrl +
-                                    "/file/task_reference_files/" +
-                                    fileName;
+                                link.href = appUrl + "/file/task_reference_files/" + fileName;
                                 link.target = "_blank";
-                                link.className =
-                                    "d-block text-decoration-none mb-1";
+                                link.className = "d-block text-decoration-none mb-1";
                                 link.innerHTML = `<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ${fileName}`;
                                 referenceFilesList.appendChild(link);
                             });
                         } else {
-                            referenceFilesList.textContent =
-                                "No reference files available.";
+                            referenceFilesList.textContent = "No reference files available.";
                         }
 
-                        // Show the modal
-                        const referenceFilesModal = new bootstrap.Modal(
-                            document.getElementById("referenceFilesModal")
-                        );
-                        referenceFilesModal.show();
+                        const modalEl = document.getElementById("referenceFilesModal");
+                        if (modalEl) {
+                            const referenceFilesModal = new bootstrap.Modal(modalEl);
+                            referenceFilesModal.show();
+                        }
                     },
                     error: function () {
                         alert("Failed to load reference files.");
@@ -2244,8 +2240,27 @@ function handleTaskDetail(taskId) {
 
             const data = res.data;
 
-            // Gambar task
-            $("#taskDetailImage").attr("src", data.image);
+            // Gambar task (normalize URL + fallback)
+            (function() {
+                const imgEl = document.getElementById('taskDetailImage');
+                if (!imgEl) return;
+                const placeholder = appUrl + '/asset/img/background/add-image.png';
+                let imgUrl = data.image || '';
+                if (!imgUrl) {
+                    imgEl.src = placeholder;
+                } else {
+                    const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                    const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
+                    const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+                    if (!isAbsolute && !isFileTask && !isPublicPath) {
+                        imgUrl = appUrl + '/file/task/' + imgUrl;
+                    } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                        imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                    }
+                    imgEl.onerror = function() { this.onerror = null; this.src = placeholder; };
+                    imgEl.src = imgUrl;
+                }
+            })();
 
             // Judul & Deskripsi
             $("#taskDetailTitle").text(data.title || "");
@@ -2310,86 +2325,7 @@ function handleTaskDetail(taskId) {
     });
 }
 
-    // Function to handle task edit
-    function handleTaskEdit(taskId) {
-        $.ajax({
-            url: appUrl + "/task/" + taskId + "/edit",
-            type: "GET",
-            dataType: "json",
-            success: function (data) {
-                // Load projects first, then populate form
-                loadProjectsForEdit(function () {
-                    // Populate edit modal form fields
-                    $("#edit_task_id").val(data.id);
-                    $("#edit_task_title").val(data.title);
-                    $("#edit_task_description").val(data.description);
-                    $("#edit_task_project_id").val(data.project_id);
-                    $("#edit_task_point").val(data.point);
-                    $("#edit_task_priority").val(data.priority);
-                    $("#edit_task_reference_url").val(data.reference_url);
-                    $("#edit_task_start_date").val(data.start_date);
-                    $("#edit_task_due_date").val(data.due_date);
-
-                    // Reset image preview
-                    if (data.image) {
-                        $("#editTaskImageLabel").css(
-                            "background-image",
-                            "url(" + appUrl + "/file/task/" + data.image + ")"
-                        );
-                        $("#editTaskImageLabel").addClass("has-image");
-                        $("#editTaskImageLabel").css(
-                            "background-size",
-                            "cover"
-                        );
-                        $("#editTaskImageLabel").css("opacity", "1");
-                        $("#editTaskImageClearBtn").removeClass("d-none");
-                    } else {
-                        $("#editTaskImageLabel").css(
-                            "background-image",
-                            "url('" +
-                                appUrl +
-                                "/asset/img/background/add-image.png')"
-                        );
-                        $("#editTaskImageLabel").removeClass("has-image");
-                        $("#editTaskImageLabel").css("opacity", "0.5");
-                        $("#editTaskImageClearBtn").addClass("d-none");
-                    }
-
-                    // Clear file input for reference files
-                    $("#edit_task_reference_files").val("");
-
-                    // Display existing reference files
-                    if (data.reference_files) {
-                        window.displayExistingReferenceFiles(
-                            data.reference_files
-                        );
-                    }
-
-                    // Set executors
-                    if (data.executors) {
-                        var executors = data.executors.map(function (ex) {
-                            return {
-                                id: ex.id,
-                                name: ex.name,
-                                user_photo: ex.user_photo || null,
-                            };
-                        });
-                        window.setSelectedExecutorsEdit &&
-                            window.setSelectedExecutorsEdit(executors);
-                    }
-
-                    // Show edit modal
-                    const editTaskModal = new bootstrap.Modal(
-                        document.getElementById("editTaskModal")
-                    );
-                    editTaskModal.show();
-                });
-            },
-            error: function () {
-                alert("Failed to load task data for editing.");
-            },
-        });
-    }
+    // Function to handle task edit (removed old implementation)
 
     // Function to load projects for edit modal
     function loadProjectsForEdit(callback) {
@@ -2778,6 +2714,119 @@ function handleTaskDetail(taskId) {
             });
     }
 
+    // Open and populate Edit Task Modal
+    function handleTaskEdit(taskId) {
+        const modalEl = document.getElementById("editTaskModal");
+        if (!modalEl) {
+            if (typeof showFloatingAlert === 'function') showFloatingAlert('Edit modal not found.', 'danger');
+            return;
+        }
+        const form = document.getElementById("editTaskForm");
+        form && form.reset();
+        const idInput = document.getElementById("edit_task_id");
+        if (idInput) idInput.value = taskId;
+
+        const loader = document.getElementById("editTaskModalLoader");
+        if (loader) loader.classList.remove("d-none");
+
+        // Open modal immediately to show loader
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+    $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const t = res.data || {};
+
+                // Basic fields
+                const titleEl = document.getElementById("edit_task_title");
+                const descEl = document.getElementById("edit_task_description");
+                if (titleEl) titleEl.value = t.title || "";
+                if (descEl) descEl.value = t.description || "";
+
+                // Project select: load options first, then set value
+                const projSel = document.getElementById("edit_task_project_id");
+                if (projSel && typeof loadProjectsForEdit === 'function') {
+                    const projectId = (t.project_id != null) ? t.project_id : (t.project && t.project.id != null ? t.project.id : '');
+                    loadProjectsForEdit(function() {
+                        projSel.value = projectId != null ? String(projectId) : '';
+                    });
+                }
+
+                // Point, Priority
+                const pointEl = document.getElementById("edit_task_point");
+                if (pointEl) pointEl.value = t.point || 1;
+                const prioEl = document.getElementById("edit_task_priority");
+                if (prioEl) prioEl.value = (t.priority || '').toUpperCase();
+
+                // Reference URL
+                const refUrlEl = document.getElementById("edit_task_reference_url");
+                if (refUrlEl) refUrlEl.value = t.reference_url || '';
+
+                // Dates
+                const startEl = document.getElementById("edit_task_start_date");
+                const dueEl = document.getElementById("edit_task_due_date");
+                if (startEl) startEl.value = (t.start_date || '').slice(0, 10);
+                if (dueEl) dueEl.value = (t.due_date || '').slice(0, 10);
+
+                // Image label preview
+                const imgLabel = document.getElementById("editTaskImageLabel");
+                const clearBtn = document.getElementById("editTaskImageClearBtn");
+                if (imgLabel) {
+                    if (t.image) {
+                        // Normalize image URL: accept absolute URL or existing /file/task path; else prefix
+                        let imgUrl = t.image;
+                        if (typeof imgUrl === 'string') {
+                            const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                            const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
+                            const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+                            if (!isAbsolute && !isFileTask && !isPublicPath) {
+                                imgUrl = appUrl + '/file/task/' + imgUrl;
+                            } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                                // Ensure leading slash and appUrl prefix
+                                imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                            }
+                        }
+                        imgLabel.style.backgroundImage = `url('${imgUrl}')`;
+                        imgLabel.classList.add('has-image');
+                        imgLabel.style.backgroundSize = 'cover';
+                        imgLabel.style.opacity = '1';
+                        clearBtn && clearBtn.classList.remove('d-none');
+                    } else {
+                        imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                        imgLabel.classList.remove('has-image');
+                        imgLabel.style.opacity = '0.5';
+                        clearBtn && clearBtn.classList.add('d-none');
+                    }
+                }
+
+                // Executors
+                if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
+                    window.setSelectedExecutorsEdit(t.executors.map(e => ({ id: e.id, name: e.name, user_photo: e.user_photo || e.photo || e.image || '' })));
+                }
+
+                // Existing reference files
+                let refFiles = t.reference_files;
+                if (typeof refFiles === 'string') {
+                    try { refFiles = JSON.parse(refFiles); }
+                    catch (e) { refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean); }
+                }
+                if (typeof window.displayExistingReferenceFiles === 'function') {
+                    window.displayExistingReferenceFiles(Array.isArray(refFiles) ? refFiles : []);
+                }
+
+                // Fields populated; loader will be hidden in complete
+            },
+            error: function () {
+                showFloatingAlert('Failed to load task data.', 'danger');
+            },
+            complete: function () {
+                if (loader) loader.classList.add('d-none');
+            }
+        });
+    }
     // Fetch and render tasks on page load
     fetchAndRenderTasks();
 
@@ -3150,13 +3199,56 @@ $(document).on("click", "#openTaskFilterBtnMobile", function () {
 
     const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-    // Dummy task data
-    const timelineData = [
-        { name: "Task A", start: 1, end: 4, color: "color1" },
-        { name: "Task B", start: 3, end: 8, color: "color2" },
-        { name: "Task C", start: 10, end: 15, color: "color3" },
-        { name: "Task D", start: 20, end: 29, color: "color4" },
-    ];
+    // Task timeline data cache
+    let timelineTasksCache = [];
+    const TL_COLORS = ["color1","color2","color3","color4"];
+    const appUrlTimeline = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+
+    function parseDateLoose(s) {
+        if (!s) return null;
+        const m = String(s).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function colorForStatus(t, idx) {
+        const s = (t.status || '').toLowerCase();
+        if (s.includes('completed')) return 'color2';
+        if (s.includes('in') && s.includes('progress')) return 'color3';
+        if (s.includes('reject') || s.includes('late')) return 'color4';
+        return TL_COLORS[idx % TL_COLORS.length];
+    }
+
+    async function fetchTimelineTasksOnce() {
+        if (timelineTasksCache.length) return;
+        try {
+            const r = await fetch(appUrlTimeline + '/task/index', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const j = await r.json();
+            const buckets = j && j.data ? j.data : {};
+            const flat = [];
+            Object.keys(buckets).forEach(k => {
+                const arr = buckets[k];
+                if (Array.isArray(arr)) arr.forEach(t => flat.push(t));
+            });
+            // Enrich missing dates
+            await Promise.all(flat.map(async (t) => {
+                if (t.start_date && t.due_date) return;
+                try {
+                    const rr = await fetch(appUrlTimeline + '/task/' + t.id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    const dd = await rr.json();
+                    const d = dd && (dd.data || dd);
+                    if (d) {
+                        t.start_date = t.start_date || d.start_date || d.start || d.startDate || null;
+                        t.due_date = t.due_date || d.due_date || d.end_date || d.endDate || d.due || null;
+                    }
+                } catch(_){ }
+            }));
+            timelineTasksCache = flat.filter(t => t.start_date || t.due_date);
+        } catch(_) {
+            timelineTasksCache = [];
+        }
+    }
 
     function renderTimeline(targetHeaderSelector, targetRowsSelector, month, year) {
     const headerRow = document.querySelector(targetHeaderSelector);
@@ -3180,46 +3272,88 @@ $(document).on("click", "#openTaskFilterBtnMobile", function () {
         headerRow.appendChild(th);
     });
 
-    // Rows (tasks)
-    timelineData.forEach((task) => {
+    // Rows (tasks) – build from cache for the requested month
+    const monthRows = (timelineTasksCache || []).map((t, idx) => {
+        const name = t.title || t.name || ('Task ' + (t.id || idx+1));
+        const color = colorForStatus(t, idx);
+        const start = parseDateLoose(t.start_date);
+        const due = parseDateLoose(t.due_date) || start || new Date(year, month, 1);
+        return { name, start, due, color };
+    }).filter(x => x.start || x.due);
+
+    let rendered = 0;
+    monthRows.forEach((task) => {
         const tr = document.createElement("tr");
 
-        // Kosong sebelum task
-        for (let i = 1; i < task.start; i++) {
-        const td = document.createElement("td");
-        td.classList.add("timeline-cell");               // << wajib
-        if (new Date(year, month, i).getDay() === 0) {
-            td.classList.add("sunday");
-        }
-        tr.appendChild(td);
+        // Visible month window
+        const monthStart = new Date(year, month, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59, 999);
+
+        // Task span (prefer start..due, fallback to single-day when one side missing)
+        const s = task.start ? new Date(task.start) : (task.due ? new Date(task.due) : null);
+        const e = task.due ? new Date(task.due) : (task.start ? new Date(task.start) : null);
+        if (!s || !e) return; // nothing to render
+
+        // If the task is completely outside this month, skip
+        if (e < monthStart || s > monthEnd) return;
+
+        // Clamp to month window so bars end exactly at due_date and not beyond
+        const clampedStart = new Date(Math.max(s.getTime(), monthStart.getTime()));
+        const clampedEnd = new Date(Math.min(e.getTime(), monthEnd.getTime()));
+
+        let startDay = clampedStart.getDate();
+        let endDay = clampedEnd.getDate();
+        if (endDay < startDay) endDay = startDay; // safety
+
+        // Empty cells before the bar
+        for (let i = 1; i < startDay; i++) {
+            const td = document.createElement("td");
+            td.classList.add("timeline-cell");
+            if (new Date(year, month, i).getDay() === 0) td.classList.add("sunday");
+            tr.appendChild(td);
         }
 
-        // Bar task (colspan)
+        // Bar cell spanning the exact number of days
         const barTd = document.createElement("td");
-        barTd.colSpan = task.end - task.start + 1;
-        barTd.classList.add("timeline-cell");              // biar konsisten
+        barTd.colSpan = endDay - startDay + 1;
+        barTd.classList.add("timeline-cell");
         barTd.innerHTML = `<div class="timeline-bar ${task.color}"><span class="circle"></span>${task.name}</div>`;
         tr.appendChild(barTd);
 
-        // Kosong setelah task
-        for (let i = task.end + 1; i <= daysInMonth; i++) {
-        const td = document.createElement("td");
-        td.classList.add("timeline-cell");               // << wajib
-        if (new Date(year, month, i).getDay() === 0) {
-            td.classList.add("sunday");
-        }
-        tr.appendChild(td);
+        // Empty cells after the bar
+        for (let i = endDay + 1; i <= daysInMonth; i++) {
+            const td = document.createElement("td");
+            td.classList.add("timeline-cell");
+            if (new Date(year, month, i).getDay() === 0) td.classList.add("sunday");
+            tr.appendChild(td);
         }
 
         rowsContainer.appendChild(tr);
+        rendered++;
     });
+
+    // Ensure consistent modal/table height by padding with empty rows
+    const MIN_ROWS = 6; // baseline number of rows to maintain look and feel
+    if (rendered < MIN_ROWS) {
+        for (let r = rendered; r < MIN_ROWS; r++) {
+            const tr = document.createElement("tr");
+            for (let d = 1; d <= daysInMonth; d++) {
+                const td = document.createElement("td");
+                td.classList.add("timeline-cell");
+                if (new Date(year, month, d).getDay() === 0) td.classList.add("sunday");
+                tr.appendChild(td);
+            }
+            rowsContainer.appendChild(tr);
+        }
+    }
 
     document.getElementById("timelineModalTitle").textContent = `Timeline ${months[month]} ${year}`;
     }
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");
-    timelineModal.addEventListener("show.bs.modal", () => {
+    timelineModal.addEventListener("show.bs.modal", async () => {
+        await fetchTimelineTasksOnce();
         renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
     });
 
