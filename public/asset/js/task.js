@@ -1865,6 +1865,45 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     // Function to submit task feedback form (Task page legacy path) – use floating alert and keep modal open
     function submitTaskFeedbackForm(form, taskId) {
+        // Helpers to manage feedback count badge
+        function getExistingFeedbackCount(taskId) {
+            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            const span = card ? card.querySelector('.feedback-comments-count') : null;
+            const n = span ? parseInt(span.textContent, 10) : NaN;
+            return Number.isFinite(n) ? n : 0;
+        }
+        function setFeedbackCount(taskId, count) {
+            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            if (!card) return;
+            let span = card.querySelector('.feedback-comments-count');
+            if (!span) {
+                span = document.createElement('span');
+                span.className = 'feedback-comments-count ms-1';
+                span.style.color = '#555';
+                const icon = card.querySelector('.task-icon.mode_comment');
+                if (icon && icon.parentNode) {
+                    icon.parentNode.appendChild(span);
+                } else {
+                    return; // no place to put it
+                }
+            }
+            span.textContent = String(count);
+        }
+        function optimisticIncrementFeedbackCount(taskId) {
+            const prev = getExistingFeedbackCount(taskId);
+            setFeedbackCount(taskId, Math.max(prev + 1, 1));
+        }
+        function extractCountFromResponse(resp) {
+            if (!resp) return null;
+            const candidates = [
+                resp.count,
+                resp.total,
+                resp?.data?.count,
+                resp?.data?.total,
+            ];
+            const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
+            return (typeof val === 'number') ? val : null;
+        }
         const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
         const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
 
@@ -1911,31 +1950,17 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 } catch (e) { /* noop */ }
 
                 // Update feedback count dynamically on the task card
+                // 1) Optimistic UI increment
+                optimisticIncrementFeedbackCount(taskId);
+                // 2) Reconcile with server value (if provided and > 0)
                 $.ajax({
                     url: appUrl + "/task-feedbacks/count/" + taskId,
                     type: "GET",
                     dataType: "json",
                     success: function (countResponse) {
-                        const count = countResponse.count || 0;
-                        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-                        if (taskCard) {
-                            let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
-                            if (count > 0) {
-                                if (feedbackCountSpan) {
-                                    feedbackCountSpan.textContent = count;
-                                } else {
-                                    feedbackCountSpan = document.createElement("span");
-                                    feedbackCountSpan.className = "feedback-comments-count ms-1";
-                                    feedbackCountSpan.style.color = "#555";
-                                    feedbackCountSpan.textContent = count;
-                                    const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
-                                    if (modeCommentIcon && modeCommentIcon.parentNode) {
-                                        modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
-                                    }
-                                }
-                            } else if (feedbackCountSpan) {
-                                feedbackCountSpan.remove();
-                            }
+                        const serverCount = extractCountFromResponse(countResponse);
+                        if (typeof serverCount === 'number' && serverCount > 0) {
+                            setFeedbackCount(taskId, serverCount);
                         }
                     }
                 });
@@ -2141,30 +2166,50 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 } catch (e) { /* noop */ }
 
                 // Also try to update feedback count in-place (best-effort)
+                // 1) Optimistic UI increment
+                (function () {
+                    try {
+                        const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                        if (card) {
+                            const span = card.querySelector('.feedback-comments-count');
+                            const prev = span ? parseInt(span.textContent, 10) || 0 : 0;
+                            const next = Math.max(prev + 1, 1);
+                            if (span) { span.textContent = String(next); }
+                            else {
+                                const newSpan = document.createElement('span');
+                                newSpan.className = 'feedback-comments-count ms-1';
+                                newSpan.style.color = '#555';
+                                newSpan.textContent = String(next);
+                                const icon = card.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) icon.parentNode.appendChild(newSpan);
+                            }
+                        }
+                    } catch(_) {}
+                })();
+                // 2) Reconcile with server value (if provided and > 0)
                 $.ajax({
                     url: appUrl + "/task-feedbacks/count/" + taskId,
                     type: "GET",
                     dataType: "json",
                     success: function (countResponse) {
-                        const count = countResponse.count || 0;
-                        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-                        if (!taskCard) return;
-                        let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
-                        if (count > 0) {
-                            if (feedbackCountSpan) {
-                                feedbackCountSpan.textContent = count;
-                            } else {
-                                feedbackCountSpan = document.createElement("span");
-                                feedbackCountSpan.className = "feedback-comments-count ms-1";
-                                feedbackCountSpan.style.color = "#555";
-                                feedbackCountSpan.textContent = count;
-                                const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
-                                if (modeCommentIcon && modeCommentIcon.parentNode) {
-                                    modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
-                                }
+                        const serverCount = (function (resp) {
+                            if (!resp) return null;
+                            const candidates = [resp.count, resp.total, resp?.data?.count, resp?.data?.total];
+                            const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
+                            return (typeof val === 'number') ? val : null;
+                        })(countResponse);
+                        if (typeof serverCount === 'number' && serverCount > 0) {
+                            const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                            if (!taskCard) return;
+                            let span = taskCard.querySelector('.feedback-comments-count');
+                            if (!span) {
+                                span = document.createElement('span');
+                                span.className = 'feedback-comments-count ms-1';
+                                span.style.color = '#555';
+                                const icon = taskCard.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) icon.parentNode.appendChild(span);
                             }
-                        } else if (feedbackCountSpan) {
-                            feedbackCountSpan.remove();
+                            span.textContent = String(serverCount);
                         }
                     }
                 });
