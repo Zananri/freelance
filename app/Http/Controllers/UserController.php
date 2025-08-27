@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Employee;
 use App\Models\Attendance;
+use App\Models\EmployeeShift;
 
 class UserController extends Controller
 {
@@ -124,7 +125,7 @@ class UserController extends Controller
         $photo = null;
         $employee = null;
         $attendance = null;
-        $shift = null;
+        $shift = null; // per-date shift if available
         $timeIn = null;
         $attendanceStatus = [
             'check_in' => 'pending',
@@ -139,42 +140,45 @@ class UserController extends Controller
             if ($employee) {
                 $photo = $employee->profile_picture ?? $employee->photo;
 
-                // Get today's shift
-                $shift = $employee->shifts()->where('date_shift', $today)->first();
+                // Get today's per-date shift (EmployeeShift)
+                $shift = EmployeeShift::where('employee_id', $employee->id)
+                    ->where('date_shift', $today)
+                    ->first();
 
                 // Get today's attendance records
                 $attendances = Attendance::where('employee_id', $employee->id)
                     ->where('date_attendance', $today)
                     ->orderBy('time_in', 'asc')
                     ->get();
-
-                if ($attendances->isEmpty()) {
-                    $attendanceStatus = [
-                        'check_in' => 'pending',
-                        'check_out' => 'pending'
-                    ];
-                } else {
-                    $lastAttendance = $attendances->last();
-
-                    if ($lastAttendance->type_attendance === 'check_in' && !$lastAttendance->time_out) {
-                        $attendanceStatus = [
-                            'check_in' => 'completed',
-                            'check_out' => 'pending'
-                        ];
-                    } elseif ($lastAttendance->type_attendance === 'check_out') {
-                        $attendanceStatus = [
-                            'check_in' => 'completed',
-                            'check_out' => 'completed'
-                        ];
+                // Determine attendance status similar to AttendanceController@showAttendancePage
+                $attendance = $attendances->where('type_attendance', 'check_in')->last();
+                if ($attendance) {
+                    $attendanceStatus['check_in'] = 'completed';
+                    $checkOut = Attendance::where('employee_id', $employee->id)
+                        ->where('date_attendance', $today)
+                        ->where('type_attendance', 'check_out')
+                        ->first();
+                    if ($checkOut) {
+                        $attendanceStatus['check_out'] = 'completed';
                     }
                 }
 
-                $attendance = $attendances->where('type_attendance', 'check_in')->last();
-
-                // Calculate if late
-                $timeStart = $shift ? $shift->time_start : null;
+                // Calculate if late using per-date shift or fallback to base shift (employee->shift)
+                $employee->loadMissing('shift');
+                $baseShift = $employee->shift; // may be null
                 $timeIn = $attendance ? $attendance->time_in : null;
-                $isLate = isset($timeStart, $timeIn) && !empty($timeStart) && !empty($timeIn) && strtotime($timeIn) > strtotime($timeStart);
+                $timeStart = $shift->time_start ?? ($baseShift->time_start ?? null);
+
+                if ($timeIn && $timeStart) {
+                    try {
+                        $isLate = Carbon::createFromFormat('H:i', $timeIn)
+                            ->gt(Carbon::createFromFormat('H:i', $timeStart));
+                    } catch (\Exception $e) {
+                        $isLate = strtotime($timeIn) > strtotime($timeStart);
+                    }
+                } else {
+                    $isLate = false;
+                }
             }
 
             // If photo is a relative path, convert to asset URL

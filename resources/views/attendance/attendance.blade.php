@@ -375,7 +375,7 @@
         </div>
     </div>
     <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/attendance.js') }}"></script>
+        <script src="{{ asset('asset/js/attendance.js?v=' . time()) }}"></script>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     </x-slot>
 </x-office-layout>

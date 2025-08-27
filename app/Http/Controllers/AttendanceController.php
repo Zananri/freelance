@@ -66,7 +66,9 @@ class AttendanceController extends Controller
 
         // Fetch today's attendance for the employee
         $today = Carbon::today()->toDateString();
-        $attendance = null;
+    $attendance = null;
+    $timeIn = null;
+    $isLate = false;
         $attendanceStatus = [
             'check_in' => 'pending',
             'check_out' => 'pending'
@@ -92,22 +94,25 @@ class AttendanceController extends Controller
                     $attendanceStatus['check_out'] = 'completed';
                 }
             }
-        }
 
-        // Debug log to check division data
-        \Log::info('Employee division:', ['division' => $employee ? $employee->division : null]);
-
-        if ($employee) {
-            $shift = EmployeeShift::where('employee_id', $employee->id)
+            // Determine lateness using per-date shift or fallback to base shift
+            $perDateShift = EmployeeShift::where('employee_id', $employee->id)
                 ->where('date_shift', $today)
                 ->first();
 
-            if ($attendance) {
-                $timeIn = $attendance->time_in;
-                $timeStart = $shift->time_start ?? null;
-                $isLate = isset($timeStart, $timeIn) && strtotime($timeIn) > strtotime($timeStart);
+            $baseShift = $employee->loadMissing('shift')->shift; // may be null
+
+            $timeIn = $attendance ? $attendance->time_in : null;
+            $timeStart = $perDateShift->time_start ?? ($baseShift->time_start ?? null);
+
+            if ($timeIn && $timeStart) {
+                try {
+                    $isLate = Carbon::createFromFormat('H:i', $timeIn)
+                        ->gt(Carbon::createFromFormat('H:i', $timeStart));
+                } catch (\Exception $e) {
+                    $isLate = strtotime($timeIn) > strtotime($timeStart);
+                }
             } else {
-                $timeIn = null;
                 $isLate = false;
             }
         }
@@ -174,46 +179,58 @@ if ($request->hasFile('image')) {
 }
 
 
-            // Get employee shift for validation and late calculation
+            // Get employee shift for validation and late calculation; fallback to base shift
             $employeeShift = EmployeeShift::where('employee_id', $validated['employee_id'])
                 ->where('date_shift', $validated['date_attendance'])
                 ->first();
 
+            $baseShiftObj = null;
             if (!$employeeShift) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => 'error',
-                    'data' => [],
-                    'message' => 'No shift assigned for this date'
-                ], 400);
+                $emp = Employee::with('shift')->find($validated['employee_id']);
+                if ($emp && $emp->shift) {
+                    $baseShiftObj = (object) [
+                        'time_start' => $emp->shift->time_start,
+                        'time_end' => $emp->shift->time_end,
+                    ];
+                }
             }
 
-            $shiftStartTime = Carbon::parse($employeeShift->time_start);
-            $shiftEndTime = Carbon::parse($employeeShift->time_end);
+            $shiftStartTime = null;
+            $shiftEndTime = null;
+            if ($employeeShift) {
+                $shiftStartTime = Carbon::parse($employeeShift->time_start);
+                $shiftEndTime = Carbon::parse($employeeShift->time_end);
+            } elseif ($baseShiftObj && $baseShiftObj->time_start && $baseShiftObj->time_end) {
+                $shiftStartTime = Carbon::parse($baseShiftObj->time_start);
+                $shiftEndTime = Carbon::parse($baseShiftObj->time_end);
+            }
             $checkInTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_in']);
             
-            // Handle night shift (where start time > end time)
-            if ($shiftStartTime->gt($shiftEndTime) && $checkInTime->lt($shiftStartTime)) {
-                $shiftStartTime->subDay();
-            }
-            
-            // Validasi waktu check-in: minimal 1 jam sebelum shift dimulai atau setelah shift dimulai
-            $minCheckInTime = $shiftStartTime->copy()->subHour();
-            
-            if ($checkInTime->lt($minCheckInTime)) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => 'error',
-                    'data' => [],
-                    'message' => 'Check-in not allowed. You can only check-in 1 hour before your shift starts at ' . $shiftStartTime->format('H:i')
-                ], 400);
+            // If we have shift times (from per-date or base), enforce rules; otherwise, allow check-in
+            if ($shiftStartTime && $shiftEndTime) {
+                // Handle night shift (where start time > end time)
+                if ($shiftStartTime->gt($shiftEndTime) && $checkInTime->lt($shiftStartTime)) {
+                    $shiftStartTime->subDay();
+                }
+
+                // Validasi waktu check-in: minimal 1 jam sebelum shift dimulai atau setelah shift dimulai
+                $minCheckInTime = $shiftStartTime->copy()->subHour();
+
+                if ($checkInTime->lt($minCheckInTime)) {
+                    return response()->json([
+                        'code' => 400,
+                        'status' => 'error',
+                        'data' => [],
+                        'message' => 'Check-in not allowed. You can only check-in 1 hour before your shift starts at ' . $shiftStartTime->format('H:i')
+                    ], 400);
+                }
             }
             
             // Tidak ada batasan maksimum untuk check-in setelah shift dimulai
 
             $timeLate = null;
-            // Calculate late time if check-in is after shift start
-            if ($checkInTime->gt($shiftStartTime)) {
+            // Calculate late time if we have a shift start and check-in is after shift start
+            if ($shiftStartTime && $checkInTime->gt($shiftStartTime)) {
                 $timeLate = $checkInTime->diff($shiftStartTime)->format('%H:%I');
             }
 
@@ -252,6 +269,46 @@ if ($request->hasFile('image')) {
                     $location = $latitude . ',' . $longitude;
                     $attendanceTracking->update(['location' => $location]);
                 }
+            }
+
+            // Auto-create per-date EmployeeShift on first check-in if none exists, using base shift
+            try {
+                if ($validated['type_attendance'] === 'check_in') {
+                    // Only create if there's no per-date shift yet for this employee and date
+                    $existingPerDate = EmployeeShift::where('employee_id', $validated['employee_id'])
+                        ->where('date_shift', $validated['date_attendance'])
+                        ->first();
+
+                    if (!$existingPerDate) {
+                        // Get employee base shift_id
+                        $empForShift = Employee::select('id', 'shift_id')->find($validated['employee_id']);
+                        if ($empForShift && $empForShift->shift_id) {
+                            // Create or update per-date shift with base shift
+                            EmployeeShift::updateOrCreate(
+                                [
+                                    'employee_id' => $empForShift->id,
+                                    'date_shift' => $validated['date_attendance'],
+                                ],
+                                [
+                                    'shift_id' => $empForShift->shift_id,
+                                ]
+                            );
+
+                            \Log::info('Auto-created per-date EmployeeShift from base shift on check-in', [
+                                'employee_id' => $empForShift->id,
+                                'date_shift' => $validated['date_attendance'],
+                                'shift_id' => $empForShift->shift_id,
+                            ]);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // Do not fail attendance on shift creation issues; log and continue
+                \Log::warning('Failed to auto-create per-date EmployeeShift on check-in', [
+                    'employee_id' => $validated['employee_id'] ?? null,
+                    'date_shift' => $validated['date_attendance'] ?? null,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             DB::commit();
@@ -414,12 +471,19 @@ if ($request->hasFile('image')) {
                             $attendance->shift_start = $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null;
                             $attendance->shift_end = $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null;
                         } else {
-                            $attendance->shift_start = null;
-                            $attendance->shift_end = null;
+                            // Fallback to employee base shift
+                            $emp = Employee::with('shift')->find($attendance->employee_id);
+                            if ($emp && $emp->shift) {
+                                $attendance->shift_start = $emp->shift->time_start ? Carbon::parse($emp->shift->time_start)->format('H:i') : null;
+                                $attendance->shift_end = $emp->shift->time_end ? Carbon::parse($emp->shift->time_end)->format('H:i') : null;
+                            } else {
+                                $attendance->shift_start = null;
+                                $attendance->shift_end = null;
+                            }
                         }
                     } catch (\Exception $e) {
-                        $attendance->shift_start = null;
-                        $attendance->shift_end = null;
+                        $attendance->shift_start = $attendance->shift_start ?? null;
+                        $attendance->shift_end = $attendance->shift_end ?? null;
                     }
 
                     return $attendance;
@@ -508,38 +572,31 @@ if ($request->hasFile('image')) {
                 ], 404);
             }
 
-            // Get employee shift for checkout validation
+            // Get employee shift for checkout validation; fallback to base shift
             $employeeShift = EmployeeShift::where('employee_id', $validated['employee_id'])
                 ->where('date_shift', $validated['date_attendance'])
                 ->first();
 
-            if (!$employeeShift) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => 'error',
-                    'data' => [],
-                    'message' => 'No shift assigned for this date'
-                ], 400);
+            $shiftEndTime = null;
+            $shiftStartTime = null;
+            if ($employeeShift) {
+                $shiftEndTime = Carbon::parse($employeeShift->time_end);
+                $shiftStartTime = Carbon::parse($employeeShift->time_start);
+            } else {
+                $emp = Employee::with('shift')->find($validated['employee_id']);
+                if ($emp && $emp->shift && $emp->shift->time_start && $emp->shift->time_end) {
+                    $shiftStartTime = Carbon::parse($emp->shift->time_start);
+                    $shiftEndTime = Carbon::parse($emp->shift->time_end);
+                }
             }
-
-            $shiftEndTime = Carbon::parse($employeeShift->time_end);
-            $shiftStartTime = Carbon::parse($employeeShift->time_start);
             $checkOutTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_out']);
             
             // Handle night shift (where start time > end time)
-            if ($shiftStartTime->gt($shiftEndTime) && $checkOutTime->lt($shiftStartTime)) {
+            if ($shiftStartTime && $shiftEndTime && $shiftStartTime->gt($shiftEndTime) && $checkOutTime->lt($shiftStartTime)) {
                 $shiftEndTime->addDay();
             }
             
-            // Validasi waktu check-out: tidak boleh sebelum time_end
-            if ($checkOutTime->lt($shiftEndTime)) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => 'error',
-                    'data' => [],
-                    'message' => 'Check-out not allowed. You can only check-out after your shift ends at ' . $shiftEndTime->format('H:i')
-                ], 400);
-            }
+            // Allow early checkout: do not block if before time_end. We keep the computed times for potential UI display only.
 
             $now = Carbon::now();
             $userId = auth()->id();
@@ -782,12 +839,19 @@ if ($request->hasFile('image')) {
                         $attendance->shift_start = $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null;
                         $attendance->shift_end = $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null;
                     } else {
-                        $attendance->shift_start = null;
-                        $attendance->shift_end = null;
+                        // Fallback to employee base shift
+                        $emp = Employee::with('shift')->find($attendance->employee_id);
+                        if ($emp && $emp->shift) {
+                            $attendance->shift_start = $emp->shift->time_start ? Carbon::parse($emp->shift->time_start)->format('H:i') : null;
+                            $attendance->shift_end = $emp->shift->time_end ? Carbon::parse($emp->shift->time_end)->format('H:i') : null;
+                        } else {
+                            $attendance->shift_start = null;
+                            $attendance->shift_end = null;
+                        }
                     }
                 } catch (\Exception $e) {
-                    $attendance->shift_start = null;
-                    $attendance->shift_end = null;
+                    $attendance->shift_start = $attendance->shift_start ?? null;
+                    $attendance->shift_end = $attendance->shift_end ?? null;
                 }
 
                 return $attendance;
@@ -846,37 +910,38 @@ if ($request->hasFile('image')) {
                 ->where('date_shift', $dateObj->toDateString())
                 ->first();
 
-            if (!$employeeShift) {
-                return response()->json([
-                    'code' => 404,
-                    'status' => 'not_found',
-                    'data' => null,
-                    'message' => 'No shift assigned for this date'
-                ]);
+            $shiftStartTime = null;
+            $shiftEndTime = null;
+            if ($employeeShift) {
+                $shiftStartTime = Carbon::parse($employeeShift->time_start);
+                $shiftEndTime = Carbon::parse($employeeShift->time_end);
+            } else {
+                $emp = Employee::with('shift')->find($employeeId);
+                if ($emp && $emp->shift && $emp->shift->time_start && $emp->shift->time_end) {
+                    $shiftStartTime = Carbon::parse($emp->shift->time_start);
+                    $shiftEndTime = Carbon::parse($emp->shift->time_end);
+                }
             }
-
-            $shiftStartTime = Carbon::parse($employeeShift->time_start);
-            $shiftEndTime = Carbon::parse($employeeShift->time_end);
             
-            // Handle night shift
-            if ($shiftStartTime->gt($shiftEndTime)) {
+            // Handle night shift if we have times
+            if ($shiftStartTime && $shiftEndTime && $shiftStartTime->gt($shiftEndTime)) {
                 $shiftEndTime->addDay();
             }
 
-            $minCheckInTime = $shiftStartTime->copy()->subHour();
-            $maxCheckInTime = $shiftStartTime;
-            $minCheckOutTime = $shiftEndTime;
+            $minCheckInTime = $shiftStartTime ? $shiftStartTime->copy()->subHour() : null;
+            $maxCheckInTime = $shiftStartTime ?: null;
+            $minCheckOutTime = $shiftEndTime ?: null;
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => [
-                    'shift' => $employeeShift,
-                    'time_start' => $shiftStartTime->format('H:i'),
-                    'time_end' => $shiftEndTime->format('H:i'),
-                    'min_checkin_time' => $minCheckInTime->format('H:i'),
-                    'max_checkin_time' => $maxCheckInTime->format('H:i'),
-                    'min_checkout_time' => $minCheckOutTime->format('H:i'),
+                    'shift' => $employeeShift, // may be null if using base
+                    'time_start' => $shiftStartTime ? $shiftStartTime->format('H:i') : null,
+                    'time_end' => $shiftEndTime ? $shiftEndTime->format('H:i') : null,
+                    'min_checkin_time' => $minCheckInTime ? $minCheckInTime->format('H:i') : null,
+                    'max_checkin_time' => $maxCheckInTime ? $maxCheckInTime->format('H:i') : null,
+                    'min_checkout_time' => $minCheckOutTime ? $minCheckOutTime->format('H:i') : null,
                     'current_time' => Carbon::now()->format('H:i')
                 ],
                 'message' => 'Employee shift details retrieved successfully'
