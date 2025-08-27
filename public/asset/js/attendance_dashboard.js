@@ -2158,6 +2158,8 @@ function submitCheckOut() {
 
                 // Update status without reload
                 getTodayAttendanceStatus();
+                // Refresh calendar so the day shows both In and Out colors immediately
+                try { if (typeof renderCalendar === 'function') { renderCalendar(currentMonth, currentYear); } } catch (e) {}
                 
                 // Update UI to show both buttons as active
                 const checkInBtn = document.getElementById("checkInBtn");
