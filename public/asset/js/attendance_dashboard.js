@@ -409,47 +409,24 @@ function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
         return;
     }
 
-    // Check cache first
+    // Check cache first (but always bypass cache for today's date to ensure freshness after edits)
     const cacheKey = `${employeeId}_${date}`;
-    if (shiftCache[cacheKey]) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isToday = date === todayStr;
+    if (!isToday && shiftCache[cacheKey]) {
         console.log('Using cached shift data:', shiftCache[cacheKey]);
         shiftDisplay.textContent = shiftCache[cacheKey];
         return;
     }
+    // Invalidate cache for today to force refresh
+    if (isToday && shiftCache[cacheKey]) delete shiftCache[cacheKey];
 
     // Set loading only if not cached
     shiftDisplay.textContent = 'Loading shift...';
-    console.log('Fetching shift data from:', `${baseUrl}/attendance/today/${employeeId}`);
+    console.log('Fetching shift data via shift-details first for consistency');
 
-    const url = `${baseUrl}/attendance/today/${employeeId}`;
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            console.log('Shift data response:', data);
-        if (data.status === 'success' && data.data && data.data.length > 0) {
-                const attendanceData = data.data[0];
-                if (attendanceData.shift_start && attendanceData.shift_end) {
-                    const shiftText = `${attendanceData.shift_start} - ${attendanceData.shift_end}`;
-                    shiftDisplay.textContent = shiftText;
-                    shiftCache[cacheKey] = shiftText;
-                    console.log('Shift display updated:', shiftText);
-                } else {
-            const shiftText = '-';
-            shiftDisplay.textContent = shiftText;
-            shiftCache[cacheKey] = shiftText;
-                    console.log('No shift data in attendance, trying shift API...');
-                }
-            } else {
-                // Jika tidak ada data attendance hari ini, coba ambil dari API shift
-                console.log('No attendance data, trying direct shift API...');
-                fetchEmployeeShift(employeeId, date, modalType);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching shift from attendance:', error);
-            fetchEmployeeShift(employeeId, date, modalType);
-        });
+    // Prefer direct shift-details (per-date override or base) for consistent display
+    fetchEmployeeShift(employeeId, date, modalType);
 }
 
 // Fungsi alternatif untuk mengambil shift langsung dari EmployeeShift

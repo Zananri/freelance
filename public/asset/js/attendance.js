@@ -253,40 +253,22 @@ function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
     const shiftDisplay = document.getElementById(modalType === 'checkin' ? 'shift_time_checkin' : 'shift_time_checkout');
     if (!shiftDisplay) return;
 
-    // Check cache first
+    // Check cache first (but always bypass cache for today's date to ensure freshness after edits)
     const cacheKey = `${employeeId}_${date}`;
-    if (shiftCache[cacheKey]) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isToday = date === todayStr;
+    if (!isToday && shiftCache[cacheKey]) {
         shiftDisplay.textContent = shiftCache[cacheKey];
         return;
     }
+    // Invalidate cache for today to force refresh
+    if (isToday && shiftCache[cacheKey]) delete shiftCache[cacheKey];
 
     // Set loading only if not cached
     shiftDisplay.textContent = 'Loading shift...';
 
-    const url = `${baseUrl}/attendance/today/${employeeId}`;
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' && data.data && data.data.length > 0) {
-                const attendanceData = data.data[0];
-                if (attendanceData.shift_start && attendanceData.shift_end) {
-                    const shiftText = `${attendanceData.shift_start} - ${attendanceData.shift_end}`;
-                    shiftDisplay.textContent = shiftText;
-                    shiftCache[cacheKey] = shiftText;
-                } else {
-                    // No per-date shift from today API; try fallback API
-                    fetchEmployeeShift(employeeId, date, modalType);
-                }
-            } else {
-                // Jika tidak ada data attendance hari ini, coba ambil dari API shift
-                fetchEmployeeShift(employeeId, date, modalType);
-            }
-        })
-        .catch(error => {
-            console.warn('Error fetching shift from attendance:', error);
-            fetchEmployeeShift(employeeId, date, modalType);
-        });
+    // Prefer direct shift-details (per-date override or base) for consistent display
+    fetchEmployeeShift(employeeId, date, modalType);
 }
 
 // Fungsi alternatif untuk mengambil shift langsung dari EmployeeShift

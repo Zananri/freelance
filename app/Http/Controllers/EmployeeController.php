@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Division;
 use App\Models\Job;
 use App\Models\EmployeeShift;
+use App\Models\Attendance;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -247,6 +248,7 @@ class EmployeeController extends Controller
                 'department_id' => 'sometimes|exists:departments,id',
                 'division_id' => 'sometimes|exists:divisions,id',
                 'job_id' => 'sometimes|exists:job_list,id',
+                'shift_id' => 'sometimes|exists:shifts,id',
                 'profile_picture' => 'nullable|file|image',
                 'name' => 'sometimes|string|max:255',
                 'email' => 'sometimes|email|unique:employees,email,' . $id,
@@ -268,7 +270,7 @@ class EmployeeController extends Controller
             }
 
             $updateData = $request->only([
-                'department_id', 'division_id', 'job_id', 'name', 'email', 'email_work', 'phone', 'status', 'address',
+                'department_id', 'division_id', 'job_id', 'shift_id', 'name', 'email', 'email_work', 'phone', 'status', 'address',
                 'address', 'birth_date', 'hire_date', 'resign_date', 'grade', 'office'
             ]);
 
@@ -297,7 +299,63 @@ class EmployeeController extends Controller
 
             $updateData['updated_by'] = auth()->id();
 
+            // Track old shift_id to detect changes
+            $oldShiftId = $employee->shift_id;
+
             $employee->update($updateData);
+
+            // If shift_id changed, also sync today's per-date EmployeeShift when safe
+            if (array_key_exists('shift_id', $updateData) && $updateData['shift_id'] && (int)$updateData['shift_id'] !== (int)$oldShiftId) {
+                $today = Carbon::today()->toDateString();
+
+                // Only upsert if there is no attendance record yet for today (to avoid altering an ongoing/recorded shift)
+                $hasTodayAttendance = Attendance::where('employee_id', $employee->id)
+                    ->where('date_attendance', $today)
+                    ->exists();
+
+                if (!$hasTodayAttendance) {
+                    EmployeeShift::updateOrCreate(
+                        [
+                            'employee_id' => $employee->id,
+                            'date_shift' => $today,
+                        ],
+                        [
+                            'shift_id' => $updateData['shift_id'],
+                        ]
+                    );
+                }
+
+                // Recalculate lateness for today's existing check-in records using the new base shift
+                $empWithShift = Employee::with('shift')->find($employee->id);
+                if ($empWithShift && $empWithShift->shift) {
+                    $rawStart = $empWithShift->shift->getRawOriginal('time_start') ?? $empWithShift->shift->time_start;
+                    if ($rawStart) {
+                        $newShiftStart = Carbon::parse($today . ' ' . $rawStart);
+                        $todaysCheckins = Attendance::where('employee_id', $employee->id)
+                            ->where('date_attendance', $today)
+                            ->whereNotNull('time_in')
+                            ->get();
+
+                        foreach ($todaysCheckins as $att) {
+                            try {
+                                $checkInAt = Carbon::parse($att->date_attendance . ' ' . $att->time_in);
+                                if ($checkInAt->gt($newShiftStart)) {
+                                    $diffSeconds = $newShiftStart->diffInSeconds($checkInAt);
+                                    $hours = floor($diffSeconds / 3600);
+                                    $minutes = floor(($diffSeconds % 3600) / 60);
+                                    $seconds = $diffSeconds % 60;
+                                    $att->time_late = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+                                } else {
+                                    $att->time_late = null;
+                                }
+                                $att->save();
+                            } catch (\Exception $e) {
+                                // Ignore calculation errors per record
+                            }
+                        }
+                    }
+                }
+            }
 
             // Update corresponding user record
             $user = User::find($employee->user_id);
