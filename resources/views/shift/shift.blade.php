@@ -340,27 +340,8 @@
                                         <th>Time In & Out</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr>
-                                        <td data-field="title">Shift title</td>
-                                        <td data-field="time">
-                                            <div
-                                                class="d-flex justify-content-between align-items-center config-group-icon">
-                                                <span>09:00 - 18:00</span>
-                                                <div class="d-flex gap-2">
-                                                    <button class="btn btn-sm edit-btn">
-                                                        <span class="material-symbols-outlined">edit</span>
-                                                    </button>
-                                                    <button class="btn btn-sm save-btn d-none">
-                                                        <span class="material-symbols-outlined">check</span>
-                                                    </button>
-                                                    <button class="btn btn-sm">
-                                                        <span class="material-symbols-outlined">delete</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                <tbody id="shiftConfigTableBody">
+                                    <!-- populated dynamically from table shifts -->
                                 </tbody>
                             </table>
                         </div>
