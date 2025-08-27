@@ -2172,6 +2172,12 @@ function submitCheckOut() {
                     $("#checkInBtn .check-icon").show();
                     $("#checkOutBtn .done-all-icon").show();
                 }
+
+                // After showing success alert, reload the page once the alert has disappeared
+                // showAlertDashboard uses a 3s display + 0.5s fade; reload after ~3.6s
+                setTimeout(() => {
+                    try { window.location.reload(); } catch (e) { /* ignore */ }
+                }, 3600);
             } else {
                 showAlertDashboard(
                     data.message || "Error submitting check-out",
