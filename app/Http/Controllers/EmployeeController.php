@@ -110,6 +110,7 @@ class EmployeeController extends Controller
                     'required',
                     Rule::exists('job_list', 'id'),
                 ],
+                'shift_id' => 'required|exists:shifts,id',
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:employees,email',
                 'email_work' => 'nullable|email|unique:employees,email_work',
@@ -122,9 +123,6 @@ class EmployeeController extends Controller
                 'resign_date' => 'nullable|date',
                 'grade' => 'required|string',
                 'office' => 'required|string',
-                'time_start' => 'required|date_format:H:i',
-                'time_end' => 'required|date_format:H:i|after:time_start',
-                'date_shift' => 'required|string|json',
             ]);
 
             if ($validator->fails()) {
@@ -194,6 +192,7 @@ class EmployeeController extends Controller
                 'department_id' => $request->department_id,
                 'division_id' => $request->division_id,
                 'job_id' => $request->job_id,
+                'shift_id' => $request->shift_id,
                 'profile_picture' => $profilePicturePath ?? null,
                 'name' => $request->name,
                 'email' => $request->email,
@@ -212,28 +211,6 @@ class EmployeeController extends Controller
                 'updated_by' => auth()->id(),
                 'deleted_by' => null,
             ]);
-
-            // Simpan shift ke employee_shifts
-            $start = Carbon::parse($request->time_start);
-            $end = Carbon::parse($request->time_end);
-            $totalHour = $end->diffInHours($start);
-
-            // Handle date_shift as JSON string
-            $dateShifts = json_decode($request->date_shift, true);
-            if (!is_array($dateShifts) || empty($dateShifts)) {
-                throw new \Exception('Please select at least one shift date');
-            }
-
-            // Create employee shifts for each selected date
-            foreach ($dateShifts as $date) {
-                EmployeeShift::create([
-                    'employee_id' => $employee->id,
-                    'date_shift' => $date,
-                    'time_start' => $request->time_start,
-                    'time_end' => $request->time_end,
-                    'total_hour' => $totalHour,
-                ]);
-            }
 
             DB::commit();
 

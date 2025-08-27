@@ -138,30 +138,15 @@
                             </div>
                         </div>
 
-                        <!-- Shift Input -->
+                        <!-- Shift selection (from shifts table) -->
                         <div>
-                            <label for="date_shift" class="form-label">Shift Dates</label>
-                            <input type="text" id="date_shift_display" class="form-control input-text" placeholder="Click calendar to select dates" readonly />
-                            <input type="hidden" id="date_shift" name="date_shift[]" />
-                            <small class="text-muted">Click calendar icon to select multiple dates</small>
+                            <label for="shift_id" class="form-label">Shift</label>
+                            <select id="shift_id" name="shift_id" class="form-select input-select" required data-fetch-url="{{ route('shift.list') }}">
+                                <option value="" disabled selected>Select Shift</option>
+                            </select>
+                            <small class="text-muted">Waktu: <span id="shift_time_hint">-</span></small>
                             <div class="invalid-feedback">
-                                Please select at least one shift date.
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="time_start" class="form-label">Start Time</label>
-                            <input type="time" id="time_start" name="time_start" class="form-control input-text" required />
-                            <div class="invalid-feedback">
-                                Please enter start time.
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="time_end" class="form-label">End Time</label>
-                            <input type="time" id="time_end" name="time_end" class="form-control input-text" required />
-                            <div class="invalid-feedback">
-                                Please enter end time.
+                                Please select a shift.
                             </div>
                         </div>
                     </div>
@@ -235,7 +220,7 @@
     </svg>
 
     <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/employee-create.js') }}"></script>
+        <script src="{{ asset('asset/js/employee-create.js?v=' . time()) }}"></script>
     </x-slot>
 </x-office-layout>
 </create_file>

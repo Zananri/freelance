@@ -263,26 +263,7 @@ function setEditEmployeeModal(btn) {
 function setAddShiftModal(btn) {
     const addShiftModalEl = document.getElementById("addShiftModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
-
-    // employee
-    addShiftModalEl.querySelector("#addEmployeeId").value =
-        btn.dataset.employeeId;
-    addShiftModalEl.querySelector("#addEmployeePicture").src =
-        btn.dataset.employeePicture;
-
-    // date
-    let rawDate = btn.dataset.date;
-    if (rawDate) {
-        const dateObj = new Date(rawDate);
-        const formattedDate = dateObj.toLocaleDateString("en-US", {
-            month: "long",
-            year: "numeric",
-            day: "numeric",
-        });
-
-        addShiftModalEl.querySelector("#addDateShiftDisplayText").textContent =
-            formattedDate;
-        addShiftModalEl.querySelector("#addDateShift").value = rawDate;
+  
     }
 
     // default shift data dari button (kalau ada)
