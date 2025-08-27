@@ -232,9 +232,9 @@
 
                     <!-- Capture Button Overlay -->
                     <button type="button"
-                        class="btn btn-primary position-absolute bottom-0 start-50 translate-middle-x mb-4 px-4 py-2"
-                        id="captureBtn">
-                        <i class="fas fa-camera"></i> Capture Photo
+                        class="camera-capture-btn position-absolute bottom-0 start-50 translate-middle-x mb-4"
+                        id="captureBtn" aria-label="Capture photo">
+                        <span class="material-symbols-outlined">photo_camera</span>
                     </button>
 
                     <!-- Hidden Canvas for Capturing -->
@@ -368,9 +368,9 @@
 
                     <!-- Capture Button Overlay -->
                     <button type="button"
-                        class="btn btn-primary position-absolute bottom-0 start-50 translate-middle-x mb-4 px-4 py-2"
-                        id="captureBtnCheckout">
-                        <i class="fas fa-camera"></i> Capture Photo
+                        class="camera-capture-btn position-absolute bottom-0 start-50 translate-middle-x mb-4"
+                        id="captureBtnCheckout" aria-label="Capture photo">
+                        <span class="material-symbols-outlined">photo_camera</span>
                     </button>
 
                     <!-- Hidden Canvas for Capturing -->

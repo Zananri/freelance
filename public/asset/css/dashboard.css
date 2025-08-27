@@ -949,6 +949,19 @@
     object-fit: cover;
 }
 
+#cameraWrapperCheckout {
+    padding: 1rem;
+    text-align: center;
+}
+
+#cameraVideoCheckout {
+    width: 100%;
+    height: auto;
+    max-height: 90vh;
+    object-fit: cover;
+}
+
+
 #cameraWrapper button {
     z-index: 1061;
 }
@@ -1215,7 +1228,6 @@
 .image-clear-btn {
     position: absolute;
     top: -13px;
-    right: -13px;
     background: #dc3545;
     color: #fff;
     font-size: 22px;

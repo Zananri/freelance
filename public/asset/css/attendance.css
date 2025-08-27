@@ -1001,6 +1001,19 @@
     object-fit: cover;
 }
 
+/* Match checkout camera sizing to check-in */
+#cameraWrapperCheckout {
+    padding: 1rem;
+    text-align: center;
+}
+
+#cameraVideoCheckout {
+    width: 100%;
+    height: auto;
+    max-height: 90vh;
+    object-fit: cover;
+}
+
 .modal-content.camera-active {
     background-color: transparent;
     border: none;
