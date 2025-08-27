@@ -80,11 +80,6 @@
     border: 1px solid #ddd;
 }
 
-.modal-footer-custom {
-    border: 0;
-    justify-content: center;
-}
-
 .ml-neg-5 {
     margin-left: -5px;
 }
@@ -111,7 +106,6 @@
 .shift-table th:first-child,
 .shift-table td:first-child {
     width: 150px !important;
-    min-width: 150px !important;
     white-space: normal !important;
     word-break: break-word !important;
     overflow-wrap: break-word !important;
@@ -158,60 +152,16 @@
     font-size: 24px;
 }
 
-.year-dropdown-wrapper {
-    position: relative;
-    width: 25px;
-    overflow: hidden;
-}
-
-#monthSelect {
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-    background: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    color: #333;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-#monthSelect:hover {
-    border-color: #000;
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-}
-
-#monthSelect option {
-    padding: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    color: #000;
-    text-shadow: none;
-}
-
-#monthSelect {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-
-    border: none;
+.dropdown-btn-custom {
     background: transparent;
-    cursor: pointer;
-
-    color: transparent;
-    text-shadow: 0 0 0 #0000;
+    border: none;
+    margin-left: 0;
 }
 
-/* caret custom */
-.month-dropdown-wrapper::after {
-    content: "▾";
-    font-size: 20px;
-    color: #444;
-    position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    pointer-events: none;
+.dropdown-btn-custom:hover {
+    background: transparent;
+    border: none;
+    margin-left: 0;
 }
 
 .overlay-edit-employee {
@@ -280,22 +230,6 @@
 .config-shift-btn:hover {
     background: #e9eef4;
     border: none;
-}
-
-.modal-footer-custom {
-    width: 100%;
-}
-
-.modal-footer-custom button {
-    height: 50px;
-    border-radius: 10px;
-    width: 45%;
-    font-size: 14px;
-}
-
-.modal-footer-custom .btn-light {
-    background: #e3e4ee;
-    color: #596069;
 }
 
 .overlay-edit {
@@ -427,7 +361,7 @@
 
     .shift-table th:first-child,
     .shift-table td:first-child {
-        min-width: 100px !important;
+        max-width: 100px !important;
     }
 }
 
@@ -455,7 +389,7 @@
 
 .modal-content-custom {
     border-radius: 16px;
-    padding: 24px;
+    padding: 50px;
     background: #f0f1f8;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: none;
@@ -472,8 +406,22 @@
     border: 1px solid #d4dbe2;
 }
 
-.modal-body-custom {
-    padding: 0;
+.modal-footer-custom {
+    width: 100%;
+    border: 0;
+    justify-content: center;
+}
+
+.modal-footer-custom button {
+    height: 50px;
+    border-radius: 10px;
+    width: 47.5%;
+    font-size: 14px;
+}
+
+.modal-footer-custom .btn-light {
+    background: #e3e4ee;
+    color: #596069;
 }
 
 .modal-footer-custom .btn-close-custom {
@@ -493,12 +441,22 @@
     gap: 1rem;
 }
 
-.text-shift-display {
+.text-shift-display p {
     color: #737681;
+    font-size: 14px;
+}
+
+.text-shift-display span {
+    color: #2a3542;
     font-size: 14px;
 }
 
 .shift-text {
     font-size: 10px;
     color: #474e56;
+}
+
+.employee-name {
+    font-size: 16px;
+    color: #2A3542;
 }
