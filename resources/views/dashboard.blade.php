@@ -42,7 +42,7 @@
                             <div class="attendance-actions w-100 d-flex justify-content-evenly">
                                 <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkIn"
                                     id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
-                                    <span class="material-symbols-outlined check-icon" 
+                                    <span class="material-symbols-outlined check-icon"
                                         style="display: {{ $attendanceStatus['check_in'] === 'completed' ? 'inline' : 'none' }};">check</span>
                                     Check In
                                 </button>
@@ -55,7 +55,7 @@
                             </div>
                             <div class="attendance-logs">
                                 <div class="justify-content-start mt-3">
-                                    <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
+                                    <h6 class="logs-title">Attendance Logs</h6>
                                 </div>
                                 <div class="chevron-icon-attendance d-flex justify-content-between align-items-center my-2"
                                     style="font-size: 12px;">
@@ -655,7 +655,7 @@
                             </div>
                         </div>
 
-                        
+
                         <!-- Map Location Section for Check Out -->
                         <div class="mb-3">
                             <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
