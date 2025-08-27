@@ -390,15 +390,28 @@ function renderError(message) {
 
 // Setup event listeners for edit buttons
 function setupEventListeners() {
-    // Save shift button for Add Shift Modal
-    document
-        .getElementById("saveShiftBtn")
-        .addEventListener("click", saveNewShift);
+    // Save shift button for Add Shift Modal (cell add)
+    const addModalBtn = document.getElementById("saveShiftBtn");
+    if (addModalBtn) {
+        addModalBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            saveNewShift("addShiftForm");
+        });
+    }
+
+    // Save shift button for Add Config Modal (Shift Config > Add)
+    const addConfigBtn = document.getElementById("saveShiftConfigBtn");
+    if (addConfigBtn) {
+        addConfigBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            saveNewShift("addShiftConfigForm");
+        });
+    }
 }
 
 // Save new shift (for Add Shift Modal)
-async function saveNewShift() {
-    const form = document.getElementById("addShiftForm");
+async function saveNewShift(formId = "addShiftForm") {
+    const form = document.getElementById(formId);
     const formData = new FormData(form);
 
     // Validate required fields
@@ -453,13 +466,20 @@ async function saveNewShift() {
         const result = await response.json();
 
         if (result.success) {
-            const modal = bootstrap.Modal.getInstance(
-                document.getElementById("addShiftModal")
-            );
-            modal.hide();
+            // Hide whichever modal is open
+            const addCellModalEl = document.getElementById("addShiftModal");
+            const addConfigModalEl = document.getElementById("addConfigModal");
+            const activeModalEl =
+                (addCellModalEl && addCellModalEl.classList.contains("show") && addCellModalEl) ||
+                (addConfigModalEl && addConfigModalEl.classList.contains("show") && addConfigModalEl);
+
+            if (activeModalEl) {
+                const modal = bootstrap.Modal.getInstance(activeModalEl) || new bootstrap.Modal(activeModalEl);
+                modal.hide();
+            }
 
             // Reset form
-            form.reset();
+            try { form.reset(); } catch (_) {}
 
             showFloatingAlert("Shift created successfully", "success");
 

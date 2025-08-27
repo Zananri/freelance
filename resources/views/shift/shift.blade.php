@@ -373,7 +373,7 @@
             </div>
         </div>
 
-        {{-- Add Config Modal --}}
+    {{-- Add Config Modal --}}
         <div class="modal fade" id="addConfigModal" tabindex="-1" aria-labelledby="addConfigModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -384,7 +384,8 @@
                             aria-label="Close"></button>
                     </div>
                     <div class="modal-body modal-body-custom">
-                        <form id="addShiftForm">
+            <!-- Use unique form ID for shift config creation to avoid clashing with other modals -->
+            <form id="addShiftConfigForm">
                             <input type="hidden" id="addShiftId" name="shift_id">
                             <input type="hidden" id="addEmployeeId" name="employee_id">
                             <input type="hidden" id="addDateShift" name="date_shift">
@@ -415,7 +416,8 @@
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-submit-black" id="saveShiftBtn">Submit</button>
+                        <!-- Make this an explicit button and give it a unique ID; JS will handle the click -->
+                        <button type="button" class="btn btn-submit-black" id="saveShiftConfigBtn">Submit</button>
                     </div>
                 </div>
             </div>
