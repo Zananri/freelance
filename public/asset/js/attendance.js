@@ -2496,28 +2496,29 @@ function getTodayAttendanceStatus() {
         });
 }
 
- // Fungsi untuk memformat waktu menjadi format 00:00
+ // Fungsi untuk memformat waktu menjadi format 00:00 (mendukung HH:MM, HH:MM:SS, dan datetime umum)
     function formatTimeDisplay(timeString) {
         if (!timeString) return '--:--';
         
-        // Jika sudah dalam format HH:MM, langsung return
-        if (timeString.match(/^\d{2}:\d{2}$/)) {
-            return timeString;
+        // Jika string waktu sederhana HH:MM atau HH:MM:SS
+        if (typeof timeString === 'string') {
+            const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+            if (m) return `${m[1]}:${m[2]}`;
         }
         
-        // Jika format ISO atau timestamp, extract jam dan menit
-        try {
-            const date = new Date(timeString);
-            if (isNaN(date.getTime())) {
-                return '--:--';
-            }
-            
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            return `${hours}:${minutes}`;
-        } catch (error) {
+        // Jika format ISO atau "YYYY-MM-DD HH:MM:SS"/timestamp, extract jam dan menit
+        let date = new Date(timeString);
+        if (isNaN(date.getTime()) && typeof timeString === 'string' && timeString.includes(' ')) {
+            // Normalize spasi ke 'T' agar Date bisa parse
+            date = new Date(timeString.replace(' ', 'T'));
+        }
+        if (isNaN(date.getTime())) {
             return '--:--';
         }
+        
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
     }
 
     // Fungsi untuk update state tombol berdasarkan status
