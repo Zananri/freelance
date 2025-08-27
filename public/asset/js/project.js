@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}">`;
     }
 
-    // Build collaborators HTML: author first, then co_authors, then executors. Shows up to 3 images and +N overflow.
+    // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.
     function renderCollaborators(project) {
         try {
             const maxVisible = 3;
@@ -142,11 +142,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 project.co_authors.forEach((c) => coll.push({ type: 'co_author', emp: c }));
             }
 
-            // Executors / contributors (try multiple property names)
+            // Contributors (support legacy key 'executors' by treating them as contributors for display)
             if (project.executors && Array.isArray(project.executors)) {
-                project.executors.forEach((c) => coll.push({ type: 'executor', emp: c }));
+                project.executors.forEach((c) => coll.push({ type: 'contributor', emp: c }));
             } else if (project.contributors && Array.isArray(project.contributors)) {
-                project.contributors.forEach((c) => coll.push({ type: 'executor', emp: c }));
+                project.contributors.forEach((c) => coll.push({ type: 'contributor', emp: c }));
             }
 
             if (coll.length === 0) {
@@ -2480,7 +2480,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 statusText = task.status;
                                         }
 
-                                        // Build combined PIC and Executors HTML
+                                        // Build combined PIC and Contributors HTML
                                         let combinedImagesHtml = "";
                                         let allPeople = [];
 
@@ -2549,7 +2549,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             });
                                         }
 
-                                        // Add executors, excluding PIC duplicates
+                                        // Add contributors (from executors field), excluding PIC duplicates
                                         if (
                                             task.executors &&
                                             task.executors.length > 0
@@ -2573,7 +2573,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                             name:
                                                                 executor.name ||
                                                                 "Unknown",
-                                                            title: "Executor",
+                                                            title: "Contributor",
                                                         });
                                                     }
                                                 }
@@ -2583,14 +2583,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                         // Build combined images HTML
                                         combinedImagesHtml = allPeople
                                             .map((person, index) => {
-                                                const overlapClass =
-                                                    index === 0
-                                                        ? ""
-                                                        : "executor-image-overlap";
-                                                const zIndexStyle = `style="z-index: ${
-                                                    allPeople.length - index
-                                                };"`;
-                                                return `<img src="${person.image}" alt="${person.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${person.name} (${person.title})" ${zIndexStyle}>`;
+                                                const overlapClass = index === 0 ? "" : "contributor-image-overlap";
+                                                const baseStyle = "width: 28px; height: 28px; object-fit: cover; border-radius: 50%;";
+                                                const overlapStyle = index === 0 ? "" : " margin-left: -8px;";
+                                                const zIndex = allPeople.length - index;
+                                                const style = `style=\"${baseStyle}${overlapStyle} z-index: ${zIndex};\"`;
+                                                return `<img src="${person.image}" alt="${person.name}" class="pic-contributor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${person.name} (${person.title})" ${style}>`;
                                             })
                                             .join("");
 
@@ -2622,7 +2620,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <div class="text-muted small mb-2">${createdDate}</div>
                                     <div class="d-flex align-items-center">
                                         <div class="d-flex align-items-center">
-                                            <div class="d-flex align-items-center pic-executor-container">
+                                            <div class="d-flex align-items-center pic-contributor-container">
                                                 ${combinedImagesHtml}
                                             </div>
 
@@ -2786,6 +2784,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load projects for "part_of_project" select
 let allProjectsCache = [];
+
+// Render projects into relevant selects (e.g., part_of_project)
+function renderProjects(projects) {
+    try {
+        projects = Array.isArray(projects) ? projects : [];
+
+        // Populate the Add Project modal's "part_of_project" select if present
+        if (typeof partOfProjectSelect !== 'undefined' && partOfProjectSelect) {
+            let opts = '<option value="" disabled selected>Select Project</option>';
+            projects.forEach((p) => {
+                const id = (p && (p.id != null)) ? p.id : '';
+                const title = (p && (p.title || p.name)) ? (p.title || p.name) : 'Untitled';
+                opts += `<option value="${id}">${title}</option>`;
+            });
+            partOfProjectSelect.innerHTML = opts;
+            partOfProjectSelect.disabled = false;
+            partOfProjectSelect.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('renderProjects error', e);
+    }
+}
 
 // Load semua project dari API
 function loadProjects() {
