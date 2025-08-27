@@ -4498,42 +4498,44 @@ document.addEventListener("DOMContentLoaded", function () {
         projectChartInstance = createDoughnut(ctx, dataset);
     }
 
-    // update chart and label counts based on project array
+    // update chart and label counts based on aggregated task_counts across projects
     function updateProjectChartFromData(projects) {
-        // projects is array of project objects with task_counts (project-level buckets)
         projects = projects || [];
 
-        let totalProjects = projects.length;
-        let complete = 0;
-        let onProgress = 0;
+        let totalTasks = 0;
+        let completed = 0;
+        let inProgress = 0; // includes rejected per backend
         let late = 0;
-        let notStarted = 0;
 
         projects.forEach((p) => {
             const tc = p.task_counts || {};
-            const tTotal = tc.total || 0;
-            const tCompleted = tc.completed || 0;
-            const tInProgress = tc.in_progress || 0; // already includes rejected
-            const tLate = tc.late || 0;
-
-            if (tLate > 0) {
-                late += 1;
-            } else if (tTotal > 0 && tCompleted === tTotal) {
-                complete += 1;
-            } else if (tInProgress > 0) {
-                onProgress += 1;
+            if (tc.excl) {
+                completed += (tc.excl.completed || 0);
+                const ip = (tc.excl.in_progress || 0);
+                const lt = (tc.excl.late || 0);
+                const ns = (tc.excl.not_started || 0);
+                inProgress += ip;
+                late += lt;
+                totalTasks += (ip + lt + ns + (tc.excl.completed || 0));
             } else {
-                notStarted += 1;
+                totalTasks += (tc.total || 0);
+                completed += (tc.completed || 0);
+                inProgress += (tc.in_progress || 0);
+                late += (tc.late || 0);
             }
         });
 
+    // Compute slices: use in-progress as reported (exclusive buckets handled by backend when available)
+    const inProgressExclLate = inProgress;
+        const notStarted = Math.max(0, totalTasks - completed - inProgressExclLate - late);
+
         // Chart slices: Not Started, Complete, On Progress, Late
-        const chartData = [notStarted, complete, onProgress, late];
+        const chartData = [notStarted, completed, inProgressExclLate, late];
 
         // update chart instance: set labels and colors accordingly
         try {
             if (projectChartInstance && projectChartInstance.data) {
-                if (totalProjects === 0) {
+                if (totalTasks === 0) {
                     // no projects at all -> show No Data
                     projectChartInstance.data.labels = ["No Data"];
                     projectChartInstance.data.datasets[0].data = [1];
@@ -4546,7 +4548,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 projectChartInstance.update();
             } else if (ctx) {
                 // create chart if missing
-                projectChartInstance = createDoughnut(ctx, totalProjects === 0 ? [] : chartData);
+                projectChartInstance = createDoughnut(ctx, totalTasks === 0 ? [] : chartData);
             }
         } catch (e) {
             console.error('chart update failed', e);
@@ -4558,9 +4560,9 @@ document.addEventListener("DOMContentLoaded", function () {
             if (labelsContainer) {
                 const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
                 if (spans && spans.length >= 4) {
-                    spans[0].textContent = totalProjects;
-                    spans[1].textContent = complete;
-                    spans[2].textContent = onProgress;
+                    spans[0].textContent = totalTasks;
+                    spans[1].textContent = completed;
+                    spans[2].textContent = inProgressExclLate;
                     spans[3].textContent = late;
                 }
             }
