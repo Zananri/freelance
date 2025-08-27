@@ -141,13 +141,25 @@
                             <small id="addEmployeeGrade" class="text-muted">employee grade</small>
 
                             <div class="mt-3 text-start">
-                                <p>Shift : <span id="addTitleShiftDisplay"></span></p>
+                                <div class="d-flex justify-content-between">
+                                    <p>Shift : </p>
+                                    <span id="addTitleShiftDisplay"></span>
+                                </div>
 
                                 <hr class="border-3 rounded">
 
-                                <p class="text-shift-diplay">Date : <span id="addDateShiftDisplayText"></span></p>
-                                <p class="text-shift-diplay">Time In : <span id="addTimeStartDisplay"></span></p>
-                                <p class="text-shift-diplay">Time Out : <span id="addTimeEndDisplay"></span></p>
+                                <div class="d-flex justify-content-between text-shift-display">
+                                    <p class="text-shift-display">Date : </p>
+                                    <span id="addDateShiftDisplayText"></span>
+                                </div>
+                                <div class="d-flex justify-content-between text-shift-display">
+                                    <p class="text-shift-display">Time In : </p>
+                                    <span id="addTimeStartDisplay"></span>
+                                </div>
+                                <div class="d-flex justify-content-between text-shift-display">
+                                    <p class="text-shift-display">Time Out : </p>
+                                    <span id="addTimeEndDisplay"></span>
+                                </div>
                             </div>
                         </div>
 
@@ -184,6 +196,97 @@
                         <div class="modal-footer modal-footer-custom">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-submit-black">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {{-- Edit Shift Modal --}}
+        <div class="modal fade" id="editShiftModal" tabindex="-1" aria-labelledby="editShiftModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <form id="editShiftForm" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <!-- hidden input (buat dikirim ke backend) -->
+                        <input type="hidden" id="editShiftId" name="shift_id">
+                        <input type="hidden" id="editEmployeeId" name="employee_id">
+                        <input type="hidden" id="editDateShift" name="date">
+                        <input type="hidden" id="editEmployeeNameInput" name="employee_name">
+                        <input type="hidden" id="editTimeStart" name="time_in">
+                        <input type="hidden" id="editTimeEnd" name="time_out">
+
+                        <div class="modal-header modal-header-custom">
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+
+                        <div class="modal-body modal-body-custom text-center">
+                            <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
+                                height="70">
+                            <h5 id="editShiftEmployeeName"></h5>
+                            <small id="editEmployeeGrade" class="text-muted">employee grade</small>
+
+                            <div class="mt-3 text-start">
+                                <div class="d-flex justify-content-between">
+                                    <p class="mb-1 fw-semibold">Shift :</p>
+                                    <span id="editTitleShiftDisplay"></span>
+                                </div>
+
+                                <hr class="border-3 rounded">
+
+                                <div class="d-flex justify-content-between text-shift-display">
+                                    <p class="mb-1">Date :</p>
+                                    <span id="editDateShiftDisplayText"></span>
+                                </div>
+
+                                <div class="d-flex justify-content-between text-shift-display">
+                                    <p class="mb-1">Time In :</p>
+                                    <span id="editTimeStartDisplay"></span>
+                                </div>
+
+                                <div class="d-flex justify-content-between text-shift-display">
+                                    <p class="mb-1">Time Out :</p>
+                                    <span id="editTimeEndDisplay"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="dropdown-container">
+                            <div class="dropdown-selected" id="dropdownSelected">
+                                Select shift
+                                <span class="material-symbols-outlined">arrow_drop_down</span>
+                            </div>
+                            <div class="dropdown-list" id="dropdownList">
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">09:00 - 18:00</span>
+                                </div>
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">13:00 - 22:00</span>
+                                </div>
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">22:00 - 07:00</span>
+                                </div>
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">07:00 - 16:00</span>
+                                </div>
+                                <div class="dropdown-item">
+                                    <span class="title">Shift Title</span>
+                                    <span class="time">10:00 - 19:00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-submit-black">Update</button>
                         </div>
                     </form>
                 </div>
@@ -271,83 +374,6 @@
                         <button type="button" class="btn btn-dark" id="saveEmployeeBtn">Update</button>
                     </div>
 
-                </div>
-            </div>
-        </div>
-
-        {{-- Edit Shift Modal --}}
-        <div class="modal fade" id="editShiftModal" tabindex="-1" aria-labelledby="editShiftModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-                    <form id="editShiftForm" method="POST">
-                        @csrf
-                        @method('PUT')
-
-                        <!-- hidden input (buat dikirim ke backend) -->
-                        <input type="hidden" id="editShiftId" name="shift_id">
-                        <input type="hidden" id="editEmployeeId" name="employee_id">
-                        <input type="hidden" id="editDateShift" name="date">
-                        <input type="hidden" id="editEmployeeNameInput" name="employee_name">
-                        <input type="hidden" id="editTimeStart" name="time_in">
-                        <input type="hidden" id="editTimeEnd" name="time_out">
-
-                        <div class="modal-header modal-header-custom">
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
-                        </div>
-
-                        <div class="modal-body modal-body-custom text-center">
-                            <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
-                                height="70">
-                            <h5 id="editShiftEmployeeName"></h5>
-                            <small id="editEmployeeGrade" class="text-muted">employee grade</small>
-
-                            <div class="mt-3 text-start">
-                                <p>Shift : <span id="editTitleShiftDisplay"></span></p>
-
-                                <hr class="border-3 rounded">
-
-                                <p class="text-shift-diplay">Date : <span id="editDateShiftDisplayText"></span></p>
-                                <p class="text-shift-diplay">Time In : <span id="editTimeStartDisplay"></span></p>
-                                <p class="text-shift-diplay">Time Out : <span id="editTimeEndDisplay"></span></p>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-container">
-                            <div class="dropdown-selected" id="dropdownSelected">
-                                Select shift
-                                <span class="material-symbols-outlined">arrow_drop_down</span>
-                            </div>
-                            <div class="dropdown-list" id="dropdownList">
-                                <div class="dropdown-item">
-                                    <span class="title">Shift Title</span>
-                                    <span class="time">09:00 - 18:00</span>
-                                </div>
-                                <div class="dropdown-item">
-                                    <span class="title">Shift Title</span>
-                                    <span class="time">13:00 - 22:00</span>
-                                </div>
-                                <div class="dropdown-item">
-                                    <span class="title">Shift Title</span>
-                                    <span class="time">22:00 - 07:00</span>
-                                </div>
-                                <div class="dropdown-item">
-                                    <span class="title">Shift Title</span>
-                                    <span class="time">07:00 - 16:00</span>
-                                </div>
-                                <div class="dropdown-item">
-                                    <span class="title">Shift Title</span>
-                                    <span class="time">10:00 - 19:00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="modal-footer modal-footer-custom">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-submit-black">Update</button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>

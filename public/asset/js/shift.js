@@ -259,34 +259,6 @@ function setAddShiftModal(btn) {
     const addShiftModalEl = document.getElementById("addShiftModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
 
-    // Fill hidden inputs
-    const addEmployeeIdInput = addShiftModalEl.querySelector("#addEmployeeId");
-    const addDateShiftInput = addShiftModalEl.querySelector("#addDateShift");
-    if (addEmployeeIdInput) addEmployeeIdInput.value = btn.dataset.employeeId || "";
-    if (addDateShiftInput) addDateShiftInput.value = btn.dataset.date || "";
-
-    // Set employee name and picture in the modal
-    const addEmployeeNameEl = addShiftModalEl.querySelector("#addShiftEmployeeName");
-    if (addEmployeeNameEl) addEmployeeNameEl.textContent = btn.dataset.employeeName || "";
-    const addEmployeePicEl = addShiftModalEl.querySelector("#addEmployeePicture");
-    if (addEmployeePicEl) addEmployeePicEl.src = btn.dataset.employeePicture || "";
-
-    // Reset time hidden inputs and display
-    const addTimeStartHidden = addShiftModalEl.querySelector("#addTimeStart");
-    const addTimeEndHidden = addShiftModalEl.querySelector("#addTimeEnd");
-    if (addTimeStartHidden) addTimeStartHidden.value = "";
-    if (addTimeEndHidden) addTimeEndHidden.value = "";
-    const addTimeStartDisplay = addShiftModalEl.querySelector("#addTimeStartDisplay");
-    const addTimeEndDisplay = addShiftModalEl.querySelector("#addTimeEndDisplay");
-    if (addTimeStartDisplay) addTimeStartDisplay.textContent = "--";
-    if (addTimeEndDisplay) addTimeEndDisplay.textContent = "--";
-
-    // Set formatted date text if available
-    const dateTextEl = addShiftModalEl.querySelector("#addDateShiftDisplayText");
-    if (dateTextEl && btn.dataset.date) {
-        const d = new Date(btn.dataset.date);
-        const pretty = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-        dateTextEl.textContent = pretty;
     }
 
     addShiftModal.show();
@@ -326,9 +298,6 @@ function setEditShiftModal(btn) {
             formattedDate;
         shiftModalEl.querySelector("#editDateShift").value = rawDate;
     }
-
-    shiftModalEl.querySelector("#editEmployeePicture").src =
-        btn.dataset.employeePicture;
 
     shiftModal.show();
 }
