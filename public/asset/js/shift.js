@@ -263,25 +263,35 @@ function setEditEmployeeModal(btn) {
 function setAddShiftModal(btn) {
     const addShiftModalEl = document.getElementById("addShiftModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
-  
-    }
 
-    // default shift data dari button (kalau ada)
-    addShiftModalEl.querySelector("#addTitleShiftDisplay").textContent =
-        btn.dataset.shiftTitle || "-";
-    addShiftModalEl.querySelector("#addTimeStartDisplay").textContent =
-        btn.dataset.timeStart || "-";
-    addShiftModalEl.querySelector("#addTimeEndDisplay").textContent =
-        btn.dataset.timeEnd || "-";
+    // Fill hidden inputs
+    const addEmployeeIdInput = addShiftModalEl.querySelector("#addEmployeeId");
+    const addDateShiftInput = addShiftModalEl.querySelector("#addDateShift");
+    if (addEmployeeIdInput) addEmployeeIdInput.value = btn.dataset.employeeId || "";
+    if (addDateShiftInput) addDateShiftInput.value = btn.dataset.date || "";
 
-    addShiftModalEl.querySelector("#addTimeStart").value =
-        btn.dataset.timeStart || "";
-    addShiftModalEl.querySelector("#addTimeEnd").value =
-        btn.dataset.timeEnd || "";
+    // Set employee name and picture in the modal
+    const addEmployeeNameEl = addShiftModalEl.querySelector("#addShiftEmployeeName");
+    if (addEmployeeNameEl) addEmployeeNameEl.textContent = btn.dataset.employeeName || "";
+    const addEmployeePicEl = addShiftModalEl.querySelector("#addEmployeePicture");
+    if (addEmployeePicEl) addEmployeePicEl.src = btn.dataset.employeePicture || "";
 
-    // isi dropdown dengan daftar shift
-    if (window.shifts && window.shifts.length > 0) {
-        populateShiftDropdown(window.shifts);
+    // Reset time hidden inputs and display
+    const addTimeStartHidden = addShiftModalEl.querySelector("#addTimeStart");
+    const addTimeEndHidden = addShiftModalEl.querySelector("#addTimeEnd");
+    if (addTimeStartHidden) addTimeStartHidden.value = "";
+    if (addTimeEndHidden) addTimeEndHidden.value = "";
+    const addTimeStartDisplay = addShiftModalEl.querySelector("#addTimeStartDisplay");
+    const addTimeEndDisplay = addShiftModalEl.querySelector("#addTimeEndDisplay");
+    if (addTimeStartDisplay) addTimeStartDisplay.textContent = "--";
+    if (addTimeEndDisplay) addTimeEndDisplay.textContent = "--";
+
+    // Set formatted date text if available
+    const dateTextEl = addShiftModalEl.querySelector("#addDateShiftDisplayText");
+    if (dateTextEl && btn.dataset.date) {
+        const d = new Date(btn.dataset.date);
+        const pretty = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+        dateTextEl.textContent = pretty;
     }
 
     addShiftModal.show();
