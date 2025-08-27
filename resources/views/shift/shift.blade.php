@@ -83,12 +83,16 @@
         </div>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 px-3 p-3">
+    <div class="body-content scrollable-container rounded-4 p-5 py-3">
         <div class="d-flex justify-content-start align-items-center mb-3 gap-2">
             <h4 id="shiftMonthTitle" class="fw-normal mb-0 month-year-title">August 2025</h4>
 
-            <div class="month-dropdown-wrapper">
-                <select id="monthSelect"></select>
+            <div class="dropdown">
+                <button id="monthDropdownBtn" class="btn btn-light d-flex align-items-center dropdown-btn-custom"
+                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="material-symbols-outlined">arrow_drop_down</span>
+                </button>
+                <ul id="monthDropdownMenu" class="dropdown-menu"></ul>
             </div>
 
             <button id="prevMonthBtn" class="btn btn-pagination-table">
@@ -129,20 +133,20 @@
                         <input type="hidden" id="addTimeStart" name="time_in">
                         <input type="hidden" id="addTimeEnd" name="time_out">
 
-                        <div class="modal-header modal-header-custom">
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        <div class="modal-header modal-header-custom border-0 d-flex justify-content-end align-items-start position-relative">
+                            <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
 
                         <div class="modal-body modal-body-custom text-center">
                             <img id="addEmployeePicture" src="" class="rounded-circle mb-2" width="70"
                                 height="70">
-                            <h5 id="addShiftEmployeeName"></h5>
+                            <h5 class="fw-normal employee-name" id="addShiftEmployeeName"></h5>
                             <small id="addEmployeeGrade" class="text-muted">employee grade</small>
 
                             <div class="mt-3 text-start">
                                 <div class="d-flex justify-content-between">
-                                    <p>Shift : </p>
+                                    <p class="mb-1 fw-normal">Shift : </p>
                                     <span id="addTitleShiftDisplay"></span>
                                 </div>
 
@@ -163,7 +167,7 @@
                             </div>
                         </div>
 
-                        <div class="dropdown w-100">
+                        <div class="dropdown w-80">
                             <button
                                 class="btn btn-light w-100 d-flex justify-content-between align-items-center dropdown-btn"
                                 type="button" data-bs-toggle="dropdown" data-bs-display="static"
@@ -210,20 +214,21 @@
                         <input type="hidden" id="editTimeStart" name="time_in">
                         <input type="hidden" id="editTimeEnd" name="time_out">
 
-                        <div class="modal-header modal-header-custom">
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
+                        <div
+                            class="modal-header modal-header-custom border-0 d-flex justify-content-end align-items-start position-relative">
+                            <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2"
+                                data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
 
                         <div class="modal-body modal-body-custom text-center">
                             <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
                                 height="70">
-                            <h5 id="editShiftEmployeeName"></h5>
+                            <h5 class="fw-normal employee-name" id="editShiftEmployeeName">Employee fullname</h5>
                             <small id="editEmployeeGrade" class="text-muted">employee grade</small>
 
                             <div class="mt-3 text-start">
                                 <div class="d-flex justify-content-between">
-                                    <p class="mb-1 fw-semibold">Shift :</p>
+                                    <p class="mb-1 fw-normal">Shift :</p>
                                     <span id="editTitleShiftDisplay"></span>
                                 </div>
 
@@ -246,7 +251,7 @@
                             </div>
                         </div>
 
-                        <div class="dropdown w-100">
+                        <div class="dropdown w-80">
                             <button
                                 class="btn btn-light w-100 d-flex justify-content-between align-items-center dropdown-btn"
                                 type="button" data-bs-toggle="dropdown" data-bs-display="static"
@@ -282,8 +287,8 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal-content-custom">
 
-                    <div class="modal-header">
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                    <div class="modal-header modal-header-custom border-0 d-flex justify-content-end align-items-start position-relative">
+                        <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2" data-bs-dismiss="modal"
                             aria-label="Close"></button>
                     </div>
 
@@ -362,7 +367,7 @@
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-light btn-close-custom"
-                            data-bs-dismiss="modal">Cancel</button>
+                            data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>

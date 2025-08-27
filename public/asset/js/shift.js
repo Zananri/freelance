@@ -43,27 +43,26 @@ async function loadEmployeeData() {
 
 // Month Dropdown
 function populateMonthDropdown() {
-    const monthSelect = document.getElementById("monthSelect");
-    const currentMonth = currentDate.getMonth(); // 0-11
-    monthSelect.innerHTML = "";
+  const monthDropdownMenu = document.getElementById("monthDropdownMenu");
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
-    const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
+  monthDropdownMenu.innerHTML = "";
 
-    for (let i = 0; i < 12; i++) {
-        const option = document.createElement("option");
-        option.value = i + 1; // 1-12 for month values
-        option.textContent = monthNames[i];
-        if (i === currentMonth) option.selected = true;
-        monthSelect.appendChild(option);
-    }
-
-    monthSelect.onchange = () => {
-        currentDate.setMonth(parseInt(monthSelect.value) - 1);
-        loadEmployeeData();
-    };
+  monthNames.forEach((name, i) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.className = "dropdown-item";
+    btn.textContent = `${name}`;
+    btn.addEventListener("click", () => {
+      currentDate.setMonth(i);
+      loadEmployeeData();
+    });
+    li.appendChild(btn);
+    monthDropdownMenu.appendChild(li);
+  });
 }
 
 // Event tombol prev/next bulan
@@ -83,7 +82,7 @@ loadEmployeeData();
 // Render header tanggal
 function renderHeader(month, year) {
     const headerRow = document.getElementById("shiftTableHeader");
-    headerRow.innerHTML = `<th class="sticky-col">Employee</th>`;
+    headerRow.innerHTML = `<th class="sticky-col fw-semiboled">Employee</th>`;
 
     const daysInMonth = new Date(year, month, 0).getDate();
 
@@ -264,34 +263,22 @@ function setAddShiftModal(btn) {
     const addShiftModalEl = document.getElementById("addShiftModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
 
-    // Fill hidden inputs
-    const addEmployeeIdInput = addShiftModalEl.querySelector("#addEmployeeId");
-    const addDateShiftInput = addShiftModalEl.querySelector("#addDateShift");
-    if (addEmployeeIdInput) addEmployeeIdInput.value = btn.dataset.employeeId || "";
-    if (addDateShiftInput) addDateShiftInput.value = btn.dataset.date || "";
+    // default shift data dari button (kalau ada)
+    addShiftModalEl.querySelector("#addTitleShiftDisplay").textContent =
+        btn.dataset.shiftTitle || "-";
+    addShiftModalEl.querySelector("#addTimeStartDisplay").textContent =
+        btn.dataset.timeStart || "-";
+    addShiftModalEl.querySelector("#addTimeEndDisplay").textContent =
+        btn.dataset.timeEnd || "-";
 
-    // Set employee name and picture in the modal
-    const addEmployeeNameEl = addShiftModalEl.querySelector("#addShiftEmployeeName");
-    if (addEmployeeNameEl) addEmployeeNameEl.textContent = btn.dataset.employeeName || "";
-    const addEmployeePicEl = addShiftModalEl.querySelector("#addEmployeePicture");
-    if (addEmployeePicEl) addEmployeePicEl.src = btn.dataset.employeePicture || "";
+    addShiftModalEl.querySelector("#addTimeStart").value =
+        btn.dataset.timeStart || "";
+    addShiftModalEl.querySelector("#addTimeEnd").value =
+        btn.dataset.timeEnd || "";
 
-    // Reset time hidden inputs and display
-    const addTimeStartHidden = addShiftModalEl.querySelector("#addTimeStart");
-    const addTimeEndHidden = addShiftModalEl.querySelector("#addTimeEnd");
-    if (addTimeStartHidden) addTimeStartHidden.value = "";
-    if (addTimeEndHidden) addTimeEndHidden.value = "";
-    const addTimeStartDisplay = addShiftModalEl.querySelector("#addTimeStartDisplay");
-    const addTimeEndDisplay = addShiftModalEl.querySelector("#addTimeEndDisplay");
-    if (addTimeStartDisplay) addTimeStartDisplay.textContent = "--";
-    if (addTimeEndDisplay) addTimeEndDisplay.textContent = "--";
-
-    // Set formatted date text if available
-    const dateTextEl = addShiftModalEl.querySelector("#addDateShiftDisplayText");
-    if (dateTextEl && btn.dataset.date) {
-        const d = new Date(btn.dataset.date);
-        const pretty = d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-        dateTextEl.textContent = pretty;
+    // isi dropdown dengan daftar shift
+    if (window.shifts && window.shifts.length > 0) {
+        populateShiftDropdown(window.shifts);
     }
 
     addShiftModal.show();
