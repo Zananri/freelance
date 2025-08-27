@@ -25,6 +25,7 @@ async function loadEmployeeData() {
         }
 
         const data = await response.json();
+        console.log(data);
 
         if (data.success && data.data) {
             employees = data.data;
@@ -40,25 +41,27 @@ async function loadEmployeeData() {
     }
 }
 
-// Year Dropdown
-function populateYearDropdown() {
-    const yearSelect = document.getElementById("yearSelect");
-    const currentYear = currentDate.getFullYear();
-    yearSelect.innerHTML = "";
+// Month Dropdown
+function populateMonthDropdown() {
+    const monthSelect = document.getElementById("monthSelect");
+    const currentMonth = currentDate.getMonth(); // 0-11
+    monthSelect.innerHTML = "";
 
-    const startYear = 2022;
-    const endYear = currentYear + 50;
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
 
-    for (let y = startYear; y <= endYear; y++) {
+    for (let i = 0; i < 12; i++) {
         const option = document.createElement("option");
-        option.value = y;
-        option.textContent = y;
-        if (y === currentYear) option.selected = true;
-        yearSelect.appendChild(option);
+        option.value = i + 1; // 1-12 for month values
+        option.textContent = monthNames[i];
+        if (i === currentMonth) option.selected = true;
+        monthSelect.appendChild(option);
     }
 
-    yearSelect.onchange = () => {
-        currentDate.setFullYear(parseInt(yearSelect.value));
+    monthSelect.onchange = () => {
+        currentDate.setMonth(parseInt(monthSelect.value) - 1);
         loadEmployeeData();
     };
 }
@@ -74,7 +77,7 @@ document.getElementById("nextMonthBtn").addEventListener("click", () => {
     loadEmployeeData();
 });
 
-populateYearDropdown();
+populateMonthDropdown();
 loadEmployeeData();
 
 // Render header tanggal
@@ -205,7 +208,9 @@ function createShiftCell(employee, shift, dateKey) {
     td.innerHTML = `
         <div class="shift-wrapper">
             <span class="shift-text">${
-                shift ? `${start || "??"}  ${end || "??"}` : ""
+                shift
+                    ? `<div>${start || "??"}</div><div>${end || "??"}</div>`
+                    : ""
             }</span>
             <div class="overlay-edit">
                 <button class="btn-edit-shift"
@@ -219,7 +224,7 @@ function createShiftCell(employee, shift, dateKey) {
                         data-date="${dateKey}"
                         data-start="${shift?.time_start || ""}"
                         data-end="${shift?.time_end || ""}">
-                    <span class="material-symbols-outlined">${"edit"}</span>
+                    <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
         </div>
@@ -247,7 +252,7 @@ function setEditEmployeeModal(btn) {
     employeeModalEl.querySelector("#editShiftId").value = "";
     employeeModalEl.querySelector("#editEmployeeId").value =
         btn.dataset.employeeId;
-    employeeModalEl.querySelector("#editEmployeeName").value =
+    employeeModalEl.querySelector("#editEmployeeName").textContent =
         btn.dataset.employeeName;
     employeeModalEl.querySelector("#editEmployeePicture").src =
         btn.dataset.employeePicture;
@@ -258,7 +263,25 @@ function setEditEmployeeModal(btn) {
 function setAddShiftModal(btn) {
     const addShiftModalEl = document.getElementById("addShiftModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
+  
+    }
 
+    // default shift data dari button (kalau ada)
+    addShiftModalEl.querySelector("#addTitleShiftDisplay").textContent =
+        btn.dataset.shiftTitle || "-";
+    addShiftModalEl.querySelector("#addTimeStartDisplay").textContent =
+        btn.dataset.timeStart || "-";
+    addShiftModalEl.querySelector("#addTimeEndDisplay").textContent =
+        btn.dataset.timeEnd || "-";
+
+    addShiftModalEl.querySelector("#addTimeStart").value =
+        btn.dataset.timeStart || "";
+    addShiftModalEl.querySelector("#addTimeEnd").value =
+        btn.dataset.timeEnd || "";
+
+    // isi dropdown dengan daftar shift
+    if (window.shifts && window.shifts.length > 0) {
+        populateShiftDropdown(window.shifts);
     }
 
     addShiftModal.show();
@@ -825,32 +848,6 @@ $(document).ready(function () {
 
         body.append(row);
     });
-});
-
-const dropdownSelected = document.getElementById("dropdownSelected");
-const dropdownList = document.getElementById("dropdownList");
-const items = document.querySelectorAll(".dropdown-item");
-
-dropdownSelected.addEventListener("click", () => {
-    dropdownList.style.display =
-        dropdownList.style.display === "block" ? "none" : "block";
-});
-
-items.forEach((item) => {
-    item.addEventListener("click", () => {
-        dropdownSelected.innerHTML = `
-      ${item.querySelector(".title").textContent}
-      <span class="time">${item.querySelector(".time").textContent}</span>
-      <span class="arrow">▼</span>
-    `;
-        dropdownList.style.display = "none";
-    });
-});
-
-document.addEventListener("click", (e) => {
-    if (!e.target.closest(".dropdown-container")) {
-        dropdownList.style.display = "none";
-    }
 });
 
 document.getElementById("search_filter").addEventListener("keyup", function () {

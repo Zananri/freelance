@@ -13,61 +13,7 @@ class ShiftController extends Controller
 {
     public function showShiftPage(Request $request)
     {
-        $month = $request->input('month', date('m'));
-        $year = $request->input('year', date('Y'));
-
-        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
-
-        $employees = Employee::select('employees.id', 'employees.name', 'employees.email', 'employees.profile_picture')
-            ->leftJoin('employee_shifts', function ($join) use ($startDate, $endDate) {
-                $join->on('employees.id', '=', 'employee_shifts.employee_id')
-                    ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
-            })
-            ->leftJoin('shifts', 'employee_shifts.shift_id', '=', 'shifts.id')
-            ->select(
-                'employees.id',
-                'employees.name',
-                'employees.email',
-                'employees.profile_picture',
-                'employee_shifts.id as shift_id',
-                'shifts.time_start',
-                'shifts.time_end',
-                'employee_shifts.date_shift'
-            )
-            ->where('employees.status', 'active')
-            ->orderBy('employees.name')
-            ->orderBy('employee_shifts.date_shift', 'asc')
-            ->get()
-            ->groupBy('id');
-
-        $employeeData = [];
-
-        foreach ($employees as $employeeId => $shifts) {
-            $employee = $shifts->first();
-            $shiftDetails = [];
-
-            foreach ($shifts as $shift) {
-                if ($shift->date_shift) {
-                    $shiftDetails[] = [
-                        'shift_id' => $shift->shift_id,
-                        'date_shift' => Carbon::parse($shift->date_shift)->format('Y-m-d'),
-                        'time_start' => $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null,
-                        'time_end' => $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null,
-                    ];
-                }
-            }
-
-            $employeeData[] = [
-                'id' => $employee->id,
-                'name' => $employee->name,
-                'email' => $employee->email,
-                'profile_picture' => $employee->profile_picture ?? '/asset/img/default-profile.png',
-                'shifts' => $shiftDetails
-            ];
-        }
-
-        return view('shift/shift', compact('employeeData', 'month', 'year'));
+        return view('shift/shift');
     }
 
     /**
@@ -78,27 +24,33 @@ class ShiftController extends Controller
         $month = $request->input('month', date('m'));
         $year = $request->input('year', date('Y'));
 
-        // Calculate start and end dates for the selected month
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-        // Get all employees with their shift data for the selected month
-        $employees = Employee::select('employees.id', 'employees.name', 'employees.email', 'employees.profile_picture')
+        $employees = Employee::select(
+            'employees.id',
+            'employees.name',
+            'employees.email',
+            'employees.profile_picture',
+            'employee_shifts.id as shift_id',
+            'employee_shifts.date_shift',
+
+            'shifts.title as title',
+            'shifts.description as description',
+            'shifts.time_start',
+            'shifts.time_end',
+            'shifts.total_hour',
+            'shifts.created_by as shift_created_by',
+            'shifts.updated_by as shift_updated_by',
+            'shifts.deleted_by as shift_deleted_by',
+            'shifts.created_at as shift_created_at',
+            'shifts.updated_at as shift_updated_at'
+        )
             ->leftJoin('employee_shifts', function ($join) use ($startDate, $endDate) {
                 $join->on('employees.id', '=', 'employee_shifts.employee_id')
                     ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
             })
             ->leftJoin('shifts', 'employee_shifts.shift_id', '=', 'shifts.id')
-            ->select(
-                'employees.id',
-                'employees.name',
-                'employees.email',
-                'employees.profile_picture',
-                'employee_shifts.id as shift_id',
-                'shifts.time_start',
-                'shifts.time_end',
-                'employee_shifts.date_shift'
-            )
             ->where('employees.status', 'active')
             ->orderBy('employees.name')
             ->orderBy('employee_shifts.date_shift', 'asc')
@@ -116,8 +68,11 @@ class ShiftController extends Controller
                     $shiftDetails[] = [
                         'shift_id' => $shift->shift_id,
                         'date_shift' => Carbon::parse($shift->date_shift)->format('Y-m-d'),
+                        'title' => $shift->title,
+                        'description' => $shift->description,
                         'time_start' => $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null,
-                        'time_end' => $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null
+                        'time_end' => $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null,
+                        'total_hour' => $shift->total_hour,
                     ];
                 }
             }
@@ -127,7 +82,7 @@ class ShiftController extends Controller
                 'name' => $employee->name,
                 'email' => $employee->email,
                 'profile_picture' => $employee->profile_picture ?? '/asset/img/default-profile.png',
-                'shifts' => $shiftDetails // Array of shift details for the selected month
+                'shifts' => $shiftDetails
             ];
         }
 
