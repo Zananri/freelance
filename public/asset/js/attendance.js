@@ -306,12 +306,12 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
                 const startVal = data.data.time_start || (shift && shift.time_start) || null;
                 const endVal = data.data.time_end || (shift && shift.time_end) || null;
                 if (startVal && endVal) {
-                    const startTime = new Date(`2000-01-01 ${shift.time_start}`).toLocaleTimeString('en-US', {
+                    const startTime = new Date(`2000-01-01 ${startVal}`).toLocaleTimeString('en-US', {
                         hour12: false,
                         hour: '2-digit',
                         minute: '2-digit'
                     });
-                    const endTime = new Date(`2000-01-01 ${shift.time_end}`).toLocaleTimeString('en-US', {
+                    const endTime = new Date(`2000-01-01 ${endVal}`).toLocaleTimeString('en-US', {
                         hour12: false,
                         hour: '2-digit',
                         minute: '2-digit'

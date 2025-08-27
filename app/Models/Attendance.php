@@ -36,10 +36,11 @@ class Attendance extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'date_attendance' => 'date',
-        'time_in' => 'datetime:H:i',
-        'time_out' => 'datetime:H:i',
-        'time_late' => 'datetime:H:i',
+    'date_attendance' => 'date',
+    // time columns are TIME in DB; cast as string to prevent unintended datetime conversion
+    'time_in' => 'string',
+    'time_out' => 'string',
+    'time_late' => 'string',
         'is_work_outside' => 'boolean',
         'image' => 'array',
     ];
@@ -105,10 +106,10 @@ class Attendance extends Model
     public function getWorkingHoursAttribute()
     {
         if ($this->time_in && $this->time_out) {
-            $timeIn = Carbon::parse($this->time_in);
-            $timeOut = Carbon::parse($this->time_out);
-            
-            return $timeIn->diff($timeOut)->format('%H:%I');
+            $timeIn = Carbon::parse($this->date_attendance . ' ' . $this->time_in);
+            $timeOut = Carbon::parse($this->date_attendance . ' ' . $this->time_out);
+            // Use %h and %i for hours and minutes
+            return $timeIn->diff($timeOut)->format('%h:%i');
         }
 
         return null;

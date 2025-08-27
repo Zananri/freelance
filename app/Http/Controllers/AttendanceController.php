@@ -102,7 +102,10 @@ class AttendanceController extends Controller
 
             $baseShift = $employee->loadMissing('shift')->shift; // may be null
 
-            $timeIn = $attendance ? $attendance->time_in : null;
+            // Ensure display uses HH:MM
+            $timeIn = $attendance && $attendance->time_in
+                ? Carbon::parse($attendance->time_in)->format('H:i')
+                : null;
             $timeStart = $perDateShift->time_start ?? ($baseShift->time_start ?? null);
 
             if ($timeIn && $timeStart) {
@@ -188,22 +191,36 @@ if ($request->hasFile('image')) {
             if (!$employeeShift) {
                 $emp = Employee::with('shift')->find($validated['employee_id']);
                 if ($emp && $emp->shift) {
+                    // Read raw times from Shift to avoid datetime casting side effects
                     $baseShiftObj = (object) [
-                        'time_start' => $emp->shift->time_start,
-                        'time_end' => $emp->shift->time_end,
+                        'time_start' => $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start,
+                        'time_end' => $emp->shift->getRawOriginal('time_end') ?? $emp->shift->time_end,
                     ];
                 }
             }
 
             $shiftStartTime = null;
             $shiftEndTime = null;
+            // Parse shift times using the attendance date for consistency
             if ($employeeShift) {
-                $shiftStartTime = Carbon::parse($employeeShift->time_start);
-                $shiftEndTime = Carbon::parse($employeeShift->time_end);
-            } elseif ($baseShiftObj && $baseShiftObj->time_start && $baseShiftObj->time_end) {
-                $shiftStartTime = Carbon::parse($baseShiftObj->time_start);
-                $shiftEndTime = Carbon::parse($baseShiftObj->time_end);
+                // EmployeeShift does not hold raw times; use its related Shift
+                $shiftModel = $employeeShift->loadMissing('shift')->shift;
+                if ($shiftModel) {
+                    $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
+                    $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
+                    $shiftStartTime = $rawStart ? Carbon::parse($validated['date_attendance'] . ' ' . $rawStart) : null;
+                    $shiftEndTime = $rawEnd ? Carbon::parse($validated['date_attendance'] . ' ' . $rawEnd) : null;
+                }
+            } elseif ($baseShiftObj) {
+                // Fallback for new employees without date_shift: use base shift start time even if end is missing
+                if (!empty($baseShiftObj->time_start)) {
+                    $shiftStartTime = Carbon::parse($validated['date_attendance'] . ' ' . $baseShiftObj->time_start);
+                }
+                if (!empty($baseShiftObj->time_end)) {
+                    $shiftEndTime = Carbon::parse($validated['date_attendance'] . ' ' . $baseShiftObj->time_end);
+                }
             }
+
             $checkInTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_in']);
             
             // If we have shift times (from per-date or base), enforce rules; otherwise, allow check-in
@@ -231,7 +248,12 @@ if ($request->hasFile('image')) {
             $timeLate = null;
             // Calculate late time if we have a shift start and check-in is after shift start
             if ($shiftStartTime && $checkInTime->gt($shiftStartTime)) {
-                $timeLate = $checkInTime->diff($shiftStartTime)->format('%H:%I');
+                // Compute lateness in seconds and format to HH:MM:SS for TIME column compatibility
+                $diffSeconds = $shiftStartTime->diffInSeconds($checkInTime);
+                $hours = floor($diffSeconds / 3600);
+                $minutes = floor(($diffSeconds % 3600) / 60);
+                $seconds = $diffSeconds % 60;
+                $timeLate = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
             }
 
             // Create attendance record
@@ -463,19 +485,29 @@ if ($request->hasFile('image')) {
 
                     // Attach shift start/end for convenience (format HH:MM) if available
                     try {
-                        $shift = EmployeeShift::where('employee_id', $attendance->employee_id)
+                        $employeeShift = EmployeeShift::where('employee_id', $attendance->employee_id)
                             ->where('date_shift', $attendance->date_attendance)
                             ->first();
 
-                        if ($shift) {
-                            $attendance->shift_start = $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null;
-                            $attendance->shift_end = $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null;
+                        if ($employeeShift) {
+                            $shiftModel = $employeeShift->loadMissing('shift')->shift;
+                            if ($shiftModel) {
+                                $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
+                                $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
+                                $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
+                                $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
+                            } else {
+                                $attendance->shift_start = null;
+                                $attendance->shift_end = null;
+                            }
                         } else {
                             // Fallback to employee base shift
                             $emp = Employee::with('shift')->find($attendance->employee_id);
                             if ($emp && $emp->shift) {
-                                $attendance->shift_start = $emp->shift->time_start ? Carbon::parse($emp->shift->time_start)->format('H:i') : null;
-                                $attendance->shift_end = $emp->shift->time_end ? Carbon::parse($emp->shift->time_end)->format('H:i') : null;
+                                $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
+                                $rawEnd = $emp->shift->getRawOriginal('time_end') ?? $emp->shift->time_end;
+                                $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
+                                $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
                             } else {
                                 $attendance->shift_start = null;
                                 $attendance->shift_end = null;
@@ -580,23 +612,49 @@ if ($request->hasFile('image')) {
             $shiftEndTime = null;
             $shiftStartTime = null;
             if ($employeeShift) {
-                $shiftEndTime = Carbon::parse($employeeShift->time_end);
-                $shiftStartTime = Carbon::parse($employeeShift->time_start);
-            } else {
-                $emp = Employee::with('shift')->find($validated['employee_id']);
-                if ($emp && $emp->shift && $emp->shift->time_start && $emp->shift->time_end) {
-                    $shiftStartTime = Carbon::parse($emp->shift->time_start);
-                    $shiftEndTime = Carbon::parse($emp->shift->time_end);
+                // Load shift times from related Shift
+                $shiftModel = $employeeShift->loadMissing('shift')->shift;
+                if ($shiftModel) {
+                    $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
+                    $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
+                    $shiftStartTime = $rawStart ? Carbon::parse($validated['date_attendance'] . ' ' . $rawStart) : null;
+                    $shiftEndTime = $rawEnd ? Carbon::parse($validated['date_attendance'] . ' ' . $rawEnd) : null;
                 }
             }
-            $checkOutTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_out']);
-            
-            // Handle night shift (where start time > end time)
-            if ($shiftStartTime && $shiftEndTime && $shiftStartTime->gt($shiftEndTime) && $checkOutTime->lt($shiftStartTime)) {
-                $shiftEndTime->addDay();
+            if (!$shiftStartTime || !$shiftEndTime) {
+                // Fallback to base shift
+                $emp = Employee::with('shift')->find($validated['employee_id']);
+                if ($emp && $emp->shift) {
+                    $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
+                    $rawEnd = $emp->shift->getRawOriginal('time_end') ?? $emp->shift->time_end;
+                    if ($rawStart) $shiftStartTime = Carbon::parse($validated['date_attendance'] . ' ' . $rawStart);
+                    if ($rawEnd) $shiftEndTime = Carbon::parse($validated['date_attendance'] . ' ' . $rawEnd);
+                }
             }
-            
-            // Allow early checkout: do not block if before time_end. We keep the computed times for potential UI display only.
+
+            $checkOutTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_out']);
+
+            // Handle overnight shift correctly: if checkout is after start (same-day evening), end is next day; if after midnight (before start), end stays same day.
+            if ($shiftStartTime && $shiftEndTime) {
+                if ($shiftStartTime->gt($shiftEndTime)) {
+                    if ($checkOutTime->gte($shiftStartTime)) {
+                        // Same-day evening checkout attempt: end is next day
+                        $shiftEndTime = $shiftEndTime->copy()->addDay();
+                    } else {
+                        // After midnight (morning) checkout: end remains on current date
+                        // no change
+                    }
+                }
+                // Enforce: cannot checkout before shift end
+                if ($checkOutTime->lt($shiftEndTime)) {
+                    return response()->json([
+                        'code' => 400,
+                        'status' => 'error',
+                        'data' => [],
+                        'message' => 'Cannot checkout before your shift ends at ' . $shiftEndTime->format('H:i')
+                    ], 400);
+                }
+            }
 
             $now = Carbon::now();
             $userId = auth()->id();
@@ -831,19 +889,29 @@ if ($request->hasFile('image')) {
 
                 // Attach shift start/end for convenience (format HH:MM) if available
                 try {
-                    $shift = EmployeeShift::where('employee_id', $attendance->employee_id)
+                    $employeeShift = EmployeeShift::where('employee_id', $attendance->employee_id)
                         ->where('date_shift', $attendance->date_attendance)
                         ->first();
 
-                    if ($shift) {
-                        $attendance->shift_start = $shift->time_start ? Carbon::parse($shift->time_start)->format('H:i') : null;
-                        $attendance->shift_end = $shift->time_end ? Carbon::parse($shift->time_end)->format('H:i') : null;
+                    if ($employeeShift) {
+                        $shiftModel = $employeeShift->loadMissing('shift')->shift;
+                        if ($shiftModel) {
+                            $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
+                            $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
+                            $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
+                            $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
+                        } else {
+                            $attendance->shift_start = null;
+                            $attendance->shift_end = null;
+                        }
                     } else {
                         // Fallback to employee base shift
                         $emp = Employee::with('shift')->find($attendance->employee_id);
                         if ($emp && $emp->shift) {
-                            $attendance->shift_start = $emp->shift->time_start ? Carbon::parse($emp->shift->time_start)->format('H:i') : null;
-                            $attendance->shift_end = $emp->shift->time_end ? Carbon::parse($emp->shift->time_end)->format('H:i') : null;
+                            $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
+                            $rawEnd = $emp->shift->getRawOriginal('time_end') ?? $emp->shift->time_end;
+                            $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
+                            $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
                         } else {
                             $attendance->shift_start = null;
                             $attendance->shift_end = null;
@@ -913,13 +981,20 @@ if ($request->hasFile('image')) {
             $shiftStartTime = null;
             $shiftEndTime = null;
             if ($employeeShift) {
-                $shiftStartTime = Carbon::parse($employeeShift->time_start);
-                $shiftEndTime = Carbon::parse($employeeShift->time_end);
+                $shiftModel = $employeeShift->loadMissing('shift')->shift;
+                if ($shiftModel) {
+                    $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
+                    $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
+                    $shiftStartTime = $rawStart ? Carbon::parse($rawStart) : null;
+                    $shiftEndTime = $rawEnd ? Carbon::parse($rawEnd) : null;
+                }
             } else {
                 $emp = Employee::with('shift')->find($employeeId);
-                if ($emp && $emp->shift && $emp->shift->time_start && $emp->shift->time_end) {
-                    $shiftStartTime = Carbon::parse($emp->shift->time_start);
-                    $shiftEndTime = Carbon::parse($emp->shift->time_end);
+                if ($emp && $emp->shift) {
+                    $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
+                    $rawEnd = $emp->shift->getRawOriginal('time_end') ?? $emp->shift->time_end;
+                    $shiftStartTime = $rawStart ? Carbon::parse($rawStart) : null;
+                    $shiftEndTime = $rawEnd ? Carbon::parse($rawEnd) : null;
                 }
             }
             
@@ -984,7 +1059,8 @@ if ($request->hasFile('image')) {
                 'last_check_out_time' => null,
                 'can_check_in' => true,
                 'can_check_out' => false,
-                'status' => 'not_started'
+                'status' => 'not_started',
+                'is_late' => false,
             ];
 
             if ($attendances->isEmpty()) {
@@ -998,7 +1074,12 @@ if ($request->hasFile('image')) {
                 if ($lastAttendance->time_in && !$lastAttendance->time_out) {
                     // Has checked in but not checked out
                     $status['has_checked_in'] = true;
-                    $status['last_check_in_time'] = $lastAttendance->time_in;
+                    // Ensure HH:MM format and is_late flag for UI stability
+                    try {
+                        $status['last_check_in_time'] = Carbon::parse($lastAttendance->time_in)->format('H:i');
+                    } catch (\Exception $e) {
+                        $status['last_check_in_time'] = $lastAttendance->time_in;
+                    }
                     $status['can_check_in'] = false;
                     $status['can_check_out'] = true;
                     $status['status'] = 'checked_in';
@@ -1006,8 +1087,16 @@ if ($request->hasFile('image')) {
                     // Has both checked in and checked out
                     $status['has_checked_in'] = true;
                     $status['has_checked_out'] = true;
-                    $status['last_check_in_time'] = $lastAttendance->time_in;
-                    $status['last_check_out_time'] = $lastAttendance->time_out;
+                    try {
+                        $status['last_check_in_time'] = Carbon::parse($lastAttendance->time_in)->format('H:i');
+                    } catch (\Exception $e) {
+                        $status['last_check_in_time'] = $lastAttendance->time_in;
+                    }
+                    try {
+                        $status['last_check_out_time'] = Carbon::parse($lastAttendance->time_out)->format('H:i');
+                    } catch (\Exception $e) {
+                        $status['last_check_out_time'] = $lastAttendance->time_out;
+                    }
                     $status['can_check_in'] = true; // Allow new check-in for next shift
                     $status['can_check_out'] = false;
                     $status['status'] = 'checked_out';
