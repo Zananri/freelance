@@ -500,23 +500,8 @@ if ($request->hasFile('image')) {
 
                     // Attach shift start/end for convenience (format HH:MM) if available
                     try {
-                        $employeeShift = EmployeeShift::where('employee_id', $attendance->employee_id)
-                            ->where('date_shift', $attendance->date_attendance)
-                            ->first();
-
-                        if ($employeeShift) {
-                            $shiftModel = $employeeShift->loadMissing('shift')->shift;
-                            if ($shiftModel) {
-                                $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
-                                $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
-                                $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
-                                $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
-                            } else {
-                                $attendance->shift_start = null;
-                                $attendance->shift_end = null;
-                            }
-                        } else {
-                            // Fallback to employee base shift
+                        // For today, prefer the employee's latest base shift so detail modals reflect current edits
+                        if ($attendance->date_attendance === Carbon::today()->toDateString()) {
                             $emp = Employee::with('shift')->find($attendance->employee_id);
                             if ($emp && $emp->shift) {
                                 $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
@@ -526,6 +511,36 @@ if ($request->hasFile('image')) {
                             } else {
                                 $attendance->shift_start = null;
                                 $attendance->shift_end = null;
+                            }
+                        } else {
+                            // For other dates, use per-date override first then fallback to base shift
+                            $employeeShift = EmployeeShift::where('employee_id', $attendance->employee_id)
+                                ->where('date_shift', $attendance->date_attendance)
+                                ->first();
+
+                            if ($employeeShift) {
+                                $shiftModel = $employeeShift->loadMissing('shift')->shift;
+                                if ($shiftModel) {
+                                    $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
+                                    $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
+                                    $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
+                                    $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
+                                } else {
+                                    $attendance->shift_start = null;
+                                    $attendance->shift_end = null;
+                                }
+                            } else {
+                                // Fallback to employee base shift
+                                $emp = Employee::with('shift')->find($attendance->employee_id);
+                                if ($emp && $emp->shift) {
+                                    $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
+                                    $rawEnd = $emp->shift->getRawOriginal('time_end') ?? $emp->shift->time_end;
+                                    $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
+                                    $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
+                                } else {
+                                    $attendance->shift_start = null;
+                                    $attendance->shift_end = null;
+                                }
                             }
                         }
                     } catch (\Exception $e) {

@@ -713,7 +713,7 @@ function openCheckInDetailModal() {
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Shift:</div>
-                                            <div class="detail-value">${formatTimeDisplay(lastCheckIn.shift_start) || '--:--'} - ${formatTimeDisplay(lastCheckIn.shift_end) || '--:--'}</div>
+                                            <div class="detail-value"><span id="detail_shift_text_in">${formatTimeDisplay(lastCheckIn.shift_start) || '--:--'} - ${formatTimeDisplay(lastCheckIn.shift_end) || '--:--'}</span></div>
                                         </div>
                                     </div>
                                     
@@ -746,14 +746,34 @@ function openCheckInDetailModal() {
                 // Add modal to body
                 document.body.insertAdjacentHTML('beforeend', modalContent);
 
-                // Initialize and show modal
-                const modal = new bootstrap.Modal(document.getElementById('checkInDetailModal'));
-                modal.show();
+                // Prepare modal instance
+                const checkInModalEl = document.getElementById('checkInDetailModal');
+                const modal = new bootstrap.Modal(checkInModalEl);
 
-                // Initialize map after modal is shown
-                document.getElementById('checkInDetailModal').addEventListener('shown.bs.modal', function () {
+                // Attach handler BEFORE showing to avoid missing the event
+                checkInModalEl.addEventListener('shown.bs.modal', function () {
                     // Log untuk debugging
                     console.log("Check-in data:", lastCheckIn);
+                    // Override shift via shift-details to ensure latest shift
+                    try {
+                        const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                        // Force fresh data: add cache-busting query and disable cache
+                        const bust = Date.now();
+                        fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
+                            .then(r => r.json())
+                            .then(sd => {
+                                if (sd && sd.status === 'success' && sd.data) {
+                                    const ts = sd.data.time_start;
+                                    const te = sd.data.time_end;
+                                    if (ts && te) {
+                                        const shiftText = `${formatTimeDisplay(ts)} - ${formatTimeDisplay(te)}`;
+                                        const span = document.querySelector('#checkInDetailModal #detail_shift_text_in');
+                                        if (span) span.textContent = shiftText;
+                                    }
+                                }
+                            })
+                            .catch(() => {});
+                    } catch(e) { /* ignore */ }
                     
                     // Extract both check-in and check-out coordinates
                     let checkInLat = lastCheckIn.latitude ?? null;
@@ -819,6 +839,29 @@ function openCheckInDetailModal() {
                         document.getElementById('detailMapCheckIn').innerHTML = '<div class="alert alert-warning text-center">Error loading map</div>';
                     }
                 });
+
+                // Show modal after binding event
+                modal.show();
+
+                // Fallback: immediate fetch to update shift text
+                try {
+                    const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                    const bust = Date.now();
+                    fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
+                        .then(r => r.json())
+                        .then(sd => {
+                            if (sd && sd.status === 'success' && sd.data) {
+                                const ts = sd.data.time_start;
+                                const te = sd.data.time_end;
+                                if (ts && te) {
+                                    const shiftText = `${formatTimeDisplay(ts)} - ${formatTimeDisplay(te)}`;
+                                    const span = document.querySelector('#checkInDetailModal #detail_shift_text_in');
+                                    if (span) span.textContent = shiftText;
+                                }
+                            }
+                        })
+                        .catch(() => {});
+                } catch (e) { /* ignore */ }
             } else {
                 showAlertDashboard("No check-in data found for today", "warning");
             }
@@ -887,7 +930,7 @@ function openCheckOutDetailModal() {
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Shift:</div>
-                                            <div class="detail-value">${formatTimeDisplay(lastCheckOut.shift_start) || '--:--'} - ${formatTimeDisplay(lastCheckOut.shift_end) || '--:--'}</div>
+                                            <div class="detail-value"><span id="detail_shift_text_out">${formatTimeDisplay(lastCheckOut.shift_start) || '--:--'} - ${formatTimeDisplay(lastCheckOut.shift_end) || '--:--'}</span></div>
                                         </div>
                                     </div>
                                     
@@ -920,14 +963,34 @@ function openCheckOutDetailModal() {
                 // Add modal to body
                 document.body.insertAdjacentHTML('beforeend', modalContent);
 
-                // Initialize and show modal
-                const modal = new bootstrap.Modal(document.getElementById('checkOutDetailModal'));
-                modal.show();
+                // Prepare modal instance
+                const checkOutModalEl = document.getElementById('checkOutDetailModal');
+                const modal = new bootstrap.Modal(checkOutModalEl);
 
-                // Initialize map after modal is shown
-                document.getElementById('checkOutDetailModal').addEventListener('shown.bs.modal', function () {
+                // Attach handler BEFORE showing to avoid missing the event
+                checkOutModalEl.addEventListener('shown.bs.modal', function () {
                     // Log untuk debugging
                     console.log("Check-out data:", lastCheckOut);
+                    // Override shift via shift-details to ensure latest shift
+                    try {
+                        const dateStr = lastCheckOut.date_attendance || new Date().toISOString().split('T')[0];
+                        // Force fresh data: add cache-busting query and disable cache
+                        const bust = Date.now();
+                        fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
+                            .then(r => r.json())
+                            .then(sd => {
+                                if (sd && sd.status === 'success' && sd.data) {
+                                    const ts = sd.data.time_start;
+                                    const te = sd.data.time_end;
+                                    if (ts && te) {
+                                        const shiftText = `${formatTimeDisplay(ts)} - ${formatTimeDisplay(te)}`;
+                                        const span = document.querySelector('#checkOutDetailModal #detail_shift_text_out');
+                                        if (span) span.textContent = shiftText;
+                                    }
+                                }
+                            })
+                            .catch(() => {});
+                    } catch(e) { /* ignore */ }
                     
                     // Prefer explicit fields
                     let outLat = lastCheckOut.checkout_latitude ?? null;
@@ -993,6 +1056,29 @@ function openCheckOutDetailModal() {
                         document.getElementById('detailMapCheckOut').innerHTML = '<div class="alert alert-warning text-center">Error loading checkout map</div>';
                     }
                 });
+
+                // Show modal after binding event
+                modal.show();
+
+                // Fallback: immediate fetch to update shift text
+                try {
+                    const dateStr = lastCheckOut.date_attendance || new Date().toISOString().split('T')[0];
+                    const bust = Date.now();
+                    fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
+                        .then(r => r.json())
+                        .then(sd => {
+                            if (sd && sd.status === 'success' && sd.data) {
+                                const ts = sd.data.time_start;
+                                const te = sd.data.time_end;
+                                if (ts && te) {
+                                    const shiftText = `${formatTimeDisplay(ts)} - ${formatTimeDisplay(te)}`;
+                                    const span = document.querySelector('#checkOutDetailModal #detail_shift_text_out');
+                                    if (span) span.textContent = shiftText;
+                                }
+                            }
+                        })
+                        .catch(() => {});
+                } catch (e) { /* ignore */ }
             } else {
                 showAlertDashboard("No check-out data found for today", "warning");
             }
