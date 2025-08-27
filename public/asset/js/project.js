@@ -81,6 +81,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupProjectReferenceFilesInput();
 
+    // Helper to format role labels to capitalized form (Author, Co-Author, Contributor)
+    function formatRoleText(role) {
+        if (!role) return '';
+        try {
+            const r = String(role).trim().toLowerCase().replace(/[-\s]+/g, '_');
+            if (r === 'author') return 'Author';
+            if (r === 'co_author') return 'Co-Author';
+            if (r === 'contributor') return 'Contributor';
+            // Fallback: Title Case each token
+            return String(role)
+                .split(/[\s_-]+/)
+                .map((w) => w ? (w.charAt(0).toUpperCase() + w.slice(1)) : '')
+                .join(' ');
+        } catch(_) { return String(role); }
+    }
+
     // Helper to resolve employee photo URL and return img HTML string
     function resolvePhotoHtml(emp, size = 30, marginLeft = 0, role = '') {
         let userPhoto = emp && (emp.profile_picture || emp.user_photo || emp.user_photo_path || emp.user_photo_url);
@@ -119,9 +135,10 @@ document.addEventListener("DOMContentLoaded", function () {
             photoUrl = appUrl + '/asset/img/profile_picture/default.png';
         }
 
-        const name = (emp && (emp.name || emp.username || emp.full_name)) ? (emp.name || emp.username || emp.full_name) : 'Unknown';
-        const roleText = role ? ` (${role.replace('_', ' ')})` : '';
-        const titleText = `${name}${roleText}`;
+    const name = (emp && (emp.name || emp.username || emp.full_name)) ? (emp.name || emp.username || emp.full_name) : 'Unknown';
+    const roleLabel = role ? formatRoleText(role) : '';
+    const roleText = roleLabel ? ` (${roleLabel})` : '';
+    const titleText = `${name}${roleText}`;
 
     return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}">`;
     }
@@ -165,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (overflow > 0) {
                 const hidden = coll.slice(maxVisible).map(h => {
                     const n = h.emp && (h.emp.name || h.emp.username || h.emp.full_name) ? (h.emp.name || h.emp.username || h.emp.full_name) : 'Unknown';
-                    return `${n} (${h.type.replace('_',' ')})`;
+                    return `${n} (${formatRoleText(h.type)})`;
                 }).join(', ');
 
                 html += `<div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold" title="${hidden}" data-bs-toggle="tooltip" data-bs-placement="bottom" style="width:30px;height:30px;font-size:12px;margin-left:-8px;">+${overflow}</div>`;
