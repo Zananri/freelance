@@ -41,25 +41,27 @@ async function loadEmployeeData() {
     }
 }
 
-// Year Dropdown
-function populateYearDropdown() {
-    const yearSelect = document.getElementById("yearSelect");
-    const currentYear = currentDate.getFullYear();
-    yearSelect.innerHTML = "";
+// Month Dropdown
+function populateMonthDropdown() {
+    const monthSelect = document.getElementById("monthSelect");
+    const currentMonth = currentDate.getMonth(); // 0-11
+    monthSelect.innerHTML = "";
 
-    const startYear = 2022;
-    const endYear = currentYear + 50;
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
 
-    for (let y = startYear; y <= endYear; y++) {
+    for (let i = 0; i < 12; i++) {
         const option = document.createElement("option");
-        option.value = y;
-        option.textContent = y;
-        if (y === currentYear) option.selected = true;
-        yearSelect.appendChild(option);
+        option.value = i + 1; // 1-12 for month values
+        option.textContent = monthNames[i];
+        if (i === currentMonth) option.selected = true;
+        monthSelect.appendChild(option);
     }
 
-    yearSelect.onchange = () => {
-        currentDate.setFullYear(parseInt(yearSelect.value));
+    monthSelect.onchange = () => {
+        currentDate.setMonth(parseInt(monthSelect.value) - 1);
         loadEmployeeData();
     };
 }
@@ -75,7 +77,7 @@ document.getElementById("nextMonthBtn").addEventListener("click", () => {
     loadEmployeeData();
 });
 
-populateYearDropdown();
+populateMonthDropdown();
 loadEmployeeData();
 
 // Render header tanggal

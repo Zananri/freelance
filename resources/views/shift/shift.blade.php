@@ -87,8 +87,8 @@
         <div class="d-flex justify-content-start align-items-center mb-3 gap-2">
             <h4 id="shiftMonthTitle" class="fw-normal mb-0 month-year-title">August 2025</h4>
 
-            <div class="year-dropdown-wrapper">
-                <select id="yearSelect"></select>
+            <div class="month-dropdown-wrapper">
+                <select id="monthSelect"></select>
             </div>
 
             <button id="prevMonthBtn" class="btn btn-pagination-table">

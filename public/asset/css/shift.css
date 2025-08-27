@@ -164,7 +164,7 @@
     overflow: hidden;
 }
 
-#yearSelect {
+#monthSelect {
     padding: 6px 12px;
     border-radius: 8px;
     border: 1px solid #ddd;
@@ -176,18 +176,20 @@
     transition: all 0.2s ease;
 }
 
-#yearSelect:hover {
+#monthSelect:hover {
     border-color: #000;
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
 }
 
-#yearSelect option {
+#monthSelect option {
     padding: 8px;
     font-size: 14px;
     font-weight: 500;
+    color: #000;
+    text-shadow: none;
 }
 
-#yearSelect {
+#monthSelect {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -201,7 +203,7 @@
 }
 
 /* caret custom */
-.year-dropdown-wrapper::after {
+.month-dropdown-wrapper::after {
     content: "▾";
     font-size: 20px;
     color: #444;
@@ -210,11 +212,6 @@
     left: 0;
     transform: translateY(-50%);
     pointer-events: none;
-}
-
-#yearSelect option {
-    color: #000;
-    text-shadow: none;
 }
 
 .overlay-edit-employee {
@@ -375,7 +372,7 @@
 }
 
 .dropdown-item span {
-    color: #636A73;
+    color: #636a73;
     font-size: 14px;
 }
 
@@ -503,5 +500,5 @@
 
 .shift-text {
     font-size: 10px;
-    color: #474E56;
+    color: #474e56;
 }
