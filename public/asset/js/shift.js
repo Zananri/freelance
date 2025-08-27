@@ -13,9 +13,11 @@ window.shifts = window.shifts || [];
 
 // Fetch all shifts from backend (cached in window.shifts)
 async function ensureShiftsLoaded() {
-    if (Array.isArray(window.shifts) && window.shifts.length > 0) return window.shifts;
+    if (Array.isArray(window.shifts) && window.shifts.length > 0)
+        return window.shifts;
     try {
-        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const basePath =
+            window.location.pathname.split("/").slice(0, -1).join("/") || "";
         const endpoint = `${basePath}/shift/list`;
         const res = await fetch(endpoint);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -67,26 +69,36 @@ async function loadEmployeeData() {
 
 // Month Dropdown
 function populateMonthDropdown() {
-  const monthDropdownMenu = document.getElementById("monthDropdownMenu");
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
+    const monthDropdownMenu = document.getElementById("monthDropdownMenu");
+    const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ];
 
-  monthDropdownMenu.innerHTML = "";
+    monthDropdownMenu.innerHTML = "";
 
-  monthNames.forEach((name, i) => {
-    const li = document.createElement("li");
-    const btn = document.createElement("button");
-    btn.className = "dropdown-item";
-    btn.textContent = `${name}`;
-    btn.addEventListener("click", () => {
-      currentDate.setMonth(i);
-      loadEmployeeData();
+    monthNames.forEach((name, i) => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.className = "dropdown-item";
+        btn.textContent = `${name}`;
+        btn.addEventListener("click", () => {
+            currentDate.setMonth(i);
+            loadEmployeeData();
+        });
+        li.appendChild(btn);
+        monthDropdownMenu.appendChild(li);
     });
-    li.appendChild(btn);
-    monthDropdownMenu.appendChild(li);
-  });
 }
 
 // Event tombol prev/next bulan
@@ -287,25 +299,66 @@ function setAddShiftModal(btn) {
     const addShiftModalEl = document.getElementById("addShiftModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
 
-    // default shift data dari button (kalau ada)
-    addShiftModalEl.querySelector("#addTitleShiftDisplay").textContent =
-        btn.dataset.shiftTitle || "-";
+    addShiftModalEl.querySelector("#addShiftId").value = btn.dataset.shiftId;
+    addShiftModalEl.querySelector("#addEmployeeId").value =
+        btn.dataset.employeeId;
+    addShiftModalEl.querySelector("#addShiftEmployeeName").textContent =
+        btn.dataset.employeeName;
+    addShiftModalEl.querySelector("#addEmployeePicture").src =
+        btn.dataset.employeePicture;
+
+    addShiftModalEl.querySelector("#addTimeStart").value = btn.dataset.start;
+    addShiftModalEl.querySelector("#addTimeEnd").value = btn.dataset.end;
+
     addShiftModalEl.querySelector("#addTimeStartDisplay").textContent =
-        btn.dataset.timeStart || "-";
+        btn.dataset.start || "--";
     addShiftModalEl.querySelector("#addTimeEndDisplay").textContent =
-        btn.dataset.timeEnd || "-";
+        btn.dataset.end || "--";
 
-    addShiftModalEl.querySelector("#addTimeStart").value =
-        btn.dataset.timeStart || "";
-    addShiftModalEl.querySelector("#addTimeEnd").value =
-        btn.dataset.timeEnd || "";
+    let rawDate = btn.dataset.date;
+    if (rawDate) {
+        const dateObj = new Date(rawDate);
 
-    // isi dropdown dengan daftar shift
-    if (window.shifts && window.shifts.length > 0) {
-        populateShiftDropdown(window.shifts);
+        const day = String(dateObj.getDate()).padStart(2, "0");
+
+        const monthNames = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ];
+        const month = monthNames[dateObj.getMonth()];
+
+        const year = dateObj.getFullYear();
+
+        const formattedDate = `${day} ${month} ${year}`;
+
+        addShiftModalEl.querySelector("#addDateShiftDisplayText").textContent =
+            formattedDate;
+        addShiftModalEl.querySelector("#addDateShift").value = rawDate;
     }
 
-    addShiftModal.show();
+    // Populate shift dropdown from backend and preselect current shift
+    ensureShiftsLoaded().then((shifts) => {
+        try {
+            populateEditShiftDropdown(
+                addShiftModalEl,
+                shifts,
+                btn.dataset.shiftId || null
+            );
+        } catch (e) {
+            console.warn("Could not populate shift dropdown:", e);
+        }
+        addShiftModal.show();
+    });
 }
 
 function setEditShiftModal(btn) {
@@ -332,11 +385,28 @@ function setEditShiftModal(btn) {
     let rawDate = btn.dataset.date;
     if (rawDate) {
         const dateObj = new Date(rawDate);
-        const formattedDate = dateObj.toLocaleDateString("en-US", {
-            month: "long",
-            year: "numeric",
-            day: "numeric",
-        });
+
+        const day = String(dateObj.getDate()).padStart(2, "0");
+
+        const monthNames = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ];
+        const month = monthNames[dateObj.getMonth()];
+
+        const year = dateObj.getFullYear();
+
+        const formattedDate = `${day} ${month} ${year}`;
 
         shiftModalEl.querySelector("#editDateShiftDisplayText").textContent =
             formattedDate;
@@ -346,7 +416,11 @@ function setEditShiftModal(btn) {
     // Populate shift dropdown from backend and preselect current shift
     ensureShiftsLoaded().then((shifts) => {
         try {
-            populateEditShiftDropdown(shiftModalEl, shifts, btn.dataset.shiftId || null);
+            populateEditShiftDropdown(
+                shiftModalEl,
+                shifts,
+                btn.dataset.shiftId || null
+            );
         } catch (e) {
             console.warn("Could not populate shift dropdown:", e);
         }
@@ -454,7 +528,9 @@ function setupEventListeners() {
     const shiftConfigEl = document.getElementById("shiftConfigModal");
     if (shiftConfigEl) {
         shiftConfigEl.addEventListener("show.bs.modal", () => {
-            ensureShiftsLoaded().then((shifts) => renderShiftConfigTable(shifts));
+            ensureShiftsLoaded().then((shifts) =>
+                renderShiftConfigTable(shifts)
+            );
         });
     }
 }
@@ -520,16 +596,24 @@ async function saveNewShift(formId = "addShiftForm") {
             const addCellModalEl = document.getElementById("addShiftModal");
             const addConfigModalEl = document.getElementById("addConfigModal");
             const activeModalEl =
-                (addCellModalEl && addCellModalEl.classList.contains("show") && addCellModalEl) ||
-                (addConfigModalEl && addConfigModalEl.classList.contains("show") && addConfigModalEl);
+                (addCellModalEl &&
+                    addCellModalEl.classList.contains("show") &&
+                    addCellModalEl) ||
+                (addConfigModalEl &&
+                    addConfigModalEl.classList.contains("show") &&
+                    addConfigModalEl);
 
             if (activeModalEl) {
-                const modal = bootstrap.Modal.getInstance(activeModalEl) || new bootstrap.Modal(activeModalEl);
+                const modal =
+                    bootstrap.Modal.getInstance(activeModalEl) ||
+                    new bootstrap.Modal(activeModalEl);
                 modal.hide();
             }
 
             // Reset form
-            try { form.reset(); } catch (_) {}
+            try {
+                form.reset();
+            } catch (_) {}
 
             showFloatingAlert("Shift created successfully", "success");
 
@@ -833,7 +917,7 @@ async function saveShiftChanges() {
 // Helper function to get selected shift ID from dropdown
 function getSelectedShiftId() {
     const input = document.getElementById("editShiftId");
-    return (input && input.value) ? input.value : null;
+    return input && input.value ? input.value : null;
 }
 
 // Populate the Edit Shift modal dropdown with available shifts
@@ -848,7 +932,8 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
     menu.innerHTML = "";
     if (!Array.isArray(shifts) || shifts.length === 0) {
         const li = document.createElement("li");
-        li.innerHTML = '<div class="dropdown-item text-muted">No shifts available</div>';
+        li.innerHTML =
+            '<div class="dropdown-item text-muted">No shifts available</div>';
         menu.appendChild(li);
         return;
     }
@@ -874,13 +959,19 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
         btn.dataset.title = s.title || "";
         btn.dataset.timeStart = s.time_start || "";
         btn.dataset.timeEnd = s.time_end || "";
-        btn.innerHTML = `<span>${s.title || '(No title)'}</span><span>${formatTime(s.time_start)} - ${formatTime(s.time_end)}</span>`;
+        btn.innerHTML = `<span>${
+            s.title || "(No title)"
+        }</span><span>${formatTime(s.time_start)} - ${formatTime(
+            s.time_end
+        )}</span>`;
         btn.addEventListener("click", () => {
             if (editShiftIdInput) editShiftIdInput.value = s.id;
             if (titleDisp) titleDisp.textContent = s.title || "-";
-            if (timeStartDisp) timeStartDisp.textContent = formatTime(s.time_start);
+            if (timeStartDisp)
+                timeStartDisp.textContent = formatTime(s.time_start);
             if (timeEndDisp) timeEndDisp.textContent = formatTime(s.time_end);
-            button.firstChild && (button.firstChild.textContent = "Select Shift"); // keep label consistent
+            button.firstChild &&
+                (button.firstChild.textContent = "Select Shift"); // keep label consistent
             // close dropdown
             button.click();
         });
@@ -900,7 +991,8 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
         if (sel) {
             if (editShiftIdInput) editShiftIdInput.value = sel.id;
             if (titleDisp) titleDisp.textContent = sel.title || "-";
-            if (timeStartDisp) timeStartDisp.textContent = formatTime(sel.time_start);
+            if (timeStartDisp)
+                timeStartDisp.textContent = formatTime(sel.time_start);
             if (timeEndDisp) timeEndDisp.textContent = formatTime(sel.time_end);
         }
     }
@@ -958,15 +1050,23 @@ function renderShiftConfigTable(shifts) {
             <td data-field="title">${s.title || "(No title)"}</td>
             <td data-field="time">
                 <div class="d-flex justify-content-between align-items-center config-group-icon">
-                    <span>${formatTime(s.time_start)} - ${formatTime(s.time_end)}</span>
+                    <span>${formatTime(s.time_start)} - ${formatTime(
+            s.time_end
+        )}</span>
                     <div class="d-flex gap-2">
-                        <button class="btn btn-sm edit-btn" data-shift-id="${s.id}">
+                        <button class="btn btn-sm edit-btn" data-shift-id="${
+                            s.id
+                        }">
                             <span class="material-symbols-outlined">edit</span>
                         </button>
-                        <button class="btn btn-sm save-btn d-none" data-shift-id="${s.id}">
+                        <button class="btn btn-sm save-btn d-none" data-shift-id="${
+                            s.id
+                        }">
                             <span class="material-symbols-outlined">check</span>
                         </button>
-                        <button class="btn btn-sm delete-btn" data-shift-id="${s.id}">
+                        <button class="btn btn-sm delete-btn" data-shift-id="${
+                            s.id
+                        }">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
