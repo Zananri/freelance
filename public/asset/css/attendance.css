@@ -375,6 +375,7 @@
     display: flex;
     gap: 15px;
     justify-content: center;
+    margin-top: 16px;
 }
 
 .btn {
@@ -582,10 +583,6 @@
     .profile-image {
         width: 80px;
         height: 80px;
-    }
-
-    .attendance-actions {
-        flex-direction: column;
     }
 
     .btn {

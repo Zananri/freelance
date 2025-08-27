@@ -23,57 +23,61 @@
                     </div>
                     <div class="user-info mt-2">
                         <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>
-                        <div id="clock" class="digital-clock fw-bold fw-700 mt-3 mb-3"
+                        <div id="clock" class="digital-clock fw-bold fw-700 my-3"
                             style="color: #303030; font-size: 24px;"></div>
                         <div id="date" class="digital-date fw-light text-secondary" style="font-size: 12px;">
                         </div>
                     </div>
 
-                    <div class="attendance-actions mt-4 w-100 d-flex justify-content-between">
-                        <button class="btn btn-check-in btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkIn"
-                            id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
+                    <div class="attendance-actions w-100 d-flex justify-content-evenly">
+                        <button class="btn btn-check-in btn-custom-check w-25 p-2 fw-normal"
+                            data-check-active="checkIn" id="checkInBtn"
+                            data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
                             <span class="material-symbols-outlined check-icon"
                                 style="display: {{ $attendanceStatus['check_in'] === 'completed' ? 'inline' : 'none' }};">check</span>
                             Check In
                         </button>
-                        <button class="btn btn-check-out btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut"
-                            id="checkOutBtn" data-status="{{ $attendanceStatus['check_out'] ?? 'pending' }}">
+                        <button class="btn btn-check-out btn-custom-check w-25 p-2 fw-normal"
+                            data-check-active="checkOut" id="checkOutBtn"
+                            data-status="{{ $attendanceStatus['check_out'] ?? 'pending' }}">
                             <span class="material-symbols-outlined done-all-icon"
                                 style="display: {{ $attendanceStatus['check_out'] === 'completed' ? 'inline' : 'none' }};">done_all</span>
                             Check Out
                         </button>
                     </div>
-                     <div class="attendance-logs">
-                                <div class="justify-content-start mt-3">
-                                    <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
+                    <div class="attendance-logs">
+                        <div class="justify-content-start mt-3">
+                            <h6 class="fw-bold" style="font-size: 16px;">Attendance Logs</h6>
+                        </div>
+                        <div class="chevron-icon-attendance d-flex justify-content-between align-items-center my-2"
+                            style="font-size: 12px;">
+                            <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="time_in time-detail-btn" data-type="in"
+                                    style="color: {{ $isLate ? 'red' : 'inherit' }}; cursor: pointer;">
+                                    <span id="time_in_display">{{ $timeIn }}</span>
                                 </div>
-                                <div class="chevron-icon-attendance d-flex justify-content-between align-items-center my-2"
-                                    style="font-size: 12px;">
-                                    <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
-                                    <div class="d-flex align-items-center justify-content-center">
-                                        <div class="time_in time-detail-btn" data-type="in" style="color: {{ $isLate ? 'red' : 'inherit' }}; cursor: pointer;">
-                                            <span id="time_in_display">{{ $timeIn }}</span>
-                                        </div>
-                                        <button class="btn p-0 ms-1 chevron-detail-btn" data-type="in" style="line-height: 1;">
-                                            <span class="material-symbols-outlined rounded-1"
-                                                style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="chevron-icon-attendance d-flex justify-content-between align-items-center" style="font-size: 12px;">
-                                    <p class="mb-0 flex-grow-1" style="color: #757575;">Check Out</p>
-                                    <div class="d-flex align-items-center justify-content-center">
-                                        <div class="time_out time-detail-btn" data-type="out" style="cursor: pointer;">
-                                            <span id="time_out_display"></span>
-                                        </div>
-                                        <button class="btn p-0 ms-1 chevron-detail-btn" data-type="out" style="line-height: 1;">
-                                            <span class="material-symbols-outlined rounded-1"
-                                                style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
-                                        </button>
-                                    </div>
-                                </div>
+                                <button class="btn p-0 ms-1 chevron-detail-btn" data-type="in" style="line-height: 1;">
+                                    <span class="material-symbols-outlined rounded-1"
+                                        style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
+                                </button>
                             </div>
+                        </div>
+
+                        <div class="chevron-icon-attendance d-flex justify-content-between align-items-center"
+                            style="font-size: 12px;">
+                            <p class="mb-0 flex-grow-1" style="color: #757575;">Check Out</p>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="time_out time-detail-btn" data-type="out" style="cursor: pointer;">
+                                    <span id="time_out_display"></span>
+                                </div>
+                                <button class="btn p-0 ms-1 chevron-detail-btn" data-type="out" style="line-height: 1;">
+                                    <span class="material-symbols-outlined rounded-1"
+                                        style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -196,7 +200,8 @@
                                 <!-- Hidden existing image URLs -->
                                 @if ($attendance && $attendance->image)
                                     @foreach ($attendance->image as $image)
-                                        <input type="hidden" name="existingImageUrls[]" value="{{ asset($image) }}">
+                                        <input type="hidden" name="existingImageUrls[]"
+                                            value="{{ asset($image) }}">
                                     @endforeach
                                 @endif
 

@@ -96,7 +96,12 @@
 }
 
 .attendance-logs {
-    margin: 20px;
+    margin: 10px;
+}
+
+.attendance-logs .attendance-title {
+    font-weight: bold;
+    font-size: 16px;
 }
 
 .attendance-actions {
@@ -954,11 +959,11 @@
         flex-direction: column;
         gap: 10px;
     }
-    
+
     .work-outside-container .form-check {
         width: 100% !important;
     }
-    
+
     .image-upload-label {
         width: 80%;
     }
