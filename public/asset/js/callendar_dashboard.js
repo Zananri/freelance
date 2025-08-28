@@ -7,6 +7,33 @@ let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
 let currentYear = currentDate.getFullYear();
 
+// Helper: format YYYY-MM-DD in local time
+function formatLocalYMD(dateInput) {
+    const d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+// Simple selectDate for dashboard (sets hidden input and highlights selection)
+function selectDate(day, month, year) {
+    const selectedDate = new Date(year, month, day);
+    const dateString = formatLocalYMD(selectedDate);
+
+    const currentDateInput = document.getElementById("currentDate");
+    if (currentDateInput) currentDateInput.value = dateString;
+
+    const days = document.querySelectorAll(".calendar-day");
+    days.forEach((d) => d.classList.remove("selected"));
+
+    const selectedDay = Array.from(days).find(
+        (d) => d.textContent == day && !d.classList.contains("other-month")
+    );
+    if (selectedDay) selectedDay.classList.add("selected");
+}
+
 function initializeCalendar() {
     currentDate = new Date();
     currentMonth = currentDate.getMonth();
@@ -67,11 +94,12 @@ function renderCalendar(month, year) {
             if (data.status === "success" && Array.isArray(data.data)) {
                 // Group attendance records by date
                 data.data.forEach((record) => {
-                    const date = new Date(record.date_attendance);
-                    const day = date.getDate();
-                    if (!attendanceData[day]) {
-                        attendanceData[day] = [];
-                    }
+                    const ds = (record.date_attendance || '').toString();
+                    const ymd = ds.split(/[ T]/)[0];
+                    const parts = ymd.split('-');
+                    const day = parseInt(parts[2], 10);
+                    if (!isFinite(day)) return;
+                    if (!attendanceData[day]) attendanceData[day] = [];
                     attendanceData[day].push(record);
                 });
             }
@@ -112,9 +140,32 @@ function renderCalendar(month, year) {
                     }
                 }
 
-                // Add click event
-                dayElement.addEventListener("click", function () {
+                // Add click event with left/right split behavior
+                dayElement.addEventListener("click", function (e) {
                     selectDate(day, month, year);
+                    const hasIn = dayElement.classList.contains('checked-in');
+                    const hasOut = dayElement.classList.contains('checked-out');
+                    const clickedDate = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+
+                    try {
+                        if (hasIn && hasOut && e && e.currentTarget) {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const clickX = e.clientX - rect.left;
+                            const isLeftHalf = clickX < rect.width / 2;
+                            if (isLeftHalf) {
+                                if (typeof openCheckInDetailModal === 'function') openCheckInDetailModal(clickedDate);
+                            } else {
+                                if (typeof openCheckOutDetailModal === 'function') openCheckOutDetailModal(clickedDate);
+                            }
+                            return;
+                        }
+
+                        if (hasIn) {
+                            if (typeof openCheckInDetailModal === 'function') openCheckInDetailModal(clickedDate);
+                        } else if (hasOut) {
+                            if (typeof openCheckOutDetailModal === 'function') openCheckOutDetailModal(clickedDate);
+                        }
+                    } catch (err) { console.error(err); }
                 });
 
                 calendarDays.appendChild(dayElement);
