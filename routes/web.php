@@ -140,6 +140,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/shift/list', [ShiftController::class, 'getShifts'])->name('shift.list');
     Route::post('/shift/store', [ShiftController::class, 'store'])->name('shift.store');
     Route::put('/shift/update/{id}', [ShiftController::class, 'update'])->name('shift.update');
+    // Update an existing shift definition (used by inline edit in Shift Config modal)
+    Route::put('/shift/config/{id}', [ShiftController::class, 'updateConfig'])->name('shift.config.update');
 
     Route::get('/attendance/latest-unclosed/{employeeId}', [AttendanceController::class, 'getLatestUnclosedAttendance']);
     Route::get('/attendance/daily/{employeeId}/{date}', [AttendanceController::class, 'getDailyAttendances']);

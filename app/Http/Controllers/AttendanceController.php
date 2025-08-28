@@ -95,40 +95,12 @@ class AttendanceController extends Controller
                 }
             }
 
-            // Determine lateness using per-date shift (preferred) or fallback to base shift
-            $perDateShift = EmployeeShift::where('employee_id', $employee->id)
-                ->where('date_shift', $today)
-                ->first();
-
-            $baseShift = $employee->loadMissing('shift')->shift; // may be null
-
             // Ensure display uses HH:MM
             $timeIn = $attendance && $attendance->time_in
                 ? Carbon::parse($attendance->time_in)->format('H:i')
                 : null;
-
-            $timeStart = null;
-            if ($perDateShift) {
-                $shiftModel = $perDateShift->loadMissing('shift')->shift;
-                if ($shiftModel) {
-                    $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
-                    $timeStart = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
-                }
-            } elseif ($baseShift) {
-                $rawStart = $baseShift->getRawOriginal('time_start') ?? $baseShift->time_start;
-                $timeStart = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
-            }
-
-            if ($timeIn && $timeStart) {
-                try {
-                    $isLate = Carbon::createFromFormat('H:i', $timeIn)
-                        ->gt(Carbon::createFromFormat('H:i', $timeStart));
-                } catch (\Exception $e) {
-                    $isLate = strtotime($timeIn) > strtotime($timeStart);
-                }
-            } else {
-                $isLate = false;
-            }
+            // Lateness should reflect the shift at the time of check-in; rely on persisted time_late
+            $isLate = $attendance && !empty($attendance->time_late);
         }
 
         return view('attendance/attendance', compact('employee', 'attendance', 'attendanceStatus', 'timeIn', 'isLate'));
@@ -1122,46 +1094,15 @@ if ($request->hasFile('image')) {
                 }
             }
 
-            // Compute is_late using per-date EmployeeShift (preferred) or fallback base shift
+            // Compute is_late based on persisted time_late from the earliest check-in of today
             try {
                 if ($status['has_checked_in']) {
-                    // Use earliest check-in of today for lateness
                     $firstCheckIn = $attendances->first(function($a) { return !empty($a->time_in); });
-                    if ($firstCheckIn && $firstCheckIn->time_in) {
-                        $shiftStart = null;
-                        $employeeShift = EmployeeShift::where('employee_id', $employeeId)
-                            ->where('date_shift', $today)
-                            ->first();
-                        if ($employeeShift) {
-                            $shiftModel = $employeeShift->loadMissing('shift')->shift;
-                            if ($shiftModel) {
-                                $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
-                                $shiftStart = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
-                            }
-                        }
-                        if (!$shiftStart) {
-                            // Fallback to base shift
-                            $emp = Employee::with('shift')->find($employeeId);
-                            if ($emp && $emp->shift) {
-                                $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
-                                $shiftStart = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
-                            }
-                        }
-
-                        if ($shiftStart) {
-                            try {
-                                $status['is_late'] = Carbon::createFromFormat('H:i', Carbon::parse($firstCheckIn->time_in)->format('H:i'))
-                                    ->gt(Carbon::createFromFormat('H:i', $shiftStart));
-                            } catch (\Exception $e) {
-                                $status['is_late'] = strtotime($firstCheckIn->time_in) > strtotime($shiftStart);
-                            }
-                        } else {
-                            $status['is_late'] = false;
-                        }
+                    if ($firstCheckIn) {
+                        $status['is_late'] = !empty($firstCheckIn->time_late);
                     }
                 }
             } catch (\Exception $e) {
-                // Keep is_late default false on any error
                 $status['is_late'] = $status['is_late'] ?? false;
             }
 
