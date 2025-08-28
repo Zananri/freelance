@@ -3,7 +3,9 @@ document.addEventListener("DOMContentLoaded", function () {
     loadEmployeeData();
     setupEventListeners();
     // Preload shifts for dropdowns
-    ensureShiftsLoaded(true);
+    ensureShiftsLoaded(true).then((shifts) => {
+        populateFilterShiftDropdown(shifts);
+    });
 });
 
 // Global variables
@@ -293,8 +295,6 @@ function setEditEmployeeModal(btn) {
         btn.dataset.employeeId;
     employeeModalEl.querySelector("#editShiftEmployeeName").textContent =
         btn.dataset.employeeName;
-    employeeModalEl.querySelector("#editShiftTitle").textContent =
-        btn.dataset.title;
     employeeModalEl.querySelector("#editEmployeePicture").src =
         btn.dataset.employeePicture;
 
@@ -306,7 +306,23 @@ function setEditEmployeeModal(btn) {
     employeeModalEl.querySelector("#editTimeEndDisplay").textContent =
         btn.dataset.end || "--";
 
-    employeeModal.show();
+    // Set the title display
+    employeeModalEl.querySelector("#editTitleShiftDisplay").textContent =
+        btn.dataset.title || "--";
+
+    // Populate shift dropdown from backend and preselect current shift
+    ensureShiftsLoaded().then((shifts) => {
+        try {
+            populateEditEmployeeDropdown(
+                employeeModalEl,
+                shifts,
+                btn.dataset.shiftId || null
+            );
+        } catch (e) {
+            console.warn("Could not populate shift dropdown:", e);
+        }
+        employeeModal.show();
+    });
 }
 
 function setAddShiftModal(btn) {
@@ -1063,16 +1079,13 @@ async function saveShiftChanges() {
     }
 }
 
-// Helper function to get selected shift ID from dropdown
 function getSelectedShiftId() {
     const input = document.getElementById("editShiftId");
     return input && input.value ? input.value : null;
 }
 
-// Populate the Edit Shift modal dropdown with available shifts
 function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
     if (!modalEl) return;
-    // Support both Edit and Add Shift modals which use .dropdown-container
     const dropdownContainer =
         modalEl.querySelector(".dropdown-container") ||
         modalEl.querySelector(".dropdown");
@@ -1090,7 +1103,6 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
         return;
     }
 
-    // Use edit* or add* fields depending on the modal
     const shiftIdInput =
         modalEl.querySelector("#editShiftId") || modalEl.querySelector("#addShiftId");
     const titleDisp =
@@ -1117,7 +1129,6 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
         const li = document.createElement("li");
         const btn = document.createElement("button");
         btn.type = "button";
-        // Do not add Bootstrap 'active' class to avoid blue highlight
         btn.className = "dropdown-item d-flex justify-content-between";
         btn.dataset.shiftId = s.id;
         btn.dataset.title = s.title || "";
@@ -1136,21 +1147,13 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
             if (timeStartInput) timeStartInput.value = s.time_start || "";
             if (timeEndInput) timeEndInput.value = s.time_end || "";
             button.firstChild &&
-                (button.firstChild.textContent = "Select Shift"); // keep label consistent
-            // close dropdown
+                (button.firstChild.textContent = "Select Shift");
             button.click();
         });
         li.appendChild(btn);
         menu.appendChild(li);
-
-        // Divider after each item except last (optional)
-        // const div = document.createElement('div');
-        // div.className = 'd-flex justify-content-center';
-        // div.innerHTML = '<hr class="border-3 barrier-option rounded">';
-        // menu.appendChild(div);
     });
 
-    // If there is a selected shift id, update displays to match
     if (selectedId) {
         const sel = shifts.find((x) => String(x.id) === String(selectedId));
         if (sel) {
@@ -1160,6 +1163,92 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
             if (timeEndDisp) timeEndDisp.textContent = formatTime(sel.time_end);
             if (timeStartInput) timeStartInput.value = sel.time_start || "";
             if (timeEndInput) timeEndInput.value = sel.time_end || "";
+        }
+    }
+}
+
+function populateFilterShiftDropdown(shifts) {
+    const filterShiftDropdown = document.getElementById("filterShift");
+    if (!filterShiftDropdown) return;
+
+    filterShiftDropdown.innerHTML = '<option value="">Select Shift</option>';
+
+    shifts.forEach((s) => {
+        const option = document.createElement("option");
+        option.value = s.id;
+        option.textContent = s.title || "(No title)";
+        filterShiftDropdown.appendChild(option);
+    });
+}
+
+function populateEditEmployeeDropdown(modalEl, shifts, selectedId = null) {
+    if (!modalEl) return;
+    const dropdownContainer = modalEl.querySelector(".dropdown-container");
+    if (!dropdownContainer) return;
+    const button = dropdownContainer.querySelector(".dropdown-btn");
+    const menu = dropdownContainer.querySelector(".dropdown-menu");
+    if (!button || !menu) return;
+
+    menu.innerHTML = "";
+    if (!Array.isArray(shifts) || shifts.length === 0) {
+        const li = document.createElement("li");
+        li.innerHTML =
+            '<div class="dropdown-item text-muted">No shifts available</div>';
+        menu.appendChild(li);
+        return;
+    }
+
+    const shiftIdInput = modalEl.querySelector("#editShiftId");
+    const timeStartInput = modalEl.querySelector("#editTimeStart");
+    const timeEndInput = modalEl.querySelector("#editTimeEnd");
+    const timeStartDisplay = modalEl.querySelector("#editTimeStartDisplay");
+    const timeEndDisplay = modalEl.querySelector("#editTimeEndDisplay");
+    const titleDisplay = modalEl.querySelector("#editTitleShiftDisplay");
+
+    const formatTime = (t) => {
+        if (!t) return "--";
+        const [h, m] = String(t).split(":");
+        return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
+    };
+
+    shifts.forEach((s) => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dropdown-item d-flex justify-content-between";
+        btn.dataset.shiftId = s.id;
+        btn.dataset.timeStart = s.time_start || "";
+        btn.dataset.timeEnd = s.time_end || "";
+        btn.dataset.title = s.title || "";
+        btn.innerHTML = `<span>${
+            s.title || "(No title)"
+        }</span><span>${formatTime(s.time_start)} - ${formatTime(
+            s.time_end
+        )}</span>`;
+        btn.addEventListener("click", () => {
+            if (shiftIdInput) shiftIdInput.value = s.id;
+            if (timeStartInput) timeStartInput.value = s.time_start || "";
+            if (timeEndInput) timeEndInput.value = s.time_end || "";
+            if (timeStartDisplay) timeStartDisplay.textContent = formatTime(s.time_start);
+            if (timeEndDisplay) timeEndDisplay.textContent = formatTime(s.time_end);
+            if (titleDisplay) titleDisplay.textContent = s.title || "--";
+            button.firstChild &&
+                (button.firstChild.textContent = "Select Shift");
+            button.click();
+        });
+        li.appendChild(btn);
+        menu.appendChild(li);
+    });
+
+    if (selectedId) {
+        const sel = shifts.find((x) => String(x.id) === String(selectedId));
+        if (sel) {
+            if (shiftIdInput) shiftIdInput.value = sel.id;
+            if (timeStartInput) timeStartInput.value = sel.time_start || "";
+            if (timeEndInput) timeEndInput.value = sel.time_end || "";
+            if (timeStartDisplay) timeStartDisplay.textContent = formatTime(sel.time_start);
+            if (timeEndDisplay) timeEndDisplay.textContent = formatTime(sel.time_end);
+            if (titleDisplay) titleDisplay.textContent = sel.title || "--";
         }
     }
 }
