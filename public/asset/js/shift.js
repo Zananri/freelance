@@ -174,35 +174,36 @@ function renderEmployeeTable(employees, month, year) {
     });
 }
 
-function createEmployeeCell(employee, shift) {
+function createEmployeeCell(employee) {
     const td = document.createElement("td");
     td.classList.add("sticky-col");
 
+    const profile = employee.profile_picture || "/asset/img/default-profile.png";
+    // Try to read any available base shift info on employee, otherwise fallback to empty strings
+    const baseShift = employee.shift || null;
+    const baseTitle = (baseShift && baseShift.title) || employee.shift_title || "";
+    const baseStart = (baseShift && baseShift.time_start) || employee.time_start || "";
+    const baseEnd = (baseShift && baseShift.time_end) || employee.time_end || "";
+
     td.innerHTML = `
         <div class="employee-wrapper d-flex align-items-center gap-2">
-            <img src="${
-                employee.profile_picture || "/asset/img/default-profile.png"
-            }"
+            <img src="${profile}"
                 alt="Profile Picture"
                 class="table-image rounded-circle"
                 width="28px"
                 height="28px" />
             <div>
-                <div class="fw-normal" style="font-size: 14px;">${
-                    employee.name
-                }</div>
+                <div class="fw-normal" style="font-size: 14px;">${employee.name}</div>
             </div>
             <div class="overlay-edit-employee">
                 <button class="btn-edit-employee"
-                        data-employee-id="${employee.id}"
-                        data-employee-name="${employee.name}"
-                        data-employee-picture="${
-                            employee.profile_picture ||
-                            "/asset/img/default-profile.png"
-                        }">
-                        data-start="${shift.time_start}"
-                        data-end="${shift.time_end}"
-                        data-title="${shift.title}"
+                        data-employee-id="${employee.id || ""}"
+                        data-employee-name="${employee.name || ""}"
+                        data-employee-picture="${profile}"
+                        data-shift-id="${employee.shift_id || ""}"
+                        data-start="${baseStart || ""}"
+                        data-end="${baseEnd || ""}"
+                        data-title="${baseTitle || ""}">
                     <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
@@ -510,12 +511,12 @@ function renderError(message) {
 
 // Setup event listeners for edit buttons
 function setupEventListeners() {
-    // Save shift button for Add Shift Modal (cell add)
+    // Save/Submit button for Add Shift Modal (assign an existing shift to employee/date)
     const addModalBtn = document.getElementById("saveShiftBtn");
     if (addModalBtn) {
         addModalBtn.addEventListener("click", (e) => {
             e.preventDefault();
-            saveNewShift("addShiftForm");
+            assignShiftForEmployee();
         });
     }
 
@@ -545,6 +546,80 @@ function setupEventListeners() {
                 renderShiftConfigTable(shifts)
             );
         });
+    }
+}
+
+// Assign selected shift to an employee for a specific date (from Add Shift Modal)
+async function assignShiftForEmployee() {
+    const form = document.getElementById("addShiftForm");
+    const formData = new FormData(form);
+
+    // Read selected values populated by dropdown selection
+    const shiftId = formData.get("shift_id");
+    const employeeId = formData.get("employee_id");
+    const date = formData.get("date");
+
+    if (!employeeId || !date || !shiftId) {
+        alert("Please fill all required fields");
+        return;
+    }
+
+    try {
+        const basePath =
+            window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/shift/update/${employeeId}`;
+
+        const response = await fetch(endpoint, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                    'meta[name="csrf-token"]'
+                ).content,
+            },
+            body: JSON.stringify({
+                employee_id: employeeId,
+                date_shifts: [date],
+                shift_id: shiftId,
+            }),
+        });
+
+        if (!response.ok) {
+            showFloatingAlert(
+                "Failed to update shift: " + response.statusText,
+                "danger"
+            );
+            return;
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            showFloatingAlert(
+                "Server returned non-JSON response: " + text,
+                "danger"
+            );
+            return;
+        }
+
+        const result = await response.json();
+        if (result.success) {
+            const modalEl = document.getElementById("addShiftModal");
+            const modal =
+                bootstrap.Modal.getInstance(modalEl) ||
+                new bootstrap.Modal(modalEl);
+            modal.hide();
+            loadEmployeeData();
+            showFloatingAlert("Shift updated successfully", "success");
+        } else {
+            showFloatingAlert(
+                "Failed to update shift: " + (result.message || "Unknown error"),
+                "danger"
+            );
+        }
+    } catch (error) {
+        console.error("Error updating shift:", error);
+        showFloatingAlert("Error updating shift: " + error.message, "danger");
     }
 }
 
@@ -936,7 +1011,10 @@ function getSelectedShiftId() {
 // Populate the Edit Shift modal dropdown with available shifts
 function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
     if (!modalEl) return;
-    const dropdownContainer = modalEl.querySelector(".dropdown.w-80");
+    // Support both Edit and Add Shift modals which use .dropdown-container
+    const dropdownContainer =
+        modalEl.querySelector(".dropdown-container") ||
+        modalEl.querySelector(".dropdown");
     if (!dropdownContainer) return;
     const button = dropdownContainer.querySelector(".dropdown-btn");
     const menu = dropdownContainer.querySelector(".dropdown-menu");
@@ -951,10 +1029,22 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
         return;
     }
 
-    const editShiftIdInput = modalEl.querySelector("#editShiftId");
-    const titleDisp = modalEl.querySelector("#editTitleShiftDisplay");
-    const timeStartDisp = modalEl.querySelector("#editTimeStartDisplay");
-    const timeEndDisp = modalEl.querySelector("#editTimeEndDisplay");
+    // Use edit* or add* fields depending on the modal
+    const shiftIdInput =
+        modalEl.querySelector("#editShiftId") || modalEl.querySelector("#addShiftId");
+    const titleDisp =
+        modalEl.querySelector("#editTitleShiftDisplay") ||
+        modalEl.querySelector("#addTitleShiftDisplay");
+    const timeStartDisp =
+        modalEl.querySelector("#editTimeStartDisplay") ||
+        modalEl.querySelector("#addTimeStartDisplay");
+    const timeEndDisp =
+        modalEl.querySelector("#editTimeEndDisplay") ||
+        modalEl.querySelector("#addTimeEndDisplay");
+    const timeStartInput =
+        modalEl.querySelector("#editTimeStart") || modalEl.querySelector("#addTimeStart");
+    const timeEndInput =
+        modalEl.querySelector("#editTimeEnd") || modalEl.querySelector("#addTimeEnd");
 
     const formatTime = (t) => {
         if (!t) return "--";
@@ -978,11 +1068,12 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
             s.time_end
         )}</span>`;
         btn.addEventListener("click", () => {
-            if (editShiftIdInput) editShiftIdInput.value = s.id;
+            if (shiftIdInput) shiftIdInput.value = s.id;
             if (titleDisp) titleDisp.textContent = s.title || "-";
-            if (timeStartDisp)
-                timeStartDisp.textContent = formatTime(s.time_start);
+            if (timeStartDisp) timeStartDisp.textContent = formatTime(s.time_start);
             if (timeEndDisp) timeEndDisp.textContent = formatTime(s.time_end);
+            if (timeStartInput) timeStartInput.value = s.time_start || "";
+            if (timeEndInput) timeEndInput.value = s.time_end || "";
             button.firstChild &&
                 (button.firstChild.textContent = "Select Shift"); // keep label consistent
             // close dropdown
@@ -1002,11 +1093,12 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
     if (selectedId) {
         const sel = shifts.find((x) => String(x.id) === String(selectedId));
         if (sel) {
-            if (editShiftIdInput) editShiftIdInput.value = sel.id;
+            if (shiftIdInput) shiftIdInput.value = sel.id;
             if (titleDisp) titleDisp.textContent = sel.title || "-";
-            if (timeStartDisp)
-                timeStartDisp.textContent = formatTime(sel.time_start);
+            if (timeStartDisp) timeStartDisp.textContent = formatTime(sel.time_start);
             if (timeEndDisp) timeEndDisp.textContent = formatTime(sel.time_end);
+            if (timeStartInput) timeStartInput.value = sel.time_start || "";
+            if (timeEndInput) timeEndInput.value = sel.time_end || "";
         }
     }
 }
