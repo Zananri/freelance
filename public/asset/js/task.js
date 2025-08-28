@@ -230,7 +230,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 },
                 error: function () {
-                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) { try { alert("Failed to load employees."); } catch(e) {} }
+                    showFloatingAlert("Failed to load employees.", "warning", 3000);
                 },
             });
         }
@@ -443,7 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const taskId = document.getElementById("edit_task_id").value;
             if (!taskId) {
-                try { showFloatingAlert("Task ID is missing.", "warning", 3000); } catch(_) { try { alert("Task ID is missing."); } catch(e){} }
+                showFloatingAlert("Task ID is missing.", "warning", 3000);
                 return;
             }
 
@@ -625,7 +625,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 },
                 error: function () {
-                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) { try { alert("Failed to load employees."); } catch(e){} }
+                    showFloatingAlert("Failed to load employees.", "warning", 3000);
                 },
             });
         }
@@ -862,7 +862,7 @@ document.addEventListener("click", function (e) {
         const currentStatus = e.target.getAttribute("data-task-status");
 
         if (!taskId) {
-            try { showFloatingAlert("Task ID not found.", "warning", 3000); } catch(_) { try { alert("Task ID not found."); } catch(e){} }
+            showFloatingAlert("Task ID not found.", "warning", 3000);
             return;
         }
 
@@ -1502,25 +1502,24 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 if (xhr.responseJSON && xhr.responseJSON.errors) {
                     errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
                 }
-                try { showFloatingAlert(errorMessage, "danger", 3000); } catch(_) { try { alert(errorMessage); } catch(e){} }
+                showFloatingAlert(errorMessage, "danger", 3000);
             },
         });
     }
 
-    // Function to show alert using Settings-style white alert (office.js -> showAlertMsg)
+    // Function to show alert using Settings/Project style (office.js -> showAlertMsg)
     function showFloatingAlert(message, type = "success", delayMs = 2500) {
-        // Map our types to Settings msgType; design uses 'light' for neutral/success
-        const mapped = type === 'danger' || type === 'error' ? 'error'
+        // Normalize to Settings types: 'light' | 'success' | 'warning' | 'error'
+        // Use 'light' for success/neutral to match Settings & Project usage
+        const mapped = type === 'danger' ? 'error'
+                     : type === 'error' ? 'error'
                      : type === 'warning' ? 'warning'
                      : 'light';
 
-        // Prefer global showAlertMsg (defined in office.js)
         if (typeof window.showAlertMsg === 'function') {
-            try { window.showAlertMsg(String(message || ''), mapped, delayMs); return; } catch(_) {}
+            window.showAlertMsg(String(message || ''), mapped, delayMs);
         }
-
-        // Fallback: simple browser alert as last resort
-        try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) { console.log('ALERT:', message); }
+        // No browser alert fallback to keep UX consistent with Settings
     }
 
     // Track whether feedback was submitted
@@ -2232,7 +2231,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
                 const taskId = taskCard.getAttribute("data-task-id");
                 if (!taskId) {
-                    try { showFloatingAlert("Task ID not found.", "warning", 3000); } catch(_) { try { alert("Task ID not found."); } catch(e){} }
+                    showFloatingAlert("Task ID not found.", "warning", 3000);
                     return;
                 }
 
@@ -2281,7 +2280,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         }
                     },
                     error: function () {
-                        try { showFloatingAlert("Failed to load reference files.", "danger", 3000); } catch(_) { try { alert("Failed to load reference files."); } catch(e){} }
+                        showFloatingAlert("Failed to load reference files.", "danger", 3000);
                     },
                 });
             }
@@ -2439,9 +2438,26 @@ function handleTaskDetail(taskId) {
 
     const deleteTaskImage = document.getElementById("deleteTaskImage");
     if (deleteTaskImage) {
-        deleteTaskImage.src = task.image
-            ? task.image
-            : appUrl + "/asset/img/background/add-image.png";
+        // Build a safe image URL from possible shapes (filename, relative path, absolute URL)
+        let imgSrc = appUrl + "/asset/img/background/add-image.png"; // default fallback
+        const img = task.image || "";
+        if (img) {
+            if (typeof img === "string" && (img.startsWith("http://") || img.startsWith("https://"))) {
+                imgSrc = img; // absolute URL
+            } else if (typeof img === "string" && (img.startsWith("/file/task/") || img.startsWith("file/task/"))) {
+                imgSrc = img.startsWith("/") ? (appUrl + img) : (appUrl + "/" + img);
+            } else if (typeof img === "string") {
+                // assume plain filename stored in DB
+                imgSrc = appUrl + "/file/task/" + img;
+            }
+        }
+
+        deleteTaskImage.src = imgSrc;
+        // Fallback if the built URL 404s
+        deleteTaskImage.onerror = function () {
+            this.onerror = null;
+            this.src = appUrl + "/asset/img/background/add-image.png";
+        };
     }
 
     const deleteTaskTitle = document.getElementById("deleteTaskTitle");
