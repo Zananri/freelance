@@ -182,13 +182,28 @@ if ($request->hasFile('image')) {
 }
 
 
-            // Get employee shift for validation and late calculation; fallback to base shift
-            $employeeShift = EmployeeShift::where('employee_id', $validated['employee_id'])
-                ->where('date_shift', $validated['date_attendance'])
-                ->first();
+            // Choose shift source for validation and late calculation
+            $today = Carbon::today()->toDateString();
+            $checkDate = $validated['date_attendance'];
+            $preferBaseForToday = false;
+            if ($checkDate === $today) {
+                // Prefer base shift for the FIRST check-in of today (reflect latest edited shift)
+                $hasCheckInToday = Attendance::where('employee_id', $validated['employee_id'])
+                    ->where('date_attendance', $checkDate)
+                    ->whereNotNull('time_in')
+                    ->exists();
+                $preferBaseForToday = !$hasCheckInToday;
+            }
+
+            $employeeShift = null;
+            if (!$preferBaseForToday) {
+                $employeeShift = EmployeeShift::where('employee_id', $validated['employee_id'])
+                    ->where('date_shift', $checkDate)
+                    ->first();
+            }
 
             $baseShiftObj = null;
-            if (!$employeeShift) {
+            if ($preferBaseForToday || !$employeeShift) {
                 $emp = Employee::with('shift')->find($validated['employee_id']);
                 if ($emp && $emp->shift) {
                     // Read raw times from Shift to avoid datetime casting side effects
@@ -202,22 +217,22 @@ if ($request->hasFile('image')) {
             $shiftStartTime = null;
             $shiftEndTime = null;
             // Parse shift times using the attendance date for consistency
-            if ($employeeShift) {
+        if ($employeeShift) {
                 // EmployeeShift does not hold raw times; use its related Shift
                 $shiftModel = $employeeShift->loadMissing('shift')->shift;
                 if ($shiftModel) {
                     $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
                     $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
-                    $shiftStartTime = $rawStart ? Carbon::parse($validated['date_attendance'] . ' ' . $rawStart) : null;
-                    $shiftEndTime = $rawEnd ? Carbon::parse($validated['date_attendance'] . ' ' . $rawEnd) : null;
+            $shiftStartTime = $rawStart ? Carbon::parse($checkDate . ' ' . $rawStart) : null;
+            $shiftEndTime = $rawEnd ? Carbon::parse($checkDate . ' ' . $rawEnd) : null;
                 }
             } elseif ($baseShiftObj) {
                 // Fallback for new employees without date_shift: use base shift start time even if end is missing
                 if (!empty($baseShiftObj->time_start)) {
-                    $shiftStartTime = Carbon::parse($validated['date_attendance'] . ' ' . $baseShiftObj->time_start);
+            $shiftStartTime = Carbon::parse($checkDate . ' ' . $baseShiftObj->time_start);
                 }
                 if (!empty($baseShiftObj->time_end)) {
-                    $shiftEndTime = Carbon::parse($validated['date_attendance'] . ' ' . $baseShiftObj->time_end);
+            $shiftEndTime = Carbon::parse($checkDate . ' ' . $baseShiftObj->time_end);
                 }
             }
 
@@ -485,23 +500,8 @@ if ($request->hasFile('image')) {
 
                     // Attach shift start/end for convenience (format HH:MM) if available
                     try {
-                        $employeeShift = EmployeeShift::where('employee_id', $attendance->employee_id)
-                            ->where('date_shift', $attendance->date_attendance)
-                            ->first();
-
-                        if ($employeeShift) {
-                            $shiftModel = $employeeShift->loadMissing('shift')->shift;
-                            if ($shiftModel) {
-                                $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
-                                $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
-                                $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
-                                $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
-                            } else {
-                                $attendance->shift_start = null;
-                                $attendance->shift_end = null;
-                            }
-                        } else {
-                            // Fallback to employee base shift
+                        // For today, prefer the employee's latest base shift so detail modals reflect current edits
+                        if ($attendance->date_attendance === Carbon::today()->toDateString()) {
                             $emp = Employee::with('shift')->find($attendance->employee_id);
                             if ($emp && $emp->shift) {
                                 $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
@@ -511,6 +511,36 @@ if ($request->hasFile('image')) {
                             } else {
                                 $attendance->shift_start = null;
                                 $attendance->shift_end = null;
+                            }
+                        } else {
+                            // For other dates, use per-date override first then fallback to base shift
+                            $employeeShift = EmployeeShift::where('employee_id', $attendance->employee_id)
+                                ->where('date_shift', $attendance->date_attendance)
+                                ->first();
+
+                            if ($employeeShift) {
+                                $shiftModel = $employeeShift->loadMissing('shift')->shift;
+                                if ($shiftModel) {
+                                    $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
+                                    $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
+                                    $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
+                                    $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
+                                } else {
+                                    $attendance->shift_start = null;
+                                    $attendance->shift_end = null;
+                                }
+                            } else {
+                                // Fallback to employee base shift
+                                $emp = Employee::with('shift')->find($attendance->employee_id);
+                                if ($emp && $emp->shift) {
+                                    $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
+                                    $rawEnd = $emp->shift->getRawOriginal('time_end') ?? $emp->shift->time_end;
+                                    $attendance->shift_start = $rawStart ? Carbon::parse($rawStart)->format('H:i') : null;
+                                    $attendance->shift_end = $rawEnd ? Carbon::parse($rawEnd)->format('H:i') : null;
+                                } else {
+                                    $attendance->shift_start = null;
+                                    $attendance->shift_end = null;
+                                }
                             }
                         }
                     } catch (\Exception $e) {
@@ -974,9 +1004,25 @@ if ($request->hasFile('image')) {
                 ], 400);
             }
 
-            $employeeShift = EmployeeShift::where('employee_id', $employeeId)
-                ->where('date_shift', $dateObj->toDateString())
-                ->first();
+            $targetDate = $dateObj->toDateString();
+            $today = Carbon::today()->toDateString();
+
+            // Business rule: For today and until checkout is completed, prefer the latest base shift (ignore per-date override)
+            $preferBaseShift = false;
+            if ($targetDate === $today) {
+                $hasCheckoutToday = Attendance::where('employee_id', $employeeId)
+                    ->where('date_attendance', $today)
+                    ->whereNotNull('time_out')
+                    ->exists();
+                $preferBaseShift = !$hasCheckoutToday;
+            }
+
+            $employeeShift = null;
+            if (!$preferBaseShift) {
+                $employeeShift = EmployeeShift::where('employee_id', $employeeId)
+                    ->where('date_shift', $targetDate)
+                    ->first();
+            }
 
             $shiftStartTime = null;
             $shiftEndTime = null;

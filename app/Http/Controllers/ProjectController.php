@@ -310,19 +310,40 @@ class ProjectController extends Controller
 
                 // Get task counts for this project (all tasks), treating 'rejected' as 'in_progress'
                 $totalTasks = Task::where('project_id', $project->id)->count();
+                // Accept both snake_case and spaced variants for backward data compatibility
                 $inProgressTasks = Task::where('project_id', $project->id)
-                    ->whereIn('status', ['in_progress', 'rejected'])
+                    ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
                     ->count();
                 $rejectedTasks = Task::where('project_id', $project->id)
-                    ->where('status', 'rejected')
+                    ->whereIn(DB::raw('LOWER(status)'), ['rejected'])
                     ->count();
                 $completedTasks = Task::where('project_id', $project->id)
-                    ->where('status', 'completed')
+                    ->whereIn(DB::raw('LOWER(status)'), ['completed'])
                     ->count();
                 $lateTasks = Task::where('project_id', $project->id)
-                    ->where('status', '!=', 'completed')
+                    ->whereRaw('LOWER(status) <> ?', ['completed'])
                     ->whereNotNull('due_date')
                     ->where('due_date', '<', now())
+                    ->count();
+
+                // Mutually-exclusive buckets for charts (avoid overlap between in_progress and late)
+                $nowTs = now();
+                $inProgressOnTime = Task::where('project_id', $project->id)
+                    ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
+                    ->where(function ($q) use ($nowTs) {
+                        $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
+                    })
+                    ->count();
+                $lateExclusive = Task::where('project_id', $project->id)
+                    ->whereRaw('LOWER(status) <> ?', ['completed'])
+                    ->whereNotNull('due_date')
+                    ->where('due_date', '<', $nowTs)
+                    ->count();
+                $notStartedOnTime = Task::where('project_id', $project->id)
+                    ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
+                    ->where(function ($q) use ($nowTs) {
+                        $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
+                    })
                     ->count();
 
                     // build author, co_authors and contributors with photo URLs if available
@@ -382,6 +403,13 @@ class ProjectController extends Controller
                             'rejected' => $rejectedTasks,
                             'completed' => $completedTasks,
                             'late' => $lateTasks,
+                            // Exclusive buckets used by charts
+                            'excl' => [
+                                'completed' => $completedTasks,
+                                'in_progress' => $inProgressOnTime,
+                                'late' => $lateExclusive,
+                                'not_started' => $notStartedOnTime,
+                            ],
                         ]
                     ];
             });

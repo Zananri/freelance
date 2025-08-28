@@ -253,40 +253,22 @@ function updateShiftDisplay(employeeId, date, modalType = 'checkin') {
     const shiftDisplay = document.getElementById(modalType === 'checkin' ? 'shift_time_checkin' : 'shift_time_checkout');
     if (!shiftDisplay) return;
 
-    // Check cache first
+    // Check cache first (but always bypass cache for today's date to ensure freshness after edits)
     const cacheKey = `${employeeId}_${date}`;
-    if (shiftCache[cacheKey]) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isToday = date === todayStr;
+    if (!isToday && shiftCache[cacheKey]) {
         shiftDisplay.textContent = shiftCache[cacheKey];
         return;
     }
+    // Invalidate cache for today to force refresh
+    if (isToday && shiftCache[cacheKey]) delete shiftCache[cacheKey];
 
     // Set loading only if not cached
     shiftDisplay.textContent = 'Loading shift...';
 
-    const url = `${baseUrl}/attendance/today/${employeeId}`;
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' && data.data && data.data.length > 0) {
-                const attendanceData = data.data[0];
-                if (attendanceData.shift_start && attendanceData.shift_end) {
-                    const shiftText = `${attendanceData.shift_start} - ${attendanceData.shift_end}`;
-                    shiftDisplay.textContent = shiftText;
-                    shiftCache[cacheKey] = shiftText;
-                } else {
-                    // No per-date shift from today API; try fallback API
-                    fetchEmployeeShift(employeeId, date, modalType);
-                }
-            } else {
-                // Jika tidak ada data attendance hari ini, coba ambil dari API shift
-                fetchEmployeeShift(employeeId, date, modalType);
-            }
-        })
-        .catch(error => {
-            console.warn('Error fetching shift from attendance:', error);
-            fetchEmployeeShift(employeeId, date, modalType);
-        });
+    // Prefer direct shift-details (per-date override or base) for consistent display
+    fetchEmployeeShift(employeeId, date, modalType);
 }
 
 // Fungsi alternatif untuk mengambil shift langsung dari EmployeeShift
@@ -2018,6 +2000,12 @@ function submitCheckOut() {
                     $("#checkInBtn .check-icon").show();
                     $("#checkOutBtn .done-all-icon").show();
                 }
+
+                // After showing success alert, reload the page once the alert has disappeared
+                // showFloatingAlert uses a 3s display + 0.5s fade; reload after ~3.6s
+                setTimeout(() => {
+                    try { window.location.reload(); } catch (e) { /* ignore */ }
+                }, 3600);
             } else {
                 showFloatingAlert(
                     data.message || "Error submitting check-out",
@@ -2102,7 +2090,7 @@ function openCheckInDetailModal() {
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Shift:</div>
-                                            <div class="detail-value">${lastCheckIn.shift_start || '--:--'} - ${lastCheckIn.shift_end || '--:--'}</div>
+                                            <div class="detail-value"><span id="detail_shift_text_in">${(lastCheckIn.shift_start || '--:--')} - ${(lastCheckIn.shift_end || '--:--')}</span></div>
                                         </div>
                                     </div>
                                     
@@ -2135,14 +2123,34 @@ function openCheckInDetailModal() {
                 // Add modal to body
                 document.body.insertAdjacentHTML('beforeend', modalContent);
 
-                // Initialize and show modal
-                const modal = new bootstrap.Modal(document.getElementById('checkInDetailModal'));
-                modal.show();
+                // Prepare modal instance
+                const checkInModalEl = document.getElementById('checkInDetailModal');
+                const modal = new bootstrap.Modal(checkInModalEl);
 
-                // Initialize map after modal is shown
-                document.getElementById('checkInDetailModal').addEventListener('shown.bs.modal', function () {
+                // Attach handler BEFORE showing to avoid missing the event
+                checkInModalEl.addEventListener('shown.bs.modal', function () {
                     // Log untuk debugging
                     console.log("Check-in data:", lastCheckIn);
+                    // Override shift from shift-details to ensure latest shift is displayed
+                    try {
+                        const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                        // Bypass any HTTP/browser cache to always get latest shift
+                        const bust = Date.now();
+                        fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
+                            .then(r => r.json())
+                            .then(sd => {
+                                if (sd && sd.status === 'success' && sd.data) {
+                                    const ts = sd.data.time_start;
+                                    const te = sd.data.time_end;
+                                    if (ts && te) {
+                                        const shiftText = `${formatTimeDisplay(ts)} - ${formatTimeDisplay(te)}`;
+                                        const span = document.querySelector('#checkInDetailModal #detail_shift_text_in');
+                                        if (span) span.textContent = shiftText;
+                                    }
+                                }
+                            })
+                            .catch(() => {});
+                    } catch(e) { /* ignore */ }
                     
                     // Extract both check-in and check-out coordinates
                     let checkInLat = lastCheckIn.latitude ?? null;
@@ -2208,6 +2216,29 @@ function openCheckInDetailModal() {
                         document.getElementById('detailMapCheckIn').innerHTML = '<div class="alert alert-warning text-center">Error loading map</div>';
                     }
                 });
+
+                // Show modal after binding event
+                modal.show();
+
+                // Fallback: trigger an immediate fetch to update shift text even if event timing is off
+                try {
+                    const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                    const bust = Date.now();
+                    fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
+                        .then(r => r.json())
+                        .then(sd => {
+                            if (sd && sd.status === 'success' && sd.data) {
+                                const ts = sd.data.time_start;
+                                const te = sd.data.time_end;
+                                if (ts && te) {
+                                    const shiftText = `${formatTimeDisplay(ts)} - ${formatTimeDisplay(te)}`;
+                                    const span = document.querySelector('#checkInDetailModal #detail_shift_text_in');
+                                    if (span) span.textContent = shiftText;
+                                }
+                            }
+                        })
+                        .catch(() => {});
+                } catch (e) { /* ignore */ }
             } else {
                 showFloatingAlert("No check-in data found for today", "warning");
             }
@@ -2276,7 +2307,7 @@ function openCheckOutDetailModal() {
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Shift:</div>
-                                            <div class="detail-value">${formatTimeDisplay(lastCheckOut.shift_start) || '--:--'} - ${formatTimeDisplay(lastCheckOut.shift_end) || '--:--'}</div>
+                                            <div class="detail-value"><span id="detail_shift_text_out">${(formatTimeDisplay(lastCheckOut.shift_start) || '--:--')} - ${(formatTimeDisplay(lastCheckOut.shift_end) || '--:--')}</span></div>
                                         </div>
                                     </div>
                                     
@@ -2309,14 +2340,34 @@ function openCheckOutDetailModal() {
                 // Add modal to body
                 document.body.insertAdjacentHTML('beforeend', modalContent);
 
-                // Initialize and show modal
-                const modal = new bootstrap.Modal(document.getElementById('checkOutDetailModal'));
-                modal.show();
+                // Prepare modal instance
+                const checkOutModalEl = document.getElementById('checkOutDetailModal');
+                const modal = new bootstrap.Modal(checkOutModalEl);
 
-                // Initialize map after modal is shown
-                document.getElementById('checkOutDetailModal').addEventListener('shown.bs.modal', function () {
+                // Attach handler BEFORE showing to avoid missing the event
+                checkOutModalEl.addEventListener('shown.bs.modal', function () {
                     // Log untuk debugging
                     console.log("Check-out data:", lastCheckOut);
+                    // Override shift from shift-details to ensure latest shift is displayed
+                    try {
+                        const dateStr = lastCheckOut.date_attendance || new Date().toISOString().split('T')[0];
+                        // Bypass any HTTP/browser cache to always get latest shift
+                        const bust = Date.now();
+                        fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
+                            .then(r => r.json())
+                            .then(sd => {
+                                if (sd && sd.status === 'success' && sd.data) {
+                                    const ts = sd.data.time_start;
+                                    const te = sd.data.time_end;
+                                    if (ts && te) {
+                                        const shiftText = `${formatTimeDisplay(ts)} - ${formatTimeDisplay(te)}`;
+                                        const span = document.querySelector('#checkOutDetailModal #detail_shift_text_out');
+                                        if (span) span.textContent = shiftText;
+                                    }
+                                }
+                            })
+                            .catch(() => {});
+                    } catch(e) { /* ignore */ }
                     
                     // Prefer explicit fields
                     let outLat = lastCheckOut.checkout_latitude ?? null;
@@ -2382,6 +2433,29 @@ function openCheckOutDetailModal() {
                         document.getElementById('detailMapCheckOut').innerHTML = '<div class=\"alert alert-warning text-center\">Error loading checkout map</div>';
                     }
                 });
+
+                // Show modal after binding event
+                modal.show();
+
+                // Fallback: trigger an immediate fetch to update shift text even if event timing is off
+                try {
+                    const dateStr = lastCheckOut.date_attendance || new Date().toISOString().split('T')[0];
+                    const bust = Date.now();
+                    fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
+                        .then(r => r.json())
+                        .then(sd => {
+                            if (sd && sd.status === 'success' && sd.data) {
+                                const ts = sd.data.time_start;
+                                const te = sd.data.time_end;
+                                if (ts && te) {
+                                    const shiftText = `${formatTimeDisplay(ts)} - ${formatTimeDisplay(te)}`;
+                                    const span = document.querySelector('#checkOutDetailModal #detail_shift_text_out');
+                                    if (span) span.textContent = shiftText;
+                                }
+                            }
+                        })
+                        .catch(() => {});
+                } catch (e) { /* ignore */ }
             } else {
                 showFloatingAlert("No check-out data found for today", "warning");
             }
@@ -2496,28 +2570,29 @@ function getTodayAttendanceStatus() {
         });
 }
 
- // Fungsi untuk memformat waktu menjadi format 00:00
+ // Fungsi untuk memformat waktu menjadi format 00:00 (mendukung HH:MM, HH:MM:SS, dan datetime umum)
     function formatTimeDisplay(timeString) {
         if (!timeString) return '--:--';
         
-        // Jika sudah dalam format HH:MM, langsung return
-        if (timeString.match(/^\d{2}:\d{2}$/)) {
-            return timeString;
+        // Jika string waktu sederhana HH:MM atau HH:MM:SS
+        if (typeof timeString === 'string') {
+            const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+            if (m) return `${m[1]}:${m[2]}`;
         }
         
-        // Jika format ISO atau timestamp, extract jam dan menit
-        try {
-            const date = new Date(timeString);
-            if (isNaN(date.getTime())) {
-                return '--:--';
-            }
-            
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            return `${hours}:${minutes}`;
-        } catch (error) {
+        // Jika format ISO atau "YYYY-MM-DD HH:MM:SS"/timestamp, extract jam dan menit
+        let date = new Date(timeString);
+        if (isNaN(date.getTime()) && typeof timeString === 'string' && timeString.includes(' ')) {
+            // Normalize spasi ke 'T' agar Date bisa parse
+            date = new Date(timeString.replace(' ', 'T'));
+        }
+        if (isNaN(date.getTime())) {
             return '--:--';
         }
+        
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
     }
 
     // Fungsi untuk update state tombol berdasarkan status

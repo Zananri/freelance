@@ -26,6 +26,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.getElementById("department_id");
     const divisionSelect = document.getElementById("division_id");
     const jobSelect = document.getElementById("job_id");
+    const shiftSelect = document.getElementById("shift_id");
+    const shiftTimeHint = document.getElementById("shift_time_hint");
 function loadDepartments(selectedId) {
     $.ajax({
         url: appUrl + "/department/index",
@@ -116,6 +118,50 @@ function loadJobs(divisionId, selectedId) {
         : null;
 
     loadDepartments(currentDepartmentId);
+
+    // Load shifts for selection and preselect current
+    function loadShifts(selectedId) {
+        if (!shiftSelect) return;
+        const shiftsUrl = shiftSelect.getAttribute('data-fetch-url') || (appUrl ? appUrl + '/shift/list' : '/shift/list');
+        $.ajax({
+            url: shiftsUrl,
+            type: "GET",
+            dataType: "json",
+            success: function (resp) {
+                const data = resp.data || [];
+                let options = '<option value="" disabled>Select Shift</option>';
+                data.forEach((s) => {
+                    const start = s.time_start?.slice(0,5) || "--:--";
+                    const end = s.time_end?.slice(0,5) || "--:--";
+                    const title = s.title || `Shift ${start}-${end}`;
+                    options += `<option value="${s.id}" data-start="${start}" data-end="${end}">${title} (${start} - ${end})</option>`;
+                });
+                shiftSelect.innerHTML = options;
+                if (selectedId) {
+                    shiftSelect.value = String(selectedId);
+                }
+                // Trigger change to update hint
+                const opt = shiftSelect.options[shiftSelect.selectedIndex];
+                if (opt && opt.getAttribute('data-start') && shiftTimeHint) {
+                    shiftTimeHint.textContent = `${opt.getAttribute('data-start')} - ${opt.getAttribute('data-end')}`;
+                }
+            },
+            error: function () {
+                console.error("Failed to load shifts");
+            },
+        });
+    }
+
+    if (shiftSelect) {
+        const currentShiftId = shiftSelect.getAttribute('data-current');
+        loadShifts(currentShiftId);
+        shiftSelect.addEventListener("change", function(){
+            const opt = this.options[this.selectedIndex];
+            const start = opt.getAttribute("data-start");
+            const end = opt.getAttribute("data-end");
+            if (shiftTimeHint) shiftTimeHint.textContent = `${start} - ${end}`;
+        });
+    }
 
     departmentSelect.addEventListener("change", function () {
         const deptId = this.value;
@@ -254,6 +300,10 @@ function loadJobs(divisionId, selectedId) {
         formData.delete("employee_email_work");
         formData.set("phone", formData.get("employee_phone"));
         formData.delete("employee_phone");
+        // Include shift_id if present
+        if (formData.get("shift_id")) {
+            formData.set("shift_id", formData.get("shift_id"));
+        }
 
         fetch(form.action, {
             method: "POST",
@@ -354,6 +404,9 @@ function loadJobs(divisionId, selectedId) {
         formData.delete("employee_email_work");
         formData.set("phone", formData.get("employee_phone"));
         formData.delete("employee_phone");
+        if (formData.get("shift_id")) {
+            formData.set("shift_id", formData.get("shift_id"));
+        }
 
         fetch(form.action, {
             method: "POST",

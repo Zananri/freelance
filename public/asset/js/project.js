@@ -81,6 +81,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupProjectReferenceFilesInput();
 
+    // Helper to format role labels to capitalized form (Author, Co-Author, Contributor)
+    function formatRoleText(role) {
+        if (!role) return '';
+        try {
+            const r = String(role).trim().toLowerCase().replace(/[-\s]+/g, '_');
+            if (r === 'author') return 'Author';
+            if (r === 'co_author') return 'Co-Author';
+            if (r === 'contributor') return 'Contributor';
+            // Fallback: Title Case each token
+            return String(role)
+                .split(/[\s_-]+/)
+                .map((w) => w ? (w.charAt(0).toUpperCase() + w.slice(1)) : '')
+                .join(' ');
+        } catch(_) { return String(role); }
+    }
+
     // Helper to resolve employee photo URL and return img HTML string
     function resolvePhotoHtml(emp, size = 30, marginLeft = 0, role = '') {
         let userPhoto = emp && (emp.profile_picture || emp.user_photo || emp.user_photo_path || emp.user_photo_url);
@@ -119,14 +135,15 @@ document.addEventListener("DOMContentLoaded", function () {
             photoUrl = appUrl + '/asset/img/profile_picture/default.png';
         }
 
-        const name = (emp && (emp.name || emp.username || emp.full_name)) ? (emp.name || emp.username || emp.full_name) : 'Unknown';
-        const roleText = role ? ` (${role.replace('_', ' ')})` : '';
-        const titleText = `${name}${roleText}`;
+    const name = (emp && (emp.name || emp.username || emp.full_name)) ? (emp.name || emp.username || emp.full_name) : 'Unknown';
+    const roleLabel = role ? formatRoleText(role) : '';
+    const roleText = roleLabel ? ` (${roleLabel})` : '';
+    const titleText = `${name}${roleText}`;
 
     return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}">`;
     }
 
-    // Build collaborators HTML: author first, then co_authors, then executors. Shows up to 3 images and +N overflow.
+    // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.
     function renderCollaborators(project) {
         try {
             const maxVisible = 3;
@@ -142,11 +159,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 project.co_authors.forEach((c) => coll.push({ type: 'co_author', emp: c }));
             }
 
-            // Executors / contributors (try multiple property names)
+            // Contributors (support legacy key 'executors' by treating them as contributors for display)
             if (project.executors && Array.isArray(project.executors)) {
-                project.executors.forEach((c) => coll.push({ type: 'executor', emp: c }));
+                project.executors.forEach((c) => coll.push({ type: 'contributor', emp: c }));
             } else if (project.contributors && Array.isArray(project.contributors)) {
-                project.contributors.forEach((c) => coll.push({ type: 'executor', emp: c }));
+                project.contributors.forEach((c) => coll.push({ type: 'contributor', emp: c }));
             }
 
             if (coll.length === 0) {
@@ -165,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (overflow > 0) {
                 const hidden = coll.slice(maxVisible).map(h => {
                     const n = h.emp && (h.emp.name || h.emp.username || h.emp.full_name) ? (h.emp.name || h.emp.username || h.emp.full_name) : 'Unknown';
-                    return `${n} (${h.type.replace('_',' ')})`;
+                    return `${n} (${formatRoleText(h.type)})`;
                 }).join(', ');
 
                 html += `<div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold" title="${hidden}" data-bs-toggle="tooltip" data-bs-placement="bottom" style="width:30px;height:30px;font-size:12px;margin-left:-8px;">+${overflow}</div>`;
@@ -2480,7 +2497,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 statusText = task.status;
                                         }
 
-                                        // Build combined PIC and Executors HTML
+                                        // Build combined PIC and Contributors HTML
                                         let combinedImagesHtml = "";
                                         let allPeople = [];
 
@@ -2549,7 +2566,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             });
                                         }
 
-                                        // Add executors, excluding PIC duplicates
+                                        // Add contributors (from executors field), excluding PIC duplicates
                                         if (
                                             task.executors &&
                                             task.executors.length > 0
@@ -2573,7 +2590,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                             name:
                                                                 executor.name ||
                                                                 "Unknown",
-                                                            title: "Executor",
+                                                            title: "Contributor",
                                                         });
                                                     }
                                                 }
@@ -2583,14 +2600,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                         // Build combined images HTML
                                         combinedImagesHtml = allPeople
                                             .map((person, index) => {
-                                                const overlapClass =
-                                                    index === 0
-                                                        ? ""
-                                                        : "executor-image-overlap";
-                                                const zIndexStyle = `style="z-index: ${
-                                                    allPeople.length - index
-                                                };"`;
-                                                return `<img src="${person.image}" alt="${person.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${person.name} (${person.title})" ${zIndexStyle}>`;
+                                                const overlapClass = index === 0 ? "" : "contributor-image-overlap";
+                                                const baseStyle = "width: 28px; height: 28px; object-fit: cover; border-radius: 50%;";
+                                                const overlapStyle = index === 0 ? "" : " margin-left: -8px;";
+                                                const zIndex = allPeople.length - index;
+                                                const style = `style=\"${baseStyle}${overlapStyle} z-index: ${zIndex};\"`;
+                                                return `<img src="${person.image}" alt="${person.name}" class="pic-contributor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${person.name} (${person.title})" ${style}>`;
                                             })
                                             .join("");
 
@@ -2622,7 +2637,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <div class="text-muted small mb-2">${createdDate}</div>
                                     <div class="d-flex align-items-center">
                                         <div class="d-flex align-items-center">
-                                            <div class="d-flex align-items-center pic-executor-container">
+                                            <div class="d-flex align-items-center pic-contributor-container">
                                                 ${combinedImagesHtml}
                                             </div>
 
@@ -2786,6 +2801,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load projects for "part_of_project" select
 let allProjectsCache = [];
+
+// Render projects into relevant selects (e.g., part_of_project)
+function renderProjects(projects) {
+    try {
+        projects = Array.isArray(projects) ? projects : [];
+
+        // Populate the Add Project modal's "part_of_project" select if present
+        if (typeof partOfProjectSelect !== 'undefined' && partOfProjectSelect) {
+            let opts = '<option value="" disabled selected>Select Project</option>';
+            projects.forEach((p) => {
+                const id = (p && (p.id != null)) ? p.id : '';
+                const title = (p && (p.title || p.name)) ? (p.title || p.name) : 'Untitled';
+                opts += `<option value="${id}">${title}</option>`;
+            });
+            partOfProjectSelect.innerHTML = opts;
+            partOfProjectSelect.disabled = false;
+            partOfProjectSelect.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('renderProjects error', e);
+    }
+}
 
 // Load semua project dari API
 function loadProjects() {
@@ -4461,42 +4498,44 @@ document.addEventListener("DOMContentLoaded", function () {
         projectChartInstance = createDoughnut(ctx, dataset);
     }
 
-    // update chart and label counts based on project array
+    // update chart and label counts based on aggregated task_counts across projects
     function updateProjectChartFromData(projects) {
-        // projects is array of project objects with task_counts (project-level buckets)
         projects = projects || [];
 
-        let totalProjects = projects.length;
-        let complete = 0;
-        let onProgress = 0;
+        let totalTasks = 0;
+        let completed = 0;
+        let inProgress = 0; // includes rejected per backend
         let late = 0;
-        let notStarted = 0;
 
         projects.forEach((p) => {
             const tc = p.task_counts || {};
-            const tTotal = tc.total || 0;
-            const tCompleted = tc.completed || 0;
-            const tInProgress = tc.in_progress || 0; // already includes rejected
-            const tLate = tc.late || 0;
-
-            if (tLate > 0) {
-                late += 1;
-            } else if (tTotal > 0 && tCompleted === tTotal) {
-                complete += 1;
-            } else if (tInProgress > 0) {
-                onProgress += 1;
+            if (tc.excl) {
+                completed += (tc.excl.completed || 0);
+                const ip = (tc.excl.in_progress || 0);
+                const lt = (tc.excl.late || 0);
+                const ns = (tc.excl.not_started || 0);
+                inProgress += ip;
+                late += lt;
+                totalTasks += (ip + lt + ns + (tc.excl.completed || 0));
             } else {
-                notStarted += 1;
+                totalTasks += (tc.total || 0);
+                completed += (tc.completed || 0);
+                inProgress += (tc.in_progress || 0);
+                late += (tc.late || 0);
             }
         });
 
+    // Compute slices: use in-progress as reported (exclusive buckets handled by backend when available)
+    const inProgressExclLate = inProgress;
+        const notStarted = Math.max(0, totalTasks - completed - inProgressExclLate - late);
+
         // Chart slices: Not Started, Complete, On Progress, Late
-        const chartData = [notStarted, complete, onProgress, late];
+        const chartData = [notStarted, completed, inProgressExclLate, late];
 
         // update chart instance: set labels and colors accordingly
         try {
             if (projectChartInstance && projectChartInstance.data) {
-                if (totalProjects === 0) {
+                if (totalTasks === 0) {
                     // no projects at all -> show No Data
                     projectChartInstance.data.labels = ["No Data"];
                     projectChartInstance.data.datasets[0].data = [1];
@@ -4509,7 +4548,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 projectChartInstance.update();
             } else if (ctx) {
                 // create chart if missing
-                projectChartInstance = createDoughnut(ctx, totalProjects === 0 ? [] : chartData);
+                projectChartInstance = createDoughnut(ctx, totalTasks === 0 ? [] : chartData);
             }
         } catch (e) {
             console.error('chart update failed', e);
@@ -4521,9 +4560,9 @@ document.addEventListener("DOMContentLoaded", function () {
             if (labelsContainer) {
                 const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
                 if (spans && spans.length >= 4) {
-                    spans[0].textContent = totalProjects;
-                    spans[1].textContent = complete;
-                    spans[2].textContent = onProgress;
+                    spans[0].textContent = totalTasks;
+                    spans[1].textContent = completed;
+                    spans[2].textContent = inProgressExclLate;
                     spans[3].textContent = late;
                 }
             }
