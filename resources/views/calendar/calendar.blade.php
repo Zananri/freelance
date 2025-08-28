@@ -32,19 +32,19 @@
 
             <di class="col-12 col-md-12 col-calendar"> 
 
-                <div class="card-content">
+                <div class="card-content overflow-hidden">
                     <div class="header-calendar">
                         <div class="d-flex align-items-center">
                             <div class="month-year w-100">
                                 <div class="d-inline-flex align-items-center">
                                     <span class="calendar-month">{{ date('F') }}</span>
                                     <span class="calendar-year">{{ date('Y') }}</span>
-                                    <span class="material-symbols-outlined calendar-prev-month">chevron_left</span>
+                                    <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
                                     <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
                                 </div>
                             </div>
                             <div class="box-view-control">
-                                <div>
+                                {{-- <div>
                                     <div class="dropdown">
                                         <button class="btn btn-default-dropdown fs-14 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             Month
@@ -55,66 +55,11 @@
                                             <li><a class="dropdown-item fs-14" href="#">Something else here</a></li>
                                         </ul>
                                     </div>
-                                </div>
+                                </div> --}}
                             </div>
                         </div>
                     </div>
 
-                    <style>
-                        .table-calendar{
-                            border-collapse: collapse;
-                            width: 100%;
-                            height: calc(100vh - 276px);
-                        }
-
-                        
-                        .table-calendar thead th{
-                            font-size: 14px;
-                            font-weight: 400;
-                            color: #5F6974;
-                            text-align: center;
-                            max-height: 30px;
-                            border:solid 1px #E4E7EE;
-                            border-bottom: 0px;
-                        }
-
-                        @media (max-width: 567px) {
-                            .table-calendar{
-                                height: calc(100vw - 30px);
-                            }
-
-                            .table-calendar thead th{
-                                font-size: 12px;
-                            }
-                            
-                        }
-                        
-
-                        .table-calendar tbody td{
-                            text-align: center;
-                            vertical-align: top;
-                            border:solid 1px #E4E7EE;
-                            transition: all 0.3s;
-                        }
-
-                        .table-calendar tbody td:hover{
-                            background-color: #f9fcff;
-                        }
-
-                        .table-calendar tbody tr:first-child td{
-                            border-top: 0px;
-                        }
-
-                        .table-calendar tbody td .day{
-                            font-size: 14px;
-                            font-weight: 400;
-                            color: #2A3542;
-                        }
-
-                        .table-calendar tbody td.today .day{
-                            color: #0b5bbd;
-                        }
-                    </style>
                     <div class="box-table-calendar">
 
                         <table class="table-calendar">

@@ -34,7 +34,7 @@ function renderCalendar(year, month) {
         const today = new Date();
         const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
-        row.append(`<td class="${isToday ? 'today' : ''}" data-calendar-date="${day}-${month}-${year}"><div class="day">${day}</div></td>`);
+        row.append(`<td class=" ${isToday ? 'today' : ''}" data-calendar-date="${year}-${month+1}-${day}"><div class="day">${day}</div><div class="box-event"></div></td>`);
 
         day++;
     }
@@ -55,3 +55,12 @@ $('.calendar-next-month').click(function() {
     currentDate.setMonth(currentDate.getMonth() + 1);
     renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
 });
+
+
+function appendEventCalendar(dateCalendar,text,type){
+
+    let boxEvent = `<div class="text-event">${text}</div>`;
+
+    $(document).find('[data-calendar-date="'+dateCalendar+'"] .box-event').append(boxEvent);
+
+}

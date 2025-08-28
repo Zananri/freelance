@@ -951,9 +951,15 @@ if ($request->hasFile('image')) {
     public function getEmployeeShiftDetails($employeeId, $date)
     {
         try {
-            // Validate date format
-            $dateObj = Carbon::createFromFormat('Y-m-d', $date);
-            if (!$dateObj) {
+            // Accept either plain date (Y-m-d) or ISO/date-time strings and normalize to Y-m-d
+            try {
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $date)) {
+                    $dateObj = Carbon::createFromFormat('Y-m-d', $date);
+                } else {
+                    // Fallback for values like 2025-08-27T17:00:00.000000Z or "YYYY-MM-DD HH:MM:SS"
+                    $dateObj = Carbon::parse($date);
+                }
+            } catch (\Exception $e) {
                 return response()->json([
                     'code' => 400,
                     'status' => 'error',
