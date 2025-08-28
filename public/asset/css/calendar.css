@@ -75,7 +75,7 @@
 
 .calendar-month,
 .calendar-year{
-    font-size: 20px;
+    font-size: 16px;
     color: #2A3542;
     font-weight: 400;
     margin-left: 10px;
@@ -83,11 +83,11 @@
 
 .calendar-next-month,
 .calendar-prev-month{
-    font-size: 24px;
+    font-size: 20px;
     color: #474c59;
     cursor: pointer;
-    margin-left: 15px;
     border-radius: 20px;
+    padding: 10px 10px;
 }
 
 .calendar-next-month:hover,
@@ -99,9 +99,109 @@
 }
 
 
-@media screen and (min-width: 580px) {
-    .col-user-management .input-card-action:focus {
-        width: 200px;
+.table-calendar{
+    border-collapse: collapse;
+    width: 100%;
+    height: calc(100vh - 276px);
+    min-height: 400px;
+}
+
+
+.table-calendar thead th{
+    font-size: 12px;
+    font-weight: 400;
+    color: #747d87;
+    text-align: center;
+    max-height: 30px;
+    border:solid 1px #E4E7EE;
+    border-bottom: 0px;
+}
+
+@media (max-width: 567px) {
+    .table-calendar{
+        height: calc(100vw - 30px);
     }
 }
 
+
+
+.table-calendar tbody td{
+    position: relative;
+    
+    vertical-align: top;
+    border:solid 1px #E4E7EE;
+    transition: all 0.3s;
+    padding: 5px 5px;
+    width: calc(100% / 7);
+}
+
+
+.table-calendar tbody tr:first-child td{
+    border-top: 0px;
+}
+
+.table-calendar tbody td .day{
+    text-align: center;
+    font-size: 12px;
+    color: #46515f;
+    font-weight: 600;
+}
+
+.table-calendar tbody td .box-event{
+    position: absolute;
+    padding: 2px 5px;
+    top: 25px;
+    left: 0px;
+    width: 100%;
+    height: calc(100% - 30px);
+    overflow-x: auto;
+    
+}
+
+/* Style the entire scrollbar */
+.table-calendar tbody ::-webkit-scrollbar {
+  width: 5px; /* Adjust width as needed */
+  background-color: transparent; /* Initially transparent */
+}
+
+/* Style the scrollbar thumb (draggable part) */
+.table-calendar tbody ::-webkit-scrollbar-thumb {
+  background-color: #46505b50; /* Default thumb color */
+  border-radius: 7px;
+}
+
+/* Style the scrollbar track (background) */
+.table-calendar tbody ::-webkit-scrollbar-track {
+  background-color: transparent; /* Initially transparent */
+}
+
+/* Hide the scrollbar by default */
+.table-calendar tbody ::-webkit-scrollbar-thumb,
+.table-calendar tbody ::-webkit-scrollbar-track {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out; /* Smooth transition */
+}
+
+.table-calendar tbody td .box-event:hover ::-webkit-scrollbar-thumb,
+.table-calendar tbody td .box-event:hover ::-webkit-scrollbar-track {
+  opacity: 1;
+}
+
+
+.table-calendar tbody td .text-event{
+    font-size: 10px;
+    color: #46505B;
+    font-weight: 500;
+    background-color: #f2e2e4;
+    padding: 2px 8px;
+    margin-bottom: 5px;
+    border-radius: 15px;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1; /* Number of lines to show */
+    -webkit-box-orient: vertical;
+}
+
+.table-calendar tbody td.today .day{
+    color: #0c6cea;
+}
