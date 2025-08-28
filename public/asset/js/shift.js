@@ -174,7 +174,7 @@ function renderEmployeeTable(employees, month, year) {
     });
 }
 
-function createEmployeeCell(employee) {
+function createEmployeeCell(employee, shift) {
     const td = document.createElement("td");
     td.classList.add("sticky-col");
 
@@ -188,7 +188,7 @@ function createEmployeeCell(employee) {
                 width="28px"
                 height="28px" />
             <div>
-                <div class="fw-semibold" style="font-size: 14px;">${
+                <div class="fw-normal" style="font-size: 14px;">${
                     employee.name
                 }</div>
             </div>
@@ -200,6 +200,9 @@ function createEmployeeCell(employee) {
                             employee.profile_picture ||
                             "/asset/img/default-profile.png"
                         }">
+                        data-start="${shift.time_start}"
+                        data-end="${shift.time_end}"
+                        data-title="${shift.title}"
                     <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
@@ -284,13 +287,23 @@ function setEditEmployeeModal(btn) {
     const employeeModalEl = document.getElementById("editEmployeeModal");
     const employeeModal = new bootstrap.Modal(employeeModalEl);
 
-    employeeModalEl.querySelector("#editShiftId").value = "";
+    employeeModalEl.querySelector("#editShiftId").value = btn.dataset.shiftId;
     employeeModalEl.querySelector("#editEmployeeId").value =
         btn.dataset.employeeId;
-    employeeModalEl.querySelector("#editEmployeeName").textContent =
+    employeeModalEl.querySelector("#editShiftEmployeeName").textContent =
         btn.dataset.employeeName;
+    employeeModalEl.querySelector("#editShiftTitle").textContent =
+        btn.dataset.title;
     employeeModalEl.querySelector("#editEmployeePicture").src =
         btn.dataset.employeePicture;
+
+    employeeModalEl.querySelector("#editTimeStart").value = btn.dataset.start;
+    employeeModalEl.querySelector("#editTimeEnd").value = btn.dataset.end;
+
+    employeeModalEl.querySelector("#editTimeStartDisplay").textContent =
+        btn.dataset.start || "--";
+    employeeModalEl.querySelector("#editTimeEndDisplay").textContent =
+        btn.dataset.end || "--";
 
     employeeModal.show();
 }

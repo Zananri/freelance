@@ -32,7 +32,6 @@
 .search-input-container .custom-form-filter {
     width: 100%;
     padding-left: 40px;
-    height: 38px;
     background: rgb(240, 241, 248);
     border: none;
 }
@@ -149,20 +148,40 @@
     left: 15%;
 }
 
-.config-group-icon button span {
-    font-variation-settings: "FILL" 1;
-    font-size: 16px;
+.btn-pagination-table {
+    border: none !important;
+    background: transparent;
+    padding: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.btn-pagination-table {
-    background: transparent;
-    font-size: 24px;
+.btn-pagination-table:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.btn-pagination-table:hover {
+    background: #ebecf4;
+    border-radius: 50%;
 }
 
 .dropdown-btn-custom {
     background: transparent;
     border: none;
     margin-left: 0;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+}
+
+.dropdown-btn-custom:active {
+    background: transparent;
 }
 
 .dropdown-btn-custom:hover {
@@ -263,7 +282,6 @@
 .dropdown-container {
     width: 100%;
     padding: 10px;
-    margin-bottom: 150px;
 }
 
 .dropdown-btn {
@@ -338,7 +356,7 @@
     display: flex;
     justify-content: space-between;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .dropdown-item span {
@@ -365,6 +383,31 @@
     }
 }
 
+.modal-footer-custom {
+    width: 100%;
+    border: none;
+    justify-content: center;
+    margin-top: 3rem;
+    padding: 10px;
+}
+
+.modal-footer-custom button {
+    height: 50px;
+    width: 48%;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.modal-footer-custom .btn-light {
+    background: #e3e4ee;
+    color: #596069;
+    border: none;
+}
+
+.modal-footer-custom .btn-close-custom {
+    width: 100%;
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .icon-text {
@@ -372,13 +415,21 @@
     }
 
     .search-input-container {
-        width: 100px;
+        width: 150px;
+    }
+
+    .search-input-container input {
+        height: 50px;
     }
 
     .filter-shift-btn,
     .config-shift-btn {
         margin: 0;
         min-width: 50px;
+        min-height: 50px;
+        padding: 5px;
+        justify-content: center;
+        align-items: center;
     }
 
     .d-flex.gap-1 {
@@ -398,6 +449,13 @@
     .shift-table th:first-child,
     .shift-table td:first-child {
         min-width: 100px !important;
+    }
+
+    .modal-footer-custom button {
+        height: 50px;
+        width: 47%;
+        border-radius: 5px;
+        font-size: 14px;
     }
 }
 
@@ -442,31 +500,6 @@
     border: 1px solid #d4dbe2;
 }
 
-.modal-footer-custom {
-    width: 100%;
-    border: none;
-    justify-content: center;
-    margin-top: 3rem;
-    padding: 10px;
-}
-
-.modal-footer-custom button {
-    height: 50px;
-    width: 48%;
-    border-radius: 5px;
-    font-size: 14px;
-}
-
-.modal-footer-custom .btn-light {
-    background: #e3e4ee;
-    color: #596069;
-    border: none;
-}
-
-.modal-footer-custom .btn-close-custom {
-    width: 100%;
-}
-
 /* Gap utilities */
 .d-flex.gap-1 {
     gap: 0.25rem;
@@ -501,23 +534,45 @@
 }
 
 #monthDropdownMenu {
-    background: #f0f1f8;
-    border: none;
-    font-size: 14px;
-    max-width: 200px;
+    min-width: max-content;
     max-height: 300px;
     overflow-y: auto;
+    background: #f0f1f8;
+    border: none;
+    overflow-x: hidden;
+    top: 100% !important;
+    left: auto !important;
+    right: 0 !important;
+
+    margin-top: 6px;
 }
 
 #editEmployeePicture {
     margin-top: 0.5rem;
 }
 
+.filter-dropdown.show,
+.filter-dropdown:active,
+.filter-dropdown:focus{
+    background: #f0f1f8 !important;
+}
+
 .filter-dropdown .dropdown-filter {
     border: none;
     background-color: #f0f1f8;
     font-size: 14px;
-    min-height: 350px;
+    min-height: 300px;
     width: 100%;
-    max-height: 500px;
+}
+
+.dropdown-filter li select{
+    border: none;
+}
+
+.filter-dropdown .dropdown-toggle::after {
+    display: none !important;
+}
+
+#shiftMonthTitle {
+    font-size: 16px;
 }
