@@ -106,3 +106,47 @@ body {
 .text-link:hover{
     color: #d02e2e !important;
 }
+
+/* Circular camera capture button used in attendance modals */
+.camera-capture-btn {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: inherit;
+    color: #fff;
+    border: 6px solid rgba(255,255,255,0.7);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 0 0 6px rgba(0,0,0,0.05);
+    transition: transform 0.1s ease, background 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.camera-capture-btn .material-symbols-outlined {
+    font-size: 48px;
+    line-height: 1;
+}
+
+.camera-capture-btn:active {
+    transform: scale(0.96);
+}
+
+/* Hover/focus feedback like a camera shutter */
+.camera-capture-btn:hover {
+    transform: scale(1.05);
+    border-color: #ffffff;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.35), inset 0 0 0 6px rgba(255,255,255,0.12);
+}
+
+.camera-capture-btn:focus-visible {
+    outline: 3px solid rgba(255,255,255,0.7);
+    outline-offset: 2px;
+}
+
+@media (max-width: 576px) {
+    .camera-capture-btn { width: 96px; height: 96px; border-width: 5px; }
+    .camera-capture-btn .material-symbols-outlined { font-size: 40px; }
+}
+
+/* Standardize camera video sizing across pages (overrides inline) */

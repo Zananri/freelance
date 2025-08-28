@@ -196,6 +196,18 @@
                             </div>
                         </div>
 
+                        <!-- Shift selection (from shifts table) -->
+                        <div>
+                            <label for="shift_id" class="form-label">Shift</label>
+                            <select id="shift_id" name="shift_id" class="form-select input-select" required data-current="{{ $employee->shift_id }}" data-fetch-url="{{ route('shift.list') }}">
+                                <option value="" disabled>Select Shift</option>
+                            </select>
+                            <small class="text-muted">Waktu: <span id="shift_time_hint">-</span></small>
+                            <div class="invalid-feedback">
+                                Please select a shift.
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- Right Section -->
@@ -256,6 +268,6 @@
   
 
     <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/edit-employee.js') }}"></script>
+    <script src="{{ asset('asset/js/edit-employee.js') }}?v={{ time() }}"></script>
     </x-slot>
 </x-office-layout>

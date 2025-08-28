@@ -4,6 +4,24 @@ document.addEventListener("DOMContentLoaded", function () {
             .querySelector('meta[name="app-url"]')
             ?.getAttribute("content") || "";
 
+    // Flags to prevent duplicate global bindings
+    let globalDropdownDocListenersBound = false;
+    let attachFileIconListenerBound = false;
+
+    // Initialize Bootstrap tooltips within a DOM scope (default document)
+    function initBootstrapTooltips(root = document) {
+        try {
+            const nodes = [].slice.call(root.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            nodes.forEach((el) => {
+                const existing = bootstrap.Tooltip.getInstance(el);
+                if (existing) existing.dispose();
+                new bootstrap.Tooltip(el, { container: 'body' });
+            });
+        } catch (_) { /* noop */ }
+    }
+    // Expose globally for use outside this block
+    window.initBootstrapTooltips = initBootstrapTooltips;
+
     const imageInput = document.getElementById("task_image");
     const imageLabel = document.getElementById("taskImageLabel");
     const imageClearBtn = document.getElementById("taskImageClearBtn");
@@ -944,9 +962,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         .map((executor, index) => {
             const overlapClass = index === 0 ? "" : "executor-image-overlap";
             const zIndexStyle = `style="z-index: ${index + 1};"`;
+            const isPic = task.pic && executor && task.pic.id === executor.id;
+            const roleLabel = isPic ? 'PIC' : 'Executor';
+            const tooltipTitle = `${executor.name} (${roleLabel})`;
             return `
             <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
-                <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${executor.name}" ${zIndexStyle}>
+                <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${tooltipTitle}" ${zIndexStyle}>
             </div>
             `;
         })
@@ -980,11 +1001,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     let iconHtml = '';
 
     if (task.status !== 'completed') {
-        if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
+    if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
             // Show check icon for In Progress and Rejected tasks (both can be completed)
             iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
                 data-bs-toggle="tooltip"
-                data-placement="bottom"
+        data-bs-placement="bottom"
                 data-task-id="${task.id}"
                 data-task-status="${task.status}"
                 title="Set to Complete"
@@ -995,7 +1016,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             // Show arrow icon for New Request tasks
             iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
                 data-bs-toggle="tooltip"
-                data-placement="bottom"
+        data-bs-placement="bottom"
                 data-task-id="${task.id}"
                 data-task-status="${task.status}"
                 title="Progress"
@@ -1145,6 +1166,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         filterTasks(data.rejected).forEach(task => {
             document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
         });
+
+    // After cards are in DOM, wire listeners and tooltips
+    setupTaskDropdownListeners();
+    addAttachFileIconListeners();
+    initBootstrapTooltips();
     }
 
     function initTaskFilter() {
@@ -1169,6 +1195,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     function setupTaskDropdownListeners() {
         // Add event listeners for dropdown toggle
         document.querySelectorAll(".dropdown-icon").forEach((icon) => {
+            if (icon.dataset.bound === '1') return;
+            icon.dataset.bound = '1';
             icon.addEventListener("click", function (e) {
                 e.stopPropagation();
                 const dropdownMenu = this.nextElementSibling;
@@ -1184,79 +1212,87 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             });
         });
 
-        // Close dropdown when clicking outside
-        document.addEventListener("click", function () {
-            document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-                menu.classList.add("d-none");
+        // Close dropdown when clicking outside (bind once)
+        if (!globalDropdownDocListenersBound) {
+            document.addEventListener("click", function () {
+                document.querySelectorAll(".dropdown-menu").forEach((menu) => {
+                    menu.classList.add("d-none");
+                });
             });
-        });
+            globalDropdownDocListenersBound = true;
+        }
 
         // Open Modal from mode_comment icon click
         document.querySelectorAll(".task-icon.mode_comment").forEach((icon) => {
+            if (icon.dataset.bound === '1') return;
+            icon.dataset.bound = '1';
             icon.addEventListener("click", function () {
                 const taskId = this.dataset.taskId;
                 handleTaskFeedback(taskId);
             });
         });
 
-        // Event listener for dropdown item clicks
-        document.addEventListener("click", function (e) {
-            if (e.target && e.target.classList.contains("dropdown-item")) {
-                // Check if this is a task card dropdown item (not executor dropdown)
-                const taskCard = e.target.closest(".custom-card");
-                const executorDropdown = e.target.closest(
-                    "#executor_dropdown, #edit_executor_dropdown"
-                );
+        // Event listener for dropdown item clicks (bind once)
+        if (!document._taskDropdownItemHandlerBound) {
+            document.addEventListener("click", function (e) {
+                if (e.target && e.target.classList.contains("dropdown-item")) {
+                    // Check if this is a task card dropdown item (not executor dropdown)
+                    const taskCard = e.target.closest(".custom-card");
+                    const executorDropdown = e.target.closest(
+                        "#executor_dropdown, #edit_executor_dropdown"
+                    );
 
-                // If this is an executor dropdown item, ignore it
-                if (executorDropdown) {
-                    return;
+                    // If this is an executor dropdown item, ignore it
+                    if (executorDropdown) {
+                        return;
+                    }
+
+                    // If this is not from a task card, ignore it
+                    if (!taskCard) {
+                        return;
+                    }
+
+                    const text = e.target.textContent.trim();
+                    const taskId = taskCard.getAttribute("data-task-id");
+
+                    if (!taskId) {
+                        alert("Task ID not found.");
+                        return;
+                    }
+
+                    switch (text) {
+                        case "Detail":
+                            handleTaskDetail(taskId);
+                            break;
+                        case "Edit":
+                            handleTaskEdit(taskId);
+                            break;
+                        case "Feedback":
+                            handleTaskFeedback(taskId);
+                            break;
+                        case "mode_comment":
+                            handleTaskFeedback(taskId);
+                            break;
+                        case "Progress":
+                            handleTaskProgress(taskId, taskCard);
+                            break;
+                        case "Set to Complete":
+                            handleTaskComplete(taskId, taskCard);
+                            break;
+                        case "Reject":
+                            handleTaskReject(taskId, taskCard);
+                            break;
+                        case "Back to Request":
+                            handleTaskBackToRequest(taskId, taskCard);
+                            break;
+                        case "Delete":
+                            handleTaskDelete(taskId, taskCard);
+                            break;
+                    }
                 }
-
-                // If this is not from a task card, ignore it
-                if (!taskCard) {
-                    return;
-                }
-
-                const text = e.target.textContent.trim();
-                const taskId = taskCard.getAttribute("data-task-id");
-
-                if (!taskId) {
-                    alert("Task ID not found.");
-                    return;
-                }
-
-                switch (text) {
-                    case "Detail":
-                        handleTaskDetail(taskId);
-                        break;
-                    case "Edit":
-                        handleTaskEdit(taskId);
-                        break;
-                    case "Feedback":
-                        handleTaskFeedback(taskId);
-                        break;
-                    case "mode_comment":
-                        handleTaskFeedback(taskId);
-                        break;
-                    case "Progress":
-                        handleTaskProgress(taskId, taskCard);
-                        break;
-                    case "Set to Complete":
-                        handleTaskComplete(taskId, taskCard);
-                        break;
-                    case "Reject":
-                        handleTaskReject(taskId, taskCard);
-                        break;
-                    case "Back to Request":
-                        handleTaskBackToRequest(taskId, taskCard);
-                        break;
-                    case "Delete":
-                        handleTaskDelete(taskId, taskCard);
-                        break;
-                }
-            }
-        });
+            });
+            document._taskDropdownItemHandlerBound = true;
+        }
     }
 
     // Function to handle task progress (new request -> in progress)
@@ -1829,6 +1865,45 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     // Function to submit task feedback form (Task page legacy path) – use floating alert and keep modal open
     function submitTaskFeedbackForm(form, taskId) {
+        // Helpers to manage feedback count badge
+        function getExistingFeedbackCount(taskId) {
+            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            const span = card ? card.querySelector('.feedback-comments-count') : null;
+            const n = span ? parseInt(span.textContent, 10) : NaN;
+            return Number.isFinite(n) ? n : 0;
+        }
+        function setFeedbackCount(taskId, count) {
+            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            if (!card) return;
+            let span = card.querySelector('.feedback-comments-count');
+            if (!span) {
+                span = document.createElement('span');
+                span.className = 'feedback-comments-count ms-1';
+                span.style.color = '#555';
+                const icon = card.querySelector('.task-icon.mode_comment');
+                if (icon && icon.parentNode) {
+                    icon.parentNode.appendChild(span);
+                } else {
+                    return; // no place to put it
+                }
+            }
+            span.textContent = String(count);
+        }
+        function optimisticIncrementFeedbackCount(taskId) {
+            const prev = getExistingFeedbackCount(taskId);
+            setFeedbackCount(taskId, Math.max(prev + 1, 1));
+        }
+        function extractCountFromResponse(resp) {
+            if (!resp) return null;
+            const candidates = [
+                resp.count,
+                resp.total,
+                resp?.data?.count,
+                resp?.data?.total,
+            ];
+            const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
+            return (typeof val === 'number') ? val : null;
+        }
         const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
         const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
 
@@ -1875,31 +1950,17 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 } catch (e) { /* noop */ }
 
                 // Update feedback count dynamically on the task card
+                // 1) Optimistic UI increment
+                optimisticIncrementFeedbackCount(taskId);
+                // 2) Reconcile with server value (if provided and > 0)
                 $.ajax({
                     url: appUrl + "/task-feedbacks/count/" + taskId,
                     type: "GET",
                     dataType: "json",
                     success: function (countResponse) {
-                        const count = countResponse.count || 0;
-                        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-                        if (taskCard) {
-                            let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
-                            if (count > 0) {
-                                if (feedbackCountSpan) {
-                                    feedbackCountSpan.textContent = count;
-                                } else {
-                                    feedbackCountSpan = document.createElement("span");
-                                    feedbackCountSpan.className = "feedback-comments-count ms-1";
-                                    feedbackCountSpan.style.color = "#555";
-                                    feedbackCountSpan.textContent = count;
-                                    const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
-                                    if (modeCommentIcon && modeCommentIcon.parentNode) {
-                                        modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
-                                    }
-                                }
-                            } else if (feedbackCountSpan) {
-                                feedbackCountSpan.remove();
-                            }
+                        const serverCount = extractCountFromResponse(countResponse);
+                        if (typeof serverCount === 'number' && serverCount > 0) {
+                            setFeedbackCount(taskId, serverCount);
                         }
                     }
                 });
@@ -2105,30 +2166,50 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 } catch (e) { /* noop */ }
 
                 // Also try to update feedback count in-place (best-effort)
+                // 1) Optimistic UI increment
+                (function () {
+                    try {
+                        const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                        if (card) {
+                            const span = card.querySelector('.feedback-comments-count');
+                            const prev = span ? parseInt(span.textContent, 10) || 0 : 0;
+                            const next = Math.max(prev + 1, 1);
+                            if (span) { span.textContent = String(next); }
+                            else {
+                                const newSpan = document.createElement('span');
+                                newSpan.className = 'feedback-comments-count ms-1';
+                                newSpan.style.color = '#555';
+                                newSpan.textContent = String(next);
+                                const icon = card.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) icon.parentNode.appendChild(newSpan);
+                            }
+                        }
+                    } catch(_) {}
+                })();
+                // 2) Reconcile with server value (if provided and > 0)
                 $.ajax({
                     url: appUrl + "/task-feedbacks/count/" + taskId,
                     type: "GET",
                     dataType: "json",
                     success: function (countResponse) {
-                        const count = countResponse.count || 0;
-                        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-                        if (!taskCard) return;
-                        let feedbackCountSpan = taskCard.querySelector(".feedback-comments-count");
-                        if (count > 0) {
-                            if (feedbackCountSpan) {
-                                feedbackCountSpan.textContent = count;
-                            } else {
-                                feedbackCountSpan = document.createElement("span");
-                                feedbackCountSpan.className = "feedback-comments-count ms-1";
-                                feedbackCountSpan.style.color = "#555";
-                                feedbackCountSpan.textContent = count;
-                                const modeCommentIcon = taskCard.querySelector(".task-icon.mode_comment");
-                                if (modeCommentIcon && modeCommentIcon.parentNode) {
-                                    modeCommentIcon.parentNode.appendChild(feedbackCountSpan);
-                                }
+                        const serverCount = (function (resp) {
+                            if (!resp) return null;
+                            const candidates = [resp.count, resp.total, resp?.data?.count, resp?.data?.total];
+                            const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
+                            return (typeof val === 'number') ? val : null;
+                        })(countResponse);
+                        if (typeof serverCount === 'number' && serverCount > 0) {
+                            const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                            if (!taskCard) return;
+                            let span = taskCard.querySelector('.feedback-comments-count');
+                            if (!span) {
+                                span = document.createElement('span');
+                                span.className = 'feedback-comments-count ms-1';
+                                span.style.color = '#555';
+                                const icon = taskCard.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) icon.parentNode.appendChild(span);
                             }
-                        } else if (feedbackCountSpan) {
-                            feedbackCountSpan.remove();
+                            span.textContent = String(serverCount);
                         }
                     }
                 });
@@ -2159,6 +2240,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     // Function to add event listeners for attach_file icon click
     function addAttachFileIconListeners() {
+        if (attachFileIconListenerBound) return;
         // Use event delegation on the container to handle dynamically added cards
         const container = document.getElementById("task-cards-container");
         if (!container) return;
@@ -2230,6 +2312,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 });
             }
         });
+    attachFileIconListenerBound = true;
     }
 
     // Function to handle task detail view
@@ -3040,13 +3123,8 @@ function handleTaskDetail(taskId) {
             setupTaskDropdownListeners();
             addAttachFileIconListeners();
 
-            // Tooltip bootstrap
-            setTimeout(() => {
-                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
-                });
-            }, 100);
+            // Initialize tooltips for newly rendered elements
+            initBootstrapTooltips();
         },
         error: function (xhr, status, error) {
             console.error("Error fetching filtered tasks:", error);
@@ -3164,7 +3242,7 @@ $(document).ready(function () {
     container.removeClass("task-mobile-new task-mobile-progress task-mobile-completed");
     list.empty(); // clear dulu biar ga numpuk
 
-    if (status === "new_request") {
+        if (status === "new_request") {
       container.addClass("task-mobile-new");
       let newClone = $("#new-request-tasks").clone(true, true);
       newClone.removeAttr("id"); // hindari duplikat id
@@ -3180,6 +3258,11 @@ $(document).ready(function () {
       completedClone.removeAttr("id");
       list.append(completedClone);
     }
+
+        // Re-initialize tooltips in the newly cloned list
+        if (window.initBootstrapTooltips) {
+            window.initBootstrapTooltips(list[0] || document);
+        }
   });
 
   // ✅ default ke "All Status"

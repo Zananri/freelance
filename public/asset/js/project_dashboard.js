@@ -49,31 +49,42 @@
     function updateChartAndLabels(projects) {
         projects = Array.isArray(projects) ? projects : [];
 
-        // Project-level counts: a project contributes to one bucket based on its task mix
-        let total = projects.length;
-        let complete = 0;
-        let onProgress = 0; // include rejected via in_progress
+        // Task-level aggregation: sum task_counts across all projects
+        // Slices are made mutually exclusive by allocating all late tasks to "Late",
+        // then subtracting them from in_progress when computing the chart.
+        let totalTasks = 0;
+        let completed = 0;
+        let inProgress = 0; // includes rejected by backend
         let late = 0;
-        let notStarted = 0;
 
         projects.forEach((p) => {
             const tc = p.task_counts || {};
-            const tTotal = tc.total || 0;
-            const tCompleted = tc.completed || 0;
-            const tInProgress = tc.in_progress || 0; // already includes rejected
-            const tLate = tc.late || 0;
-
-            if (tLate > 0) late += 1;
-            else if (tTotal > 0 && tCompleted === tTotal) complete += 1;
-            else if (tInProgress > 0) onProgress += 1;
-            else notStarted += 1;
+            // Prefer exclusive buckets if provided by backend
+            if (tc.excl) {
+                completed += (tc.excl.completed || 0);
+                const ip = (tc.excl.in_progress || 0);
+                const lt = (tc.excl.late || 0);
+                const ns = (tc.excl.not_started || 0);
+                inProgress += ip;
+                late += lt;
+                totalTasks += (ip + lt + ns + (tc.excl.completed || 0));
+            } else {
+                totalTasks += (tc.total || 0);
+                completed += (tc.completed || 0);
+                inProgress += (tc.in_progress || 0);
+                late += (tc.late || 0);
+            }
         });
+
+    // Compute exclusive slices: notStarted makes the total balance, so no need to subtract late from in-progress here
+    const inProgressExclLate = inProgress;
+    const notStarted = Math.max(0, totalTasks - completed - inProgressExclLate - late);
 
         // Update labels under chart: Total, Complete, On Progress, Late (in that order)
         try {
             const blocks = document.querySelectorAll('.chart-labels .text-center');
             if (blocks && blocks.length >= 4) {
-                const nums = [total, complete, onProgress, late];
+                const nums = [totalTasks, completed, inProgressExclLate, late];
                 blocks.forEach((el, idx) => {
                     const numSpan = el.querySelector('span:first-child');
                     if (numSpan) numSpan.textContent = String(nums[idx] || 0);
@@ -82,7 +93,7 @@
         } catch (e) {}
 
         if (chartInstance) {
-            if (total === 0) {
+            if (totalTasks === 0) {
                 chartInstance.data.labels = ["No Data"]; 
                 chartInstance.data.datasets[0].data = [1];
                 chartInstance.data.datasets[0].backgroundColor = [CHART_COLORS[0]];
@@ -95,8 +106,8 @@
                 ];
                 chartInstance.data.datasets[0].data = [
                     notStarted,
-                    complete,
-                    onProgress,
+                    completed,
+                    inProgressExclLate,
                     late,
                 ];
                 chartInstance.data.datasets[0].backgroundColor = CHART_COLORS;
