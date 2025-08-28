@@ -25,30 +25,43 @@ class ProjectController extends Controller
         try {
             DB::beginTransaction();
             
+            \Log::info("Accept project called for project ID: " . $id);
+            
             $user = auth()->user();
             if (!$user || !$user->employee) {
                 throw new \Exception('Unauthorized');
             }
 
             $employeeId = $user->employee->id;
+            \Log::info("Employee ID: " . $employeeId);
 
             // Find the project assignment for this user and project
             $assignment = ProjectAssignment::where('project_id', $id)
                 ->where('employee_id', $employeeId)
                 ->first();
 
+            \Log::info("Assignment found: " . ($assignment ? 'Yes' : 'No'));
+            
             if (!$assignment) {
                 throw new \Exception('Project assignment not found');
             }
 
+            \Log::info("Assignment role: " . $assignment->role);
+            \Log::info("Assignment is_receive before: " . ($assignment->is_receive ? 'true' : 'false'));
+
             // Update is_receive to true
             $assignment->is_receive = true;
             $assignment->save();
+            
+            \Log::info("Assignment is_receive after: " . ($assignment->is_receive ? 'true' : 'false'));
 
             // Mark related notification as read
             $notification = Notification::where('employee_id', $employeeId)
                 ->where('type', 'new job')
-                ->where('title', 'like', '%assigned as%project: ' . $assignment->project->title)
+                ->where(function($query) use ($assignment) {
+                    $query->where('title', 'like', '%co-author for project: ' . $assignment->project->title)
+                          ->orWhere('title', 'like', '%contributor for project: ' . $assignment->project->title);
+                })
                 ->where('is_read', false)
                 ->orderBy('created_at', 'desc')
                 ->first();
@@ -256,6 +269,8 @@ class ProjectController extends Controller
             $employeeId = $user->employee->id;
             $filter = $request->input('filter', null);
             $includeUnaccepted = $request->input('include_unaccepted', false);
+            // task_scope: 'project' (default, all tasks in project) or 'me' (only tasks assigned to me)
+            $taskScope = strtolower($request->input('task_scope', 'project')) === 'me' ? 'me' : 'project';
 
             // Base query for projects
             $query = Project::whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
@@ -296,7 +311,7 @@ class ProjectController extends Controller
                 'projectAssignments.project'
             ])->get();
 
-            $projectsTransformed = $projects->map(function ($project) {
+            $projectsTransformed = $projects->map(function ($project) use ($employeeId, $taskScope) {
                 $projectAssignments = $project->projectAssignments->map(function ($assignment) {
                     return [
                         'id' => $assignment->id,
@@ -307,20 +322,36 @@ class ProjectController extends Controller
                         'project_title' => $assignment->project ? $assignment->project->title : null,
                     ];
                 });
+                
+                // Build base query for tasks depending on scope
+                $taskBase = Task::where('project_id', $project->id);
+                if ($taskScope === 'me') {
+                    // Only tasks where current employee is PIC or accepted EXECUTOR
+                    $taskBase = $taskBase->whereHas('assignments', function ($q) use ($employeeId) {
+                        $q->where('employee_id', $employeeId)
+                          ->where(function ($roleQ) {
+                              $roleQ->where('role', 'PIC')
+                                   ->orWhere(function ($execQ) {
+                                       $execQ->where('role', 'EXECUTOR')
+                                             ->where('is_receive', true);
+                                   });
+                          });
+                    });
+                }
 
-                // Get task counts for this project (all tasks), treating 'rejected' as 'in_progress'
-                $totalTasks = Task::where('project_id', $project->id)->count();
+                // Get task counts for this project (scoped), treating 'rejected' as 'in_progress'
+                $totalTasks = (clone $taskBase)->count();
                 // Accept both snake_case and spaced variants for backward data compatibility
-                $inProgressTasks = Task::where('project_id', $project->id)
+                $inProgressTasks = (clone $taskBase)
                     ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
                     ->count();
-                $rejectedTasks = Task::where('project_id', $project->id)
+                $rejectedTasks = (clone $taskBase)
                     ->whereIn(DB::raw('LOWER(status)'), ['rejected'])
                     ->count();
-                $completedTasks = Task::where('project_id', $project->id)
+                $completedTasks = (clone $taskBase)
                     ->whereIn(DB::raw('LOWER(status)'), ['completed'])
                     ->count();
-                $lateTasks = Task::where('project_id', $project->id)
+                $lateTasks = (clone $taskBase)
                     ->whereRaw('LOWER(status) <> ?', ['completed'])
                     ->whereNotNull('due_date')
                     ->where('due_date', '<', now())
@@ -328,18 +359,18 @@ class ProjectController extends Controller
 
                 // Mutually-exclusive buckets for charts (avoid overlap between in_progress and late)
                 $nowTs = now();
-                $inProgressOnTime = Task::where('project_id', $project->id)
+                $inProgressOnTime = (clone $taskBase)
                     ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
                     ->where(function ($q) use ($nowTs) {
                         $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
                     })
                     ->count();
-                $lateExclusive = Task::where('project_id', $project->id)
+                $lateExclusive = (clone $taskBase)
                     ->whereRaw('LOWER(status) <> ?', ['completed'])
                     ->whereNotNull('due_date')
                     ->where('due_date', '<', $nowTs)
                     ->count();
-                $notStartedOnTime = Task::where('project_id', $project->id)
+                $notStartedOnTime = (clone $taskBase)
                     ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
                     ->where(function ($q) use ($nowTs) {
                         $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);

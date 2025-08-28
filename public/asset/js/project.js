@@ -1,4 +1,5 @@
-var appUrl = $('meta[name="app-url"]').attr("content");
+var appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute("content") || '').replace(/\/$/, '');
+console.log('Project.js appUrl:', appUrl);
 
 document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.getElementById("department");
@@ -201,7 +202,7 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/project/index",
             type: "GET",
             dataType: "json",
-            data: { filter: filter },
+            data: { filter: filter, task_scope: 'me' },
             success: function (data) {
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
@@ -924,7 +925,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     .getElementById("editProjectModal")
                                     ?.getAttribute("data-employee-id") || "";
                             $.ajax({
-                                url: appUrl + "/employee/index",
+                                url: appUrl + "/employees-for-projects",
                                 type: "GET",
                                 data: {
                                     query: query,
@@ -1197,7 +1198,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     .getElementById("editProjectModal")
                                     ?.getAttribute("data-employee-id") || "";
                             $.ajax({
-                                url: appUrl + "/employee/index",
+                                url: appUrl + "/employees-for-projects",
                                 type: "GET",
                                 data: {
                                     query: query,
@@ -2709,7 +2710,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load departments dynamically
     function loadDepartments(callback, targetSelect = departmentSelect) {
         $.ajax({
-            url: appUrl + "/department/index",
+            url: appUrl + "/departments-for-projects",
             type: "GET",
             dataType: "json",
             success: function (data) {
@@ -2739,7 +2740,7 @@ document.addEventListener("DOMContentLoaded", function () {
         targetSelect.innerHTML =
             '<option value="" disabled selected>Loading...</option>';
         $.ajax({
-            url: appUrl + "/division/index",
+            url: appUrl + "/divisions-for-projects",
             type: "GET",
             data: { department_id: departmentId },
             dataType: "json",
@@ -2794,6 +2795,7 @@ function loadProjects() {
         url: appUrl + "/project/index",
         type: "GET",
         dataType: "json",
+        data: { task_scope: 'me' },
         success: function (data) {
             allProjectsCache = data.data || [];
             renderProjects(allProjectsCache);
@@ -2852,7 +2854,7 @@ $(document).ready(function () {
                     ?.getAttribute("data-employee-id") || "";
 
             $.ajax({
-                url: appUrl + "/employee/index",
+                url: appUrl + "/employees-for-projects",
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
@@ -3063,7 +3065,7 @@ $(document).ready(function () {
                     ?.getAttribute("data-employee-id") || "";
 
             $.ajax({
-                url: appUrl + "/employee/index",
+                url: appUrl + "/employees-for-projects",
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
@@ -3510,7 +3512,7 @@ $(document).ready(function () {
                     ?.getAttribute("data-employee-id") || "";
 
             $.ajax({
-                url: appUrl + "/employee/index",
+                url: appUrl + "/employees-for-projects",
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
@@ -4060,7 +4062,7 @@ $(document).ready(function () {
                     ?.getAttribute("data-employee-id") || "";
 
             $.ajax({
-                url: appUrl + "/employee/index",
+                url: appUrl + "/employees-for-projects",
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",

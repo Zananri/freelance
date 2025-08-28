@@ -213,7 +213,9 @@
 
     async function fetchProjectsAndRender() {
         try {
-            const resp = await fetch(appUrl + "/project/index");
+            // Request per-employee scoped task counts so chart and labels match the current user
+            const url = appUrl + "/project/index?task_scope=me";
+            const resp = await fetch(url);
             const json = await resp.json();
             const projects = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
             // If start/due dates are missing, fetch details in parallel to enrich
