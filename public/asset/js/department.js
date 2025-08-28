@@ -8,6 +8,29 @@ var editDepartmentModal = new bootstrap.Modal(
 
 var addDepartmentModal;
 
+// Unified alert: use Settings-style white alert (from office.js)
+function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+    try {
+        if (typeof window.showAlertMsg === 'function') {
+            window.showAlertMsg(message, 'light', delayMs);
+            return;
+        }
+        const box = document.querySelector('.box-alert-messages .box-message');
+        if (box && box.parentElement) {
+            box.parentElement.style.display = 'block';
+            box.classList.remove('success','warning','error','light');
+            box.classList.add('light');
+            box.innerHTML = message;
+            setTimeout(() => {
+                if (typeof window.hideAlertMsg === 'function') { window.hideAlertMsg(); }
+                else { box.parentElement.style.display = 'none'; }
+            }, delayMs);
+            return;
+        }
+    } catch (e) { /* no-op */ }
+    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+}
+
 function readURL(input, labelSelector) {
     if (input.files && input.files[0]) {
         var reader = new FileReader();
@@ -242,21 +265,9 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("add", false);
-                console.log("Add Department Success:", response);
-                $("#addDepartmentModal .alert-container").empty();
-                var alertHtml =
-                    '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
-                    "<div>" +
-                    response.message +
-                    "</div>" +
-                    "</div>";
-                $("#addDepartmentModal .alert-container").append(alertHtml);
-                $("#addDepartmentModal .alert-container").show();
+                showFloatingAlert(response.message || 'Department created successfully.', 'success', 1500);
                 loadDepartments();
                 setTimeout(function () {
-                    $("#addDepartmentModal .alert-container .alert").alert(
-                        "close"
-                    );
                     var addDepartmentModalEl =
                         document.getElementById("addDepartmentModal");
                     var addDepartmentModal =
@@ -269,13 +280,15 @@ $(document).ready(function () {
                 console.log("Add Department Error:", xhr);
                 if (xhr.status === 422) {
                     var errors = xhr.responseJSON.errors;
-                    var errorMessages = "";
+                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
                     $.each(errors, function (key, value) {
-                        errorMessages += value + "\\n";
+                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
+                        else { listHtml += '<li>'+value+'</li>'; }
                     });
-                    alert(errorMessages);
+                    listHtml += '</ul>';
+                    showFloatingAlert(listHtml, 'warning', 5000);
                 } else {
-                    alert("An error occurred. Please try again.");
+                    showFloatingAlert("An error occurred. Please try again.", 'warning', 3500);
                 }
             },
         });
@@ -319,7 +332,7 @@ $(document).ready(function () {
                 editDepartmentModal.show();
             },
             error: function () {
-                alert("Failed to fetch department data.");
+                showFloatingAlert("Failed to fetch department data.", 'warning', 3000);
             },
         });
     });
@@ -353,20 +366,9 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("edit", false);
-                $("#editDepartmentModal .alert-container").empty();
-                var alertHtml =
-                    '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
-                    "<div>" +
-                    response.message +
-                    "</div>" +
-                    "</div>";
-                $("#editDepartmentModal .alert-container").append(alertHtml);
-                $("#editDepartmentModal .alert-container").show();
+                showFloatingAlert(response.message || 'Department updated successfully.', 'success', 1500);
                 loadDepartments();
                 setTimeout(function () {
-                    $("#editDepartmentModal .alert-container .alert").alert(
-                        "close"
-                    );
                     var editDepartmentModalEl = document.getElementById(
                         "editDepartmentModal"
                     );
@@ -379,13 +381,15 @@ $(document).ready(function () {
             error: function (xhr) {
                 if (xhr.status === 422) {
                     var errors = xhr.responseJSON.errors;
-                    var errorMessages = "";
+                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
                     $.each(errors, function (key, value) {
-                        errorMessages += value + "\\n";
+                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
+                        else { listHtml += '<li>'+value+'</li>'; }
                     });
-                    alert(errorMessages);
+                    listHtml += '</ul>';
+                    showFloatingAlert(listHtml, 'warning', 5000);
                 } else {
-                    alert("An error occurred. Please try again.");
+                    showFloatingAlert("An error occurred. Please try again.", 'warning', 3500);
                 }
                 showLoader("edit", false);
             },
@@ -474,7 +478,7 @@ $(document).ready(function () {
                 deleteDepartmentModal.show();
             },
             error: function () {
-                alert("Failed to fetch department data.");
+                showFloatingAlert("Failed to fetch department data.", 'warning', 3000);
             },
         });
     });
@@ -493,19 +497,7 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("delete", false);
-                $(".alert-delete-container").empty();
-                var alertHtml =
-                    '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
-                    "<div>" +
-                    response.message +
-                    "</div>" +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                    "</div>";
-                $(".alert-delete-container").append(alertHtml);
-                $(".alert-delete-container").show();
-                setTimeout(function () {
-                    $(".alert-delete-container .alert").alert("close");
-                }, 1500);
+                showFloatingAlert(response.message || 'Department deleted successfully.', 'success', 1200);
                 $('#departmentTableBody tr[data-id="' + id + '"]').remove();
                 var deleteDepartmentModalEl = document.getElementById(
                     "deleteDepartmentModal"
@@ -514,11 +506,11 @@ $(document).ready(function () {
                     deleteDepartmentModalEl
                 );
                 deleteDepartmentModal.hide();
-                location.reload();
+                setTimeout(function(){ location.reload(); }, 1200);
             },
             error: function () {
                 showLoader("delete", false);
-                alert("Failed to delete department.");
+                showFloatingAlert("Failed to delete department.", 'warning', 3500);
             },
         });
     });
@@ -588,7 +580,7 @@ $(document).ready(function () {
                 $("#departmentTableBody").html(rowHtml);
             },
             error: function () {
-                alert("Failed to load departments.");
+                showFloatingAlert("Failed to load departments.", 'warning', 3500);
             },
         });
     }
