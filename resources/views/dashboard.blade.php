@@ -200,9 +200,9 @@
                 <div class="rounded-4 p-4 body-card d-flex flex-column ">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-normal" style="color: #454545">My Task</h5>
-                        <button class="btn btn-link p-0">
+                        <a class="btn btn-link p-0" href="{{ route('task') }}">
                             <span class="material-symbols-outlined text-secondary">chevron_right</span>
-                        </button>
+                        </a>
                     </div>
 
                     <!-- Tabs -->

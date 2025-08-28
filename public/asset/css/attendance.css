@@ -18,7 +18,7 @@
 }
 
 .attendance-right-content {
-    flex: 1.8;
+    flex: 1;
     min-width: 0;
 }
 
@@ -27,15 +27,17 @@
     width: 100%;
     max-width: none;
     padding: 30px;
+    overflow: hidden;
 }
 
 .attendance-right-content .calendar-days {
-    gap: 4px;
+    gap: 8px;
 }
 
 .attendance-right-content .calendar-day {
     font-size: 16px;
-    aspect-ratio: 1.2;
+    aspect-ratio: 2;
+    min-height: 40px;
 }
 
 .profile-section {
@@ -470,7 +472,7 @@
 }
 
 .calendar-day {
-    aspect-ratio: 1;
+    aspect-ratio: 2;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -749,7 +751,7 @@
 /* Check-out styling - hanya berlaku jika TIDAK ada checked-in */
 .calendar-day.checked-out:not(.checked-in) {
     position: relative;
-    background: linear-gradient(315deg, #6c757d 50%, transparent 50%);
+    background: linear-gradient(135deg, #6c757d 50%, transparent 50%);
 }
 
 /* When both check-in and check-out are present */
