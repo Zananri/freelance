@@ -1129,7 +1129,15 @@ class TaskController extends Controller
         try {
             $user = auth()->user();
             if (!$user || !$user->employee) {
-                throw new \Exception('Unauthorized', 401);
+                return response()->json([
+                    'code' => 401,
+                    'status' => 'error',
+                    'message' => 'Unauthorized',
+                    'data' => [
+                        'is_accepted' => false,
+                        'task_id' => $taskId
+                    ]
+                ], 401);
             }
 
             $assignment = TaskAssignment::where('task_id', $taskId)
@@ -1138,7 +1146,16 @@ class TaskController extends Controller
                 ->first();
 
             if (!$assignment) {
-                throw new \Exception('Task assignment not found', 404);
+                // Return false instead of error if user is not assigned to this task
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => [
+                        'is_accepted' => false,
+                        'task_id' => $taskId,
+                        'message' => 'User is not assigned to this task'
+                    ]
+                ]);
             }
 
             return response()->json([
@@ -1154,7 +1171,11 @@ class TaskController extends Controller
             return response()->json([
                 'code' => $e->getCode() ?: 500,
                 'status' => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
+                'data' => [
+                    'is_accepted' => false,
+                    'task_id' => $taskId
+                ]
             ], $e->getCode() ?: 500);
         }
     }

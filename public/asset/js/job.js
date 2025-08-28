@@ -10,6 +10,29 @@ var editJobModal = new bootstrap.Modal(document.getElementById("editJobModal"));
 
 var addJobModal;
 
+// Unified alert: use Settings-style white alert (from office.js)
+function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+    try {
+        if (typeof window.showAlertMsg === 'function') {
+            window.showAlertMsg(message, 'light', delayMs);
+            return;
+        }
+        const box = document.querySelector('.box-alert-messages .box-message');
+        if (box && box.parentElement) {
+            box.parentElement.style.display = 'block';
+            box.classList.remove('success','warning','error','light');
+            box.classList.add('light');
+            box.innerHTML = message;
+            setTimeout(() => {
+                if (typeof window.hideAlertMsg === 'function') { window.hideAlertMsg(); }
+                else { box.parentElement.style.display = 'none'; }
+            }, delayMs);
+            return;
+        }
+    } catch (e) { /* no-op */ }
+    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+}
+
 function showLoader(modalType, show = true) {
     const loaderId = {
         add: "#addModalLoader",
@@ -238,6 +261,7 @@ function loadJobs() {
                     <td colspan="5" class="text-center text-danger">Failed to load data</td>
                 </tr>
             `);
+            showFloatingAlert('Failed to load jobs.', 'warning', 3500);
         },
     });
 }
@@ -331,7 +355,6 @@ $(document).ready(function () {
     $("#editJobModal").on("hidden.bs.modal", function () {
         $("#editJobForm")[0].reset();
         $("#editJobForm").removeClass("was-validated");
-        $("#editJobModal .alert-container").empty();
         $("#editModalLoader").addClass("d-none");
     });
 
@@ -363,7 +386,6 @@ $(document).ready(function () {
 
 
     function resetAddJobForm() {
-        $("#addJobModal .alert-container").empty();
         var form = $("#addJobForm")[0];
         form.reset();
         $(form).removeClass("was-validated");
@@ -386,7 +408,6 @@ $(document).ready(function () {
     });
 
     $("#editJobModal").on("show.bs.modal", function () {
-        $("#editJobModal .alert-container").empty();
         $(
             "#edit_department_id, #edit_division_id, #edit_job_name, #edit_status, #edit_description"
         ).removeClass("is-valid is-invalid");
@@ -454,42 +475,28 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("add", false);
-                $("#addJobModal .alert-container").empty();
-                var alertHtml =
-                    '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
-                    "<div>" +
-                    response.message +
-                    "</div>" +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                    "</div>";
-                $("#addJobModal .alert-container").append(alertHtml);
-                $("#addJobModal .alert-container").show();
+                showFloatingAlert(response.message || 'Job created successfully.', 'success', 1500);
                 loadJobs();
                 setTimeout(function () {
-                    $("#addJobModal .alert-container .alert").alert("close");
+                    var addJobModalEl = document.getElementById("addJobModal");
+                    var addJobModal = bootstrap.Modal.getInstance(addJobModalEl);
                     addJobModal.hide();
                 }, 1500);
             },
             error: function (xhr) {
                 showLoader("add", false);
-                var errorMsg = "Failed to add job.";
-                if (
-                    xhr.status === 422 &&
-                    xhr.responseJSON &&
-                    xhr.responseJSON.errors
-                ) {
-                    errorMsg = Object.values(xhr.responseJSON.errors).join(
-                        "<br>"
-                    );
+                if (xhr.status === 422) {
+                    var errors = xhr.responseJSON.errors;
+                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
+                    $.each(errors, function (key, value) {
+                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
+                        else { listHtml += '<li>'+value+'</li>'; }
+                    });
+                    listHtml += '</ul>';
+                    showFloatingAlert(listHtml, 'warning', 5000);
+                } else {
+                    showFloatingAlert("An error occurred. Please try again.", 'warning', 3500);
                 }
-                $("#addJobModal .alert-container")
-                    .html(
-                        '<div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">' +
-                            errorMsg +
-                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                            "</div>"
-                    )
-                    .show();
             },
         });
     });
@@ -526,40 +533,28 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("edit", false);
-                $("#editJobModal .alert-container").empty();
-                var alertHtml =
-                    '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
-                    "<div>" +
-                    response.message +
-                    "</div>" +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                    "</div>";
-                $("#editJobModal .alert-container").append(alertHtml);
-                $("#editJobModal .alert-container").show();
+                showFloatingAlert(response.message || 'Job updated successfully.', 'success', 1500);
                 loadJobs();
                 setTimeout(function () {
-                    $("#editJobModal .alert-container .alert").alert("close");
+                    var editJobModalEl = document.getElementById("editJobModal");
+                    var editJobModal = bootstrap.Modal.getInstance(editJobModalEl);
                     editJobModal.hide();
                 }, 1500);
             },
             error: function (xhr) {
                 showLoader("edit", false);
-                var errorMsg = "Failed to update job.";
                 if (xhr.status === 422) {
                     var errors = xhr.responseJSON.errors;
-                    errorMsg = "";
+                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
                     $.each(errors, function (key, value) {
-                        errorMsg += value + "<br>";
+                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
+                        else { listHtml += '<li>'+value+'</li>'; }
                     });
+                    listHtml += '</ul>';
+                    showFloatingAlert(listHtml, 'warning', 5000);
+                } else {
+                    showFloatingAlert("An error occurred. Please try again.", 'warning', 3500);
                 }
-                $("#editJobModal .alert-container")
-                    .html(
-                        '<div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">' +
-                            errorMsg +
-                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                            "</div>"
-                    )
-                    .show();
             },
         });
     });
@@ -591,7 +586,7 @@ $(document).ready(function () {
                 editJobModal.show();
             },
             error: function () {
-                alert("Failed to fetch job data.");
+                showFloatingAlert("Failed to fetch job data.", 'warning', 3000);
             },
             complete: function () {
                 showLoader("edit", false);
@@ -632,47 +627,16 @@ $(document).ready(function () {
             },
             success: function (response) {
                 showLoader("delete", false);
-                $(".alert-delete-container").empty();
-                var alertHtml =
-                    '<div class="alert alert-success alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert" style="margin-bottom:0;">' +
-                    "<div>" +
-                    response.message +
-                    "</div>" +
-                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                    "</div>";
-                $(".alert-delete-container").append(alertHtml);
-                $(".alert-delete-container").show();
-                setTimeout(function () {
-                    $(".alert-delete-container .alert").alert("close");
-                }, 1500);
+                showFloatingAlert(response.message || 'Job deleted successfully.', 'success', 1200);
                 $('#jobTableBody tr[data-id="' + jobId + '"]').remove();
-                var deleteJobModalEl =
-                    document.getElementById("deleteJobModal");
-                var deleteJobModal =
-                    bootstrap.Modal.getInstance(deleteJobModalEl);
+                var deleteJobModalEl = document.getElementById("deleteJobModal");
+                var deleteJobModal = bootstrap.Modal.getInstance(deleteJobModalEl);
                 deleteJobModal.hide();
-                location.reload();
+                setTimeout(function(){ location.reload(); }, 1200);
             },
             error: function (xhr) {
                 showLoader("delete", false);
-                var errorMsg = "Failed to delete job.";
-                if (
-                    xhr.status === 422 &&
-                    xhr.responseJSON &&
-                    xhr.responseJSON.errors
-                ) {
-                    errorMsg = Object.values(xhr.responseJSON.errors).join(
-                        "<br>"
-                    );
-                }
-                $(".alert-delete-container")
-                    .html(
-                        '<div class="alert alert-danger alert-dismissible fade show d-flex justify-content-between align-items-center" role="alert">' +
-                            errorMsg +
-                            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                            "</div>"
-                    )
-                    .show();
+                showFloatingAlert("Failed to delete job.", 'warning', 3500);
             },
         });
     });

@@ -329,7 +329,7 @@ if ($request->hasFile('image')) {
                     'attendance' => $attendance,
                     'attendance_tracking' => $attendanceTracking
                 ],
-                'message' => 'Attendance recorded successfully'
+                'message' => 'Check-in submitted successfully!'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

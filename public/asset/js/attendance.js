@@ -523,7 +523,7 @@ function handleCheckIn() {
     document.getElementById("checkOutBtn").disabled = false;
 
     // Show success message
-    showFloatingAlert("Successfully checked in at " + timeString, "success");
+    showFloatingAlert("Check-in submitted successfully!", "success");
 }
 
 function resetCheckInModal() {
@@ -983,34 +983,17 @@ function loadAttendanceForDate(dateString) {
     document.getElementById("checkOutBtn").disabled = true;
 }
 
-// Enhanced showFloatingAlert with proper styling and fallback
-function showFloatingAlert(message, type = "success") {
-    const alertDiv = document.createElement("div");
-    
-    // Ensure proper Bootstrap classes and fallback styling
-    let alertClass = `alert alert-${type}`;
-    let iconClass = "fa-exclamation-triangle";
-    let bgColor = "#ffc107"; // Default warning
-    
-    switch(type) {
-        case "success":
-            alertClass = "alert alert-success";
-            iconClass = "fa-check-circle";
-            bgColor = "#d4edda";
-            break;
-        case "warning":
-            alertClass = "alert alert-warning";
-            iconClass = "fa-exclamation-triangle";
-            bgColor = "#fff3cd";
-            break;
-        case "error":
-            alertClass = "alert alert-danger";
-            iconClass = "fa-times-circle";
-            bgColor = "#f8d7da";
-            break;
-    }
-
-    alertDiv.className = `${alertClass} d-flex align-items-center task-status-alert`;
+// Unified alert helper for Attendance page: always use Settings-style (light only)
+function showFloatingAlert(message /*, typeIgnored */) {
+    try {
+        if (typeof window.showAlertMsg === 'function') {
+            window.showAlertMsg(String(message || ''), 'light', 3000);
+            return;
+        }
+    } catch (_) {}
+    // Minimal DOM fallback (light style)
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-light d-flex align-items-center task-status-alert';
     alertDiv.style.cssText = `
         position: fixed;
         bottom: 20px;
@@ -1019,22 +1002,13 @@ function showFloatingAlert(message, type = "success") {
         min-width: 300px;
         opacity: 1;
         transition: opacity 0.5s ease;
-        background-color: ${bgColor} !important;
-        border: 1px solid ${type === 'warning' ? '#ffeaa7' : type === 'success' ? '#c3e6cb' : '#f5c6cb'} !important;
-        color: ${type === 'warning' ? '#856404' : type === 'success' ? '#155724' : '#721c24'} !important;
     `;
-
-    alertDiv.innerHTML = `
-        <i class="fas ${iconClass} me-2"></i>
-        <div>${message}</div>
-    `;
-
+    alertDiv.textContent = String(message || '');
     document.body.appendChild(alertDiv);
-
     setTimeout(() => {
-        alertDiv.style.opacity = "0";
+        alertDiv.style.opacity = '0';
         setTimeout(() => alertDiv.remove(), 500);
-    }, 3000);
+    }, 2000);
 }
 
 let stream = null;
@@ -1097,7 +1071,7 @@ function startCamera() {
     })
     .catch(err => {
       console.error("Cannot access camera:", err);
-      alert("Cannot access camera on this device.");
+    showFloatingAlert("Cannot access camera on this device.");
     });
 }
 
@@ -1763,7 +1737,7 @@ function startCheckoutCamera() {
         })
         .catch(err => {
             console.error("Cannot access camera:", err);
-            alert("Cannot access camera on this device.");
+            showFloatingAlert("Cannot access camera on this device.");
         });
 }
 

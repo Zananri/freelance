@@ -1673,56 +1673,28 @@ fetch(`${baseUrl}/attendance/store`, {
 }
 
 function showAlertDashboard(message, type = "success") {
-    const alertDiv = document.createElement("div");
-    
-    // Ensure proper Bootstrap classes and fallback styling
-    let alertClass = `alert alert-${type}`;
-    let iconClass = "fa-exclamation-triangle";
-    let bgColor = "#ffc107"; // Default warning
-    
-    switch(type) {
-        case "success":
-            alertClass = "alert alert-success";
-            iconClass = "fa-check-circle";
-            bgColor = "#d4edda";
-            break;
-        case "warning":
-            alertClass = "alert alert-warning";
-            iconClass = "fa-exclamation-triangle";
-            bgColor = "#fff3cd";
-            break;
-        case "error":
-            alertClass = "alert alert-danger";
-            iconClass = "fa-times-circle";
-            bgColor = "#f8d7da";
-            break;
-    }
-
-    alertDiv.className = `${alertClass} d-flex align-items-center task-status-alert`;
-    alertDiv.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        opacity: 1;
-        transition: opacity 0.5s ease;
-        background-color: ${bgColor} !important;
-        border: 1px solid ${type === 'warning' ? '#ffeaa7' : type === 'success' ? '#c3e6cb' : '#f5c6cb'} !important;
-        color: ${type === 'warning' ? '#856404' : type === 'success' ? '#155724' : '#721c24'} !important;
-    `;
-
-    alertDiv.innerHTML = `
-        <i class="fas ${iconClass} me-2"></i>
-        <div>${message}</div>
-    `;
-
+    try {
+        if (typeof window.showAlertMsg === 'function') {
+            // Always use light as requested
+            window.showAlertMsg(String(message || ''), 'light', 3000);
+            return;
+        }
+    } catch (_) {}
+    // Fallback minimal floating alert if global util isn't available
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-light d-flex align-items-center';
+    Object.assign(alertDiv.style, {
+        position: 'fixed',
+        right: '20px',
+        bottom: '20px',
+        zIndex: 9999,
+        opacity: '1',
+        minWidth: '300px',
+        margin: '0'
+    });
+    alertDiv.textContent = String(message || '');
     document.body.appendChild(alertDiv);
-
-    setTimeout(() => {
-        alertDiv.style.opacity = "0";
-        setTimeout(() => alertDiv.remove(), 500);
-    }, 3000);
+    setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 2000);
 }
 // Override fungsi openCheckOutModal untuk menambahkan validasi
 openCheckOutModal = async function() {
@@ -1996,7 +1968,7 @@ function startCheckoutCamera() {
         })
         .catch(err => {
             console.error("Cannot access camera:", err);
-            alert("Cannot access camera on this device.");
+            try { showAlertDashboard("Cannot access camera on this device.", "error"); } catch(_) {}
         });
 }
 
@@ -2326,10 +2298,10 @@ function startCamera() {
       video.onloadedmetadata = () => video.play();
       cameraWrapper.classList.remove("d-none");
     })
-    .catch(err => {
-      console.error("Cannot access camera:", err);
-      alert("Cannot access camera on this device.");
-    });
+            .catch(err => {
+                console.error("Cannot access camera:", err);
+                try { showAlertDashboard("Cannot access camera on this device.", "error"); } catch(_) {}
+            });
 }
 
 function capturePhoto() {

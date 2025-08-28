@@ -1,5 +1,24 @@
 // Dashboard Project: dynamic chart and timeline (mirrors project page behavior)
 (function () {
+    // unified alert helper (Settings style)
+    function dashboardNotify(msg, type) {
+        try {
+            if (typeof window.showAlertMsg === 'function') {
+                // Always use light as requested
+                window.showAlertMsg(String(msg || ''), 'light', 2000);
+                return;
+            }
+        } catch(_) {}
+        // minimal fallback
+        try {
+            const el = document.createElement('div');
+            el.className = 'alert alert-' + (type === 'error' ? 'danger' : (type || 'info'));
+            Object.assign(el.style, { position:'fixed', right:'20px', bottom:'20px', zIndex:9999, minWidth:'280px' });
+            el.textContent = String(msg || '');
+            document.body.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(()=> el.remove(), 400); }, 1600);
+        } catch(_) {}
+    }
     const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
     // State
     let chartInstance = null;
@@ -213,7 +232,9 @@
 
     async function fetchProjectsAndRender() {
         try {
-            const resp = await fetch(appUrl + "/project/index");
+            // Request per-employee scoped task counts so chart and labels match the current user
+            const url = appUrl + "/project/index?task_scope=me";
+            const resp = await fetch(url);
             const json = await resp.json();
             const projects = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
             // If start/due dates are missing, fetch details in parallel to enrich
