@@ -468,12 +468,19 @@ document.addEventListener("click", async (e) => {
         const timeText = (timeSpan?.textContent || "").trim();
         const [timeIn = "", timeOut = ""] = timeText.split(" - ");
 
-        // Replace title text with input
-        titleCell.innerHTML = `<input type="text" class="form-control form-control-sm" value="${currentTitle}">`;
+        // Ensure vertical centering during edit
+        row.querySelectorAll("td").forEach((td) => (td.style.verticalAlign = "middle"));
+
+        // Replace title with input container (full width)
+        titleCell.innerHTML = `
+            <div class="config-title-edit d-flex align-items-center w-100" style="min-height: 36px;">
+                <input type="text" class="form-control form-control-sm w-100" style="min-height: 32px; min-width: 0;" value="${currentTitle}">
+            </div>`;
 
         // Build time inputs and replace only the span, keep action buttons intact
-        const inputsWrap = document.createElement("div");
-        inputsWrap.className = "d-flex gap-1 align-items-center";
+    const inputsWrap = document.createElement("div");
+    inputsWrap.className = "time-edit d-flex gap-1 align-items-center";
+        inputsWrap.style.minHeight = "36px";
         inputsWrap.innerHTML = `
             <input type="time" class="form-control form-control-sm" value="${timeIn}">
             <span class="mx-1">-</span>
@@ -482,8 +489,7 @@ document.addEventListener("click", async (e) => {
         if (timeSpan && timeSpan.parentNode) {
             timeSpan.replaceWith(inputsWrap);
         } else {
-            // Fallback: if structure changed, append inputs then keep buttons
-            timeCell.prepend(inputsWrap);
+            group?.prepend(inputsWrap);
         }
 
         // Toggle buttons
@@ -499,8 +505,9 @@ document.addEventListener("click", async (e) => {
         const group = timeCell.querySelector(".config-group-icon");
         const edit = row.querySelector(".edit-btn");
 
-        const newTitle = (titleCell.querySelector("input")?.value || "").trim();
+        const titleInput = titleCell.querySelector("input");
         const inputs = group?.querySelectorAll("input[type='time']") || [];
+        const newTitle = (titleInput?.value || "").trim();
         const timeStart = inputs[0]?.value || "";
         const timeEnd = inputs[1]?.value || "";
 
@@ -538,7 +545,7 @@ document.addEventListener("click", async (e) => {
                 return;
             }
 
-            // Refresh shifts cache and table, keep user on config modal
+            // Refresh shifts cache and table
             await ensureShiftsLoaded(true);
             renderShiftConfigTable(window.shifts);
             showFloatingAlert("Shift updated successfully", "success");
@@ -1212,7 +1219,7 @@ function renderShiftConfigTable(shifts) {
                     <span>${formatTime(s.time_start)} - ${formatTime(
             s.time_end
         )}</span>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex">
                         <button class="btn btn-sm edit-btn" data-shift-id="${
                             s.id
                         }">

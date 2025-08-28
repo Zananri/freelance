@@ -553,7 +553,7 @@
 
 .filter-dropdown.show,
 .filter-dropdown:active,
-.filter-dropdown:focus{
+.filter-dropdown:focus {
     background: #f0f1f8 !important;
 }
 
@@ -565,7 +565,7 @@
     width: 100%;
 }
 
-.dropdown-filter li select{
+.dropdown-filter li select {
     border: none;
 }
 
@@ -575,4 +575,34 @@
 
 #shiftMonthTitle {
     font-size: 16px;
+}
+
+/* Keep inline edit layout inside cells */
+#shiftConfigModal .shift-config-table td[data-field="time"] .config-group-icon {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+#shiftConfigModal .shift-config-table td[data-field="time"] .time-edit {
+    flex: 1 1 auto;
+    min-width: 0; /* allow shrinking inside fixed table */
+}
+#shiftConfigModal
+    .shift-config-table
+    td[data-field="time"]
+    .time-edit
+    input[type="time"] {
+    min-width: 0;
+    width: 120px; /* keep inputs compact so actions stay inside */
+}
+#shiftConfigModal
+    .shift-config-table
+    td[data-field="title"]
+    input[type="text"] {
+    min-width: 0;
+}
+
+.table>:not(caption)>*>* {
+    padding: .5rem .4rem;
 }
