@@ -468,12 +468,19 @@ document.addEventListener("click", async (e) => {
         const timeText = (timeSpan?.textContent || "").trim();
         const [timeIn = "", timeOut = ""] = timeText.split(" - ");
 
-        // Replace title text with input
-        titleCell.innerHTML = `<input type="text" class="form-control form-control-sm" value="${currentTitle}">`;
+        // Ensure vertical centering during edit
+        row.querySelectorAll("td").forEach((td) => (td.style.verticalAlign = "middle"));
+
+        // Replace title with input container (full width)
+        titleCell.innerHTML = `
+            <div class="config-title-edit d-flex align-items-center w-100" style="min-height: 36px;">
+                <input type="text" class="form-control form-control-sm w-100" style="min-height: 32px; min-width: 0;" value="${currentTitle}">
+            </div>`;
 
         // Build time inputs and replace only the span, keep action buttons intact
-        const inputsWrap = document.createElement("div");
-        inputsWrap.className = "d-flex gap-1 align-items-center";
+    const inputsWrap = document.createElement("div");
+    inputsWrap.className = "time-edit d-flex gap-1 align-items-center";
+        inputsWrap.style.minHeight = "36px";
         inputsWrap.innerHTML = `
             <input type="time" class="form-control form-control-sm" value="${timeIn}">
             <span class="mx-1">-</span>
@@ -482,8 +489,7 @@ document.addEventListener("click", async (e) => {
         if (timeSpan && timeSpan.parentNode) {
             timeSpan.replaceWith(inputsWrap);
         } else {
-            // Fallback: if structure changed, append inputs then keep buttons
-            timeCell.prepend(inputsWrap);
+            group?.prepend(inputsWrap);
         }
 
         // Toggle buttons
@@ -499,8 +505,9 @@ document.addEventListener("click", async (e) => {
         const group = timeCell.querySelector(".config-group-icon");
         const edit = row.querySelector(".edit-btn");
 
-        const newTitle = (titleCell.querySelector("input")?.value || "").trim();
+        const titleInput = titleCell.querySelector("input");
         const inputs = group?.querySelectorAll("input[type='time']") || [];
+        const newTitle = (titleInput?.value || "").trim();
         const timeStart = inputs[0]?.value || "";
         const timeEnd = inputs[1]?.value || "";
 
@@ -538,7 +545,7 @@ document.addEventListener("click", async (e) => {
                 return;
             }
 
-            // Refresh shifts cache and table, keep user on config modal
+            // Refresh shifts cache and table
             await ensureShiftsLoaded(true);
             renderShiftConfigTable(window.shifts);
             showFloatingAlert("Shift updated successfully", "success");
@@ -614,7 +621,7 @@ async function assignShiftForEmployee() {
     const date = formData.get("date");
 
     if (!employeeId || !date || !shiftId) {
-        alert("Please fill all required fields");
+        showFloatingAlert("Please fill all required fields", "warning");
         return;
     }
 
@@ -688,7 +695,7 @@ async function saveNewShift(formId = "addShiftForm") {
     const timeEnd = formData.get("time_end");
 
     if (!title || !timeStart || !timeEnd) {
-        alert("Please fill all required fields");
+        showFloatingAlert("Please fill all required fields", "warning");
         return;
     }
 
@@ -974,7 +981,7 @@ async function saveShiftChanges() {
     const selectedShiftId = getSelectedShiftId();
 
     if (!selectedShiftId) {
-        alert("Please select a shift");
+        showFloatingAlert("Please select a shift", "warning");
         return;
     }
 
@@ -985,7 +992,7 @@ async function saveShiftChanges() {
     if (dateShiftData) {
         dateShifts = [dateShiftData];
     } else {
-        alert("Please provide a valid date");
+        showFloatingAlert("Please provide a valid date", "warning");
         return;
     }
 
@@ -993,7 +1000,7 @@ async function saveShiftChanges() {
     const employeeId = formData.get("employee_id");
 
     if (!employeeId || dateShifts.length === 0) {
-        alert("Please fill all required fields");
+        showFloatingAlert("Please fill all required fields", "warning");
         return;
     }
 
@@ -1157,34 +1164,29 @@ function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
     }
 }
 
-// Function to show floating alert with SVG icon - same as task.js
-function showFloatingAlert(message, type = "success") {
-    const alertDiv = document.createElement("div");
-    alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
-    alertDiv.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        opacity: 1;
-        transition: opacity 0.5s ease;
-    `;
+// Function to show alert using the same component as Settings page
+function showFloatingAlert(message, type = "success", delayMs = 3000) {
+    // Force using Settings' white-style alert (light) for consistency across Shift
+    const mapped = "light";
 
-    let iconClass =
-        type === "success" ? "check-circle-fill" : "exclamation-triangle-fill";
+    // Prefer global showAlertMsg if available (provided by office.js)
+    if (typeof window.showAlertMsg === "function") {
+        window.showAlertMsg(String(message || ""), mapped, delayMs);
+        return;
+    }
 
-    alertDiv.innerHTML = `
-        <i class="fas ${iconClass} me-2"></i>
-        <div>${message}</div>
-    `;
+    // Fallback: try to use the alert container if present
+    try {
+        if (window.$ && $(".box-alert-messages").length) {
+            $(".box-alert-messages .box-message").removeClass("error warning success").addClass(mapped);
+            $(".box-alert-messages .message-content").html(String(message || ""));
+            $(".box-alert-messages").stop().fadeIn("fast").delay(delayMs).fadeOut("fast");
+            return;
+        }
+    } catch (_) {}
 
-    document.body.appendChild(alertDiv);
-
-    setTimeout(() => {
-        alertDiv.style.opacity = "0";
-        setTimeout(() => alertDiv.remove(), 500);
-    }, 3000);
+    // Last resort
+    try { alert(String(message || "")); } catch (_) { console.log("ALERT:", message); }
 }
 
 // Render rows in the Shift Config modal table from shifts array
@@ -1212,7 +1214,7 @@ function renderShiftConfigTable(shifts) {
                     <span>${formatTime(s.time_start)} - ${formatTime(
             s.time_end
         )}</span>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex">
                         <button class="btn btn-sm edit-btn" data-shift-id="${
                             s.id
                         }">
