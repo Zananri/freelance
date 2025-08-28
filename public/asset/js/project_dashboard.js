@@ -1,5 +1,24 @@
 // Dashboard Project: dynamic chart and timeline (mirrors project page behavior)
 (function () {
+    // unified alert helper (Settings style)
+    function dashboardNotify(msg, type) {
+        try {
+            if (typeof window.showAlertMsg === 'function') {
+                // Always use light as requested
+                window.showAlertMsg(String(msg || ''), 'light', 2000);
+                return;
+            }
+        } catch(_) {}
+        // minimal fallback
+        try {
+            const el = document.createElement('div');
+            el.className = 'alert alert-' + (type === 'error' ? 'danger' : (type || 'info'));
+            Object.assign(el.style, { position:'fixed', right:'20px', bottom:'20px', zIndex:9999, minWidth:'280px' });
+            el.textContent = String(msg || '');
+            document.body.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0'; setTimeout(()=> el.remove(), 400); }, 1600);
+        } catch(_) {}
+    }
     const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
     // State
     let chartInstance = null;
