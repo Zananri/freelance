@@ -1337,7 +1337,11 @@ document.addEventListener("DOMContentLoaded", function () {
 // Fungsi untuk mendapatkan informasi shift karyawan
 async function getEmployeeShiftDetails(employeeId, date) {
     try {
-        const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${date}`);
+        // Normalize date to YYYY-MM-DD for API path
+        const normDate = (typeof date === 'string' && date.includes('T'))
+            ? date.split('T')[0]
+            : (date || '').toString();
+        const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${normDate}`);
         const data = await response.json();
         
         if (data.status === "success") {
@@ -2107,7 +2111,7 @@ function openCheckInDetailModal() {
                     console.log("Check-in data:", lastCheckIn);
                     // Override shift from shift-details to ensure latest shift is displayed
                     try {
-                        const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                        const dateStr = (lastCheckIn.date_attendance || new Date().toISOString()).toString().split('T')[0];
                         // Bypass any HTTP/browser cache to always get latest shift
                         const bust = Date.now();
                         fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
@@ -2196,7 +2200,7 @@ function openCheckInDetailModal() {
 
                 // Fallback: trigger an immediate fetch to update shift text even if event timing is off
                 try {
-                    const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                    const dateStr = (lastCheckIn.date_attendance || new Date().toISOString()).toString().split('T')[0];
                     const bust = Date.now();
                     fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
                         .then(r => r.json())

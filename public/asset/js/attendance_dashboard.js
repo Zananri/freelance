@@ -7,7 +7,10 @@ const baseUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('co
 // Fungsi untuk mendapatkan informasi shift karyawan
 async function getEmployeeShiftDetails(employeeId, date) {
     try {
-        const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${date}`);
+        const normDate = (typeof date === 'string' && date.includes('T'))
+            ? date.split('T')[0]
+            : (date || '').toString();
+        const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${normDate}`);
         const data = await response.json();
         
         if (data.status === "success") {
@@ -440,7 +443,10 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
     }
 
     const cacheKey = `${employeeId}_${date}`;
-    const url = `${baseUrl}/attendance/shift-details/${employeeId}/${date}`;
+    const normDate2 = (typeof date === 'string' && date.includes('T'))
+        ? date.split('T')[0]
+        : (date || '').toString();
+    const url = `${baseUrl}/attendance/shift-details/${employeeId}/${normDate2}`;
     
     console.log('Fetching direct shift data from:', url);
     
@@ -756,7 +762,7 @@ function openCheckInDetailModal() {
                     console.log("Check-in data:", lastCheckIn);
                     // Override shift via shift-details to ensure latest shift
                     try {
-                        const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                        const dateStr = (lastCheckIn.date_attendance || new Date().toISOString()).toString().split('T')[0];
                         // Force fresh data: add cache-busting query and disable cache
                         const bust = Date.now();
                         fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
@@ -845,7 +851,7 @@ function openCheckInDetailModal() {
 
                 // Fallback: immediate fetch to update shift text
                 try {
-                    const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                    const dateStr = (lastCheckIn.date_attendance || new Date().toISOString()).toString().split('T')[0];
                     const bust = Date.now();
                     fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
                         .then(r => r.json())
