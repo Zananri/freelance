@@ -167,7 +167,7 @@
 
                         <div class="dropdown dropdown-container">
                             <button
-                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn"
+                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                                 type="button" data-bs-toggle="dropdown" data-bs-display="static"
                                 aria-expanded="false">
                                 Select Shift
@@ -252,7 +252,7 @@
 
                         <div class="dropdown dropdown-container">
                             <button
-                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn"
+                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                                 type="button" data-bs-toggle="dropdown" data-bs-display="static"
                                 id="addDropdownSelected" aria-expanded="false">
                                 Select Shift
@@ -327,7 +327,7 @@
                     </div>
 
                     <div class="dropdown dropdown-container">
-                        <button class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn"
+                        <button class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                             type="button" data-bs-toggle="dropdown" data-bs-display="static"
                             id="editDropdownSelected" aria-expanded="false">
                             Select Shift
