@@ -36,7 +36,8 @@
                             <div class="profile-text mt-2">
                                 <p class="user-name fw-light text-secondary">
                                     {{ $employee ? $employee->name : 'User Name :' }}</p>
-                                <div id="clock" class="digital-clock fw-bold fw-700 my-3" style="color: #303030;"></div>
+                                <div id="clock" class="digital-clock fw-bold fw-700 my-3" style="color: #303030;">
+                                </div>
                                 <div id="date" class="digital-date mb-3 fw-light text-secondary"></div>
                             </div>
                             <div class="attendance-actions w-100 d-flex justify-content-evenly">
@@ -61,23 +62,27 @@
                                     style="font-size: 12px;">
                                     <p class="mb-0 flex-grow-1" style="color: #757575;">Check In</p>
                                     <div class="d-flex align-items-center justify-content-center">
-                                       <div class="time_in time-detail-btn" data-type="in" style="color: {{ $isLate ? 'red' : 'inherit' }}; cursor: pointer;">
+                                        <div class="time_in time-detail-btn" data-type="in"
+                                            style="color: {{ $isLate ? 'red' : 'inherit' }}; cursor: pointer;">
                                             <span id="time_in_display">{{ $timeIn }}</span>
                                         </div>
-                                        <button class="btn p-0 ms-1 chevron-detail-btn" data-type="in" style="line-height: 1;">
+                                        <button class="btn p-0 ms-1 chevron-detail-btn" data-type="in"
+                                            style="line-height: 1;">
                                             <span class="material-symbols-outlined rounded-1"
                                                 style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                <div class="chevron-icon-attendance d-flex justify-content-between align-items-center" style="font-size: 12px;">
+                                <div class="chevron-icon-attendance d-flex justify-content-between align-items-center"
+                                    style="font-size: 12px;">
                                     <p class="mb-0 flex-grow-1" style="color: #757575;">Check Out</p>
                                     <div class="d-flex align-items-center justify-content-center">
                                         <div class="time_out time-detail-btn" data-type="out" style="cursor: pointer;">
                                             <span id="time_out_display"></span>
                                         </div>
-                                        <button class="btn p-0 ms-1 chevron-detail-btn" data-type="out" style="line-height: 1;">
+                                        <button class="btn p-0 ms-1 chevron-detail-btn" data-type="out"
+                                            style="line-height: 1;">
                                             <span class="material-symbols-outlined rounded-1"
                                                 style="font-size: 16px; color: #B3B3B3;">chevron_right</span>
                                         </button>
@@ -121,7 +126,8 @@
 
                                 <!-- Chart Section -->
                                 <div class="chart-section">
-                                    <div class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
+                                    <div
+                                        class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
                                         <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
                                             <span class="material-symbols-outlined"
                                                 style="font-size: 18px; color: #858CA0;">calendar_month</span>
@@ -153,9 +159,10 @@
 
                                 <!-- Timeline Section -->
                                 <div class="timeline-card-mobile">
-                                    <div class="project-timeline-card h-100">
+                                    <div class="project-timeline-card">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">Aug
+                                            <h5 id="timelineTitle" class="fw-semibold"
+                                                style="font-size: 16px; color: #454545;">Aug
                                                 week 1</h5>
                                             <div>
                                                 <button class="btn btn-sm me-2" id="prevTimeline">
@@ -225,9 +232,12 @@
                                     <span class="mx-2" style="color: #E14F4F">High</span>
                                 </div>
                                 <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
-                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="Executor 1">
-                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 20px; height: 20px; object-fit: cover;" alt="Executor 2">
+                                    <img src="https://picsum.photos/200" class="rounded-circle me-1"
+                                        style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
+                                    <img src="https://picsum.photos/201" class="rounded-circle me-1"
+                                        style="width: 20px; height: 20px; object-fit: cover;" alt="Executor 1">
+                                    <img src="https://picsum.photos/202" class="rounded-circle"
+                                        style="width: 20px; height: 20px; object-fit: cover;" alt="Executor 2">
                                 </div>
                                 <div class="mb-1">
                                     <span style="color: #828282">Deadline:</span>
@@ -235,214 +245,41 @@
                                 </div>
                                 <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
                                     <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
                                     <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
                         <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
                             <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
-                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
+                                {{-- Profile task and title task --}}
                             </div>
                             <p class="mb-2 small" style="font-size: 10px;">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
+                                {{-- Description --}}
                             </p>
                             <div class="small mt-3" style="font-size: 10px;">
                                 <div class="mb-2">
-                                    <span style="color: #828282;">Priority:</span>
-                                    <span class="mx-2" style="color: #E14F4F">High</span>
+                                    {{-- Difficulty Task --}}
                                 </div>
                                 <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
-                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
-                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
+                                    {{-- The Collaborators --}}
                                 </div>
                                 <div class="mb-1">
-                                    <span style="color: #828282">Deadline:</span>
-                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
+                                    {{-- Date of Deadline --}}
                                 </div>
                                 <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
                                     <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">mode_comment</span>
                                     </button>
                                     <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
-                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
-                            </div>
-                            <p class="mb-2 small" style="font-size: 10px;">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
-                            </p>
-                            <div class="small mt-3" style="font-size: 10px;">
-                                <div class="mb-2">
-                                    <span style="color: #828282;">Priority:</span>
-                                    <span class="mx-2" style="color: #E14F4F">High</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
-                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
-                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
-                                </div>
-                                <div class="mb-1">
-                                    <span style="color: #828282">Deadline:</span>
-                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
-                                </div>
-                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
-                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
-                            </div>
-                            <p class="mb-2 small" style="font-size: 10px;">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
-                            </p>
-                            <div class="small mt-3" style="font-size: 10px;">
-                                <div class="mb-2">
-                                    <span style="color: #828282;">Priority:</span>
-                                    <span class="mx-2" style="color: #E14F4F">High</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
-                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
-                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
-                                </div>
-                                <div class="mb-1">
-                                    <span style="color: #828282">Deadline:</span>
-                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
-                                </div>
-                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
-                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
-                            </div>
-                            <p class="mb-2 small" style="font-size: 10px;">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
-                            </p>
-                            <div class="small mt-3" style="font-size: 10px;">
-                                <div class="mb-2">
-                                    <span style="color: #828282;">Priority:</span>
-                                    <span class="mx-2" style="color: #E14F4F">High</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
-                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
-                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
-                                </div>
-                                <div class="mb-1">
-                                    <span style="color: #828282">Deadline:</span>
-                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
-                                </div>
-                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
-                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
-                            </div>
-                            <p class="mb-2 small" style="font-size: 10px;">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
-                            </p>
-                            <div class="small mt-3" style="font-size: 10px;">
-                                <div class="mb-2">
-                                    <span style="color: #828282;">Priority:</span>
-                                    <span class="mx-2" style="color: #E14F4F">High</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
-                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
-                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
-                                </div>
-                                <div class="mb-1">
-                                    <span style="color: #828282">Deadline:</span>
-                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
-                                </div>
-                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="task-card p-3 mb-3" style="background: #FFFAE6;">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="https://picsum.photos/200" class="rounded-circle me-4">
-                                <h6 class="mb-0" style="font-size: 14px">Lorem Ipsum is simply dummy</h6>
-                            </div>
-                            <p class="mb-2 small" style="font-size: 10px;">
-                                Description It is a long established fact that a reader will be distracted by the
-                                readable
-                                content...
-                            </p>
-                            <div class="small mt-3" style="font-size: 10px;">
-                                <div class="mb-2">
-                                    <span style="color: #828282;">Priority:</span>
-                                    <span class="mx-2" style="color: #E14F4F">High</span>
-                                </div>
-                                <div class="d-flex align-items-center mb-2" aria-label="PIC and Executors">
-                                    <img src="https://picsum.photos/200" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;" alt="PIC">
-                                    <img src="https://picsum.photos/201" class="rounded-circle me-1" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 1">
-                                    <img src="https://picsum.photos/202" class="rounded-circle" style="width: 18px; height: 18px; object-fit: cover;" alt="Executor 2">
-                                </div>
-                                <div class="mb-1">
-                                    <span style="color: #828282">Deadline:</span>
-                                    <span class="mx-2" style="color: #454545">17 Aug 2025</span>
-                                </div>
-                                <div class="d-flex align-items-center mt-1" aria-label="Task Actions">
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent me-3" title="Comment">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">mode_comment</span>
-                                    </button>
-                                    <button class="btn btn-sm p-0 border-0 bg-transparent" title="Attach File">
-                                        <span class="material-symbols-outlined" style="font-size: 14px; color: #828282;">attach_file</span>
+                                        <span class="material-symbols-outlined"
+                                            style="font-size: 14px; color: #828282;">attach_file</span>
                                     </button>
                                 </div>
                             </div>
@@ -451,146 +288,153 @@
                 </div>
             </div>
 
-    <!-- Modal for Check In -->
-    <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4" id="modalContent">
+            <!-- Modal for Check In -->
+            <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content rounded-4" id="modalContent">
 
-                <!-- Modal Header -->
-                <div class="modal-header modal-header-custom d-flex justify-content-center">
-                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">Check In
-                        </h5>
-                    <button type="button" class="btn-close position-absolute" style="right: 1rem;"
-                        data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-
-                <!-- Modal Body -->
-                <div class="modal-body">
-                    <form id="checkInForm">
-                        <input type="hidden" name="employee_id" id="employee_id"
-                            value="{{ $employee ? $employee->id : '' }}">
-
-                        <!-- Time Display Container -->
-                        <div class="text-center mb-4">
-                            <div class="mb-0">
-                                <div class="date-time-display" id="time_in">
-                                    Loading...
-                                </div>
-                            </div>
-                            <div class="mb-0">
-                                <div class="date-time-display" id="date_attendance">
-                                    Loading...
-                                </div>
-                            </div>
-                            <div>
-                                <div class="shift-time-display" id="shift_time_checkin">
-                                    Loading...
-                                </div>
-                            </div>
+                        <!-- Modal Header -->
+                        <div class="modal-header modal-header-custom d-flex justify-content-center">
+                            <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">Check
+                                In
+                            </h5>
+                            <button type="button" class="btn-close position-absolute" style="right: 1rem;"
+                                data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
 
-                        <!-- Work Outside -->
-                        <div class="mb-3">
-                            <label for="is_work_outside" class="form-label">Work Outside</label>
-                            <div class="work-outside-container d-flex justify-content-center gap-3">
-                                <div class="form-check" style="width: 45%;">
-                                    <input class="form-check-input" type="radio" name="is_work_outside"
-                                        id="work_outside_yes" value="1">
-                                    <label class="form-check-label w-100 text-center"
-                                        for="work_outside_yes">Yes</label>
-                                </div>
-                                <div class="form-check" style="width: 45%;">
-                                    <input class="form-check-input" type="radio" name="is_work_outside"
-                                        id="work_outside_no" value="0" checked>
-                                    <label class="form-check-label w-100 text-center" for="work_outside_no">No</label>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Modal Body -->
+                        <div class="modal-body">
+                            <form id="checkInForm">
+                                <input type="hidden" name="employee_id" id="employee_id"
+                                    value="{{ $employee ? $employee->id : '' }}">
 
-                        <!-- Map Location Section for Check In -->
-                        <div class="mb-3">
-                            <div id="mapCheckIn" style="height: 200px; width: 90%; display: block; margin: 0 auto;"
-                                class="rounded border"></div>
-                            <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
-                            <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
-                        </div>
-
-                        <!-- Image Upload Section -->
-                        <div class="mb-3" id="imageUploadSection">
-                            <label class="form-label">Photo</label>
-                            <div class="image-upload-container">
-                                <!-- Label untuk trigger kamera -->
-                                <label for="imageInput" class="image-upload-label camera-label">
-                                    <div class="image-upload-icon">
-                                        <i class="fas fa-camera fa-2x text-primary"></i>
+                                <!-- Time Display Container -->
+                                <div class="text-center mb-4">
+                                    <div class="mb-0">
+                                        <div class="date-time-display" id="time_in">
+                                            Loading...
+                                        </div>
                                     </div>
-                                    <span id="cameraText">Take Photo</span>
-                                </label>
-
-                                <!-- Input file untuk mobile -->
-                                <input type="file" class="form-control d-none" id="imageInput" name="image[]"
-                                    accept="image/*" capture="environment">
-
-                                <!-- Hidden existing image URLs -->
-                                @if ($attendance && $attendance->image)
-                                    @foreach ($attendance->image as $image)
-                                        <input type="hidden" name="existingImageUrls[]" value="{{ asset($image) }}">
-                                    @endforeach
-                                @endif
-
-                                <!-- Image preview -->
-                                <div id="imagePreview" class="image-preview mt-2" style="display:none;">
-                                    <img id="previewImg" src="" alt="Preview" class="img-fluid rounded">
+                                    <div class="mb-0">
+                                        <div class="date-time-display" id="date_attendance">
+                                            Loading...
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="shift-time-display" id="shift_time_checkin">
+                                            Loading...
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <!-- Clear button -->
-                                <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
-                                    id="clearImageBtn">&times;</button>
-                            </div>
+                                <!-- Work Outside -->
+                                <div class="mb-3">
+                                    <label for="is_work_outside" class="form-label">Work Outside</label>
+                                    <div class="work-outside-container d-flex justify-content-center gap-3">
+                                        <div class="form-check" style="width: 45%;">
+                                            <input class="form-check-input" type="radio" name="is_work_outside"
+                                                id="work_outside_yes" value="1">
+                                            <label class="form-check-label w-100 text-center"
+                                                for="work_outside_yes">Yes</label>
+                                        </div>
+                                        <div class="form-check" style="width: 45%;">
+                                            <input class="form-check-input" type="radio" name="is_work_outside"
+                                                id="work_outside_no" value="0" checked>
+                                            <label class="form-check-label w-100 text-center"
+                                                for="work_outside_no">No</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Map Location Section for Check In -->
+                                <div class="mb-3">
+                                    <div id="mapCheckIn"
+                                        style="height: 200px; width: 90%; display: block; margin: 0 auto;"
+                                        class="rounded border"></div>
+                                    <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
+                                    <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
+                                </div>
+
+                                <!-- Image Upload Section -->
+                                <div class="mb-3" id="imageUploadSection">
+                                    <label class="form-label">Photo</label>
+                                    <div class="image-upload-container">
+                                        <!-- Label untuk trigger kamera -->
+                                        <label for="imageInput" class="image-upload-label camera-label">
+                                            <div class="image-upload-icon">
+                                                <i class="fas fa-camera fa-2x text-primary"></i>
+                                            </div>
+                                            <span id="cameraText">Take Photo</span>
+                                        </label>
+
+                                        <!-- Input file untuk mobile -->
+                                        <input type="file" class="form-control d-none" id="imageInput"
+                                            name="image[]" accept="image/*" capture="environment">
+
+                                        <!-- Hidden existing image URLs -->
+                                        @if ($attendance && $attendance->image)
+                                            @foreach ($attendance->image as $image)
+                                                <input type="hidden" name="existingImageUrls[]"
+                                                    value="{{ asset($image) }}">
+                                            @endforeach
+                                        @endif
+
+                                        <!-- Image preview -->
+                                        <div id="imagePreview" class="image-preview mt-2" style="display:none;">
+                                            <img id="previewImg" src="" alt="Preview"
+                                                class="img-fluid rounded">
+                                        </div>
+
+                                        <!-- Clear button -->
+                                        <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
+                                            id="clearImageBtn">&times;</button>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+
+                        <!-- Modal Footer -->
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="submit" class="btn btn-submit-black" id="submitCheckInBtn">
+                                Check In
+                            </button>
+                        </div>
+
+                        <div id="cameraWrapper" class="d-none position-relative text-center">
+                            <!-- Video Stream -->
+                            <video id="cameraVideo" autoplay playsinline class="w-100 rounded"
+                                style="height: 100vh; object-fit: cover;"></video>
+
+                            <!-- Capture Button Overlay -->
+                            <button type="button"
+                                class="camera-capture-btn position-absolute bottom-0 start-50 translate-middle-x mb-4"
+                                id="captureBtn" aria-label="Capture photo">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                            </button>
+
+                            <!-- Hidden Canvas for Capturing -->
+                            <canvas id="cameraCanvas" class="d-none"></canvas>
+                        </div>
+
+                    </div>
                 </div>
-
-                <!-- Modal Footer -->
-                <div class="modal-footer modal-footer-custom">
-                    <button type="submit" class="btn btn-submit-black" id="submitCheckInBtn">
-                         Check In
-                    </button>
-                </div>
-
-                <div id="cameraWrapper" class="d-none position-relative text-center">
-                    <!-- Video Stream -->
-                    <video id="cameraVideo" autoplay playsinline class="w-100 rounded"
-                        style="height: 100vh; object-fit: cover;"></video>
-
-                    <!-- Capture Button Overlay -->
-                    <button type="button"
-                        class="camera-capture-btn position-absolute bottom-0 start-50 translate-middle-x mb-4"
-                        id="captureBtn" aria-label="Capture photo">
-                        <span class="material-symbols-outlined">photo_camera</span>
-                    </button>
-
-                    <!-- Hidden Canvas for Capturing -->
-                    <canvas id="cameraCanvas" class="d-none"></canvas>
-                </div>
-
             </div>
-        </div>
-    </div>
 
             <!-- Modal for Check Out -->
-    <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content rounded-4" id="checkOutModalContent">
-                <div class="modal-header modal-header-custom d-flex justify-content-center">
-                    <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutModalLabel">Check Out
-                        </h5>
-                    <button type="button" class="btn-close position-absolute" style="right: 1rem;"
-                        data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
+            <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content rounded-4" id="checkOutModalContent">
+                        <div class="modal-header modal-header-custom d-flex justify-content-center">
+                            <h5 class="modal-title modal-title-custom text-center w-100" id="checkOutModalLabel">Check
+                                Out
+                            </h5>
+                            <button type="button" class="btn-close position-absolute" style="right: 1rem;"
+                                data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
 
-                <!-- Time Display Container -->
+                        <!-- Time Display Container -->
                         <div class="text-center mb-4">
                             <div class="mb-0">
                                 <div class="date-time-display" id="time_out">
@@ -609,132 +453,137 @@
                             </div>
                         </div>
 
-                <div class="modal-body">
-                    <form id="checkOutForm">
-                        <!-- Hidden fields -->
-                        <input type="hidden" name="employee_id" id="employee_id"
-                            value="{{ $employee ? $employee->id : '' }}">
-                        <input type="hidden" name="date_attendance" id="date_attendance_hidden">
-                        <input type="hidden" name="time_out" id="time_out_hidden">
-                        <input type="hidden" name="type_attendance" value="check_out">
-                        <input type="hidden" name="is_work_outside_checkout" id="is_work_outside_checkout"
-                            value="0">
+                        <div class="modal-body">
+                            <form id="checkOutForm">
+                                <!-- Hidden fields -->
+                                <input type="hidden" name="employee_id" id="employee_id"
+                                    value="{{ $employee ? $employee->id : '' }}">
+                                <input type="hidden" name="date_attendance" id="date_attendance_hidden">
+                                <input type="hidden" name="time_out" id="time_out_hidden">
+                                <input type="hidden" name="type_attendance" value="check_out">
+                                <input type="hidden" name="is_work_outside_checkout" id="is_work_outside_checkout"
+                                    value="0">
 
-                        <!-- Work Outside Display -->
-                        <div class="mb-3">
-                            <label class="form-label label-custom">Work Outside Status</label>
-                            <div class="work-outside-display">
-                                <span id="workOutsideStatusText">Loading...</span>
-                            </div>
-                        </div>
-
-                        <!-- Hidden Time Display Container - Removed as it's now above -->
-                        <div class="date-time-container d-flex justify-content-between mb-3" style="display: none !important;">
-                            <!-- Time In Display -->
-                            <div class="mb-3" hidden>
-                                <label class="form-label label-custom">Time In</label>
-                                <div class="date-time-display-checkout" id="">
-                                    Loading...
-                                </div>
-                            </div>
-
-                            <!-- Time Out Display -->
-                            <div class="mb-3">
-                                <label class="form-label label-custom">Time Out</label>
-                                <div class="date-time-display-checkout" id="">
-                                    Loading...
-                                </div>
-                            </div>
-
-                            <!-- Total Work Duration -->
-                            <div class="mb-3" hidden>
-                                <label class="form-label label-custom">Total Work Duration</label>
-                                <div class="date-time-display" id="total_work_duration">
-                                    Loading...
-                                </div>
-                            </div>
-                        </div>
-
-
-                        <!-- Map Location Section for Check Out -->
-                        <div class="mb-3">
-                            <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
-                            class="rounded border"></div>
-                            <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
-                            <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
-                        </div>
-                        <!-- Image Upload Section for Checkout -->
-                        <div class="mb-3" id="imageUploadSectionCheckout" style="display: none;">
-                            <label class="form-label">Photo</label>
-                            <div class="image-upload-container">
-                                <label for="imageInputCheckout" class="image-upload-label camera-label">
-                                    <div class="image-upload-icon">
-                                        <i class="fas fa-camera fa-2x text-primary"></i>
+                                <!-- Work Outside Display -->
+                                <div class="mb-3">
+                                    <label class="form-label label-custom">Work Outside Status</label>
+                                    <div class="work-outside-display">
+                                        <span id="workOutsideStatusText">Loading...</span>
                                     </div>
-                                    <span id="cameraTextCheckout">Take Photo</span>
-                                </label>
-                                <input type="file" class="form-control d-none" id="imageInputCheckout"
-                                    name="image[]" accept="image/*" capture="environment">
-                                <div id="imagePreviewCheckout" class="image-preview mt-2" style="display: none;">
-                                    <img id="previewImgCheckout" src="" alt="Preview"
-                                        class="img-fluid rounded">
                                 </div>
-                                <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
-                                    id="clearImageBtnCheckout">&times;</button>
-                            </div>
+
+                                <!-- Hidden Time Display Container - Removed as it's now above -->
+                                <div class="date-time-container d-flex justify-content-between mb-3"
+                                    style="display: none !important;">
+                                    <!-- Time In Display -->
+                                    <div class="mb-3" hidden>
+                                        <label class="form-label label-custom">Time In</label>
+                                        <div class="date-time-display-checkout" id="">
+                                            Loading...
+                                        </div>
+                                    </div>
+
+                                    <!-- Time Out Display -->
+                                    <div class="mb-3">
+                                        <label class="form-label label-custom">Time Out</label>
+                                        <div class="date-time-display-checkout" id="">
+                                            Loading...
+                                        </div>
+                                    </div>
+
+                                    <!-- Total Work Duration -->
+                                    <div class="mb-3" hidden>
+                                        <label class="form-label label-custom">Total Work Duration</label>
+                                        <div class="date-time-display" id="total_work_duration">
+                                            Loading...
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <!-- Map Location Section for Check Out -->
+                                <div class="mb-3">
+                                    <div id="mapCheckOut" style="height: 200px; width: 90%; margin: 0 auto;"
+                                        class="rounded border"></div>
+                                    <input type="hidden" id="latitudeCheckOut" name="latitudeCheckOut">
+                                    <input type="hidden" id="longitudeCheckOut" name="longitudeCheckOut">
+                                </div>
+                                <!-- Image Upload Section for Checkout -->
+                                <div class="mb-3" id="imageUploadSectionCheckout" style="display: none;">
+                                    <label class="form-label">Photo</label>
+                                    <div class="image-upload-container">
+                                        <label for="imageInputCheckout" class="image-upload-label camera-label">
+                                            <div class="image-upload-icon">
+                                                <i class="fas fa-camera fa-2x text-primary"></i>
+                                            </div>
+                                            <span id="cameraTextCheckout">Take Photo</span>
+                                        </label>
+                                        <input type="file" class="form-control d-none" id="imageInputCheckout"
+                                            name="image[]" accept="image/*" capture="environment">
+                                        <div id="imagePreviewCheckout" class="image-preview mt-2"
+                                            style="display: none;">
+                                            <img id="previewImgCheckout" src="" alt="Preview"
+                                                class="img-fluid rounded">
+                                        </div>
+                                        <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
+                                            id="clearImageBtnCheckout">&times;</button>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn btn-submit-black" id="submitCheckOutBtn">
+                                Check Out
+                            </button>
                         </div>
 
-                    </form>
-                </div>
-                <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-secondary" id="submitCheckOutBtn">
-                        Check Out
-                    </button>
-                </div>
+                        <div id="cameraWrapperCheckout" class="d-none position-relative text-center">
+                            <!-- Video Stream -->
+                            <video id="cameraVideoCheckout" autoplay playsinline class="w-100 rounded"
+                                style="height: 100vh; object-fit: cover;"></video>
 
-                <div id="cameraWrapperCheckout" class="d-none position-relative text-center">
-                    <!-- Video Stream -->
-                    <video id="cameraVideoCheckout" autoplay playsinline class="w-100 rounded"
-                        style="height: 100vh; object-fit: cover;"></video>
+                            <!-- Capture Button Overlay -->
+                            <button type="button"
+                                class="camera-capture-btn position-absolute bottom-0 start-50 translate-middle-x mb-4"
+                                id="captureBtnCheckout" aria-label="Capture photo">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                            </button>
 
-                    <!-- Capture Button Overlay -->
-                    <button type="button"
-                        class="camera-capture-btn position-absolute bottom-0 start-50 translate-middle-x mb-4"
-                        id="captureBtnCheckout" aria-label="Capture photo">
-                        <span class="material-symbols-outlined">photo_camera</span>
-                    </button>
-
-                    <!-- Hidden Canvas for Capturing -->
-                    <canvas id="cameraCanvasCheckout" class="d-none"></canvas>
+                            <!-- Hidden Canvas for Capturing -->
+                            <canvas id="cameraCanvasCheckout" class="d-none"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <x-slot name="script_slot">
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script src="{{ asset('asset/js/dashboard.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('asset/js/attendance_dashboard.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('asset/js/tasks_dashboard.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('asset/js/project_dashboard.js') }}?v={{ time() }}"></script>
-    </x-slot>
+            <x-slot name="script_slot">
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+                <script src="{{ asset('asset/js/dashboard.js') }}?v={{ time() }}"></script>
+                <script src="{{ asset('asset/js/attendance_dashboard.js') }}?v={{ time() }}"></script>
+                <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
+                <script src="{{ asset('asset/js/tasks_dashboard.js') }}?v={{ time() }}"></script>
+                <script src="{{ asset('asset/js/project_dashboard.js') }}?v={{ time() }}"></script>
+            </x-slot>
 </x-office-layout>
 
 <!-- Task Feedback Modal (shared with Task page behavior) -->
 <div class="modal fade" id="taskFeedbackModal" tabindex="-1" aria-labelledby="taskFeedbackModalLabel"
-     aria-hidden="true" data-task-id="" data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
+    aria-hidden="true" data-task-id="" data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
         <div class="modal-content feedback-modal-content">
             <div class="modal-header feedback-modal-header d-flex align-items-center position-relative flex-nowrap">
-                <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate" id="taskFeedbackModalLabel">Task Feedback</h5>
-                <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate" id="taskFeedbackModalLabel">
+                    Task Feedback</h5>
+                <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
             </div>
             <div class="modal-body feedback-modal-body" id="taskFeedbackList"></div>
             <div class="modal-footer feedback-modal-footer">
-                <button type="button" class="btn btn-submit-black btn-submit-custom" id="addFeedbackButton">Add Feedback</button>
+                <button type="button" class="btn btn-submit-black btn-submit-custom" id="addFeedbackButton">Add
+                    Feedback</button>
             </div>
         </div>
         <div class="alert-container mt-2"></div>

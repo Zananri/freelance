@@ -48,7 +48,7 @@
     left: 2px;
     color: white;
     font-size: 16px;
-    padding: 1px 4px;
+    padding: 1px 4px;d
     border-radius: 2px;
     z-index: 10;
     font-weight: 400;
@@ -81,10 +81,10 @@
 
 /* Fixed dimensions for calendar card with spacing */
 .calendar-container {
-    padding: 40px 40px 40px 40px !important;
+    padding: 10px 10px;
     height: 420px !important;
-    min-height: 420px !important;
-    max-height: 420px !important;
+    min-height: 400px !important;
+    max-height: 400px !important;
     overflow-y: auto;
 }
 
@@ -132,7 +132,6 @@
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 1px;
-    flex: 1;
 }
 
 .calendar-day {
