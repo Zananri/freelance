@@ -1,45 +1,24 @@
-// Show floating alert at bottom right corner (like task page)
-function showFloatingAlert(message, type = "success") {
-    const alertDiv = document.createElement("div");
-    alertDiv.className = `alert alert-${type} d-flex align-items-center profile-status-alert`;
-    alertDiv.setAttribute("role", "alert");
-    alertDiv.style.opacity = "1";
-    alertDiv.style.position = "fixed";
-    alertDiv.style.bottom = "20px";
-    alertDiv.style.right = "20px";
-    alertDiv.style.zIndex = "9999";
-    alertDiv.style.minWidth = "300px";
-    alertDiv.style.margin = "0";
-
-    let iconId = "";
-    if (type === "success") {
-        iconId = "check-circle-fill";
-    } else if (type === "danger") {
-        iconId = "exclamation-triangle-fill";
-    } else {
-        iconId = "info-fill";
-    }
-
-    alertDiv.innerHTML = `
-        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${
-            type.charAt(0).toUpperCase() + type.slice(1)
-        }:">
-            <use xlink:href="#${iconId}"/>
-        </svg>
-        <div>
-            ${message}
-        </div>
-    `;
-
-    document.body.appendChild(alertDiv);
-
-    // After 1.5 seconds, fade out alert
-    setTimeout(() => {
-        alertDiv.style.opacity = "0";
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 500);
-    }, 1500);
+// Unified alert: use Settings-style white alert (from office.js)
+function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+    try {
+        if (typeof window.showAlertMsg === 'function') {
+            window.showAlertMsg(message, 'light', delayMs);
+            return;
+        }
+        const box = document.querySelector('.box-alert-messages .box-message');
+        if (box && box.parentElement) {
+            box.parentElement.style.display = 'block';
+            box.classList.remove('success','warning','error','light');
+            box.classList.add('light');
+            box.innerHTML = message;
+            setTimeout(() => {
+                if (typeof window.hideAlertMsg === 'function') { window.hideAlertMsg(); }
+                else { box.parentElement.style.display = 'none'; }
+            }, delayMs);
+            return;
+        }
+    } catch (e) { /* no-op */ }
+    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
 }
 
 $(document).ready(function () {
@@ -88,6 +67,7 @@ $(document).ready(function () {
         },
         error: function (xhr, status, error) {
             console.error("Error fetching profile data:", error);
+            showFloatingAlert("Failed to load profile data.", 'warning', 3500);
         },
     });
 
@@ -154,6 +134,7 @@ $(document).ready(function () {
                     .addClass("is-invalid");
                 newPasswordInput.prop("readonly", true);
                 submitButton.prop("disabled", true);
+                showFloatingAlert("Failed to validate current password.", 'warning', 3000);
             },
         });
     }
@@ -193,7 +174,7 @@ $(document).ready(function () {
             success: function (response) {
                 console.log("Profile update success:", response);
                 // Show success alert
-                showFloatingAlert(response.message, "success");
+                showFloatingAlert(response.message || 'Profile updated successfully.', "success", 1500);
                 // Hide alert after 1.5 seconds and reload page
                 setTimeout(function () {
                     location.reload();
@@ -201,14 +182,19 @@ $(document).ready(function () {
             },
             error: function (xhr, status, error) {
                 console.error("Profile update error:", error);
-                var errorMessage =
-                    xhr.responseJSON?.error ||
-                    error ||
-                    "Error updating profile.";
-                showFloatingAlert(
-                    "Error updating profile: " + errorMessage,
-                    "danger"
-                );
+                if (xhr.status === 422) {
+                    var errors = xhr.responseJSON.errors;
+                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
+                    $.each(errors, function (key, value) {
+                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
+                        else { listHtml += '<li>'+value+'</li>'; }
+                    });
+                    listHtml += '</ul>';
+                    showFloatingAlert(listHtml, 'warning', 5000);
+                } else {
+                    var errorMessage = xhr.responseJSON?.error || error || "Error updating profile.";
+                    showFloatingAlert("Error updating profile: " + errorMessage, 'warning', 3500);
+                }
             },
             complete: function () {
                 // Hide loader and enable submit button
