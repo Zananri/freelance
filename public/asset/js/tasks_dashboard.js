@@ -621,12 +621,15 @@ function showDashboardAddFeedbackForm(taskId) {
         })
         .then(r => r.json())
     .then(res => {
-            // Show global floating alert (same UX as check-in)
+            // Show global floating alert using Settings style if available
             const msg = res.message || 'Feedback submitted successfully!';
-            if (typeof showFloatingAlert === 'function') {
+            if (typeof window.showAlertMsg === 'function') {
+                // Force light style
+                window.showAlertMsg(msg, 'light', 2000);
+            } else if (typeof showFloatingAlert === 'function') {
                 showFloatingAlert(msg, 'success');
             } else {
-                // lightweight fallback if global util missing
+                // lightweight fallback
                 const alertDiv = document.createElement('div');
                 alertDiv.className = 'alert alert-success d-flex align-items-center';
                 Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '9999', opacity: '1', minWidth: '300px', margin: '0' });
@@ -674,10 +677,20 @@ function showDashboardAddFeedbackForm(taskId) {
     })
     .catch(() => {
             const msg = 'Failed to submit feedback. Please try again.';
-            if (typeof showFloatingAlert === 'function') {
-                showFloatingAlert(msg, 'danger');
+            if (typeof window.showAlertMsg === 'function') {
+                // Force light style
+                window.showAlertMsg(msg, 'light', 3000);
+            } else if (typeof showFloatingAlert === 'function') {
+                // Fallback util will render light style
+                showFloatingAlert(msg, 'light');
             } else {
-                alert(msg);
+                // Minimal DOM fallback in light style
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-light d-flex align-items-center';
+                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '9999', opacity: '1', minWidth: '300px', margin: '0' });
+                alertDiv.textContent = msg;
+                document.body.appendChild(alertDiv);
+                setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 2000);
             }
     })
     .finally(() => {
@@ -689,11 +702,16 @@ function showDashboardAddFeedbackForm(taskId) {
 
 // ensure floating alert util exists (fallback only). Prefer global one from attendance.js
 if (typeof window.showFloatingAlert !== 'function') {
-    window.showFloatingAlert = function(message, type = 'success') {
+    window.showFloatingAlert = function(message) {
+        if (typeof window.showAlertMsg === 'function') {
+            // Force light style
+            window.showAlertMsg(String(message || ''), 'light', 2000);
+            return;
+        }
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} d-flex align-items-center`;
+        alertDiv.className = 'alert alert-light d-flex align-items-center';
         Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '9999', opacity: '1', minWidth: '300px', margin: '0' });
-        alertDiv.textContent = message;
+        alertDiv.textContent = String(message || '');
         document.body.appendChild(alertDiv);
         setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1500);
     };

@@ -81,6 +81,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/task/index', [TaskController::class, 'index'])->name('task.index');
     Route::get('/task/create', [TaskController::class, 'create'])->name('task.create');
     Route::get('/task/employees-for-executor', [TaskController::class, 'getEmployeesForTaskExecutor'])->name('task.employees-for-executor');
+
+    // Employee list for projects (accessible to all authenticated users)
+    Route::get('/employees-for-projects', [EmployeeController::class, 'getEmployeesForProjects'])->name('employees.for-projects');
+
+    // Department list for projects (accessible to all authenticated users) 
+    Route::get('/departments-for-projects', [DepartmentController::class, 'getDepartmentsForProjects'])->name('departments.for-projects');
+
+    // Division list for projects (accessible to all authenticated users)
+    Route::get('/divisions-for-projects', [DivisionController::class, 'getDivisionsForProjects'])->name('divisions.for-projects');
     Route::get('/task/{id}/edit', [TaskController::class, 'edit'])->name('task.edit');
     Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
     Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');

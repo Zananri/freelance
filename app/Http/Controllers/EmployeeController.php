@@ -431,4 +431,52 @@ class EmployeeController extends Controller
         $jobs = Job::all();
         return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs'));
     }
+
+    /**
+     * Get employees for project assignments (accessible to all authenticated users)
+     */
+    public function getEmployeesForProjects(Request $request)
+    {
+        try {
+            $query = $request->input('query', '');
+            $excludeEmployeeId = $request->input('exclude_employee_id', null);
+
+            $employees = Employee::with(['department', 'division', 'user'])
+                ->where('status', '!=', 'DELETED')
+                ->when($query, function ($q) use ($query) {
+                    $q->where(function ($q2) use ($query) {
+                        $q2->where('name', 'like', '%' . $query . '%')
+                          ->orWhere('email', 'like', '%' . $query . '%');
+                    });
+                })
+                ->when($excludeEmployeeId, function ($q) use ($excludeEmployeeId) {
+                    $q->where('id', '!=', $excludeEmployeeId);
+                })
+                ->orderBy('name')
+                ->get()
+                ->map(function ($employee) {
+                    return [
+                        'id' => $employee->id,
+                        'name' => $employee->name,
+                        'email' => $employee->email,
+                        'user_photo' => $employee->user->photo ?? null,
+                        'department' => $employee->department ? $employee->department->name_department : null,
+                        'division' => $employee->division ? $employee->division->name_division : null,
+                    ];
+                });
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $employees
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => 'Failed to fetch employees: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

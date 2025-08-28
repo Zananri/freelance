@@ -225,5 +225,30 @@ public function index(Request $request)
         }
     }
 
+    /**
+     * Get departments for project assignments (accessible to all authenticated users)
+     */
+    public function getDepartmentsForProjects(Request $request)
+    {
+        try {
+            $departments = Department::where('status', 'ACTIVE')
+                ->orderBy('name_department')
+                ->get(['id', 'name_department', 'description']);
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $departments
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => 'Failed to fetch departments: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
    
 }

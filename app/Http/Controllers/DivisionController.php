@@ -269,4 +269,36 @@ class DivisionController extends Controller
     {
         return view('master/division/division');
     }
+
+    /**
+     * Get divisions for project assignments (accessible to all authenticated users)
+     */
+    public function getDivisionsForProjects(Request $request)
+    {
+        try {
+            $departmentId = $request->input('department_id');
+            
+            $divisionsQuery = Division::where('status', 'ACTIVE')
+                ->orderBy('name_division');
+                
+            if ($departmentId) {
+                $divisionsQuery->where('department_id', $departmentId);
+            }
+            
+            $divisions = $divisionsQuery->get(['id', 'name_division', 'department_id', 'description']);
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $divisions
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => 'Failed to fetch divisions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
