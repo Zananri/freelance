@@ -22,7 +22,7 @@ $(document).ready(function() {
 
     // Notification functionality
     function fetchNotificationCount() {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         $.ajax({
             url: appUrl + "/notifications/count",
             type: "GET",
@@ -43,7 +43,7 @@ $(document).ready(function() {
 
     function fetchNotifications() {
         console.log('Fetching notifications...');
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         $.ajax({
             url: appUrl + "/notifications",
             type: "GET",
@@ -172,22 +172,25 @@ $(document).ready(function() {
 
     // Function to check task acceptance status
     function checkTaskAcceptanceStatus(notifications) {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         const promises = notifications.map(notification => {
             if (notification.type === 'task_assignment') {
                 const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
                 const taskId = taskIdMatch ? taskIdMatch[1] : null;
                 
                 if (taskId) {
+                    console.log('Checking accept status for task:', taskId, 'URL:', `${appUrl}/task/${taskId}/accept-status`);
                     return $.ajax({
                         url: `${appUrl}/task/${taskId}/accept-status`,
                         type: "GET"
                     }).then(response => {
+                        console.log('Accept status response for task', taskId, ':', response);
                         return {
                             ...notification,
-                            is_accepted: response.is_accepted
+                            is_accepted: response.is_accepted || (response.data && response.data.is_accepted)
                         };
-                    }).catch(() => {
+                    }).catch((xhr, status, error) => {
+                        console.error('Failed to check accept status for task', taskId, ':', error, xhr.responseText);
                         return {
                             ...notification,
                             is_accepted: false
@@ -290,7 +293,7 @@ $(document).ready(function() {
 
     // Redirect to appropriate page when notification is clicked (only mark task_accepted notifications as read)
     $(document).on('click', '.notification-item', function() {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         const notificationId = $(this).data('notification-id');
         const notificationTitle = $(this).find('.notification-title').text().toLowerCase();
         const notificationElement = $(this);
@@ -316,7 +319,7 @@ $(document).ready(function() {
     
     // Function to check project acceptance status
     function checkProjectAcceptanceStatus(notifications) {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         const promises = notifications.map(notification => {
             if (notification.type === 'new job' && notification.title.includes('project')) {
                 // Extract project title from message
@@ -373,25 +376,38 @@ $(document).ready(function() {
 
     // Accept project function for project assignment notifications
     function acceptProject(projectTitle, notificationId) {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        console.log('=== Accept Project Debug ===');
+        console.log('Project Title:', projectTitle);
+        console.log('Notification ID:', notificationId);
+        
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
+        console.log('App URL:', appUrl);
         
         // First, get all projects to find the project ID by title
         $.ajax({
             url: `${appUrl}/project/index?include_unaccepted=true`,
-            type: "GET"
-        }).then(response => {
-            // Find the project with the matching title
-            const project = response.data.find(p => p.title === projectTitle);
-            if (project) {
-                // Now call the accept endpoint with the project ID
-                $.ajax({
-                    url: `${appUrl}/project/${project.id}/accept`,
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function(response) {
-                        showDeleteSuccessAlert('Project accepted successfully!', 'success');
+            type: "GET",
+            success: function(response) {
+                console.log('Projects response:', response);
+                console.log('Looking for project title:', projectTitle);
+                console.log('Available projects:', response.data.map(p => ({ id: p.id, title: p.title })));
+                
+                // Find the project with the matching title
+                const project = response.data.find(p => p.title === projectTitle);
+                console.log('Found project:', project);
+                
+                if (project) {
+                    console.log('Calling accept endpoint for project ID:', project.id);
+                    // Now call the accept endpoint with the project ID
+                    $.ajax({
+                        url: `${appUrl}/project/${project.id}/accept`,
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+                            console.log('Accept project response:', response);
+                            showDeleteSuccessAlert('Project accepted successfully!', 'success');
                         
                         // Mark the notification as read
                         $.ajax({
@@ -444,20 +460,28 @@ $(document).ready(function() {
                     },
                     error: function(xhr, status, error) {
                         console.error('Error accepting project:', status, error);
-                        if (xhr.responseJSON && xhr.responseJSON.error) {
-                            showDeleteSuccessAlert('Error: ' + xhr.responseJSON.error, 'error');
-                        } else {
-                            showDeleteSuccessAlert('Failed to accept project', 'error');
+                        console.error('XHR response:', xhr.responseText);
+                        
+                        let errorMessage = 'Failed to accept project';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                            errorMessage = xhr.responseJSON.error;
                         }
+                        
+                        showDeleteSuccessAlert('Error: ' + errorMessage, 'error');
                     }
                 });
             } else {
                 console.error('Project not found:', projectTitle);
                 showDeleteSuccessAlert('Project not found', 'error');
             }
-        }).catch(error => {
-            console.error('Error fetching projects:', error);
-            showDeleteSuccessAlert('Failed to accept project', 'error');
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching projects:', error);
+                console.error('XHR:', xhr.responseText);
+                showDeleteSuccessAlert('Failed to fetch projects', 'error');
+            }
         });
     }
 
@@ -466,7 +490,7 @@ $(document).ready(function() {
     
     // Function to mark notification as read
     function markNotificationAsRead(notificationId, callback) {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         $.ajax({
             url: `${appUrl}/notifications/${notificationId}/read`,
             method: 'POST',
@@ -499,7 +523,7 @@ $(document).ready(function() {
 
     // Function to mark all notifications as read
     function markAllAsRead() {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         $.ajax({
             url: appUrl + "/notifications/mark-all-read",
             method: 'POST',
@@ -521,7 +545,7 @@ $(document).ready(function() {
 
     // Function to delete notification
     function deleteNotification(notificationId) {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         $.ajax({
             url: `${appUrl}/notifications/${notificationId}`,
             method: 'DELETE',
@@ -592,19 +616,31 @@ $(document).ready(function() {
 
     // Show accept task confirmation modal
     function showAcceptTaskModal(taskId, notificationId) {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
+        console.log('Fetching task details for ID:', taskId, 'with appUrl:', appUrl);
         
         // Fetch task details
         $.ajax({
             url: `${appUrl}/task/${taskId}`,
             method: 'GET',
             success: function(response) {
+                console.log('=== Office.js Debug Info ===');
+                console.log('Task details response:', response);
                 // Safely access response data with fallback defaults
                 const taskTitle = (response.data && response.data.title) || 'undefined';
                 const taskDescription = (response.data && response.data.description) || 'No description';
-const taskImage = (response.data && response.data.image) 
-    ? appUrl + '/file/task/' + response.data.image 
-    : appUrl + '/asset/img/background/add-image.png';
+                
+                // Better image handling with multiple fallbacks
+                let taskImage;
+                if (response.data && response.data.image) {
+                    taskImage = `${appUrl}/file/task/${response.data.image}`;
+                } else {
+                    taskImage = `${appUrl}/asset/img/background/add-image.png`;
+                }
+                
+                console.log('Task image URL:', taskImage);
+                console.log('Task data:', response.data);
+                console.log('=============================');
                 // Create modal HTML
                 const modalHtml = `
                     <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
@@ -619,8 +655,9 @@ const taskImage = (response.data && response.data.image)
                                         <div class="me-3">
                                             <img src="${taskImage}" 
                                                  alt="Task Image" 
-                                                 class="rounded-circle" 
-                                                 style="width: 70px; height: 70px; object-fit: cover;">
+                                                 class="rounded-circle task-image" 
+                                                 style="width: 70px; height: 70px; object-fit: cover;"
+                                                 onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
                                         </div>
                                         <div>
                                             <h6 style="font-size: 16px; font-weight: 600; margin: 0;">${taskTitle}</h6>
@@ -661,7 +698,8 @@ const taskImage = (response.data && response.data.image)
                     $(this).remove();
                 });
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('Failed to fetch task details:', error, xhr.responseText);
                 // Fallback if task details can't be loaded
                 actuallyAcceptTask(taskId, notificationId);
             }
@@ -670,7 +708,7 @@ const taskImage = (response.data && response.data.image)
     
     // Actually accept task function
     function actuallyAcceptTask(taskId, notificationId) {
-        const appUrl = $('meta[name="app-url"]').attr('content');
+        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         $.ajax({
             url: `${appUrl}/task/${taskId}/accept`,
             method: 'POST',

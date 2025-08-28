@@ -1,10 +1,32 @@
 var appUrl = document.querySelector('meta[name="app-url"]').getAttribute("content");
 
+// Unified alert: use Settings-style white alert (from office.js)
+function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+    try {
+        if (typeof window.showAlertMsg === 'function') {
+            window.showAlertMsg(message, 'light', delayMs);
+            return;
+        }
+        const box = document.querySelector('.box-alert-messages .box-message');
+        if (box && box.parentElement) {
+            box.parentElement.style.display = 'block';
+            box.classList.remove('success','warning','error','light');
+            box.classList.add('light');
+            box.innerHTML = message;
+            setTimeout(() => {
+                if (typeof window.hideAlertMsg === 'function') { window.hideAlertMsg(); }
+                else { box.parentElement.style.display = 'none'; }
+            }, delayMs);
+            return;
+        }
+    } catch (e) { /* no-op */ }
+    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     const tableBody = document.getElementById("userTableBody");
     const userDetailModalEl = document.getElementById("userDetailModal");
     const userDetailModal = new bootstrap.Modal(userDetailModalEl);
-    const alertContainer = document.getElementById("resetPasswordAlertContainer");
     let currentUserId = null;
 
     function fetchUsers() {
@@ -18,6 +40,7 @@ document.addEventListener("DOMContentLoaded", function () {
             error: function () {
                 tableBody.innerHTML =
                     '<tr><td colspan="5">Failed to load user data.</td></tr>';
+                showFloatingAlert('Failed to load users.', 'warning', 3500);
             },
         });
     }
@@ -80,31 +103,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 userDetailModal.show();
             },
             error: function () {
-                alert("Failed to fetch user details.");
+                showFloatingAlert("Failed to fetch user details.", 'warning', 3000);
             },
         });
     });
 
     function showResetPasswordAlert(message) {
-        alertContainer.innerHTML = `
-            <div class="alert alert-success alert-dismissible fade show text-truncate" role="alert" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        `;
-        alertContainer.style.display = "block";
-        const alertElement = alertContainer.querySelector(".alert");
+        showFloatingAlert(message, 'success', 1500);
         setTimeout(() => {
-            const bsAlert = bootstrap.Alert.getOrCreateInstance(alertElement);
-            bsAlert.close();
-            alertContainer.style.display = "none";
             location.reload();
         }, 1500);
     }
 
     $("#btnResetPassword").on("click", function () {
         if (!currentUserId) {
-            alert("User ID not found.");
+            showFloatingAlert("User ID not found.", 'warning', 2500);
             return;
         }
 
@@ -123,10 +136,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 showResetPasswordAlert(response.message || "Password has been reset successfully.");
             },
             error: function (xhr) {
-                alert(
-                    xhr.responseJSON?.error ||
-                        "Failed to reset password. Please try again."
-                );
+                const errorMsg = xhr.responseJSON?.error || "Failed to reset password. Please try again.";
+                showFloatingAlert(errorMsg, 'warning', 3500);
             },
             complete: function () {
                 $btn.prop("disabled", false);

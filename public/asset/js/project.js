@@ -1,4 +1,5 @@
-var appUrl = $('meta[name="app-url"]').attr("content");
+var appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute("content") || '').replace(/\/$/, '');
+console.log('Project.js appUrl:', appUrl);
 
 document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.getElementById("department");
@@ -201,7 +202,7 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/project/index",
             type: "GET",
             dataType: "json",
-            data: { filter: filter },
+            data: { filter: filter, task_scope: 'me' },
             success: function (data) {
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
@@ -403,14 +404,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 const card = e.target.closest(".col-md-4");
                                 if (!card) {
-                                    alert("Project card not found.");
+                                    showFloatingAlert("Project card not found.", 'warning', 3000);
                                     return;
                                 }
 
                                 const projectId =
                                     card.getAttribute("data-project-id");
                                 if (!projectId) {
-                                    alert("Project ID not found.");
+                                    showFloatingAlert("Project ID not found.", 'warning', 3000);
                                     return;
                                 }
 
@@ -730,8 +731,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                             console.error(
                                                 "Edit Project Modal element not found"
                                             );
-                                            alert(
-                                                "Edit Project Modal element not found"
+                                            showFloatingAlert(
+                                                "Edit Project Modal element not found", 'warning', 3500
                                             );
                                             return;
                                         }
@@ -752,7 +753,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         const projectId = $("#edit_project_id").val();
                         if (!projectId) {
-                            alert("Project ID is missing.");
+                            showFloatingAlert("Project ID is missing.", 'warning', 3000);
                             return;
                         }
 
@@ -803,7 +804,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 showFloatingAlert(
                                     response.message ||
                                         "Project updated successfully!",
-                                    "success"
+                                    "success",
+                                    1500
                                 );
 
                                 // Close modal after short delay
@@ -826,14 +828,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             error: function (xhr) {
                                 if (xhr.status === 422) {
                                     let errors = xhr.responseJSON.errors;
-                                    let errorMessages = "";
-                                    for (let key in errors) {
-                                        errorMessages +=
-                                            errors[key].join("\n") + "\n";
-                                    }
-                                    alert(errorMessages);
+                                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
+                                    $.each(errors, function (key, value) {
+                                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
+                                        else { listHtml += '<li>'+value+'</li>'; }
+                                    });
+                                    listHtml += '</ul>';
+                                    showFloatingAlert(listHtml, 'warning', 5000);
                                 } else {
-                                    alert("Failed to update project.");
+                                    showFloatingAlert("Failed to update project.", 'warning', 3500);
                                 }
                             },
                             complete: function () {
@@ -922,7 +925,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     .getElementById("editProjectModal")
                                     ?.getAttribute("data-employee-id") || "";
                             $.ajax({
-                                url: appUrl + "/employee/index",
+                                url: appUrl + "/employees-for-projects",
                                 type: "GET",
                                 data: {
                                     query: query,
@@ -1195,7 +1198,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     .getElementById("editProjectModal")
                                     ?.getAttribute("data-employee-id") || "";
                             $.ajax({
-                                url: appUrl + "/employee/index",
+                                url: appUrl + "/employees-for-projects",
                                 type: "GET",
                                 data: {
                                     query: query,
@@ -1732,7 +1735,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             })
                             .catch((error) => {
                                 modalBody.innerHTML =
-                                    '<div class="alert alert-danger">Error loading feedback data. Please try again.</div>';
+                                    '<div class="text-center text-muted">Failed to load feedback data.</div>';
+                                showFloatingAlert("Error loading feedback data. Please try again.", 'warning', 3500);
                                 console.error(
                                     "Error fetching feedback data:",
                                     error
@@ -1870,15 +1874,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                 return response.json();
                             })
                             .then((data) => {
-                                // Tampilkan alert sukses
-                                const alertDiv = document.createElement("div");
-                                alertDiv.className =
-                                    "alert alert-success alert-dismissible fade show";
-                                alertDiv.innerHTML = `
-            ${data.message || "Feedback submitted successfully!"}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-                                modalBody.prepend(alertDiv);
+                                // Show success alert
+                                showFloatingAlert(
+                                    data.message || "Feedback submitted successfully!",
+                                    'success',
+                                    1500
+                                );
 
                                 // Update feedback badge count immediately
                                 const card = document.querySelector(`[data-project-id="${projectId}"]`);
@@ -1924,14 +1925,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     errorMessage = error.message;
                                 }
 
-                                const alertDiv = document.createElement("div");
-                                alertDiv.className =
-                                    "alert alert-danger alert-dismissible fade show";
-                                alertDiv.innerHTML = `
-            ${errorMessage}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-                                modalBody.prepend(alertDiv);
+                                showFloatingAlert(errorMessage, 'warning', 4000);
                             })
                             .finally(() => {
                                 // Reset tombol submit
@@ -2106,49 +2100,20 @@ document.addEventListener("DOMContentLoaded", function () {
                                             // Hide modal
                                             deleteModal.hide();
 
-                                            // Show success alert fixed at bottom right corner
-                                            let alertContainer =
-                                                document.createElement("div");
-                                            alertContainer.className =
-                                                "alert alert-success d-flex align-items-center project-delete-alert";
-                                            alertContainer.setAttribute(
-                                                "role",
-                                                "alert"
+                                            // Show success alert
+                                            showFloatingAlert(
+                                                response.message || "Project deleted successfully",
+                                                'success',
+                                                2000
                                             );
-                                            alertContainer.style.opacity = "1";
-
-                                            alertContainer.innerHTML = `
-                                        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
-                                            <use xlink:href="#check-circle-fill"/>
-                                        </svg>
-                                        <div>
-                                            ${
-                                                response.message ||
-                                                "Project deleted successfully"
-                                            }
-                                        </div>
-                                    `;
-
-                                            document.body.appendChild(
-                                                alertContainer
-                                            );
-
-                                            // After 1.5 seconds, fade out alert and reload page
-                                            setTimeout(() => {
-                                                alertContainer.style.opacity =
-                                                    "0";
-                                                setTimeout(() => {
-                                                    alertContainer.remove();
-                                                }, 500);
-                                            }, 1500);
                                         },
                                         error: function (xhr) {
                                             console.error("Delete error:", xhr);
-                                            alert(
+                                            showFloatingAlert(
                                                 "Failed to delete project: " +
-                                                    (xhr.responseJSON
-                                                        ?.message ||
-                                                        "Unknown error")
+                                                    (xhr.responseJSON?.message || "Unknown error"),
+                                                'warning',
+                                                4000
                                             );
                                         },
                                     });
@@ -2745,7 +2710,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load departments dynamically
     function loadDepartments(callback, targetSelect = departmentSelect) {
         $.ajax({
-            url: appUrl + "/department/index",
+            url: appUrl + "/departments-for-projects",
             type: "GET",
             dataType: "json",
             success: function (data) {
@@ -2760,7 +2725,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (typeof callback === "function") callback();
             },
             error: function () {
-                alert("Failed to load departments.");
+                showFloatingAlert("Failed to load departments.", 'warning', 3500);
                 if (typeof callback === "function") callback();
             },
         });
@@ -2775,7 +2740,7 @@ document.addEventListener("DOMContentLoaded", function () {
         targetSelect.innerHTML =
             '<option value="" disabled selected>Loading...</option>';
         $.ajax({
-            url: appUrl + "/division/index",
+            url: appUrl + "/divisions-for-projects",
             type: "GET",
             data: { department_id: departmentId },
             dataType: "json",
@@ -2793,7 +2758,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (typeof callback === "function") callback();
             },
             error: function () {
-                alert("Failed to load divisions.");
+                showFloatingAlert("Failed to load divisions.", 'warning', 3500);
                 if (typeof callback === "function") callback();
             },
         });
@@ -2830,6 +2795,7 @@ function loadProjects() {
         url: appUrl + "/project/index",
         type: "GET",
         dataType: "json",
+        data: { task_scope: 'me' },
         success: function (data) {
             allProjectsCache = data.data || [];
             renderProjects(allProjectsCache);
@@ -2888,7 +2854,7 @@ $(document).ready(function () {
                     ?.getAttribute("data-employee-id") || "";
 
             $.ajax({
-                url: appUrl + "/employee/index",
+                url: appUrl + "/employees-for-projects",
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
@@ -3099,7 +3065,7 @@ $(document).ready(function () {
                     ?.getAttribute("data-employee-id") || "";
 
             $.ajax({
-                url: appUrl + "/employee/index",
+                url: appUrl + "/employees-for-projects",
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
@@ -3370,48 +3336,27 @@ $(document).ready(function () {
         }, 1500);
     }
 
-    // Show floating alert at bottom right corner (like task page)
-    function showFloatingAlert(message, type = "success") {
-        const alertDiv = document.createElement("div");
-        alertDiv.className = `alert alert-${type} d-flex align-items-center project-status-alert`;
-        alertDiv.setAttribute("role", "alert");
-        alertDiv.style.opacity = "1";
-        alertDiv.style.position = "fixed";
-        alertDiv.style.bottom = "20px";
-        alertDiv.style.right = "20px";
-        alertDiv.style.zIndex = "9999";
-        alertDiv.style.minWidth = "300px";
-        alertDiv.style.margin = "0";
-
-        let iconId = "";
-        if (type === "success") {
-            iconId = "check-circle-fill";
-        } else if (type === "danger") {
-            iconId = "exclamation-triangle-fill";
-        } else {
-            iconId = "info-fill";
-        }
-
-        alertDiv.innerHTML = `
-            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${
-                type.charAt(0).toUpperCase() + type.slice(1)
-            }:">
-                <use xlink:href="#${iconId}"/>
-            </svg>
-            <div>
-                ${message}
-            </div>
-        `;
-
-        document.body.appendChild(alertDiv);
-
-        // After 1.5 seconds, fade out alert
-        setTimeout(() => {
-            alertDiv.style.opacity = "0";
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 500);
-        }, 1500);
+    // Unified alert: use Settings-style white alert (from office.js)
+    function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+        try {
+            if (typeof window.showAlertMsg === 'function') {
+                window.showAlertMsg(message, 'light', delayMs);
+                return;
+            }
+            const box = document.querySelector('.box-alert-messages .box-message');
+            if (box && box.parentElement) {
+                box.parentElement.style.display = 'block';
+                box.classList.remove('success','warning','error','light');
+                box.classList.add('light');
+                box.innerHTML = message;
+                setTimeout(() => {
+                    if (typeof window.hideAlertMsg === 'function') { window.hideAlertMsg(); }
+                    else { box.parentElement.style.display = 'none'; }
+                }, delayMs);
+                return;
+            }
+        } catch (e) { /* no-op */ }
+        try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
     }
 
     addProjectForm.addEventListener("submit", function (e) {
@@ -3430,6 +3375,12 @@ $(document).ready(function () {
         submitBtn.disabled = true;
 
         const formData = new FormData(addProjectForm);
+
+        // Debug: Log formData contents
+        console.log("FormData contents:");
+        for (let pair of formData.entries()) {
+            console.log(pair[0], pair[1]);
+        }
 
         // Append project selected reference files (if any)
         if (projectSelectedFiles && projectSelectedFiles.length) {
@@ -3451,7 +3402,8 @@ $(document).ready(function () {
                 // Show success alert
                 showFloatingAlert(
                     response.message || "Project added successfully!",
-                    "success"
+                    "success",
+                    1500
                 );
 
                 // Reset form and preview
@@ -3477,16 +3429,31 @@ $(document).ready(function () {
                     loadProjectCardData();
                 }, 1500);
             },
-            error: function (xhr) {
+            error: function (xhr, status, error) {
+                console.error("Error creating project:", {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
+                });
+                
                 if (xhr.status === 422) {
-                    let errors = xhr.responseJSON.errors;
-                    let errorMessages = "";
-                    for (let key in errors) {
-                        errorMessages += errors[key].join("\n") + "\n";
+                    let errors = xhr.responseJSON?.errors || {};
+                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
+                    $.each(errors, function (key, value) {
+                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
+                        else { listHtml += '<li>'+value+'</li>'; }
+                    });
+                    listHtml += '</ul>';
+                    showFloatingAlert(listHtml, 'warning', 5000);
+                } else if (xhr.status === 500) {
+                    let errorMsg = "Server error occurred.";
+                    if (xhr.responseJSON?.message) {
+                        errorMsg += " " + xhr.responseJSON.message;
                     }
-                    alert(errorMessages);
+                    showFloatingAlert(errorMsg, 'warning', 5000);
                 } else {
-                    alert("Failed to create project.");
+                    showFloatingAlert("Failed to create project. Status: " + xhr.status, 'warning', 3500);
                 }
             },
             complete: function () {
@@ -3545,7 +3512,7 @@ $(document).ready(function () {
                     ?.getAttribute("data-employee-id") || "";
 
             $.ajax({
-                url: appUrl + "/employee/index",
+                url: appUrl + "/employees-for-projects",
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
@@ -3814,8 +3781,9 @@ $(document).ready(function () {
                                 modal.show();
                             })
                             .catch(err => {
-                                listEl.innerHTML = '<div class="alert alert-danger">Failed to load reference files.</div>';
+                                showFloatingAlert('Failed to load reference files.', 'warning', 3000);
                                 console.error('showProjectFiles error', err);
+                                // Still show modal but without content
                                 const modal = new bootstrap.Modal(modalEl);
                                 modal.show();
                             });
@@ -4094,7 +4062,7 @@ $(document).ready(function () {
                     ?.getAttribute("data-employee-id") || "";
 
             $.ajax({
-                url: appUrl + "/employee/index",
+                url: appUrl + "/employees-for-projects",
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",

@@ -1,5 +1,28 @@
 var appUrl = $('meta[name="app-url"]').attr("content");
 
+// Unified alert: use Settings-style white alert (from office.js)
+function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+    try {
+        if (typeof window.showAlertMsg === 'function') {
+            window.showAlertMsg(message, 'light', delayMs);
+            return;
+        }
+        const box = document.querySelector('.box-alert-messages .box-message');
+        if (box && box.parentElement) {
+            box.parentElement.style.display = 'block';
+            box.classList.remove('success','warning','error','light');
+            box.classList.add('light');
+            box.innerHTML = message;
+            setTimeout(() => {
+                if (typeof window.hideAlertMsg === 'function') { window.hideAlertMsg(); }
+                else { box.parentElement.style.display = 'none'; }
+            }, delayMs);
+            return;
+        }
+    } catch (e) { /* no-op */ }
+    try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+}
+
 document.addEventListener("DOMContentLoaded", function () {
     const tableBody = document.getElementById("employeeTableBody");
 
@@ -42,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 filterJobSelect.disabled = true;
             },
             error: function () {
-                alert("Failed to load departments.");
+                showFloatingAlert("Failed to load departments.", 'warning', 3000);
             },
         });
     }
@@ -78,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 filterJobSelect.disabled = true;
             },
             error: function () {
-                alert("Failed to load divisions.");
+                showFloatingAlert("Failed to load divisions.", 'warning', 3000);
             },
         });
     }
@@ -108,7 +131,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 filterJobSelect.disabled = false;
             },
             error: function () {
-                alert("Failed to load jobs.");
+                showFloatingAlert("Failed to load jobs.", 'warning', 3000);
             },
         });
     }
@@ -129,6 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
             error: function () {
                 tableBody.innerHTML =
                     '<tr><td colspan="6">Failed to load employee data.</td></tr>';
+                showFloatingAlert('Failed to load employees.', 'warning', 3500);
             },
         });
     }
@@ -251,7 +275,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 deleteEmployeeModal.show();
             },
             error: function () {
-                alert("Failed to fetch employee data.");
+                showFloatingAlert("Failed to fetch employee data.", 'warning', 3000);
             },
         });
     });
@@ -276,28 +300,15 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (response) {
                 // Hide loader overlay
                 loaderOverlay.classList.add("d-none");
-                // Show success alert with SVG symbols
-                $(".alert-delete-container").empty();
-                const alertHtml = `
-                    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
-                        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
-                            <use xlink:href="#check-circle-fill"/>
-                        </svg>
-                        <div class="flex-grow-1">${response.message}</div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>`;
-                $(".alert-delete-container").append(alertHtml).show();
-                setTimeout(() => {
-                    $(".alert-delete-container .alert").alert("close");
-                }, 3000);
+                showFloatingAlert(response.message || 'Employee deleted successfully.', 'success', 1200);
                 // Hide modal
                 deleteEmployeeModal.hide();
                 // Reload page to reflect changes
-                location.reload();
+                setTimeout(function(){ location.reload(); }, 1200);
             },
             error: function () {
                 loaderOverlay.classList.add("d-none");
-                alert("Failed to delete employee.");
+                showFloatingAlert("Failed to delete employee.", 'warning', 3500);
             },
         });
     });

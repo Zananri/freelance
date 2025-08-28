@@ -1,5 +1,5 @@
 
-.bg-card-1{
+.bg-default-1{
     background-color: rgb(240, 241, 248);
 }
 
@@ -15,7 +15,7 @@
 }
 
 .text-title-content{
-    font-size: 48px;
+    font-size: 32px;
     font-weight: 300;
     color: #2A3542;
     padding: 0px;
@@ -274,7 +274,7 @@
     }
     
     .text-title-content{
-        font-size: 34px;   
+        font-size: 32px;   
     }
     .text-card-title{
         margin-bottom: 15px;
