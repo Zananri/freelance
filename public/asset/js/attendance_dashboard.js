@@ -4,10 +4,23 @@ const baseUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('co
                 $('meta[name="app-url"]').attr("content") || 
                 window.location.origin;
 
+// Helper: format local date to YYYY-MM-DD (avoid UTC toISOString shifting)
+function formatLocalYMD(dateInput = new Date()) {
+    const d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 // Fungsi untuk mendapatkan informasi shift karyawan
 async function getEmployeeShiftDetails(employeeId, date) {
     try {
-        const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${date}`);
+        const normDate = (typeof date === 'string' && date.includes('T'))
+            ? date.split('T')[0]
+            : (date || '').toString();
+        const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${normDate}`);
         const data = await response.json();
         
         if (data.status === "success") {
@@ -169,7 +182,7 @@ function initializeAttendance() {
     const today = new Date();
     const currentDateInput = document.getElementById("currentDate");
     if (currentDateInput) {
-        currentDateInput.value = today.toISOString().split("T")[0];
+    currentDateInput.value = formatLocalYMD(today);
     }
 
     // Get attendance status immediately - this will call updateButtonStates()
@@ -440,7 +453,10 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
     }
 
     const cacheKey = `${employeeId}_${date}`;
-    const url = `${baseUrl}/attendance/shift-details/${employeeId}/${date}`;
+    const normDate2 = (typeof date === 'string' && date.includes('T'))
+        ? date.split('T')[0]
+        : (date || '').toString();
+    const url = `${baseUrl}/attendance/shift-details/${employeeId}/${normDate2}`;
     
     console.log('Fetching direct shift data from:', url);
     
@@ -656,32 +672,30 @@ function openCheckInModal() {
     });
 }
 
-// Function to open the check-in detail modal (adapted to match attendance.js styling/format)
-function openCheckInDetailModal() {
+// Function to open the check-in detail modal (supports optional date)
+function openCheckInDetailModal(dateStrOpt) {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     if (!employeeId) {
         console.error("Employee ID not found");
         return;
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const url = `${baseUrl}/attendance/today/${employeeId}`;
+    const dateStr = (dateStrOpt && typeof dateStrOpt === 'string') ? dateStrOpt : formatLocalYMD(new Date());
+    const url = `${baseUrl}/attendance/daily/${employeeId}/${dateStr}`;
 
     fetch(url)
         .then(response => response.json())
         .then(data => {
             if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
-                // Prefer active (unclosed) check-in; fallback to latest check-in record of today
-                let lastCheckIn = data.data.find(record => record.time_in && !record.time_out);
-                if (!lastCheckIn) {
-                    const checkIns = data.data.filter(record => record.time_in);
-                    if (checkIns.length > 0) {
-                        lastCheckIn = checkIns[checkIns.length - 1];
-                    }
+                // Pilih record check-in terakhir (punya time_in) untuk tanggal tsb
+                let lastCheckIn = null;
+                const checkIns = data.data.filter(record => record.time_in);
+                if (checkIns.length > 0) {
+                    lastCheckIn = checkIns[checkIns.length - 1];
                 }
 
                 if (!lastCheckIn) {
-                    showAlertDashboard("No check-in data found for today", "warning");
+                    showAlertDashboard("No check-in data found for selected date", "warning");
                     return;
                 }
 
@@ -701,7 +715,7 @@ function openCheckInDetailModal() {
                                     <div class="check-in-details">
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Date:</div>
-                                            <div class="detail-value">${formatDateWithDay(lastCheckIn.date_attendance)}</div>
+                                            <div class="detail-value">${formatDateWithDay(lastCheckIn.date_attendance || dateStr)}</div>
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Time In:</div>
@@ -756,7 +770,7 @@ function openCheckInDetailModal() {
                     console.log("Check-in data:", lastCheckIn);
                     // Override shift via shift-details to ensure latest shift
                     try {
-                        const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                        const dateStr = formatLocalYMD(lastCheckIn.date_attendance || dateStrOpt || new Date());
                         // Force fresh data: add cache-busting query and disable cache
                         const bust = Date.now();
                         fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
@@ -845,7 +859,7 @@ function openCheckInDetailModal() {
 
                 // Fallback: immediate fetch to update shift text
                 try {
-                    const dateStr = lastCheckIn.date_attendance || new Date().toISOString().split('T')[0];
+                    const dateStr = formatLocalYMD(lastCheckIn.date_attendance || dateStrOpt || new Date());
                     const bust = Date.now();
                     fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
                         .then(r => r.json())
@@ -863,7 +877,7 @@ function openCheckInDetailModal() {
                         .catch(() => {});
                 } catch (e) { /* ignore */ }
             } else {
-                showAlertDashboard("No check-in data found for today", "warning");
+                showAlertDashboard("No check-in data found for selected date", "warning");
             }
         })
         .catch(error => {
@@ -872,26 +886,52 @@ function openCheckInDetailModal() {
         });
 }
 
-// Function to open the check-out detail modal
-function openCheckOutDetailModal() {
+// Function to open the check-out detail modal (supports optional date)
+function openCheckOutDetailModal(dateStrOpt) {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     if (!employeeId) {
         console.error("Employee ID not found");
         return;
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const url = `${baseUrl}/attendance/today/${employeeId}`;
+    const dateStr = (dateStrOpt && typeof dateStrOpt === 'string') ? dateStrOpt : formatLocalYMD(new Date());
+    const url = `${baseUrl}/attendance/daily/${employeeId}/${dateStr}`;
 
     fetch(url)
         .then(response => response.json())
         .then(data => {
             if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
-                // Cari data check-out yang valid (memiliki time_in dan time_out)
-                const lastCheckOut = data.data.find(record => record.time_in && record.time_out);
-                
-                if (!lastCheckOut) {
-                    showAlertDashboard("No check-out data found for today", "warning");
+                // Robust checkout selection: allow split records (separate check-in and check-out rows)
+                let lastCheckOut = null;
+                const records = data.data || [];
+                const outRecs = records.filter(r => r && r.time_out);
+                if (outRecs.length) {
+                    const candidate = outRecs[outRecs.length - 1];
+                    if (candidate.time_in) {
+                        lastCheckOut = candidate;
+                    } else {
+                        // Try to find a matching/last check-in in the same day and compose
+                        const inRecs = records.filter(r => r && r.time_in);
+                        const linkedIn = inRecs.length ? inRecs[inRecs.length - 1] : null;
+                        lastCheckOut = { ...(candidate || {}) };
+                        if (linkedIn) {
+                            lastCheckOut.time_in = lastCheckOut.time_in || linkedIn.time_in;
+                            lastCheckOut.latitude = (lastCheckOut.latitude ?? linkedIn.latitude);
+                            lastCheckOut.longitude = (lastCheckOut.longitude ?? linkedIn.longitude);
+                            if (!lastCheckOut.attendanceTrackings && linkedIn.attendanceTrackings) {
+                                lastCheckOut.attendanceTrackings = linkedIn.attendanceTrackings;
+                            }
+                            if (!lastCheckOut.date_attendance && linkedIn.date_attendance) {
+                                lastCheckOut.date_attendance = linkedIn.date_attendance;
+                            }
+                            if (!lastCheckOut.shift_start && linkedIn.shift_start) lastCheckOut.shift_start = linkedIn.shift_start;
+                            if (!lastCheckOut.shift_end && linkedIn.shift_end) lastCheckOut.shift_end = linkedIn.shift_end;
+                        }
+                    }
+                }
+
+                if (!lastCheckOut || !lastCheckOut.time_out) {
+                    showAlertDashboard("No check-out data found for selected date", "warning");
                     return;
                 }
 
@@ -914,7 +954,7 @@ function openCheckOutDetailModal() {
                                     <div class="check-out-details">
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Date:</div>
-                                            <div class="detail-value">${formatDateWithDay(lastCheckOut.date_attendance)}</div>
+                                            <div class="detail-value">${formatDateWithDay(lastCheckOut.date_attendance || dateStr)}</div>
                                         </div>
                                         <div class="detail-row">
                                             <div class="form-label label-custom">Total Work Duration:</div>
@@ -973,7 +1013,7 @@ function openCheckOutDetailModal() {
                     console.log("Check-out data:", lastCheckOut);
                     // Override shift via shift-details to ensure latest shift
                     try {
-                        const dateStr = lastCheckOut.date_attendance || new Date().toISOString().split('T')[0];
+                        const dateStr = formatLocalYMD(lastCheckOut.date_attendance || dateStrOpt || new Date());
                         // Force fresh data: add cache-busting query and disable cache
                         const bust = Date.now();
                         fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
@@ -1062,7 +1102,7 @@ function openCheckOutDetailModal() {
 
                 // Fallback: immediate fetch to update shift text
                 try {
-                    const dateStr = lastCheckOut.date_attendance || new Date().toISOString().split('T')[0];
+                    const dateStr = formatLocalYMD(lastCheckOut.date_attendance || dateStrOpt || new Date());
                     const bust = Date.now();
                     fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${dateStr}?_=${bust}`, { cache: 'no-store' })
                         .then(r => r.json())
@@ -1080,7 +1120,7 @@ function openCheckOutDetailModal() {
                         .catch(() => {});
                 } catch (e) { /* ignore */ }
             } else {
-                showAlertDashboard("No check-out data found for today", "warning");
+                showAlertDashboard("No check-out data found for selected date", "warning");
             }
         })
         .catch(error => {
@@ -1226,7 +1266,7 @@ function calculateWorkingHours() {
             return;
         }
 
-        const today = new Date().toISOString().split("T")[0];
+        const today = formatLocalYMD(new Date());
         const urlToday = `${baseUrl}/attendance/today/${employeeId}`;
         const urlLatestUnclosed = `${baseUrl}/attendance/latest-unclosed/${employeeId}`;
 
@@ -2454,10 +2494,17 @@ function getTodayAttendanceStatus() {
         return `${hours}:${minutes}`;
     }
 
-// Function to format date (same as attendance.js)
+// Function to format date (parse YYYY-MM-DD locally to avoid UTC shift)
 function formatDateWithDay(dateString) {
     // Return format: "Friday, 22 August 2025"
-    const date = new Date(dateString);
+    let date;
+    if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateString)) {
+        const [ymd] = dateString.split(/[ T]/);
+        const [y, m, d] = ymd.split('-').map(Number);
+        date = new Date(y, (m || 1) - 1, d || 1);
+    } else {
+        date = new Date(dateString);
+    }
     if (isNaN(date.getTime())) return dateString || '';
     const day = date.getDate();
     const months = [
