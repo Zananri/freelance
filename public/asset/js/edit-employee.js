@@ -231,47 +231,29 @@ function loadJobs(divisionId, selectedId) {
     // On successful form submission, save updated photo URL and employee ID in localStorage
     // Use a specific key to avoid conflicts with other pages.
 
-    function showFloatingAlert(message, type = "success") {
-        const alertDiv = document.createElement("div");
-        alertDiv.className = `alert alert-${type} d-flex align-items-center employee-edit-alert`;
-        alertDiv.setAttribute("role", "alert");
-        alertDiv.style.opacity = "1";
-        alertDiv.style.position = "fixed";
-        alertDiv.style.bottom = "20px";
-        alertDiv.style.right = "20px";
-        alertDiv.style.zIndex = "9999";
-        alertDiv.style.minWidth = "300px";
-        alertDiv.style.margin = "0";
-        alertDiv.style.borderRadius = "8px";
-        alertDiv.style.padding = "10px 20px";
-
-        let iconId = "";
-        if (type === "success") {
-            iconId = "check-circle-fill";
-        } else if (type === "danger") {
-            iconId = "exclamation-triangle-fill";
-        } else {
-            iconId = "info-fill";
-        }
-
-        alertDiv.innerHTML = `
-            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
-                <use xlink:href="#${iconId}"/>
-            </svg>
-            <div>
-                ${message}
-            </div>
-        `;
-
-        document.body.appendChild(alertDiv);
-
-        // After 1.5 seconds, fade out alert
-        setTimeout(() => {
-            alertDiv.style.opacity = "0";
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 500);
-        }, 1500);
+    function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+        try {
+            if (typeof window.showAlertMsg === 'function') {
+                window.showAlertMsg(message, 'light', delayMs);
+                return;
+            }
+            const box = document.querySelector('.box-alert-messages .box-message');
+            if (box && box.parentElement) {
+                box.parentElement.style.display = 'block';
+                box.classList.remove('success','warning','error','light');
+                box.classList.add('light');
+                box.innerHTML = message;
+                setTimeout(() => {
+                    if (typeof window.hideAlertMsg === 'function') {
+                        window.hideAlertMsg();
+                    } else {
+                        box.parentElement.style.display = 'none';
+                    }
+                }, delayMs);
+                return;
+            }
+        } catch(e) { /* no-op */ }
+        try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
     }
 
     form.addEventListener("submit", function (e) {
@@ -315,10 +297,11 @@ function loadJobs(divisionId, selectedId) {
             },
             body: formData,
         })
-            .then((response) => response.json())
-            .then((data) => {
+            .then(async (response) => {
+                let data = {};
+                try { data = await response.json(); } catch (_) { /* server may return empty/HTML */ }
                 loaderOverlay.classList.add("d-none");
-                if (data.errors) {
+                if (data && data.errors) {
                     // Clear previous errors
                     form.querySelectorAll(".text-danger").forEach((el) =>
                         el.remove()
@@ -335,11 +318,13 @@ function loadJobs(divisionId, selectedId) {
                             input.parentNode.appendChild(errorDiv);
                         }
                     }
-                } else if (data.message) {
-                    showFloatingAlert("Employee updated successfully.", "success");
+                } else if (response.ok) {
+                    // Success (with or without message)
+                    const successMsg = (data && data.message) || 'Employee updated successfully.';
+                    showFloatingAlert(successMsg, "success", 2000);
                     setTimeout(() => {
                         // Save updated photo URL and employee ID in localStorage if photo updated
-                        if (data.updatedPhotoUrl && data.employeeId) {
+                        if (data && data.updatedPhotoUrl && data.employeeId) {
                             localStorage.setItem(
                                 "updatedEmployeePhoto",
                                 JSON.stringify({
@@ -349,7 +334,7 @@ function loadJobs(divisionId, selectedId) {
                             );
                         }
                         window.location.href = appUrl + "/employee";
-                    }, 1500);
+                    }, 2000);
                     // Remove validation classes after success
                     const inputs = form.querySelectorAll(
                         "input, select, textarea"
@@ -362,137 +347,21 @@ function loadJobs(divisionId, selectedId) {
                         label.classList.remove("is-valid", "is-invalid");
                     });
                     form.classList.remove("was-validated");
+                } else {
+                    // Non-OK response
+                    if (formAlert) { formAlert.innerHTML = ""; }
+                    showFloatingAlert('Failed to update employee. Please try again.', 'warning', 3500);
                 }
             })
             .catch((error) => {
                 loaderOverlay.classList.add("d-none");
-                if (formAlert) {
-                    formAlert.innerHTML =
-                        '<div class="alert alert-danger">An error occurred while updating the employee.</div>';
-                } else {
-                    alert("An error occurred while updating the employee.");
-                }
+                // Show Settings-style alert for network/unknown errors
+                if (formAlert) { formAlert.innerHTML = ""; }
+                showFloatingAlert('An error occurred while updating the employee.', 'warning', 3500);
                 console.error(error);
             });
     });
     setupImageInput(inputKtp, ktpLabel, ktpClearBtn);
-
-    // Form validation and submission
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        if (!form.checkValidity()) {
-            e.stopPropagation();
-            form.classList.add("was-validated");
-            return;
-        }
-        form.classList.remove("was-validated");
-
-        loaderOverlay.classList.remove("d-none");
-        if (formAlert) formAlert.innerHTML = "";
-
-        const formData = new FormData(form);
-
-        // Add _method=PUT to simulate PUT request
-        formData.append("_method", "PUT");
-
-        // Map form field names to controller expected names
-        formData.set("name", formData.get("employee_name"));
-        formData.delete("employee_name");
-        formData.set("email", formData.get("employee_email"));
-        formData.delete("employee_email");
-        formData.set("email_work", formData.get("employee_email_work"));
-        formData.delete("employee_email_work");
-        formData.set("phone", formData.get("employee_phone"));
-        formData.delete("employee_phone");
-        if (formData.get("shift_id")) {
-            formData.set("shift_id", formData.get("shift_id"));
-        }
-
-        fetch(form.action, {
-            method: "POST",
-            headers: {
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: formData,
-        })
-            .then((response) => response.json())
-.then((data) => {
-                loaderOverlay.classList.add("d-none");
-                if (data.errors) {
-                    // Clear previous errors
-                    form.querySelectorAll(".text-danger").forEach((el) =>
-                        el.remove()
-                    );
-                    // Show validation errors
-                    for (const [field, messages] of Object.entries(
-                        data.errors
-                    )) {
-                        const input = form.querySelector(`[name="${field}"]`);
-                        if (input) {
-                            const errorDiv = document.createElement("div");
-                            errorDiv.className = "text-danger small";
-                            errorDiv.textContent = messages.join(", ");
-                            input.parentNode.appendChild(errorDiv);
-                        }
-                    }
-                } else if (data.message) {
-                if (formAlert) {
-                    showFloatingAlert("Employee updated successfully.", "success");
-                    setTimeout(() => {
-                        // Save updated photo URL and employee ID in localStorage if photo updated
-                        if (data.updatedPhotoUrl && data.employeeId) {
-                            localStorage.setItem(
-                                "updatedEmployeePhoto",
-                                JSON.stringify({
-                                    employeeId: data.employeeId,
-                                    photoUrl: data.updatedPhotoUrl,
-                                })
-                            );
-                        }
-                        window.location.href = appUrl + "/employee";
-                    }, 1500);
-                } else {
-                    alert(data.message);
-                    // Save updated photo URL and employee ID in localStorage if photo updated
-                    if (data.updatedPhotoUrl && data.employeeId) {
-                        localStorage.setItem(
-                            "updatedEmployeePhoto",
-                            JSON.stringify({
-                                employeeId: data.employeeId,
-                                photoUrl: data.updatedPhotoUrl,
-                            })
-                        );
-                    }
-                    window.location.href = appUrl + "/employee";
-                }
-                    // Remove validation classes after success
-                    const inputs = form.querySelectorAll(
-                        "input, select, textarea"
-                    );
-                    inputs.forEach((input) => {
-                        input.classList.remove("is-valid", "is-invalid");
-                    });
-                    const labels = form.querySelectorAll("label");
-                    labels.forEach((label) => {
-                        label.classList.remove("is-valid", "is-invalid");
-                    });
-                    form.classList.remove("was-validated");
-                }
-            })
-            .catch((error) => {
-                loaderOverlay.classList.add("d-none");
-                if (formAlert) {
-                    formAlert.innerHTML =
-                        '<div class="alert alert-danger">An error occurred while updating the employee.</div>';
-                } else {
-                    alert("An error occurred while updating the employee.");
-                }
-                console.error(error);
-            });
-    });
 
     // Add input/change event listeners for validation classes
     const inputs = form.querySelectorAll("input, select, textarea");

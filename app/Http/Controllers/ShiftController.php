@@ -252,4 +252,61 @@ class ShiftController extends Controller
     {
         //
     }
+
+    /**
+     * Update a shift definition (title, description, time_start, time_end) for Shift Config inline editing
+     */
+    public function updateConfig(Request $request, string $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'time_start' => 'required|date_format:H:i',
+                'time_end' => 'required|date_format:H:i',
+            ]);
+
+            $start = Carbon::createFromFormat('H:i', $validated['time_start']);
+            $end = Carbon::createFromFormat('H:i', $validated['time_end']);
+
+            // Allow overnight shift: if end <= start, consider next day for total_hour calculation
+            if ($end->lessThanOrEqualTo($start)) {
+                $end = $end->copy()->addDay();
+            }
+            $totalHour = $end->diffInHours($start, true);
+
+            $shift = \App\Models\Shift::findOrFail($id);
+            $shift->update([
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? $shift->description,
+                'time_start' => $validated['time_start'],
+                'time_end' => $validated['time_end'],
+                'total_hour' => $totalHour,
+                'updated_by' => auth()->id(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Shift updated successfully',
+                'data' => $shift,
+            ]);
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error: ' . $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update shift: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

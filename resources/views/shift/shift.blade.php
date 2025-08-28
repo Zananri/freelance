@@ -377,7 +377,11 @@
 
                     <div class="modal-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered shift-config-table">
+                            <table class="table table-bordered shift-config-table" style="table-layout: fixed; width: 100%;">
+                                <colgroup>
+                                    <col style="width: 10%">
+                                    <col style="width: 50%">
+                                </colgroup>
                                 <thead>
                                     <tr>
                                         <th>Title</th>

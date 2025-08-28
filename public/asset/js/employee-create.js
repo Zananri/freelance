@@ -4,48 +4,33 @@ document.addEventListener("DOMContentLoaded", function () {
     // --- DYNAMIC DROPDOWN LOGIC ---
     const departmentSelect = document.getElementById("department_id");
 
-    // Function to show floating alert with SVG icon
-    function showFloatingAlert(message, type = "success") {
-        const alertDiv = document.createElement("div");
-        alertDiv.className = `alert alert-${type} d-flex align-items-center employee-create-alert`;
-        alertDiv.setAttribute("role", "alert");
-        alertDiv.style.opacity = "1";
-        alertDiv.style.position = "fixed";
-        alertDiv.style.bottom = "20px";
-        alertDiv.style.right = "20px";
-        alertDiv.style.zIndex = "9999";
-        alertDiv.style.minWidth = "300px";
-        alertDiv.style.margin = "0";
-        alertDiv.style.borderRadius = "8px";
-        alertDiv.style.padding = "10px 20px";
-
-        let iconId = "";
-        if (type === "success") {
-            iconId = "check-circle-fill";
-        } else if (type === "danger") {
-            iconId = "exclamation-triangle-fill";
-        } else {
-            iconId = "info-fill";
-        }
-
-        alertDiv.innerHTML = `
-            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
-                <use xlink:href="#${iconId}"/>
-            </svg>
-            <div>
-                ${message}
-            </div>
-        `;
-
-        document.body.appendChild(alertDiv);
-
-        // After 1.5 seconds, fade out alert
-        setTimeout(() => {
-            alertDiv.style.opacity = "0";
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 500);
-        }, 1500);
+    // Unified alert: route to Settings-style white alert (office.js -> showAlertMsg)
+    function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+        try {
+            if (typeof window.showAlertMsg === 'function') {
+                // Force white style as requested (use 'light' variant)
+                window.showAlertMsg(message, 'light', delayMs);
+                return;
+            }
+            // Fallback to container if present
+            const box = document.querySelector('.box-alert-messages .box-message');
+            if (box && box.parentElement) {
+                box.parentElement.style.display = 'block';
+                box.classList.remove('success','warning','error','light');
+                box.classList.add('light');
+                box.innerHTML = message;
+                setTimeout(() => {
+                    if (typeof window.hideAlertMsg === 'function') {
+                        window.hideAlertMsg();
+                    } else {
+                        box.parentElement.style.display = 'none';
+                    }
+                }, delayMs);
+                return;
+            }
+        } catch (e) { /* no-op */ }
+        // Last resort
+        try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
     }
     const divisionSelect = document.getElementById("division_id");
     const jobSelect = document.getElementById("job_id");
@@ -69,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 departmentSelect.innerHTML = options;
             },
             error: function () {
-                alert("Failed to load departments.");
+                showFloatingAlert("Failed to load departments.", "warning", 3000);
             },
         });
     }
@@ -96,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<option value="" disabled selected>Select Job</option>';
             },
             error: function () {
-                alert("Failed to load divisions.");
+                showFloatingAlert("Failed to load divisions.", "warning", 3000);
             },
         });
     }
@@ -121,7 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 jobSelect.innerHTML = options;
             },
             error: function () {
-                alert("Failed to load jobs.");
+                showFloatingAlert("Failed to load jobs.", "warning", 3000);
             },
         });
     }
@@ -183,7 +168,7 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             error: function () {
                 console.error("Failed to load shifts");
-                try { alert("Gagal memuat data shift. Coba refresh halaman."); } catch (e) {}
+                showFloatingAlert("Gagal memuat data shift. Coba refresh halaman.", "warning", 3500);
             },
         });
     }
@@ -342,16 +327,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
 
-                // Hide alert after 3 seconds
-                setTimeout(() => {
-                    const alertDiv = document.querySelector(".employee-create-alert");
-                    if (alertDiv) {
-                        alertDiv.style.opacity = "0";
-                        setTimeout(() => {
-                            alertDiv.remove();
-                        }, 500);
-                    }
-                }, 3000);
                 employeeCreateForm.reset();
 
                 // Remove validation classes from inputs and labels
@@ -393,19 +368,18 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
 
                     if (xhr.status === 422) {
-                        // Validation errors
-                        let errorsHtml = '<div class="alert alert-danger"><ul>';
-                        const errors = xhr.responseJSON.errors;
+                        // Validation errors -> show as Settings-style alert (white)
+                        let listHtml = '<ul>';
+                        const errors = (xhr.responseJSON && xhr.responseJSON.errors) || {};
                         for (const key in errors) {
-                            errors[key].forEach((msg) => {
-                                errorsHtml += `<li>${msg}</li>`;
-                            });
+                            errors[key].forEach((msg) => { listHtml += `<li>${msg}</li>`; });
                         }
-                        errorsHtml += "</ul></div>";
-                        formAlert.innerHTML = errorsHtml;
+                        listHtml += '</ul>';
+                        if (formAlert) formAlert.innerHTML = "";
+                        showFloatingAlert(listHtml, 'warning', 5000);
                     } else {
-                        formAlert.innerHTML =
-                            '<div class="alert alert-danger">Failed to create employee.</div>';
+                        if (formAlert) formAlert.innerHTML = "";
+                        showFloatingAlert('Failed to create employee.', 'warning', 3500);
                     }
                 },
             });
