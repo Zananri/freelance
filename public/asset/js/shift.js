@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadEmployeeData();
     setupEventListeners();
     // Preload shifts for dropdowns
-    ensureShiftsLoaded();
+    ensureShiftsLoaded(true);
 });
 
 // Global variables
@@ -12,8 +12,8 @@ let employees = [];
 window.shifts = window.shifts || [];
 
 // Fetch all shifts from backend (cached in window.shifts)
-async function ensureShiftsLoaded() {
-    if (Array.isArray(window.shifts) && window.shifts.length > 0)
+async function ensureShiftsLoaded(force = false) {
+    if (!force && Array.isArray(window.shifts) && window.shifts.length > 0)
         return window.shifts;
     try {
         const basePath =
@@ -450,53 +450,107 @@ function shiftConfigModal(btn) {
     addShiftModal.show();
 }
 
-document.querySelectorAll(".edit-btn").forEach((btn) => {
-    btn.addEventListener("click", function () {
-        const row = btn.closest("tr");
+// Inline Edit for Shift Config table (delegated handlers to support re-render)
+document.addEventListener("click", async (e) => {
+    const editBtn = e.target.closest(".edit-btn");
+    const saveBtn = e.target.closest(".save-btn");
+    const deleteBtn = e.target.closest(".delete-btn");
+
+    if (editBtn) {
+        const row = editBtn.closest("tr");
         const titleCell = row.querySelector('[data-field="title"]');
         const timeCell = row.querySelector('[data-field="time"]');
-        const saveBtn = row.querySelector(".save-btn");
+        const group = timeCell.querySelector(".config-group-icon");
+        const timeSpan = group?.querySelector("span");
+        const save = row.querySelector(".save-btn");
 
-        // ubah cell jadi input
-        const currentTitle = titleCell.textContent.trim();
-        const currentTime = timeCell.textContent.trim();
+        const currentTitle = (titleCell.textContent || "").trim();
+        const timeText = (timeSpan?.textContent || "").trim();
+        const [timeIn = "", timeOut = ""] = timeText.split(" - ");
 
+        // Replace title text with input
         titleCell.innerHTML = `<input type="text" class="form-control form-control-sm" value="${currentTitle}">`;
 
-        const [timeIn, timeOut] = currentTime.split(" - ");
-        timeCell.innerHTML = `
-      <div class="d-flex gap-1">
-        <input type="time" class="form-control form-control-sm" value="${timeIn}">
-        <input type="time" class="form-control form-control-sm" value="${timeOut}">
-      </div>
-    `;
+        // Build time inputs and replace only the span, keep action buttons intact
+        const inputsWrap = document.createElement("div");
+        inputsWrap.className = "d-flex gap-1 align-items-center";
+        inputsWrap.innerHTML = `
+            <input type="time" class="form-control form-control-sm" value="${timeIn}">
+            <span class="mx-1">-</span>
+            <input type="time" class="form-control form-control-sm" value="${timeOut}">
+        `;
+        if (timeSpan && timeSpan.parentNode) {
+            timeSpan.replaceWith(inputsWrap);
+        } else {
+            // Fallback: if structure changed, append inputs then keep buttons
+            timeCell.prepend(inputsWrap);
+        }
 
-        // toggle tombol
-        btn.classList.add("d-none");
-        saveBtn.classList.remove("d-none");
-    });
-});
+        // Toggle buttons
+        editBtn.classList.add("d-none");
+        if (save) save.classList.remove("d-none");
+    }
 
-// Edit Shift Column
-document.querySelectorAll(".save-btn").forEach((btn) => {
-    btn.addEventListener("click", function () {
-        const row = btn.closest("tr");
+    if (saveBtn) {
+        const row = saveBtn.closest("tr");
+        const shiftId = saveBtn.dataset.shiftId;
         const titleCell = row.querySelector('[data-field="title"]');
         const timeCell = row.querySelector('[data-field="time"]');
-        const editBtn = row.querySelector(".edit-btn");
+        const group = timeCell.querySelector(".config-group-icon");
+        const edit = row.querySelector(".edit-btn");
 
-        const newTitle = titleCell.querySelector("input").value;
-        const inputs = timeCell.querySelectorAll("input");
-        const newTime = `${inputs[0].value} - ${inputs[1].value}`;
+        const newTitle = (titleCell.querySelector("input")?.value || "").trim();
+        const inputs = group?.querySelectorAll("input[type='time']") || [];
+        const timeStart = inputs[0]?.value || "";
+        const timeEnd = inputs[1]?.value || "";
 
-        titleCell.textContent = newTitle;
-        timeCell.textContent = newTime;
+        if (!newTitle || !timeStart || !timeEnd) {
+            showFloatingAlert("Please fill all fields (Title, Time In, Time Out)", "warning");
+            return;
+        }
 
-        btn.classList.add("d-none");
-        editBtn.classList.remove("d-none");
+        try {
+            const basePath =
+                window.location.pathname.split("/").slice(0, -1).join("/") || "";
+            const endpoint = `${basePath}/shift/config/${shiftId}`;
+            const res = await fetch(endpoint, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                },
+                body: JSON.stringify({
+                    title: newTitle,
+                    description: "",
+                    time_start: timeStart,
+                    time_end: timeEnd,
+                }),
+            });
 
-        console.log("Updated:", { newTitle, newTime });
-    });
+            if (!res.ok) {
+                const txt = await res.text();
+                showFloatingAlert(`Failed to update shift: ${res.status} ${txt}`, "danger");
+                return;
+            }
+            const json = await res.json();
+            if (!json.success) {
+                showFloatingAlert(json.message || "Failed to update shift", "danger");
+                return;
+            }
+
+            // Refresh shifts cache and table, keep user on config modal
+            await ensureShiftsLoaded(true);
+            renderShiftConfigTable(window.shifts);
+            showFloatingAlert("Shift updated successfully", "success");
+        } catch (err) {
+            console.error(err);
+            showFloatingAlert("Error updating shift", "danger");
+        }
+    }
+
+    if (deleteBtn) {
+        // No change to delete flow here; placeholder if needed later
+    }
 });
 
 loadEmployeeData();
@@ -708,7 +762,7 @@ async function saveNewShift(formId = "addShiftForm") {
             // Optionally reload data or update UI
             loadEmployeeData();
             // refresh shifts cache and config table
-            await ensureShiftsLoaded();
+            await ensureShiftsLoaded(true);
             const tbody = document.getElementById("shiftConfigTableBody");
             if (tbody) renderShiftConfigTable(window.shifts);
         } else {
