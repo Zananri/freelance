@@ -230,7 +230,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 },
                 error: function () {
-                    alert("Failed to load employees.");
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) { try { alert("Failed to load employees."); } catch(e) {} }
                 },
             });
         }
@@ -443,7 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const taskId = document.getElementById("edit_task_id").value;
             if (!taskId) {
-                alert("Task ID is missing.");
+                try { showFloatingAlert("Task ID is missing.", "warning", 3000); } catch(_) { try { alert("Task ID is missing."); } catch(e){} }
                 return;
             }
 
@@ -625,7 +625,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 },
                 error: function () {
-                    alert("Failed to load employees.");
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) { try { alert("Failed to load employees."); } catch(e){} }
                 },
             });
         }
@@ -862,7 +862,7 @@ document.addEventListener("click", function (e) {
         const currentStatus = e.target.getAttribute("data-task-status");
 
         if (!taskId) {
-            alert("Task ID not found.");
+            try { showFloatingAlert("Task ID not found.", "warning", 3000); } catch(_) { try { alert("Task ID not found."); } catch(e){} }
             return;
         }
 
@@ -1256,7 +1256,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     const taskId = taskCard.getAttribute("data-task-id");
 
                     if (!taskId) {
-                        alert("Task ID not found.");
+                        try { showFloatingAlert("Task ID not found.", "warning", 3000); } catch(_) { try { alert("Task ID not found."); } catch(e){} }
                         return;
                     }
 
@@ -1502,51 +1502,25 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 if (xhr.responseJSON && xhr.responseJSON.errors) {
                     errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
                 }
-                alert(errorMessage);
+                try { showFloatingAlert(errorMessage, "danger", 3000); } catch(_) { try { alert(errorMessage); } catch(e){} }
             },
         });
     }
 
-    // Function to show floating alert with SVG icon
-    function showFloatingAlert(message, type = "success") {
-        const alertDiv = document.createElement("div");
-        alertDiv.className = `alert alert-${type} d-flex align-items-center task-status-alert`;
-        alertDiv.setAttribute("role", "alert");
-        alertDiv.style.opacity = "1";
-        alertDiv.style.position = "fixed";
-        alertDiv.style.bottom = "20px";
-        alertDiv.style.right = "20px";
-        alertDiv.style.zIndex = "9999";
-        alertDiv.style.minWidth = "300px";
-        alertDiv.style.margin = "0";
+    // Function to show alert using Settings-style white alert (office.js -> showAlertMsg)
+    function showFloatingAlert(message, type = "success", delayMs = 2500) {
+        // Map our types to Settings msgType; design uses 'light' for neutral/success
+        const mapped = type === 'danger' || type === 'error' ? 'error'
+                     : type === 'warning' ? 'warning'
+                     : 'light';
 
-        let iconId = "";
-        if (type === "success") {
-            iconId = "check-circle-fill";
-        } else if (type === "danger") {
-            iconId = "exclamation-triangle-fill";
-        } else {
-            iconId = "info-fill";
+        // Prefer global showAlertMsg (defined in office.js)
+        if (typeof window.showAlertMsg === 'function') {
+            try { window.showAlertMsg(String(message || ''), mapped, delayMs); return; } catch(_) {}
         }
 
-        alertDiv.innerHTML = `
-            <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="${type.charAt(0).toUpperCase() + type.slice(1)}:">
-                <use xlink:href="#${iconId}"/>
-            </svg>
-            <div>
-                ${message}
-            </div>
-        `;
-
-        document.body.appendChild(alertDiv);
-
-        // After 1.5 seconds, fade out alert
-        setTimeout(() => {
-            alertDiv.style.opacity = "0";
-            setTimeout(() => {
-                alertDiv.remove();
-            }, 500);
-        }, 1500);
+        // Fallback: simple browser alert as last resort
+        try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) { console.log('ALERT:', message); }
     }
 
     // Track whether feedback was submitted
@@ -2258,7 +2232,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
                 const taskId = taskCard.getAttribute("data-task-id");
                 if (!taskId) {
-                    alert("Task ID not found.");
+                    try { showFloatingAlert("Task ID not found.", "warning", 3000); } catch(_) { try { alert("Task ID not found."); } catch(e){} }
                     return;
                 }
 
@@ -2307,7 +2281,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         }
                     },
                     error: function () {
-                        alert("Failed to load reference files.");
+                        try { showFloatingAlert("Failed to load reference files.", "danger", 3000); } catch(_) { try { alert("Failed to load reference files."); } catch(e){} }
                     },
                 });
             }
@@ -2323,7 +2297,7 @@ function handleTaskDetail(taskId) {
         dataType: "json",
         success: function (res) {
             if (res.status !== 'success' || !res.data) {
-                alert("Failed to load task details.");
+                try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
                 return;
             }
 
@@ -2409,7 +2383,7 @@ function handleTaskDetail(taskId) {
             new bootstrap.Modal(document.getElementById("taskDetailModal")).show();
         },
         error: function () {
-            alert("Failed to load task details.");
+            try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
         },
     });
 }
@@ -2499,34 +2473,11 @@ function handleTaskDetail(taskId) {
                     // Hide modal
                     deleteModal.hide();
 
-                    // Show success alert
-                    let alertContainer = document.createElement("div");
-                    alertContainer.className =
-                        "alert alert-success d-flex align-items-center task-delete-alert";
-                    alertContainer.setAttribute("role", "alert");
-                    alertContainer.style.opacity = "1";
-
-                    alertContainer.innerHTML = `
-                        <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:">
-                            <use xlink:href="#check-circle-fill"/>
-                        </svg>
-                        <div>
-                            ${response.message || "Task deleted successfully"}
-                        </div>
-                    `;
-
-                    document.body.appendChild(alertContainer);
-
-                    // After 1.5 seconds, fade out alert
-                    setTimeout(() => {
-                        alertContainer.style.opacity = "0";
-                        setTimeout(() => {
-                            alertContainer.remove();
-                        }, 500);
-                    }, 1500);
+                    // Unified success alert
+                    try { showFloatingAlert(response.message || "Task deleted successfully", "success", 1500); } catch(_) {}
                 },
                 error: function () {
-                    alert("Failed to delete task.");
+                    try { showFloatingAlert("Failed to delete task.", "danger", 3000); } catch(_) { try { alert("Failed to delete task."); } catch(e){} }
                 },
             });
         };
