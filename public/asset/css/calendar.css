@@ -1,0 +1,107 @@
+.bg-default-1{
+    background-color: rgb(240, 241, 248);
+}
+
+.card-content{
+    background-color: rgb(240, 241, 248);
+    border-radius: 20px;
+    padding: 0px;
+}
+
+.title-content{
+    margin-bottom: 30px;
+}
+
+.btn-default{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #E9EEF4;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+.btn-default:hover,
+.btn-default:active{
+    background-color: #f0f4f8 !important;
+    color: #2f323b !important;
+}
+
+.btn-default .text-button{
+    font-size: 14px;
+    color: #3C404B;
+}
+
+.btn-default .icon{
+    font-size: 24px;
+    margin-right: 10px;
+    color: #3C404B;
+}
+
+.btn-default-dropdown{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #F5F6FC;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+.btn-default-dropdown:hover,
+.btn-default-dropdown:active,
+.btn-default-dropdown.show{
+    background-color: #f9fcff !important;
+    color: #2f323b !important;
+}
+
+.text-title-content{
+    font-size: 32px;
+    font-weight: 300;
+    color: #2A3542;
+    padding: 0px;
+    margin:0px;
+}
+
+.white-space-nowrap{
+    white-space: nowrap;
+}
+
+
+.header-calendar{
+    padding: 15px 15px;
+}
+
+.calendar-month,
+.calendar-year{
+    font-size: 20px;
+    color: #2A3542;
+    font-weight: 400;
+    margin-left: 10px;
+}
+
+.calendar-next-month,
+.calendar-prev-month{
+    font-size: 24px;
+    color: #474c59;
+    cursor: pointer;
+    margin-left: 15px;
+    border-radius: 20px;
+}
+
+.calendar-next-month:hover,
+.calendar-prev-month:hover,
+.calendar-next-month:active,
+.calendar-prev-month:active{
+    color: #313642 !important;
+    background-color: #E9EEF4 !important;
+}
+
+
+@media screen and (min-width: 580px) {
+    .col-user-management .input-card-action:focus {
+        width: 200px;
+    }
+}
+

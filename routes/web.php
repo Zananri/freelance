@@ -15,6 +15,7 @@ use App\Http\Controllers\ShiftController;
 
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\CalendarController;
 
 use Carbon\Carbon;
 
@@ -146,6 +147,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/attendance/shift-details/{employeeId}/{date}', [AttendanceController::class, 'getEmployeeShiftDetails']);
     Route::get('/attendance/today-status/{employeeId}', [AttendanceController::class, 'getTodayStatus']);
 
+
+    Route::get('/calendar', [CalendarController::class, 'showCalendarPage'])->name('calendar');
+    Route::get('/calendar/get-calendar-data', [CalendarController::class, 'getCalendarData'])->name('settings.getCalendarData');
 
 });
 

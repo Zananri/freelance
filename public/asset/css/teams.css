@@ -18,7 +18,7 @@
 }
 
 .text-title-content{
-    font-size: 48px;
+    font-size: 32px;
     font-weight: 300;
     color: #2A3542;
     padding: 0px;
@@ -238,6 +238,6 @@
 
 @media screen and (max-width: 568px) {
     .text-title-content{
-        font-size: 34px;
+        font-size: 32px;
     }
 }

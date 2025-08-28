@@ -5,19 +5,16 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>
-        
-        @php
-            $head_stitle = 'Office NSA Performance';
+    
+    @php
+        $head_stitle = 'Office NSA Performance';
 
-            if (isset($head_stitle_slot)) {
-                $head_stitle_slot;
-            }
+        if (isset($head_stitle_slot)) {
+            $head_stitle = $head_stitle_slot;
+        }
 
-        @endphp
-        
-        {{ $head_stitle }}
-    </title>
+    @endphp
+    <title>{{ $head_stitle }}</title>
 
     <meta name="description" content="Office NSA Performance">
     <meta name="keywords" content="nsaperformance, nsa performance">
@@ -222,6 +219,13 @@
                         <a href="{{ route('profile') }}" class="{{ $menu_active == 'profile' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">account_circle</span>
                             <span class="text-menu">Profile</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="{{ route('calendar') }}" class="{{ $menu_active == 'calendar' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">calendar_month</span>
+                            <span class="text-menu">Calendar</span>
                         </a>
                     </li>
 
