@@ -174,35 +174,36 @@ function renderEmployeeTable(employees, month, year) {
     });
 }
 
-function createEmployeeCell(employee, shift) {
+function createEmployeeCell(employee) {
     const td = document.createElement("td");
     td.classList.add("sticky-col");
 
+    const profile = employee.profile_picture || "/asset/img/default-profile.png";
+    // Try to read any available base shift info on employee, otherwise fallback to empty strings
+    const baseShift = employee.shift || null;
+    const baseTitle = (baseShift && baseShift.title) || employee.shift_title || "";
+    const baseStart = (baseShift && baseShift.time_start) || employee.time_start || "";
+    const baseEnd = (baseShift && baseShift.time_end) || employee.time_end || "";
+
     td.innerHTML = `
         <div class="employee-wrapper d-flex align-items-center gap-2">
-            <img src="${
-                employee.profile_picture || "/asset/img/default-profile.png"
-            }"
+            <img src="${profile}"
                 alt="Profile Picture"
                 class="table-image rounded-circle"
                 width="28px"
                 height="28px" />
             <div>
-                <div class="fw-normal" style="font-size: 14px;">${
-                    employee.name
-                }</div>
+                <div class="fw-normal" style="font-size: 14px;">${employee.name}</div>
             </div>
             <div class="overlay-edit-employee">
                 <button class="btn-edit-employee"
-                        data-employee-id="${employee.id}"
-                        data-employee-name="${employee.name}"
-                        data-employee-picture="${
-                            employee.profile_picture ||
-                            "/asset/img/default-profile.png"
-                        }">
-                        data-start="${shift.time_start}"
-                        data-end="${shift.time_end}"
-                        data-title="${shift.title}"
+                        data-employee-id="${employee.id || ""}"
+                        data-employee-name="${employee.name || ""}"
+                        data-employee-picture="${profile}"
+                        data-shift-id="${employee.shift_id || ""}"
+                        data-start="${baseStart || ""}"
+                        data-end="${baseEnd || ""}"
+                        data-title="${baseTitle || ""}">
                     <span class="material-symbols-outlined">edit</span>
                 </button>
             </div>
