@@ -615,6 +615,15 @@ function setupEventListeners() {
         });
     }
 
+    // Save base shift from Shift page (Edit Employee modal on Shift page)
+    const saveEmployeeBtn = document.getElementById("saveEmployeeBtn");
+    if (saveEmployeeBtn) {
+        saveEmployeeBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            await saveEmployeeBaseShiftFromShiftPage();
+        });
+    }
+
     // When Shift Config modal is opened, load and render shifts
     const shiftConfigEl = document.getElementById("shiftConfigModal");
     if (shiftConfigEl) {
@@ -1082,6 +1091,78 @@ async function saveShiftChanges() {
 function getSelectedShiftId() {
     const input = document.getElementById("editShiftId");
     return input && input.value ? input.value : null;
+}
+
+// Update an employee's BASE shift (same effect as Edit Employee page), from Shift page modal
+async function saveEmployeeBaseShiftFromShiftPage() {
+    try {
+        const modalEl =
+            document.querySelector("#editEmployeeModal") ||
+            document.querySelector(".modal.show") ||
+            document.querySelector(".modal");
+        if (!modalEl) {
+            showFloatingAlert("Edit Employee modal not found", "danger");
+            return;
+        }
+
+        const employeeId = modalEl.querySelector("#editEmployeeId")?.value;
+        const selectedShiftId = modalEl.querySelector("#editShiftId")?.value;
+        if (!employeeId) {
+            showFloatingAlert("Employee ID missing", "warning");
+            return;
+        }
+        if (!selectedShiftId) {
+            showFloatingAlert("Please select a shift", "warning");
+            return;
+        }
+
+        const basePath =
+            window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/employee/${employeeId}`;
+
+        const res = await fetch(endpoint, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                    'meta[name="csrf-token"]'
+                ).content,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({ shift_id: selectedShiftId }),
+        });
+
+        if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            showFloatingAlert(
+                `Failed to update base shift: ${res.status} ${txt}`,
+                "danger"
+            );
+            return;
+        }
+
+        let json = {};
+        try {
+            json = await res.json();
+        } catch (_) {}
+
+        if (json && (json.status === "success" || json.code === 200)) {
+            const modal =
+                bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.hide();
+            await ensureShiftsLoaded(true); // refresh cache in case labels changed
+            loadEmployeeData();
+            showFloatingAlert("Base shift updated successfully", "success");
+        } else {
+            showFloatingAlert(
+                (json && json.message) || "Failed to update base shift",
+                "danger"
+            );
+        }
+    } catch (err) {
+        console.error(err);
+        showFloatingAlert("Error updating base shift", "danger");
+    }
 }
 
 function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
