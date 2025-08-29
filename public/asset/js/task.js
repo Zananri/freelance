@@ -2294,12 +2294,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             type: "GET",
             dataType: "json",
             success: function (res) {
-                if (res.status !== 'success' || !res.data) {
+                // Accept both { status, data } and plain task objects
+                const data = res && (res.data || res);
+                if (!data || (typeof data !== 'object')) {
                     try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
                     return;
                 }
-
-                const data = res.data;
 
                 // Gambar task (normalize URL + fallback)
                 (function() {
@@ -2377,14 +2377,27 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 $("#taskDetailStartDate").text(formatDate(data.start_date));
                 $("#taskDetailDueDate").text(formatDate(data.due_date));
 
-                // Tampilkan modal
-                new bootstrap.Modal(document.getElementById("taskDetailModal")).show();
+                // Tampilkan modal di atas timeline modal; tag backdrop terakhir agar berada di atas
+                const detailEl = document.getElementById("taskDetailModal");
+                if (detailEl) {
+                    detailEl.addEventListener('shown.bs.modal', function onShown() {
+                        detailEl.removeEventListener('shown.bs.modal', onShown);
+                        const backs = document.querySelectorAll('.modal-backdrop');
+                        const last = backs[backs.length - 1];
+                        if (last) last.classList.add('backdrop-task-detail');
+                    });
+                    const detailModal = new bootstrap.Modal(detailEl);
+                    detailModal.show();
+                }
             },
             error: function () {
                 try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
             },
         });
     }
+
+    // Expose for handlers defined outside this scope (e.g., timeline click)
+    window.handleTaskDetail = handleTaskDetail;
 
     // Function to handle task edit (removed old implementation)
 
@@ -3388,12 +3401,13 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
             const color = colorForStatus(t, idx);
             const start = parseDateLoose(t.start_date);
             const due = parseDateLoose(t.due_date) || start || new Date(year, month, 1);
-            return { name, start, due, color };
+            return { id: t.id, name, start, due, color };
         }).filter(x => x.start || x.due);
 
         let rendered = 0;
         monthRows.forEach((task) => {
             const tr = document.createElement("tr");
+            if (task.id) tr.setAttribute('data-task-id', String(task.id));
 
             // Visible month window
             const monthStart = new Date(year, month, 1, 0, 0, 0, 0);
@@ -3427,7 +3441,8 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
             const barTd = document.createElement("td");
             barTd.colSpan = endDay - startDay + 1;
             barTd.classList.add("timeline-cell");
-            barTd.innerHTML = `<div class="timeline-bar ${task.color}"><span class="circle"></span>${task.name}</div>`;
+            if (task.id) barTd.setAttribute('data-task-id', String(task.id));
+            barTd.innerHTML = `<div class="timeline-bar ${task.color}" data-task-id="${task.id || ''}" style="cursor:pointer; pointer-events:auto; z-index:2; position:relative;"><span class="circle"></span>${task.name}</div>`;
             tr.appendChild(barTd);
 
             // Empty cells after the bar
@@ -3459,6 +3474,43 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
 
     document.getElementById("timelineModalTitle").textContent = `Timeline ${months[month]} ${year}`;
     }
+
+    // Delegated click: when clicking a bar inside timeline, close timeline first, then show task detail;
+    // when detail closes, re-open the timeline modal.
+    document.addEventListener('click', function (e) {
+        const timelineEl = document.getElementById('timelineModal');
+        if (!timelineEl || !timelineEl.classList.contains('show')) return;
+        const host = e.target.closest('[data-task-id]');
+        if (!host) return;
+        const tid = host.getAttribute('data-task-id');
+        if (!tid) return;
+
+        // Mark to restore timeline after detail closes
+        window._restoreTimelineAfterDetail = true;
+
+        // Ensure timeline reopens after detail modal is closed
+        const detailEl = document.getElementById('taskDetailModal');
+        if (detailEl) {
+            const onDetailHidden = () => {
+                detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
+                if (window._restoreTimelineAfterDetail) {
+                    const tlInstance2 = bootstrap.Modal.getOrCreateInstance(timelineEl);
+                    tlInstance2.show();
+                    window._restoreTimelineAfterDetail = false;
+                }
+            };
+            detailEl.addEventListener('hidden.bs.modal', onDetailHidden, { once: true });
+        }
+
+        // Hide timeline, then open detail when hidden
+        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+        const onTimelineHidden = () => {
+            timelineEl.removeEventListener('hidden.bs.modal', onTimelineHidden);
+            try { handleTaskDetail(tid); } catch(_) {}
+        };
+        timelineEl.addEventListener('hidden.bs.modal', onTimelineHidden, { once: true });
+        tlInstance.hide();
+    });
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");

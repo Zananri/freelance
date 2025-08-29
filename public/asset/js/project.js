@@ -2130,6 +2130,122 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                     });
 
+                    // Extracted function to fetch and show Project Detail modal (reused by timeline bar clicks)
+                    function fetchAndShowProjectDetail(projectId) {
+                        // Fetch project details via AJAX
+                        $.ajax({
+                            url: appUrl + "/project/" + projectId,
+                            type: "GET",
+                            dataType: "json",
+                            success: function (response) {
+                                const data = response.data || {};
+
+                                // Populate modal fields
+                                const baseFileUrl = appUrl + "/file/project/";
+
+                                $("#projectDetailImage").attr(
+                                    "src",
+                                    data.image
+                                        ? baseFileUrl + data.image
+                                        : appUrl +
+                                              "/asset/img/background/add-image.png"
+                                );
+                                $("#projectDetailImage").attr(
+                                    "style",
+                                    "border-radius: 8px;"
+                                );
+
+                                $("#projectDetailTitle").replaceWith(
+                                    `<h2 class="project-title" id="projectDetailTitle">${
+                                        data.title || ""
+                                    }</h2>`
+                                );
+                                $("#projectDetailAuthor")
+                                    .text(
+                                        data.author ? data.author.name : "Unknown"
+                                    )
+                                    .css("text-align", "justify");
+                                $("#projectDetailDepartment").text(
+                                    data.department || ""
+                                );
+                                $("#projectDetailDivision").text(
+                                    data.division || ""
+                                );
+                                $("#projectDetailDescription").text(
+                                    data.description || ""
+                                );
+
+                                if (data.reference_url) {
+                                    $("#projectDetailReferenceUrl")
+                                        .attr("href", data.reference_url)
+                                        .text(data.reference_url)
+                                        .show();
+                                } else {
+                                    $("#projectDetailReferenceUrl").hide();
+                                }
+
+                                if (data.reference_file) {
+                                    $("#projectDetailReferenceFile")
+                                        .attr("href", baseFileUrl + data.reference_file)
+                                        .show();
+                                } else {
+                                    $("#projectDetailReferenceFile").hide();
+                                }
+
+                                function formatDate(dateStr) {
+                                    if (!dateStr) return "";
+                                    const options = {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                    };
+                                    const dateObj = new Date(dateStr);
+                                    return dateObj.toLocaleDateString(
+                                        undefined,
+                                        options
+                                    );
+                                }
+
+                                $("#projectDetailStartDate").text(
+                                    formatDate(data.start_date)
+                                );
+                                $("#projectDetailDueDate").text(
+                                    formatDate(data.due_date)
+                                );
+
+                                if (data.co_authors && data.co_authors.length > 0) {
+                                    const coAuthorNames = data.co_authors
+                                        .map((ca) => ca.name)
+                                        .join(", ");
+                                    $("#projectDetailCoAuthors").text(
+                                        coAuthorNames
+                                    );
+                                } else {
+                                    $("#projectDetailCoAuthors").text("None");
+                                }
+
+                                if (data.contributors && data.contributors.length > 0) {
+                                    const contributorNames = data.contributors
+                                        .map((c) => c.name)
+                                        .join(", ");
+                                    $("#projectDetailContributors").text(
+                                        contributorNames
+                                    );
+                                } else {
+                                    $("#projectDetailContributors").text("None");
+                                }
+
+                                const projectDetailModal = new bootstrap.Modal(
+                                    document.getElementById("projectDetailModal")
+                                );
+                                projectDetailModal.show();
+                            },
+                            error: function () {
+                                alert("Failed to load project details.");
+                            },
+                        });
+                    }
+
                     // Event listener for "Detail", "Task", and "Feedback" dropdown item click
                     document.addEventListener("click", function (e) {
                         if (
@@ -2139,9 +2255,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             const text = e.target.textContent.trim();
                             const card = e.target.closest(".col-md-4");
                             if (!card) return;
-
-                            const projectId =
-                                card.getAttribute("data-project-id");
+                            const projectId = card.getAttribute("data-project-id");
                             if (!projectId) {
                                 alert("Project ID not found.");
                                 return;
@@ -2150,150 +2264,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (text === "Detail") {
                                 e.preventDefault();
                                 e.stopPropagation();
-
-                                // Fetch project details via AJAX
-                                $.ajax({
-                                    url: appUrl + "/project/" + projectId,
-                                    type: "GET",
-                                    dataType: "json",
-                                    success: function (response) {
-                                        const data = response.data || {};
-
-                                        // Populate modal fields
-                                        const baseFileUrl =
-                                            appUrl + "/file/project/";
-
-                                        $("#projectDetailImage").attr(
-                                            "src",
-                                            data.image
-                                                ? baseFileUrl + data.image
-                                                : appUrl +
-                                                      "/asset/img/background/add-image.png"
-                                        );
-                                        $("#projectDetailImage").attr(
-                                            "style",
-                                            "border-radius: 8px;"
-                                        );
-
-                                        $("#projectDetailTitle").replaceWith(
-                                            `<h2 class="project-title" id="projectDetailTitle">${
-                                                data.title || ""
-                                            }</h2>`
-                                        );
-                                        $("#projectDetailAuthor")
-                                            .text(
-                                                data.author
-                                                    ? data.author.name
-                                                    : "Unknown"
-                                            )
-                                            .css("text-align", "justify");
-                                        $("#projectDetailDepartment").text(
-                                            data.department || ""
-                                        );
-                                        $("#projectDetailDivision").text(
-                                            data.division || ""
-                                        );
-                                        $("#projectDetailDescription").text(
-                                            data.description || ""
-                                        );
-
-                                        if (data.reference_url) {
-                                            $("#projectDetailReferenceUrl")
-                                                .attr(
-                                                    "href",
-                                                    data.reference_url
-                                                )
-                                                .text(data.reference_url)
-                                                .show();
-                                        } else {
-                                            $(
-                                                "#projectDetailReferenceUrl"
-                                            ).hide();
-                                        }
-
-                                        if (data.reference_file) {
-                                            $("#projectDetailReferenceFile")
-                                                .attr(
-                                                    "href",
-                                                    baseFileUrl +
-                                                        data.reference_file
-                                                )
-                                                .show();
-                                        } else {
-                                            $(
-                                                "#projectDetailReferenceFile"
-                                            ).hide();
-                                        }
-
-                                        function formatDate(dateStr) {
-                                            if (!dateStr) return "";
-                                            const options = {
-                                                year: "numeric",
-                                                month: "long",
-                                                day: "numeric",
-                                            };
-                                            const dateObj = new Date(dateStr);
-                                            return dateObj.toLocaleDateString(
-                                                undefined,
-                                                options
-                                            );
-                                        }
-
-                                        $("#projectDetailStartDate").text(
-                                            formatDate(data.start_date)
-                                        );
-                                        $("#projectDetailDueDate").text(
-                                            formatDate(data.due_date)
-                                        );
-
-                                        if (
-                                            data.co_authors &&
-                                            data.co_authors.length > 0
-                                        ) {
-                                            const coAuthorNames =
-                                                data.co_authors
-                                                    .map((ca) => ca.name)
-                                                    .join(", ");
-                                            $("#projectDetailCoAuthors").text(
-                                                coAuthorNames
-                                            );
-                                        } else {
-                                            $("#projectDetailCoAuthors").text(
-                                                "None"
-                                            );
-                                        }
-
-                                        if (
-                                            data.contributors &&
-                                            data.contributors.length > 0
-                                        ) {
-                                            const contributorNames =
-                                                data.contributors
-                                                    .map((c) => c.name)
-                                                    .join(", ");
-                                            $(
-                                                "#projectDetailContributors"
-                                            ).text(contributorNames);
-                                        } else {
-                                            $(
-                                                "#projectDetailContributors"
-                                            ).text("None");
-                                        }
-
-                                        const projectDetailModal =
-                                            new bootstrap.Modal(
-                                                document.getElementById(
-                                                    "projectDetailModal"
-                                                )
-                                            );
-                                        projectDetailModal.show();
-                                    },
-                                    error: function () {
-                                        alert(
-                                            "Failed to load project details."
-                                        );
-                                    },
-                                });
+                                fetchAndShowProjectDetail(projectId);
                             } else if (text === "Task") {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -2323,6 +2294,16 @@ document.addEventListener("DOMContentLoaded", function () {
                                     new bootstrap.Modal(projectFeedbackModalEl);
                                 projectFeedbackModal.show();
                             }
+                        }
+                    });
+
+                    // Click on timeline bar opens the same Project Detail modal
+                    document.addEventListener('click', function (e) {
+                        const bar = e.target.closest('.timeline-bar[data-project-id]');
+                        if (!bar) return;
+                        const pid = bar.getAttribute('data-project-id');
+                        if (pid) {
+                            fetchAndShowProjectDetail(pid);
                         }
                     });
 
@@ -4719,7 +4700,7 @@ function renderTimeline(
                 const barTd = document.createElement('td');
                 barTd.colSpan = projEndIdx - projStartIdx + 1;
                 const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
-                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
 
                 for (let i = projEndIdx + 1; i < totalCells; i++) tr.appendChild(document.createElement('td'));
@@ -4745,7 +4726,7 @@ function renderTimeline(
                 const barTd = document.createElement('td');
                 barTd.colSpan = endIdx - startIdx + 1;
                 const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
-                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
 
                 for (let i = endIdx + 1; i < daysInMonth; i++) tr.appendChild(document.createElement('td'));

@@ -157,7 +157,7 @@
             start.setHours(0, 0, 0, 0);
             due.setHours(23, 59, 59, 999);
 
-            list.push({ name, start, due, color });
+            list.push({ id: p.id, name, start, due, color });
         });
 
         return list;
@@ -191,7 +191,7 @@
 
         const weekStart = getWeekStart(currentYearProject, currentMonthProject, currentWeekProject);
 
-        const data = buildTimelineData(projectsCache);
+    const data = buildTimelineData(projectsCache);
         data.forEach((proj) => {
             // Build a 7-day row container
             const $row = $("<div>")
@@ -221,6 +221,7 @@
                         border: "none",
                     })
                     .attr("title", `${proj.name}`)
+                    .attr("data-project-id", proj.id || '')
                     .html(`<span class="circle border-0 ${proj.color}"></span>${proj.name}`);
 
                 $row.append($bar);
@@ -312,6 +313,52 @@
 
         // Fetch and render
         fetchProjectsAndRender();
+    });
+
+    // Open Project Detail modal when clicking a timeline bar (reuse project page endpoint)
+    document.addEventListener('click', async function (e) {
+        const bar = e.target.closest('.timeline-bar[data-project-id]');
+        if (!bar) return;
+        const pid = bar.getAttribute('data-project-id');
+        if (!pid) return;
+        try {
+            const r = await fetch(appUrl + '/project/' + pid);
+            const response = await r.json();
+            const data = response.data || {};
+            // Fill fields in a shared Project Detail modal if exists on page
+            const modalEl = document.getElementById('projectDetailModal');
+            if (!modalEl) return; // dashboard might not include it
+            const baseFileUrl = appUrl + '/file/project/';
+            const imgEl = document.getElementById('projectDetailImage');
+            if (imgEl) {
+                imgEl.src = data.image ? (baseFileUrl + data.image) : (appUrl + '/asset/img/background/add-image.png');
+                imgEl.style.borderRadius = '8px';
+            }
+            const titleEl = document.getElementById('projectDetailTitle');
+            if (titleEl) titleEl.textContent = data.title || '';
+            const textSet = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || ''; };
+            textSet('projectDetailAuthor', (data.author && data.author.name) || 'Unknown');
+            textSet('projectDetailDepartment', data.department);
+            textSet('projectDetailDivision', data.division);
+            textSet('projectDetailDescription', data.description);
+            const refUrlEl = document.getElementById('projectDetailReferenceUrl');
+            if (refUrlEl) {
+                if (data.reference_url) { refUrlEl.href = data.reference_url; refUrlEl.textContent = data.reference_url; refUrlEl.style.display = ''; }
+                else refUrlEl.style.display = 'none';
+            }
+            const refFileEl = document.getElementById('projectDetailReferenceFile');
+            if (refFileEl) {
+                if (data.reference_file) { refFileEl.href = baseFileUrl + data.reference_file; refFileEl.style.display = ''; }
+                else refFileEl.style.display = 'none';
+            }
+            const fmt = (s) => s ? new Date(s).toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'}) : '';
+            textSet('projectDetailStartDate', fmt(data.start_date));
+            textSet('projectDetailDueDate', fmt(data.due_date));
+            textSet('projectDetailCoAuthors', Array.isArray(data.co_authors) && data.co_authors.length ? data.co_authors.map(a=>a.name).join(', ') : 'None');
+            textSet('projectDetailContributors', Array.isArray(data.contributors) && data.contributors.length ? data.contributors.map(a=>a.name).join(', ') : 'None');
+
+            new bootstrap.Modal(modalEl).show();
+        } catch(_) {}
     });
 })();
 

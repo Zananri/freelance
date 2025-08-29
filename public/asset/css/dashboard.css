@@ -430,7 +430,8 @@
     transition: left 0.2s, width 0.2s;
     box-sizing: border-box;
     margin-bottom: 10px;
-    z-index: 1;
+    z-index: 2;
+    cursor: pointer;
 }
 
 .timeline-cell {
