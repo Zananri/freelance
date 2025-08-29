@@ -684,8 +684,8 @@ function calculateWorkingHours() {
                         checkOutBtn.disabled = true;
                         checkInBtn.classList.remove('active');
                         checkOutBtn.classList.remove('active');
-                        try { $("#checkInBtn .check-icon").hide(); } catch(e){}
-                        try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+                        try { $("#checkInBtn .check-icon").css('opacity','0'); } catch(e){}
+                        try { $("#checkOutBtn .done-all-icon").css('opacity','0'); } catch(e){}
 
                         // Cek apakah ada check-in yang belum ditutup dari hari sebelumnya
                         if (latestData.status === "success" && latestData.data) {
@@ -707,24 +707,24 @@ function calculateWorkingHours() {
                                             checkInBtn.style.display = "flex";
                                             checkInBtn.disabled = false;
                                             checkInBtn.classList.add('active');
-                                            try { $("#checkInBtn .check-icon").show(); } catch(e){}
+                                            try { $("#checkInBtn .check-icon").css('opacity','1'); } catch(e){}
 
                                             checkOutBtn.style.display = "flex";
                                             checkOutBtn.disabled = false;
                                             checkOutBtn.classList.remove('active');
-                                            try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+                                            try { $("#checkOutBtn .done-all-icon").css('opacity','0'); } catch(e){}
                                         return;
                                     } else if (lastTodayAttendance.time_in && lastTodayAttendance.time_out) {
                                         // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya (default)
                                         checkInBtn.style.display = "flex";
                                         checkInBtn.disabled = false;
                                         checkInBtn.classList.remove('active');
-                                        try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+                                        try { $("#checkInBtn .check-icon").css('opacity','0'); } catch(e){}
 
                                         checkOutBtn.style.display = "flex";
                                         checkOutBtn.disabled = true;
                                         checkOutBtn.classList.remove('active');
-                                        try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+                                        try { $("#checkOutBtn .done-all-icon").css('opacity','0'); } catch(e){}
                                         return;
                                     }
                                 }
@@ -739,13 +739,13 @@ function calculateWorkingHours() {
                                     checkInBtn.disabled = false;
                                     checkInBtn.classList.remove('active');
                                     // hide check icons
-                                    try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+                                    try { $("#checkInBtn .check-icon").css('opacity','0'); } catch(e){}
 
                                     checkOutBtn.style.display = "flex";
                                     // Keep checkout disabled until user actually checks in today
                                     checkOutBtn.disabled = true;
                                     checkOutBtn.classList.remove('active');
-                                    try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+                                    try { $("#checkOutBtn .done-all-icon").css('opacity','0'); } catch(e){}
 
                                     // Clear any displayed check-in/check-out times and status for today's UI
                                     const checkInTimeInput = document.getElementById("checkInTime");
@@ -799,9 +799,9 @@ function calculateWorkingHours() {
                                 // User already checked in today: mark checkIn active and allow checkout
                                 checkInBtn.disabled = false;
                                 checkInBtn.classList.add('active');
-                                try { $("#checkInBtn .check-icon").show(); } catch(e){}
+                                try { $("#checkInBtn .check-icon").css('opacity','1'); } catch(e){}
                                 checkOutBtn.disabled = false;
-                                try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+                                try { $("#checkOutBtn .done-all-icon").css('opacity','0'); } catch(e){}
 
                                 // Update hidden time fields
                                 const checkInTimeInput = document.getElementById("checkInTime");
@@ -2074,8 +2074,8 @@ function submitCheckOut() {
                     checkOutBtn.classList.add("active");
                     checkInBtn.disabled = false;
                     checkOutBtn.disabled = false;
-                    $("#checkInBtn .check-icon").show();
-                    $("#checkOutBtn .done-all-icon").show();
+                    $("#checkInBtn .check-icon").css('opacity','1');
+                    $("#checkOutBtn .done-all-icon").css('opacity','1');
                 }
 
                 // After showing success alert, reload the page once the alert has disappeared
@@ -2692,8 +2692,8 @@ function getTodayAttendanceStatus() {
         checkOutBtn.disabled = false;
 
         // Hide semua icon
-        $("#checkInBtn .check-icon").hide();
-        $("#checkOutBtn .done-all-icon").hide();
+    $("#checkInBtn .check-icon").css('opacity','0');
+    $("#checkOutBtn .done-all-icon").css('opacity','0');
 
         // Update berdasarkan status
         if (status.status === "not_started") {
@@ -2702,13 +2702,13 @@ function getTodayAttendanceStatus() {
         } else if (status.status === "checked_in") {
             // Sudah check-in tapi belum check-out
             checkInBtn.classList.add("active");
-            $("#checkInBtn .check-icon").show();
+            $("#checkInBtn .check-icon").css('opacity','1');
         } else if (status.status === "checked_out") {
             // Sudah check-out (kedua tombol aktif)
             checkInBtn.classList.add("active");
             checkOutBtn.classList.add("active");
-            $("#checkInBtn .check-icon").show();
-            $("#checkOutBtn .done-all-icon").show();
+            $("#checkInBtn .check-icon").css('opacity','1');
+            $("#checkOutBtn .done-all-icon").css('opacity','1');
         }
 
         // Handle unclosed attendance: do NOT automatically mark buttons as active.
