@@ -734,6 +734,9 @@ function openCheckInDetailModal(dateStrOpt) {
                                     <div class="mt-0">
                                         <div id="detailMapCheckIn" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
                                     </div>
+                                    <div class="mt-3">
+                                        <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+                                    </div>
 
                                     ${lastCheckIn.is_work_outside && lastCheckIn.image_path ? `
                                         <div class="mt-4">
@@ -976,6 +979,9 @@ function openCheckOutDetailModal(dateStrOpt) {
 
                                     <div class="mt-0">
                                         <div id="detailMapCheckOut" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
                                     </div>
 
                                     ${lastCheckOut.is_work_outside && lastCheckOut.checkout_image_path ? `
