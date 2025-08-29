@@ -3511,6 +3511,7 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
         timelineEl.addEventListener('hidden.bs.modal', onTimelineHidden, { once: true });
         tlInstance.hide();
     });
+    
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");
