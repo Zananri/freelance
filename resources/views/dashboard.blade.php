@@ -324,73 +324,74 @@
                                     <div>
                                         <div class="shift-time-display" id="shift_time_checkin">
                                             Loading...
-
-                                    
-                                </div>
-
-                                <!-- Work Outside -->
-                                <div class="mb-3">
-                                    <label for="is_work_outside" class="form-label">Work Outside</label>
-                                    <div class="work-outside-container d-flex justify-content-center gap-3">
-                                        <div class="form-check" style="width: 45%;">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_yes" value="1">
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_yes">Yes</label>
                                         </div>
-                                        <div class="form-check" style="width: 45%;">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_no" value="0" checked>
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_no">No</label>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <!-- Map Location Section for Check In -->
-                                <div class="mb-3">
-                                    <div id="mapCheckIn"
-                                        style="height: 200px; width: 90%; display: block; margin: 0 auto;"
-                                        class="rounded border"></div>
-                                    <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
-                                    <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
-                                </div>
-
-                                <!-- Image Upload Section -->
-                                <div class="mb-3" id="imageUploadSection">
-                                    <label class="form-label">Photo</label>
-                                    <div class="image-upload-container">
-                                        <!-- Label untuk trigger kamera -->
-                                        <label for="imageInput" class="image-upload-label camera-label">
-                                            <div class="image-upload-icon">
-                                                <i class="fas fa-camera fa-2x text-primary"></i>
+                                        <!-- Work Outside -->
+                                        <div class="mb-3">
+                                            <label for="is_work_outside" class="form-label">Work Outside</label>
+                                            <div class="work-outside-container d-flex justify-content-center gap-3">
+                                                <div class="form-check" style="width: 45%;">
+                                                    <input class="form-check-input" type="radio"
+                                                        name="is_work_outside" id="work_outside_yes" value="1">
+                                                    <label class="form-check-label w-100 text-center"
+                                                        for="work_outside_yes">Yes</label>
+                                                </div>
+                                                <div class="form-check" style="width: 45%;">
+                                                    <input class="form-check-input" type="radio"
+                                                        name="is_work_outside" id="work_outside_no" value="0"
+                                                        checked>
+                                                    <label class="form-check-label w-100 text-center"
+                                                        for="work_outside_no">No</label>
+                                                </div>
                                             </div>
-                                            <span id="cameraText">Take Photo</span>
-                                        </label>
-
-                                        <!-- Input file untuk mobile -->
-                                        <input type="file" class="form-control d-none" id="imageInput"
-                                            name="image[]" accept="image/*" capture="environment">
-
-                                        <!-- Hidden existing image URLs -->
-                                        @if ($attendance && $attendance->image)
-                                            @foreach ($attendance->image as $image)
-                                                <input type="hidden" name="existingImageUrls[]"
-                                                    value="{{ asset($image) }}">
-                                            @endforeach
-                                        @endif
-
-                                        <!-- Image preview -->
-                                        <div id="imagePreview" class="image-preview mt-2" style="display:none;">
-                                            <img id="previewImg" src="" alt="Preview"
-                                                class="img-fluid rounded">
                                         </div>
 
-                                        <!-- Clear button -->
-                                        <button type="button" class="image-clear-btn d-none btn btn-danger mt-2"
-                                            id="clearImageBtn">&times;</button>
-                                    </div>
-                                </div>
+                                        <!-- Map Location Section for Check In -->
+                                        <div class="mb-3">
+                                            <div id="mapCheckIn"
+                                                style="height: 200px; width: 90%; display: block; margin: 0 auto;"
+                                                class="rounded border"></div>
+                                            <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
+                                            <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
+                                        </div>
+
+                                        <!-- Image Upload Section -->
+                                        <div class="mb-3" id="imageUploadSection">
+                                            <label class="form-label">Photo</label>
+                                            <div class="image-upload-container">
+                                                <!-- Label untuk trigger kamera -->
+                                                <label for="imageInput" class="image-upload-label camera-label">
+                                                    <div class="image-upload-icon">
+                                                        <i class="fas fa-camera fa-2x text-primary"></i>
+                                                    </div>
+                                                    <span id="cameraText">Take Photo</span>
+                                                </label>
+
+                                                <!-- Input file untuk mobile -->
+                                                <input type="file" class="form-control d-none" id="imageInput"
+                                                    name="image[]" accept="image/*" capture="environment">
+
+                                                <!-- Hidden existing image URLs -->
+                                                @if ($attendance && $attendance->image)
+                                                    @foreach ($attendance->image as $image)
+                                                        <input type="hidden" name="existingImageUrls[]"
+                                                            value="{{ asset($image) }}">
+                                                    @endforeach
+                                                @endif
+
+                                                <!-- Image preview -->
+                                                <div id="imagePreview" class="image-preview mt-2"
+                                                    style="display:none;">
+                                                    <img id="previewImg" src="" alt="Preview"
+                                                        class="img-fluid rounded">
+                                                </div>
+
+                                                <!-- Clear button -->
+                                                <button type="button"
+                                                    class="image-clear-btn d-none btn btn-danger mt-2"
+                                                    id="clearImageBtn">&times;</button>
+                                            </div>
+                                        </div>
                             </form>
                         </div>
 
@@ -569,14 +570,17 @@
             </x-slot>
 </x-office-layout>
 <!-- Project Detail Modal (shared with Project page) -->
-<div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel" aria-hidden="true">
+<div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
         <div class="modal-content modal-content-custom" style="box-shadow: none;">
             <div class="modal-body modal-body-custom">
-                <button type="button" class="btn-close float-end" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close float-end" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
                 <div class="project-detail-modal">
                     <div class="project-photo-title-author">
-                        <img id="projectDetailImage" src="" alt="Project Image" class="project-photo" style="border-radius: 8px;">
+                        <img id="projectDetailImage" src="" alt="Project Image" class="project-photo"
+                            style="border-radius: 8px;">
                         <h2 class="project-title" id="projectDetailTitle" style="text-align: justify;"></h2>
                         <p class="project-description" id="projectDetailDescription"></p>
                     </div>
@@ -589,8 +593,10 @@
                             <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
                         </div>
                         <div class="project-detail-right">
-                            <p><strong>Reference URL:</strong> <a href="#" target="_blank" id="projectDetailReferenceUrl"></a></p>
-                            <p><strong>Reference File:</strong> <a href="#" id="projectDetailReferenceFile" download>Download</a></p>
+                            <p><strong>Reference URL:</strong> <a href="#" target="_blank"
+                                    id="projectDetailReferenceUrl"></a></p>
+                            <p><strong>Reference File:</strong> <a href="#" id="projectDetailReferenceFile"
+                                    download>Download</a></p>
                             <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
                             <p><strong>Due Date:</strong> <span id="projectDetailDueDate"></span></p>
                         </div>
@@ -599,7 +605,7 @@
             </div>
         </div>
     </div>
- </div>
+</div>
 
 <!-- Task Feedback Modal (shared with Task page behavior) -->
 <div class="modal fade" id="taskFeedbackModal" tabindex="-1" aria-labelledby="taskFeedbackModalLabel"
