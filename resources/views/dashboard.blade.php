@@ -292,7 +292,7 @@
             <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel"
                 aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content modal-content-custom rounded-4" id="modalContent">
+                    <div class="modal-content rounded-4" id="modalContent">
 
                         <!-- Modal Header -->
                         <div class="modal-header modal-header-custom d-flex justify-content-center">
