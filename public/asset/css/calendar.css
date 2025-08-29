@@ -3,7 +3,7 @@
 }
 
 .card-content{
-    background-color: rgb(240, 241, 248);
+    background-color: #F0F1F8;
     border-radius: 20px;
     padding: 0px;
 }
@@ -21,6 +21,21 @@
     color: #3C404B;
     cursor: pointer;
 }
+
+.btn-default-modal {
+    background-color: #e3e4ee;
+    color: #313238;
+    font-weight: 300;
+}
+
+.btn-default-modal:hover,
+.btn-default-modal:active,
+.btn-default-modal:focus{
+    background-color: #dcdde8 !important;
+    color: #1c1d21;
+}
+
+
 
 .btn-default:hover,
 .btn-default:active{
@@ -67,6 +82,13 @@
 
 .white-space-nowrap{
     white-space: nowrap;
+}
+
+
+.modal .modal-content{
+    border-radius: 20px;
+    background-color: #F0F1F8;
+    border:0px;
 }
 
 
@@ -159,8 +181,13 @@
     transition: all 0.3s;
     padding: 5px 5px;
     width: calc(100% / 7);
+    transition: all 0.3s;
 }
 
+.table-calendar tbody td:not(.empty-cell):hover{
+    cursor: pointer;
+    background-color: #F5F6FC;
+}
 
 .table-calendar tbody tr:first-child td{
     border-top: 0px;
@@ -186,14 +213,14 @@
 
 /* Style the entire scrollbar */
 .table-calendar tbody ::-webkit-scrollbar {
-  width: 5px; /* Adjust width as needed */
+  width: 4px; /* Adjust width as needed */
   background-color: transparent; /* Initially transparent */
 }
 
 /* Style the scrollbar thumb (draggable part) */
 .table-calendar tbody ::-webkit-scrollbar-thumb {
-  background-color: #46505b50; /* Default thumb color */
-  border-radius: 7px;
+  background-color: #46505b2c; /* Default thumb color */
+  border-radius: 4px;
 }
 
 /* Style the scrollbar track (background) */

@@ -16,7 +16,7 @@
             </div>
             <div>
                 <div>
-                    <button class="btn btn-default d-inline-flex align-items-center" type="button">
+                    <button id="btn-show-config" class=" btn btn-default d-inline-flex align-items-center" type="button">
                         <span class="material-symbols-outlined icon" type="button">settings</span>
                         <span class="text-button">Config</span>
                     </button>
@@ -60,19 +60,6 @@
                             <div class="box-view-control white-space-nowrap" >
                                 <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
                                 <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
-
-                                {{-- <div>
-                                    <div class="dropdown">
-                                        <button class="btn btn-default-dropdown fs-14 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            Month
-                                        </button>
-                                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1">
-                                            <li><a class="dropdown-item fs-14" href="#">Action</a></li>
-                                            <li><a class="dropdown-item fs-14" href="#">Another action</a></li>
-                                            <li><a class="dropdown-item fs-14" href="#">Something else here</a></li>
-                                        </ul>
-                                    </div>
-                                </div> --}}
                             </div>
                         </div>
                     </div>
@@ -120,67 +107,55 @@
     <x-slot name="body_end_slot"> 
         
         <!-- Modal -->
-        <div class="modal fade" id="modalEdit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalEditLabel" aria-hidden="true">
+        <div class="modal fade" id="modalConfig" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalConfigLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
 
                     <div class="modal-body position-relative">
+                        <div class="config-header mb-3">
+                            <div class="d-flex align-items-center">
 
-                        <div class="text-center mb-3">
-                            <button type="button" class="btn-close btn-sm float-end mt-2" data-bs-dismiss="modal" aria-label="Close"></button>
-                            <h1 class="modal-title" id="modalEditLabel">User Management</h1>
-                        </div>
-                        <div class="mb-4 p-3">
+                                <div class="month-year w-100">
+                                    <div class="dropdown dropdown-month">
+                                        <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            
+                                            <div class="d-inline-flex align-items-center">
+                                                <span class="calendar-month">{{ date('F') }}</span>
+                                                <span class="calendar-year">{{ date('Y') }}</span>
+                                            </div>
 
-                            <div class="box-user-photo text-center mb-3">
-                                <img class="employee-photo rounded-circle" src="" class="rounded-circle">
-                            </div>
+                                        </div>
 
-                            <div class="text-center mb-4">
-                                <h3 class="employee-name">Employee Name</h3>
-                            </div>
-
-                            <form id="form-edit-user" action="" novalidate="" method="POST">
-                                @csrf
-                                <input type="hidden" name="employee_id" value="">
-                                <input type="hidden" name="user_id" value="">
-                               
-                                <div class="select-user-type mb-3"> 
-                                    <label for="user-type" class="form-label">User Type</label>
-                                    <select id="user-type" name="user_type" class="form-select">
-                                        <option value="ADMINISTRATOR">ADMINISTRATOR</option>
-                                        <option value="REGULAR">REGULAR</option>
-                                        <option value="MANAGEMENT">MANAGEMENT</option>
-                                    </select>
+                                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                            @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
+                                                <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                            @endfor
+                                            
+                                        </ul>
+                                    </div>
                                 </div>
-
-                                <div class="select-user-role mb-4">
-                                    <label for="user-role" class="form-label">User Role</label>
-                                    <select id="user-role" name="user_role" class="form-select">
-                                        <option value="GENERAL_MANAGER">GENERAL MANAGER</option>
-                                        <option value="MANAGER">MANAGER</option>
-                                        <option value="LEADER">LEADER</option>
-                                        <option value="HR_MANAGER">HR MANAGER</option>
-                                        <option value="FINANCE_MANAGER">FINANCE MANAGER</option>
-                                        <option value="EMPLOYEE">EMPLOYEE</option>
-                                    </select>
+                                <div class="box-view-control white-space-nowrap" >
+                                    <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
+                                    <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
                                 </div>
-
-                            </form>
-
+                            </div>
                         </div>
-                        <div class="p-3">
+                        <div class="config-body">
+                            <div class="p-3 rounded-3 fs-14 bg-light mb-3">
+                                17 August 2025 Indonesia independence day
+                            </div>
+                            <div class="p-3 rounded-3 fs-14 bg-light mb-3">
+                                18 August 2025 Colective leave
+                            </div>
+                        </div>
+                        <div class="config-footer">
                             <div class="row">
-                                <div class="col-6">
-                                    <div class="btn btn-default border-0 w-100 p-2" data-bs-dismiss="modal">Close</div>
-                                </div>
-                                <div class="col-6">
-                                    <button type="submit" class="btn border-0 btn-submit w-100 p-2">Save</button>
+                                <div class="col-12">
+                                    <div class="btn btn-default-modal border-0 w-100 p-2" data-bs-dismiss="modal">Close</div>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="loader" >
+                        <div class="loader d-none" >
                             <div class="box-loader rounded-20" >
                                 <div class="text-center">
                                     <div class="spinner-border text-secondary" role="status">
