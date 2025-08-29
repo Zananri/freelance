@@ -1117,11 +1117,68 @@ if ($request->hasFile('image')) {
                 ->whereNull('time_out')
                 ->where('date_attendance', '<', $today)
                 ->orderBy('date_attendance', 'desc')
+                ->orderBy('time_in', 'desc')
                 ->first();
 
             if ($unclosed) {
                 $status['has_unclosed'] = true;
                 $status['unclosed_date'] = $unclosed->date_attendance;
+
+                // New behavior: if no activity today and the unclosed record belongs to an
+                // overnight shift, treat the state as still "checked_in" across midnight
+                // until the user checks out.
+                if ($status['status'] === 'not_started') {
+                    try {
+                        // Determine shift for the unclosed date (prefer per-date shift)
+                        $employeeShift = EmployeeShift::where('employee_id', $employeeId)
+                            ->where('date_shift', $unclosed->date_attendance)
+                            ->first();
+
+                        $shiftStartTime = null;
+                        $shiftEndTime = null;
+                        if ($employeeShift) {
+                            $shiftModel = $employeeShift->loadMissing('shift')->shift;
+                            if ($shiftModel) {
+                                $rawStart = $shiftModel->getRawOriginal('time_start') ?? $shiftModel->time_start;
+                                $rawEnd = $shiftModel->getRawOriginal('time_end') ?? $shiftModel->time_end;
+                                if ($rawStart) $shiftStartTime = Carbon::parse($unclosed->date_attendance . ' ' . $rawStart);
+                                if ($rawEnd) $shiftEndTime = Carbon::parse($unclosed->date_attendance . ' ' . $rawEnd);
+                            }
+                        }
+                        if (!$shiftStartTime || !$shiftEndTime) {
+                            // Fallback to base shift
+                            $emp = Employee::with('shift')->find($employeeId);
+                            if ($emp && $emp->shift) {
+                                $rawStart = $emp->shift->getRawOriginal('time_start') ?? $emp->shift->time_start;
+                                $rawEnd = $emp->shift->getRawOriginal('time_end') ?? $emp->shift->time_end;
+                                if ($rawStart) $shiftStartTime = Carbon::parse($unclosed->date_attendance . ' ' . $rawStart);
+                                if ($rawEnd) $shiftEndTime = Carbon::parse($unclosed->date_attendance . ' ' . $rawEnd);
+                            }
+                        }
+
+                        // If we have shift times and it is an overnight shift (start > end),
+                        // keep the UI in checked_in state across midnight until checkout.
+                        if ($shiftStartTime && $shiftEndTime && $shiftStartTime->gt($shiftEndTime)) {
+                            // Normalize end to next day for reference (not strictly needed to decide UI)
+                            $shiftEndTimeNorm = $shiftEndTime->copy()->addDay();
+
+                            // Force checked_in state and enable checkout
+                            $status['status'] = 'checked_in';
+                            $status['has_checked_in'] = true;
+                            $status['can_check_in'] = false;
+                            $status['can_check_out'] = true;
+                            try {
+                                $status['last_check_in_time'] = Carbon::parse($unclosed->time_in)->format('H:i');
+                            } catch (\Exception $e) {
+                                $status['last_check_in_time'] = $unclosed->time_in;
+                            }
+                            $status['is_late'] = !empty($unclosed->time_late);
+                            $status['continued_from'] = $unclosed->date_attendance; // informational
+                        }
+                    } catch (\Exception $e) {
+                        // Ignore errors; fall back to existing behavior
+                    }
+                }
             }
 
             return response()->json([
