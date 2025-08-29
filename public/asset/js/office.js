@@ -104,12 +104,12 @@ $(document).ready(function() {
                     `;
                 } else if (isProjectAssignment && !isAccepted) {
                     // Show accept button for unaccepted project assignments
-                    // Escape single quotes in project title to prevent JavaScript errors
-                    const escapedProjectTitle = projectTitle ? projectTitle.replace(/'/g, "\\'") : '';
+                    const escapedProjectTitle = (projectTitle || '').replace(/"/g, '&quot;');
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-sm btn-primary btn-accept-project" 
-                                    onclick="acceptProject('${escapedProjectTitle}', ${notification.id})"
+                            <button class="btn btn-sm btn-primary btn-accept-project"
+                                    data-project-title="${escapedProjectTitle}"
+                                    data-notification-id="${notification.id}"
                                     style="font-size: 12px; padding: 4px 8px;">
                                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
                                 Accept Project
@@ -168,6 +168,19 @@ $(document).ready(function() {
         const notificationId = $(this).data('notification-id');
         
         acceptTask(taskId, notificationId);
+    });
+
+    // Add event listener for accept project buttons
+    $(document).on('click', '.btn-accept-project', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const projectTitle = $(this).data('project-title');
+        const notificationId = $(this).data('notification-id');
+        
+        if (typeof acceptProject === 'function') {
+            acceptProject(projectTitle, notificationId);
+        }
     });
 
     // Function to check task acceptance status
@@ -430,20 +443,17 @@ $(document).ready(function() {
                                 // Update notification count
                                 fetchNotificationCount();
                                 
-                                // Reload the page after short delay (optional)
-                                setTimeout(() => {
-                                    // Check if the response indicates a reload is needed
-                                    if (response && response.reload) {
-                                        // Reload the project cards instead of the entire page
+                                // Optional navigation: only if API requests reload or user is already on project page
+                                const onProjectPage = (window.location.pathname || '').includes('/project');
+                                if ((response && response.reload) || onProjectPage) {
+                                    setTimeout(() => {
                                         if (typeof loadProjectCardData === 'function') {
                                             loadProjectCardData();
                                         } else {
                                             window.location.href = `${appUrl}/project`;
-                                        }   
-                                    } else {
-                                        window.location.href = `${appUrl}/project`;
-                                    }
-                                }, 2000); // 2 second delay so UI updates are visible
+                                        }
+                                    }, 1500);
+                                }
                             },
                             error: function() {
                                 console.error('Failed to mark notification as read');
@@ -455,10 +465,13 @@ $(document).ready(function() {
                                 // Update notification count
                                 fetchNotificationCount();
                                 
-                                // Reload the page after short delay (optional)
-                                setTimeout(() => {
-                                    window.location.href = `${appUrl}/project`;
-                                }, 2000); // 2 second delay so UI updates are visible
+                                // Optional navigation: only if user is already on project page
+                                const onProjectPage2 = (window.location.pathname || '').includes('/project');
+                                if (onProjectPage2) {
+                                    setTimeout(() => {
+                                        window.location.href = `${appUrl}/project`;
+                                    }, 1500);
+                                }
                             }
                         });
                     },
