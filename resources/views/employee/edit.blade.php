@@ -56,7 +56,7 @@
                             </div>
                         </div>
                         <div>
-                            <label for="employee_niks" class="form-label">Employee NIKS</label>
+                            <label for="employee_niks" class="form-label">Employee ID</label>
                             <input type="text" id="employee_niks" name="employee_niks"
                                 class="form-control input-text" value="{{ $employee->employee_niks }}" />
                             <div class="invalid-feedback">
