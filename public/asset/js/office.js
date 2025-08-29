@@ -104,12 +104,12 @@ $(document).ready(function() {
                     `;
                 } else if (isProjectAssignment && !isAccepted) {
                     // Show accept button for unaccepted project assignments
-                    // Escape single quotes in project title to prevent JavaScript errors
-                    const escapedProjectTitle = projectTitle ? projectTitle.replace(/'/g, "\\'") : '';
+                    const escapedProjectTitle = (projectTitle || '').replace(/"/g, '&quot;');
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-sm btn-primary btn-accept-project" 
-                                    onclick="acceptProject('${escapedProjectTitle}', ${notification.id})"
+                            <button class="btn btn-sm btn-primary btn-accept-project"
+                                    data-project-title="${escapedProjectTitle}"
+                                    data-notification-id="${notification.id}"
                                     style="font-size: 12px; padding: 4px 8px;">
                                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
                                 Accept Project
@@ -168,6 +168,19 @@ $(document).ready(function() {
         const notificationId = $(this).data('notification-id');
         
         acceptTask(taskId, notificationId);
+    });
+
+    // Add event listener for accept project buttons
+    $(document).on('click', '.btn-accept-project', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const projectTitle = $(this).data('project-title');
+        const notificationId = $(this).data('notification-id');
+        
+        if (typeof acceptProject === 'function') {
+            acceptProject(projectTitle, notificationId);
+        }
     });
 
     // Function to check task acceptance status
@@ -407,7 +420,11 @@ $(document).ready(function() {
                         },
                         success: function(response) {
                             console.log('Accept project response:', response);
-                            showDeleteSuccessAlert('Project accepted successfully!', 'success');
+                            if (typeof window.showAlertMsg === 'function') {
+                                window.showAlertMsg('Project accepted successfully!', 'light', 2000);
+                            } else {
+                                showDeleteSuccessAlert('Project accepted successfully!', 'success');
+                            }
                         
                         // Mark the notification as read
                         $.ajax({
@@ -426,20 +443,17 @@ $(document).ready(function() {
                                 // Update notification count
                                 fetchNotificationCount();
                                 
-                                // Reload the page after short delay (optional)
-                                setTimeout(() => {
-                                    // Check if the response indicates a reload is needed
-                                    if (response && response.reload) {
-                                        // Reload the project cards instead of the entire page
+                                // Optional navigation: only if API requests reload or user is already on project page
+                                const onProjectPage = (window.location.pathname || '').includes('/project');
+                                if ((response && response.reload) || onProjectPage) {
+                                    setTimeout(() => {
                                         if (typeof loadProjectCardData === 'function') {
                                             loadProjectCardData();
                                         } else {
                                             window.location.href = `${appUrl}/project`;
-                                        }   
-                                    } else {
-                                        window.location.href = `${appUrl}/project`;
-                                    }
-                                }, 2000); // 2 second delay so UI updates are visible
+                                        }
+                                    }, 1500);
+                                }
                             },
                             error: function() {
                                 console.error('Failed to mark notification as read');
@@ -451,10 +465,13 @@ $(document).ready(function() {
                                 // Update notification count
                                 fetchNotificationCount();
                                 
-                                // Reload the page after short delay (optional)
-                                setTimeout(() => {
-                                    window.location.href = `${appUrl}/project`;
-                                }, 2000); // 2 second delay so UI updates are visible
+                                // Optional navigation: only if user is already on project page
+                                const onProjectPage2 = (window.location.pathname || '').includes('/project');
+                                if (onProjectPage2) {
+                                    setTimeout(() => {
+                                        window.location.href = `${appUrl}/project`;
+                                    }, 1500);
+                                }
                             }
                         });
                     },
@@ -469,18 +486,30 @@ $(document).ready(function() {
                             errorMessage = xhr.responseJSON.error;
                         }
                         
-                        showDeleteSuccessAlert('Error: ' + errorMessage, 'error');
+                        if (typeof window.showAlertMsg === 'function') {
+                            window.showAlertMsg('Error: ' + errorMessage, 'error', 4000);
+                        } else {
+                            showDeleteSuccessAlert('Error: ' + errorMessage, 'error');
+                        }
                     }
                 });
             } else {
                 console.error('Project not found:', projectTitle);
-                showDeleteSuccessAlert('Project not found', 'error');
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg('Project not found', 'error', 3000);
+                } else {
+                    showDeleteSuccessAlert('Project not found', 'error');
+                }
             }
             },
             error: function(xhr, status, error) {
                 console.error('Error fetching projects:', error);
                 console.error('XHR:', xhr.responseText);
-                showDeleteSuccessAlert('Failed to fetch projects', 'error');
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg('Failed to fetch projects', 'error', 3000);
+                } else {
+                    showDeleteSuccessAlert('Failed to fetch projects', 'error');
+                }
             }
         });
     }
@@ -716,7 +745,12 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                showDeleteSuccessAlert('Task accepted successfully!', 'success');
+                // Unified alert style (same as Settings)
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg('Task accepted successfully!', 'light', 2000);
+                } else {
+                    showDeleteSuccessAlert('Task accepted successfully!', 'success');
+                }
                 
                 // Mark the notification as read
                 $.ajax({
@@ -757,7 +791,17 @@ $(document).ready(function() {
             },
             error: function(xhr, status, error) {
                 console.error('Error accepting task:', status, error);
-                showDeleteSuccessAlert('Failed to accept task', 'error');
+                let errMsg = 'Failed to accept task';
+                try {
+                    if (xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
+                        errMsg = xhr.responseJSON.message || xhr.responseJSON.error;
+                    }
+                } catch(_) {}
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(errMsg, 'error', 4000);
+                } else {
+                    showDeleteSuccessAlert(errMsg, 'error');
+                }
             }
         });
     }

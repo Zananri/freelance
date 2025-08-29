@@ -210,7 +210,6 @@
                             <select id="shift_id" name="shift_id" class="form-select input-select" required data-current="{{ $employee->shift_id }}" data-fetch-url="{{ route('shift.list') }}">
                                 <option value="" disabled>Select Shift</option>
                             </select>
-                            <small class="text-muted">Waktu: <span id="shift_time_hint">-</span></small>
                             <div class="invalid-feedback">
                                 Please select a shift.
                             </div>
