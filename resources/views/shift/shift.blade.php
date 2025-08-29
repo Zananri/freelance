@@ -61,9 +61,6 @@
                         <label class="form-label mb-1">Filter by Shift</label>
                         <select id="filterShift" class="form-select">
                             <option value="">Select Shift</option>
-                            <option value="Morning">Morning</option>
-                            <option value="Afternoon">Afternoon</option>
-                            <option value="Night">Night</option>
                         </select>
                     </li>
 
@@ -147,8 +144,8 @@
                         <div class="modal-body modal-body-custom text-center">
                             <div class="mt-3 text-start">
                                 <div class="d-flex justify-content-between">
-                                    <p class="mb-1 fw-normal">Shift : </p>
-                                    <span id="addTitleShiftDisplay"></span>
+                                    <p class="mb-1 fw-normal">Shift :</p>
+                                    <span id="editTitleShiftDisplay"></span>
                                 </div>
 
                                 <hr class="border-3 rounded">
@@ -170,7 +167,7 @@
 
                         <div class="dropdown dropdown-container">
                             <button
-                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn"
+                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                                 type="button" data-bs-toggle="dropdown" data-bs-display="static"
                                 aria-expanded="false">
                                 Select Shift
@@ -255,7 +252,7 @@
 
                         <div class="dropdown dropdown-container">
                             <button
-                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn"
+                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                                 type="button" data-bs-toggle="dropdown" data-bs-display="static"
                                 id="addDropdownSelected" aria-expanded="false">
                                 Select Shift
@@ -330,23 +327,14 @@
                     </div>
 
                     <div class="dropdown dropdown-container">
-                        <button class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn"
+                        <button class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                             type="button" data-bs-toggle="dropdown" data-bs-display="static"
-                            id="addDropdownSelected" aria-expanded="false">
+                            id="editDropdownSelected" aria-expanded="false">
                             Select Shift
                             <span class="material-symbols-outlined">arrow_drop_down</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-shift">
-                            <li class="dropdown-list" id="addDropdownList">
-                                <button class="dropdown-item d-flex justify-content-between"
-                                    data-title="Morning Shift" data-start="09:00" data-end="17:00">
-                                    <span>Morning Shift</span>
-                                    <span>09:00 - 17:00</span>
-                                </button>
-                                <div class="d-flex justify-content-center">
-                                    <hr class="border-3 barrier-option rounded">
-                                </div>
-                            </li>
+                        <ul class="dropdown-menu dropdown-shift" id="editDropdownList">
+                            {{-- Shift Employee --}}
                         </ul>
                     </div>
 
@@ -377,7 +365,8 @@
 
                     <div class="modal-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered shift-config-table" style="table-layout: fixed; width: 100%;">
+                            <table class="table table-bordered shift-config-table"
+                                style="table-layout: fixed; width: 100%;">
                                 <colgroup>
                                     <col style="width: 10%">
                                     <col style="width: 50%">

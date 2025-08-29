@@ -990,7 +990,7 @@
     max-width: 420px;
     padding: 12px 30px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: normal;
 }
 
 /* Untuk mobile, pastikan button tetap lebar */

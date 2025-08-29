@@ -112,6 +112,7 @@ class EmployeeController extends Controller
                     Rule::exists('job_list', 'id'),
                 ],
                 'shift_id' => 'required|exists:shifts,id',
+                'employee_niks' => 'nullable|string|max:255',
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:employees,email',
                 'email_work' => 'nullable|email|unique:employees,email_work',
@@ -196,6 +197,7 @@ class EmployeeController extends Controller
                 'shift_id' => $request->shift_id,
                 'profile_picture' => $profilePicturePath ?? null,
                 'name' => $request->name,
+                'employee_niks' => $request->employee_niks,
                 'email' => $request->email,
                 'email_work' => $emailWork,
                 'phone' => $request->phone,
@@ -249,6 +251,7 @@ class EmployeeController extends Controller
                 'division_id' => 'sometimes|exists:divisions,id',
                 'job_id' => 'sometimes|exists:job_list,id',
                 'shift_id' => 'sometimes|exists:shifts,id',
+                'employee_niks' => 'nullable|string|max:255',
                 'profile_picture' => 'nullable|file|image',
                 'name' => 'sometimes|string|max:255',
                 'email' => 'sometimes|email|unique:employees,email,' . $id,
@@ -270,7 +273,7 @@ class EmployeeController extends Controller
             }
 
             $updateData = $request->only([
-                'department_id', 'division_id', 'job_id', 'shift_id', 'name', 'email', 'email_work', 'phone', 'status', 'address',
+                'department_id', 'division_id', 'job_id', 'shift_id', 'name', 'employee_niks', 'email', 'email_work', 'phone', 'status', 'address',
                 'address', 'birth_date', 'hire_date', 'resign_date', 'grade', 'office'
             ]);
 

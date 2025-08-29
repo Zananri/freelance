@@ -320,7 +320,7 @@
 .dropdown-shift {
     left: 50% !important;
     transform: translateX(-50%) !important;
-    width: 90% !important;
+    width: 95% !important;
     max-height: 150px !important;
     overflow-y: auto !important;
     border: none;
@@ -388,7 +388,7 @@
     border: none;
     justify-content: center;
     margin-top: 3rem;
-    padding: 10px;
+    padding: 5px;
 }
 
 .modal-footer-custom button {

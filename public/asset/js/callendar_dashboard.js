@@ -86,6 +86,7 @@ function renderCalendar(month, year) {
         console.error("Employee ID not found for attendance calendar");
         return;
     }
+    
 
     fetch(`${baseUrl}/attendance/monthly/${employeeId}/${year}/${month + 1}`)
         .then((response) => response.json())
@@ -95,9 +96,23 @@ function renderCalendar(month, year) {
                 // Group attendance records by date
                 data.data.forEach((record) => {
                     const ds = (record.date_attendance || '').toString();
-                    const ymd = ds.split(/[ T]/)[0];
-                    const parts = ymd.split('-');
-                    const day = parseInt(parts[2], 10);
+                    let day = NaN;
+                    try {
+                        if (/Z$|[+\-]\d{2}:?\d{2}$/.test(ds)) {
+                            // ISO string with timezone -> use Date to get local day
+                            const d = new Date(ds);
+                            if (!isNaN(d.getTime())) day = d.getDate();
+                        } else if (ds.includes('T') || ds.includes(' ')) {
+                            // Likely "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DD HH:MM:SS"
+                            const norm = ds.replace(' ', 'T');
+                            const d = new Date(norm);
+                            if (!isNaN(d.getTime())) day = d.getDate();
+                        } else {
+                            // Pure date string YYYY-MM-DD
+                            const parts = ds.split('-');
+                            day = parseInt(parts[2], 10);
+                        }
+                    } catch (e) {}
                     if (!isFinite(day)) return;
                     if (!attendanceData[day]) attendanceData[day] = [];
                     attendanceData[day].push(record);

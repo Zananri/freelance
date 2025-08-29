@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
+ document.addEventListener("DOMContentLoaded", function () {
     const appUrl =
         document
             .querySelector('meta[name="app-url"]')
@@ -1150,6 +1150,10 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             );
         };
 
+        // Preserve dropdown state
+        const currentProject = document.getElementById("filterTaskProject").value;
+        const currentStatus = document.getElementById("filterTaskStatus").value;
+
         // Filter + render
         filterTasks(data.new_request).forEach(task => {
             document.getElementById("new-request-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
@@ -1173,22 +1177,20 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     initBootstrapTooltips();
     }
 
-    function initTaskFilter() {
-        const searchInput = document.getElementById("search_filter");
-        if (!searchInput) return;
+    $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
+    const query = this.value.trim();
 
-        searchInput.addEventListener("keyup", function () {
-            const query = this.value.trim();
-            if (allTasksCache) {
-                renderTasks(allTasksCache, query);
-            }
-        });
+    if (allTasksCache) {
+        renderTasks(allTasksCache, query);
+
+        // refresh mobile biar clone ikut update
+        $("#taskStatusSelect").trigger("change");
     }
+    });
 
     // init
     $(document).ready(function () {
-        fetchAndRenderTasks(); // load awal
-        initTaskFilter();      // aktifin filter
+        fetchAndRenderTasks();
     });
 
     // Function to setup dropdown event listeners for task cards
@@ -1414,51 +1416,50 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     });
 }
 
-
     // Function to update task status via AJAX
-function updateTaskStatus(taskId, newStatus, taskCard) {
-    $.ajax({
-        url: appUrl + "/task/" + taskId + "/status",
-        type: "PUT",
-        headers: {
-            "X-CSRF-TOKEN": document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content"),
-        },
-        data: {
-            status: newStatus,
-        },
-        success: function (response) {
-            // Dispose all Bootstrap tooltips inside the taskCard before removing it
-            const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                if (tooltipInstance) {
-                    tooltipInstance.dispose();
+    function updateTaskStatus(taskId, newStatus, taskCard) {
+        $.ajax({
+            url: appUrl + "/task/" + taskId + "/status",
+            type: "PUT",
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            data: {
+                status: newStatus,
+            },
+            success: function (response) {
+                // Dispose all Bootstrap tooltips inside the taskCard before removing it
+                const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                    const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                    if (tooltipInstance) {
+                        tooltipInstance.dispose();
+                    }
+                });
+
+                // Remove the task card from current section
+                taskCard.remove();
+
+                // Refresh task cards to show in new section
+                fetchAndRenderTasks();
+
+                // Show success message
+                showFloatingAlert(response.message || "Task status updated successfully", "success");
+            },
+            error: function (xhr) {
+                let errorMessage = "Failed to update task status.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
                 }
-            });
-
-            // Remove the task card from current section
-            taskCard.remove();
-
-            // Refresh task cards to show in new section
-            fetchAndRenderTasks();
-
-            // Show success message
-            showFloatingAlert(response.message || "Task status updated successfully", "success");
-        },
-        error: function (xhr) {
-            let errorMessage = "Failed to update task status.";
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
-            }
-            if (xhr.responseJSON && xhr.responseJSON.errors) {
-                errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-            }
-            showFloatingAlert(errorMessage, "danger");
-        },
-    });
-}
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+                }
+                showFloatingAlert(errorMessage, "danger");
+            },
+        });
+    }
 
     // New function to update task status directly without confirmation modal
     function updateTaskStatusDirect(taskId, newStatus) {
@@ -2209,8 +2210,6 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         });
     }
 
-
-
     // Function to add event listeners for attach_file icon click
     function addAttachFileIconListeners() {
         if (attachFileIconListenerBound) return;
@@ -2289,103 +2288,103 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     }
 
     // Function to handle task detail view
-function handleTaskDetail(taskId) {
-    $.ajax({
-        url: appUrl + "/task/" + taskId,
-        type: "GET",
-        dataType: "json",
-        success: function (res) {
-            if (res.status !== 'success' || !res.data) {
-                try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
-                return;
-            }
-
-            const data = res.data;
-
-            // Gambar task (normalize URL + fallback)
-            (function() {
-                const imgEl = document.getElementById('taskDetailImage');
-                if (!imgEl) return;
-                const placeholder = appUrl + '/asset/img/background/add-image.png';
-                let imgUrl = data.image || '';
-                if (!imgUrl) {
-                    imgEl.src = placeholder;
-                } else {
-                    const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
-                    const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
-                    const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
-                    if (!isAbsolute && !isFileTask && !isPublicPath) {
-                        imgUrl = appUrl + '/file/task/' + imgUrl;
-                    } else if (!isAbsolute && (isFileTask || isPublicPath)) {
-                        imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
-                    }
-                    imgEl.onerror = function() { this.onerror = null; this.src = placeholder; };
-                    imgEl.src = imgUrl;
+    function handleTaskDetail(taskId) {
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                if (res.status !== 'success' || !res.data) {
+                    try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
+                    return;
                 }
-            })();
 
-            // Judul & Deskripsi
-            $("#taskDetailTitle").text(data.title || "");
-            $("#taskDetailDescription").text(data.description || "");
-            // Point & Priority
-            $("#taskDetailPoint").text(data.point || 0);
-            $("#taskDetailPriority").text(data.priority || "Normal");
+                const data = res.data;
 
-            // Department, Division, Project
-            $("#taskDetailDepartment").text(data.project?.department || "");
-            $("#taskDetailDivision").text(data.project?.division || "");
-            $("#taskDetailProject").text(data.project?.title || "");
+                // Gambar task (normalize URL + fallback)
+                (function() {
+                    const imgEl = document.getElementById('taskDetailImage');
+                    if (!imgEl) return;
+                    const placeholder = appUrl + '/asset/img/background/add-image.png';
+                    let imgUrl = data.image || '';
+                    if (!imgUrl) {
+                        imgEl.src = placeholder;
+                    } else {
+                        const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                        const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
+                        const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+                        if (!isAbsolute && !isFileTask && !isPublicPath) {
+                            imgUrl = appUrl + '/file/task/' + imgUrl;
+                        } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                            imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                        }
+                        imgEl.onerror = function() { this.onerror = null; this.src = placeholder; };
+                        imgEl.src = imgUrl;
+                    }
+                })();
 
-            // PIC
-            $("#taskDetailPIC").text(data.pic?.name || "None");
+                // Judul & Deskripsi
+                $("#taskDetailTitle").text(data.title || "");
+                $("#taskDetailDescription").text(data.description || "");
+                // Point & Priority
+                $("#taskDetailPoint").text(data.point || 0);
+                $("#taskDetailPriority").text(data.priority || "Normal");
 
-            // Executors
-            if (Array.isArray(data.executors) && data.executors.length > 0) {
-                $("#taskDetailExecutors").text(data.executors.map(ex => ex.name).join(", "));
-            } else {
-                $("#taskDetailExecutors").text("None");
-            }
+                // Department, Division, Project
+                $("#taskDetailDepartment").text(data.project?.department || "");
+                $("#taskDetailDivision").text(data.project?.division || "");
+                $("#taskDetailProject").text(data.project?.title || "");
 
-            // Reference URL
-            if (data.reference_url) {
-                $("#taskDetailReferenceUrl")
-                    .attr("href", data.reference_url)
-                    .text(data.reference_url)
-                    .show();
-            } else {
-                $("#taskDetailReferenceUrl").hide();
-            }
+                // PIC
+                $("#taskDetailPIC").text(data.pic?.name || "None");
 
-            // Reference Files
-            if (Array.isArray(data.reference_files) && data.reference_files.length > 0) {
-                const referenceFilesHtml = data.reference_files.map((fileName) => {
-                    return `<a href="${appUrl}/file/task_reference_files/${fileName}" target="_blank" class="d-block text-decoration-none mb-1">
-                        <span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span>
-                        ${fileName}
-                    </a>`;
-                }).join("");
-                $("#taskDetailReferenceFiles").html(referenceFilesHtml);
-            } else {
-                $("#taskDetailReferenceFiles").text("No files");
-            }
+                // Executors
+                if (Array.isArray(data.executors) && data.executors.length > 0) {
+                    $("#taskDetailExecutors").text(data.executors.map(ex => ex.name).join(", "));
+                } else {
+                    $("#taskDetailExecutors").text("None");
+                }
 
-            // Format tanggal
-            const formatDate = (dateStr) => {
-                if (!dateStr) return "";
-                const options = { year: "numeric", month: "long", day: "numeric" };
-                return new Date(dateStr).toLocaleDateString(undefined, options);
-            };
-            $("#taskDetailStartDate").text(formatDate(data.start_date));
-            $("#taskDetailDueDate").text(formatDate(data.due_date));
+                // Reference URL
+                if (data.reference_url) {
+                    $("#taskDetailReferenceUrl")
+                        .attr("href", data.reference_url)
+                        .text(data.reference_url)
+                        .show();
+                } else {
+                    $("#taskDetailReferenceUrl").hide();
+                }
 
-            // Tampilkan modal
-            new bootstrap.Modal(document.getElementById("taskDetailModal")).show();
-        },
-        error: function () {
-            try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
-        },
-    });
-}
+                // Reference Files
+                if (Array.isArray(data.reference_files) && data.reference_files.length > 0) {
+                    const referenceFilesHtml = data.reference_files.map((fileName) => {
+                        return `<a href="${appUrl}/file/task_reference_files/${fileName}" target="_blank" class="d-block text-decoration-none mb-1">
+                            <span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span>
+                            ${fileName}
+                        </a>`;
+                    }).join("");
+                    $("#taskDetailReferenceFiles").html(referenceFilesHtml);
+                } else {
+                    $("#taskDetailReferenceFiles").text("No files");
+                }
+
+                // Format tanggal
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return "";
+                    const options = { year: "numeric", month: "long", day: "numeric" };
+                    return new Date(dateStr).toLocaleDateString(undefined, options);
+                };
+                $("#taskDetailStartDate").text(formatDate(data.start_date));
+                $("#taskDetailDueDate").text(formatDate(data.due_date));
+
+                // Tampilkan modal
+                new bootstrap.Modal(document.getElementById("taskDetailModal")).show();
+            },
+            error: function () {
+                try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
+            },
+        });
+    }
 
     // Function to handle task edit (removed old implementation)
 
@@ -2647,6 +2646,7 @@ function handleTaskDetail(taskId) {
                 preview.appendChild(fileList);
             }
         };
+        
 
         // Function to display existing files
         window.displayExistingReferenceFiles = function (files) {
@@ -2888,8 +2888,84 @@ function handleTaskDetail(taskId) {
     const applyTaskFilterBtn = document.getElementById("applyTaskFilterBtn");
     const openTaskFilterBtn = document.getElementById("openTaskFilterBtn");
     const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
+
+    const filterTaskProjectSelectMobile = document.getElementById("filterTaskProjectMobile");
+    const filterTaskStatusSelectMobile = document.getElementById("filterTaskStatusMobile");
+    const applyTaskFilterBtnMobile = document.getElementById("applyTaskFilterBtnMobile");
     const openTaskFilterBtnMobile = document.getElementById("openTaskFilterBtnMobile");
 
+    function loadProjectsForFilterMobile() {
+        if (!filterTaskProjectSelectMobile) return;
+        fetch(appUrl + "/project/index")
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Failed to load projects");
+                }
+                return response.json();
+            })
+            .then((data) => {
+                if (!data.data) return;
+                let options = '<option value="">All Projects</option>';
+                data.data.forEach((project) => {
+                    options += `<option value="${project.id}">${project.title}</option>`;
+                });
+                filterTaskProjectSelectMobile.innerHTML = options;
+                if (currentTaskFilters.project) {
+                    filterTaskProjectSelectMobile.value = currentTaskFilters.project;
+                }
+                if (currentTaskFilters.status) {
+                    filterTaskStatusSelectMobile.value = currentTaskFilters.status;
+                }
+            })
+            .catch((error) => {
+                console.error("Error loading projects for filter (mobile):", error);
+            });
+    }
+
+    if (applyTaskFilterBtnMobile) {
+        applyTaskFilterBtnMobile.addEventListener("click", function () {
+            currentTaskFilters.project = filterTaskProjectSelectMobile.value;
+            currentTaskFilters.status = filterTaskStatusSelectMobile.value;
+            fetchAndRenderFilteredTasks(currentTaskFilters);
+            document.getElementById("taskFilterDropdownMobile").style.display = "none";
+        });
+    }
+
+    if (openTaskFilterBtnMobile) {
+        openTaskFilterBtnMobile.addEventListener("click", function (e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById("taskFilterDropdownMobile");
+            const isVisible = dropdown.style.display !== "none";
+            if (isVisible) {
+                dropdown.style.display = "none";
+            } else {
+                loadProjectsForFilterMobile();
+                dropdown.style.display = "block";
+                const buttonRect = openTaskFilterBtnMobile.getBoundingClientRect();
+                dropdown.style.position = "absolute";
+                dropdown.style.top = "100%";
+                dropdown.style.right = "0";
+                dropdown.style.zIndex = "1000";
+            }
+        });
+    }
+
+    document.addEventListener("click", function (e) {
+        const dropdown = document.getElementById("taskFilterDropdownMobile");
+        const button = document.getElementById("openTaskFilterBtnMobile");
+        if (dropdown && button && !dropdown.contains(e.target) && !button.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+            const dropdown = document.getElementById("taskFilterDropdownMobile");
+            if (dropdown) {
+                dropdown.style.display = "none";
+            }
+        }
+    });
     // Function to update project filter display
     function updateProjectFilterDisplay() {
         const displayElement = document.getElementById('projectFilterDisplay');
@@ -3020,85 +3096,71 @@ function handleTaskDetail(taskId) {
         }
     });
 
-   function fetchAndRenderFilteredTasks(filters = {}) {
-    $.ajax({
-        url: appUrl + "/task/index",
-        type: "GET",
-        dataType: "json",
-        data: filters,
-        success: function (data) {
-            // ✅ Ambil data di dalam "data"
-            let tasksData = data.data || {};
+    function fetchAndRenderFilteredTasks(filters = {}) {
+        $.ajax({
+            url: appUrl + "/task/index",
+            type: "GET",
+            dataType: "json",
+            data: filters,
+            success: function (data) {
+                let tasksData = data.data || {};
 
-            // Clear existing task lists
-            document.getElementById("new-request-tasks").innerHTML = "";
-            document.getElementById("in-progress-tasks").innerHTML = "";
-            document.getElementById("completed-tasks").innerHTML = "";
+                document.getElementById("new-request-tasks").innerHTML = "";
+                document.getElementById("in-progress-tasks").innerHTML = "";
+                document.getElementById("completed-tasks").innerHTML = "";
 
-            // Gabungkan semua task
-            let allTasks = [];
-            if (tasksData.new_request) allTasks = allTasks.concat(tasksData.new_request);
-            if (tasksData.in_progress) allTasks = allTasks.concat(tasksData.in_progress);
-            if (tasksData.completed) allTasks = allTasks.concat(tasksData.completed);
-            if (tasksData.rejected) allTasks = allTasks.concat(tasksData.rejected);
+                let allTasks = [];
+                if (tasksData.new_request) allTasks = allTasks.concat(tasksData.new_request);
+                if (tasksData.in_progress) allTasks = allTasks.concat(tasksData.in_progress);
+                if (tasksData.completed) allTasks = allTasks.concat(tasksData.completed);
+                if (tasksData.rejected) allTasks = allTasks.concat(tasksData.rejected);
 
-            // Filter berdasarkan project
-            if (filters.project && filters.project !== "") {
-                allTasks = allTasks.filter(task => task.project_id == filters.project);
-            }
-
-            // Filter berdasarkan status
-            if (filters.status && filters.status !== "") {
-                allTasks = allTasks.filter(task => {
-                    let taskStatus = task.status.toLowerCase().replace(" ", "_");
-                    return taskStatus === filters.status;
-                });
-            }
-
-            // Group ulang berdasarkan status
-            const groupedTasks = {
-                new_request: [],
-                in_progress: [],
-                completed: [],
-                rejected: []
-            };
-
-            allTasks.forEach(task => {
-                let normalizedStatus = task.status.toLowerCase().replace(" ", "_");
-                if (groupedTasks[normalizedStatus] !== undefined) {
-                    groupedTasks[normalizedStatus].push(task);
-                } else if (normalizedStatus === "rejected") {
-                    groupedTasks.rejected.push(task);
+                if (filters.project && filters.project !== "") {
+                    allTasks = allTasks.filter(task => task.project_id == filters.project);
                 }
-            });
 
-            // Render tasks ke kolom masing-masing
-            groupedTasks.new_request.forEach(task => {
-                document.getElementById("new-request-tasks")
-                    .insertAdjacentHTML("beforeend", createTaskCard(task));
-            });
-            groupedTasks.in_progress.forEach(task => {
-                document.getElementById("in-progress-tasks")
-                    .insertAdjacentHTML("beforeend", createTaskCard(task));
-            });
-            groupedTasks.completed.forEach(task => {
-                document.getElementById("completed-tasks")
-                    .insertAdjacentHTML("beforeend", createTaskCard(task));
-            });
+                if (filters.status && filters.status !== "") {
+                    allTasks = allTasks.filter(task => {
+                        let taskStatus = task.status.toLowerCase().replace(" ", "_");
+                        return taskStatus === filters.status;
+                    });
+                }
 
-            // Event listener tambahan
-            setupTaskDropdownListeners();
-            addAttachFileIconListeners();
+                const groupedTasks = { new_request: [], in_progress: [], completed: [], rejected: [] };
+                allTasks.forEach(task => {
+                    let normalizedStatus = task.status.toLowerCase().replace(" ", "_");
+                    if (groupedTasks[normalizedStatus] !== undefined) {
+                        groupedTasks[normalizedStatus].push(task);
+                    } else if (normalizedStatus === "rejected") {
+                        groupedTasks.rejected.push(task);
+                    }
+                });
 
-            // Initialize tooltips for newly rendered elements
-            initBootstrapTooltips();
-        },
-        error: function (xhr, status, error) {
-            console.error("Error fetching filtered tasks:", error);
-        },
-    });
-}
+                groupedTasks.new_request.forEach(task => {
+                    document.getElementById("new-request-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+                groupedTasks.in_progress.forEach(task => {
+                    document.getElementById("in-progress-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+                groupedTasks.completed.forEach(task => {
+                    document.getElementById("completed-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
 
+                setupTaskDropdownListeners();
+                addAttachFileIconListeners();
+                initBootstrapTooltips();
+
+                // ⬇️ Refresh mobile view biar ikutin hasil terbaru
+                $("#taskStatusSelect").trigger("change");
+            },
+            error: function (xhr, status, error) {
+                console.error("Error fetching filtered tasks:", error);
+            },
+        });
+    }
 
     // Reset filters
     function resetTaskFilters() {
@@ -3144,8 +3206,8 @@ $(document).ready(function () {
       <div class="action-buttons d-flex align-items-center gap-2">
         <div class="search-input-container">
           <span class="material-symbols-outlined search-icon">search</span>
-          <input class="form-control custom-form-filter" type="text" name="search_filter"
-            id="search_filter">
+          <input class="form-control custom-form-filter" type="text" name="search_filter_mobile"
+            id="search_filter_mobile">
         </div>
 
         <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
@@ -3156,89 +3218,90 @@ $(document).ready(function () {
           <span class="material-symbols-outlined">filter_list</span>
         </button>
 
-                        <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
-                    <div class="dropdown-filter-body">
-                        <div class="mb-3">
-                            <label for="filterTaskProject" class="form-label">Project</label>
-                            <select id="filterTaskProject" class="form-select">
-                                <option value="">All Projects</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="filterTaskStatus" class="form-label">Status</label>
-                            <select id="filterTaskStatus" class="form-select">
-                                <option value="">All Status</option>
-                                <option value="new_request">New Request</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="dropdown-filter-footer">
-                        <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtn">Filter</button>
-                    </div>
+        <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
+            <div class="dropdown-filter-body">
+                <div class="mb-3">
+                    <label for="filterTaskProjectMobile" class="form-label">Project</label>
+                    <select id="filterTaskProjectMobile" class="form-select">
+                        <option value="">All Projects</option>
+                    </select>
                 </div>
+                <div class="mb-3">
+                    <label for="filterTaskStatusMobile" class="form-label">Status</label>
+                    <select id="filterTaskStatusMobile" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="new_request">New Request</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+            </div>
+            <div class="dropdown-filter-footer">
+                <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
+            </div>
+        </div>
       </div>
     </div>
     <div id="mobile-task-list"></div>
   </div>
 `;
 
-  // sisipkan ke sebelum container desktop
   $("#task-cards-container").before(mobileCardHtml);
 
-  // hide filter desktop di mobile
   function toggleDropdownFilter() {
     let dropdown = $(".dropdown-filter-container");
     if ($(window).width() <= 768) {
-      dropdown.addClass("d-none");
+      dropdown.hide();
     } else {
-      dropdown.removeClass("d-none");
+      dropdown.show();
     }
   }
   toggleDropdownFilter();
   $(window).on("resize", toggleDropdownFilter);
 
-  // handler ganti status
   $("#taskStatusSelect").on("change", function () {
     let status = $(this).val();
     let container = $(".mobile-task-container");
     let list = $("#mobile-task-list");
 
     container.removeClass("task-mobile-new task-mobile-progress task-mobile-completed");
-    list.empty(); // clear dulu biar ga numpuk
+    list.empty();
 
-        if (status === "new_request") {
+    if (status === "new_request") {
       container.addClass("task-mobile-new");
-      let newClone = $("#new-request-tasks").clone(true, true);
-      newClone.removeAttr("id"); // hindari duplikat id
+      let newClone = $("#new-request-tasks").clone(false, false);
+      newClone.removeAttr("id");
       list.append(newClone);
     } else if (status === "in_progress") {
       container.addClass("task-mobile-progress");
-      let progressClone = $("#in-progress-tasks").clone(true, true);
+      let progressClone = $("#in-progress-tasks").clone(false, false);
       progressClone.removeAttr("id");
       list.append(progressClone);
     } else if (status === "completed") {
       container.addClass("task-mobile-completed");
-      let completedClone = $("#completed-tasks").clone(true, true);
+      let completedClone = $("#completed-tasks").clone(false, false);
       completedClone.removeAttr("id");
       list.append(completedClone);
     }
 
-        // Re-initialize tooltips in the newly cloned list
-        if (window.initBootstrapTooltips) {
-            window.initBootstrapTooltips(list[0] || document);
-        }
+    if (window.initBootstrapTooltips) {
+      window.initBootstrapTooltips(list[0] || document);
+    }
   });
 
-  // ✅ default ke "All Status"
   $("#taskStatusSelect").val("new_request").trigger("change");
 });
 
-// Toggle dropdown filter di mobile
-$(document).on("click", "#openTaskFilterBtnMobile", function () {
-  $("#taskFilterDropdownMobile").toggle();
+// Toggle filter mobile
+$(document).on("click", "#openTaskFilterBtnMobile", function (e) {
+  e.stopPropagation();
+  const $dropdown = $("#taskFilterDropdownMobile");
+  if ($dropdown.css("display") === "none") {
+    $dropdown.css("display", "block");
+  } else {
+    $dropdown.css("display", "none");
+  }
 });
 
  let currentMonth = new Date().getMonth();
