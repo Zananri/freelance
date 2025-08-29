@@ -1314,24 +1314,24 @@ function calculateWorkingHours() {
                                         checkInBtn.style.display = "flex";
                                         checkInBtn.disabled = false;
                                         checkInBtn.classList.add('active');
-                                        try { $("#checkInBtn .check-icon").show(); } catch(e){}
+                                        try { $("#checkInBtn .check-icon").css('opacity','1'); } catch(e){}
                                         checkOutBtn.style.display = "flex";
                                         // Enable check-out because user has checked in today and hasn't checked out yet.
                                         checkOutBtn.disabled = false;
                                         checkOutBtn.classList.remove('active');
-                                        try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+                                        try { $("#checkOutBtn .done-all-icon").css('opacity','0'); } catch(e){}
                                         return;
                                     } else if (lastTodayAttendance.time_in && lastTodayAttendance.time_out) {
                                         // Sudah checkout hari ini, tampilkan tombol check-in untuk shift berikutnya (default)
                                         checkInBtn.style.display = "flex";
                                         checkInBtn.disabled = false;
                                         checkInBtn.classList.remove('active');
-                                        try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+                                        try { $("#checkInBtn .check-icon").css('opacity','0'); } catch(e){}
 
                                         checkOutBtn.style.display = "flex";
                                         checkOutBtn.disabled = true;
                                         checkOutBtn.classList.remove('active');
-                                        try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+                                        try { $("#checkOutBtn .done-all-icon").css('opacity','0'); } catch(e){}
                                         return;
                                     }
                                 }
@@ -1347,14 +1347,14 @@ function calculateWorkingHours() {
                                 checkInBtn.style.display = "flex";
                                 checkInBtn.disabled = false;
                                 checkInBtn.classList.remove('active');
-                                try { $("#checkInBtn .check-icon").hide(); } catch(e){}
+                                try { $("#checkInBtn .check-icon").css('opacity','0'); } catch(e){}
 
                                         checkOutBtn.style.display = "flex";
                                         // Do not enable checkout here — by default checkout stays disabled
                                         // until user actually checks in today.
                                         checkOutBtn.disabled = true;
                                 checkOutBtn.classList.remove('active');
-                                try { $("#checkOutBtn .done-all-icon").hide(); } catch(e){}
+                                try { $("#checkOutBtn .done-all-icon").css('opacity','0'); } catch(e){}
 
                                 // Clear displayed times/status
                                 const checkInTimeInput = document.getElementById("checkInTime");
@@ -1680,7 +1680,7 @@ fetch(`${baseUrl}/attendance/store`, {
             showAlertDashboard("Check-in submitted successfully!", "success");
 
             // Update UI tanpa reload
-            $("#checkInBtn .check-icon").show();
+            $("#checkInBtn .check-icon").css('opacity','1');
             $("#checkInBtn").addClass("active");
 
             // Update calendar
@@ -2298,8 +2298,8 @@ function submitCheckOut() {
                     checkOutBtn.classList.add("active");
                     checkInBtn.disabled = false;
                     checkOutBtn.disabled = false;
-                    $("#checkInBtn .check-icon").show();
-                    $("#checkOutBtn .done-all-icon").show();
+                    $("#checkInBtn .check-icon").css('opacity','1');
+                    $("#checkOutBtn .done-all-icon").css('opacity','1');
                 }
 
                 // After showing success alert, reload the page once the alert has disappeared
@@ -2601,8 +2601,8 @@ if (typeof window !== 'undefined') {
         checkOutBtn.style.display = "flex";
 
         // Hide semua icon
-        $("#checkInBtn .check-icon").hide();
-        $("#checkOutBtn .done-all-icon").hide();
+    $("#checkInBtn .check-icon").css('opacity','0');
+    $("#checkOutBtn .done-all-icon").css('opacity','0');
 
         // Update berdasarkan status
         if (status.status === "not_started") {
@@ -2611,15 +2611,15 @@ if (typeof window !== 'undefined') {
         } else if (status.status === "checked_in") {
             // Sudah check-in tapi belum check-out: enable both buttons
             checkInBtn.classList.add("active");
-            $("#checkInBtn .check-icon").show();
+            $("#checkInBtn .check-icon").css('opacity','1');
             // checkOutBtn tetap enabled untuk checkout
             console.log('Dashboard - Set state: checked_in (both enabled, checkin active)');
         } else if (status.status === "checked_out") {
             // Sudah check-out: both buttons active and enabled
             checkInBtn.classList.add("active");
             checkOutBtn.classList.add("active");
-            $("#checkInBtn .check-icon").show();
-            $("#checkOutBtn .done-all-icon").show();
+            $("#checkInBtn .check-icon").css('opacity','1');
+            $("#checkOutBtn .done-all-icon").css('opacity','1');
             console.log('Dashboard - Set state: checked_out (both active and enabled)');
         }
 
