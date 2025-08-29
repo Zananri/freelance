@@ -67,7 +67,7 @@
                 </div>
             </div>
 
-            <button class="btn btn-add-custom">Schedule</button>
+            <button class="btn btn-schedule-custom">Schedule</button>
             <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add <span
                     class="btn-text-add">Task</span></button>
         </div>

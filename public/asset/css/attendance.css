@@ -393,7 +393,6 @@
     gap: 8px;
     flex: 1;
     justify-content: center;
-    max-width: 200px;
 }
 
 .btn-custom-check {
@@ -1141,4 +1140,14 @@
 
 .image-checkout {
     margin-left: 20px;
+}
+
+.btn-close-custom {
+    background: #797E91;
+    color: #F3F3F3;
+}
+
+.btn-close-custom:hover {
+    background: #797E91;
+    color: #F3F3F3;
 }

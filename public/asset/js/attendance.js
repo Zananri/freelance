@@ -106,10 +106,10 @@ function initializeMaps() {
 document.addEventListener("DOMContentLoaded", function () {
     // Initialize attendance page
     initializeAttendance();
-    
+
     // Initialize attendance state immediately
     initializeAttendanceState();
-    
+
     initializeCalendar();
 
     // Setup event listeners with DOM ready check
@@ -286,9 +286,9 @@ function fetchEmployeeShift(employeeId, date, modalType = 'checkin') {
     if (!shiftDisplay) return;
 
     const cacheKey = `${employeeId}_${date}`;
-    
+
     const url = `${baseUrl}/attendance/shift-details/${employeeId}/${date}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -1394,7 +1394,7 @@ async function getEmployeeShiftDetails(employeeId, date) {
             : (date || '').toString();
         const response = await fetch(`${baseUrl}/attendance/shift-details/${employeeId}/${normDate}`);
         const data = await response.json();
-        
+
         if (data.status === "success") {
             return data.data;
         } else {
@@ -1410,7 +1410,7 @@ async function getEmployeeShiftDetails(employeeId, date) {
 // Fungsi untuk validasi waktu check-in berdasarkan shift
 async function validateCheckInTime(employeeId, date) {
     const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
-    
+
     if (!shiftDetails) {
         return {
             valid: false,
@@ -1421,23 +1421,23 @@ async function validateCheckInTime(employeeId, date) {
     const currentTime = new Date();
     const [currentHour, currentMinute] = [currentTime.getHours(), currentTime.getMinutes()];
     const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-    
+
     const minCheckInTime = shiftDetails.min_checkin_time;
     const maxCheckInTime = shiftDetails.max_checkin_time;
-    
+
     // Convert time strings to minutes for comparison
     const currentMinutes = currentHour * 60 + currentMinute;
     const minMinutes = parseInt(minCheckInTime.split(':')[0]) * 60 + parseInt(minCheckInTime.split(':')[1]);
-    
+
     if (currentMinutes < minMinutes) {
         return {
             valid: false,
             message: `Check-in not allowed. You can only check-in 1 hour before your shift starts at ${shiftDetails.time_start}`
         };
     }
-    
+
     // Tidak ada batasan maksimum untuk check-in setelah shift dimulai
-    
+
     return {
         valid: true,
         message: "Check-in time is valid",
@@ -1448,7 +1448,7 @@ async function validateCheckInTime(employeeId, date) {
 // Fungsi untuk validasi waktu check-out berdasarkan shift
 async function validateCheckOutTime(employeeId, date) {
     const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
-    
+
     if (!shiftDetails) {
         return {
             valid: false,
@@ -1459,20 +1459,20 @@ async function validateCheckOutTime(employeeId, date) {
     const currentTime = new Date();
     const [currentHour, currentMinute] = [currentTime.getHours(), currentTime.getMinutes()];
     const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-    
+
     const minCheckOutTime = shiftDetails.min_checkout_time;
-    
+
     // Convert time strings to minutes for comparison
     const currentMinutes = currentHour * 60 + currentMinute;
     const minMinutes = parseInt(minCheckOutTime.split(':')[0]) * 60 + parseInt(minCheckOutTime.split(':')[1]);
-    
+
     if (currentMinutes < minMinutes) {
         return {
             valid: false,
             message: `Check-out not allowed. You can only check-out after ${minCheckOutTime}`
         };
     }
-    
+
     return {
         valid: true,
         message: "Check-out time is valid",
@@ -1483,7 +1483,7 @@ async function validateCheckOutTime(employeeId, date) {
 // Fungsi untuk menampilkan informasi shift di modal
 async function displayShiftInfo(employeeId, date) {
     const shiftDetails = await getEmployeeShiftDetails(employeeId, date);
-    
+
     if (shiftDetails) {
         const shiftInfoDiv = document.getElementById("shiftInfo");
         if (shiftInfoDiv) {
@@ -1505,19 +1505,19 @@ const originalOpenCheckInModal = openCheckInModal;
 openCheckInModal = async function() {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     const today = formatLocalYMD(new Date());
-    
+
     if (employeeId) {
         const validation = await validateCheckInTime(employeeId, today);
-        
+
         if (!validation.valid) {
             showFloatingAlert(validation.message, "error");
             return;
         }
-        
+
         // Tampilkan informasi shift
         await displayShiftInfo(employeeId, today);
     }
-    
+
     // Panggil fungsi asli
     originalOpenCheckInModal();
 };
@@ -1527,19 +1527,19 @@ const originalOpenCheckOutModal = openCheckOutModal;
 openCheckOutModal = async function() {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     const today = formatLocalYMD(new Date());
-    
+
     if (employeeId) {
         const validation = await validateCheckOutTime(employeeId, today);
-        
+
         if (!validation.valid) {
             showFloatingAlert(validation.message, "error");
             return;
         }
-        
+
         // Tampilkan informasi shift
         await displayShiftInfo(employeeId, today);
     }
-    
+
     // Panggil fungsi asli
     originalOpenCheckOutModal();
 };
@@ -1918,7 +1918,7 @@ function submitCheckOut() {
     // Get and validate all required fields
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
     const dateAttendance = document.getElementById('date_attendance')?.value || now.toISOString().split("T")[0];
-    
+
     if (!employeeId) {
         console.error("Employee ID is missing");
         showFloatingAlert("Employee ID is missing. Please refresh the page.", "error");
@@ -1932,7 +1932,7 @@ function submitCheckOut() {
     formData.set("date_attendance", dateAttendance);
     formData.set("time_out", serverTimeString);
     formData.set("type_attendance", "check_out");
-    
+
     // Get work outside value
     const isWorkOutsideValue = document.getElementById("is_work_outside_checkout")?.value || "0";
     formData.set("is_work_outside", isWorkOutsideValue);
@@ -2017,7 +2017,7 @@ function submitCheckOut() {
 
                 // Update status without reload
                 getTodayAttendanceStatus();
-                
+
                 // Update UI to show both buttons as active
                 const checkInBtn = document.getElementById("checkInBtn");
                 const checkOutBtn = document.getElementById("checkOutBtn");
@@ -2092,7 +2092,7 @@ function openCheckInDetailModal(dateStrOpt) {
 
                 // Log untuk debugging
                 console.log("Check-in data found:", lastCheckIn);
-                
+
                 // Create modal content
                 const modalContent = `
                     <div class="modal fade" id="checkInDetailModal" tabindex="-1" role="dialog" aria-labelledby="checkInDetailModalLabel" aria-hidden="true">
@@ -2121,19 +2121,19 @@ function openCheckInDetailModal(dateStrOpt) {
                                             <div class="detail-value"><span id="detail_shift_text_in">${(lastCheckIn.shift_start || '--:--')} - ${(lastCheckIn.shift_end || '--:--')}</span></div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="mt-0">
                                         <div id="detailMapCheckIn" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
                                     </div>
-                                    <div class="mt-3">
-                                        <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+                                    <div class="mt-3 modal-footer modal-footer-custom">
+                                        <button type="button" class="btn btn-close-custom w-100" data-bs-dismiss="modal">Close</button>
                                     </div>
-                                    
+
                                     ${lastCheckIn.is_work_outside && lastCheckIn.image_path ? `
                                         <div class="mt-4">
                                             <div class="image-checkin">
-                                                <img src="${lastCheckIn.image_path ? (lastCheckIn.image_path.startsWith('http') ? lastCheckIn.image_path : baseUrl + '/' + lastCheckIn.image_path.replace(/^\//, '')) : ''}" 
-                                                     alt="Check-in photo" 
+                                                <img src="${lastCheckIn.image_path ? (lastCheckIn.image_path.startsWith('http') ? lastCheckIn.image_path : baseUrl + '/' + lastCheckIn.image_path.replace(/^\//, '')) : ''}"
+                                                     alt="Check-in photo"
                                                      class="img-fluid rounded-3"
                                                      style="max-height: 200px;">
                                             </div>
@@ -2182,7 +2182,7 @@ function openCheckInDetailModal(dateStrOpt) {
                             })
                             .catch(() => {});
                     } catch(e) { /* ignore */ }
-                    
+
                     // Extract both check-in and check-out coordinates
                     let checkInLat = lastCheckIn.latitude ?? null;
                     let checkInLng = lastCheckIn.longitude ?? null;
@@ -2297,7 +2297,7 @@ function openCheckOutDetailModal(dateStrOpt) {
             if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
                 // Cari data check-out yang valid (memiliki time_in dan time_out) pada tanggal tsb
                 const lastCheckOut = data.data.filter(record => record.time_in && record.time_out).pop();
-                
+
                 if (!lastCheckOut) {
                     showFloatingAlert("No check-out data found for today", "warning");
                     return;
@@ -2305,10 +2305,10 @@ function openCheckOutDetailModal(dateStrOpt) {
 
                 // Log untuk debugging
                 console.log("Check-out data found:", lastCheckOut);
-                
+
                 // Calculate work duration
                 const workDuration = calculateDuration24h(lastCheckOut.time_in, lastCheckOut.time_out);
-                
+
                 // Create modal content
                 const modalContent = `
                     <div class="modal fade" id="checkOutDetailModal" tabindex="-1" role="dialog" aria-labelledby="checkOutDetailModalLabel" aria-hidden="true">
@@ -2341,19 +2341,19 @@ function openCheckOutDetailModal(dateStrOpt) {
                                             <div class="detail-value"><span id="detail_shift_text_out">${(formatTimeDisplay(lastCheckOut.shift_start) || '--:--')} - ${(formatTimeDisplay(lastCheckOut.shift_end) || '--:--')}</span></div>
                                         </div>
                                     </div>
-                                    
+
                                     <div class="mt-0">
                                         <div id="detailMapCheckOut" style="height: 200px; width: 90%; margin: 0px auto; position: relative; outline-style: none;" class="rounded-3"></div>
                                     </div>
-                                    <div class="mt-3">
-                                        <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Close</button>
+                                    <div class="mt-3 modal-footer modal-footer-custom">
+                                        <button type="button" class="btn btn-close-custom" data-bs-dismiss="modal">Close</button>
                                     </div>
-                                    
+
                                     ${lastCheckOut.is_work_outside && lastCheckOut.checkout_image_path ? `
                                         <div class="mt-4">
                                             <div class="image-checkout">
-                                                <img src="${lastCheckOut.checkout_image_path ? (lastCheckOut.checkout_image_path.startsWith('http') ? lastCheckOut.checkout_image_path : baseUrl + '/' + lastCheckOut.checkout_image_path.replace(/^\//, '')) : ''}" 
-                                                     alt="Check-out photo" 
+                                                <img src="${lastCheckOut.checkout_image_path ? (lastCheckOut.checkout_image_path.startsWith('http') ? lastCheckOut.checkout_image_path : baseUrl + '/' + lastCheckOut.checkout_image_path.replace(/^\//, '')) : ''}"
+                                                     alt="Check-out photo"
                                                      class="img-fluid rounded-3"
                                                      style="max-height: 200px;">
                                             </div>
@@ -2402,7 +2402,7 @@ function openCheckOutDetailModal(dateStrOpt) {
                             })
                             .catch(() => {});
                     } catch(e) { /* ignore */ }
-                    
+
                     // Prefer explicit fields
                     let outLat = lastCheckOut.checkout_latitude ?? null;
                     let outLng = lastCheckOut.checkout_longitude ?? null;
@@ -2581,7 +2581,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // Fungsi untuk mendapatkan status absensi harian
 function getTodayAttendanceStatus() {
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
-    
+
     if (!employeeId) {
         console.error("Employee ID not found");
         // Set default state if no employee ID
@@ -2607,13 +2607,13 @@ function getTodayAttendanceStatus() {
  // Fungsi untuk memformat waktu menjadi format 00:00 (mendukung HH:MM, HH:MM:SS, dan datetime umum)
     function formatTimeDisplay(timeString) {
         if (!timeString) return '--:--';
-        
+
         // Jika string waktu sederhana HH:MM atau HH:MM:SS
         if (typeof timeString === 'string') {
             const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
             if (m) return `${m[1]}:${m[2]}`;
         }
-        
+
         // Jika format ISO atau "YYYY-MM-DD HH:MM:SS"/timestamp, extract jam dan menit
         let date = new Date(timeString);
         if (isNaN(date.getTime()) && typeof timeString === 'string' && timeString.includes(' ')) {
@@ -2623,7 +2623,7 @@ function getTodayAttendanceStatus() {
         if (isNaN(date.getTime())) {
             return '--:--';
         }
-        
+
         const hours = date.getHours().toString().padStart(2, '0');
         const minutes = date.getMinutes().toString().padStart(2, '0');
         return `${hours}:${minutes}`;
@@ -2755,7 +2755,7 @@ function refreshAttendanceStatus() {
 function resetDailyAttendanceState() {
     const today = formatLocalYMD(new Date());
     const lastResetDate = localStorage.getItem('lastAttendanceReset');
-    
+
     if (lastResetDate !== today) {
         localStorage.setItem('lastAttendanceReset', today);
         getTodayAttendanceStatus();
@@ -2766,13 +2766,13 @@ function resetDailyAttendanceState() {
 function initializeAttendanceState() {
     // Check daily reset
     resetDailyAttendanceState();
-    
+
     // Get initial status
     getTodayAttendanceStatus();
-    
+
     // Set up periodic refresh
     setInterval(getTodayAttendanceStatus, 30000); // Refresh every 30 seconds
-    
+
     // Add event listener untuk refresh setelah check-in/check-out
     document.addEventListener('attendanceUpdated', refreshAttendanceStatus);
 }
@@ -2781,7 +2781,7 @@ function initializeAttendanceState() {
 document.addEventListener("DOMContentLoaded", function() {
     // Call immediately
     initializeAttendanceState();
-    
+
     // Call again after short delay to ensure all elements are ready
     setTimeout(initializeAttendanceState, 100);
 });
