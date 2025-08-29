@@ -755,8 +755,8 @@
     }
 
     #doughnutChart {
-        width: 150px !important;
-        height: 150px !important;
+        width: 60%;
+        height: 60%;
     }
 
     .chart-labels {
@@ -1404,4 +1404,14 @@
     #projectDetailModal .project-detail-right {
         flex: 1 1 100%;
     }
+}
+
+.btn-close-custom {
+    background: #797E91;
+    color: #F3F3F3;
+}
+
+.btn-close-custom:hover {
+    background: #797E91;
+    color: #F3F3F3;
 }
