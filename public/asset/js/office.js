@@ -407,7 +407,11 @@ $(document).ready(function() {
                         },
                         success: function(response) {
                             console.log('Accept project response:', response);
-                            showDeleteSuccessAlert('Project accepted successfully!', 'success');
+                            if (typeof window.showAlertMsg === 'function') {
+                                window.showAlertMsg('Project accepted successfully!', 'light', 2000);
+                            } else {
+                                showDeleteSuccessAlert('Project accepted successfully!', 'success');
+                            }
                         
                         // Mark the notification as read
                         $.ajax({
@@ -469,18 +473,30 @@ $(document).ready(function() {
                             errorMessage = xhr.responseJSON.error;
                         }
                         
-                        showDeleteSuccessAlert('Error: ' + errorMessage, 'error');
+                        if (typeof window.showAlertMsg === 'function') {
+                            window.showAlertMsg('Error: ' + errorMessage, 'error', 4000);
+                        } else {
+                            showDeleteSuccessAlert('Error: ' + errorMessage, 'error');
+                        }
                     }
                 });
             } else {
                 console.error('Project not found:', projectTitle);
-                showDeleteSuccessAlert('Project not found', 'error');
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg('Project not found', 'error', 3000);
+                } else {
+                    showDeleteSuccessAlert('Project not found', 'error');
+                }
             }
             },
             error: function(xhr, status, error) {
                 console.error('Error fetching projects:', error);
                 console.error('XHR:', xhr.responseText);
-                showDeleteSuccessAlert('Failed to fetch projects', 'error');
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg('Failed to fetch projects', 'error', 3000);
+                } else {
+                    showDeleteSuccessAlert('Failed to fetch projects', 'error');
+                }
             }
         });
     }
@@ -716,7 +732,12 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function(response) {
-                showDeleteSuccessAlert('Task accepted successfully!', 'success');
+                // Unified alert style (same as Settings)
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg('Task accepted successfully!', 'light', 2000);
+                } else {
+                    showDeleteSuccessAlert('Task accepted successfully!', 'success');
+                }
                 
                 // Mark the notification as read
                 $.ajax({
@@ -757,7 +778,17 @@ $(document).ready(function() {
             },
             error: function(xhr, status, error) {
                 console.error('Error accepting task:', status, error);
-                showDeleteSuccessAlert('Failed to accept task', 'error');
+                let errMsg = 'Failed to accept task';
+                try {
+                    if (xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
+                        errMsg = xhr.responseJSON.message || xhr.responseJSON.error;
+                    }
+                } catch(_) {}
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(errMsg, 'error', 4000);
+                } else {
+                    showDeleteSuccessAlert(errMsg, 'error');
+                }
             }
         });
     }
