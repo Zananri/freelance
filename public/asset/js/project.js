@@ -3417,7 +3417,7 @@ $(document).ready(function () {
                     responseText: xhr.responseText,
                     error: error
                 });
-                
+
                 if (xhr.status === 422) {
                     let errors = xhr.responseJSON?.errors || {};
                     var listHtml = '<ul style="margin:0; padding-left:18px;">';
@@ -4628,12 +4628,11 @@ function renderTimeline(
     }
 
     // Render header
-    headerLabels.forEach((label, idx) => {
+    headerLabels.forEach((label) => {
         const th = document.createElement("th");
         th.textContent = label;
 
         let isSunday = false;
-        if (mode === "week" && idx === 6) isSunday = true;
         if (mode === "month") {
             const date = new Date(year, month, label);
             if (date.getDay() === 0) isSunday = true;
