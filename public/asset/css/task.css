@@ -7,6 +7,26 @@
     font-size: 16px;
 }
 
+.task-container {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+}
+
+.task-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.task-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-container::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
+
 .row.justify-content-start > .col-md-2 {
     padding-left: 0;
     padding-right: 0;
