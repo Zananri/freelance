@@ -86,6 +86,7 @@ function renderCalendar(month, year) {
         console.error("Employee ID not found for attendance calendar");
         return;
     }
+    
 
     fetch(`${baseUrl}/attendance/monthly/${employeeId}/${year}/${month + 1}`)
         .then((response) => response.json())
