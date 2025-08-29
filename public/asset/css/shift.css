@@ -109,8 +109,9 @@
     table-layout: auto;
 }
 
-.shift-table th:first-child,
-.shift-table td:first-child {
+/* For desktop view: first column is employee column */
+.shift-table th:first-child:not(.date-column),
+.shift-table td:first-child:not(.date-column) {
     min-width: 150px !important;
     white-space: normal !important;
     word-break: break-word !important;
@@ -136,9 +137,16 @@
 
 .sticky-col {
     position: sticky;
-    left: 0;
     background: #fff;
     z-index: 10;
+}
+
+.sticky-col:not(.employee-column) {
+    left: 0;
+}
+
+.employee-column {
+    right: 0;
 }
 
 .overlay-edit {
@@ -446,9 +454,28 @@
         min-height: 300px;
     }
 
+    .shift-table th:last-child,
+    .shift-table td:last-child {
+        min-width: 100px !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+
     .shift-table th:first-child,
     .shift-table td:first-child {
-        min-width: 100px !important;
+        z-index: 0;
+    }
+
+    .sticky-col:not(.employee-column) {
+        position: static;
+    }
+
+    .employee-column {
+        position: sticky;
+        right: 0;
+        border: 1px solid #dae3ed;
+        z-index: 10;
     }
 
     .modal-footer-custom button {
@@ -603,6 +630,6 @@
     min-width: 0;
 }
 
-.table>:not(caption)>*>* {
-    padding: .5rem .4rem;
+.table > :not(caption) > * > * {
+    padding: 0.5rem 0.4rem;
 }

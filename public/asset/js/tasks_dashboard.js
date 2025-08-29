@@ -74,7 +74,10 @@ function getTaskToday() {
                 if (t.pic || t.pic_photo) {
                     people.push(t.pic || { id: t.pic_id || null, photo: t.pic_photo, name: t.pic_name || 'PIC' });
                 }
-                if (Array.isArray(t.executors)) people.forEach(e => people.push(e));
+                // Correctly append executors (bugfix: previously iterated over people instead of t.executors)
+                if (Array.isArray(t.executors)) {
+                    t.executors.forEach(e => people.push(e));
+                }
 
                 const seen = new Set();
                 const avatars = [];
