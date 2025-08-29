@@ -32,9 +32,15 @@ class ShiftController extends Controller
             'employees.name',
             'employees.email',
             'employees.profile_picture',
-            'employee_shifts.id as shift_id',
+            // base shift fields
+            'employees.shift_id as base_shift_id',
+            'base_shifts.title as base_title',
+            'base_shifts.description as base_description',
+            'base_shifts.time_start as base_time_start',
+            'base_shifts.time_end as base_time_end',
+            // per-date shift fields
+            'employee_shifts.shift_id as shift_id',
             'employee_shifts.date_shift',
-
             'shifts.title as title',
             'shifts.description as description',
             'shifts.time_start',
@@ -51,6 +57,7 @@ class ShiftController extends Controller
                     ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
             })
             ->leftJoin('shifts', 'employee_shifts.shift_id', '=', 'shifts.id')
+            ->leftJoin('shifts as base_shifts', 'employees.shift_id', '=', 'base_shifts.id')
             ->where('employees.status', 'active')
             ->orderBy('employees.name')
             ->orderBy('employee_shifts.date_shift', 'asc')
@@ -82,7 +89,12 @@ class ShiftController extends Controller
                 'name' => $employee->name,
                 'email' => $employee->email,
                 'profile_picture' => $employee->profile_picture ?? '/asset/img/default-profile.png',
-                'shifts' => $shiftDetails
+                // expose base shift data for prefill in Shift page modal
+                'shift_id' => $employee->base_shift_id,
+                'shift_title' => $employee->base_title,
+                'time_start' => $employee->base_time_start ? Carbon::parse($employee->base_time_start)->format('H:i') : null,
+                'time_end' => $employee->base_time_end ? Carbon::parse($employee->base_time_end)->format('H:i') : null,
+                'shifts' => $shiftDetails,
             ];
         }
 

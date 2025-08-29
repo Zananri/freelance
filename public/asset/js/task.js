@@ -2646,6 +2646,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 preview.appendChild(fileList);
             }
         };
+        
 
         // Function to display existing files
         window.displayExistingReferenceFiles = function (files) {
