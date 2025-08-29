@@ -73,6 +73,29 @@
     padding: 15px 15px;
 }
 
+.dropdown-month .btn-dropdown-month{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #e9eef400;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+.dropdown-month .dropdown-toggle::after {
+    margin-left: 10px;
+    opacity: 0.9;
+}
+
+.dropdown-month .dropdown-item:active,
+.dropdown-month .dropdown-item:hover{
+    background-color: #E9EEF4;
+    color: #313642;
+    cursor: pointer;
+}
+
+
 .calendar-month,
 .calendar-year{
     font-size: 16px;
@@ -93,7 +116,9 @@
 .calendar-next-month:hover,
 .calendar-prev-month:hover,
 .calendar-next-month:active,
-.calendar-prev-month:active{
+.calendar-prev-month:active,
+.dropdown-month .btn-dropdown-month:hover,
+.dropdown-month .btn-dropdown-month:active{
     color: #313642 !important;
     background-color: #E9EEF4 !important;
 }

@@ -36,14 +36,31 @@
                     <div class="header-calendar">
                         <div class="d-flex align-items-center">
                             <div class="month-year w-100">
-                                <div class="d-inline-flex align-items-center">
-                                    <span class="calendar-month">{{ date('F') }}</span>
-                                    <span class="calendar-year">{{ date('Y') }}</span>
-                                    <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
-                                    <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+
+                                <div class="dropdown dropdown-month">
+                                    <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        
+                                        <div class="d-inline-flex align-items-center">
+                                            <span class="calendar-month">{{ date('F') }}</span>
+                                            <span class="calendar-year">{{ date('Y') }}</span>
+                                        </div>
+
+                                    </div>
+
+                                    <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                        @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
+                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                        @endfor
+                                        
+                                    </ul>
                                 </div>
+
+                                
                             </div>
-                            <div class="box-view-control">
+                            <div class="box-view-control white-space-nowrap" >
+                                <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
+                                <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+
                                 {{-- <div>
                                     <div class="dropdown">
                                         <button class="btn btn-default-dropdown fs-14 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">

@@ -56,6 +56,15 @@ $('.calendar-next-month').click(function() {
     renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
 });
 
+$(document).on('click','.dropdown-month .month-item',function(){
+    let monthNum = $(this).attr('data-month');
+    
+    currentDate.setMonth(parseInt(monthNum));
+
+    renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+
+    //$('.dropdown-month.show').removeClass('show');
+});
 
 function appendEventCalendar(dateCalendar,text,type){
 
