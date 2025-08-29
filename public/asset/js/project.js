@@ -4552,13 +4552,6 @@ let timelineData = [];
 const TIMELINE_COLORS = ["color1", "color2", "color3", "color4"];
 
 /**
- * Build timelineData from projects array. Expects each project to have
- * - title
- * - start_date (ISO string)
- * - due_date (ISO string)
- * - id
- * Colors will cycle every 4 projects.
- * This function stores normalized start/end indexes for the given mode (week/month) later used by renderTimeline.
  */
 function buildTimelineFromProjects(projects) {
     timelineData = [];
