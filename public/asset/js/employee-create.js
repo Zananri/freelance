@@ -282,6 +282,9 @@ document.addEventListener("DOMContentLoaded", function () {
             // Map form field names to controller expected names
             formData.set("name", formData.get("employee_name"));
             formData.delete("employee_name");
+            if (formData.get("employee_niks") !== null) {
+                formData.set("employee_niks", formData.get("employee_niks"));
+            }
             formData.set("email", formData.get("employee_email"));
             formData.delete("employee_email");
             formData.set("email_work", formData.get("employee_email_work"));

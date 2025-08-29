@@ -56,6 +56,14 @@
                             </div>
                         </div>
                         <div>
+                            <label for="employee_niks" class="form-label">Employee ID</label>
+                            <input type="text" id="employee_niks" name="employee_niks"
+                                class="form-control input-text" value="{{ $employee->employee_niks }}" />
+                            <div class="invalid-feedback">
+                                Please enter the employee NIKS.
+                            </div>
+                        </div>
+                        <div>
                             <label for="employee_email" class="form-label">Employee Email</label>
                             <input type="email" id="employee_email" name="employee_email"
                                 class="form-control input-text" value="{{ $employee->email }}" required />

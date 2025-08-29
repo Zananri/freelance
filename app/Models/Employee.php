@@ -17,6 +17,7 @@ class Employee extends Model
         'shift_id',
         'profile_picture',
         'name',
+    'employee_niks',
         'email',
         'email_work',
         'phone',
