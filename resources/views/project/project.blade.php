@@ -160,9 +160,6 @@
                             </button>
                         </div>
                         <div class="dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
-                            <div class="dropdown-filter-header">
-                                <h6>Filter Projects</h6>
-                            </div>
                             <div class="dropdown-filter-body">
                                 <div class="mb-3">
                                     <label for="filterProjectStatus" class="form-label">Filter by Status</label>
@@ -176,9 +173,9 @@
                             </div>
                             <div class="dropdown-filter-footer">
                                 <button type="button" class="btn btn-submit-black"
-                                    id="applyProjectFilterBtn">Filter</button>
-                                <button type="button" class="btn btn-submit-reset"
                                     id="resetProjectFilterBtn">Reset</button>
+                                <button type="button" class="btn btn-submit-black"
+                                    id="applyProjectFilterBtn">Filter</button>
                             </div>
                         </div>
                     </div>
@@ -224,35 +221,35 @@
                                 Please select an image file.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="title" class="form-label label-custom">Title</label>
                             <input type="text" class="form-control input-text" id="title" name="title"
                                 required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="description" name="description" rows="3"></textarea>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="department" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="department" name="department" required>
                                 <option value="">Select Department</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="division" class="form-label label-custom">Division</label>
                             <select class="form-select input-select" id="division" name="division" required>
                                 <option value="">Select Division</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="reference_url" class="form-label label-custom">Reference URL</label>
                             <input type="text" class="form-control input-text" id="reference_url"
                                 name="reference_url">
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="reference_file"
                                 name="reference_file[]" accept=".pdf,.doc,.docx" multiple>
@@ -260,25 +257,25 @@
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
-                            <div style="width: 48%;">
+                            <div style="width: 48%;" class="input-custom">
                                 <label for="start_date" class="form-label label-custom">Start Date</label>
                                 <input type="date" class="form-control input-text" id="start_date"
                                     name="start_date" required>
                             </div>
-                            <div style="width: 48%;">
+                            <div style="width: 48%;" class="input-custom">
                                 <label for="due_date" class="form-label label-custom">Due Date</label>
                                 <input type="date" class="form-control input-text" id="due_date" name="due_date"
                                     required>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="part_of_project" class="form-label label-custom">Part of Project</label>
                             <select class="form-select input-select" id="part_of_project" name="part_of_project">
                                 <option value="">Select Project</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="co_author_input" class="form-label label-custom">Co-Author</label>
                             <input type="text" class="form-control input-text" id="co_author_input"
                                 name="co_author_input" autocomplete="off" placeholder="Search employees...">
@@ -290,7 +287,7 @@
                             </div>
                             <input type="hidden" id="co_author" name="co_author" value="">
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="contributor_input" class="form-label label-custom">Contributor</label>
                             <input type="text" class="form-control input-text" id="contributor_input"
                                 name="contributor_input" autocomplete="off" placeholder="Search employees...">

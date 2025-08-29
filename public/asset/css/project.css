@@ -1323,6 +1323,13 @@
     margin-left: 20px;
 }
 
+.search-input-container input:focus,
+.custom-form-filter:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none;
+}
+
 .search-icon {
     position: absolute;
     top: 50%;
@@ -1348,7 +1355,7 @@
 
 .dropdown-filter-menu {
     border-radius: 20px;
-    background: #fff;
+    background: #f0f1f8;
     position: absolute;
     top: 100%;
     right: 30%;
@@ -1356,14 +1363,11 @@
     border: none;
     min-width: 280px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    margin-top: 4px;
 }
 
 .dropdown-filter-header {
     padding: 12px 16px;
-    border-bottom: 1px solid #dee2e6;
-    background-color: #f8f9fa;
-    border-radius: 8px 8px 0 0;
+    background: #f0f1f8;
 }
 
 .dropdown-filter-header h6 {
@@ -1377,18 +1381,29 @@
     padding: 16px;
 }
 
+.dropdown-filter-body select {
+    border: none;
+}
+
 .dropdown-filter-footer {
     padding: 12px 16px;
     border-top: 1px solid #dee2e6;
     display: flex;
     gap: 5px;
     justify-content: flex-end;
-    border-radius: 0 0 8px 8px;
+    width: 100%;
 }
 
-.dropdown-filter-footer .btn-sm {
-    padding: 4px 12px;
-    font-size: 14px;
+.dropdown-filter-footer button {
+    color: #596069;
+    background: #e3e4ee;
+    flex: 1;
+}
+
+.dropdown-filter-footer button:hover {
+    background: #e3e4ee;
+    color: #596069;
+    flex: 1;
 }
 
 /* Project Filter Display Styles - Sama persis dengan task */
@@ -1429,4 +1444,15 @@
 #projectFilterDisplay {
     display: none; /* Initially hidden */
     position: absolute;
+}
+
+.input-custom input,
+.input-custom select,
+.input-custom textarea {
+    border: none;
+}
+
+.input-custom select option {
+    border: none;
+    width: 95%;
 }
