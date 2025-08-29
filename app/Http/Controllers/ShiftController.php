@@ -148,7 +148,8 @@ class ShiftController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'time_start' => 'required|date_format:H:i',
-                'time_end' => 'required|date_format:H:i|after:time_start',
+                // Allow overnight shifts by not enforcing after:time_start here
+                'time_end' => 'required|date_format:H:i',
             ]);
 
             $start = Carbon::createFromFormat('H:i', $validated['time_start']);
@@ -173,7 +174,7 @@ class ShiftController extends Controller
 
             DB::commit();
             return response()->json([
-                'success' => true,
+                'success' => true,  
                 'message' => 'Shift created successfully',
                 'data' => $shift
             ]);

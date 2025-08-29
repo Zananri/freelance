@@ -44,13 +44,13 @@
                                 <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkIn"
                                     id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
                                     <span class="material-symbols-outlined check-icon"
-                                        style="display: {{ $attendanceStatus['check_in'] === 'completed' ? 'inline' : 'none' }};">check</span>
+                                        style="opacity: {{ $attendanceStatus['check_in'] === 'completed' ? '1' : '0' }};">check</span>
                                     Check In
                                 </button>
                                 <button class="btn btn-custom-check w-25 m-2 p-2 fw-normal" data-check-active="checkOut"
                                     id="checkOutBtn" data-status="{{ $attendanceStatus['check_out'] ?? 'pending' }}">
                                     <span class="material-symbols-outlined done-all-icon"
-                                        style="display: {{ $attendanceStatus['check_out'] === 'completed' ? 'inline' : 'none' }};">done_all</span>
+                                        style="opacity: {{ $attendanceStatus['check_out'] === 'completed' ? '1' : '0' }};">done_all</span>
                                     Check Out
                                 </button>
                             </div>

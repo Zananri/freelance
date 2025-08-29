@@ -1504,7 +1504,8 @@ function openCheckInModal() {
 
     // Update shift display sekali saja
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
-    const dateString = new Date().toISOString().split("T")[0];
+    // Use local date to avoid timezone shifting
+    const dateString = formatLocalYMD(new Date());
     console.log('openCheckInModal - calling updateShiftDisplay with:', { employeeId, dateString });
     if (employeeId) {
         updateShiftDisplay(employeeId, dateString, 'checkin');
@@ -1773,7 +1774,8 @@ function openCheckOutModal() {
 
     // Update shift display sekali saja
     const employeeId = document.querySelector('input[name="employee_id"]')?.value;
-    const dateString = new Date().toISOString().split("T")[0];
+    // Use local date to avoid timezone shifting
+    const dateString = formatLocalYMD(new Date());
     console.log('openCheckOutModal - calling updateShiftDisplay with:', { employeeId, dateString });
     if (employeeId) {
         updateShiftDisplay(employeeId, dateString, 'checkout');
@@ -1831,6 +1833,24 @@ function openCheckOutModal() {
     });
 }
 
+// Ensure shift times refresh when modals are shown (in case open* overrides run earlier)
+try {
+    document.addEventListener('DOMContentLoaded', function () {
+        const inEl = document.getElementById('checkInModal');
+        if (inEl) inEl.addEventListener('shown.bs.modal', function () {
+            const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+            const dateStr = formatLocalYMD(new Date());
+            if (employeeId) updateShiftDisplay(employeeId, dateStr, 'checkin');
+        });
+        const outEl = document.getElementById('checkOutModal');
+        if (outEl) outEl.addEventListener('shown.bs.modal', function () {
+            const employeeId = document.querySelector('input[name="employee_id"]')?.value;
+            const dateStr = formatLocalYMD(new Date());
+            if (employeeId) updateShiftDisplay(employeeId, dateStr, 'checkout');
+        });
+    });
+} catch (_) { /* ignore */ }
+
 function calculateDuration24h(timeIn, timeOut) {
     if (!timeIn || !timeOut) return "0h 0m";
 
@@ -1870,16 +1890,44 @@ function loadCheckInDataForCheckout(serverTime) {
                 // Find record with time_in (check-in record) instead of type_attendance
                 const checkInRecord = data.data.find(r => r.time_in && !r.time_out);
                 if (!checkInRecord) {
-                    console.error("No check-in record found");
-                    showAlertDashboard("No check-in record found for today.", "error");
-                    return setCheckoutModalDefaults();
+                    // Fallback: try latest unclosed check-in (previous day)
+                    return fetch(`${baseUrl}/attendance/latest-unclosed/${employeeId}`)
+                        .then(r => r.json())
+                        .then(latest => {
+                            if (latest && latest.status === 'success' && latest.data) {
+                                populateCheckoutModal(latest.data, serverTime);
+                            } else {
+                                console.error("No check-in record found");
+                                showAlertDashboard("No check-in record found for today.", "error");
+                                setCheckoutModalDefaults();
+                            }
+                        })
+                        .catch(() => {
+                            console.error("No check-in record found");
+                            showAlertDashboard("No check-in record found for today.", "error");
+                            setCheckoutModalDefaults();
+                        });
                 }
 
                 populateCheckoutModal(checkInRecord, serverTime);
             } else {
-                console.warn("No attendance data found");
-                showAlertDashboard("No attendance data found for today.", "error");
-                setCheckoutModalDefaults();
+                // Fallback: try latest unclosed check-in (previous day)
+                return fetch(`${baseUrl}/attendance/latest-unclosed/${employeeId}`)
+                    .then(r => r.json())
+                    .then(latest => {
+                        if (latest && latest.status === 'success' && latest.data) {
+                            populateCheckoutModal(latest.data, serverTime);
+                        } else {
+                            console.warn("No attendance data found");
+                            showAlertDashboard("No attendance data found for today.", "error");
+                            setCheckoutModalDefaults();
+                        }
+                    })
+                    .catch(() => {
+                        console.warn("No attendance data found");
+                        showAlertDashboard("No attendance data found for today.", "error");
+                        setCheckoutModalDefaults();
+                    });
             }
         })
         .catch(error => {
