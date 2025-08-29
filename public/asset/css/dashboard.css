@@ -430,7 +430,8 @@
     transition: left 0.2s, width 0.2s;
     box-sizing: border-box;
     margin-bottom: 10px;
-    z-index: 1;
+    z-index: 2;
+    cursor: pointer;
 }
 
 .timeline-cell {
@@ -1307,4 +1308,100 @@
     top: 24px;
     left: 24px;
     color: rgb(103, 111, 122);
+}
+
+/* =============================
+   Project Detail Modal (Dashboard)
+   Match styling with Project page
+   ============================= */
+#projectDetailModal .modal-content-custom {
+    border-radius: 16px;
+    padding: 24px;
+    background-color: rgb(240, 241, 248);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+#projectDetailModal .project-detail-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    color: #555;
+}
+
+#projectDetailModal .project-photo-title-author {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 1rem;
+}
+
+#projectDetailModal img.project-photo {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+#projectDetailModal .project-title {
+    text-align: center;
+    font-weight: 600;
+    color: #555;
+    margin: 0;
+}
+
+#projectDetailModal .project-description {
+    text-align: justify;
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+}
+
+#projectDetailModal .project-detail-columns {
+    display: flex;
+    width: 100%;
+    gap: 3rem;
+    justify-content: center;
+}
+
+#projectDetailModal .project-detail-left,
+#projectDetailModal .project-detail-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+#projectDetailModal .project-detail-left p,
+#projectDetailModal .project-detail-right p {
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+}
+
+#projectDetailModal .project-detail-right p a {
+    font-size: 14px;
+    margin: 0;
+    text-decoration: none;
+}
+
+#projectDetailModal .project-detail-left p strong,
+#projectDetailModal .project-detail-right p strong {
+    font-weight: 500;
+    color: #555;
+}
+
+@media (max-width: 768px) {
+    #projectDetailModal .project-detail-columns {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: center;
+    }
+    #projectDetailModal .project-detail-left,
+    #projectDetailModal .project-detail-right {
+        flex: 1 1 100%;
+    }
 }

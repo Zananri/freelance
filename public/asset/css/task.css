@@ -837,6 +837,9 @@ p {
     position: relative;
     background: #e3f3ff;
     margin: 4px 0;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 2;
 }
 
 .timeline-bar .circle {
@@ -880,6 +883,15 @@ p {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+/* Ensure Task Detail modal stacks above Timeline modal when both are open */
+#taskDetailModal {
+    z-index: 1061; /* above default Bootstrap modal (1055-1060 range) */
+}
+
+.modal-backdrop.backdrop-task-detail {
+    z-index: 1060; /* put detail backdrop above timeline backdrop */
 }
 
 .exit-fullscreen-btn {
