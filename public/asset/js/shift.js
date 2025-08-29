@@ -120,17 +120,47 @@ loadEmployeeData();
 // Render header tanggal
 function renderHeader(month, year) {
     const headerRow = document.getElementById("shiftTableHeader");
-    headerRow.innerHTML = `<th class="sticky-col fw-semiboled">Employee</th>`;
+    headerRow.innerHTML = "";
 
     const daysInMonth = new Date(year, month, 0).getDate();
+    const isMobile = window.innerWidth <= 768;
 
-    for (let i = 1; i <= daysInMonth; i++) {
-        const th = document.createElement("th");
-        const day = new Date(year, month - 1, i).getDay();
+    if (isMobile) {
+        // Mobile: first date column header (not sticky)
+        const firstDateTh = document.createElement("th");
+        firstDateTh.classList.add("fw-semiboled", "date-column");
+        firstDateTh.textContent = "1";
+        headerRow.appendChild(firstDateTh);
 
-        th.textContent = i;
-        if (day === 0) th.classList.add("sunday");
-        headerRow.appendChild(th);
+        // Other date columns
+        for (let i = 2; i <= daysInMonth; i++) {
+            const th = document.createElement("th");
+            const day = new Date(year, month - 1, i).getDay();
+            th.textContent = i;
+            if (day === 0) th.classList.add("sunday");
+            headerRow.appendChild(th);
+        }
+
+        // Employee column header sticky right
+        const employeeTh = document.createElement("th");
+        employeeTh.classList.add("sticky-col", "fw-semiboled", "employee-column");
+        employeeTh.textContent = "Employee";
+        headerRow.appendChild(employeeTh);
+    } else {
+        // Desktop: employee column header first sticky left
+        const employeeTh = document.createElement("th");
+        employeeTh.classList.add("sticky-col", "fw-semiboled");
+        employeeTh.textContent = "Employee";
+        headerRow.appendChild(employeeTh);
+
+        // Date columns
+        for (let i = 1; i <= daysInMonth; i++) {
+            const th = document.createElement("th");
+            const day = new Date(year, month - 1, i).getDay();
+            th.textContent = i;
+            if (day === 0) th.classList.add("sunday");
+            headerRow.appendChild(th);
+        }
     }
 }
 
@@ -154,22 +184,43 @@ function renderEmployeeTable(employees, month, year) {
     });
     monthTitle.textContent = `${monthName} ${year}`;
 
+    const isMobile = window.innerWidth <= 768;
+
     employees.forEach((employee) => {
         const row = document.createElement("tr");
 
-        // Employee cell
-        const employeeCell = createEmployeeCell(employee);
-        row.appendChild(employeeCell);
+        if (isMobile) {
+            // On mobile, first add date cell (sticky)
+            const firstDateKey = `${year}-${String(month).padStart(2, "0")}-01`;
+            const firstShift = employee.shifts.find((s) => s.date_shift === firstDateKey);
+            const firstDateCell = createShiftCell(employee, firstShift, firstDateKey);
+            firstDateCell.classList.add("sticky-col", "date-column");
+            row.appendChild(firstDateCell);
 
-        // Dates cells
-        for (let i = 1; i <= daysInMonth; i++) {
-            const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(
-                i
-            ).padStart(2, "0")}`;
-            const shift = employee.shifts.find((s) => s.date_shift === dateKey);
+            // Add other date cells except first
+            for (let i = 2; i <= daysInMonth; i++) {
+                const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+                const shift = employee.shifts.find((s) => s.date_shift === dateKey);
+                const td = createShiftCell(employee, shift, dateKey);
+                row.appendChild(td);
+            }
 
-            const td = createShiftCell(employee, shift, dateKey);
-            row.appendChild(td);
+            // Add employee cell as last column
+            const employeeCell = createEmployeeCell(employee);
+            employeeCell.classList.add("sticky-col", "employee-column");
+            row.appendChild(employeeCell);
+        } else {
+            // Desktop: employee cell first
+            const employeeCell = createEmployeeCell(employee);
+            row.appendChild(employeeCell);
+
+            // Dates cells
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+                const shift = employee.shifts.find((s) => s.date_shift === dateKey);
+                const td = createShiftCell(employee, shift, dateKey);
+                row.appendChild(td);
+            }
         }
 
         tableBody.appendChild(row);

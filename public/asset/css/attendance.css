@@ -110,7 +110,7 @@
     font-weight: 500;
     text-align: center;
     min-width: 80px;
-    background-color: #E3E4EE;
+    background-color: #e3e4ee;
     color: #495057;
 }
 
@@ -589,6 +589,27 @@
 
     .btn {
         width: 100%;
+    }
+
+    .attendance-right-content {
+        margin-bottom: 20px;
+    }
+
+    .attendance-right-content .calendar-day {
+        font-size: 14px;
+        aspect-ratio: 0.8;
+    }
+
+    .calendar-day {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
     }
 }
 
