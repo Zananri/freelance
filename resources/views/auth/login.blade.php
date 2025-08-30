@@ -2,13 +2,12 @@
 
     <div class="login-wrapper">
         <div class="login-container">
+
             <div class="text-center mb-5">
                 <img src="{{ asset('asset/img/logo.png') }}" width="70" alt="LOGO NSA Performance">
             </div>
 
-
-
-            <div class="login-box-form w-100">
+            <div class="login-box-form w-100 mb-5">
                 <div class="text-center">
                     <h2>Welcome Back</h2>
                     <p class="fs-14 text-black text-opacity-75">Please enter log in details below</p>
@@ -23,19 +22,19 @@
                             <div class="text-danger fs-12 mt-1">{{ $message }}</div>
                         @enderror
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-4">
                         <input type="password" name="password" class="form-control form-input bg-white bg-opacity-75"
                             placeholder="Password" autocomplete="new-password">
                         @error('password')
                             <div class="text-danger fs-12 mt-1">{{ $message }}</div>
                         @enderror
                     </div>
-                    <div class="mb-3 text-end">
+                    <div class="mb-4 text-end">
                         <a href="{{ url('forgot-password') }}"
                             class="text-black text-link text-opacity-75 fs-14 text-decoration-none">Forgot password
                             ?</a>
                     </div>
-                    <button type="submit" class="btn btn-submit w-100 ">Submit</button>
+                    <button type="submit" class="btn btn-submit w-100 mb-5 ">Submit</button>
                 </form>
             </div>
 

@@ -1407,11 +1407,16 @@
 }
 
 .btn-close-custom {
+    border: 0px !important;
     background: #797E91;
     color: #F3F3F3;
+    font-weight: 300;
 }
 
-.btn-close-custom:hover {
-    background: #797E91;
-    color: #F3F3F3;
+.btn-close-custom:hover,
+.btn-close-custom:active,
+.btn-close-custom:focus {
+    border: 0px !important;
+    background: #6f7486 !important;
+    color: #ffffff !important;
 }
