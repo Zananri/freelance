@@ -50,6 +50,11 @@ class Employee extends Model
         return $this->belongsTo(Job::class);
     }
 
+    public function grade()
+    {
+        return $this->belongsTo(Grade::class);
+    }
+
     public function shift()
     {
         return $this->belongsTo(Shift::class);

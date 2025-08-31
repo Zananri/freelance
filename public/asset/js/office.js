@@ -6,11 +6,19 @@ $(document).ready(function() {
         // Save state to localStorage
         const isHidden = $('body').hasClass('hide-sidebar');
         localStorage.setItem('sidebarHidden', isHidden);
+
+        if (isHidden == true) {
+            document.documentElement.setAttribute('data-sidebar', 'hide-sidebar');
+        }else{
+            document.documentElement.setAttribute('data-sidebar', isHidden);
+        }
     }
 
     // Load saved state on page load
     const savedState = localStorage.getItem('sidebarHidden');
-    if (savedState === 'true') {
+    const windowWidth = window.innerWidth;
+    
+    if (savedState === 'true' && windowWidth > 570) {
         $('body').addClass('hide-sidebar');
     }
 

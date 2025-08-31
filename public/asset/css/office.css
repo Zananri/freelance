@@ -248,12 +248,11 @@ header .img-avatar span.material-symbols-outlined {
     transition: padding 0.5s;
 }
 
-
-.hide-sidebar .left-nav {
+[data-sidebar=hide-sidebar] .left-nav {
     left: -300px;
 }
 
-.hide-sidebar .main-content {
+[data-sidebar=hide-sidebar] .main-content {
     padding-left: 20px;
 }
 
@@ -273,6 +272,16 @@ header .img-avatar span.material-symbols-outlined {
 
 }
 
+@media (max-width: 570px) {
+    .left-nav {
+        background-color: rgb(240, 241, 248);
+        width: calc(100vw - 40px);
+    }
+
+    .left-nav .sidebar{
+        width: 100%;
+    }
+} 
 
 
 
@@ -423,29 +432,31 @@ table.table > tbody > tr > td {
     border-top-right-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
     height: 44px;
-    background-color: white;
-    color: #555;
-    border-right: 1px solid #ccc;
+    background-color: #f8fbff;
+    color: #3f4352;
+    border-right: 2px solid rgb(240, 241, 248) !important;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-size: 16px;
+    font-size: 14px !important;;
+    font-weight: 400 !important;;
     cursor: pointer;
+    transition: all 0.3s;
 }
 
-.btn-profile-left span.material-symbols-outlined,
-.btn-profile-left {
-    color: #555;
+.btn-profile-left .material-symbols-outlined{
+    color: #636670 !important;
+    font-size: 22px !important;
 }
 
 .btn-profile-left:hover {
-    background-color: #555 !important;
-    color: white !important;
+    background-color: #fafbff !important;
+    color: #171a22 !important;
 }
 
 .btn-profile-left:hover span.material-symbols-outlined {
-    color: white !important;
+    color: #171a22 !important;
 }
 
 .btn-logout-right {
@@ -454,28 +465,30 @@ table.table > tbody > tr > td {
     border-top-left-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
     height: 44px;
-    background-color: white;
-    color: #555;
+    background-color: #f8fbff;
+    color: #3f4352;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-size: 16px;
+    font-size: 14px !important;
+    font-weight: 400 !important;
     cursor: pointer;
+    transition: all 0.3s;
 }
 
-.btn-logout-right span.material-symbols-outlined,
-.btn-logout-right {
-    color: #555;
+.btn-logout-right span.material-symbols-outlined{
+    color: #636670 !important;
+    font-size: 22px !important;
 }
 
 .btn-logout-right:hover {
-    background-color: #555 !important;
-    color: white !important;
+    background-color: #fafbff !important;
+    color: #171a22 !important;
 }
 
 .btn-logout-right:hover span.material-symbols-outlined {
-    color: white !important;
+    color: #171a22 !important;
 }
 
 .input-text {

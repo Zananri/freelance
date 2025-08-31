@@ -38,12 +38,12 @@ function getTeamsDetail(employeeId)
 
         
             $('#modalView .employee-name').text(resData.name);
-            $('#modalView .employee-grade').text(resData.grade);
+            $('#modalView .employee-grade').text(resData.grade.title);
             $('#modalView .employee-email').text(resData.email_work);
             $('#modalView .employee-phone').text(resData.phone);
-            $('#modalView .employee-department').text(resData.name_department);
-            $('#modalView .employee-division').text(resData.name_division);
-            $('#modalView .employee-job').text(resData.job_name);
+            $('#modalView .employee-department').text(resData.department.name_department);
+            $('#modalView .employee-division').text(resData.division.name_division);
+            $('#modalView .employee-job').text(resData.job.job_name);
             $('#modalView .employee-photo').attr('src',appUrl+'/'+resData.photo);
 
             modalView.show();

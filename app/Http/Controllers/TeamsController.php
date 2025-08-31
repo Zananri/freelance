@@ -43,16 +43,7 @@ class TeamsController extends Controller
             $idEmployee = $request->ID_EMPLOYEE;
         }
 
-        $employee = Employee::select(
-            'employees.id','employees.grade','employees.email_work','employees.name','employees.phone','employees.status','employees.photo',
-            'job_list.job_name','departments.name_department','divisions.name_division'
-        )
-        ->join('job_list','employees.job_id','=','job_list.id')
-        ->join('departments','employees.department_id','=','departments.id')
-        ->join('divisions','employees.division_id','=','divisions.id')
-        ->where('employees.id',$idEmployee)
-        ->where('employees.status',"ACTIVE")
-        ->first();
+        $employee = Employee::with('division', 'department', 'job','grade')->where('status',"ACTIVE")->where('id', $idEmployee)->first();
 
         if(!$employee){
             return response()->json([

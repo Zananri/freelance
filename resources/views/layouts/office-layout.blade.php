@@ -5,6 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     
     @php
         $head_stitle = 'Office NSA Performance';
@@ -23,6 +24,8 @@
 
     <meta name="app-url" content="{{ url('') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>
 
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
     <link rel="shortcut icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
@@ -55,6 +58,7 @@
     @isset($head_slot)
         {{ $head_slot }}
     @endisset
+    
 </head>
 
 <body class="">
@@ -95,9 +99,9 @@
                 @endif
 
                 <div id="avatarDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
-                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3" id="closeAvatarDropdown"
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3 p-2" id="closeAvatarDropdown"
                         aria-label="Close"></button>
-                    <div class="card-body p-3 text-center d-flex flex-column justify-content-center align-items-center"
+                    <div class="card-body p-3 pt-2 text-center d-flex flex-column justify-content-center align-items-center"
                         style="min-height: 220px;">
                         <div class="mb-3 mt-3">
                             @if (Auth::check())
@@ -117,34 +121,38 @@
                             {{ Auth::check() ? optional(auth()->user()->employee->division)->name_division ?? 'No Division' : '' }}
                         </div>
 
-                        <div class="d-flex flex-row align-items-center" style="width: 85%;">
-                            <button type="button" class="btn btn-detail btn-sidebar-style btn-profile-left"
-                                style="font-size: 16px; min-height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #ffffff; border-right: 1px solid #ccc;"
-                                onclick="window.location.href='{{ route('profile') }}'">
-                                <span class="material-symbols-outlined" style="font-size: 25px;">account_circle</span>
-                                Profile
-                            </button>
-                            <form method="POST" action="{{ route('logout') }}" style="flex: 1; margin: 0;">
-                                @csrf
-                                <button type="submit" class="btn btn-detail btn-sidebar-style btn-logout-right"
-                                    style="font-size: 16px; min-height: 44px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; background-color: #ffffff;">
-                                    <span class="material-symbols-outlined" style="font-size: 25px;">logout</span>
-                                    Logout
-                                </button>
+                        <div class="w-100 p-3">
+                            <form method="POST" action="{{ route('logout') }}"  >
+                                 @csrf
+                                 <div class="d-flex justify-content-center   align-items-center w-100" >
+                                        <a  class="btn btn-profile-left w-100" href="{{ route('profile') }}">
+                                            <span class="material-symbols-outlined">account_circle</span>
+                                            Profile
+                                        </a>
+                                        
+                                        
+                                        <button type="submit" class="btn btn-logout-right w-100" >
+                                            <span class="material-symbols-outlined">logout</span>
+                                            Logout
+                                        </button>
+                                    
+                                </div>
+
                             </form>
                         </div>
+                        
                     </div>
                 </div>
             </div>
 
             <div class="nav-item d-none d-sm-inline-block pt-1" style="">
                 @if (Auth::check())
-                    <div class="fs-14 fw-medium">Welcome, {{ auth()->user()->name }}</div>
+                    <div class="fs-14 fw-medium">{{ auth()->user()->name }}</div>
                     <div class="fs-12 fw-normal text-body text-opacity-75">
                         {{ optional(auth()->user()->employee->division)->name_division ?? 'No Division' }}
                     </div>
                 @else
-                    <div class="fs-14 fw-medium">Welcome, Guest</div>
+                    <div class="fs-14 fw-medium">Guest</div>
                     <div class="fs-12 fw-normal text-body text-opacity-75">
                         No Division
                     </div>

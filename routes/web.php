@@ -22,7 +22,7 @@ use Carbon\Carbon;
 
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect('dashboard');
 });
 
 Route::middleware('guest')->group(function () {

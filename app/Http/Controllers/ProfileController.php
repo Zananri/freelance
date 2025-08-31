@@ -17,10 +17,10 @@ class ProfileController extends Controller
     public function showprofilePage()
     {
         $user = auth()->user();
-        $employee = Employee::with('division', 'department', 'job')->where('user_id', $user->id)->first();
+        $employee = Employee::with('division', 'department', 'job','grade')->where('user_id', $user->id)->first();
 
         $today = Carbon::today()->toDateString();
-
+ 
         if ($employee) {
             // Prefer profile_picture if available, else photo
             $photo = $employee->profile_picture ?? $employee->photo;
