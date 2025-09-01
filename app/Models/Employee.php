@@ -28,7 +28,7 @@ class Employee extends Model
         'birth_date',
         'hire_date',
         'resign_date',
-        'grade',
+    'grade_id',
         'office',
         'created_by',
         'deleted_by',
@@ -52,7 +52,13 @@ class Employee extends Model
 
     public function grade()
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(Grade::class, 'grade_id');
+    }
+
+    // Office relation (column name is 'office' storing office id)
+    public function officeModel()
+    {
+        return $this->belongsTo(Office::class, 'office');
     }
 
     public function shift()

@@ -289,6 +289,13 @@ function loadJobs(divisionId, selectedId) {
         if (formData.get("shift_id")) {
             formData.set("shift_id", formData.get("shift_id"));
         }
+        // Ensure grade_id and office are ids
+        if (formData.get("grade_id")) {
+            formData.set("grade_id", formData.get("grade_id"));
+        }
+        if (formData.get("office")) {
+            formData.set("office", formData.get("office"));
+        }
 
         fetch(form.action, {
             method: "POST",

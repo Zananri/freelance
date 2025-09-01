@@ -15,7 +15,7 @@ class UpdateEmployeeGradeOfficeSeeder extends Seeder
     {
         Employee::where('id','>',0)->update(
             [
-                'grade' => 1,
+                'grade_id' => 1,
                 'office' => 1
             ]
         );

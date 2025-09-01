@@ -212,7 +212,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // compute chart counts even if zero or empty
                 try {
-                    updateProjectChartFromData(projects);
+                    const chartCounts = (data && data.chart_counts) ? data.chart_counts : null;
+                    updateProjectChartFromData(projects, chartCounts);
                 } catch (e) {
                     console.error('updateProjectChartFromData error', e);
                 }
@@ -2298,13 +2299,44 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
 
                     // Click on timeline bar opens the same Project Detail modal
+                    // If the click comes from the timeline modal, close the timeline first,
+                    // then show Project Detail. After closing Project Detail, reopen the timeline modal.
                     document.addEventListener('click', function (e) {
                         const bar = e.target.closest('.timeline-bar[data-project-id]');
                         if (!bar) return;
                         const pid = bar.getAttribute('data-project-id');
-                        if (pid) {
-                            fetchAndShowProjectDetail(pid);
+                        if (!pid) return;
+
+                        // Detect if timeline modal is currently open
+                        const timelineModalEl = document.getElementById('timelineModal');
+                        let shouldReopenTimeline = false;
+                        if (timelineModalEl && timelineModalEl.classList.contains('show')) {
+                            try {
+                                const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                tlInstance.hide();
+                                shouldReopenTimeline = true;
+                            } catch (_) {}
                         }
+
+                        // Set a one-time handler to reopen timeline after detail is closed (only when originated from timeline)
+                        if (shouldReopenTimeline) {
+                            const detailEl = document.getElementById('projectDetailModal');
+                            if (detailEl) {
+                                const onDetailHidden = function () {
+                                    try {
+                                        const tlInstance2 = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                        tlInstance2.show();
+                                    } catch (_) {}
+                                    detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
+                                };
+                                // Ensure no duplicate handler stacking
+                                detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
+                                detailEl.addEventListener('hidden.bs.modal', onDetailHidden, { once: true });
+                            }
+                        }
+
+                        // Proceed to open Project Detail
+                        fetchAndShowProjectDetail(pid);
                     });
 
                     // Function to format task date like feedback
@@ -2679,7 +2711,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 else {
                     // no projects - ensure chart shows zero state
-                    updateProjectChartFromData([]);
+                    updateProjectChartFromData([], null);
                 }
             },
             error: function () {
@@ -4448,44 +4480,62 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // update chart and label counts based on aggregated task_counts across projects
-    function updateProjectChartFromData(projects) {
-        projects = projects || [];
+    // Requirements:
+    // - Total (label under chart): jumlah project milik employee (panjang array projects)
+    // - Complete/On Progress/Late (labels): jumlah task di dalam project dengan status completed, in_progress, dan late
+    //   Catatan: in_progress TIDAK menghitung rejected; Late = task non-completed yang lewat due_date; Not Started = new_request
+    function updateProjectChartFromData(projects, chartCounts) {
+        projects = Array.isArray(projects) ? projects : [];
 
-        let totalTasks = 0;
+        const numberOfProjects = projects.length; // Total project untuk label pertama
+
+        // Prefer backend-provided aggregated chart counts (tasks assigned to me across ALL projects)
+        // to ensure New/Not Started tasks accepted by me in non-member projects are counted.
+        let useChartCounts = chartCounts && typeof chartCounts === 'object';
+
+        let totalTasks = 0; // tetap dipakai untuk komposisi chart slices
         let completed = 0;
-        let inProgress = 0; // includes rejected per backend
+        let inProgressLabel = 0; // in_progress tanpa rejected
         let late = 0;
+        let notStartedChart = 0;
 
-        projects.forEach((p) => {
-            const tc = p.task_counts || {};
-            if (tc.excl) {
-                completed += (tc.excl.completed || 0);
-                const ip = (tc.excl.in_progress || 0);
-                const lt = (tc.excl.late || 0);
-                const ns = (tc.excl.not_started || 0);
-                inProgress += ip;
-                late += lt;
-                totalTasks += (ip + lt + ns + (tc.excl.completed || 0));
-            } else {
+        if (useChartCounts) {
+            totalTasks = Number(chartCounts.total || 0);
+            completed = Number(chartCounts.completed || 0);
+            inProgressLabel = Number(chartCounts.in_progress || 0);
+            late = Number(chartCounts.late || 0);
+            notStartedChart = Number(chartCounts.not_started || 0);
+        } else {
+            let notStartedExclSum = 0; // jika backend menyediakan bucket eksklusif
+            let hasExclNotStarted = false;
+
+            projects.forEach((p) => {
+                const tc = p.task_counts || {};
                 totalTasks += (tc.total || 0);
-                completed += (tc.completed || 0);
-                inProgress += (tc.in_progress || 0);
-                late += (tc.late || 0);
-            }
-        });
+                completed += (tc.completed || (tc.excl && tc.excl.completed) || 0);
+                late += (tc.late || (tc.excl && tc.excl.late) || 0);
+                const ipRaw = (tc.in_progress || 0);
+                const rejected = (tc.rejected || 0);
+                inProgressLabel += Math.max(0, ipRaw - rejected);
+                if (tc.excl && typeof tc.excl.not_started === 'number') {
+                    notStartedExclSum += tc.excl.not_started;
+                    hasExclNotStarted = true;
+                }
+            });
 
-    // Compute slices: use in-progress as reported (exclusive buckets handled by backend when available)
-    const inProgressExclLate = inProgress;
-        const notStarted = Math.max(0, totalTasks - completed - inProgressExclLate - late);
+            notStartedChart = hasExclNotStarted
+                ? notStartedExclSum
+                : Math.max(0, totalTasks - completed - inProgressLabel - late);
+        }
 
         // Chart slices: Not Started, Complete, On Progress, Late
-        const chartData = [notStarted, completed, inProgressExclLate, late];
+        const chartData = [notStartedChart, completed, inProgressLabel, late];
 
         // update chart instance: set labels and colors accordingly
         try {
             if (projectChartInstance && projectChartInstance.data) {
                 if (totalTasks === 0) {
-                    // no projects at all -> show No Data
+                    // tidak ada task sama sekali -> tampilkan No Data
                     projectChartInstance.data.labels = ["No Data"];
                     projectChartInstance.data.datasets[0].data = [1];
                     projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
@@ -4503,15 +4553,16 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error('chart update failed', e);
         }
 
-        // Update label numbers in the UI (Total, Complete, On Progress, Late)
+        // Update label numbers di UI (Total Project, Complete Task, On Progress Task, Late Task)
         try {
             const labelsContainer = document.querySelector('.chart-labels');
             if (labelsContainer) {
                 const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
                 if (spans && spans.length >= 4) {
-                    spans[0].textContent = totalTasks;
+                    // Total = jumlah project yang dimiliki employee (bukan jumlah task)
+                    spans[0].textContent = numberOfProjects;
                     spans[1].textContent = completed;
-                    spans[2].textContent = inProgressExclLate;
+                    spans[2].textContent = inProgressLabel;
                     spans[3].textContent = late;
                 }
             }

@@ -294,7 +294,9 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.set("address", formData.get("address"));
             formData.set("birth_date", formData.get("birth_date"));
             formData.set("hire_date", formData.get("hire_date"));
-            formData.set("grade", formData.get("grade"));
+            // grade and office are ids now
+            formData.set("grade_id", formData.get("grade_id"));
+            formData.delete("grade");
             formData.set("office", formData.get("office"));
             formData.set("department_id", formData.get("department_id"));
             formData.set("division_id", formData.get("division_id"));
