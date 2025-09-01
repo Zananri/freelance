@@ -29,6 +29,7 @@ class Task extends Model
 
     protected $casts = [
         'reference_files' => 'array',
+    'read_markers' => 'array',
     ];
 
     // Define relationship to Project

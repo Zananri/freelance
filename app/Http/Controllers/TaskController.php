@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
+// use Illuminate\Support\Carbon; // not used directly
 
 class TaskController extends Controller
 {
@@ -124,6 +125,7 @@ class TaskController extends Controller
                         'id' => $task->id,
                         'title' => $task->title,
                         'description' => $task->description,
+                        'project_title' => $task->project ? $task->project->title : null,
                         'project_image' => ($task->project && $task->project->image)
                             ? asset('file/project/' . $task->project->image)
                             : asset('asset/img/profile_picture/sample_project.png'),
@@ -151,6 +153,72 @@ class TaskController extends Controller
                 'status' => 'error',
                 'message' => $e->getMessage()
             ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * Get unread feedback count for a task for current employee.
+     */
+    public function getUnreadFeedbackCount($taskId)
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json(['count' => 0]);
+            }
+
+            $task = Task::find($taskId);
+            if (!$task) return response()->json(['count' => 0]);
+
+            // Strategy: store per-employee last_read_at in tasks.read_markers (JSON)
+            $markers = [];
+            if (!empty($task->read_markers)) {
+                $markers = is_array($task->read_markers)
+                    ? $task->read_markers
+                    : ((json_decode($task->read_markers, true)) ?: []);
+            }
+            $lastReadAt = $markers[(string)$employeeId] ?? null;
+
+            $query = TaskFeedback::where('task_id', $taskId)
+                ->where('employee_id', '!=', $employeeId); // exclude own feedback
+            if ($lastReadAt) {
+                $query->where('created_at', '>', $lastReadAt);
+            }
+            $count = $query->count();
+
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['count' => 0]);
+        }
+    }
+
+    /**
+     * Mark all feedbacks as read for current employee for a task by updating last_read_at marker.
+     */
+    public function markTaskFeedbacksRead($taskId)
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json(['status' => 'ok']);
+            }
+
+            $task = Task::findOrFail($taskId);
+            $markers = [];
+            if (!empty($task->read_markers)) {
+                $markers = is_array($task->read_markers)
+                    ? $task->read_markers
+                    : ((json_decode($task->read_markers, true)) ?: []);
+            }
+            $markers[(string)$employeeId] = now()->toDateTimeString();
+            $task->read_markers = $markers;
+            $task->save();
+
+            return response()->json(['status' => 'ok']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'ok']);
         }
     }
 

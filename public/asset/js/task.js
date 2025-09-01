@@ -1044,7 +1044,10 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
             <div class="d-flex align-items-center mb-2 mt-2">
                 <img src="${task.project_image}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px;">
-                <h5 class="mb-0 task-title">${task.title}</h5>
+                <div class="d-flex flex-column">
+                    <small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>
+                    <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
+                </div>
             </div>
             <div class="task-description-container">
                 <p class="task-description" data-full-description="${task.description}">
@@ -1068,8 +1071,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 <div class="d-flex align-items-center pic-executor-container">
                     ${executorsHtml}
                 </div>
-                <div class="d-flex">
-                   <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                     <div class="d-flex">
+                         <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
                         <span class="material-symbols-outlined task-icon mode_comment"
                             data-task-id="${task.id}">mode_comment</span>
                         ${
@@ -1077,6 +1080,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                 ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
                                 : ""
                         }
+                                <span class="unread-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" data-task-id="${task.id}" style="font-size:10px; min-width:16px; line-height:14px;">0</span>
                     </div>
                     <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
                         <span class="material-symbols-outlined task-icon">attach_file</span>
@@ -1175,6 +1179,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     setupTaskDropdownListeners();
     addAttachFileIconListeners();
     initBootstrapTooltips();
+    refreshAllUnreadBadges();
     }
 
     $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
@@ -1230,7 +1235,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             icon.dataset.bound = '1';
             icon.addEventListener("click", function () {
                 const taskId = this.dataset.taskId;
-                handleTaskFeedback(taskId);
+                markTaskFeedbacksRead(taskId).always(() => {
+                    handleTaskFeedback(taskId);
+                });
             });
         });
 
@@ -1270,10 +1277,14 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             handleTaskEdit(taskId);
                             break;
                         case "Feedback":
-                            handleTaskFeedback(taskId);
+                            markTaskFeedbacksRead(taskId).always(() => {
+                                handleTaskFeedback(taskId);
+                            });
                             break;
                         case "mode_comment":
-                            handleTaskFeedback(taskId);
+                            markTaskFeedbacksRead(taskId).always(() => {
+                                handleTaskFeedback(taskId);
+                            });
                             break;
                         case "Progress":
                             handleTaskProgress(taskId, taskCard);
@@ -1554,9 +1565,58 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         feedbackModalEl.dataset.taskId = taskId;
 
         // Load feedback data (kosongan dulu)
-        loadTaskFeedbackData(taskId);
+    loadTaskFeedbackData(taskId);
+
+    // Hide unread badge immediately upon opening
+    hideUnreadBadge(taskId);
 
         feedbackModal.show();
+    }
+
+    // Unread feedback badge helpers
+    function setUnreadBadge(taskId, count) {
+        const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+        if (!card) return;
+        const badge = card.querySelector(`.unread-badge[data-task-id="${taskId}"]`);
+        if (!badge) return;
+        const n = parseInt(count, 10) || 0;
+        if (n > 0) {
+            badge.textContent = String(n);
+            badge.classList.remove('d-none');
+        } else {
+            badge.textContent = '0';
+            badge.classList.add('d-none');
+        }
+    }
+    function hideUnreadBadge(taskId) {
+        setUnreadBadge(taskId, 0);
+    }
+    function fetchUnreadForTask(taskId) {
+        return $.ajax({ url: appUrl + `/task/${taskId}/feedbacks/unread-count`, type: 'GET' })
+            .then((res) => {
+                const c = (res && (res.count ?? res.data?.count)) || 0;
+                setUnreadBadge(taskId, c);
+            })
+            .catch(() => { /* noop */ });
+    }
+    function refreshAllUnreadBadges() {
+        document.querySelectorAll('.custom-card[data-task-id]').forEach((card) => {
+            const tid = card.getAttribute('data-task-id');
+            fetchUnreadForTask(tid);
+        });
+    }
+    function markTaskFeedbacksRead(taskId) {
+        return $.ajax({
+            url: appUrl + `/task/${taskId}/feedbacks/mark-read`,
+            type: 'POST',
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+        }).always(() => {
+            hideUnreadBadge(taskId);
+        });
     }
 
     // Fungsi untuk memuat data feedback
@@ -3165,6 +3225,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 setupTaskDropdownListeners();
                 addAttachFileIconListeners();
                 initBootstrapTooltips();
+                refreshAllUnreadBadges();
 
                 // ⬇️ Refresh mobile view biar ikutin hasil terbaru
                 $("#taskStatusSelect").trigger("change");
