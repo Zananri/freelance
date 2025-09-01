@@ -27,7 +27,10 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
+            GradeSeeder::class,
+            OfficeSeeder::class,
             OfficeBasicSeeder::class,
+            UpdateEmployeeGradeOfficeSeeder::class,
         ]);
     }
 }
