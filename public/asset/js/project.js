@@ -4512,9 +4512,9 @@ document.addEventListener("DOMContentLoaded", function () {
             labels = ["No Data"];
         } else {
             chartData = data;
-            // expect slices: Not Started, Complete, On Progress, Late
+            // expect slices: Total, Complete, On Progress, Late
             colors = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
-            labels = ["Not Started", "Complete", "On Progress", "Late"];
+            labels = ["Total", "Complete", "On Progress", "Late"];
         }
 
         return new Chart(el, {
@@ -4594,8 +4594,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 : Math.max(0, totalTasks - completed - inProgressLabel - late);
         }
 
-        // Chart slices: Not Started, Complete, On Progress, Late
-        const chartData = [notStartedChart, completed, inProgressLabel, late];
+        // Chart slices: Total, Complete, On Progress, Late
+        const chartData = [totalTasks, completed, inProgressLabel, late];
 
         // update chart instance: set labels and colors accordingly
         try {
@@ -4606,7 +4606,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     projectChartInstance.data.datasets[0].data = [1];
                     projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
                 } else {
-                    projectChartInstance.data.labels = ["Not Started", "Complete", "On Progress", "Late"];
+                    projectChartInstance.data.labels = ["Total", "Complete", "On Progress", "Late"];
                     projectChartInstance.data.datasets[0].data = chartData;
                     projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
                 }
@@ -4625,8 +4625,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (labelsContainer) {
                 const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
                 if (spans && spans.length >= 4) {
-                    // Total = jumlah project yang dimiliki employee (bukan jumlah task)
-                    spans[0].textContent = numberOfProjects;
+        // Total = jumlah task yang dimiliki employee
+        spans[0].textContent = totalTasks;
                     spans[1].textContent = completed;
                     spans[2].textContent = inProgressLabel;
                     spans[3].textContent = late;

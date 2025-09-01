@@ -833,11 +833,13 @@
     }
 
     .btn-filter-custom,
+    .btn-export-custom,
     .btn-timeline-filter-custom {
         min-width: 50px;
     }
 
     .btn-filter-custom::after,
+    .btn-export-custom::after,
     .btn-timeline-filter-custom::after {
         content: attr(data-label);
         position: absolute;
@@ -856,6 +858,7 @@
     }
 
     .btn-filter-custom:hover::after,
+    .btn-export-custom:hover::after,
     .btn-timeline-filter-custom:hover::after {
         opacity: 1;
     }
@@ -1341,6 +1344,7 @@
 }
 
 .btn-filter-custom,
+.btn-export-custom,
 .btn-timeline-filter-custom {
     border: none;
     border-radius: 10px;
@@ -1351,6 +1355,12 @@
     justify-content: center;
     align-items: center;
     gap: 4px;
+}
+
+.btn-filter-custom:hover,
+.btn-export-custom:hover,
+.btn-timeline-filter-custom:hover {
+    background: #e9eef4;
 }
 
 .dropdown-filter-menu {
