@@ -55,6 +55,12 @@ class Employee extends Model
         return $this->belongsTo(Grade::class, 'grade_id');
     }
 
+    // Office relation (column name is 'office' storing office id)
+    public function officeModel()
+    {
+        return $this->belongsTo(Office::class, 'office');
+    }
+
     public function shift()
     {
         return $this->belongsTo(Shift::class);
