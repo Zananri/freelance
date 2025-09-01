@@ -67,7 +67,7 @@
 
     function loadProjects() {
         if (!projectSelect) return;
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -943,19 +943,18 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     // Function to create task card HTML
    function createTaskCard(task) {
-    // Combine PIC and executors into one array for uniform rendering without duplicates
+    // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
         allExecutors.push(task.pic);
     }
-    if (task.executors && task.executors.length > 0) {
-        task.executors.forEach((executor) => {
-            // Avoid duplicate if executor is same as PIC
-            if (!allExecutors.some(e => e.id === executor.id)) {
-                allExecutors.push(executor);
-            }
-        });
-    }
+    const acceptedExecutors = (task.executors || []).filter(ex => ex && (ex.is_receive === true || ex.is_receive === 1));
+    acceptedExecutors.forEach((executor) => {
+        // Avoid duplicate if executor is same as PIC
+        if (!allExecutors.some(e => e && e.id === executor.id)) {
+            allExecutors.push(executor);
+        }
+    });
 
     // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
     const executorsHtml = allExecutors
@@ -3057,7 +3056,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         );
         if (!editProjectSelect) return;
 
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -3558,7 +3557,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     function loadProjectsForFilterMobile() {
         if (!filterTaskProjectSelectMobile) return;
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -3650,7 +3649,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     function loadProjectsForFilter() {
         if (!filterTaskProjectSelect) return;
 
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");

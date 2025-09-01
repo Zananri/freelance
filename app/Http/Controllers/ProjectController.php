@@ -258,7 +258,139 @@ class ProjectController extends Controller
     {
         try {
             $user = auth()->user();
-            if (!$user || !$user->employee) {
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            $filter = $request->input('filter', null);
+            $includeUnaccepted = $request->input('include_unaccepted', false);
+            // task_scope: 'project' (default), 'me', or 'all' (return all projects regardless of membership)
+            $taskScopeRaw = strtolower($request->input('task_scope', 'project'));
+            $taskScope = in_array($taskScopeRaw, ['project', 'me', 'all']) ? $taskScopeRaw : 'project';
+
+            // If requesting all projects, ignore membership and auth presence
+            if ($taskScope === 'all') {
+                $projects = Project::where('status', '!=', 'DELETED')
+                    ->with(['department', 'division', 'projectAssignments.employee', 'projectAssignments.project'])
+                    ->get();
+
+                $projectsTransformed = $projects->map(function ($project) use ($taskScope, $employeeId) {
+                    $projectAssignments = $project->projectAssignments->map(function ($assignment) {
+                        return [
+                            'id' => $assignment->id,
+                            'role' => $assignment->role,
+                            'employee_id' => $assignment->employee_id,
+                            'employee_name' => $assignment->employee ? $assignment->employee->name : null,
+                            'project_id' => $assignment->project_id,
+                            'project_title' => $assignment->project ? $assignment->project->title : null,
+                        ];
+                    });
+
+                    // For 'all' scope, include all tasks under the project for counts
+                    $taskBase = Task::where('project_id', $project->id);
+
+                    $totalTasks = (clone $taskBase)->count();
+                    $inProgressTasks = (clone $taskBase)
+                        ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
+                        ->count();
+                    $rejectedTasks = (clone $taskBase)
+                        ->whereIn(DB::raw('LOWER(status)'), ['rejected'])
+                        ->count();
+                    $completedTasks = (clone $taskBase)
+                        ->whereIn(DB::raw('LOWER(status)'), ['completed'])
+                        ->count();
+                    $lateTasks = (clone $taskBase)
+                        ->whereRaw('LOWER(status) <> ?', ['completed'])
+                        ->whereNotNull('due_date')
+                        ->where('due_date', '<', now())
+                        ->count();
+
+                    $nowTs = now();
+                    $inProgressOnTime = (clone $taskBase)
+                        ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
+                        ->where(function ($q) use ($nowTs) {
+                            $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
+                        })
+                        ->count();
+                    $lateExclusive = (clone $taskBase)
+                        ->whereRaw('LOWER(status) <> ?', ['completed'])
+                        ->whereNotNull('due_date')
+                        ->where('due_date', '<', $nowTs)
+                        ->count();
+                    $notStartedOnTime = (clone $taskBase)
+                        ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
+                        ->where(function ($q) use ($nowTs) {
+                            $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
+                        })
+                        ->count();
+
+                    // Build author/co_authors/contributors with photo URLs if available (same as below)
+                    $author = null;
+                    $coAuthors = [];
+                    $contributors = [];
+                    foreach ($project->projectAssignments as $assignment) {
+                        $employee = $assignment->employee;
+                        if (!$employee) continue;
+
+                        $userPhoto = null;
+                        $rawPhoto = null;
+                        if ($employee->user && $employee->user->photo) {
+                            $rawPhoto = $employee->user->photo;
+                        } elseif ($employee->photo) {
+                            $rawPhoto = $employee->photo;
+                        }
+                        if ($rawPhoto) {
+                            if (\Illuminate\Support\Str::startsWith($rawPhoto, 'file/') || \Illuminate\Support\Str::startsWith($rawPhoto, '/file/')) {
+                                $userPhoto = asset($rawPhoto);
+                            } elseif (\Illuminate\Support\Str::startsWith($rawPhoto, 'storage/') || \Illuminate\Support\Str::startsWith($rawPhoto, '/storage/')) {
+                                $userPhoto = asset($rawPhoto);
+                            } else {
+                                $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
+                            }
+                        }
+
+                        if ($assignment->role === 'author') {
+                            $author = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        } elseif ($assignment->role === 'co_author') {
+                            $coAuthors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        } elseif ($assignment->role === 'contributor') {
+                            $contributors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                        }
+                    }
+
+                    return [
+                        'id' => $project->id,
+                        'title' => $project->title,
+                        'description' => $project->description,
+                        'image' => $project->image,
+                        'department' => $project->department,
+                        'division' => $project->division,
+                        'status' => $project->status,
+                        'project_assignments' => $projectAssignments,
+                        'author' => $author,
+                        'co_authors' => $coAuthors,
+                        'contributors' => $contributors,
+                        'task_counts' => [
+                            'total' => $totalTasks,
+                            'in_progress' => $inProgressTasks,
+                            'rejected' => $rejectedTasks,
+                            'completed' => $completedTasks,
+                            'late' => $lateTasks,
+                            'excl' => [
+                                'completed' => $completedTasks,
+                                'in_progress' => $inProgressOnTime,
+                                'late' => $lateExclusive,
+                                'not_started' => $notStartedOnTime,
+                            ],
+                        ]
+                    ];
+                });
+
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => $projectsTransformed
+                ]);
+            }
+
+            if (!$employeeId) {
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
@@ -266,13 +398,7 @@ class ProjectController extends Controller
                 ]);
             }
             
-            $employeeId = $user->employee->id;
-            $filter = $request->input('filter', null);
-            $includeUnaccepted = $request->input('include_unaccepted', false);
-            // task_scope: 'project' (default, all tasks in project) or 'me' (only tasks assigned to me)
-            $taskScope = strtolower($request->input('task_scope', 'project')) === 'me' ? 'me' : 'project';
-            
-            // Build the base set of projects depending on scope
+            // Build the base set of projects depending on scope ('project' or 'me')
             if ($taskScope === 'me') {
                 // Only include projects where user is part of the team (author/co_author/contributor)
                 // Do NOT include projects solely because the user has tasks there (per requirement).
