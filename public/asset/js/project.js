@@ -214,6 +214,65 @@ document.addEventListener("DOMContentLoaded", function () {
                 try {
                     const chartCounts = (data && data.chart_counts) ? data.chart_counts : null;
                     updateProjectChartFromData(projects, chartCounts);
+
+                    // Fallback: if employee has tasks but 0 projects and no chart_counts provided,
+                    // derive counts from /task/index so chart still reflects tasks.
+                    const hasProjects = Array.isArray(projects) && projects.length > 0;
+                    const hasChartCounts = chartCounts && (Number(chartCounts.total || 0) > 0 ||
+                                            Number(chartCounts.completed || 0) > 0 ||
+                                            Number(chartCounts.in_progress || 0) > 0 ||
+                                            Number(chartCounts.late || 0) > 0 ||
+                                            Number(chartCounts.not_started || 0) > 0);
+                    if (!hasProjects && !hasChartCounts) {
+                        // Helper to parse date safely (YYYY-MM-DD tolerant)
+                        function parseLocalDate(d) {
+                            if (!d) return null;
+                            try {
+                                const s = String(d).trim();
+                                const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                                if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+                                const dt = new Date(s);
+                                return isNaN(dt.getTime()) ? null : dt;
+                            } catch(_) { return null; }
+                        }
+
+                        fetch(appUrl + '/task/index')
+                            .then(r => r.ok ? r.json() : Promise.reject(r))
+                            .then(resp => {
+                                const d = resp && resp.data ? resp.data : {};
+                                const arrNew = Array.isArray(d.new_request) ? d.new_request : [];
+                                const arrInProg = Array.isArray(d.in_progress) ? d.in_progress : [];
+                                const arrCompleted = Array.isArray(d.completed) ? d.completed : [];
+                                const arrRejected = Array.isArray(d.rejected) ? d.rejected : [];
+
+                                const total = arrNew.length + arrInProg.length + arrCompleted.length + arrRejected.length;
+                                const notStarted = arrNew.length;
+                                const inProgLabel = arrInProg.length; // exclude rejected from in_progress label
+
+                                // late = non-completed overdue (include rejected per spec "non-completed")
+                                const now = new Date(); now.setHours(0,0,0,0);
+                                function isLate(task) {
+                                    const due = parseLocalDate(task && (task.due_date || task.due || task.end_date));
+                                    return (due && due < now);
+                                }
+                                const late = arrNew.filter(isLate).length
+                                            + arrInProg.filter(isLate).length
+                                            + arrRejected.filter(isLate).length;
+
+                                const derived = {
+                                    total,
+                                    completed: arrCompleted.length,
+                                    in_progress: inProgLabel,
+                                    late,
+                                    not_started: notStarted,
+                                };
+                                updateProjectChartFromData([], derived);
+                            })
+                            .catch(err => {
+                                // keep existing zero state
+                                console.debug('tasks fallback for chart failed', err);
+                            });
+                    }
                 } catch (e) {
                     console.error('updateProjectChartFromData error', e);
                 }
@@ -2710,8 +2769,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     }, 50); // Further reduced delay for instant update
                 }
                 else {
-                    // no projects - ensure chart shows zero state
-                    updateProjectChartFromData([], null);
+                    // No projects. If backend provides aggregated task chart_counts,
+                    // we already updated the chart above. Only set zero state when chart_counts is missing.
+                    try {
+                        if (!data || !data.chart_counts) {
+                            updateProjectChartFromData([], null);
+                        }
+                    } catch (_) {
+                        updateProjectChartFromData([], null);
+                    }
                 }
             },
             error: function () {
