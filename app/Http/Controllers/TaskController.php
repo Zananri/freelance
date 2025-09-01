@@ -1098,6 +1098,72 @@ class TaskController extends Controller
     }
 
     /**
+     * Get the latest single feedback for a task
+     */
+    public function getTaskLatestFeedback($taskId)
+    {
+        try {
+            $employeeId = auth()->user()?->employee?->id;
+
+            // Apply unread window using task read_markers (per-employee last_read_at)
+            $lastReadAt = null;
+            if ($employeeId) {
+                $task = Task::find($taskId);
+                if ($task && !empty($task->read_markers)) {
+                    $markers = is_array($task->read_markers) ? $task->read_markers : (json_decode($task->read_markers, true) ?: []);
+                    $lastReadAt = $markers[(string)$employeeId] ?? null;
+                }
+            }
+
+            $latest = TaskFeedback::with(['employee.user'])
+                ->where('task_id', $taskId)
+                // Only show if not authored by current user
+                ->when($employeeId, function ($q) use ($employeeId) {
+                    $q->where('employee_id', '!=', $employeeId);
+                })
+                // Only show if it's newer than last read
+                ->when($lastReadAt, function ($q) use ($lastReadAt) {
+                    $q->where('created_at', '>', $lastReadAt);
+                })
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$latest) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'not_found',
+                    'data' => null
+                ], 404);
+            }
+
+            $payload = [
+                'id' => $latest->id,
+                'feedback_comment' => $latest->feedback_comment,
+                'created_at' => $latest->created_at,
+                'employee' => [
+                    'id' => $latest->employee->id,
+                    'name' => $latest->employee->name,
+                    'photo' => $latest->employee->user && $latest->employee->user->photo
+                        ? asset($latest->employee->user->photo)
+                        : asset('asset/img/profile_picture/default.png'),
+                ],
+            ];
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $payload,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
      * Get count of feedbacks for a specific task
      */
     public function getTaskFeedbackCount($taskId)

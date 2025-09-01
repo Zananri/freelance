@@ -1071,8 +1071,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 <div class="d-flex align-items-center pic-executor-container">
                     ${executorsHtml}
                 </div>
-                     <div class="d-flex">
-                         <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
+                            <div class="d-flex align-items-center">
+                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
+                            <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                            <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                        </div>
+                                 <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
                         <span class="material-symbols-outlined task-icon mode_comment"
                             data-task-id="${task.id}">mode_comment</span>
                         ${
@@ -1180,6 +1184,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     addAttachFileIconListeners();
     initBootstrapTooltips();
     refreshAllUnreadBadges();
+    refreshAllLatestFeedbackSnippets();
     }
 
     $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
@@ -1235,6 +1240,19 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             icon.dataset.bound = '1';
             icon.addEventListener("click", function () {
                 const taskId = this.dataset.taskId;
+                markTaskFeedbacksRead(taskId).always(() => {
+                    handleTaskFeedback(taskId);
+                });
+            });
+        });
+
+        // Bind latest-feedback-snippet clicks
+        document.querySelectorAll('.latest-feedback-snippet').forEach((el) => {
+            if (el.dataset.bound === '1') return;
+            el.dataset.bound = '1';
+            el.addEventListener('click', function () {
+                const taskId = this.getAttribute('data-task-id');
+                hideLatestFeedbackSnippet(taskId);
                 markTaskFeedbacksRead(taskId).always(() => {
                     handleTaskFeedback(taskId);
                 });
@@ -1611,6 +1629,46 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             },
         }).always(() => {
             hideUnreadBadge(taskId);
+        });
+    }
+
+    // Latest feedback snippet helpers
+    function hideLatestFeedbackSnippet(taskId) {
+        const el = document.querySelector(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
+        if (el) el.classList.add('d-none');
+    }
+    function setLatestFeedbackSnippet(taskId, data) {
+        const el = document.querySelector(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
+        if (!el) return;
+        const avatar = el.querySelector('.latest-feedback-avatar');
+        const textEl = el.querySelector('.latest-feedback-text');
+        if (!data) {
+            el.classList.add('d-none');
+            return;
+        }
+        const photo = data.employee?.photo || (appUrl + '/asset/img/profile_picture/default.png');
+        const raw = String(data.feedback_comment || '');
+        const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
+        if (avatar) avatar.src = photo;
+        if (textEl) textEl.textContent = truncated;
+        el.classList.remove('d-none');
+    }
+    function fetchLatestFeedback(taskId) {
+        return $.ajax({
+            url: appUrl + `/task-feedbacks/${taskId}/latest`,
+            type: 'GET',
+            dataType: 'json',
+        }).then((res) => {
+            const data = res && (res.data || null);
+            setLatestFeedbackSnippet(taskId, data);
+        }).catch(() => {
+            setLatestFeedbackSnippet(taskId, null);
+        });
+    }
+    function refreshAllLatestFeedbackSnippets() {
+        document.querySelectorAll('.custom-card[data-task-id]').forEach((card) => {
+            const tid = card.getAttribute('data-task-id');
+            fetchLatestFeedback(tid);
         });
     }
 
