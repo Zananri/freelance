@@ -1759,6 +1759,29 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                         const d = new Date(rep.created_at);
                                                                         rDate = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
                                                                 }
+                                                                // Normalize image URL if backend returns filename/relative
+                                                                let repImageUrl = rep.image || '';
+                                                                if (repImageUrl) {
+                                                                    const isAbs = typeof repImageUrl === 'string' && (repImageUrl.startsWith('http://') || repImageUrl.startsWith('https://'));
+                                                                    const isFileTask = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/file/task/') || repImageUrl.startsWith('file/task/'));
+                                                                    const isStorage = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/storage/') || repImageUrl.startsWith('storage/'));
+                                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                                        repImageUrl = appUrl + '/file/task/' + repImageUrl;
+                                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                                        repImageUrl = repImageUrl.startsWith('/') ? (appUrl + repImageUrl) : (appUrl + '/' + repImageUrl);
+                                                                    }
+                                                                }
+                                                                // Normalize reference_file URL similarly
+                                                                let repRefFileUrl = rep.reference_file || '';
+                                                                if (repRefFileUrl) {
+                                                                    const isAbs2 = typeof repRefFileUrl === 'string' && (repRefFileUrl.startsWith('http://') || repRefFileUrl.startsWith('https://'));
+                                                                    const isRefPath = typeof repRefFileUrl === 'string' && (repRefFileUrl.startsWith('/file/task_reference_files/') || repRefFileUrl.startsWith('file/task_reference_files/'));
+                                                                    if (!isAbs2 && !isRefPath) {
+                                                                        repRefFileUrl = appUrl + '/file/task_reference_files/' + repRefFileUrl;
+                                                                    } else if (!isAbs2 && isRefPath) {
+                                                                        repRefFileUrl = repRefFileUrl.startsWith('/') ? (appUrl + repRefFileUrl) : (appUrl + '/' + repRefFileUrl);
+                                                                    }
+                                                                }
                                                                 return `
                                                                     <div class="feedback-reply ms-4 mt-2 p-2 rounded" style="background:#fafafa;">
                                                                         <div class="d-flex align-items-center mb-1">
@@ -1768,7 +1791,18 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                                 <small class="text-muted d-block" style="font-size: 11px;">${rDate}</small>
                                                                             </div>
                                                                         </div>
-                                                                        <p class="mb-0" style="font-size: 13px;">${rep.feedback_comment}</p>
+                                                                        <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
+                                                                        ${
+                                                                            (rep.reference_url || rep.reference_file)
+                                                                                ? `
+                                                                                    <div class="feedback-reference-container mb-1">
+                                                                                        ${rep.reference_url ? `<a href="${rep.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : ''}
+                                                                                        ${repRefFileUrl ? `<a href="${repRefFileUrl}" download class="feedback-reference-file ms-2"><span class="material-symbols-outlined">draft</span> FEEDBACK_FILE</a>` : ''}
+                                                                                    </div>
+                                                                                `
+                                                                                : ''
+                                                                        }
+                                                                        ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
                                                                     </div>
                                                                 `;
                                                         }).join('');
@@ -1816,7 +1850,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             }
                             ${
                                 feedback.image
-                                    ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
+                                    ? `<img src="${feedback.image}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
                                     : ""
                             }
                         ${repliesHtml}
@@ -1852,6 +1886,16 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             // Enforce style: no underline and #555 color
                             this.style.textDecoration = 'none';
                             this.style.color = '#555';
+                        });
+                    });
+
+                    // Open feedback/reply images in a new tab
+                    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                        img.addEventListener('click', function () {
+                            const src = this.getAttribute('src');
+                            if (src) {
+                                window.open(src, '_blank');
+                            }
                         });
                     });
                 } else {
