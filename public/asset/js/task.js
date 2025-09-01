@@ -1080,7 +1080,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                 ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
                                 : ""
                         }
-                                <span class="unread-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" data-task-id="${task.id}" style="font-size:10px; min-width:16px; line-height:14px;">0</span>
+                        <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                     </div>
                     <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
                         <span class="material-symbols-outlined task-icon">attach_file</span>
@@ -1580,13 +1580,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         const badge = card.querySelector(`.unread-badge[data-task-id="${taskId}"]`);
         if (!badge) return;
         const n = parseInt(count, 10) || 0;
-        if (n > 0) {
-            badge.textContent = String(n);
-            badge.classList.remove('d-none');
-        } else {
-            badge.textContent = '0';
-            badge.classList.add('d-none');
-        }
+        if (n > 0) badge.classList.remove('d-none');
+        else badge.classList.add('d-none');
     }
     function hideUnreadBadge(taskId) {
         setUnreadBadge(taskId, 0);
