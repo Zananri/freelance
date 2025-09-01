@@ -983,6 +983,7 @@ class TaskController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'task_id' => 'required|exists:tasks,id',
+                'parent_id' => 'nullable|exists:task_feedbacks,id',
                 'employee_id' => 'required|exists:employees,id',
                 'feedback_comment' => 'required|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -1059,14 +1060,17 @@ class TaskController extends Controller
     public function getTaskFeedbacks($taskId)
     {
         try {
-            $feedbacks = TaskFeedback::with(['employee.user'])
+            // Fetch only top-level feedbacks
+            $feedbacks = TaskFeedback::with(['employee.user', 'replies.employee.user'])
                 ->where('task_id', $taskId)
+                ->whereNull('parent_id')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            $formattedFeedbacks = $feedbacks->map(function ($feedback) {
-                return [
+            $formatOne = function ($feedback) use (&$formatOne) {
+                $item = [
                     'id' => $feedback->id,
+                    'parent_id' => $feedback->parent_id,
                     'feedback_comment' => $feedback->feedback_comment,
                     'image' => $feedback->image ? asset('file/task/' . $feedback->image) : null,
                     'reference_url' => $feedback->reference_url,
@@ -1080,7 +1084,33 @@ class TaskController extends Controller
                             : asset('asset/img/profile_picture/default.png'),
                     ],
                 ];
-            });
+                // Map nested replies (one-level for now)
+                if ($feedback->replies && $feedback->replies->count() > 0) {
+                    $item['replies'] = $feedback->replies->sortBy('created_at')->values()->map(function ($r) {
+                        return [
+                            'id' => $r->id,
+                            'parent_id' => $r->parent_id,
+                            'feedback_comment' => $r->feedback_comment,
+                            'image' => $r->image ? asset('file/task/' . $r->image) : null,
+                            'reference_url' => $r->reference_url,
+                            'reference_file' => $r->reference_file ? asset('file/task_reference_files/' . $r->reference_file) : null,
+                            'created_at' => $r->created_at,
+                            'employee' => [
+                                'id' => $r->employee->id,
+                                'name' => $r->employee->name,
+                                'photo' => $r->employee->user && $r->employee->user->photo
+                                    ? asset($r->employee->user->photo)
+                                    : asset('asset/img/profile_picture/default.png'),
+                            ],
+                        ];
+                    });
+                } else {
+                    $item['replies'] = [];
+                }
+                return $item;
+            };
+
+            $formattedFeedbacks = $feedbacks->map($formatOne);
 
             return response()->json([
                 'code' => 200,
@@ -1129,11 +1159,12 @@ class TaskController extends Controller
                 ->first();
 
             if (!$latest) {
+                // Return 200 with null data to avoid noisy 404s in the browser console
                 return response()->json([
-                    'code' => 404,
-                    'status' => 'not_found',
+                    'code' => 200,
+                    'status' => 'success',
                     'data' => null
-                ], 404);
+                ]);
             }
 
             $payload = [

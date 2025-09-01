@@ -1748,18 +1748,44 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             }
                         }
 
-                        feedbackHtml += `
-                        <div class="feedback-item mb-3 p-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="${feedback.employee.photo}" alt="${
-                            feedback.employee.name
-                        }"
-                                     class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                <div>
-                                    <strong>${feedback.employee.name}</strong>
-                                    <small class="text-muted d-block">${formattedDate}</small>
-                                </div>
-                            </div>
+                                                // Build top-level feedback block
+                                                let repliesHtml = '';
+                                                if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                                        repliesHtml = feedback.replies.map(function (rep) {
+                                                                // reply date formatting
+                                                                let rDate = '';
+                                                                if (rep.created_at) {
+                                                                        const d = new Date(rep.created_at);
+                                                                        rDate = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                                                                }
+                                                                return `
+                                                                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" style="background:#fafafa;">
+                                                                        <div class="d-flex align-items-center mb-1">
+                                                                            <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
+                                                                            <div>
+                                                                                <strong style="font-size: 13px;">${rep.employee.name}</strong>
+                                                                                <small class="text-muted d-block" style="font-size: 11px;">${rDate}</small>
+                                                                            </div>
+                                                                        </div>
+                                                                        <p class="mb-0" style="font-size: 13px;">${rep.feedback_comment}</p>
+                                                                    </div>
+                                                                `;
+                                                        }).join('');
+                                                }
+
+                                                feedbackHtml += `
+                                                <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
+                                                    <div class="d-flex align-items-center mb-2 justify-content-between">
+                                                        <div class="d-flex align-items-center">
+                                                            <img src="${feedback.employee.photo}" alt="${feedback.employee.name}"
+                                                                class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                                            <div>
+                                                                <strong>${feedback.employee.name}</strong>
+                                                                <small class="text-muted d-block">${formattedDate}</small>
+                                                            </div>
+                                                        </div>
+                                                        <span class="material-symbols-outlined feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; font-size:18px; line-height:1;">reply</span>
+                                                    </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
                             ${
                                 feedback.reference_url ||
@@ -1785,10 +1811,20 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                     ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
                                     : ""
                             }
+                        ${repliesHtml}
                         </div>
                     `;
                     });
                     modalBody.innerHTML = feedbackHtml;
+
+                    // Bind reply icon click
+                    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const parentId = this.getAttribute('data-feedback-id');
+                            const tId = this.getAttribute('data-task-id');
+                            showReplyFeedbackForm(tId, parentId);
+                        });
+                    });
                 } else {
                     modalBody.innerHTML =
                         '<p class="text-center text-muted">No feedback available for this task.</p>';
@@ -1807,7 +1843,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         const modalBody = document.getElementById("taskFeedbackList");
         const addFeedbackButton = document.getElementById("addFeedbackButton");
 
-        modalTitle.textContent = "Add Feedback";
+    modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
 
         const form = document.createElement("form");
@@ -2053,6 +2089,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         freshBtn.removeAttribute('disabled');
                         freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
+                    // Remove reply close button if present
+                    const closeBtn = document.getElementById('replyCloseButton');
+                    if (closeBtn && closeBtn.parentNode) {
+                        closeBtn.parentNode.removeChild(closeBtn);
+                    }
                     loadTaskFeedbackData(taskId);
                 } catch (e) { /* noop */ }
 
@@ -2117,6 +2158,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         addFeedbackButton.textContent = "Add Feedback";
         const newButton = addFeedbackButton.cloneNode(true);
         addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+        // Ensure any leftover reply close button is removed
+        const leftoverClose = document.getElementById('replyCloseButton');
+        if (leftoverClose && leftoverClose.parentNode) {
+            leftoverClose.parentNode.removeChild(leftoverClose);
+        }
 
         // Add event listener for Add Feedback button to show add feedback form
         newButton.addEventListener("click", function () {
@@ -2219,6 +2265,123 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             if (form) {
                 submitFeedbackForm(form, taskId);
             }
+        });
+    }
+
+    // Show reply form (reuses add form but with parent_id and title)
+    function showReplyFeedbackForm(taskId, parentId) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        modalTitle.textContent = "Reply Feedback";
+
+        modalBody.innerHTML = `
+            <form id="addFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                <input type="hidden" name="parent_id" value="${parentId}">
+                <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
+
+                <div class="mb-3">
+                    <label class="form-label">Upload Image</label>
+                    <div class="image-upload-container">
+                        <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
+                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
+                            <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
+                            <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+                </div>
+            </form>
+        `;
+
+        // Setup image preview and clear button logic (same as add feedback)
+        const imageInput = modalBody.querySelector("#feedback_image");
+        const imageLabel = modalBody.querySelector("#feedbackImageLabel");
+        const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
+
+        imageInput.addEventListener("change", function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                    imageLabel.classList.add("has-image");
+                    imageLabel.style.backgroundSize = "cover";
+                    imageLabel.style.opacity = "1";
+                    imageClearBtn.classList.remove("d-none");
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        imageClearBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            imageInput.value = "";
+            imageLabel.style.backgroundImage =
+                "url('" + appUrl + "/asset/img/background/add-image.png')";
+            imageLabel.style.backgroundPosition = "center center";
+            imageLabel.style.backgroundRepeat = "no-repeat";
+            imageLabel.style.backgroundSize = "50%";
+            imageLabel.classList.remove("has-image");
+            imageLabel.style.opacity = "0.5";
+            imageClearBtn.classList.add("d-none");
+        });
+
+        addFeedbackButton.textContent = "Submit";
+        const newButton = addFeedbackButton.cloneNode(true);
+        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+        newButton.addEventListener("click", function (e) {
+            e.preventDefault();
+            const form = document.getElementById("addFeedbackForm");
+            if (form) {
+                submitFeedbackForm(form, taskId);
+            }
+        });
+
+        // Inject a Close button to the left of Submit to go back to list
+        let closeBtn = document.getElementById('replyCloseButton');
+        if (closeBtn && closeBtn.parentNode) {
+            closeBtn.parentNode.removeChild(closeBtn);
+        }
+        closeBtn = document.createElement('button');
+        closeBtn.id = 'replyCloseButton';
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-close-reply';
+        closeBtn.textContent = 'Close';
+        const footerSubmit = document.getElementById('addFeedbackButton');
+        if (footerSubmit && footerSubmit.parentNode) {
+            footerSubmit.parentNode.insertBefore(closeBtn, footerSubmit);
+        }
+        closeBtn.addEventListener('click', function () {
+            // Restore list state
+            const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title');
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            const addBtnRef = document.getElementById('addFeedbackButton');
+            if (addBtnRef) {
+                addBtnRef.textContent = 'Add Feedback';
+                const freshBtn = addBtnRef.cloneNode(true);
+                addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+            }
+            loadTaskFeedbackData(taskId);
+            // Remove this close button
+            if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
         });
     }
 
