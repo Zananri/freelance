@@ -1585,8 +1585,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         // Load feedback data (kosongan dulu)
     loadTaskFeedbackData(taskId);
 
-    // Hide unread badge immediately upon opening
+    // Hide unread badge and latest feedback snippet immediately upon opening
     hideUnreadBadge(taskId);
+    hideLatestFeedbackSnippet(taskId);
 
         feedbackModal.show();
     }
@@ -1618,6 +1619,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             fetchUnreadForTask(tid);
         });
     }
+    // Track snippet fetch sequence per task to ignore stale responses
+    const latestSnippetSeq = {};
+
     function markTaskFeedbacksRead(taskId) {
         return $.ajax({
             url: appUrl + `/task/${taskId}/feedbacks/mark-read`,
@@ -1629,39 +1633,55 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             },
         }).always(() => {
             hideUnreadBadge(taskId);
+            hideLatestFeedbackSnippet(taskId);
+            // Invalidate any in-flight latest snippet fetches
+            latestSnippetSeq[taskId] = (latestSnippetSeq[taskId] || 0) + 1;
         });
     }
 
     // Latest feedback snippet helpers
     function hideLatestFeedbackSnippet(taskId) {
-        const el = document.querySelector(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
-        if (el) el.classList.add('d-none');
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
+        els.forEach((el) => {
+            el.classList.add('d-none');
+            el.style.display = 'none';
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (textEl) textEl.textContent = '';
+        });
     }
     function setLatestFeedbackSnippet(taskId, data) {
-        const el = document.querySelector(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
-        if (!el) return;
-        const avatar = el.querySelector('.latest-feedback-avatar');
-        const textEl = el.querySelector('.latest-feedback-text');
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
+        if (!els || els.length === 0) return;
         if (!data) {
-            el.classList.add('d-none');
+            hideLatestFeedbackSnippet(taskId);
             return;
         }
-        const photo = data.employee?.photo || (appUrl + '/asset/img/profile_picture/default.png');
+        const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/profile_picture/default.png');
         const raw = String(data.feedback_comment || '');
         const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
-        if (avatar) avatar.src = photo;
-        if (textEl) textEl.textContent = truncated;
-        el.classList.remove('d-none');
+        els.forEach((el) => {
+            const avatar = el.querySelector('.latest-feedback-avatar');
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (avatar) avatar.src = photo;
+            if (textEl) textEl.textContent = truncated;
+            el.classList.remove('d-none');
+            el.style.removeProperty('display');
+        });
     }
     function fetchLatestFeedback(taskId) {
+        // Sequence token to guard against race conditions
+        const seq = (latestSnippetSeq[taskId] = (latestSnippetSeq[taskId] || 0) + 1);
         return $.ajax({
             url: appUrl + `/task-feedbacks/${taskId}/latest`,
             type: 'GET',
             dataType: 'json',
         }).then((res) => {
+            // Ignore stale responses
+            if (latestSnippetSeq[taskId] !== seq) return;
             const data = res && (res.data || null);
             setLatestFeedbackSnippet(taskId, data);
         }).catch(() => {
+            if (latestSnippetSeq[taskId] !== seq) return;
             setLatestFeedbackSnippet(taskId, null);
         });
     }
