@@ -2299,13 +2299,44 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
 
                     // Click on timeline bar opens the same Project Detail modal
+                    // If the click comes from the timeline modal, close the timeline first,
+                    // then show Project Detail. After closing Project Detail, reopen the timeline modal.
                     document.addEventListener('click', function (e) {
                         const bar = e.target.closest('.timeline-bar[data-project-id]');
                         if (!bar) return;
                         const pid = bar.getAttribute('data-project-id');
-                        if (pid) {
-                            fetchAndShowProjectDetail(pid);
+                        if (!pid) return;
+
+                        // Detect if timeline modal is currently open
+                        const timelineModalEl = document.getElementById('timelineModal');
+                        let shouldReopenTimeline = false;
+                        if (timelineModalEl && timelineModalEl.classList.contains('show')) {
+                            try {
+                                const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                tlInstance.hide();
+                                shouldReopenTimeline = true;
+                            } catch (_) {}
                         }
+
+                        // Set a one-time handler to reopen timeline after detail is closed (only when originated from timeline)
+                        if (shouldReopenTimeline) {
+                            const detailEl = document.getElementById('projectDetailModal');
+                            if (detailEl) {
+                                const onDetailHidden = function () {
+                                    try {
+                                        const tlInstance2 = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                        tlInstance2.show();
+                                    } catch (_) {}
+                                    detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
+                                };
+                                // Ensure no duplicate handler stacking
+                                detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
+                                detailEl.addEventListener('hidden.bs.modal', onDetailHidden, { once: true });
+                            }
+                        }
+
+                        // Proceed to open Project Detail
+                        fetchAndShowProjectDetail(pid);
                     });
 
                     // Function to format task date like feedback
