@@ -4448,44 +4448,58 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // update chart and label counts based on aggregated task_counts across projects
+    // Requirements:
+    // - Total (label under chart): jumlah project milik employee (panjang array projects)
+    // - Complete/On Progress/Late (labels): jumlah task di dalam project dengan status completed, in_progress, dan late
+    //   Catatan: in_progress TIDAK menghitung rejected; Late = task non-completed yang lewat due_date; Not Started = new_request
     function updateProjectChartFromData(projects) {
-        projects = projects || [];
+        projects = Array.isArray(projects) ? projects : [];
 
-        let totalTasks = 0;
+        const numberOfProjects = projects.length; // Total project untuk label pertama
+
+        let totalTasks = 0; // tetap dipakai untuk komposisi chart slices
         let completed = 0;
-        let inProgress = 0; // includes rejected per backend
+        let inProgressLabel = 0; // in_progress tanpa rejected
         let late = 0;
+        let notStartedExclSum = 0; // jika backend menyediakan bucket eksklusif
+        let hasExclNotStarted = false;
 
         projects.forEach((p) => {
             const tc = p.task_counts || {};
-            if (tc.excl) {
-                completed += (tc.excl.completed || 0);
-                const ip = (tc.excl.in_progress || 0);
-                const lt = (tc.excl.late || 0);
-                const ns = (tc.excl.not_started || 0);
-                inProgress += ip;
-                late += lt;
-                totalTasks += (ip + lt + ns + (tc.excl.completed || 0));
-            } else {
-                totalTasks += (tc.total || 0);
-                completed += (tc.completed || 0);
-                inProgress += (tc.in_progress || 0);
-                late += (tc.late || 0);
+
+            // Task totals (untuk chart / perhitungan Not Started fallback)
+            totalTasks += (tc.total || 0);
+
+            // Completed dan Late langsung dari backend agregat
+            completed += (tc.completed || (tc.excl && tc.excl.completed) || 0);
+            late += (tc.late || (tc.excl && tc.excl.late) || 0);
+
+            // In-progress untuk LABEL: hitung in_progress TANPA rejected
+            const ipRaw = (tc.in_progress || 0);
+            const rejected = (tc.rejected || 0);
+            inProgressLabel += Math.max(0, ipRaw - rejected);
+
+            // Not Started eksklusif (new_request yang tidak late) jika tersedia
+            if (tc.excl && typeof tc.excl.not_started === 'number') {
+                notStartedExclSum += tc.excl.not_started;
+                hasExclNotStarted = true;
             }
         });
 
-    // Compute slices: use in-progress as reported (exclusive buckets handled by backend when available)
-    const inProgressExclLate = inProgress;
-        const notStarted = Math.max(0, totalTasks - completed - inProgressExclLate - late);
+        // Komposisi chart slices
+        const inProgressChart = inProgressLabel; // tampilkan in-progress murni (tanpa rejected) pada chart
+        const notStartedChart = hasExclNotStarted
+            ? notStartedExclSum
+            : Math.max(0, totalTasks - completed - inProgressChart - late);
 
         // Chart slices: Not Started, Complete, On Progress, Late
-        const chartData = [notStarted, completed, inProgressExclLate, late];
+        const chartData = [notStartedChart, completed, inProgressChart, late];
 
         // update chart instance: set labels and colors accordingly
         try {
             if (projectChartInstance && projectChartInstance.data) {
                 if (totalTasks === 0) {
-                    // no projects at all -> show No Data
+                    // tidak ada task sama sekali -> tampilkan No Data
                     projectChartInstance.data.labels = ["No Data"];
                     projectChartInstance.data.datasets[0].data = [1];
                     projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
@@ -4503,15 +4517,16 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error('chart update failed', e);
         }
 
-        // Update label numbers in the UI (Total, Complete, On Progress, Late)
+        // Update label numbers di UI (Total Project, Complete Task, On Progress Task, Late Task)
         try {
             const labelsContainer = document.querySelector('.chart-labels');
             if (labelsContainer) {
                 const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
                 if (spans && spans.length >= 4) {
-                    spans[0].textContent = totalTasks;
+                    // Total = jumlah project yang dimiliki employee (bukan jumlah task)
+                    spans[0].textContent = numberOfProjects;
                     spans[1].textContent = completed;
-                    spans[2].textContent = inProgressExclLate;
+                    spans[2].textContent = inProgressLabel;
                     spans[3].textContent = late;
                 }
             }
