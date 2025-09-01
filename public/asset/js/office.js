@@ -2,7 +2,7 @@ $(document).ready(function() {
 
      function toggleSidebar() {
         $('body').toggleClass('hide-sidebar');
-        
+
         // Save state to localStorage
         const isHidden = $('body').hasClass('hide-sidebar');
         localStorage.setItem('sidebarHidden', isHidden);
@@ -17,7 +17,7 @@ $(document).ready(function() {
     // Load saved state on page load
     const savedState = localStorage.getItem('sidebarHidden');
     const windowWidth = window.innerWidth;
-    
+
     if (savedState === 'true' && windowWidth > 570) {
         $('body').addClass('hide-sidebar');
     }
@@ -59,7 +59,7 @@ $(document).ready(function() {
                 console.log('Notifications fetched:', response);
                 const notifications = response.data;
                 const notificationList = $('#notificationList');
-                
+
                 if (notifications.length === 0) {
                     notificationList.html(`
                         <div class="empty-notifications">
@@ -79,30 +79,30 @@ $(document).ready(function() {
                 const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
                 const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
                 const taskId = taskIdMatch ? taskIdMatch[1] : null;
-                
+
                 // Check if this is a task assignment notification
                 const isTaskAssignment = notification.type === 'task_assignment' && taskId;
-                
+
                 // Check if this is a project assignment notification
                 const isProjectAssignment = notification.type === 'new job' && notification.title.includes('project');
                 // Extract project title from the message
                 const projectTitleMatch = isProjectAssignment ? notification.message.match(/project: (.+)$/) : null;
                 const projectTitle = projectTitleMatch ? projectTitleMatch[1] : null;
-                
+
                 // For task assignments, show either accept button or "Read" label in the same position
                 // For project assignments, show either accept button or "Read" label in the same position
                 // For other notifications, show "Read" label when read
                 let actionElement = '';
-                
+
                 // Check if task/project is already accepted
                 const isAccepted = notification.is_accepted || notification.is_read;
-                
+
                 if (isTaskAssignment && !isAccepted) {
                     // Show accept button for unaccepted task assignments
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-sm btn-primary btn-accept-task" 
-                                    data-task-id="${taskId}" 
+                            <button class="btn btn-sm btn-submit-black btn-accept-task"
+                                    data-task-id="${taskId}"
                                     data-notification-id="${notification.id}"
                                     style="font-size: 12px; padding: 4px 8px;">
                                 <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
@@ -115,7 +115,7 @@ $(document).ready(function() {
                     const escapedProjectTitle = (projectTitle || '').replace(/"/g, '&quot;');
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-sm btn-primary btn-accept-project"
+                            <button class="btn btn-sm btn-submit-black btn-accept-project"
                                     data-project-title="${escapedProjectTitle}"
                                     data-notification-id="${notification.id}"
                                     style="font-size: 12px; padding: 4px 8px;">
@@ -128,14 +128,14 @@ $(document).ready(function() {
                     // Show "Read" label for accepted/read notifications
                     actionElement = '<div class="notification-read-label">Read</div>';
                 }
-                
+
                 // Add unread indicator dot for unread notifications
                 const unreadIndicator = !notification.is_read ? '<div class="notification-unread-dot"></div>' : '';
-                
+
                 // Show notification message only for task creators
                 const showMessage = notification.type === 'task_assignment' && notification.created_by_name === notification.employee_name;
                 const messageElement = showMessage ? `<div class="notification-message" style="font-size: 14px;">${notification.message}</div>` : '';
-                
+
                 html += `
                     <div class="notification-item position-relative d-flex align-items-start" data-notification-id="${notification.id}">
                         ${unreadIndicator}
@@ -171,10 +171,10 @@ $(document).ready(function() {
     $(document).on('click', '.btn-accept-task', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const taskId = $(this).data('task-id');
         const notificationId = $(this).data('notification-id');
-        
+
         acceptTask(taskId, notificationId);
     });
 
@@ -185,7 +185,7 @@ $(document).ready(function() {
 
         const projectTitle = $(this).data('project-title');
         const notificationId = $(this).data('notification-id');
-        
+
         if (typeof acceptProject === 'function') {
             acceptProject(projectTitle, notificationId);
         }
@@ -198,7 +198,7 @@ $(document).ready(function() {
             if (notification.type === 'task_assignment') {
                 const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
                 const taskId = taskIdMatch ? taskIdMatch[1] : null;
-                
+
                 if (taskId) {
                     console.log('Checking accept status for task:', taskId, 'URL:', `${appUrl}/task/${taskId}/accept-status`);
                     return $.ajax({
@@ -221,7 +221,7 @@ $(document).ready(function() {
             }
             return Promise.resolve(notification);
         });
-        
+
         return Promise.all(promises);
     }
 
@@ -229,7 +229,7 @@ $(document).ready(function() {
         const date = new Date(dateString);
         const now = new Date();
         const diffInSeconds = Math.floor((now - date) / 1000);
-        
+
         if (diffInSeconds < 60) {
             return 'Just now';
         } else if (diffInSeconds < 3600) {
@@ -282,7 +282,7 @@ $(document).ready(function() {
         // Close avatar dropdown first
         hideAvatarDropdown();
         dropdown.toggle();
-        
+
         if (dropdown.is(':visible')) {
             fetchNotifications();
             dropdownClosed = false;
@@ -319,7 +319,7 @@ $(document).ready(function() {
         const notificationTitle = $(this).find('.notification-title').text().toLowerCase();
         const notificationElement = $(this);
         const notificationType = notificationElement.find('.notification-title').text().includes('accepted task') ? 'task_accepted' : 'other';
-        
+
         // Only mark 'task_accepted' notifications as read when clicked
         if (notificationType === 'task_accepted') {
             markNotificationAsRead(notificationId, function() {
@@ -337,7 +337,7 @@ $(document).ready(function() {
             }
         }
     });
-    
+
     // Function to check project acceptance status
     function checkProjectAcceptanceStatus(notifications) {
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
@@ -346,7 +346,7 @@ $(document).ready(function() {
                 // Extract project title from message
                 const projectTitleMatch = notification.message.match(/project: (.+)$/);
                 const projectTitle = projectTitleMatch ? projectTitleMatch[1] : null;
-                
+
                 if (projectTitle) {
                     // We need to get the project ID by title
                     // First, get all projects (including unaccepted ones)
@@ -391,7 +391,7 @@ $(document).ready(function() {
             }
             return Promise.resolve(notification);
         });
-        
+
         return Promise.all(promises);
     }
 
@@ -400,10 +400,10 @@ $(document).ready(function() {
         console.log('=== Accept Project Debug ===');
         console.log('Project Title:', projectTitle);
         console.log('Notification ID:', notificationId);
-        
+
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         console.log('App URL:', appUrl);
-        
+
         // First, get all projects to find the project ID by title
         $.ajax({
             url: `${appUrl}/project/index?include_unaccepted=true`,
@@ -412,11 +412,11 @@ $(document).ready(function() {
                 console.log('Projects response:', response);
                 console.log('Looking for project title:', projectTitle);
                 console.log('Available projects:', response.data.map(p => ({ id: p.id, title: p.title })));
-                
+
                 // Find the project with the matching title
                 const project = response.data.find(p => p.title === projectTitle);
                 console.log('Found project:', project);
-                
+
                 if (project) {
                     console.log('Calling accept endpoint for project ID:', project.id);
                     // Now call the accept endpoint with the project ID
@@ -433,7 +433,7 @@ $(document).ready(function() {
                             } else {
                                 showDeleteSuccessAlert('Project accepted successfully!', 'success');
                             }
-                        
+
                         // Mark the notification as read
                         $.ajax({
                             url: `${appUrl}/notifications/${notificationId}/read`,
@@ -447,10 +447,10 @@ $(document).ready(function() {
                                 const notificationElement = $(`[data-notification-id="${notificationId}"]`);
                                 notificationElement.find('.notification-unread-dot').remove();
                                 notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
-                                
+
                                 // Update notification count
                                 fetchNotificationCount();
-                                
+
                                 // Optional navigation: only if API requests reload or user is already on project page
                                 const onProjectPage = (window.location.pathname || '').includes('/project');
                                 if ((response && response.reload) || onProjectPage) {
@@ -469,10 +469,10 @@ $(document).ready(function() {
                                 const notificationElement = $(`[data-notification-id="${notificationId}"]`);
                                 notificationElement.find('.notification-unread-dot').remove();
                                 notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
-                                
+
                                 // Update notification count
                                 fetchNotificationCount();
-                                
+
                                 // Optional navigation: only if user is already on project page
                                 const onProjectPage2 = (window.location.pathname || '').includes('/project');
                                 if (onProjectPage2) {
@@ -486,14 +486,14 @@ $(document).ready(function() {
                     error: function(xhr, status, error) {
                         console.error('Error accepting project:', status, error);
                         console.error('XHR response:', xhr.responseText);
-                        
+
                         let errorMessage = 'Failed to accept project';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMessage = xhr.responseJSON.message;
                         } else if (xhr.responseJSON && xhr.responseJSON.error) {
                             errorMessage = xhr.responseJSON.error;
                         }
-                        
+
                         if (typeof window.showAlertMsg === 'function') {
                             window.showAlertMsg('Error: ' + errorMessage, 'error', 4000);
                         } else {
@@ -524,7 +524,7 @@ $(document).ready(function() {
 
     // Make acceptProject function globally available
     window.acceptProject = acceptProject;
-    
+
     // Function to mark notification as read
     function markNotificationAsRead(notificationId, callback) {
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
@@ -539,10 +539,10 @@ $(document).ready(function() {
                 const notificationElement = $(`[data-notification-id="${notificationId}"]`);
                 notificationElement.find('.notification-unread-dot').remove();
                 notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
-                
+
                 // Update notification count
                 fetchNotificationCount();
-                
+
                 // Execute callback if provided
                 if (typeof callback === 'function') {
                     callback();
@@ -603,13 +603,13 @@ $(document).ready(function() {
 
     // Function to show success alert with SVG icons (no close button, 1.5s auto-dismiss)
     function showDeleteSuccessAlert(message, type = 'success') {
-        const iconSvg = type === 'success' 
+        const iconSvg = type === 'success'
             ? `<svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Success:"><use xlink:href="#check-circle-fill"/></svg>`
             : `<svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Danger:"><use xlink:href="#exclamation-triangle-fill"/></svg>`;
-        
+
         const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
         const alertId = 'delete-alert-' + Date.now();
-        
+
         const alertHtml = `
             <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
                 <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
@@ -619,16 +619,16 @@ $(document).ready(function() {
                     <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
                 </symbol>
             </svg>
-            <div id="${alertId}" class="alert ${alertClass} fade show position-fixed d-flex align-items-center" 
-                 style="bottom: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: opacity 0.3s ease;" 
+            <div id="${alertId}" class="alert ${alertClass} fade show position-fixed d-flex align-items-center"
+                 style="bottom: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: opacity 0.3s ease;"
                  role="alert">
                 ${iconSvg}
                 <div>${message}</div>
             </div>
         `;
-        
+
         $('body').append(alertHtml);
-        
+
         // Auto remove after 1.5 seconds with proper cleanup
         setTimeout(() => {
             const alert = $('#' + alertId);
@@ -644,7 +644,7 @@ $(document).ready(function() {
     $(document).on('click', '.btn-delete-notification', function(e) {
         e.stopPropagation();
         const notificationId = $(this).data('notification-id');
-        
+
         // Confirm delete
         if (confirm('Are you sure you want to delete this notification?')) {
             deleteNotification(notificationId);
@@ -655,7 +655,7 @@ $(document).ready(function() {
     function showAcceptTaskModal(taskId, notificationId) {
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         console.log('Fetching task details for ID:', taskId, 'with appUrl:', appUrl);
-        
+
         // Fetch task details
         $.ajax({
             url: `${appUrl}/task/${taskId}`,
@@ -666,7 +666,7 @@ $(document).ready(function() {
                 // Safely access response data with fallback defaults
                 const taskTitle = (response.data && response.data.title) || 'undefined';
                 const taskDescription = (response.data && response.data.description) || 'No description';
-                
+
                 // Better image handling with multiple fallbacks
                 let taskImage;
                 if (response.data && response.data.image) {
@@ -674,7 +674,7 @@ $(document).ready(function() {
                 } else {
                     taskImage = `${appUrl}/asset/img/background/add-image.png`;
                 }
-                
+
                 console.log('Task image URL:', taskImage);
                 console.log('Task data:', response.data);
                 console.log('=============================');
@@ -690,9 +690,9 @@ $(document).ready(function() {
                                 <div class="modal-body">
                                     <div class="d-flex">
                                         <div class="me-3">
-                                            <img src="${taskImage}" 
-                                                 alt="Task Image" 
-                                                 class="rounded-circle task-image" 
+                                            <img src="${taskImage}"
+                                                 alt="Task Image"
+                                                 class="rounded-circle task-image"
                                                  style="width: 70px; height: 70px; object-fit: cover;"
                                                  onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
                                         </div>
@@ -706,30 +706,30 @@ $(document).ready(function() {
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-accept" id="confirmAcceptTaskBtn"><span class="material-symbols-outlined" style="font-size: 12px; vertical-align: middle;">check_circle</span>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn"><span class="material-symbols-outlined me-1" style="font-size: 12px; vertical-align: middle;">check_circle</span>
                                     Accept Task</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 `;
-                
+
                 // Add modal to body
                 $('body').append(modalHtml);
-                
+
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('acceptTaskModal'));
                 modal.show();
-                
+
                 // Handle confirm button click
                 $('#confirmAcceptTaskBtn').on('click', function() {
                     // Close modal
                     modal.hide();
-                    
+
                     // Actually accept the task
                     actuallyAcceptTask(taskId, notificationId);
                 });
-                
+
                 // Remove modal from DOM when closed
                 $('#acceptTaskModal').on('hidden.bs.modal', function () {
                     $(this).remove();
@@ -742,7 +742,7 @@ $(document).ready(function() {
             }
         });
     }
-    
+
     // Actually accept task function
     function actuallyAcceptTask(taskId, notificationId) {
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
@@ -759,7 +759,7 @@ $(document).ready(function() {
                 } else {
                     showDeleteSuccessAlert('Task accepted successfully!', 'success');
                 }
-                
+
                 // Mark the notification as read
                 $.ajax({
                     url: `${appUrl}/notifications/${notificationId}/read`,
@@ -771,10 +771,10 @@ $(document).ready(function() {
                         console.log('Task notification marked as read successfully');
                         // Update the notification UI to show it as read
                         const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                        
+
                         // Update notification count
                         fetchNotificationCount();
-                        
+
                         // Reload the page after short delay (optional)
                         setTimeout(() => {
                             window.location.href = `${appUrl}/task`;
@@ -786,10 +786,10 @@ $(document).ready(function() {
                         const notificationElement = $(`[data-notification-id="${notificationId}"]`);
                         notificationElement.find('.notification-unread-dot').remove();
                         notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
-                        
+
                         // Update notification count
                         fetchNotificationCount();
-                        
+
                         // Reload the page after short delay (optional)
                         setTimeout(() => {
                             window.location.href = `${appUrl}/task`;
@@ -824,7 +824,7 @@ $(document).ready(function() {
 
     // Initial load
     fetchNotificationCount();
-    
+
     // Refresh notification count every 30 seconds
     setInterval(fetchNotificationCount, 30000);
 });
@@ -838,20 +838,20 @@ function showAlertMsg(msgHtml = '',msgType = 'light', delay = 2500){
     // msgType = 'light','success','warning','error'
 
     $('.box-alert-messages .box-message').removeClass('error warning success');
-    
+
     $('.box-alert-messages .box-message').addClass(msgType);
 
 
     $('.box-alert-messages .message-content').html(msgHtml);
 
     $('.box-alert-messages').stop().fadeIn('fast').delay(delay).fadeOut('fast',function(){
-        $('.nsa_message_box .message_content').html('');  
+        $('.nsa_message_box .message_content').html('');
     });
 
 }
 
 function hideAlertMsg(){
-    
+
     $('.box-alert-messages').stop().fadeOut('fast',function(){
         $('.nsa_message_box .message_content').html('');
     });

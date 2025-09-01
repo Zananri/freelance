@@ -59,6 +59,9 @@ async function loadEmployeeData() {
             employees = data.data;
             renderHeader(month, year);
             renderEmployeeTable(employees, month, year);
+            // For modal
+            renderHeader(month, year, '#shiftTableHeaderModal');
+            renderEmployeeTable(employees, month, year, '#shiftTableBodyModal');
         } else {
             console.error("Invalid data format:", data);
             renderError("Failed to load employee data");
@@ -70,8 +73,9 @@ async function loadEmployeeData() {
 }
 
 // Month Dropdown
-function populateMonthDropdown() {
-    const monthDropdownMenu = document.getElementById("monthDropdownMenu");
+function populateMonthDropdown(selector = '#monthDropdownMenu') {
+    const monthDropdownMenu = document.querySelector(selector);
+    if (!monthDropdownMenu) return;
     const monthNames = [
         "January",
         "February",
@@ -115,11 +119,13 @@ document.getElementById("nextMonthBtn").addEventListener("click", () => {
 });
 
 populateMonthDropdown();
+populateMonthDropdown('#monthDropdownMenuModal');
 loadEmployeeData();
 
 // Render header tanggal
-function renderHeader(month, year) {
-    const headerRow = document.getElementById("shiftTableHeader");
+function renderHeader(month, year, selector = '#shiftTableHeader') {
+    const headerRow = document.querySelector(selector);
+    if (!headerRow) return;
     headerRow.innerHTML = "";
 
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -165,9 +171,10 @@ function renderHeader(month, year) {
 }
 
 // Render Table Content
-function renderEmployeeTable(employees, month, year) {
-    const tableBody = document.getElementById("shiftTableBody");
-    const monthTitle = document.getElementById("shiftMonthTitle");
+function renderEmployeeTable(employees, month, year, selector = '#shiftTableBody') {
+    const tableBody = document.querySelector(selector);
+    const monthTitleSelector = selector === '#shiftTableBodyModal' ? '#shiftMonthTitleModal' : '#shiftMonthTitle';
+    const monthTitle = document.querySelector(monthTitleSelector);
 
     if (!tableBody) return;
     tableBody.innerHTML = "";
@@ -182,7 +189,7 @@ function renderEmployeeTable(employees, month, year) {
     const monthName = new Date(year, month - 1, 1).toLocaleString("en-US", {
         month: "long",
     });
-    monthTitle.textContent = `${monthName} ${year}`;
+    if (monthTitle) monthTitle.textContent = `${monthName} ${year}`;
 
     const isMobile = window.innerWidth <= 768;
 
@@ -639,6 +646,23 @@ function renderError(message) {
 
 // Setup event listeners for edit buttons
 function setupEventListeners() {
+    // Event tombol prev/next bulan for modal
+    const prevModalBtn = document.getElementById("prevMonthBtnModal");
+    if (prevModalBtn) {
+        prevModalBtn.addEventListener("click", () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            loadEmployeeData();
+        });
+    }
+
+    const nextModalBtn = document.getElementById("nextMonthBtnModal");
+    if (nextModalBtn) {
+        nextModalBtn.addEventListener("click", () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            loadEmployeeData();
+        });
+    }
+
     // Save/Submit button for Add Shift Modal (assign an existing shift to employee/date)
     const addModalBtn = document.getElementById("saveShiftBtn");
     if (addModalBtn) {
