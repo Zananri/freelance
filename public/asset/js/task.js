@@ -67,7 +67,7 @@
 
     function loadProjects() {
         if (!projectSelect) return;
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -943,19 +943,18 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     // Function to create task card HTML
    function createTaskCard(task) {
-    // Combine PIC and executors into one array for uniform rendering without duplicates
+    // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
         allExecutors.push(task.pic);
     }
-    if (task.executors && task.executors.length > 0) {
-        task.executors.forEach((executor) => {
-            // Avoid duplicate if executor is same as PIC
-            if (!allExecutors.some(e => e.id === executor.id)) {
-                allExecutors.push(executor);
-            }
-        });
-    }
+    const acceptedExecutors = (task.executors || []).filter(ex => ex && (ex.is_receive === true || ex.is_receive === 1));
+    acceptedExecutors.forEach((executor) => {
+        // Avoid duplicate if executor is same as PIC
+        if (!allExecutors.some(e => e && e.id === executor.id)) {
+            allExecutors.push(executor);
+        }
+    });
 
     // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
     const executorsHtml = allExecutors
@@ -1071,8 +1070,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 <div class="d-flex align-items-center pic-executor-container">
                     ${executorsHtml}
                 </div>
-                     <div class="d-flex">
-                         <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
+                            <div class="d-flex align-items-center">
+                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
+                            <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                            <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                        </div>
+                                 <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
                         <span class="material-symbols-outlined task-icon mode_comment"
                             data-task-id="${task.id}">mode_comment</span>
                         ${
@@ -1080,7 +1083,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                 ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
                                 : ""
                         }
-                                <span class="unread-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" data-task-id="${task.id}" style="font-size:10px; min-width:16px; line-height:14px;">0</span>
+                        <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                     </div>
                     <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
                         <span class="material-symbols-outlined task-icon">attach_file</span>
@@ -1180,6 +1183,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     addAttachFileIconListeners();
     initBootstrapTooltips();
     refreshAllUnreadBadges();
+    refreshAllLatestFeedbackSnippets();
     }
 
     $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
@@ -1235,6 +1239,19 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             icon.dataset.bound = '1';
             icon.addEventListener("click", function () {
                 const taskId = this.dataset.taskId;
+                markTaskFeedbacksRead(taskId).always(() => {
+                    handleTaskFeedback(taskId);
+                });
+            });
+        });
+
+        // Bind latest-feedback-snippet clicks
+        document.querySelectorAll('.latest-feedback-snippet').forEach((el) => {
+            if (el.dataset.bound === '1') return;
+            el.dataset.bound = '1';
+            el.addEventListener('click', function () {
+                const taskId = this.getAttribute('data-task-id');
+                hideLatestFeedbackSnippet(taskId);
                 markTaskFeedbacksRead(taskId).always(() => {
                     handleTaskFeedback(taskId);
                 });
@@ -1567,8 +1584,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         // Load feedback data (kosongan dulu)
     loadTaskFeedbackData(taskId);
 
-    // Hide unread badge immediately upon opening
+    // Hide unread badge and latest feedback snippet immediately upon opening
     hideUnreadBadge(taskId);
+    hideLatestFeedbackSnippet(taskId);
 
         feedbackModal.show();
     }
@@ -1580,13 +1598,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         const badge = card.querySelector(`.unread-badge[data-task-id="${taskId}"]`);
         if (!badge) return;
         const n = parseInt(count, 10) || 0;
-        if (n > 0) {
-            badge.textContent = String(n);
-            badge.classList.remove('d-none');
-        } else {
-            badge.textContent = '0';
-            badge.classList.add('d-none');
-        }
+        if (n > 0) badge.classList.remove('d-none');
+        else badge.classList.add('d-none');
     }
     function hideUnreadBadge(taskId) {
         setUnreadBadge(taskId, 0);
@@ -1605,6 +1618,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             fetchUnreadForTask(tid);
         });
     }
+    // Track snippet fetch sequence per task to ignore stale responses
+    const latestSnippetSeq = {};
+
     function markTaskFeedbacksRead(taskId) {
         return $.ajax({
             url: appUrl + `/task/${taskId}/feedbacks/mark-read`,
@@ -1616,6 +1632,62 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             },
         }).always(() => {
             hideUnreadBadge(taskId);
+            hideLatestFeedbackSnippet(taskId);
+            // Invalidate any in-flight latest snippet fetches
+            latestSnippetSeq[taskId] = (latestSnippetSeq[taskId] || 0) + 1;
+        });
+    }
+
+    // Latest feedback snippet helpers
+    function hideLatestFeedbackSnippet(taskId) {
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
+        els.forEach((el) => {
+            el.classList.add('d-none');
+            el.style.display = 'none';
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (textEl) textEl.textContent = '';
+        });
+    }
+    function setLatestFeedbackSnippet(taskId, data) {
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
+        if (!els || els.length === 0) return;
+        if (!data) {
+            hideLatestFeedbackSnippet(taskId);
+            return;
+        }
+        const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/profile_picture/default.png');
+        const raw = String(data.feedback_comment || '');
+        const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
+        els.forEach((el) => {
+            const avatar = el.querySelector('.latest-feedback-avatar');
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (avatar) avatar.src = photo;
+            if (textEl) textEl.textContent = truncated;
+            el.classList.remove('d-none');
+            el.style.removeProperty('display');
+        });
+    }
+    function fetchLatestFeedback(taskId) {
+        // Sequence token to guard against race conditions
+        const seq = (latestSnippetSeq[taskId] = (latestSnippetSeq[taskId] || 0) + 1);
+        return $.ajax({
+            url: appUrl + `/task-feedbacks/${taskId}/latest`,
+            type: 'GET',
+            dataType: 'json',
+        }).then((res) => {
+            // Ignore stale responses
+            if (latestSnippetSeq[taskId] !== seq) return;
+            const data = res && (res.data || null);
+            setLatestFeedbackSnippet(taskId, data);
+        }).catch(() => {
+            if (latestSnippetSeq[taskId] !== seq) return;
+            setLatestFeedbackSnippet(taskId, null);
+        });
+    }
+    function refreshAllLatestFeedbackSnippets() {
+        document.querySelectorAll('.custom-card[data-task-id]').forEach((card) => {
+            const tid = card.getAttribute('data-task-id');
+            fetchLatestFeedback(tid);
         });
     }
 
@@ -1633,6 +1705,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 if (response.data && response.data.length > 0) {
                     let feedbackHtml = "";
                     response.data.forEach(function (feedback) {
+                        // Who is the current employee (to decide edit permission)
+                        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                        const currentEmployeeId = parseInt(
+                            (feedbackModalEl?.dataset?.employeeId || feedbackModalEl?.getAttribute('data-employee-id') || '0'),
+                            10
+                        ) || 0;
+
                         // Format the date with the requested format
                         let formattedDate = "";
                         if (feedback.created_at) {
@@ -1675,18 +1754,129 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             }
                         }
 
-                        feedbackHtml += `
-                        <div class="feedback-item mb-3 p-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="${feedback.employee.photo}" alt="${
-                            feedback.employee.name
-                        }"
-                                     class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                <div>
-                                    <strong>${feedback.employee.name}</strong>
-                                    <small class="text-muted d-block">${formattedDate}</small>
-                                </div>
-                            </div>
+                                                // Build top-level feedback block
+                                                // Normalize top-level image & ref file URLs for reliable preview
+                                                let topImageUrl = feedback.image || '';
+                                                if (topImageUrl) {
+                                                    const isAbs = typeof topImageUrl === 'string' && (topImageUrl.startsWith('http://') || topImageUrl.startsWith('https://'));
+                                                    const isFileTask = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/file/task/') || topImageUrl.startsWith('file/task/'));
+                                                    const isStorage = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/storage/') || topImageUrl.startsWith('storage/'));
+                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                        topImageUrl = appUrl + '/file/task/' + topImageUrl;
+                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                        topImageUrl = topImageUrl.startsWith('/') ? (appUrl + topImageUrl) : (appUrl + '/' + topImageUrl);
+                                                    }
+                                                }
+                                                let topRefFileUrl = feedback.reference_file || '';
+                                                if (topRefFileUrl) {
+                                                    const isAbs2 = typeof topRefFileUrl === 'string' && (topRefFileUrl.startsWith('http://') || topRefFileUrl.startsWith('https://'));
+                                                    const isRefPath = typeof topRefFileUrl === 'string' && (topRefFileUrl.startsWith('/file/task_reference_files/') || topRefFileUrl.startsWith('file/task_reference_files/'));
+                                                    if (!isAbs2 && !isRefPath) {
+                                                        topRefFileUrl = appUrl + '/file/task_reference_files/' + topRefFileUrl;
+                                                    } else if (!isAbs2 && isRefPath) {
+                                                        topRefFileUrl = topRefFileUrl.startsWith('/') ? (appUrl + topRefFileUrl) : (appUrl + '/' + topRefFileUrl);
+                                                    }
+                                                }
+
+                                                // Determine if current user is the author of the top-level feedback
+                                                const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
+                                                const canEditTop = String(topAuthorId) === String(currentEmployeeId);
+                                                const topEditIconHtml = canEditTop
+                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-file="${encodeURIComponent(topRefFileUrl || '')}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
+                                                    : '';
+
+                                                let repliesHtml = '';
+                                                if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                                        const repliesCount = feedback.replies.length;
+                                                        const repliesContent = feedback.replies.map(function (rep) {
+                                                                // reply date formatting
+                                                                let rDate = '';
+                                                                if (rep.created_at) {
+                                                                        const d = new Date(rep.created_at);
+                                                                        rDate = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                                                                }
+                                                                // Normalize image URL if backend returns filename/relative
+                                                                let repImageUrl = rep.image || '';
+                                                                if (repImageUrl) {
+                                                                    const isAbs = typeof repImageUrl === 'string' && (repImageUrl.startsWith('http://') || repImageUrl.startsWith('https://'));
+                                                                    const isFileTask = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/file/task/') || repImageUrl.startsWith('file/task/'));
+                                                                    const isStorage = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/storage/') || repImageUrl.startsWith('storage/'));
+                                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                                        repImageUrl = appUrl + '/file/task/' + repImageUrl;
+                                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                                        repImageUrl = repImageUrl.startsWith('/') ? (appUrl + repImageUrl) : (appUrl + '/' + repImageUrl);
+                                                                    }
+                                                                }
+                                                                // Normalize reference_file URL similarly
+                                                                let repRefFileUrl = rep.reference_file || '';
+                                                                if (repRefFileUrl) {
+                                                                    const isAbs2 = typeof repRefFileUrl === 'string' && (repRefFileUrl.startsWith('http://') || repRefFileUrl.startsWith('https://'));
+                                                                    const isRefPath = typeof repRefFileUrl === 'string' && (repRefFileUrl.startsWith('/file/task_reference_files/') || repRefFileUrl.startsWith('file/task_reference_files/'));
+                                                                    if (!isAbs2 && !isRefPath) {
+                                                                        repRefFileUrl = appUrl + '/file/task_reference_files/' + repRefFileUrl;
+                                                                    } else if (!isAbs2 && isRefPath) {
+                                                                        repRefFileUrl = repRefFileUrl.startsWith('/') ? (appUrl + repRefFileUrl) : (appUrl + '/' + repRefFileUrl);
+                                                                    }
+                                                                }
+                                                                // Determine if current user can edit this reply
+                                                                const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                                                                const canEditReply = String(repAuthorId) === String(currentEmployeeId);
+                                                                const replyEditIconHtml = canEditReply
+                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-file="${encodeURIComponent(repRefFileUrl || '')}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
+                                                                    : '';
+
+                                                                return `
+                                                                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" style="background:#fafafa;">
+                                                                        <div class="d-flex align-items-center mb-1">
+                                                                            <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
+                                                                            <div>
+                                                                                <div class="d-flex align-items-center">
+                                                                                    <strong style="font-size: 13px;">${rep.employee.name}</strong>
+                                                                                    ${replyEditIconHtml}
+                                                                                </div>
+                                                                                <small class="text-muted d-block" style="font-size: 11px;">${rDate}</small>
+                                                                            </div>
+                                                                        </div>
+                                                                        <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
+                                                                        ${
+                                                                            (rep.reference_url || rep.reference_file)
+                                                                                ? `
+                                                                                    <div class="feedback-reference-container mb-1">
+                                                                                        ${rep.reference_url ? `<a href="${rep.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : ''}
+                                                                                        ${repRefFileUrl ? `<a href="${repRefFileUrl}" download class="feedback-reference-file ms-2"><span class="material-symbols-outlined">draft</span> FEEDBACK_FILE</a>` : ''}
+                                                                                    </div>
+                                                                                `
+                                                                                : ''
+                                                                        }
+                                                                        ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+                                                                    </div>
+                                                                `;
+                                                        }).join('');
+
+                                                        repliesHtml = `
+                                                            <div class="view-replies-wrap mt-1">
+                                                                <button type="button" class="btn btn-link p-0 view-replies-toggle" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>
+                                                                <div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>
+                                                            </div>
+                                                        `;
+                                                }
+
+                                                feedbackHtml += `
+                                                <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
+                                                    <div class="d-flex align-items-center mb-2 justify-content-between">
+                                                        <div class="d-flex align-items-center">
+                                                            <img src="${feedback.employee.photo}" alt="${feedback.employee.name}"
+                                                                class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                                            <div>
+                                                                <div class="d-flex align-items-center">
+                                                                    <strong>${feedback.employee.name}</strong>
+                                                                    ${topEditIconHtml}
+                                                                </div>
+                                                                <small class="text-muted d-block">${formattedDate}</small>
+                                                            </div>
+                                                        </div>
+                                                        <span class="material-symbols-outlined feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">reply</span>
+                                                    </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
                             ${
                                 feedback.reference_url ||
@@ -1699,8 +1889,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                             : ""
                                     }
                                     ${
-                                        feedback.reference_file
-                                            ? `<a href="${feedback.reference_file}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>`
+                                        topRefFileUrl
+                                            ? `<a href="${topRefFileUrl}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>`
                                             : ""
                                     }
                                 </div>
@@ -1708,14 +1898,90 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                     : ""
                             }
                             ${
-                                feedback.image
-                                    ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
+                                topImageUrl
+                                    ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
                                     : ""
                             }
+                        ${repliesHtml}
                         </div>
                     `;
                     });
                     modalBody.innerHTML = feedbackHtml;
+
+                    // Bind reply icon click
+                    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const parentId = this.getAttribute('data-feedback-id');
+                            const tId = this.getAttribute('data-task-id');
+                            showReplyFeedbackForm(tId, parentId);
+                        });
+                    });
+
+                    // Bind edit (top-level) icon click
+                    modalBody.querySelectorAll('.feedback-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const fid = this.getAttribute('data-feedback-id');
+                            const payload = {
+                                id: fid,
+                                parent_id: null,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+                            showEditFeedbackForm(tId, payload, false);
+                        });
+                    });
+
+                    // Bind edit (reply) icon click
+                    modalBody.querySelectorAll('.reply-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const rid = this.getAttribute('data-reply-id');
+                            const pid = this.getAttribute('data-parent-id');
+                            const payload = {
+                                id: rid,
+                                parent_id: pid,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+                            showEditFeedbackForm(tId, payload, true);
+                        });
+                    });
+
+                    // Bind view replies toggle per feedback
+                    modalBody.querySelectorAll('.view-replies-toggle').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const fid = this.getAttribute('data-feedback-id');
+                            const count = this.getAttribute('data-replies-count');
+                            const container = modalBody.querySelector('#replies-' + fid);
+                            if (!container) return;
+                            const hidden = container.classList.contains('d-none');
+                            if (hidden) {
+                                container.classList.remove('d-none');
+                                this.textContent = 'Hide replies';
+                            } else {
+                                container.classList.add('d-none');
+                                this.textContent = `View all replies (${count})`;
+                            }
+                            // Enforce style: no underline and #555 color
+                            this.style.textDecoration = 'none';
+                            this.style.color = '#555';
+                        });
+                    });
+
+                    // Open feedback/reply images in a new tab
+                    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                        img.addEventListener('click', function () {
+                            const src = this.getAttribute('src');
+                            if (src) {
+                                window.open(src, '_blank');
+                            }
+                        });
+                    });
                 } else {
                     modalBody.innerHTML =
                         '<p class="text-center text-muted">No feedback available for this task.</p>';
@@ -1734,7 +2000,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         const modalBody = document.getElementById("taskFeedbackList");
         const addFeedbackButton = document.getElementById("addFeedbackButton");
 
-        modalTitle.textContent = "Add Feedback";
+    modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
 
         const form = document.createElement("form");
@@ -1980,6 +2246,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         freshBtn.removeAttribute('disabled');
                         freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
+                    // Remove reply close button if present
+                    const closeBtn = document.getElementById('replyCloseButton');
+                    if (closeBtn && closeBtn.parentNode) {
+                        closeBtn.parentNode.removeChild(closeBtn);
+                    }
                     loadTaskFeedbackData(taskId);
                 } catch (e) { /* noop */ }
 
@@ -2044,6 +2315,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         addFeedbackButton.textContent = "Add Feedback";
         const newButton = addFeedbackButton.cloneNode(true);
         addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+        // Ensure any leftover reply close button is removed
+        const leftoverClose = document.getElementById('replyCloseButton');
+        if (leftoverClose && leftoverClose.parentNode) {
+            leftoverClose.parentNode.removeChild(leftoverClose);
+        }
 
         // Add event listener for Add Feedback button to show add feedback form
         newButton.addEventListener("click", function () {
@@ -2145,6 +2421,318 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             const form = document.getElementById("addFeedbackForm");
             if (form) {
                 submitFeedbackForm(form, taskId);
+            }
+        });
+    }
+
+    // Show reply form (reuses add form but with parent_id and title)
+    function showReplyFeedbackForm(taskId, parentId) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        modalTitle.textContent = "Reply Feedback";
+
+        modalBody.innerHTML = `
+            <form id="addFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                <input type="hidden" name="parent_id" value="${parentId}">
+                <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
+
+                <div class="mb-3">
+                    <label class="form-label">Upload Image</label>
+                    <div class="image-upload-container">
+                        <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
+                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
+                            <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
+                            <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+                </div>
+            </form>
+        `;
+
+        // Setup image preview and clear button logic (same as add feedback)
+        const imageInput = modalBody.querySelector("#feedback_image");
+        const imageLabel = modalBody.querySelector("#feedbackImageLabel");
+        const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
+
+        imageInput.addEventListener("change", function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                    imageLabel.classList.add("has-image");
+                    imageLabel.style.backgroundSize = "cover";
+                    imageLabel.style.opacity = "1";
+                    imageClearBtn.classList.remove("d-none");
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        imageClearBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            imageInput.value = "";
+            imageLabel.style.backgroundImage =
+                "url('" + appUrl + "/asset/img/background/add-image.png')";
+            imageLabel.style.backgroundPosition = "center center";
+            imageLabel.style.backgroundRepeat = "no-repeat";
+            imageLabel.style.backgroundSize = "50%";
+            imageLabel.classList.remove("has-image");
+            imageLabel.style.opacity = "0.5";
+            imageClearBtn.classList.add("d-none");
+        });
+
+        addFeedbackButton.textContent = "Submit";
+        const newButton = addFeedbackButton.cloneNode(true);
+        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+        newButton.addEventListener("click", function (e) {
+            e.preventDefault();
+            const form = document.getElementById("addFeedbackForm");
+            if (form) {
+                submitFeedbackForm(form, taskId);
+            }
+        });
+
+        // Inject a Close button to the left of Submit to go back to list
+        let closeBtn = document.getElementById('replyCloseButton');
+        if (closeBtn && closeBtn.parentNode) {
+            closeBtn.parentNode.removeChild(closeBtn);
+        }
+        closeBtn = document.createElement('button');
+        closeBtn.id = 'replyCloseButton';
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-close-reply';
+        closeBtn.textContent = 'Close';
+        const footerSubmit = document.getElementById('addFeedbackButton');
+        if (footerSubmit && footerSubmit.parentNode) {
+            footerSubmit.parentNode.insertBefore(closeBtn, footerSubmit);
+        }
+        closeBtn.addEventListener('click', function () {
+            // Restore list state
+            const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title');
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            const addBtnRef = document.getElementById('addFeedbackButton');
+            if (addBtnRef) {
+                addBtnRef.textContent = 'Add Feedback';
+                const freshBtn = addBtnRef.cloneNode(true);
+                addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+            }
+            loadTaskFeedbackData(taskId);
+            // Remove this close button
+            if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
+        });
+    }
+
+    // Show edit form (for feedback or reply) with prefilled data
+    function showEditFeedbackForm(taskId, data, isReply) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("taskFeedbackModalLabel");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("taskFeedbackList");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        if (modalTitle) modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
+
+        // Build form HTML
+        const existingImg = data.image_url || '';
+        const bgImage = existingImg ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;` : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+        const clearBtnClass = existingImg ? '' : 'd-none';
+
+        modalBody.innerHTML = `
+            <form id="editFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                ${data.parent_id ? `<input type=\"hidden\" name=\"parent_id\" value=\"${data.parent_id}\">` : ''}
+
+                <!-- Put image section at the very top -->
+                <div class="mb-3">
+                    <div class="title-label-image">Upload Image</div>
+                    <div class="image-upload-container">
+                        <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; ${bgImage} cursor: pointer;">
+                            <input type="file" id="feedback_image" ${isReply ? 'name="image"' : 'name="feedback_image"'} accept="image/*" class="d-none">
+                            <span class="image-clear-btn ${clearBtnClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                    <input type="url" class="form-control" id="reference_url" name="reference_url" value="${data.reference_url || ''}" placeholder="https://example.com">
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
+                </div>
+
+                ${data.reference_file_url ? `<div class=\"mt-1\"><a href=\"${data.reference_file_url}\" target=\"_blank\" class=\"feedback-reference-file\"><span class=\"material-symbols-outlined\">draft</span> Current File</a></div>` : ''}
+            </form>
+        `;
+
+        // Wire image preview/clear
+        (function() {
+            const imageInput = modalBody.querySelector('#feedback_image');
+            const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
+            const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+            if (!imageInput || !imageLabel || !imageClearBtn) return;
+            // If existing image exists, ensure clear button is visible
+            if (existingImg) {
+                imageClearBtn.classList.remove('d-none');
+                imageLabel.classList.add('has-image');
+            }
+            imageInput.addEventListener('change', function () {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                        imageLabel.classList.add('has-image');
+                        imageLabel.style.backgroundSize = 'cover';
+                        imageLabel.style.opacity = '1';
+                        imageClearBtn.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            imageClearBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                imageInput.value = '';
+                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                imageLabel.style.backgroundPosition = 'center center';
+                imageLabel.style.backgroundRepeat = 'no-repeat';
+                imageLabel.style.backgroundSize = '50%';
+                imageLabel.classList.remove('has-image');
+                imageLabel.style.opacity = '0.5';
+                imageClearBtn.classList.add('d-none');
+            });
+        })();
+
+        // Change footer button to Save
+        if (addFeedbackButton) {
+            addFeedbackButton.textContent = 'Save';
+            const newBtn = addFeedbackButton.cloneNode(true);
+            addFeedbackButton.parentNode.replaceChild(newBtn, addFeedbackButton);
+            // Make sure the cloned button is enabled
+            newBtn.disabled = false;
+            newBtn.removeAttribute('disabled');
+            newBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const form = document.getElementById('editFeedbackForm');
+                if (!form) return;
+                submitEditFeedbackForm(form, taskId, data.id, isReply);
+            });
+        }
+
+        // Inject a Back button left of Save to go back to list
+        let backBtn = document.getElementById('replyCloseButton');
+        if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+        backBtn = document.createElement('button');
+        backBtn.id = 'replyCloseButton';
+        backBtn.type = 'button';
+        backBtn.className = 'btn btn-close-reply';
+        backBtn.textContent = 'Close';
+        const footerSubmit = document.getElementById('addFeedbackButton');
+        if (footerSubmit && footerSubmit.parentNode) {
+            footerSubmit.parentNode.insertBefore(backBtn, footerSubmit);
+        }
+        backBtn.addEventListener('click', function () {
+            const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            const addBtnRef = document.getElementById('addFeedbackButton');
+            if (addBtnRef) {
+                addBtnRef.textContent = 'Add Feedback';
+                const freshBtn = addBtnRef.cloneNode(true);
+                addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+            }
+            loadTaskFeedbackData(taskId);
+            if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+        });
+    }
+
+    function submitEditFeedbackForm(form, taskId, id, isReply) {
+        const submitBtn = document.getElementById('addFeedbackButton');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            submitBtn.disabled = true;
+        }
+
+        const formData = new FormData(form);
+        formData.append('_method', 'PUT');
+        // Ensure correct image field name already set in form; nothing extra here
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + id,
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            success: function (response) {
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || 'Feedback updated successfully!', 'success');
+                }
+                // Return to list view
+                const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
+                if (titleEl) titleEl.textContent = 'Task Feedback';
+                const addBtnRef = document.getElementById('addFeedbackButton');
+                if (addBtnRef) {
+                    addBtnRef.textContent = 'Add Feedback';
+                    const freshBtn = addBtnRef.cloneNode(true);
+                    addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                    // Ensure the new button is enabled and clickable
+                    freshBtn.disabled = false;
+                    freshBtn.removeAttribute('disabled');
+                    freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                }
+                loadTaskFeedbackData(taskId);
+                // Refresh snippets/badges best-effort
+                try { fetchLatestFeedback(taskId); } catch(_) {}
+            },
+            error: function (xhr) {
+                let errorMessage = 'Failed to update feedback. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, 'danger');
+                } else {
+                    alert(errorMessage);
+                }
+            },
+            complete: function () {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnHtml || 'Save';
+                    submitBtn.disabled = false;
+                }
             }
         });
     }
@@ -2468,7 +3056,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         );
         if (!editProjectSelect) return;
 
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -2969,7 +3557,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     function loadProjectsForFilterMobile() {
         if (!filterTaskProjectSelectMobile) return;
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -3061,7 +3649,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     function loadProjectsForFilter() {
         if (!filterTaskProjectSelect) return;
 
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");

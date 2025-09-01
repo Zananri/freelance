@@ -1558,3 +1558,34 @@ p {
     display: none; /* Initially hidden */
     position: absolute;
 }
+
+.unread-badge {
+    top: 3px !important;
+    left: 18px !important;
+    width: 8px;
+    height: 8px;
+    background: #dc3545;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.btn-close-reply {
+    background-color: grey;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-close-reply:hover {
+    background-color: #333;
+    color: white;
+}

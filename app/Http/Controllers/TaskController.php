@@ -983,6 +983,7 @@ class TaskController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'task_id' => 'required|exists:tasks,id',
+                'parent_id' => 'nullable|exists:task_feedbacks,id',
                 'employee_id' => 'required|exists:employees,id',
                 'feedback_comment' => 'required|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
@@ -1054,19 +1055,119 @@ class TaskController extends Controller
     }
 
     /**
+     * Update task feedback or reply
+     */
+    public function updateFeedback(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $feedback = TaskFeedback::findOrFail($id);
+
+            // Only the author (employee) can update their feedback/reply
+            $user = $request->user();
+            $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$currentEmployeeId || (int)$feedback->employee_id !== (int)$currentEmployeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'You are not allowed to edit this feedback.',
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'feedback_comment' => 'required|string',
+                'reference_url' => 'nullable|url|max:255',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $data = $validator->validated();
+
+            // Normalize image input key (reply uses image, top-level add used image; our edit may use feedback_image for top-level)
+            if ($request->hasFile('image')) {
+                $img = $request->file('image');
+            } elseif ($request->hasFile('feedback_image')) {
+                $img = $request->file('feedback_image');
+            } else {
+                $img = null;
+            }
+
+            if ($img) {
+                $ext = $img->getClientOriginalExtension();
+                $name = 'TASK_FEEDBACK_' . time() . '.' . $ext;
+                $img->move(public_path('file/task'), $name);
+                $data['image'] = $name;
+            }
+
+            if ($request->hasFile('reference_file')) {
+                $ref = $request->file('reference_file');
+                $ext = $ref->getClientOriginalExtension();
+                $name = 'TASK_FEEDBACK_' . time() . '.' . $ext;
+                $ref->move(public_path('file/task_reference_files'), $name);
+                $data['reference_file'] = $name;
+            }
+
+            // Only update allowed fields
+            $feedback->feedback_comment = $data['feedback_comment'];
+            $feedback->reference_url = $data['reference_url'] ?? $feedback->reference_url;
+            if (isset($data['image'])) {
+                $feedback->image = $data['image'];
+            }
+            if (isset($data['reference_file'])) {
+                $feedback->reference_file = $data['reference_file'];
+            }
+
+            if ($request->user()) {
+                $feedback->updated_by = $request->user()->id;
+            }
+
+            $feedback->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Task feedback updated successfully',
+                'data' => $feedback,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => 'Failed to update feedback: ' . $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
      * Get task feedbacks for a specific task
      */
     public function getTaskFeedbacks($taskId)
     {
         try {
-            $feedbacks = TaskFeedback::with(['employee.user'])
+            // Fetch only top-level feedbacks
+            $feedbacks = TaskFeedback::with(['employee.user', 'replies.employee.user'])
                 ->where('task_id', $taskId)
+                ->whereNull('parent_id')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            $formattedFeedbacks = $feedbacks->map(function ($feedback) {
-                return [
+            $formatOne = function ($feedback) use (&$formatOne) {
+                $item = [
                     'id' => $feedback->id,
+                    'parent_id' => $feedback->parent_id,
                     'feedback_comment' => $feedback->feedback_comment,
                     'image' => $feedback->image ? asset('file/task/' . $feedback->image) : null,
                     'reference_url' => $feedback->reference_url,
@@ -1080,7 +1181,33 @@ class TaskController extends Controller
                             : asset('asset/img/profile_picture/default.png'),
                     ],
                 ];
-            });
+                // Map nested replies (one-level for now)
+                if ($feedback->replies && $feedback->replies->count() > 0) {
+                    $item['replies'] = $feedback->replies->sortBy('created_at')->values()->map(function ($r) {
+                        return [
+                            'id' => $r->id,
+                            'parent_id' => $r->parent_id,
+                            'feedback_comment' => $r->feedback_comment,
+                            'image' => $r->image ? asset('file/task/' . $r->image) : null,
+                            'reference_url' => $r->reference_url,
+                            'reference_file' => $r->reference_file ? asset('file/task_reference_files/' . $r->reference_file) : null,
+                            'created_at' => $r->created_at,
+                            'employee' => [
+                                'id' => $r->employee->id,
+                                'name' => $r->employee->name,
+                                'photo' => $r->employee->user && $r->employee->user->photo
+                                    ? asset($r->employee->user->photo)
+                                    : asset('asset/img/profile_picture/default.png'),
+                            ],
+                        ];
+                    });
+                } else {
+                    $item['replies'] = [];
+                }
+                return $item;
+            };
+
+            $formattedFeedbacks = $feedbacks->map($formatOne);
 
             return response()->json([
                 'code' => 200,
@@ -1093,6 +1220,73 @@ class TaskController extends Controller
                 'code' => $e->getCode() ?: 500,
                 'status' => 'error',
                 'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * Get the latest single feedback for a task
+     */
+    public function getTaskLatestFeedback($taskId)
+    {
+        try {
+            $employeeId = auth()->user()?->employee?->id;
+
+            // Apply unread window using task read_markers (per-employee last_read_at)
+            $lastReadAt = null;
+            if ($employeeId) {
+                $task = Task::find($taskId);
+                if ($task && !empty($task->read_markers)) {
+                    $markers = is_array($task->read_markers) ? $task->read_markers : (json_decode($task->read_markers, true) ?: []);
+                    $lastReadAt = $markers[(string)$employeeId] ?? null;
+                }
+            }
+
+            $latest = TaskFeedback::with(['employee.user'])
+                ->where('task_id', $taskId)
+                // Only show if not authored by current user
+                ->when($employeeId, function ($q) use ($employeeId) {
+                    $q->where('employee_id', '!=', $employeeId);
+                })
+                // Only show if it's newer than last read
+                ->when($lastReadAt, function ($q) use ($lastReadAt) {
+                    $q->where('created_at', '>', $lastReadAt);
+                })
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$latest) {
+                // Return 200 with null data to avoid noisy 404s in the browser console
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => null
+                ]);
+            }
+
+            $payload = [
+                'id' => $latest->id,
+                'feedback_comment' => $latest->feedback_comment,
+                'created_at' => $latest->created_at,
+                'employee' => [
+                    'id' => $latest->employee->id,
+                    'name' => $latest->employee->name,
+                    'photo' => $latest->employee->user && $latest->employee->user->photo
+                        ? asset($latest->employee->user->photo)
+                        : asset('asset/img/profile_picture/default.png'),
+                ],
+            ];
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $payload,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
             ], $e->getCode() ?: 500);
         }
     }
