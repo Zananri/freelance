@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    
+
     @php
         $head_stitle = 'Office NSA Performance';
 
@@ -58,7 +58,7 @@
     @isset($head_slot)
         {{ $head_slot }}
     @endisset
-    
+
 </head>
 
 <body class="">
@@ -129,18 +129,18 @@
                                             <span class="material-symbols-outlined">account_circle</span>
                                             Profile
                                         </a>
-                                        
-                                        
+
+
                                         <button type="submit" class="btn btn-logout-right w-100" >
                                             <span class="material-symbols-outlined">logout</span>
                                             Logout
                                         </button>
-                                    
+
                                 </div>
 
                             </form>
                         </div>
-                        
+
                     </div>
                 </div>
             </div>
@@ -238,8 +238,8 @@
                     </li>
 
                     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
-                        
-                    
+
+
 
                     <li>
                         <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
@@ -345,7 +345,7 @@
     </svg>
 
 
-    
+
 
 
 </body>
