@@ -1706,6 +1706,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 if (response.data && response.data.length > 0) {
                     let feedbackHtml = "";
                     response.data.forEach(function (feedback) {
+                        // Who is the current employee (to decide edit permission)
+                        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                        const currentEmployeeId = parseInt(
+                            (feedbackModalEl?.dataset?.employeeId || feedbackModalEl?.getAttribute('data-employee-id') || '0'),
+                            10
+                        ) || 0;
+
                         // Format the date with the requested format
                         let formattedDate = "";
                         if (feedback.created_at) {
@@ -1749,6 +1756,36 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         }
 
                                                 // Build top-level feedback block
+                                                // Normalize top-level image & ref file URLs for reliable preview
+                                                let topImageUrl = feedback.image || '';
+                                                if (topImageUrl) {
+                                                    const isAbs = typeof topImageUrl === 'string' && (topImageUrl.startsWith('http://') || topImageUrl.startsWith('https://'));
+                                                    const isFileTask = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/file/task/') || topImageUrl.startsWith('file/task/'));
+                                                    const isStorage = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/storage/') || topImageUrl.startsWith('storage/'));
+                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                        topImageUrl = appUrl + '/file/task/' + topImageUrl;
+                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                        topImageUrl = topImageUrl.startsWith('/') ? (appUrl + topImageUrl) : (appUrl + '/' + topImageUrl);
+                                                    }
+                                                }
+                                                let topRefFileUrl = feedback.reference_file || '';
+                                                if (topRefFileUrl) {
+                                                    const isAbs2 = typeof topRefFileUrl === 'string' && (topRefFileUrl.startsWith('http://') || topRefFileUrl.startsWith('https://'));
+                                                    const isRefPath = typeof topRefFileUrl === 'string' && (topRefFileUrl.startsWith('/file/task_reference_files/') || topRefFileUrl.startsWith('file/task_reference_files/'));
+                                                    if (!isAbs2 && !isRefPath) {
+                                                        topRefFileUrl = appUrl + '/file/task_reference_files/' + topRefFileUrl;
+                                                    } else if (!isAbs2 && isRefPath) {
+                                                        topRefFileUrl = topRefFileUrl.startsWith('/') ? (appUrl + topRefFileUrl) : (appUrl + '/' + topRefFileUrl);
+                                                    }
+                                                }
+
+                                                // Determine if current user is the author of the top-level feedback
+                                                const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
+                                                const canEditTop = String(topAuthorId) === String(currentEmployeeId);
+                                                const topEditIconHtml = canEditTop
+                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-file="${encodeURIComponent(topRefFileUrl || '')}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
+                                                    : '';
+
                                                 let repliesHtml = '';
                                                 if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
                                                         const repliesCount = feedback.replies.length;
@@ -1782,12 +1819,22 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                         repRefFileUrl = repRefFileUrl.startsWith('/') ? (appUrl + repRefFileUrl) : (appUrl + '/' + repRefFileUrl);
                                                                     }
                                                                 }
+                                                                // Determine if current user can edit this reply
+                                                                const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                                                                const canEditReply = String(repAuthorId) === String(currentEmployeeId);
+                                                                const replyEditIconHtml = canEditReply
+                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-file="${encodeURIComponent(repRefFileUrl || '')}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
+                                                                    : '';
+
                                                                 return `
                                                                     <div class="feedback-reply ms-4 mt-2 p-2 rounded" style="background:#fafafa;">
                                                                         <div class="d-flex align-items-center mb-1">
                                                                             <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
                                                                             <div>
-                                                                                <strong style="font-size: 13px;">${rep.employee.name}</strong>
+                                                                                <div class="d-flex align-items-center">
+                                                                                    <strong style="font-size: 13px;">${rep.employee.name}</strong>
+                                                                                    ${replyEditIconHtml}
+                                                                                </div>
                                                                                 <small class="text-muted d-block" style="font-size: 11px;">${rDate}</small>
                                                                             </div>
                                                                         </div>
@@ -1822,7 +1869,10 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                             <img src="${feedback.employee.photo}" alt="${feedback.employee.name}"
                                                                 class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                                                             <div>
-                                                                <strong>${feedback.employee.name}</strong>
+                                                                <div class="d-flex align-items-center">
+                                                                    <strong>${feedback.employee.name}</strong>
+                                                                    ${topEditIconHtml}
+                                                                </div>
                                                                 <small class="text-muted d-block">${formattedDate}</small>
                                                             </div>
                                                         </div>
@@ -1840,8 +1890,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                             : ""
                                     }
                                     ${
-                                        feedback.reference_file
-                                            ? `<a href="${feedback.reference_file}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>`
+                                        topRefFileUrl
+                                            ? `<a href="${topRefFileUrl}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>`
                                             : ""
                                     }
                                 </div>
@@ -1849,8 +1899,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                     : ""
                             }
                             ${
-                                feedback.image
-                                    ? `<img src="${feedback.image}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
+                                topImageUrl
+                                    ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
                                     : ""
                             }
                         ${repliesHtml}
@@ -1865,6 +1915,41 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             const parentId = this.getAttribute('data-feedback-id');
                             const tId = this.getAttribute('data-task-id');
                             showReplyFeedbackForm(tId, parentId);
+                        });
+                    });
+
+                    // Bind edit (top-level) icon click
+                    modalBody.querySelectorAll('.feedback-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const fid = this.getAttribute('data-feedback-id');
+                            const payload = {
+                                id: fid,
+                                parent_id: null,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+                            showEditFeedbackForm(tId, payload, false);
+                        });
+                    });
+
+                    // Bind edit (reply) icon click
+                    modalBody.querySelectorAll('.reply-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const rid = this.getAttribute('data-reply-id');
+                            const pid = this.getAttribute('data-parent-id');
+                            const payload = {
+                                id: rid,
+                                parent_id: pid,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+                            showEditFeedbackForm(tId, payload, true);
                         });
                     });
 
@@ -2455,6 +2540,201 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             loadTaskFeedbackData(taskId);
             // Remove this close button
             if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
+        });
+    }
+
+    // Show edit form (for feedback or reply) with prefilled data
+    function showEditFeedbackForm(taskId, data, isReply) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("taskFeedbackModalLabel");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("taskFeedbackList");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        if (modalTitle) modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
+
+        // Build form HTML
+        const existingImg = data.image_url || '';
+        const bgImage = existingImg ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;` : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+        const clearBtnClass = existingImg ? '' : 'd-none';
+
+        modalBody.innerHTML = `
+            <form id="editFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                ${data.parent_id ? `<input type=\"hidden\" name=\"parent_id\" value=\"${data.parent_id}\">` : ''}
+
+                <!-- Put image section at the very top -->
+                <div class="mb-3">
+                    <div class="title-label-image">Upload Image</div>
+                    <div class="image-upload-container">
+                        <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; ${bgImage} cursor: pointer;">
+                            <input type="file" id="feedback_image" ${isReply ? 'name="image"' : 'name="feedback_image"'} accept="image/*" class="d-none">
+                            <span class="image-clear-btn ${clearBtnClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                    <input type="url" class="form-control" id="reference_url" name="reference_url" value="${data.reference_url || ''}" placeholder="https://example.com">
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
+                </div>
+
+                ${data.reference_file_url ? `<div class=\"mt-1\"><a href=\"${data.reference_file_url}\" target=\"_blank\" class=\"feedback-reference-file\"><span class=\"material-symbols-outlined\">draft</span> Current File</a></div>` : ''}
+            </form>
+        `;
+
+        // Wire image preview/clear
+        (function() {
+            const imageInput = modalBody.querySelector('#feedback_image');
+            const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
+            const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+            if (!imageInput || !imageLabel || !imageClearBtn) return;
+            // If existing image exists, ensure clear button is visible
+            if (existingImg) {
+                imageClearBtn.classList.remove('d-none');
+                imageLabel.classList.add('has-image');
+            }
+            imageInput.addEventListener('change', function () {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                        imageLabel.classList.add('has-image');
+                        imageLabel.style.backgroundSize = 'cover';
+                        imageLabel.style.opacity = '1';
+                        imageClearBtn.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            imageClearBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                imageInput.value = '';
+                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                imageLabel.style.backgroundPosition = 'center center';
+                imageLabel.style.backgroundRepeat = 'no-repeat';
+                imageLabel.style.backgroundSize = '50%';
+                imageLabel.classList.remove('has-image');
+                imageLabel.style.opacity = '0.5';
+                imageClearBtn.classList.add('d-none');
+            });
+        })();
+
+        // Change footer button to Save
+        if (addFeedbackButton) {
+            addFeedbackButton.textContent = 'Save';
+            const newBtn = addFeedbackButton.cloneNode(true);
+            addFeedbackButton.parentNode.replaceChild(newBtn, addFeedbackButton);
+            // Make sure the cloned button is enabled
+            newBtn.disabled = false;
+            newBtn.removeAttribute('disabled');
+            newBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const form = document.getElementById('editFeedbackForm');
+                if (!form) return;
+                submitEditFeedbackForm(form, taskId, data.id, isReply);
+            });
+        }
+
+        // Inject a Back button left of Save to go back to list
+        let backBtn = document.getElementById('replyCloseButton');
+        if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+        backBtn = document.createElement('button');
+        backBtn.id = 'replyCloseButton';
+        backBtn.type = 'button';
+        backBtn.className = 'btn btn-close-reply';
+        backBtn.textContent = 'Close';
+        const footerSubmit = document.getElementById('addFeedbackButton');
+        if (footerSubmit && footerSubmit.parentNode) {
+            footerSubmit.parentNode.insertBefore(backBtn, footerSubmit);
+        }
+        backBtn.addEventListener('click', function () {
+            const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            const addBtnRef = document.getElementById('addFeedbackButton');
+            if (addBtnRef) {
+                addBtnRef.textContent = 'Add Feedback';
+                const freshBtn = addBtnRef.cloneNode(true);
+                addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+            }
+            loadTaskFeedbackData(taskId);
+            if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+        });
+    }
+
+    function submitEditFeedbackForm(form, taskId, id, isReply) {
+        const submitBtn = document.getElementById('addFeedbackButton');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            submitBtn.disabled = true;
+        }
+
+        const formData = new FormData(form);
+        formData.append('_method', 'PUT');
+        // Ensure correct image field name already set in form; nothing extra here
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + id,
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            success: function (response) {
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || 'Feedback updated successfully!', 'success');
+                }
+                // Return to list view
+                const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
+                if (titleEl) titleEl.textContent = 'Task Feedback';
+                const addBtnRef = document.getElementById('addFeedbackButton');
+                if (addBtnRef) {
+                    addBtnRef.textContent = 'Add Feedback';
+                    const freshBtn = addBtnRef.cloneNode(true);
+                    addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                    // Ensure the new button is enabled and clickable
+                    freshBtn.disabled = false;
+                    freshBtn.removeAttribute('disabled');
+                    freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                }
+                loadTaskFeedbackData(taskId);
+                // Refresh snippets/badges best-effort
+                try { fetchLatestFeedback(taskId); } catch(_) {}
+            },
+            error: function (xhr) {
+                let errorMessage = 'Failed to update feedback. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, 'danger');
+                } else {
+                    alert(errorMessage);
+                }
+            },
+            complete: function () {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnHtml || 'Save';
+                    submitBtn.disabled = false;
+                }
+            }
         });
     }
 

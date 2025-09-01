@@ -1055,6 +1055,103 @@ class TaskController extends Controller
     }
 
     /**
+     * Update task feedback or reply
+     */
+    public function updateFeedback(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $feedback = TaskFeedback::findOrFail($id);
+
+            // Only the author (employee) can update their feedback/reply
+            $user = $request->user();
+            $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$currentEmployeeId || (int)$feedback->employee_id !== (int)$currentEmployeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'You are not allowed to edit this feedback.',
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'feedback_comment' => 'required|string',
+                'reference_url' => 'nullable|url|max:255',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $data = $validator->validated();
+
+            // Normalize image input key (reply uses image, top-level add used image; our edit may use feedback_image for top-level)
+            if ($request->hasFile('image')) {
+                $img = $request->file('image');
+            } elseif ($request->hasFile('feedback_image')) {
+                $img = $request->file('feedback_image');
+            } else {
+                $img = null;
+            }
+
+            if ($img) {
+                $ext = $img->getClientOriginalExtension();
+                $name = 'TASK_FEEDBACK_' . time() . '.' . $ext;
+                $img->move(public_path('file/task'), $name);
+                $data['image'] = $name;
+            }
+
+            if ($request->hasFile('reference_file')) {
+                $ref = $request->file('reference_file');
+                $ext = $ref->getClientOriginalExtension();
+                $name = 'TASK_FEEDBACK_' . time() . '.' . $ext;
+                $ref->move(public_path('file/task_reference_files'), $name);
+                $data['reference_file'] = $name;
+            }
+
+            // Only update allowed fields
+            $feedback->feedback_comment = $data['feedback_comment'];
+            $feedback->reference_url = $data['reference_url'] ?? $feedback->reference_url;
+            if (isset($data['image'])) {
+                $feedback->image = $data['image'];
+            }
+            if (isset($data['reference_file'])) {
+                $feedback->reference_file = $data['reference_file'];
+            }
+
+            if ($request->user()) {
+                $feedback->updated_by = $request->user()->id;
+            }
+
+            $feedback->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Task feedback updated successfully',
+                'data' => $feedback,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => 'Failed to update feedback: ' . $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
      * Get task feedbacks for a specific task
      */
     public function getTaskFeedbacks($taskId)

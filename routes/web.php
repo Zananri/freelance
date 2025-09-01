@@ -102,6 +102,7 @@ Route::middleware('auth')->group(function () {
 
     // Task Feedback routes
     Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
+    Route::put('/task-feedbacks/{id}', [TaskController::class, 'updateFeedback'])->name('task-feedbacks.update');
     Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks'])->name('task-feedbacks.get');
     Route::get('/task-feedbacks/{taskId}/latest', [TaskController::class, 'getTaskLatestFeedback'])->name('task-feedbacks.latest');
     Route::get('/task-feedbacks/count/{taskId}', [TaskController::class, 'getTaskFeedbackCount'])->name('task-feedbacks.count');
