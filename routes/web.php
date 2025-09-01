@@ -104,6 +104,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
     Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks'])->name('task-feedbacks.get');
     Route::get('/task-feedbacks/count/{taskId}', [TaskController::class, 'getTaskFeedbackCount'])->name('task-feedbacks.count');
+    // Unread feedback per task
+    Route::get('/task/{id}/feedbacks/unread-count', [TaskController::class, 'getUnreadFeedbackCount'])->name('task-feedbacks.unread-count');
+    Route::post('/task/{id}/feedbacks/mark-read', [TaskController::class, 'markTaskFeedbacksRead'])->name('task-feedbacks.mark-read');
 
     // Task status update routes
     Route::put('/task/{id}/status', [TaskController::class, 'updateStatus'])->name('task.update-status');
