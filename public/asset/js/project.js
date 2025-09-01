@@ -212,7 +212,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // compute chart counts even if zero or empty
                 try {
-                    updateProjectChartFromData(projects);
+                    const chartCounts = (data && data.chart_counts) ? data.chart_counts : null;
+                    updateProjectChartFromData(projects, chartCounts);
                 } catch (e) {
                     console.error('updateProjectChartFromData error', e);
                 }
@@ -2679,7 +2680,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 else {
                     // no projects - ensure chart shows zero state
-                    updateProjectChartFromData([]);
+                    updateProjectChartFromData([], null);
                 }
             },
             error: function () {
@@ -4452,48 +4453,52 @@ document.addEventListener("DOMContentLoaded", function () {
     // - Total (label under chart): jumlah project milik employee (panjang array projects)
     // - Complete/On Progress/Late (labels): jumlah task di dalam project dengan status completed, in_progress, dan late
     //   Catatan: in_progress TIDAK menghitung rejected; Late = task non-completed yang lewat due_date; Not Started = new_request
-    function updateProjectChartFromData(projects) {
+    function updateProjectChartFromData(projects, chartCounts) {
         projects = Array.isArray(projects) ? projects : [];
 
         const numberOfProjects = projects.length; // Total project untuk label pertama
+
+        // Prefer backend-provided aggregated chart counts (tasks assigned to me across ALL projects)
+        // to ensure New/Not Started tasks accepted by me in non-member projects are counted.
+        let useChartCounts = chartCounts && typeof chartCounts === 'object';
 
         let totalTasks = 0; // tetap dipakai untuk komposisi chart slices
         let completed = 0;
         let inProgressLabel = 0; // in_progress tanpa rejected
         let late = 0;
-        let notStartedExclSum = 0; // jika backend menyediakan bucket eksklusif
-        let hasExclNotStarted = false;
+        let notStartedChart = 0;
 
-        projects.forEach((p) => {
-            const tc = p.task_counts || {};
+        if (useChartCounts) {
+            totalTasks = Number(chartCounts.total || 0);
+            completed = Number(chartCounts.completed || 0);
+            inProgressLabel = Number(chartCounts.in_progress || 0);
+            late = Number(chartCounts.late || 0);
+            notStartedChart = Number(chartCounts.not_started || 0);
+        } else {
+            let notStartedExclSum = 0; // jika backend menyediakan bucket eksklusif
+            let hasExclNotStarted = false;
 
-            // Task totals (untuk chart / perhitungan Not Started fallback)
-            totalTasks += (tc.total || 0);
+            projects.forEach((p) => {
+                const tc = p.task_counts || {};
+                totalTasks += (tc.total || 0);
+                completed += (tc.completed || (tc.excl && tc.excl.completed) || 0);
+                late += (tc.late || (tc.excl && tc.excl.late) || 0);
+                const ipRaw = (tc.in_progress || 0);
+                const rejected = (tc.rejected || 0);
+                inProgressLabel += Math.max(0, ipRaw - rejected);
+                if (tc.excl && typeof tc.excl.not_started === 'number') {
+                    notStartedExclSum += tc.excl.not_started;
+                    hasExclNotStarted = true;
+                }
+            });
 
-            // Completed dan Late langsung dari backend agregat
-            completed += (tc.completed || (tc.excl && tc.excl.completed) || 0);
-            late += (tc.late || (tc.excl && tc.excl.late) || 0);
-
-            // In-progress untuk LABEL: hitung in_progress TANPA rejected
-            const ipRaw = (tc.in_progress || 0);
-            const rejected = (tc.rejected || 0);
-            inProgressLabel += Math.max(0, ipRaw - rejected);
-
-            // Not Started eksklusif (new_request yang tidak late) jika tersedia
-            if (tc.excl && typeof tc.excl.not_started === 'number') {
-                notStartedExclSum += tc.excl.not_started;
-                hasExclNotStarted = true;
-            }
-        });
-
-        // Komposisi chart slices
-        const inProgressChart = inProgressLabel; // tampilkan in-progress murni (tanpa rejected) pada chart
-        const notStartedChart = hasExclNotStarted
-            ? notStartedExclSum
-            : Math.max(0, totalTasks - completed - inProgressChart - late);
+            notStartedChart = hasExclNotStarted
+                ? notStartedExclSum
+                : Math.max(0, totalTasks - completed - inProgressLabel - late);
+        }
 
         // Chart slices: Not Started, Complete, On Progress, Late
-        const chartData = [notStartedChart, completed, inProgressChart, late];
+        const chartData = [notStartedChart, completed, inProgressLabel, late];
 
         // update chart instance: set labels and colors accordingly
         try {

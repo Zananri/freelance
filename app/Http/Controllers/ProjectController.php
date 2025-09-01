@@ -271,45 +271,69 @@ class ProjectController extends Controller
             $includeUnaccepted = $request->input('include_unaccepted', false);
             // task_scope: 'project' (default, all tasks in project) or 'me' (only tasks assigned to me)
             $taskScope = strtolower($request->input('task_scope', 'project')) === 'me' ? 'me' : 'project';
+            
+            // Build the base set of projects depending on scope
+            if ($taskScope === 'me') {
+                // Only include projects where user is part of the team (author/co_author/contributor)
+                // Do NOT include projects solely because the user has tasks there (per requirement).
+                $query = Project::where('status', '!=', 'DELETED')
+                    ->whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
+                        $query->where('employee_id', $employeeId)
+                              ->whereIn('role', ['author', 'co_author', 'contributor']);
+                        if (!$includeUnaccepted) {
+                            $query->where(function ($q) {
+                                $q->where('role', 'author')
+                                  ->orWhere('is_receive', true);
+                            });
+                        }
+                    });
 
-            // Base query for projects
-            $query = Project::whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
-                $query->where('employee_id', $employeeId)
-                      ->whereIn('role', ['author', 'co_author', 'contributor']);
-                
-                if (!$includeUnaccepted) {
+                $projects = $query->with([
+                    'department',
+                    'division',
+                    'projectAssignments.employee',
+                    'projectAssignments.project'
+                ])->get();
+            } else {
+                // Original behavior: only projects where user is assigned, filtering at project level
+                $query = Project::where('status', '!=', 'DELETED')
+                    ->whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
+                        $query->where('employee_id', $employeeId)
+                              ->whereIn('role', ['author', 'co_author', 'contributor']);
+                        if (!$includeUnaccepted) {
+                            $query->where(function ($q) {
+                                $q->where('role', 'author')
+                                  ->orWhere('is_receive', true);
+                            });
+                        }
+                    });
+
+                if ($filter === 'not_started') {
                     $query->where(function ($q) {
-                        $q->where('role', 'author')
-                          ->orWhere('is_receive', true);
+                        $q->whereHas('tasks', function ($q2) {
+                            $q2->where('status', 'new_request');
+                        })->orWhereDoesntHave('tasks');
+                    });
+                } elseif ($filter === 'in_progress') {
+                    $query->whereHas('tasks', function ($q) {
+                        $q->whereIn('status', ['in_progress', 'rejected']);
+                    });
+                } elseif ($filter === 'completed') {
+                    $query->whereIn('projects.id', function ($subquery) {
+                        $subquery->from('tasks')
+                            ->selectRaw('project_id')
+                            ->groupBy('project_id')
+                            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)');
                     });
                 }
-            });
 
-            if ($filter === 'not_started') {
-                $query->where(function ($q) {
-                    $q->whereHas('tasks', function ($q2) {
-                        $q2->where('status', 'new_request');
-                    })->orWhereDoesntHave('tasks');
-                });
-            } elseif ($filter === 'in_progress') {
-                $query->whereHas('tasks', function ($q) {
-                    $q->whereIn('status', ['in_progress', 'rejected']);
-                });
-            } elseif ($filter === 'completed') {
-                $query->whereIn('projects.id', function ($subquery) {
-                    $subquery->from('tasks')
-                        ->selectRaw('project_id')
-                        ->groupBy('project_id')
-                        ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)');
-                });
+                $projects = $query->with([
+                    'department',
+                    'division',
+                    'projectAssignments.employee',
+                    'projectAssignments.project'
+                ])->get();
             }
-
-            $projects = $query->with([
-                'department',
-                'division',
-                'projectAssignments.employee',
-                'projectAssignments.project'
-            ])->get();
 
             $projectsTransformed = $projects->map(function ($project) use ($employeeId, $taskScope) {
                 $projectAssignments = $project->projectAssignments->map(function ($assignment) {
@@ -445,11 +469,67 @@ class ProjectController extends Controller
                     ];
             });
 
-            return response()->json([
+            // If task_scope='me', compute chart_counts across ALL tasks assigned to this employee
+            // regardless of project membership; otherwise omit chart_counts
+            $chartCounts = null;
+            if ($taskScope === 'me') {
+                $nowTs = now();
+                $taskScopeAll = Task::query()
+                    ->whereHas('assignments', function ($q) use ($employeeId) {
+                        $q->where('employee_id', $employeeId)
+                          ->where(function ($roleQ) {
+                              $roleQ->where('role', 'PIC')
+                                   ->orWhere(function ($execQ) {
+                                       $execQ->where('role', 'EXECUTOR')
+                                             ->where('is_receive', true);
+                                   });
+                          });
+                    })
+                    ->whereHas('project', function ($pq) {
+                        $pq->where('status', '!=', 'DELETED');
+                    });
+
+                $totalAll = (clone $taskScopeAll)->count();
+                $completedAll = (clone $taskScopeAll)
+                    ->whereIn(DB::raw('LOWER(status)'), ['completed'])
+                    ->count();
+                $inProgressOnTimeAll = (clone $taskScopeAll)
+                    ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
+                    ->where(function ($q) use ($nowTs) {
+                        $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
+                    })
+                    ->count();
+                $lateExclusiveAll = (clone $taskScopeAll)
+                    ->whereRaw('LOWER(status) <> ?', ['completed'])
+                    ->whereNotNull('due_date')
+                    ->where('due_date', '<', $nowTs)
+                    ->count();
+                $notStartedOnTimeAll = (clone $taskScopeAll)
+                    ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
+                    ->where(function ($q) use ($nowTs) {
+                        $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
+                    })
+                    ->count();
+
+                $chartCounts = [
+                    'total' => $totalAll,
+                    'completed' => $completedAll,
+                    'in_progress' => $inProgressOnTimeAll,
+                    'late' => $lateExclusiveAll,
+                    'not_started' => $notStartedOnTimeAll,
+                ];
+            }
+
+            $payload = [
                 'code' => 200,
                 'status' => 'success',
                 'data' => $projectsTransformed
-            ]);
+            ];
+            if ($chartCounts !== null) {
+                $payload['chart_counts'] = $chartCounts;
+            }
+
+            return response()->json($payload);
             
         } catch (\Exception $e) {
             return response()->json([
