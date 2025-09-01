@@ -1751,7 +1751,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                 // Build top-level feedback block
                                                 let repliesHtml = '';
                                                 if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
-                                                        repliesHtml = feedback.replies.map(function (rep) {
+                                                        const repliesCount = feedback.replies.length;
+                                                        const repliesContent = feedback.replies.map(function (rep) {
                                                                 // reply date formatting
                                                                 let rDate = '';
                                                                 if (rep.created_at) {
@@ -1771,6 +1772,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                     </div>
                                                                 `;
                                                         }).join('');
+
+                                                        repliesHtml = `
+                                                            <div class="view-replies-wrap mt-1">
+                                                                <button type="button" class="btn btn-link p-0 view-replies-toggle" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>
+                                                                <div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>
+                                                            </div>
+                                                        `;
                                                 }
 
                                                 feedbackHtml += `
@@ -1784,7 +1792,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                 <small class="text-muted d-block">${formattedDate}</small>
                                                             </div>
                                                         </div>
-                                                        <span class="material-symbols-outlined feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; font-size:18px; line-height:1;">reply</span>
+                                                        <span class="material-symbols-outlined feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">reply</span>
                                                     </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
                             ${
@@ -1823,6 +1831,27 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             const parentId = this.getAttribute('data-feedback-id');
                             const tId = this.getAttribute('data-task-id');
                             showReplyFeedbackForm(tId, parentId);
+                        });
+                    });
+
+                    // Bind view replies toggle per feedback
+                    modalBody.querySelectorAll('.view-replies-toggle').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const fid = this.getAttribute('data-feedback-id');
+                            const count = this.getAttribute('data-replies-count');
+                            const container = modalBody.querySelector('#replies-' + fid);
+                            if (!container) return;
+                            const hidden = container.classList.contains('d-none');
+                            if (hidden) {
+                                container.classList.remove('d-none');
+                                this.textContent = 'Hide replies';
+                            } else {
+                                container.classList.add('d-none');
+                                this.textContent = `View all replies (${count})`;
+                            }
+                            // Enforce style: no underline and #555 color
+                            this.style.textDecoration = 'none';
+                            this.style.color = '#555';
                         });
                     });
                 } else {
