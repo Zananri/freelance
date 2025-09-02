@@ -9,6 +9,7 @@
 
 .task-container {
     max-height: calc(100vh - 200px);
+    max-width: 200vh;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 8px;
@@ -545,8 +546,21 @@ p {
 .task-description-container {
     position: relative;
     height: auto;
-    max-height: none;
-    overflow: visible;
+    max-height: 75px;
+    overflow-y: auto;
+}
+
+.task-description-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.task-description-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-description-container::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
 }
 
 .task-description {
