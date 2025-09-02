@@ -1260,6 +1260,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             const icon = e.target.closest(".task-icon.mode_comment");
             if (icon) {
                 const taskId = icon.dataset.taskId;
+                // Set deep-link target to latest payload if available
+                try {
+                    window.__taskLatestTarget = window.__taskLatestTarget || {};
+                    const latest = (window.__taskLatest && window.__taskLatest[String(taskId)]) || null;
+                    if (latest) window.__taskLatestTarget[String(taskId)] = latest;
+                } catch (_) {}
                 markTaskFeedbacksRead(taskId).always(() => {
                     handleTaskFeedback(taskId);
                 });
@@ -1274,6 +1280,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             el.addEventListener('click', function () {
                 const taskId = this.getAttribute('data-task-id');
                 hideLatestFeedbackSnippet(taskId);
+                // Set deep-link target to latest payload if available
+                try {
+                    window.__taskLatestTarget = window.__taskLatestTarget || {};
+                    const latest = (window.__taskLatest && window.__taskLatest[String(taskId)]) || null;
+                    if (latest) window.__taskLatestTarget[String(taskId)] = latest;
+                } catch (_) {}
                 markTaskFeedbacksRead(taskId).always(() => {
                     handleTaskFeedback(taskId);
                 });
@@ -1316,11 +1328,23 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             handleTaskEdit(taskId);
                             break;
                         case "Feedback":
+                            // Set deep-link target to latest payload if available
+                            try {
+                                window.__taskLatestTarget = window.__taskLatestTarget || {};
+                                const latest = (window.__taskLatest && window.__taskLatest[String(taskId)]) || null;
+                                if (latest) window.__taskLatestTarget[String(taskId)] = latest;
+                            } catch (_) {}
                             markTaskFeedbacksRead(taskId).always(() => {
                                 handleTaskFeedback(taskId);
                             });
                             break;
                         case "mode_comment":
+                            // Set deep-link target to latest payload if available
+                            try {
+                                window.__taskLatestTarget = window.__taskLatestTarget || {};
+                                const latest = (window.__taskLatest && window.__taskLatest[String(taskId)]) || null;
+                                if (latest) window.__taskLatestTarget[String(taskId)] = latest;
+                            } catch (_) {}
                             markTaskFeedbacksRead(taskId).always(() => {
                                 handleTaskFeedback(taskId);
                             });
@@ -1700,6 +1724,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             // Ignore stale responses
             if (latestSnippetSeq[taskId] !== seq) return;
             const data = res && (res.data || null);
+            // Cache latest payload per task for deep-link behavior
+            try {
+                window.__taskLatest = window.__taskLatest || {};
+                window.__taskLatest[String(taskId)] = data;
+            } catch (_) {}
             setLatestFeedbackSnippet(taskId, data);
         }).catch(() => {
             if (latestSnippetSeq[taskId] !== seq) return;
@@ -1848,7 +1877,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                     : '';
 
                                                                 return `
-                                                                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" style="background:#fafafa;">
+                                                                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background:#fafafa;">
                                                                         <div class="d-flex align-items-center mb-1">
                                                                             <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
                                                                             <div>
@@ -1876,8 +1905,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                         }).join('');
 
                                                         repliesHtml = `
-                                                            <div class="view-replies-wrap mt-1">
-                                                                <button type="button" class="btn btn-link p-0 view-replies-toggle" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>
+                                                            <div class="view-replies-wrap feedback-replies-wrap mt-1">
+                                                                <button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>
                                                                 <div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>
                                                             </div>
                                                         `;
@@ -2004,6 +2033,46 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             }
                         });
                     });
+
+                    // Deep-link scroll/highlight if a target is set for this task
+                    try {
+                        const target = (window.__taskLatestTarget && window.__taskLatestTarget[String(taskId)]) || null;
+                        if (target && target.id) {
+                            // If it's a reply (parent_id present), expand its parent replies first
+                            if (target.parent_id) {
+                                const wrap = modalBody.querySelector(`.feedback-replies-wrap .feedback-toggle-replies[data-feedback-id="${target.parent_id}"]`);
+                                if (wrap) {
+                                    // Ensure container is expanded
+                                    const container = modalBody.querySelector('#replies-' + target.parent_id);
+                                    if (container && container.classList.contains('d-none')) {
+                                        container.classList.remove('d-none');
+                                    }
+                                    // Update toggle text to Hide replies
+                                    wrap.textContent = 'Hide replies';
+                                }
+                                const replyEl = modalBody.querySelector(`.feedback-reply[data-reply-id="${target.id}"][data-parent-id="${target.parent_id}"]`);
+                                if (replyEl) {
+                                    replyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    replyEl.style.transition = 'background-color 0.3s ease';
+                                    const old = replyEl.style.backgroundColor;
+                                    replyEl.style.backgroundColor = '#fff3cd';
+                                    setTimeout(() => { replyEl.style.backgroundColor = old || '#fafafa'; }, 1200);
+                                }
+                            } else {
+                                // Top-level feedback
+                                const topEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.id}"]`);
+                                if (topEl) {
+                                    topEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    topEl.style.transition = 'background-color 0.3s ease';
+                                    const old = topEl.style.backgroundColor;
+                                    topEl.style.backgroundColor = '#fff3cd';
+                                    setTimeout(() => { topEl.style.backgroundColor = old || ''; }, 1200);
+                                }
+                            }
+                        }
+                        // Clear target after using it
+                        if (window.__taskLatestTarget) delete window.__taskLatestTarget[String(taskId)];
+                    } catch (_) {}
                 } else {
                     modalBody.innerHTML =
                         '<p class="text-center text-muted">No feedback available for this task.</p>';
