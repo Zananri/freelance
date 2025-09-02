@@ -468,6 +468,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // Hide indicators immediately and mark as read
                                     hideProjectUnreadBadge(pid);
                                     hideProjectLatestFeedbackSnippet(pid);
+                                    // Set target to latest payload for deep-link
+                                    try {
+                                        window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                        const latest = (window.__projectLatest && window.__projectLatest[String(pid)]) || null;
+                                        if (latest) window.__projectLatestTarget[String(pid)] = latest;
+                                    } catch (_) {}
                                     markProjectFeedbacksRead(pid).always(() => {
                                         const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
                                         if (!projectFeedbackModalEl) return;
@@ -1602,6 +1608,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                         document.createElement("div");
                                     feedbackItem.className =
                                         "feedback-item mb-3 p-3 border-bottom";
+                                    if (feedback && feedback.id != null) {
+                                        feedbackItem.setAttribute('data-feedback-id', String(feedback.id));
+                                    }
 
                                     // Header with employee info
                                     const headerDiv =
@@ -1884,10 +1893,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                     if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
                                         const repliesCount = feedback.replies.length;
                                         const repliesWrap = document.createElement("div");
-                                        repliesWrap.className = "view-replies-wrap mt-1";
+                                        repliesWrap.className = "view-replies-wrap feedback-replies-wrap mt-1";
                                         const toggleBtn = document.createElement("button");
                                         toggleBtn.type = "button";
-                                        toggleBtn.className = "btn btn-link p-0 view-replies-toggle";
+                                        toggleBtn.className = "btn btn-link p-0 view-replies-toggle feedback-toggle-replies";
                                         toggleBtn.style.cssText = "font-size: 13px; color:#555; text-decoration: none;";
                                         toggleBtn.textContent = `View all replies (${repliesCount})`;
                                         const repliesContainer = document.createElement("div");
@@ -1897,6 +1906,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const repEmp = rep.employee || {};
                                             const repDiv = document.createElement("div");
                                             repDiv.className = "feedback-reply ms-4 mt-2 p-2 rounded";
+                                            if (rep && rep.id != null) {
+                                                repDiv.setAttribute('data-reply-id', String(rep.id));
+                                                if (feedback && feedback.id != null) {
+                                                    repDiv.setAttribute('data-parent-id', String(feedback.id));
+                                                }
+                                            }
                                             repDiv.style.background = "#fafafa";
 
                                             const repHeader = document.createElement("div");
@@ -2036,6 +2051,45 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     modalBody.appendChild(feedbackItem);
                                 });
+
+                                // After render: auto-scroll to target reply/feedback (if any)
+                                try {
+                                    const pidKey = String(projectId);
+                                    const target = (window.__projectLatestTarget && window.__projectLatestTarget[pidKey]) || null;
+                                    if (target) {
+                                        // consume it so it won't trigger next time
+                                        delete window.__projectLatestTarget[pidKey];
+                                        const isReply = target.parent_id != null && target.parent_id !== '';
+                                        if (isReply) {
+                                            const parentEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.parent_id}"]`);
+                                            if (parentEl) {
+                                                const container = parentEl.querySelector('.feedback-replies');
+                                                const toggle = parentEl.querySelector('.feedback-toggle-replies');
+                                                if (container && container.classList.contains('d-none')) {
+                                                    if (toggle) { try { toggle.click(); } catch(_) { container.classList.remove('d-none'); } }
+                                                    else { container.classList.remove('d-none'); }
+                                                }
+                                                const replyEl = parentEl.querySelector(`.feedback-reply[data-reply-id="${target.id}"]`);
+                                                if (replyEl) {
+                                                    replyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                    const oldBg = replyEl.style.backgroundColor;
+                                                    replyEl.style.transition = 'background-color 0.6s ease';
+                                                    replyEl.style.backgroundColor = '#fff9c4';
+                                                    setTimeout(() => { replyEl.style.backgroundColor = oldBg || ''; }, 1200);
+                                                }
+                                            }
+                                        } else {
+                                            const topEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.id}"]`);
+                                            if (topEl) {
+                                                topEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                const oldBg = topEl.style.backgroundColor;
+                                                topEl.style.transition = 'background-color 0.6s ease';
+                                                topEl.style.backgroundColor = '#fff9c4';
+                                                setTimeout(() => { topEl.style.backgroundColor = oldBg || ''; }, 1200);
+                                            }
+                                        }
+                                    }
+                                } catch (_) { /* noop */ }
                             })
                             .catch((error) => {
                                 modalBody.innerHTML =
@@ -2535,6 +2589,12 @@ document.addEventListener("DOMContentLoaded", function () {
                             // Hide unread badge and latest feedback snippet, and mark as read
                             hideProjectUnreadBadge(projectId);
                             hideProjectLatestFeedbackSnippet(projectId);
+                            // Set target to latest payload when opening from dropdown Feedback
+                            try {
+                                window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                const latest = (window.__projectLatest && window.__projectLatest[String(projectId)]) || null;
+                                if (latest) window.__projectLatestTarget[String(projectId)] = latest;
+                            } catch (_) {}
                             markProjectFeedbacksRead(projectId).always(() => {
                                 // continue to load data
                             });
@@ -2572,6 +2632,12 @@ document.addEventListener("DOMContentLoaded", function () {
                             // Hide unread badge and latest feedback snippet, and mark as read
                             hideProjectUnreadBadge(projectId);
                             hideProjectLatestFeedbackSnippet(projectId);
+                            // Set target to latest payload when opening from comment icon
+                            try {
+                                window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                const latest = (window.__projectLatest && window.__projectLatest[String(projectId)]) || null;
+                                if (latest) window.__projectLatestTarget[String(projectId)] = latest;
+                            } catch (_) {}
                             markProjectFeedbacksRead(projectId).always(() => {
                                 // continue to load data
                             });
@@ -3476,6 +3542,11 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
     const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
     if (!els || els.length === 0) return;
     if (!data) { hideProjectLatestFeedbackSnippet(projectId); return; }
+    // Cache latest payload for deep-linking
+    try {
+        window.__projectLatest = window.__projectLatest || {};
+        window.__projectLatest[String(projectId)] = data;
+    } catch (_) {}
     const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/profile_picture/default.png');
     const raw = String(data.feedback_comment || '');
     const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
@@ -4678,6 +4749,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
                                                 const pid = this.getAttribute('data-project-id');
                                                 hideProjectUnreadBadge(pid);
                                                 hideProjectLatestFeedbackSnippet(pid);
+                                                try {
+                                                    window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                                    const latest = (window.__projectLatest && window.__projectLatest[String(pid)]) || null;
+                                                    if (latest) window.__projectLatestTarget[String(pid)] = latest;
+                                                } catch (_) {}
                                                 markProjectFeedbacksRead(pid).always(() => {
                                                     const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
                                                     if (!projectFeedbackModalEl) return;

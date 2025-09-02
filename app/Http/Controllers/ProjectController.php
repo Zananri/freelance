@@ -1555,6 +1555,7 @@ class ProjectController extends Controller
 
             $payload = [
                 'id' => $latest->id,
+                'parent_id' => $latest->parent_id,
                 'feedback_comment' => $latest->feedback_comment,
                 'created_at' => $latest->created_at,
                 'employee' => $latest->employee ? [
