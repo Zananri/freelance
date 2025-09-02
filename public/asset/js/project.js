@@ -1017,6 +1017,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         let employees = [];
                         let filteredEmployees = [];
                         let selectedEmployees = [];
+                        let isDropdownOpen = false;
 
                         function fetchEmployees(query = "") {
                             const currentEmployeeId =
@@ -1042,11 +1043,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         }
 
-                        function renderDropdown() {
+            function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
                                     '<div class="dropdown-item disabled">No employees found</div>';
-                                dropdown.style.display = "block";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                                 return;
                             }
 
@@ -1106,7 +1107,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 .join("");
 
                             dropdown.innerHTML = html;
-                            dropdown.style.display = "block";
+                            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
                             dropdown
                                 .querySelectorAll(".co-author-checkbox")
@@ -1220,10 +1221,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         input.addEventListener("input", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
                         input.addEventListener("focus", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
@@ -1232,6 +1235,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 !input.contains(e.target) &&
                                 !dropdown.contains(e.target)
                             ) {
+                                isDropdownOpen = false;
                                 dropdown.style.display = "none";
                             }
                         });
@@ -1336,6 +1340,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         let employees = [];
                         let filteredEmployees = [];
                         let selectedEmployees = [];
+                        let isDropdownOpen = false;
 
                         function fetchEmployees(query = "") {
                             const currentEmployeeId =
@@ -1361,11 +1366,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         }
 
-                        function renderDropdown() {
+            function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
                                     '<div class="dropdown-item disabled">No employees found</div>';
-                                dropdown.style.display = "block";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                                 return;
                             }
 
@@ -1425,7 +1430,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 .join("");
 
                             dropdown.innerHTML = html;
-                            dropdown.style.display = "block";
+                            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
                             dropdown
                                 .querySelectorAll(".contributor-checkbox")
@@ -1540,10 +1545,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         input.addEventListener("input", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
                         input.addEventListener("focus", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
@@ -1552,6 +1559,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 !input.contains(e.target) &&
                                 !dropdown.contains(e.target)
                             ) {
+                                isDropdownOpen = false;
                                 dropdown.style.display = "none";
                             }
                         });
@@ -3680,9 +3688,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("co_author");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -3709,11 +3718,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -3756,7 +3765,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             dropdown
                 .querySelectorAll(".co-author-checkbox")
@@ -3855,16 +3864,19 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -3891,9 +3903,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("contributors");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -3924,11 +3937,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -3971,7 +3984,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             // Add event listeners for checkboxes
             dropdown
@@ -4071,16 +4084,19 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -4340,9 +4356,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("co_author");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         function fetchEmployees(query = "") {
             const currentEmployeeId =
@@ -4370,11 +4387,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
             });
         }
 
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -4417,7 +4434,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             dropdown
                 .querySelectorAll(".co-author-checkbox")
@@ -4529,15 +4546,18 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -4923,9 +4943,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("contributors");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -4956,11 +4977,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -5003,7 +5024,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             // Event listener untuk checkbox
             dropdown
@@ -5120,16 +5141,19 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
