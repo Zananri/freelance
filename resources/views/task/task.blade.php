@@ -158,16 +158,20 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_task_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="edit_task_reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="edit_task_reference_files" class="form-label label-custom">Reference
                                 Files</label>
                             <input type="file" class="form-control input-text" id="edit_task_reference_files"
-                                name="reference_files[]" multiple>
-                            <div class="form-text">You can select multiple files</div>
+                                name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <div class="form-text">Multiple files supported.</div>
                             <div id="existing_reference_files" class="mt-2"></div>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                         </div>
@@ -301,15 +305,19 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="task_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="task_reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="task_reference_files"
-                                name="reference_files[]" multiple>
-                            <div class="form-text">You can select multiple files</div>
+                                name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <div class="form-text">Multiple files supported.</div>
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
@@ -407,8 +415,7 @@
                                 <p><strong>Executors:</strong> <span id="taskDetailExecutors"></span></p>
                             </div>
                             <div class="task-detail-right">
-                                <p><strong>Reference URL:</strong> <a href="#" target="_blank"
-                                        id="taskDetailReferenceUrl"></a></p>
+                                <p><strong>Reference URLs:</strong> <span id="taskDetailReferenceUrls"></span></p>
                                 <p><strong>Reference Files:</strong> <span id="taskDetailReferenceFiles"></span></p>
                                 <p><strong>Point:</strong> <span id="taskDetailPoint"></span></p>
                                 <p><strong>Priority:</strong> <span id="taskDetailPriority"></span></p>
