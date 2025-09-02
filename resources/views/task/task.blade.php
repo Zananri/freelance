@@ -166,8 +166,8 @@
                             <label for="edit_task_reference_files" class="form-label label-custom">Reference
                                 Files</label>
                             <input type="file" class="form-control input-text" id="edit_task_reference_files"
-                                name="reference_files[]" multiple>
-                            <div class="form-text">You can select multiple files</div>
+                                name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <div class="form-text">Multiple files supported.</div>
                             <div id="existing_reference_files" class="mt-2"></div>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                         </div>
@@ -308,8 +308,8 @@
                         <div class="mb-3">
                             <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="task_reference_files"
-                                name="reference_files[]" multiple>
-                            <div class="form-text">You can select multiple files</div>
+                                name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <div class="form-text">Multiple files supported.</div>
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">

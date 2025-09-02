@@ -461,8 +461,8 @@ class TaskController extends Controller
             'priority' => 'required|in:HIGH,MEDIUM,LOW',
             'reference_url' => 'nullable|url|max:255',
             'reference_files' => 'nullable|array',
-            // Allow any file type but we'll do a custom blacklist check below
-            'reference_files.*' => 'file|max:5120',
+            // Whitelist: images, PDF, Word, Excel, ZIP
+            'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
             'start_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:start_date',
             'complete_date' => 'nullable|date|after_or_equal:start_date',
@@ -477,42 +477,7 @@ class TaskController extends Controller
             ], 422);
         }
 
-        $data = $validator->validated();
-
-        // Custom blacklist validation for reference files (block program/executable/script files)
-        $blacklistedExtensions = [
-            'exe','msi','msp','bat','cmd','com','scr','pif','cpl','dll','sys','drv','vxd','ps1','psm1','vbs','vbe','js','jse','wsf','wsh','msc','jar','war','apk','ipa','gadget','reg','sh','bash','zsh','ksh','csh','fish','php','phar','phtml','asp','aspx','cfm','cgi','pl','py','rb','bin','dat','elf'
-        ];
-        $blacklistedMimes = [
-            'application/x-msdownload',
-            'application/x-msdos-program',
-            'application/x-msi',
-            'application/x-ms-shortcut',
-            'application/x-dosexec',
-            'application/java-archive',
-            'application/x-sh',
-            'application/x-bat',
-            'application/x-executable',
-            'application/x-dll',
-            'application/x-msi',
-        ];
-
-        if ($request->hasFile('reference_files')) {
-            foreach ($request->file('reference_files') as $file) {
-                $ext = strtolower($file->getClientOriginalExtension());
-                $mime = strtolower($file->getClientMimeType());
-                if (in_array($ext, $blacklistedExtensions, true) || in_array($mime, $blacklistedMimes, true)) {
-                    return response()->json([
-                        'code' => 422,
-                        'status' => 'error',
-                        'message' => 'One or more files are not allowed (executable/program files are blocked).',
-                        'errors' => [
-                            'reference_files' => ['Executable or script files are not allowed.'],
-                        ],
-                    ], 422);
-                }
-            }
-        }
+    $data = $validator->validated();
 
         // Handle image upload
         if ($request->hasFile('image')) {
@@ -768,8 +733,8 @@ class TaskController extends Controller
                 'priority' => 'required|in:HIGH,MEDIUM,LOW',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
-                // Allow any file type but enforce blacklist below
-                'reference_files.*' => 'file|max:5120',
+                // Whitelist: images, PDF, Word, Excel, ZIP
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
             ]);
@@ -784,41 +749,6 @@ class TaskController extends Controller
             }
 
             $data = $validator->validated();
-
-            // Custom blacklist validation for reference files on update
-            $blacklistedExtensions = [
-                'exe','msi','msp','bat','cmd','com','scr','pif','cpl','dll','sys','drv','vxd','ps1','psm1','vbs','vbe','js','jse','wsf','wsh','msc','jar','war','apk','ipa','gadget','reg','sh','bash','zsh','ksh','csh','fish','php','phar','phtml','asp','aspx','cfm','cgi','pl','py','rb','bin','dat','elf'
-            ];
-            $blacklistedMimes = [
-                'application/x-msdownload',
-                'application/x-msdos-program',
-                'application/x-msi',
-                'application/x-ms-shortcut',
-                'application/x-dosexec',
-                'application/java-archive',
-                'application/x-sh',
-                'application/x-bat',
-                'application/x-executable',
-                'application/x-dll',
-                'application/x-msi',
-            ];
-
-            if ($request->hasFile('reference_files')) {
-                foreach ($request->file('reference_files') as $file) {
-                    $ext = strtolower($file->getClientOriginalExtension());
-                    $mime = strtolower($file->getClientMimeType());
-                    if (in_array($ext, $blacklistedExtensions, true) || in_array($mime, $blacklistedMimes, true)) {
-                        return response()->json([
-                            'code' => 422,
-                            'status' => 'error',
-                            'message' => 'One or more files are not allowed (executable/program files are blocked).',
-                            'errors' => [
-                                'reference_files' => ['Executable or script files are not allowed.'],
-                            ],
-                        ], 422);
-                    }
-                }
-            }
 
             // Handle image upload
             if ($request->hasFile('image')) {
