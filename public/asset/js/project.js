@@ -4390,7 +4390,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
     function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
-                    '<div class="dropdown-item disabled">No employees found</div>';
+                    '<div class="dropdown-item disabled">No employees found in this place</div>';
         dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
