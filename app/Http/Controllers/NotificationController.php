@@ -188,6 +188,40 @@ class NotificationController extends Controller
     }
 
     /**
+     * Mark all task-assignment notifications for a given task as read for current user.
+     */
+    public function markTaskAssignmentReadByTask($taskId)
+    {
+        DB::beginTransaction();
+        try {
+            $user = Auth::user();
+            if (!$user || !$user->employee) {
+                throw new \Exception('Unauthorized', 401);
+            }
+
+            Notification::where('employee_id', $user->employee->id)
+                ->where('type', 'task_assignment')
+                ->where('message', 'like', '%Task ID: ' . $taskId . '%')
+                ->update(['is_read' => true]);
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Task notifications marked as read'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
      * Create notification for specific user
      */
     public static function createUserNotification($employeeId, $type, $title, $message, $createdBy = null, $taskId = null)

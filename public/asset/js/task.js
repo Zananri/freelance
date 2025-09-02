@@ -4,6 +4,11 @@
             .querySelector('meta[name="app-url"]')
             ?.getAttribute("content") || "";
 
+    // Current logged-in employee id (from shared modal dataset)
+    const currentEmployeeId = (function(){
+        try { return document.getElementById('taskFeedbackModal')?.dataset?.employeeId || null; } catch(_) { return null; }
+    })();
+
     // Flags to prevent duplicate global bindings
     let globalDropdownDocListenersBound = false;
     let attachFileIconListenerBound = false;
@@ -23,6 +28,211 @@
     }
     // Expose globally for use outside this block
     window.initBootstrapTooltips = initBootstrapTooltips;
+
+    // Helper: determine if current viewer is an invited executor who hasn't accepted yet for this task
+    function isViewerPendingExecutor(task) {
+        if (!currentEmployeeId) return false;
+        try {
+            // If viewer is PIC, never pending
+            if (task && task.pic && String(task.pic.id) === String(currentEmployeeId)) return false;
+            const exList = Array.isArray(task?.executors) ? task.executors : [];
+            const mine = exList.find(ex => String(ex.id) === String(currentEmployeeId));
+            if (!mine) return false;
+            const isAccepted = (mine.is_receive === true || mine.is_receive === 1);
+            return !isAccepted;
+        } catch(_) { return false; }
+    }
+
+    // Helper: mark task-assignment notifications as read for this task (affects only current user)
+    function markTaskAssignmentNotificationsRead(taskId) {
+        return $.ajax({
+            url: appUrl + "/notifications/task/" + taskId + "/mark-read",
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+    }
+
+    // Helper: refresh notification count badge (local copy of logic in office.js)
+    function refreshNotificationCountBadge() {
+        $.ajax({
+            url: appUrl + "/notifications/count",
+            type: "GET",
+            success: function(response) {
+                const count = response && typeof response.count === 'number' ? response.count : 0;
+                const badge = document.getElementById('notificationBadge');
+                const countEl = document.getElementById('notificationCount');
+                if (badge && countEl) {
+                    if (count > 0) {
+                        countEl.textContent = String(count);
+                        badge.style.display = '';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
+
+    // Show Accept confirmation modal (task page, no notification context)
+    function showAcceptInviteModal(taskId) {
+        // Fetch task to display context
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            method: 'GET',
+            success: function(res) {
+                const t = res && (res.data || res) || {};
+                const title = t.title || 'Accept Task';
+                const desc = t.description || '';
+                let img = (t.image ? (appUrl + '/file/task/' + t.image) : (appUrl + '/asset/img/background/add-image.png'));
+
+                const id = 'acceptInviteModal';
+                const modalHtml = `
+                    <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Accept Task</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <img src="${img}" alt="Task Image" class="rounded-circle" style="width:70px; height:70px; object-fit:cover;" onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
+                                        </div>
+                                        <div>
+                                            <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
+                                            <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptInviteBtn"><span class="material-symbols-outlined me-1" style="font-size:12px; vertical-align:middle;">check_circle</span>Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                // Append & show
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const mEl = document.getElementById(id);
+                const modal = new bootstrap.Modal(mEl);
+                modal.show();
+                mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
+                mEl.querySelector('#confirmAcceptInviteBtn').addEventListener('click', function(){
+                    this.disabled = true; this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...';
+                    $.ajax({
+                        url: appUrl + '/task/' + taskId + '/accept',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        success: function(){
+                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){ }
+                            modal.hide();
+                            markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                            fetchAndRenderTasks();
+                        },
+                        error: function(xhr){
+                            let msg = 'Failed to accept task';
+                            try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ }
+                            if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
+                        },
+                        complete: function(){
+                            const btn = mEl.querySelector('#confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined me-1" style="font-size:12px; vertical-align:middle;">check_circle</span>Accept Task'; }
+                        }
+                    });
+                });
+            },
+            error: function(){
+                // Fallback simpler confirm
+                if (confirm('Accept this task?')) {
+                    $.ajax({
+                        url: appUrl + '/task/' + taskId + '/accept',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        success: function(){ markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); fetchAndRenderTasks(); },
+                    });
+                }
+            }
+        });
+    }
+
+    // Show Reject confirmation modal (task page)
+    function showRejectInviteModal(taskId) {
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            method: 'GET',
+            success: function(res){
+                const t = res && (res.data || res) || {};
+                const title = t.title || 'Reject Task';
+                const desc = t.description || '';
+                let img = (t.image ? (appUrl + '/file/task/' + t.image) : (appUrl + '/asset/img/background/add-image.png'));
+                const id = 'rejectInviteModal';
+                const modalHtml = `
+                    <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Reject Task</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <img src="${img}" alt="Task Image" class="rounded-circle" style="width:70px; height:70px; object-fit:cover;" onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
+                                        </div>
+                                        <div>
+                                            <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
+                                            <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-secondary btn-cancel-invite" id="confirmRejectInviteBtn">Reject</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const mEl = document.getElementById(id);
+                const modal = new bootstrap.Modal(mEl);
+                modal.show();
+                mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
+                mEl.querySelector('#confirmRejectInviteBtn').addEventListener('click', function(){
+                    const btn = this; btn.disabled = true; btn.textContent = 'Processing...';
+                    $.ajax({
+                        url: appUrl + '/task/' + taskId + '/reject',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        success: function(){
+                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Invitation rejected.', 'success'); } catch(_){ }
+                            modal.hide();
+                            const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                            if (card && card.parentNode) card.parentNode.removeChild(card);
+                            markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                        },
+                        error: function(xhr){
+                            let msg = 'Failed to reject task';
+                            try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ }
+                            if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
+                        },
+                        complete: function(){ btn.disabled = false; btn.textContent = 'Reject'; }
+                    });
+                });
+            },
+            error: function(){
+                if (confirm('Reject this task invitation?')) {
+                    $.ajax({
+                        url: appUrl + '/task/' + taskId + '/reject',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        success: function(){ const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]'); if (card && card.parentNode) card.parentNode.removeChild(card); markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); }
+                    });
+                }
+            }
+        });
+    }
 
     const imageInput = document.getElementById("task_image");
     const imageLabel = document.getElementById("taskImageLabel");
@@ -944,7 +1154,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     }
 
     // Function to create task card HTML
-   function createTaskCard(task) {
+    function createTaskCard(task) {
     // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
@@ -1027,6 +1237,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
     }
 
+    // If current viewer is a pending executor, render simplified card footer with Accept/Reject controls
+    const viewerPending = isViewerPendingExecutor(task);
+
     // Check if description is long enough to need truncation
     return `
         <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}">
@@ -1069,33 +1282,34 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="d-flex align-items-center pic-executor-container">
-                    ${executorsHtml}
-                </div>
-                            <div class="d-flex align-items-center">
-                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
+                    ${viewerPending
+                        ? `
+                        <div class="d-flex align-items-center w-100 justify-content-between gap-1">
+                            <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
+                            <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
+                                Accept Task
+                            </button>
+                        </div>
+                        `
+                    : `
+                    <div class="d-flex align-items-center pic-executor-container">${executorsHtml}</div>
+                    <div class="d-flex align-items-center">
+                        <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
                             <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
                             <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                         </div>
-                                 <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
-                        <span class="material-symbols-outlined task-icon mode_comment"
-                            data-task-id="${task.id}">mode_comment</span>
-                        ${
-                            task.feedback_comments_count > 0
-                                ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;" >${task.feedback_comments_count}</span>`
-                                : ""
-                        }
-                        <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                        <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
+                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+                            ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                        </div>
+                        <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                            <span class="material-symbols-outlined task-icon">attach_file</span>
+                            ${task.reference_files_count > 0 ? `<span class=\"reference-files-count ms-1\" style=\"color: #454545; font-size: 12px;\">${task.reference_files_count}</span>` : ""}
+                        </div>
                     </div>
-                    <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                        <span class="material-symbols-outlined task-icon">attach_file</span>
-                        ${
-                            task.reference_files_count > 0
-                                ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>`
-                                : ""
-                        }
-                    </div>
-                </div>
+                    `}
             </div>
         </div>
     `;
@@ -1370,6 +1584,30 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 }
             });
             document._taskDropdownItemHandlerBound = true;
+        }
+
+        // Accept/Reject buttons for pending executor state (bind once globally)
+        if (!document._taskPendingInviteHandlerBound) {
+            document.addEventListener('click', function(e) {
+                const acceptBtn = e.target.closest('.btn-accept-invite');
+                if (acceptBtn) {
+                    e.preventDefault();
+                    const tId = acceptBtn.getAttribute('data-task-id');
+                    if (!tId) return;
+                    showAcceptInviteModal(tId);
+                    return;
+                }
+
+                const rejectBtn = e.target.closest('.btn-cancel-invite');
+                if (rejectBtn) {
+                    e.preventDefault();
+                    const tId = rejectBtn.getAttribute('data-task-id');
+                    if (!tId) return;
+                    showRejectInviteModal(tId);
+                    return;
+                }
+            });
+            document._taskPendingInviteHandlerBound = true;
         }
     }
 
