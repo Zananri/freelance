@@ -156,6 +156,7 @@
             }
         });
     }
+    
 
     // Show Reject confirmation modal (task page)
     function showRejectInviteModal(taskId) {
