@@ -993,7 +993,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Add status badge for rejected tasks
     let statusBadge = '';
     if (task.status === 'rejected') {
-        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 10%; right: 90px;">REJECTED</span>';
+        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
     }
 
     // FIXED: Proper icon logic based on current status
@@ -1050,7 +1050,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             </div>
             <div class="task-description-container">
                 <p class="task-description" data-full-description="${task.description}">
-                    ${task.description}
+                    ${task.description ? task.description : ''}
                 </p>
             </div>
             <hr class="task-separator rounded-4">
@@ -1080,7 +1080,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             data-task-id="${task.id}">mode_comment</span>
                         ${
                             task.feedback_comments_count > 0
-                                ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
+                                ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;" >${task.feedback_comments_count}</span>`
                                 : ""
                         }
                         <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
@@ -1089,7 +1089,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         <span class="material-symbols-outlined task-icon">attach_file</span>
                         ${
                             task.reference_files_count > 0
-                                ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
+                                ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>`
                                 : ""
                         }
                     </div>
