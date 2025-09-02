@@ -20,9 +20,14 @@ class TaskFeedback extends Model
         'image',
         'reference_url',
         'reference_file',
+        'reference_files',
         'created_by',
         'updated_by',
         'deleted_by',
+    ];
+
+    protected $casts = [
+        'reference_files' => 'array',
     ];
 
     // Define relationships if needed

@@ -990,7 +990,9 @@ class TaskController extends Controller
                 'feedback_comment' => 'required|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_url' => 'nullable|url|max:255',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+                // Multiple files: whitelist same as task reference files
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
 
             ]);
 
@@ -1018,13 +1020,18 @@ class TaskController extends Controller
                 $data['image'] = $imageName;
             }
 
-            // Handle reference file upload
-            if ($request->hasFile('reference_file')) {
-                $referenceFile = $request->file('reference_file');
-                $referenceExtension = $referenceFile->getClientOriginalExtension();
-                $referenceName = 'TASK_FEEDBACK_' . time() . '.' . $referenceExtension;
-                $referenceFile->move(public_path('file/task_reference_files'), $referenceName);
-                $data['reference_file'] = $referenceName;
+            // Handle reference files upload (multiple)
+            $uploadedRefFiles = [];
+            if ($request->hasFile('reference_files')) {
+                foreach ($request->file('reference_files') as $idx => $file) {
+                    $ext = $file->getClientOriginalExtension();
+                    $name = 'TASK_FEEDBACK_' . time() . '_' . $idx . '.' . $ext;
+                    $file->move(public_path('file/task_reference_files'), $name);
+                    $uploadedRefFiles[] = $name;
+                }
+            }
+            if (!empty($uploadedRefFiles)) {
+                $data['reference_files'] = $uploadedRefFiles;
             }
 
                 // Set created_by
@@ -1081,7 +1088,9 @@ class TaskController extends Controller
                 'reference_url' => 'nullable|url|max:255',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
+                // Multiple files: whitelist
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
             ]);
 
             if ($validator->fails()) {
@@ -1111,12 +1120,16 @@ class TaskController extends Controller
                 $data['image'] = $name;
             }
 
-            if ($request->hasFile('reference_file')) {
-                $ref = $request->file('reference_file');
-                $ext = $ref->getClientOriginalExtension();
-                $name = 'TASK_FEEDBACK_' . time() . '.' . $ext;
-                $ref->move(public_path('file/task_reference_files'), $name);
-                $data['reference_file'] = $name;
+            // Append new reference files if provided
+            if ($request->hasFile('reference_files')) {
+                $existing = is_array($feedback->reference_files) ? $feedback->reference_files : [];
+                foreach ($request->file('reference_files') as $idx => $file) {
+                    $ext = $file->getClientOriginalExtension();
+                    $name = 'TASK_FEEDBACK_' . time() . '_' . $idx . '.' . $ext;
+                    $file->move(public_path('file/task_reference_files'), $name);
+                    $existing[] = $name;
+                }
+                $data['reference_files'] = $existing;
             }
 
             // Only update allowed fields
@@ -1125,8 +1138,8 @@ class TaskController extends Controller
             if (isset($data['image'])) {
                 $feedback->image = $data['image'];
             }
-            if (isset($data['reference_file'])) {
-                $feedback->reference_file = $data['reference_file'];
+            if (isset($data['reference_files'])) {
+                $feedback->reference_files = $data['reference_files'];
             }
 
             if ($request->user()) {
@@ -1173,7 +1186,18 @@ class TaskController extends Controller
                     'feedback_comment' => $feedback->feedback_comment,
                     'image' => $feedback->image ? asset('file/task/' . $feedback->image) : null,
                     'reference_url' => $feedback->reference_url,
+                    // Backward compatibility: single reference_file + new array reference_files
                     'reference_file' => $feedback->reference_file ? asset('file/task_reference_files/' . $feedback->reference_file) : null,
+                    'reference_files' => (function () use ($feedback) {
+                        $arr = [];
+                        if (is_array($feedback->reference_files)) {
+                            $arr = $feedback->reference_files;
+                        } elseif (is_string($feedback->reference_files) && $feedback->reference_files !== '') {
+                            $decoded = json_decode($feedback->reference_files, true);
+                            if (is_array($decoded)) $arr = $decoded; else $arr = array_filter(array_map('trim', explode(',', $feedback->reference_files)));
+                        }
+                        return array_map(function ($f) { return asset('file/task_reference_files/' . $f); }, $arr);
+                    })(),
                     'created_at' => $feedback->created_at,
                     'employee' => [
                         'id' => $feedback->employee->id,
@@ -1193,6 +1217,16 @@ class TaskController extends Controller
                             'image' => $r->image ? asset('file/task/' . $r->image) : null,
                             'reference_url' => $r->reference_url,
                             'reference_file' => $r->reference_file ? asset('file/task_reference_files/' . $r->reference_file) : null,
+                            'reference_files' => (function () use ($r) {
+                                $arr = [];
+                                if (is_array($r->reference_files)) {
+                                    $arr = $r->reference_files;
+                                } elseif (is_string($r->reference_files) && $r->reference_files !== '') {
+                                    $decoded = json_decode($r->reference_files, true);
+                                    if (is_array($decoded)) $arr = $decoded; else $arr = array_filter(array_map('trim', explode(',', $r->reference_files)));
+                                }
+                                return array_map(function ($f) { return asset('file/task_reference_files/' . $f); }, $arr);
+                            })(),
                             'created_at' => $r->created_at,
                             'employee' => [
                                 'id' => $r->employee->id,
@@ -1271,6 +1305,15 @@ class TaskController extends Controller
                 'parent_id' => $latest->parent_id,
                 'feedback_comment' => $latest->feedback_comment,
                 'created_at' => $latest->created_at,
+                'reference_files' => (function () use ($latest) {
+                    $arr = [];
+                    if (is_array($latest->reference_files)) $arr = $latest->reference_files;
+                    elseif (is_string($latest->reference_files) && $latest->reference_files !== '') {
+                        $decoded = json_decode($latest->reference_files, true);
+                        if (is_array($decoded)) $arr = $decoded; else $arr = array_filter(array_map('trim', explode(',', $latest->reference_files)));
+                    }
+                    return array_map(function ($f) { return asset('file/task_reference_files/' . $f); }, $arr);
+                })(),
                 'employee' => [
                     'id' => $latest->employee->id,
                     'name' => $latest->employee->name,

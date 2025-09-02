@@ -7,6 +7,8 @@
     // Flags to prevent duplicate global bindings
     let globalDropdownDocListenersBound = false;
     let attachFileIconListenerBound = false;
+    // Shared buffer for multi-file preview across modals (Add Task, Add/Reply Feedback)
+    let selectedFiles = [];
 
     // Initialize Bootstrap tooltips within a DOM scope (default document)
     function initBootstrapTooltips(root = document) {
@@ -1818,14 +1820,30 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                         topImageUrl = topImageUrl.startsWith('/') ? (appUrl + topImageUrl) : (appUrl + '/' + topImageUrl);
                                                     }
                                                 }
-                                                let topRefFileUrl = feedback.reference_file || '';
-                                                if (topRefFileUrl) {
-                                                    const isAbs2 = typeof topRefFileUrl === 'string' && (topRefFileUrl.startsWith('http://') || topRefFileUrl.startsWith('https://'));
-                                                    const isRefPath = typeof topRefFileUrl === 'string' && (topRefFileUrl.startsWith('/file/task_reference_files/') || topRefFileUrl.startsWith('file/task_reference_files/'));
-                                                    if (!isAbs2 && !isRefPath) {
-                                                        topRefFileUrl = appUrl + '/file/task_reference_files/' + topRefFileUrl;
-                                                    } else if (!isAbs2 && isRefPath) {
-                                                        topRefFileUrl = topRefFileUrl.startsWith('/') ? (appUrl + topRefFileUrl) : (appUrl + '/' + topRefFileUrl);
+                                                // Build top-level reference files list (array-first, fallback to single)
+                                                let topRefFiles = [];
+                                                // Coerce to array if backend sends JSON string
+                                                let topRfVal = feedback.reference_files;
+                                                if (!Array.isArray(topRfVal) && typeof topRfVal === 'string') {
+                                                    try { const parsed = JSON.parse(topRfVal); if (Array.isArray(parsed)) topRfVal = parsed; } catch(_) { /* noop */ }
+                                                }
+                                                if (Array.isArray(topRfVal) && topRfVal.length > 0) {
+                                                    topRefFiles = topRfVal.map((f) => {
+                                                        if (!f) return null;
+                                                        const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                        const isRefPath = typeof f === 'string' && (f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                                                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                        return f;
+                                                    }).filter(Boolean);
+                                                } else {
+                                                    let singleRef = feedback.reference_file || '';
+                                                    if (singleRef) {
+                                                        const isAbs2 = typeof singleRef === 'string' && (singleRef.startsWith('http://') || singleRef.startsWith('https://'));
+                                                        const isRefPath = typeof singleRef === 'string' && (singleRef.startsWith('/file/task_reference_files/') || singleRef.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs2 && !isRefPath) singleRef = appUrl + '/file/task_reference_files/' + singleRef;
+                                                        else if (!isAbs2 && isRefPath) singleRef = singleRef.startsWith('/') ? (appUrl + singleRef) : (appUrl + '/' + singleRef);
+                                                        topRefFiles = [singleRef];
                                                     }
                                                 }
 
@@ -1833,7 +1851,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                 const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
                                                 const canEditTop = String(topAuthorId) === String(currentEmployeeId);
                                                 const topEditIconHtml = canEditTop
-                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-file="${encodeURIComponent(topRefFileUrl || '')}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
+                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
                                                     : '';
 
                                                 let repliesHtml = '';
@@ -1858,22 +1876,36 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                         repImageUrl = repImageUrl.startsWith('/') ? (appUrl + repImageUrl) : (appUrl + '/' + repImageUrl);
                                                                     }
                                                                 }
-                                                                // Normalize reference_file URL similarly
-                                                                let repRefFileUrl = rep.reference_file || '';
-                                                                if (repRefFileUrl) {
-                                                                    const isAbs2 = typeof repRefFileUrl === 'string' && (repRefFileUrl.startsWith('http://') || repRefFileUrl.startsWith('https://'));
-                                                                    const isRefPath = typeof repRefFileUrl === 'string' && (repRefFileUrl.startsWith('/file/task_reference_files/') || repRefFileUrl.startsWith('file/task_reference_files/'));
-                                                                    if (!isAbs2 && !isRefPath) {
-                                                                        repRefFileUrl = appUrl + '/file/task_reference_files/' + repRefFileUrl;
-                                                                    } else if (!isAbs2 && isRefPath) {
-                                                                        repRefFileUrl = repRefFileUrl.startsWith('/') ? (appUrl + repRefFileUrl) : (appUrl + '/' + repRefFileUrl);
+                                                                // Build reply reference files list
+                                                                let repRefFiles = [];
+                                                                let repRfVal = rep.reference_files;
+                                                                if (!Array.isArray(repRfVal) && typeof repRfVal === 'string') {
+                                                                    try { const parsed = JSON.parse(repRfVal); if (Array.isArray(parsed)) repRfVal = parsed; } catch(_) { /* noop */ }
+                                                                }
+                                                                if (Array.isArray(repRfVal) && repRfVal.length > 0) {
+                                                                    repRefFiles = repRfVal.map((f) => {
+                                                                        if (!f) return null;
+                                                                        const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                                        const isRefPath = typeof f === 'string' && (f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/'));
+                                                                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                                                                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                                        return f;
+                                                                    }).filter(Boolean);
+                                                                } else {
+                                                                    let singleRep = rep.reference_file || '';
+                                                                    if (singleRep) {
+                                                                        const isAbs2 = typeof singleRep === 'string' && (singleRep.startsWith('http://') || singleRep.startsWith('https://'));
+                                                                        const isRefPath = typeof singleRep === 'string' && (singleRep.startsWith('/file/task_reference_files/') || singleRep.startsWith('file/task_reference_files/'));
+                                                                        if (!isAbs2 && !isRefPath) singleRep = appUrl + '/file/task_reference_files/' + singleRep;
+                                                                        else if (!isAbs2 && isRefPath) singleRep = singleRep.startsWith('/') ? (appUrl + singleRep) : (appUrl + '/' + singleRep);
+                                                                        repRefFiles = [singleRep];
                                                                     }
                                                                 }
                                                                 // Determine if current user can edit this reply
                                                                 const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
                                                                 const canEditReply = String(repAuthorId) === String(currentEmployeeId);
                                                                 const replyEditIconHtml = canEditReply
-                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-file="${encodeURIComponent(repRefFileUrl || '')}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
+                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
                                                                     : '';
 
                                                                 return `
@@ -1890,11 +1922,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                         </div>
                                                                         <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
                                                                         ${
-                                                                            (rep.reference_url || rep.reference_file)
+                                                                            (rep.reference_url || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
                                                                                 ? `
                                                                                     <div class="feedback-reference-container mb-1">
                                                                                         ${rep.reference_url ? `<a href="${rep.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : ''}
-                                                                                        ${repRefFileUrl ? `<a href="${repRefFileUrl}" download class="feedback-reference-file ms-2"><span class="material-symbols-outlined">draft</span> FEEDBACK_FILE</a>` : ''}
+                                                                                        ${Array.isArray(repRefFiles) && repRefFiles.length > 0 ? repRefFiles.map((u, idx) => `<a href=\"${u}\" download class=\"feedback-reference-file ms-2\"><span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}</a>`).join('') : ''}
                                                                                     </div>
                                                                                 `
                                                                                 : ''
@@ -1930,8 +1962,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                     </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
                             ${
-                                feedback.reference_url ||
-                                feedback.reference_file
+                                feedback.reference_url || (Array.isArray(topRefFiles) && topRefFiles.length > 0)
                                     ? `
                                 <div class="feedback-reference-container">
                                     ${
@@ -1939,11 +1970,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                             ? `<a href="${feedback.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>`
                                             : ""
                                     }
-                                    ${
-                                        topRefFileUrl
-                                            ? `<a href="${topRefFileUrl}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>`
-                                            : ""
-                                    }
+                                    ${Array.isArray(topRefFiles) && topRefFiles.length > 0 ? topRefFiles.map((u, idx) => `<a href=\"${u}\" download class=\"feedback-reference-file ms-2\"><span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}</a>`).join('') : ''}
                                 </div>
                             `
                                     : ""
@@ -1979,6 +2006,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                 feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
                                 reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
                                 reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
                             showEditFeedbackForm(tId, payload, false);
@@ -1997,6 +2025,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                 feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
                                 reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
                                 reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
                             showEditFeedbackForm(tId, payload, true);
@@ -2191,22 +2220,23 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
         form.appendChild(refUrlDiv);
 
-        // Reference File
+    // Reference Files
         const refFileDiv = document.createElement("div");
         refFileDiv.className = "mb-3";
 
         const refFileLabel = document.createElement("label");
-        refFileLabel.htmlFor = "reference_file";
+    refFileLabel.htmlFor = "reference_files";
         refFileLabel.className = "form-label label-custom";
-        refFileLabel.textContent = "Reference File";
+    refFileLabel.textContent = "Reference Files";
         refFileDiv.appendChild(refFileLabel);
 
         const refFileInput = document.createElement("input");
         refFileInput.type = "file";
         refFileInput.className = "form-control input-text";
-        refFileInput.id = "reference_file";
-        refFileInput.name = "reference_file";
-        refFileInput.accept = ".pdf,.doc,.docx";
+    refFileInput.id = "reference_files";
+    refFileInput.name = "reference_files[]";
+    refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+    refFileInput.multiple = true;
         refFileDiv.appendChild(refFileInput);
 
         form.appendChild(refFileDiv);
@@ -2304,6 +2334,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
 
         const formData = new FormData(form);
+        // Append multi-selected files from preview buffer
+        try {
+            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
         formData.append("task_id", taskId);
 
         $.ajax({
@@ -2345,6 +2381,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     loadTaskFeedbackData(taskId);
                 } catch (e) { /* noop */ }
 
+                // Clear selected files buffer and preview
+                try {
+                    selectedFiles = [];
+                    const preview = document.getElementById('feedback_reference_files_preview') || document.getElementById('reference_files_preview');
+                    if (preview) preview.innerHTML = '';
+                } catch (_) {}
+
                 // Update feedback count dynamically on the task card
                 // 1) Optimistic UI increment
                 optimisticIncrementFeedbackCount(taskId);
@@ -2379,6 +2422,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     submitBtn.innerHTML = originalBtnHtml;
                     submitBtn.disabled = false;
                 }
+                try { selectedFiles = []; } catch (_) {}
             },
         });
     }
@@ -2462,8 +2506,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
-                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
+                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                    <div id="feedback_reference_files_preview"></div>
                 </div>
             </form>
         `;
@@ -2499,6 +2544,26 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             imageLabel.style.opacity = "0.5";
             imageClearBtn.classList.add("d-none");
         });
+
+        // Multi-file reference preview (same UX as Add Task)
+        try {
+            // reset global buffer for this form
+            selectedFiles = [];
+            const refInput = modalBody.querySelector('#reference_files');
+            if (refInput) {
+                refInput.addEventListener('change', function () {
+                    const files = Array.from(this.files || []);
+                    if (files.length) {
+                        selectedFiles = [...selectedFiles, ...files];
+                        if (typeof displaySelectedFiles === 'function') {
+                            displaySelectedFiles();
+                        }
+                    }
+                    // allow picking more batches
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
 
         // Change Add Feedback button text to Submit
         addFeedbackButton.textContent = "Submit";
@@ -2553,8 +2618,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
-                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
+                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                    <div id="feedback_reference_files_preview"></div>
                 </div>
             </form>
         `;
@@ -2590,6 +2656,24 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             imageLabel.style.opacity = "0.5";
             imageClearBtn.classList.add("d-none");
         });
+
+        // Multi-file reference preview (same UX as Add Task)
+        try {
+            selectedFiles = [];
+            const refInput = modalBody.querySelector('#reference_files');
+            if (refInput) {
+                refInput.addEventListener('change', function () {
+                    const files = Array.from(this.files || []);
+                    if (files.length) {
+                        selectedFiles = [...selectedFiles, ...files];
+                        if (typeof displaySelectedFiles === 'function') {
+                            displaySelectedFiles();
+                        }
+                    }
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
 
         addFeedbackButton.textContent = "Submit";
         const newButton = addFeedbackButton.cloneNode(true);
@@ -2674,11 +2758,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
-                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
+                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
+                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                 </div>
 
-                ${data.reference_file_url ? `<div class=\"mt-1\"><a href=\"${data.reference_file_url}\" target=\"_blank\" class=\"feedback-reference-file\"><span class=\"material-symbols-outlined\">draft</span> Current File</a></div>` : ''}
+                ${Array.isArray(data.reference_files_urls) && data.reference_files_urls.length > 0
+                    ? `<div class=\"mt-1\">${data.reference_files_urls.map((u, i) => `<a href=\"${u}\" target=\"_blank\" class=\"feedback-reference-file d-block\"><span class=\"material-symbols-outlined\">draft</span> Current File ${i+1}</a>`).join('')}</div>`
+                    : (data.reference_file_url ? `<div class=\"mt-1\"><a href=\"${data.reference_file_url}\" target=\"_blank\" class=\"feedback-reference-file\"><span class=\"material-symbols-outlined\">draft</span> Current File</a></div>` : '')}
             </form>
         `;
 
@@ -2841,6 +2927,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
 
         const formData = new FormData(form);
+        // Ensure selectedFiles (from preview buffer) are appended
+        try {
+            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
 
         $.ajax({
             url: appUrl + "/task-feedbacks",
@@ -2877,6 +2969,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     }
                     loadTaskFeedbackData(taskId);
                 } catch (e) { /* noop */ }
+
+                // Clear local buffers and preview area after successful submit
+                try {
+                    selectedFiles = [];
+                    const preview = document.getElementById('reference_files_preview');
+                    if (preview) preview.innerHTML = '';
+                } catch (_) {}
 
                 // Also try to update feedback count in-place (best-effort)
                 // 1) Optimistic UI increment
@@ -2945,6 +3044,10 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     submitBtn.innerHTML = originalBtnHtml;
                     submitBtn.disabled = false;
                 }
+                // Safety: clear preview buffer on completion
+                try {
+                    selectedFiles = [];
+                } catch (_) {}
             },
         });
     }
@@ -3251,13 +3354,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         };
     }
 
-    // Array untuk menyimpan file yang sudah dipilih
-    let selectedFiles = [];
+    // Array untuk menyimpan file yang sudah dipilih (moved to top)
 
     // Function untuk menampilkan file yang sudah dipilih
     function displaySelectedFiles() {
-        const preview = document.getElementById("reference_files_preview");
-        preview.innerHTML = "";
+    const preview = document.getElementById("feedback_reference_files_preview") || document.getElementById("reference_files_preview");
+    if (!preview) return;
+    preview.innerHTML = "";
 
         if (selectedFiles.length > 0) {
             const fileList = document.createElement("div");
