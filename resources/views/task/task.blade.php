@@ -158,9 +158,13 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_task_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="edit_task_reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="edit_task_reference_files" class="form-label label-custom">Reference
@@ -301,9 +305,13 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="task_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="task_reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
@@ -407,8 +415,7 @@
                                 <p><strong>Executors:</strong> <span id="taskDetailExecutors"></span></p>
                             </div>
                             <div class="task-detail-right">
-                                <p><strong>Reference URL:</strong> <a href="#" target="_blank"
-                                        id="taskDetailReferenceUrl"></a></p>
+                                <p><strong>Reference URLs:</strong> <span id="taskDetailReferenceUrls"></span></p>
                                 <p><strong>Reference Files:</strong> <span id="taskDetailReferenceFiles"></span></p>
                                 <p><strong>Point:</strong> <span id="taskDetailPoint"></span></p>
                                 <p><strong>Priority:</strong> <span id="taskDetailPriority"></span></p>

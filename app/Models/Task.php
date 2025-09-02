@@ -18,6 +18,7 @@ class Task extends Model
         'priority',
         'status',
         'reference_url',
+    'reference_urls',
         'reference_files',
         'start_date',
         'due_date',
@@ -29,6 +30,7 @@ class Task extends Model
 
     protected $casts = [
         'reference_files' => 'array',
+    'reference_urls' => 'array',
     'read_markers' => 'array',
     ];
 

@@ -19,6 +19,7 @@ class TaskFeedback extends Model
         'feedback_comment',
         'image',
         'reference_url',
+    'reference_urls',
         'reference_file',
         'reference_files',
         'created_by',
@@ -28,6 +29,7 @@ class TaskFeedback extends Model
 
     protected $casts = [
         'reference_files' => 'array',
+    'reference_urls' => 'array',
     ];
 
     // Define relationships if needed

@@ -1847,11 +1847,23 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                     }
                                                 }
 
+                                                // Build top-level reference URL list (array-first, fallback to single)
+                                                let topRefUrls = [];
+                                                let topRuVal = feedback.reference_urls;
+                                                if (!Array.isArray(topRuVal) && typeof topRuVal === 'string') {
+                                                    try { const parsed = JSON.parse(topRuVal); if (Array.isArray(parsed)) topRuVal = parsed; } catch(_) { /* noop */ }
+                                                }
+                                                if (Array.isArray(topRuVal) && topRuVal.length > 0) {
+                                                    topRefUrls = topRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                                                } else if (feedback.reference_url) {
+                                                    topRefUrls = [feedback.reference_url];
+                                                }
+
                                                 // Determine if current user is the author of the top-level feedback
                                                 const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
                                                 const canEditTop = String(topAuthorId) === String(currentEmployeeId);
                                                 const topEditIconHtml = canEditTop
-                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
+                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
                                                     : '';
 
                                                 let repliesHtml = '';
@@ -1901,11 +1913,22 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                         repRefFiles = [singleRep];
                                                                     }
                                                                 }
+                                                                // Build reply reference URL list (array-first, fallback to single)
+                                                                let repRefUrls = [];
+                                                                let repRuVal = rep.reference_urls;
+                                                                if (!Array.isArray(repRuVal) && typeof repRuVal === 'string') {
+                                                                    try { const parsed = JSON.parse(repRuVal); if (Array.isArray(parsed)) repRuVal = parsed; } catch(_) { /* noop */ }
+                                                                }
+                                                                if (Array.isArray(repRuVal) && repRuVal.length > 0) {
+                                                                    repRefUrls = repRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                                                                } else if (rep.reference_url) {
+                                                                    repRefUrls = [rep.reference_url];
+                                                                }
                                                                 // Determine if current user can edit this reply
                                                                 const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
                                                                 const canEditReply = String(repAuthorId) === String(currentEmployeeId);
                                                                 const replyEditIconHtml = canEditReply
-                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
+                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
                                                                     : '';
 
                                                                 return `
@@ -1922,10 +1945,10 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                                         </div>
                                                                         <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
                                                                         ${
-                                                                            (rep.reference_url || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
+                                                                            ((Array.isArray(repRefUrls) && repRefUrls.length > 0) || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
                                                                                 ? `
                                                                                     <div class="feedback-reference-container mb-1">
-                                                                                        ${rep.reference_url ? `<a href="${rep.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : ''}
+                                                                                        ${Array.isArray(repRefUrls) && repRefUrls.length > 0 ? repRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
                                                                                         ${Array.isArray(repRefFiles) && repRefFiles.length > 0 ? repRefFiles.map((u, idx) => `<a href=\"${u}\" download class=\"feedback-reference-file ms-2\"><span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}</a>`).join('') : ''}
                                                                                     </div>
                                                                                 `
@@ -1962,14 +1985,10 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                                     </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
                             ${
-                                feedback.reference_url || (Array.isArray(topRefFiles) && topRefFiles.length > 0)
+                                ((Array.isArray(topRefUrls) && topRefUrls.length > 0) || (Array.isArray(topRefFiles) && topRefFiles.length > 0))
                                     ? `
                                 <div class="feedback-reference-container">
-                                    ${
-                                        feedback.reference_url
-                                            ? `<a href="${feedback.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>`
-                                            : ""
-                                    }
+                                    ${Array.isArray(topRefUrls) && topRefUrls.length > 0 ? topRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
                                     ${Array.isArray(topRefFiles) && topRefFiles.length > 0 ? topRefFiles.map((u, idx) => `<a href=\"${u}\" download class=\"feedback-reference-file ms-2\"><span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}</a>`).join('') : ''}
                                 </div>
                             `
@@ -2005,6 +2024,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                 parent_id: null,
                                 feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
                                 reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-urls') || '[]')); } catch(e){ return []; } }).call(this),
                                 reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
@@ -2024,6 +2044,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                                 parent_id: pid,
                                 feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
                                 reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-urls') || '[]')); } catch(e){ return []; } }).call(this),
                                 reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
@@ -2501,8 +2522,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                            <button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -2613,8 +2639,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                            <button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -2753,18 +2784,18 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                    <input type="url" class="form-control" id="reference_url" name="reference_url" value="${data.reference_url || ''}" placeholder="https://example.com">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
                 </div>
 
                 <div class="mb-3">
                     <label for="reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                    <div class="form-text">Multiple files supported.</div>
+                    <div id="feedback_reference_files_preview" class="mt-2"></div>
+                    <div id="existing_feedback_reference_files" class="mt-2"></div>
+                    <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
                 </div>
-
-                ${Array.isArray(data.reference_files_urls) && data.reference_files_urls.length > 0
-                    ? `<div class=\"mt-1\">${data.reference_files_urls.map((u, i) => `<a href=\"${u}\" target=\"_blank\" class=\"feedback-reference-file d-block\"><span class=\"material-symbols-outlined\">draft</span> Current File ${i+1}</a>`).join('')}</div>`
-                    : (data.reference_file_url ? `<div class=\"mt-1\"><a href=\"${data.reference_file_url}\" target=\"_blank\" class=\"feedback-reference-file\"><span class=\"material-symbols-outlined\">draft</span> Current File</a></div>` : '')}
             </form>
         `;
 
@@ -2804,6 +2835,105 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 imageClearBtn.classList.add('d-none');
             });
         })();
+
+        // Prefill multiple reference URLs for edit form
+        (function() {
+            const container = modalBody.querySelector('#feedback_reference_urls_container');
+            if (!container) return;
+            let urls = [];
+            if (Array.isArray(data.reference_urls) && data.reference_urls.length > 0) {
+                urls = data.reference_urls;
+            } else if (data.reference_url) {
+                urls = [data.reference_url];
+            }
+            if (urls.length === 0) {
+                // add one empty row
+                const row = document.createElement('div');
+                row.className = 'd-flex gap-2 align-items-center';
+                row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">` +
+                    `<button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>`;
+                container.appendChild(row);
+            } else {
+                urls.forEach((u, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'd-flex gap-2 align-items-center';
+                    const controls = (idx === 0)
+                        ? `<button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>`
+                        : `<button type="button" class="btn btn-outline-danger btn-sm remove-ref-url">Remove</button>`;
+                    row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" value="${u}" placeholder="https://example.com">${controls}`;
+                    container.appendChild(row);
+                });
+            }
+        })();
+
+        // Prefill existing reference files as removable list
+        (function() {
+            const container = document.getElementById('existing_feedback_reference_files');
+            const hidden = document.getElementById('existing_feedback_reference_files_input');
+            if (!container || !hidden) return;
+            // data.reference_files_urls contains absolute URLs; we need display names while keeping URL for click
+            let files = Array.isArray(data.reference_files_urls) ? data.reference_files_urls.slice() : [];
+            // Fallback single
+            if (files.length === 0 && data.reference_file_url) files = [data.reference_file_url];
+            // Initialize state as array of URLs (server will derive file names if needed)
+            let kept = files.slice();
+            hidden.value = JSON.stringify(kept);
+
+            container.innerHTML = '';
+            if (files.length > 0) {
+                files.forEach((url, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                    const info = document.createElement('div');
+                    info.className = 'd-flex align-items-center flex-grow-1';
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined me-2';
+                    icon.textContent = 'description';
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    const fileName = (function(){
+                        try { const u = new URL(url, window.location.origin); return decodeURIComponent(u.pathname.split('/').pop()); } catch(e) {
+                            const parts = String(url).split('/'); return decodeURIComponent(parts[parts.length-1] || String(url));
+                        }
+                    })();
+                    link.textContent = fileName;
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'btn btn-sm btn-outline-danger ms-2';
+                    remove.innerHTML = '&times;';
+                    remove.addEventListener('click', function(){
+                        // remove from DOM and state
+                        const indexInKept = kept.indexOf(url);
+                        if (indexInKept !== -1) { kept.splice(indexInKept, 1); hidden.value = JSON.stringify(kept); }
+                        item.remove();
+                    });
+                    info.appendChild(icon);
+                    info.appendChild(link);
+                    item.appendChild(info);
+                    item.appendChild(remove);
+                    container.appendChild(item);
+                });
+            }
+        })();
+
+        // Setup selected-files preview for reference files (same UX as Add/Reply)
+        try {
+            selectedFiles = [];
+            const refInput = modalBody.querySelector('#reference_files');
+            if (refInput) {
+                refInput.addEventListener('change', function () {
+                    const files = Array.from(this.files || []);
+                    if (files.length) {
+                        selectedFiles = [...selectedFiles, ...files];
+                        if (typeof displaySelectedFiles === 'function') {
+                            displaySelectedFiles();
+                        }
+                    }
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
 
         // Change footer button to Save
         if (addFeedbackButton) {
@@ -2858,6 +2988,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
         const formData = new FormData(form);
         formData.append('_method', 'PUT');
+        // Append any newly selected reference files from preview buffer
+        try {
+            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
         // Ensure correct image field name already set in form; nothing extra here
 
         $.ajax({
@@ -2910,6 +3046,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     submitBtn.innerHTML = originalBtnHtml || 'Save';
                     submitBtn.disabled = false;
                 }
+                // Clear preview buffer after save
+                try { selectedFiles = []; const preview = document.getElementById('feedback_reference_files_preview'); if (preview) preview.innerHTML = ''; } catch(_) {}
             }
         });
     }
@@ -3188,15 +3326,26 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     $("#taskDetailExecutors").text("None");
                 }
 
-                // Reference URL
-                if (data.reference_url) {
-                    $("#taskDetailReferenceUrl")
-                        .attr("href", data.reference_url)
-                        .text(data.reference_url)
-                        .show();
-                } else {
-                    $("#taskDetailReferenceUrl").hide();
-                }
+                // Reference URLs (list)
+                (function() {
+                    const el = document.getElementById('taskDetailReferenceUrls');
+                    if (!el) return;
+                    let urls = [];
+                    let ru = data.reference_urls;
+                    if (!Array.isArray(ru) && typeof ru === 'string') {
+                        try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
+                    }
+                    if (Array.isArray(ru) && ru.length > 0) {
+                        urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
+                    } else if (data.reference_url) {
+                        urls = [data.reference_url];
+                    }
+                    if (urls.length > 0) {
+                        el.innerHTML = urls.map((u, idx) => `<a href="${u}" target="_blank" class="d-inline-block me-2">Link ${idx+1}</a>`).join('');
+                    } else {
+                        el.textContent = 'None';
+                    }
+                })();
 
                 // Reference Files
                 if (Array.isArray(data.reference_files) && data.reference_files.length > 0) {
@@ -3664,9 +3813,32 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 const prioEl = document.getElementById("edit_task_priority");
                 if (prioEl) prioEl.value = (t.priority || '').toUpperCase();
 
-                // Reference URL
-                const refUrlEl = document.getElementById("edit_task_reference_url");
-                if (refUrlEl) refUrlEl.value = t.reference_url || '';
+                // Reference URLs (prefill dynamic rows)
+                (function() {
+                    const container = document.getElementById('edit_task_reference_urls_container');
+                    if (!container) return;
+                    container.innerHTML = '';
+                    let urls = [];
+                    let ru = t.reference_urls;
+                    if (!Array.isArray(ru) && typeof ru === 'string') {
+                        try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
+                    }
+                    if (Array.isArray(ru) && ru.length > 0) {
+                        urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
+                    } else if (t.reference_url) {
+                        urls = [t.reference_url];
+                    }
+                    if (urls.length === 0) urls = [''];
+                    urls.forEach((u, idx) => {
+                        const row = document.createElement('div');
+                        row.className = 'd-flex gap-2 align-items-center';
+                        const controls = (idx === 0)
+                            ? `<button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>`
+                            : `<button type="button" class="btn btn-outline-danger btn-sm remove-ref-url">Remove</button>`;
+                        row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
+                        container.appendChild(row);
+                    });
+                })();
 
                 // Dates
                 const startEl = document.getElementById("edit_task_start_date");
@@ -4051,6 +4223,22 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 });
 
 $(document).ready(function () {
+    // Delegated handlers for adding/removing reference URL rows (works for add/edit task and feedback forms)
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('add-ref-url')) {
+            const container = e.target.closest('.mb-3')?.querySelector('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'd-flex gap-2 align-items-center';
+            row.innerHTML = `<input type="url" class="form-control${container.id.startsWith('edit_task_') ? ' input-text' : ''}" name="reference_urls[]" placeholder="https://example.com">` +
+                `<button type="button" class="btn btn-outline-danger btn-sm remove-ref-url">Remove</button>`;
+            container.appendChild(row);
+        }
+        if (e.target && e.target.classList.contains('remove-ref-url')) {
+            const row = e.target.closest('.d-flex.align-items-center');
+            if (row) row.remove();
+        }
+    }, false);
   const mobileCardHtml = `
   <div class="mobile-task-container p-3 rounded-4 d-md-none">
     <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
