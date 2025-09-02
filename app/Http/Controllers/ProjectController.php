@@ -1252,31 +1252,57 @@ class ProjectController extends Controller
     public function getProjectFeedbacks($projectId)
     {
         try {
-            $feedbacks = ProjectFeedback::with(['employee'])
+            // Fetch only top-level feedbacks with nested replies (Task parity)
+            $feedbacks = ProjectFeedback::with(['employee.user', 'replies.employee.user'])
                 ->where('project_id', $projectId)
+                ->whereNull('parent_id')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            $feedbacksTransformed = $feedbacks->map(function ($feedback) {
-                $employee = $feedback->employee;
-
-                return [
-                    'id' => $feedback->id,
-                    'employee_id' => $employee ? $employee->id : null,
-                    'employee_name' => $employee ? $employee->name : null,
-                    'employee_photo' => $employee ? $employee->photo : null,
-                    'feedback_comment' => $feedback->feedback_comment,
-                    'image' => $feedback->image,
-                    'reference_url' => $feedback->reference_url,
-                    'reference_file' => $feedback->reference_file,
-                    'created_at' => $feedback->created_at,
+            $formatOne = function ($fb) {
+                $item = [
+                    'id' => $fb->id,
+                    'parent_id' => $fb->parent_id,
+                    'feedback_comment' => $fb->feedback_comment,
+                    'image' => $fb->image ? asset('file/project/' . $fb->image) : null,
+                    'reference_url' => $fb->reference_url,
+                    'reference_file' => $fb->reference_file ? asset('file/project/' . $fb->reference_file) : null,
+                    'created_at' => $fb->created_at,
+                    'employee' => $fb->employee ? [
+                        'id' => $fb->employee->id,
+                        'name' => $fb->employee->name,
+                        'photo' => ($fb->employee->user && $fb->employee->user->photo)
+                            ? asset($fb->employee->user->photo)
+                            : asset('asset/img/profile_picture/default.png'),
+                    ] : null,
                 ];
-            });
+                $item['replies'] = $fb->replies ? $fb->replies->sortBy('created_at')->values()->map(function ($r) {
+                    return [
+                        'id' => $r->id,
+                        'parent_id' => $r->parent_id,
+                        'feedback_comment' => $r->feedback_comment,
+                        'image' => $r->image ? asset('file/project/' . $r->image) : null,
+                        'reference_url' => $r->reference_url,
+                        'reference_file' => $r->reference_file ? asset('file/project/' . $r->reference_file) : null,
+                        'created_at' => $r->created_at,
+                        'employee' => $r->employee ? [
+                            'id' => $r->employee->id,
+                            'name' => $r->employee->name,
+                            'photo' => ($r->employee->user && $r->employee->user->photo)
+                                ? asset($r->employee->user->photo)
+                                : asset('asset/img/profile_picture/default.png'),
+                        ] : null,
+                    ];
+                }) : collect();
+                return $item;
+            };
+
+            $payload = $feedbacks->map($formatOne);
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $feedbacksTransformed
+                'data' => $payload
             ]);
             
         } catch (\Exception $e) {
@@ -1297,8 +1323,9 @@ class ProjectController extends Controller
         try {
             $request->validate([
                 'project_id' => 'required|exists:projects,id',
+                'parent_id' => 'nullable|exists:project_feedbacks,id',
                 'employee_id' => 'required|exists:employees,id',
-                'feedback_comment' => 'nullable|string',
+                'feedback_comment' => 'required|string',
                 'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_url' => 'nullable|url',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
@@ -1306,6 +1333,7 @@ class ProjectController extends Controller
 
             $feedback = new ProjectFeedback();
             $feedback->project_id = $request->project_id;
+            $feedback->parent_id = $request->parent_id;
             $feedback->employee_id = $request->employee_id;
             $feedback->feedback_comment = $request->feedback_comment;
             $feedback->reference_url = $request->reference_url;
@@ -1346,6 +1374,76 @@ class ProjectController extends Controller
                 'code' => $e->getCode() ?: 500,
                 'status' => "error",
                 'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * Update project feedback or reply (author-only)
+     */
+    public function updateFeedback(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $feedback = ProjectFeedback::findOrFail($id);
+
+            // Only author can edit
+            $user = $request->user();
+            $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$currentEmployeeId || (int)$feedback->employee_id !== (int)$currentEmployeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'You are not allowed to edit this feedback.',
+                ], 403);
+            }
+
+            $request->validate([
+                'feedback_comment' => 'required|string',
+                'reference_url' => 'nullable|url',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            ]);
+
+            $feedback->feedback_comment = $request->feedback_comment;
+            $feedback->reference_url = $request->reference_url ?? $feedback->reference_url;
+
+            // Normalize image input key
+            $img = $request->file('image') ?: $request->file('feedback_image');
+            if ($img) {
+                $name = 'FEEDBACK_' . time() . '.' . $img->getClientOriginalExtension();
+                $img->move(public_path('file/project'), $name);
+                $feedback->image = $name;
+            }
+
+            if ($request->hasFile('reference_file')) {
+                $ref = $request->file('reference_file');
+                $name = 'FEEDBACK_' . time() . '.' . $ref->getClientOriginalExtension();
+                $ref->move(public_path('file/project'), $name);
+                $feedback->reference_file = $name;
+            }
+
+            if ($user) {
+                $feedback->updated_by = $user->id;
+            }
+
+            $feedback->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Project feedback updated successfully',
+                'data' => $feedback,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => 'Failed to update feedback: ' . $e->getMessage(),
             ], $e->getCode() ?: 500);
         }
     }
