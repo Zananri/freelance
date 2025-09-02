@@ -118,6 +118,7 @@ Route::middleware('auth')->group(function () {
     // Task status update routes
     Route::put('/task/{id}/status', [TaskController::class, 'updateStatus'])->name('task.update-status');
     Route::post('/task/{id}/accept', [TaskController::class, 'acceptTask'])->name('task.accept');
+    Route::post('/task/{id}/reject', [TaskController::class, 'rejectTask'])->name('task.reject');
     Route::get('/task/{id}/accept-status', [TaskController::class, 'checkAcceptStatus'])->name('task.accept-status');
 
     // Get tasks by project
@@ -135,6 +136,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'getUserNotifications'])->name('notifications.index');
     Route::get('/notifications/count', [NotificationController::class, 'getUnreadCount'])->name('notifications.count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+    Route::post('/notifications/task/{taskId}/mark-read', [NotificationController::class, 'markTaskAssignmentReadByTask'])->name('notifications.task.markRead');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
     Route::delete('/notifications/{id}', [NotificationController::class, 'deleteNotification'])->name('notifications.delete');
 

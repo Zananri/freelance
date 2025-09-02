@@ -49,6 +49,7 @@ class TaskController extends Controller
             $status = $request->input('status');
 
             // Build base query
+            // Show tasks where current employee is PIC or EXECUTOR (even if not yet accepted)
             $query = Task::with(['project', 'assignments.employee', 'feedback_comments'])
                 ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
                     $query->where(function ($q) use ($currentEmployeeId) {
@@ -56,8 +57,7 @@ class TaskController extends Controller
                           ->where(function ($q2) {
                               $q2->where('role', 'PIC')
                                  ->orWhere(function ($q3) {
-                                     $q3->where('role', 'EXECUTOR')
-                                        ->where('is_receive', true);
+                                     $q3->where('role', 'EXECUTOR'); // include pending (is_receive = false)
                                  });
                           });
                     });
@@ -1665,6 +1665,47 @@ class TaskController extends Controller
                 'code' => $e->getCode() ?: 500,
                 'status' => 'error',
                 'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * Reject task assignment for executor (remove assignment for current user)
+     */
+    public function rejectTask(Request $request, $taskId)
+    {
+        DB::beginTransaction();
+        try {
+            $user = auth()->user();
+            if (!$user || !$user->employee) {
+                throw new \Exception('Unauthorized', 401);
+            }
+
+            $assignment = TaskAssignment::where('task_id', $taskId)
+                ->where('employee_id', $user->employee->id)
+                ->where('role', 'EXECUTOR')
+                ->first();
+
+            if (!$assignment) {
+                throw new \Exception('Task assignment not found', 404);
+            }
+
+            // Remove the assignment to represent rejection
+            $assignment->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Task invitation rejected',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
             ], $e->getCode() ?: 500);
         }
     }
