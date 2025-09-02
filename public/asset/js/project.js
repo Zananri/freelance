@@ -1017,6 +1017,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         let employees = [];
                         let filteredEmployees = [];
                         let selectedEmployees = [];
+                        let isDropdownOpen = false;
 
                         function fetchEmployees(query = "") {
                             const currentEmployeeId =
@@ -1042,15 +1043,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         }
 
-                        function renderDropdown() {
+            function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
                                     '<div class="dropdown-item disabled">No employees found</div>';
-                                dropdown.style.display = "block";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                                 return;
                             }
 
-                            const html = filteredEmployees
+                            // Exclude employees already selected as Contributors
+                            function getContributorIds() {
+                                try {
+                                    const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                    const arr = JSON.parse(raw);
+                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                                } catch(_) { return []; }
+                            }
+                            const contributorIds = getContributorIds();
+                            const availableEmployees = filteredEmployees.filter(emp => !contributorIds.includes(Number(emp.id)));
+
+                            const html = availableEmployees
                                 .map((emp) => {
                                     const isChecked = selectedEmployees.some(
                                         (e) => e.id === emp.id
@@ -1095,7 +1107,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 .join("");
 
                             dropdown.innerHTML = html;
-                            dropdown.style.display = "block";
+                            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
                             dropdown
                                 .querySelectorAll(".co-author-checkbox")
@@ -1135,6 +1147,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                             renderSelected();
                                             updateHiddenInput();
+                                            // Ensure contributors exclude any selected co-authors
+                                            try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
                                         }
                                     );
                                 });
@@ -1177,6 +1191,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     renderSelected();
                                     updateHiddenInput();
                                     renderDropdown();
+                                    // Ensure contributors exclude any selected co-authors
+                                    try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
                                 });
 
                                 badge.appendChild(img);
@@ -1205,10 +1221,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         input.addEventListener("input", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
                         input.addEventListener("focus", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
@@ -1217,6 +1235,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 !input.contains(e.target) &&
                                 !dropdown.contains(e.target)
                             ) {
+                                isDropdownOpen = false;
                                 dropdown.style.display = "none";
                             }
                         });
@@ -1232,7 +1251,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         };
 
                         window.setSelectedCoAuthorsEdit = function (coAuthors) {
-                            selectedEmployees = coAuthors.map((ca) => {
+                            // Filter out anyone already selected as contributor
+                            let contribIds = [];
+                            try {
+                                const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                const arr = JSON.parse(raw);
+                                contribIds = Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                            } catch(_) { contribIds = []; }
+
+                            selectedEmployees = coAuthors
+                                .filter(ca => !contribIds.includes(Number(ca.id)))
+                                .map((ca) => {
                                 let photoUrl = "";
                                 let userPhoto = ca.user_photo;
                                 if (userPhoto) {
@@ -1271,6 +1300,27 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                             renderSelected();
                             updateHiddenInput();
+                            // After programmatically setting co-authors, sync contributors and refresh dropdown
+                            try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
+                            renderDropdown();
+                        };
+
+                        // Expose sync function to be called when contributors change
+                        window.syncCoAuthorsWithContributors = function () {
+                            const contributorIds = (function(){
+                                try {
+                                    const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                    const arr = JSON.parse(raw);
+                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                                } catch(_) { return []; }
+                            })();
+                            const before = selectedEmployees.length;
+                            selectedEmployees = selectedEmployees.filter(se => !contributorIds.includes(Number(se.id)));
+                            if (selectedEmployees.length !== before) {
+                                renderSelected();
+                                updateHiddenInput();
+                            }
+                            renderDropdown();
                         };
                     }
 
@@ -1290,6 +1340,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         let employees = [];
                         let filteredEmployees = [];
                         let selectedEmployees = [];
+                        let isDropdownOpen = false;
 
                         function fetchEmployees(query = "") {
                             const currentEmployeeId =
@@ -1315,15 +1366,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         }
 
-                        function renderDropdown() {
+            function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
                                     '<div class="dropdown-item disabled">No employees found</div>';
-                                dropdown.style.display = "block";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                                 return;
                             }
 
-                            const html = filteredEmployees
+                            // Exclude employees already selected as co-authors
+                            function getCoAuthorIds() {
+                                try {
+                                    const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                    const arr = JSON.parse(raw);
+                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                                } catch(_) { return []; }
+                            }
+                            const coAuthorIds = getCoAuthorIds();
+                            const availableEmployees = filteredEmployees.filter(emp => !coAuthorIds.includes(Number(emp.id)));
+
+                            const html = availableEmployees
                                 .map((emp) => {
                                     const isChecked = selectedEmployees.some(
                                         (e) => e.id === emp.id
@@ -1368,7 +1430,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 .join("");
 
                             dropdown.innerHTML = html;
-                            dropdown.style.display = "block";
+                            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
                             dropdown
                                 .querySelectorAll(".contributor-checkbox")
@@ -1409,6 +1471,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                             renderSelected();
                                             updateHiddenInput();
                                             renderDropdown(); // refresh dropdown setelah perubahan
+                                            // Ensure co-authors exclude any selected contributors
+                                            try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
                                         }
                                     );
                                 });
@@ -1451,6 +1515,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     renderSelected();
                                     updateHiddenInput();
                                     renderDropdown();
+                                    // After removing a contributor, refresh co-author dropdown availability
+                                    try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
                                 });
 
                                 badge.appendChild(img);
@@ -1479,10 +1545,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         input.addEventListener("input", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
                         input.addEventListener("focus", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
@@ -1491,6 +1559,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 !input.contains(e.target) &&
                                 !dropdown.contains(e.target)
                             ) {
+                                isDropdownOpen = false;
                                 dropdown.style.display = "none";
                             }
                         });
@@ -1508,7 +1577,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         window.setSelectedContributorsEdit = function (
                             contributors
                         ) {
-                            selectedEmployees = contributors.map((ca) => {
+                            // Filter out anyone already selected as co-author
+                            let coIds = [];
+                            try {
+                                const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                const arr = JSON.parse(raw);
+                                coIds = Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                            } catch(_) { coIds = []; }
+
+                            selectedEmployees = contributors
+                                .filter((c) => !coIds.includes(Number(c.id)))
+                                .map((ca) => {
                                 let photoUrl = "";
                                 let userPhoto = ca.user_photo;
 
@@ -1547,6 +1626,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                             renderSelected();
                             updateHiddenInput();
+                            // After programmatically setting contributors, sync co-authors
+                            try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
+                        };
+
+                        // Expose sync function to be called when co-authors change
+                        window.syncContributorsWithCoAuthors = function () {
+                            const coAuthorIds = (function(){
+                                try {
+                                    const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                    const arr = JSON.parse(raw);
+                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                                } catch(_) { return []; }
+                            })();
+                            const before = selectedEmployees.length;
+                            selectedEmployees = selectedEmployees.filter(se => !coAuthorIds.includes(Number(se.id)));
+                            if (selectedEmployees.length !== before) {
+                                renderSelected();
+                                updateHiddenInput();
+                            }
+                            renderDropdown();
                         };
                     }
 
@@ -3589,9 +3688,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("co_author");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -3618,11 +3718,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -3665,7 +3765,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             dropdown
                 .querySelectorAll(".co-author-checkbox")
@@ -3764,16 +3864,19 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -3800,9 +3903,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("contributors");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -3833,11 +3937,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -3880,7 +3984,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             // Add event listeners for checkboxes
             dropdown
@@ -3980,16 +4084,19 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -4220,7 +4327,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
     loadProjects();
     loadProjectCardData();
     // loadEmployees(); // Removed obsolete function call
-    setupCoAuthorInput();
+    // setupCoAuthorInput(); // replaced by wrappedSetupCoAuthorInput to support cross-exclusion and syncing
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
@@ -4249,9 +4356,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("co_author");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         function fetchEmployees(query = "") {
             const currentEmployeeId =
@@ -4279,11 +4387,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
             });
         }
 
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -4326,7 +4434,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             dropdown
                 .querySelectorAll(".co-author-checkbox")
@@ -4438,15 +4546,18 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -4464,12 +4575,32 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 window.refreshContributorDropdown();
             }
         };
+
+        // Expose helpers to sync with contributor list without clearing all
+        window.getSelectedCoAuthorIds = function () {
+            return selectedEmployees.map((e) => e.id);
+        };
+        window.removeCoAuthorsByIds = function (ids) {
+            if (!Array.isArray(ids) || ids.length === 0) return;
+            const before = selectedEmployees.length;
+            selectedEmployees = selectedEmployees.filter((e) => !ids.includes(e.id));
+            if (selectedEmployees.length !== before) {
+                renderSelected();
+                updateHiddenInput();
+                window.selectedCoAuthorIds = selectedEmployees.map((e) => e.id);
+            }
+            renderDropdown();
+        };
+        window.refreshCoAuthorListOnly = function () {
+            // Re-fetch to apply new exclusion (selectedContributorIds)
+            fetchEmployees();
+        };
     }
 
     wrappedSetupCoAuthorInput();
 
     // Initialize contributor input
-    setupContributorInput();
+    // setupContributorInput(); // replaced by wrappedSetupContributorInput to support cross-exclusion and syncing
 
                     // Attach click handler for attach_file buttons on project cards
                     document.querySelectorAll('.project-attach-file').forEach(btn => {
@@ -4786,33 +4917,18 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
     // Function to refresh contributor dropdown when co-author selection changes
     window.refreshContributorDropdown = function () {
-        // Clear contributor input and selected contributors
-        const contributorInput = document.getElementById("contributor_input");
-        const contributorDropdown = document.getElementById(
-            "contributor_dropdown"
-        );
-        const selectedContributorsContainer = document.getElementById(
-            "selected_contributors"
-        );
-        const hiddenContributorsInput = document.getElementById("contributors");
-
-        if (
-            !contributorInput ||
-            !contributorDropdown ||
-            !selectedContributorsContainer ||
-            !hiddenContributorsInput
-        ) {
-            return;
+        const coAuthorIds = window.selectedCoAuthorIds || [];
+        // Remove overlaps from current contributors without clearing all
+        if (typeof window.removeContributorsByIds === 'function') {
+            window.removeContributorsByIds(coAuthorIds.map((n) => Number(n)));
         }
-
-        // Clear current selections
-        contributorInput.value = "";
-        contributorDropdown.style.display = "none";
-        selectedContributorsContainer.innerHTML = "";
-        hiddenContributorsInput.value = "";
-
-        // Re-initialize contributor input to fetch updated employee list excluding current co-authors
-        setupContributorInput();
+        // Rebuild contributor dropdown list applying new exclusions
+        if (typeof window.refreshContributorListOnly === 'function') {
+            window.refreshContributorListOnly();
+        } else if (typeof setupContributorInput === 'function') {
+            // Fallback
+            setupContributorInput();
+        }
     };
 
     // Add global array to track selected contributors
@@ -4827,9 +4943,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("contributors");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -4860,11 +4977,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -4907,7 +5024,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             // Event listener untuk checkbox
             dropdown
@@ -5024,16 +5141,19 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -5053,37 +5173,44 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 window.refreshCoAuthorDropdown();
             }
         };
+
+        // Expose helpers to sync with co-author list without clearing all
+        window.getSelectedContributorIds = function () {
+            return selectedEmployees.map((e) => e.id);
+        };
+        window.removeContributorsByIds = function (ids) {
+            if (!Array.isArray(ids) || ids.length === 0) return;
+            const before = selectedEmployees.length;
+            selectedEmployees = selectedEmployees.filter((e) => !ids.includes(e.id));
+            if (selectedEmployees.length !== before) {
+                renderSelected();
+                updateHiddenInput();
+                window.selectedContributorIds = selectedEmployees.map((e) => e.id);
+            }
+            renderDropdown();
+        };
+        window.refreshContributorListOnly = function () {
+            // Re-fetch to apply new exclusion (selectedCoAuthorIds)
+            fetchEmployees();
+        };
     }
 
     wrappedSetupContributorInput();
 
     // Function to refresh co-author dropdown when contributor selection changes
     window.refreshCoAuthorDropdown = function () {
-        // Clear co-author input and selected co-authors
-        const coAuthorInput = document.getElementById("co_author_input");
-        const coAuthorDropdown = document.getElementById("co_author_dropdown");
-        const selectedCoAuthorsContainer = document.getElementById(
-            "selected_co_authors"
-        );
-        const hiddenCoAuthorsInput = document.getElementById("co_author");
-
-        if (
-            !coAuthorInput ||
-            !coAuthorDropdown ||
-            !selectedCoAuthorsContainer ||
-            !hiddenCoAuthorsInput
-        ) {
-            return;
+        const contributorIds = window.selectedContributorIds || [];
+        // Remove overlaps from current co-authors without clearing all
+        if (typeof window.removeCoAuthorsByIds === 'function') {
+            window.removeCoAuthorsByIds(contributorIds.map((n) => Number(n)));
         }
-
-        // Clear current selections
-        coAuthorInput.value = "";
-        coAuthorDropdown.style.display = "none";
-        selectedCoAuthorsContainer.innerHTML = "";
-        hiddenCoAuthorsInput.value = "";
-
-        // Re-initialize co-author input to fetch updated employee list excluding current contributors
-        wrappedSetupCoAuthorInput();
+        // Rebuild co-author dropdown list applying new exclusions
+        if (typeof window.refreshCoAuthorListOnly === 'function') {
+            window.refreshCoAuthorListOnly();
+        } else if (typeof wrappedSetupCoAuthorInput === 'function') {
+            // Fallback
+            wrappedSetupCoAuthorInput();
+        }
     };
 
     // Setup filter dropdown functionality
