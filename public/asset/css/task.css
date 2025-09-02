@@ -36,26 +36,6 @@
     margin-bottom: 1.5rem;
 }
 
-.btn-submit-reset {
-    background-color: #1557b0;
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-weight: normal;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-submit-reset:hover {
-    background-color: #007bff;
-    color: white;
-}
-
 /* Spinner inside submit button */
 .spinner-border {
     width: 1rem;
@@ -385,7 +365,7 @@
 }
 
 .form-label {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
 }
 
@@ -605,7 +585,6 @@ p {
     position: absolute;
     top: 8px;
     right: 8px;
-    z-index: 10;
 }
 
 /* Dropdown icon style */
@@ -768,9 +747,11 @@ p {
 .btn-submit-filter {
     background-color: #e3e4ee;
     color: #444444;
+    width: 100%;
 }
 
-.btn-submit-reset:hover .btn-submit-filter:hover {
+.btn-submit-reset:hover,
+.btn-submit-filter:hover {
     background-color: #e3e4ee;
     color: #444444;
 }
@@ -1412,7 +1393,11 @@ p {
     pointer-events: none;
 }
 
-.custom-form-filter {
+.custom-form-filter,
+.custom-form-filter:focus
+{
+    outline: none !important;
+    box-shadow: none !important;
     border: none;
     background-color: #ecedf5;
     padding-left: 35px !important;
@@ -1429,6 +1414,7 @@ p {
     height: 43px;
     font-size: 24px;
     color: #858ca0;
+    border: none;
 }
 
 .toggle-filter {
@@ -1439,12 +1425,11 @@ p {
     height: 43px;
 }
 
+.toggle-timeline:hover,
 .toggle-filter:hover {
     background: #ecedf5;
     border: none;
-    border-radius: 10px;
     color: #555c6e;
-    height: 43px;
 }
 
 .btn-add-custom {
@@ -1482,7 +1467,7 @@ p {
     z-index: 10;
     width: 250px;
     background: #f0f1f8;
-    border: 1px solid #dee2e6;
+    border: none;
     border-radius: 8px;
 }
 
@@ -1504,6 +1489,10 @@ p {
     padding: 16px;
 }
 
+.dropdown-filter-body select {
+    border: none;
+}
+
 .dropdown-filter-footer {
     padding: 12px 16px;
     border-top: 1px solid #dee2e6;
@@ -1511,11 +1500,8 @@ p {
     gap: 5px;
     justify-content: flex-end;
     border-radius: 0 0 8px 8px;
-}
-
-.dropdown-filter-footer {
-    padding: 4px 12px;
     font-size: 14px;
+    width: 100%;
 }
 
 /* Project Filter Display Styles */

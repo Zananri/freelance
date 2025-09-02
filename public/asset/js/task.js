@@ -1205,22 +1205,31 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Function to setup dropdown event listeners for task cards
     function setupTaskDropdownListeners() {
         // Add event listeners for dropdown toggle
-        document.querySelectorAll(".dropdown-icon").forEach((icon) => {
-            if (icon.dataset.bound === '1') return;
-            icon.dataset.bound = '1';
-            icon.addEventListener("click", function (e) {
+        document.addEventListener("click", function (e) {
+            const icon = e.target.closest(".dropdown-icon");
+            if (icon) {
                 e.stopPropagation();
-                const dropdownMenu = this.nextElementSibling;
+                const dropdownMenu = icon.nextElementSibling;
                 const isVisible = !dropdownMenu.classList.contains("d-none");
-                // Close all dropdowns
+
+                // Tutup semua dropdown dulu
                 document.querySelectorAll(".dropdown-menu").forEach((menu) => {
                     menu.classList.add("d-none");
                 });
-                // Toggle current dropdown
+
+                // Toggle dropdown yang di-klik
                 if (!isVisible) {
                     dropdownMenu.classList.remove("d-none");
                 }
-            });
+                return;
+            }
+
+            // Kalau klik di luar menu → tutup semua
+            if (!e.target.closest(".dropdown-menu")) {
+                document.querySelectorAll(".dropdown-menu").forEach((menu) => {
+                    menu.classList.add("d-none");
+                });
+            }
         });
 
         // Close dropdown when clicking outside (bind once)
@@ -1234,15 +1243,28 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
 
         // Open Modal from mode_comment icon click
-        document.querySelectorAll(".task-icon.mode_comment").forEach((icon) => {
-            if (icon.dataset.bound === '1') return;
-            icon.dataset.bound = '1';
-            icon.addEventListener("click", function () {
-                const taskId = this.dataset.taskId;
+        document.addEventListener("click", function (e) {
+            $(document).on("hidden.bs.modal", "#taskFeedbackModal", function () {
+                $(".modal-backdrop").remove();
+                $("body").removeClass("modal-open").css("overflow", "");
+            });
+
+            // (Opsional) kalau masih ada double backdrop pas buka, bersihin sisanya
+            $(document).on("shown.bs.modal", "#taskFeedbackModal", function () {
+                const backdrops = $(".modal-backdrop");
+                if (backdrops.length > 1) {
+                    backdrops.not(":first").remove();
+                }
+            });
+
+            const icon = e.target.closest(".task-icon.mode_comment");
+            if (icon) {
+                const taskId = icon.dataset.taskId;
                 markTaskFeedbacksRead(taskId).always(() => {
                     handleTaskFeedback(taskId);
                 });
-            });
+                return;
+            }
         });
 
         // Bind latest-feedback-snippet clicks
@@ -2861,18 +2883,16 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Function to add event listeners for attach_file icon click
     function addAttachFileIconListeners() {
         if (attachFileIconListenerBound) return;
-        // Use event delegation on the container to handle dynamically added cards
-        const container = document.getElementById("task-cards-container");
-        if (!container) return;
 
-        container.addEventListener("click", function (event) {
+        document.addEventListener("click", function (event) {
             const target = event.target;
+
             if (
                 target &&
                 target.classList.contains("task-icon") &&
                 target.textContent.trim() === "attach_file"
             ) {
-                // Find the closest task card element
+                // Cari task card terdekat (bisa desktop & mobile)
                 const taskCard = target.closest(".custom-card");
                 if (!taskCard) return;
 
@@ -2882,23 +2902,25 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     return;
                 }
 
-                // Fetch task details to get reference_files
+                // Fetch task details
                 $.ajax({
                     url: appUrl + "/task/" + taskId,
                     type: "GET",
                     dataType: "json",
                     success: function (res) {
-                        // Support both { status, data: {...} } and direct payloads
                         const payload = res && (res.data || res);
                         let referenceFiles = payload && payload.reference_files;
 
-                        // If backend sends a JSON string, parse it
-                        if (typeof referenceFiles === 'string') {
+                        if (typeof referenceFiles === "string") {
                             try {
                                 referenceFiles = JSON.parse(referenceFiles);
                             } catch (e) {
-                                // fallback: treat as single filename or comma-separated
-                                referenceFiles = referenceFiles.includes('[') ? [] : referenceFiles.split(',').map(s => s.trim()).filter(Boolean);
+                                referenceFiles = referenceFiles.includes("[")
+                                    ? []
+                                    : referenceFiles
+                                        .split(",")
+                                        .map((s) => s.trim())
+                                        .filter(Boolean);
                             }
                         }
 
@@ -2922,7 +2944,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
                         const modalEl = document.getElementById("referenceFilesModal");
                         if (modalEl) {
-                            const referenceFilesModal = new bootstrap.Modal(modalEl);
+                            const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                             referenceFilesModal.show();
                         }
                     },
@@ -2932,7 +2954,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 });
             }
         });
-    attachFileIconListenerBound = true;
+
+        attachFileIconListenerBound = true;
     }
 
     // Function to handle task detail view
@@ -3307,7 +3330,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 preview.appendChild(fileList);
             }
         };
-        
+
 
         // Function to display existing files
         window.displayExistingReferenceFiles = function (files) {
@@ -4160,7 +4183,7 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
         timelineEl.addEventListener('hidden.bs.modal', onTimelineHidden, { once: true });
         tlInstance.hide();
     });
-    
+
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");
