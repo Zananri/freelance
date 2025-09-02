@@ -1577,51 +1577,62 @@ document.addEventListener("DOMContentLoaded", function () {
                                         "d-flex align-items-center mb-2";
 
                                     const img = document.createElement("img");
-                                    // Adjust employee_photo path to avoid duplicate segments
-                                    let employeePhotoPath =
-                                        feedback.employee_photo || "";
-                                    if (
-                                        employeePhotoPath.startsWith(
-                                            "/file/photo"
-                                        ) ||
-                                        employeePhotoPath.startsWith(
-                                            "/file/profile_picture"
-                                        )
-                                    ) {
-                                        // already full relative path, use as is
-                                    } else if (
-                                        employeePhotoPath.startsWith(
-                                            "file/photo"
-                                        ) ||
-                                        employeePhotoPath.startsWith(
-                                            "file/profile_picture"
-                                        )
-                                    ) {
-                                        employeePhotoPath =
-                                            "/" + employeePhotoPath;
-                                    } else if (employeePhotoPath.length > 0) {
-                                        employeePhotoPath =
-                                            "/file/profile_picture/" +
-                                            employeePhotoPath;
-                                    }
-                                    img.src =
-                                        employeePhotoPath.length > 0
-                                            ? appUrl + employeePhotoPath
-                                            : appUrl +
-                                              "/asset/img/profile_picture/default.png";
+                                    // Prefer employee object if present, fallback to legacy employee_photo
+                                    (function () {
+                                        const emp = feedback.employee || {};
+                                        const raw = emp.user_photo || emp.profile_picture || emp.photo || feedback.employee_photo || "";
+                                        let url = "";
+                                        if (typeof raw === 'string' && raw.length > 0) {
+                                            if (raw.startsWith('http')) url = raw;
+                                            else if (raw.startsWith('/')) url = appUrl + raw;
+                                            else if (raw.indexOf('/') !== -1) url = appUrl + '/' + raw;
+                                            else url = appUrl + '/file/profile_picture/' + raw;
+                                        } else {
+                                            url = appUrl + '/asset/img/profile_picture/default.png';
+                                        }
+                                        img.src = url;
+                                    })();
                                     img.alt = "Employee Photo";
                                     img.className =
                                         "feedback-employee-photo me-2 rounded-circle";
                                     img.style.width = "40px";
                                     img.style.height = "40px";
 
-                                    const infoDiv =
-                                        document.createElement("div");
-                                    const nameDiv =
-                                        document.createElement("div");
-                                    nameDiv.className = "fw-bold";
-                                    nameDiv.textContent =
-                                        feedback.employee_name || "Unknown";
+                                    const infoDiv = document.createElement("div");
+                                    // Determine author/edit permissions early (used for placing edit icon next to name like Task)
+                                    const currentEmployeeIdTop = parseInt(projectFeedbackModalEl.getAttribute("data-employee-id") || "0", 10) || 0;
+                                    const authorIdTop = (feedback.employee_id != null) ? feedback.employee_id : ((feedback.employee && feedback.employee.id) || 0);
+                                    const canEditTopInline = String(authorIdTop) === String(currentEmployeeIdTop);
+                                    // Name row with edit icon inline (exactly like Task)
+                                    const nameRow = document.createElement('div');
+                                    nameRow.className = 'd-flex align-items-center';
+                                    const nameStrong = document.createElement('strong');
+                                    nameStrong.textContent = (feedback.employee && feedback.employee.name) || feedback.employee_name || 'Unknown';
+                                    nameRow.appendChild(nameStrong);
+                                    if (canEditTopInline) {
+                                        const editBtnInline = document.createElement('span');
+                                        editBtnInline.className = 'material-symbols-outlined icon feedback-edit-trigger ms-2';
+                                        editBtnInline.style.cssText = 'cursor:pointer; font-size:18px; line-height:1; color:#555;';
+                                        editBtnInline.textContent = 'edit';
+                                        editBtnInline.addEventListener('click', function(){
+                                            const payload = {
+                                                id: feedback.id,
+                                                parent_id: null,
+                                                feedback_comment: feedback.feedback_comment || '',
+                                                reference_url: feedback.reference_url || '',
+                                                reference_file_url: feedback.reference_file || '',
+                                                image_url: (function(){
+                                                    const img = feedback.image || '';
+                                                    if (!img) return '';
+                                                    if (String(img).startsWith('http')) return img;
+                                                    if (String(img).startsWith('/')) return appUrl + img;
+                                                    return appUrl + '/file/project/' + img;
+                                                })(),
+                                            };
+                                            showEditFeedbackForm(projectId, payload, false);
+                                        });
+                                        nameRow.appendChild(editBtnInline);
+                                    }
 
                                     // Add creation date below employee name
                                     const dateDiv =
@@ -1686,11 +1697,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ? feedback.division + " | "
                                             : "") + (feedback.role || "");
 
-                                    infoDiv.appendChild(nameDiv);
+                                    infoDiv.appendChild(nameRow);
                                     infoDiv.appendChild(dateDiv);
                                     infoDiv.appendChild(roleDiv);
-                                    headerDiv.appendChild(img);
-                                    headerDiv.appendChild(infoDiv);
+                                    // Wrap left side like Task: avatar + (name/date)
+                                    const leftWrap = document.createElement('div');
+                                    leftWrap.className = 'd-flex align-items-center';
+                                    leftWrap.appendChild(img);
+                                    leftWrap.appendChild(infoDiv);
+                                    // Prepare header container with space between for reply icon on right
+                                    headerDiv.className = 'd-flex align-items-center mb-2 justify-content-between';
+                                    headerDiv.appendChild(leftWrap);
 
                                     // Comment
                                     const commentDiv =
@@ -1732,10 +1749,23 @@ document.addEventListener("DOMContentLoaded", function () {
                                         if (feedback.reference_file) {
                                             const refFileLink =
                                                 document.createElement("a");
-                                            refFileLink.href =
-                                                appUrl +
-                                                "/file/project/" +
-                                                feedback.reference_file;
+                                            // Normalize file URL
+                                            let fileHref = feedback.reference_file;
+                                            if (
+                                                fileHref &&
+                                                !(String(fileHref).startsWith("http") || String(fileHref).startsWith("/"))
+                                            ) {
+                                                fileHref =
+                                                    appUrl +
+                                                    "/file/project/" +
+                                                    fileHref;
+                                            } else if (
+                                                fileHref &&
+                                                String(fileHref).startsWith("/")
+                                            ) {
+                                                fileHref = appUrl + fileHref;
+                                            }
+                                            refFileLink.href = fileHref;
                                             refFileLink.download = "";
                                             refFileLink.className =
                                                 "feedback-reference-file";
@@ -1763,10 +1793,23 @@ document.addEventListener("DOMContentLoaded", function () {
                                     if (feedback.image) {
                                         const feedbackImage =
                                             document.createElement("img");
-                                        feedbackImage.src =
-                                            appUrl +
-                                            "/file/project/" +
-                                            feedback.image;
+                                        // Normalize image URL
+                                        let imgSrc = feedback.image;
+                                        if (
+                                            imgSrc &&
+                                            !(String(imgSrc).startsWith("http") || String(imgSrc).startsWith("/"))
+                                        ) {
+                                            imgSrc =
+                                                appUrl +
+                                                "/file/project/" +
+                                                imgSrc;
+                                        } else if (
+                                            imgSrc &&
+                                            String(imgSrc).startsWith("/")
+                                        ) {
+                                            imgSrc = appUrl + imgSrc;
+                                        }
+                                        feedbackImage.src = imgSrc;
                                         feedbackImage.alt = "Feedback Image";
                                         feedbackImage.className =
                                             "feedback-image me-2 mb-2";
@@ -1786,9 +1829,177 @@ document.addEventListener("DOMContentLoaded", function () {
                                         mediaDiv.appendChild(feedbackImage);
                                     }
 
+                                    // Right side: Reply icon exactly like Task (far right)
+                                    const headerRight = document.createElement("div");
+                                    headerRight.className = "d-flex align-items-center";
+                                    const replyBtn = document.createElement("span");
+                                    replyBtn.className = "material-symbols-outlined feedback-reply-trigger";
+                                    replyBtn.style.cssText = "cursor:pointer; font-size:18px; line-height:1; color:#555;";
+                                    replyBtn.textContent = "reply";
+                                    replyBtn.addEventListener("click", function () {
+                                        showReplyFeedbackForm(projectId, feedback.id);
+                                    });
+                                    headerRight.appendChild(replyBtn);
+
+                                    // Append sections
                                     feedbackItem.appendChild(headerDiv);
+                                    headerDiv.appendChild(headerRight);
                                     feedbackItem.appendChild(commentDiv);
                                     feedbackItem.appendChild(mediaDiv);
+
+                                    // Replies list
+                                    if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                        const repliesCount = feedback.replies.length;
+                                        const repliesWrap = document.createElement("div");
+                                        repliesWrap.className = "view-replies-wrap mt-1";
+                                        const toggleBtn = document.createElement("button");
+                                        toggleBtn.type = "button";
+                                        toggleBtn.className = "btn btn-link p-0 view-replies-toggle";
+                                        toggleBtn.style.cssText = "font-size: 13px; color:#555; text-decoration: none;";
+                                        toggleBtn.textContent = `View all replies (${repliesCount})`;
+                                        const repliesContainer = document.createElement("div");
+                                        repliesContainer.className = "feedback-replies d-none";
+
+                                        feedback.replies.forEach((rep) => {
+                                            const repEmp = rep.employee || {};
+                                            const repDiv = document.createElement("div");
+                                            repDiv.className = "feedback-reply ms-4 mt-2 p-2 rounded";
+                                            repDiv.style.background = "#fafafa";
+
+                                            const repHeader = document.createElement("div");
+                                            repHeader.className = "d-flex align-items-center mb-1";
+                                            const repImg = document.createElement("img");
+                                            (function(){
+                                                const raw = repEmp.user_photo || repEmp.profile_picture || repEmp.photo || "";
+                                                let url = appUrl + '/asset/img/profile_picture/default.png';
+                                                if (raw) {
+                                                    if (String(raw).startsWith('http')) url = raw;
+                                                    else if (String(raw).startsWith('/')) url = appUrl + raw;
+                                                    else if (String(raw).indexOf('/') !== -1) url = appUrl + '/' + raw;
+                                                    else url = appUrl + '/file/profile_picture/' + raw;
+                                                }
+                                                repImg.src = url;
+                                            })();
+                                            repImg.alt = repEmp.name || 'Employee';
+                                            repImg.className = 'rounded-circle me-2';
+                                            repImg.style.width = '24px';
+                                            repImg.style.height = '24px';
+                                            repImg.style.objectFit = 'cover';
+                                            const repInfo = document.createElement('div');
+                                            const repNameRow = document.createElement('div');
+                                            repNameRow.className = 'd-flex align-items-center';
+                                            const repName = document.createElement('strong');
+                                            repName.style.fontSize = '13px';
+                                            repName.textContent = repEmp.name || 'Unknown';
+                                            repNameRow.appendChild(repName);
+                                            const canEditReply = String((rep.employee_id != null ? rep.employee_id : (repEmp.id || 0))) === String(currentEmployeeIdTop);
+                                            if (canEditReply) {
+                                                const rEdit = document.createElement('span');
+                                                rEdit.className = 'material-symbols-outlined icon ms-2';
+                                                rEdit.style.cssText = 'cursor:pointer; font-size:16px; line-height:1; color:#555;';
+                                                rEdit.textContent = 'edit';
+                                                rEdit.addEventListener('click', function(){
+                                                    const payload = {
+                                                        id: rep.id,
+                                                        parent_id: feedback.id,
+                                                        feedback_comment: rep.feedback_comment || '',
+                                                        reference_url: rep.reference_url || '',
+                                                        reference_file_url: rep.reference_file || '',
+                                                        image_url: (function(){
+                                                            const img = rep.image || '';
+                                                            if (!img) return '';
+                                                            if (String(img).startsWith('http')) return img;
+                                                            if (String(img).startsWith('/')) return appUrl + img;
+                                                            return appUrl + '/file/project/' + img;
+                                                        })(),
+                                                    };
+                                                    showEditFeedbackForm(projectId, payload, true);
+                                                });
+                                                repNameRow.appendChild(rEdit);
+                                            }
+                                            repInfo.appendChild(repNameRow);
+                                            const repTime = document.createElement('small');
+                                            repTime.className = 'text-muted d-block';
+                                            repTime.style.fontSize = '11px';
+                                            if (rep.created_at) {
+                                                const d = new Date(rep.created_at);
+                                                repTime.textContent = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                                            }
+                                            repInfo.appendChild(repTime);
+                                            repHeader.appendChild(repImg);
+                                            repHeader.appendChild(repInfo);
+
+                                            const repComment = document.createElement('p');
+                                            repComment.className = 'mb-1';
+                                            repComment.style.fontSize = '13px';
+                                            repComment.textContent = rep.feedback_comment || '';
+
+                                            const repMedia = document.createElement('div');
+                                            repMedia.className = 'feedback-reference-container mb-1';
+                                            if (rep.reference_url) {
+                                                const a = document.createElement('a');
+                                                a.href = rep.reference_url;
+                                                a.target = '_blank';
+                                                a.className = 'feedback-reference-url';
+                                                a.innerHTML = '<span class="material-symbols-outlined">link</span> Reference Link';
+                                                repMedia.appendChild(a);
+                                            }
+                                            if (rep.reference_file) {
+                                                const a2 = document.createElement('a');
+                                                let href = rep.reference_file;
+                                                if (href && !(String(href).startsWith('http') || String(href).startsWith('/'))) {
+                                                    href = appUrl + '/file/project/' + href;
+                                                } else if (href && String(href).startsWith('/')) {
+                                                    href = appUrl + href;
+                                                }
+                                                a2.href = href;
+                                                a2.download = '';
+                                                a2.className = 'feedback-reference-file ms-2';
+                                                a2.innerHTML = '<span class="material-symbols-outlined">draft</span> FEEDBACK_FILE';
+                                                repMedia.appendChild(a2);
+                                            }
+                                            // Prepare reply image element but append later (below comment and references) like Task
+                                            let rImg = null;
+                                            if (rep.image) {
+                                                rImg = document.createElement('img');
+                                                let rsrc = rep.image;
+                                                if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) {
+                                                    rsrc = appUrl + '/file/project/' + rsrc;
+                                                } else if (rsrc && String(rsrc).startsWith('/')) {
+                                                    rsrc = appUrl + rsrc;
+                                                }
+                                                rImg.src = rsrc;
+                                                rImg.className = 'img-fluid rounded reply-image mt-1';
+                                                rImg.style.width = '70px';
+                                                rImg.style.borderRadius = '8px';
+                                                rImg.style.cursor = 'pointer';
+                                                rImg.addEventListener('click', () => window.open(rImg.src, '_blank'));
+                                            }
+
+                                            repDiv.appendChild(repHeader);
+                                            repDiv.appendChild(repComment);
+                                            if (rep.reference_url || rep.reference_file) repDiv.appendChild(repMedia);
+                                            if (rImg) repDiv.appendChild(rImg);
+                                            repliesContainer.appendChild(repDiv);
+                                        });
+
+                                        repliesWrap.appendChild(toggleBtn);
+                                        repliesWrap.appendChild(repliesContainer);
+                                        feedbackItem.appendChild(repliesWrap);
+
+                                        toggleBtn.addEventListener('click', function () {
+                                            const hidden = repliesContainer.classList.contains('d-none');
+                                            if (hidden) {
+            repliesContainer.classList.remove('d-none');
+            this.textContent = 'Hide replies';
+                                            } else {
+            repliesContainer.classList.add('d-none');
+            this.textContent = `View all replies (${repliesCount})`;
+                                            }
+                                            this.style.textDecoration = 'none';
+                                            this.style.color = '#555';
+                                        });
+                                    }
 
                                     modalBody.appendChild(feedbackItem);
                                 });
@@ -1816,6 +2027,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <input type="hidden" name="employee_id" value="${
                 projectFeedbackModalEl.getAttribute("data-employee-id") || ""
             }">
+            <input type="hidden" name="parent_id" value="">
            <div class="mb-3">
                     <label class="form-label">Upload Image</label>
                     <div class="image-upload-container">
@@ -1839,7 +2051,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 <div class="mb-3">
                     <label for="reference_file" class="form-label">Reference File (Optional)</label>
-                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
                 </div>
         </form>
     `;
@@ -1992,6 +2204,249 @@ document.addEventListener("DOMContentLoaded", function () {
                                 submitBtn.innerHTML = originalBtnText;
                                 submitBtn.disabled = false;
                             });
+                    }
+
+                    // Show reply form for a given parent feedback (mirror Add Feedback UI)
+                    function showReplyFeedbackForm(projectId, parentId) {
+                        modalTitle.textContent = "Reply Feedback";
+                        modalBody.innerHTML = `
+        <form id="replyFeedbackForm" enctype="multipart/form-data">
+            <input type="hidden" name="project_id" value="${projectId}">
+            <input type="hidden" name="parent_id" value="${parentId}">
+            <input type="hidden" name="employee_id" value="${projectFeedbackModalEl.getAttribute('data-employee-id') || ''}">
+
+            <div class="mb-3">
+                <label class="form-label">Upload Image</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
+                        style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
+                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="reference_url" class="form-label">Reference URL (Optional)</label>
+                <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+            </div>
+
+            <div class="mb-3">
+                <label for="reference_file" class="form-label">Reference File (Optional)</label>
+                <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
+            </div>
+        </form>`;
+
+                        // Setup image preview and clear like Add Feedback
+                        (function() {
+                            const imageInput = modalBody.querySelector('#feedback_image');
+                            const imageLabel = modalBody.querySelector('#feedbackImageLabel');
+                            const imageClearBtn = modalBody.querySelector('#feedbackImageClearBtn');
+                            if (!imageInput || !imageLabel || !imageClearBtn) return;
+                            imageInput.addEventListener('change', function () {
+                                if (this.files && this.files[0]) {
+                                    const reader = new FileReader();
+                                    reader.onload = function (e) {
+                                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                                        imageLabel.classList.add('has-image');
+                                        imageLabel.style.backgroundSize = 'cover';
+                                        imageLabel.style.opacity = '1';
+                                        imageClearBtn.classList.remove('d-none');
+                                    };
+                                    reader.readAsDataURL(this.files[0]);
+                                }
+                            });
+                            imageClearBtn.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                imageInput.value = '';
+                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                imageLabel.style.backgroundPosition = 'center center';
+                                imageLabel.style.backgroundRepeat = 'no-repeat';
+                                imageLabel.style.backgroundSize = '50%';
+                                imageLabel.classList.remove('has-image');
+                                imageLabel.style.opacity = '0.5';
+                                imageClearBtn.classList.add('d-none');
+                            });
+                        })();
+
+                        const addBtn = document.getElementById("addFeedbackButton");
+                        if (addBtn) {
+                            addBtn.textContent = "Submit";
+                            const fresh = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(fresh, addBtn);
+                            fresh.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                const form = document.getElementById("replyFeedbackForm");
+                                if (!form) return;
+                                const fd = new FormData(form);
+                                fetch(appUrl + "/project-feedbacks", {
+                                    method: "POST",
+                                    headers: {
+                                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                    },
+                                    body: fd,
+                                })
+                                    .then((r) => (r.ok ? r.json() : r.json().then(Promise.reject)))
+                                    .then((res) => {
+                                        showFloatingAlert(res.message || "Reply submitted", "success", 1500);
+                                        loadFeedbackData(projectId);
+                                    })
+                                    .catch((err) => {
+                                        const msg =
+                                            (err && (err.message || (err.errors && Object.values(err.errors).join("\n")))) ||
+                                            "Failed to submit reply";
+                                        showFloatingAlert(msg, "warning", 3500);
+                                    });
+                            });
+                        }
+
+                        // Back button
+                        const footer = projectFeedbackModalEl.querySelector(".feedback-modal-footer");
+                        if (footer) {
+                            let closeBtn = document.getElementById('replyCloseButton');
+                            if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
+                            closeBtn = document.createElement("button");
+                            closeBtn.id = "replyCloseButton";
+                            closeBtn.type = "button";
+                            closeBtn.className = "btn btn-close-reply";
+                            closeBtn.textContent = "Close";
+                            const submitBtn = document.getElementById('addFeedbackButton');
+                            if (submitBtn && submitBtn.parentNode) submitBtn.parentNode.insertBefore(closeBtn, submitBtn);
+                            closeBtn.addEventListener("click", function () {
+                                loadFeedbackData(projectId);
+                                const btn2 = document.getElementById("addFeedbackButton");
+                                if (btn2) btn2.textContent = "Add Feedback";
+                                if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
+                            });
+                        }
+                    }
+
+                    // Show edit form for feedback or reply (mirror Add Feedback UI)
+                    function showEditFeedbackForm(projectId, data, isReply) {
+                        modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
+                        const existingImg = data.image_url || '';
+                        const bgStyle = existingImg
+                            ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;`
+                            : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+                        const clearClass = existingImg ? '' : 'd-none';
+                        modalBody.innerHTML = `
+        <form id="editFeedbackForm" enctype="multipart/form-data">
+            ${data.parent_id ? `<input type="hidden" name="parent_id" value="${data.parent_id}">` : ''}
+
+            <div class="mb-3">
+                <label class="form-label label-custom">Upload Image</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel"
+                        style="background-position: center center; background-repeat: no-repeat; ${bgStyle} cursor: pointer;">
+                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                        <span class="image-clear-btn ${clearClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
+                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="reference_url" class="form-label label-custom">Reference URL (Optional)</label>
+                <input type="url" class="form-control" id="reference_url" name="reference_url" value="${data.reference_url || ''}" placeholder="https://example.com">
+            </div>
+
+            <div class="mb-3">
+                <label for="reference_file" class="form-label label-custom">Reference File (Optional)</label>
+                <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
+                ${data.reference_file_url ? `<div class="mt-1"><a href="${data.reference_file_url}" target="_blank" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> Current File</a></div>` : ''}
+            </div>
+        </form>`;
+
+                        // Image preview/clear logic like Add
+                        (function() {
+                            const imageInput = modalBody.querySelector('#feedback_image');
+                            const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
+                            const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+                            if (!imageInput || !imageLabel || !imageClearBtn) return;
+                            imageInput.addEventListener('change', function () {
+                                if (this.files && this.files[0]) {
+                                    const reader = new FileReader();
+                                    reader.onload = function (e) {
+                                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                                        imageLabel.classList.add('has-image');
+                                        imageLabel.style.backgroundSize = 'cover';
+                                        imageLabel.style.opacity = '1';
+                                        imageClearBtn.classList.remove('d-none');
+                                    };
+                                    reader.readAsDataURL(this.files[0]);
+                                }
+                            });
+                            imageClearBtn.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                imageInput.value = '';
+                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                imageLabel.style.backgroundPosition = 'center center';
+                                imageLabel.style.backgroundRepeat = 'no-repeat';
+                                imageLabel.style.backgroundSize = '50%';
+                                imageLabel.classList.remove('has-image');
+                                imageLabel.style.opacity = '0.5';
+                                imageClearBtn.classList.add('d-none');
+                            });
+                        })();
+
+                        const addBtn = document.getElementById("addFeedbackButton");
+                        if (addBtn) {
+                            addBtn.textContent = "Update";
+                            const fresh = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(fresh, addBtn);
+                            fresh.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                const form = document.getElementById("editFeedbackForm");
+                                if (!form) return;
+                                const fd = new FormData(form);
+                                fd.append("_method", "PUT");
+                                fetch(appUrl + `/project-feedbacks/${data.id}` , {
+                                    method: "POST",
+                                    headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                    body: fd,
+                                })
+                                    .then((r) => (r.ok ? r.json() : r.json().then(Promise.reject)))
+                                    .then((res) => {
+                                        showFloatingAlert(res.message || "Feedback updated", "success", 1500);
+                                        loadFeedbackData(projectId);
+                                    })
+                                    .catch((err) => {
+                                        const msg =
+                                            (err && (err.message || (err.errors && Object.values(err.errors).join("\n")))) ||
+                                            "Failed to update feedback";
+                                        showFloatingAlert(msg, "warning", 3500);
+                                    });
+                            });
+                        }
+
+                        // Back button like Task
+                        const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
+                        if (footer) {
+                            let backBtn = document.getElementById('replyCloseButton');
+                            if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+                            backBtn = document.createElement('button');
+                            backBtn.id = 'replyCloseButton';
+                            backBtn.type = 'button';
+                            backBtn.className = 'btn btn-close-reply';
+                            backBtn.textContent = 'Close';
+                            const submitRef = document.getElementById('addFeedbackButton');
+                            if (submitRef && submitRef.parentNode) submitRef.parentNode.insertBefore(backBtn, submitRef);
+                            backBtn.addEventListener('click', function () {
+                                loadFeedbackData(projectId);
+                                const addBtn2 = document.getElementById('addFeedbackButton');
+                                if (addBtn2) addBtn2.textContent = 'Add Feedback';
+                                if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+                            });
+                        }
                     }
 
                     // Modal hidden event to reset modal title and clear modal body

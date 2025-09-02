@@ -1466,3 +1466,62 @@
     border: none;
     width: 95%;
 }
+
+.btn-close-reply {
+    background-color: grey;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-close-reply:hover {
+    background-color: #333;
+    color: white;
+}
+
+/* Match Task form control sizing and styles */
+.form-label {
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.form-control {
+    font-size: 14px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s ease;
+}
+
+/* Ensure all inputs (except textarea) are same height as Task */
+.form-control:not(textarea) {
+    height: 45px !important;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-select {
+    font-size: 14px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    height: 45px !important;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s ease;
+}
+
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
