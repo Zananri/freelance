@@ -34,7 +34,8 @@
                 {{-- project chart --}}
                 <div class="body-content chart-section p-4">
                     <div class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
-                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
+                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal"
+                            data-bs-target="#timelineModal">
                             <span class="material-symbols-outlined"
                                 style="font-size: 18px; color: #4C5060;">calendar_month</span>
                         </button>
@@ -79,7 +80,8 @@
                                         <button class="btn btn-sm" id="nextTimeline">
                                             <span class="material-symbols-outlined">chevron_right</span>
                                         </button>
-                                        <button data-bs-toggle="modal" data-bs-target="#timelineModal" class="btn btn-sm border-0 bg-transparent">
+                                        <button data-bs-toggle="modal" data-bs-target="#timelineModal"
+                                            class="btn btn-sm border-0 bg-transparent">
                                             <span id="timelineFullscreenIcon"
                                                 class="material-symbols-outlined">fullscreen</span>
                                         </button>
@@ -102,8 +104,8 @@
             </div>
 
             {{-- Modal Timeline --}}
-            <div class="modal fade timeline-modal-overlay" id="timelineModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-                aria-labelledby="timelineModalTitle" aria-hidden="true">
+            <div class="modal fade timeline-modal-overlay" id="timelineModal" data-bs-backdrop="static"
+                data-bs-keyboard="false" tabindex="-1" aria-labelledby="timelineModalTitle" aria-hidden="true">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content timeline-modal">
 
@@ -139,8 +141,10 @@
             </div>
 
             <div class="bottom-project-content mt-5">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-4 all-projects-title">All Project</h6>
+                <div class="d-flex justify-content-between title-filter-container">
+                    <div class="d-flex justify-content-between title-filter-container align-items-center">
+                        <h6 class="mb-4 all-projects-title">All Project</h6>
+                    </div>
                     <div class="dropdown-filter-container">
                         <div class="btn-filter-container mb-3">
                             <div class="search-input-container position-relative me-3">
@@ -159,7 +163,8 @@
                                     class="btn-text-filter">Export</span>
                             </button>
                             <button class="btn btn-icon-toggle btn-timeline-filter-custom" type="button"
-                                data-bs-toggle="modal" data-bs-target="#timelineModal" data-label="TImeline" id="openProjectFilterBtn">
+                                data-bs-toggle="modal" data-bs-target="#timelineModal" data-label="TImeline"
+                                id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">view_timeline</span> <span
                                     class="btn-text-filter">Timeline</span>
                             </button>
@@ -188,14 +193,28 @@
                 <div id="all-cards-container">
                     {{-- Content Card --}}
                 </div>
+                <div id="project-pagination" class="d-flex align-items-center gap-3">
+                    <button id="prevPageBtn" class="btn btn-sm btn-pagination" disabled>
+                        <span class="material-symbols-outlined">keyboard_double_arrow_left</span>
+                    </button>
+
+                    <span id="paginationInfo">Page 0 of 0</span>
+
+                    <button id="nextPageBtn" class="btn btn-sm btn-pagination" disabled>
+                        <span class="material-symbols-outlined">keyboard_double_arrow_right</span>
+                    </button>
+
+                    <!-- Info jumlah data -->
+                    <span id="dataInfo" class="ms-3 small text-muted">Showing 0–0 of 0</span>
+                </div>
             </div>
         </div>
         <div class="timeline-overlay"></div>
     </div>
 
     <!-- Add Project Modal -->
-    <div class="modal fade add-project-modal" id="addProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="addProjectModalLabel" aria-hidden="true">
+    <div class="modal fade add-project-modal" id="addProjectModal" data-bs-backdrop="static"
+        data-bs-keyboard="false" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="addModalLoader">
@@ -385,7 +404,8 @@
                                 name="reference_file[]" accept=".pdf,.doc,.docx" multiple>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                             <div id="existing_reference_files" class="mt-2"></div>
-                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files" value="[]">
+                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"
+                                value="[]">
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;">

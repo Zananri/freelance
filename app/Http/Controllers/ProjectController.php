@@ -24,9 +24,9 @@ class ProjectController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             \Log::info("Accept project called for project ID: " . $id);
-            
+
             $user = auth()->user();
             if (!$user || !$user->employee) {
                 throw new \Exception('Unauthorized');
@@ -41,7 +41,7 @@ class ProjectController extends Controller
                 ->first();
 
             \Log::info("Assignment found: " . ($assignment ? 'Yes' : 'No'));
-            
+
             if (!$assignment) {
                 throw new \Exception('Project assignment not found');
             }
@@ -52,7 +52,7 @@ class ProjectController extends Controller
             // Update is_receive to true
             $assignment->is_receive = true;
             $assignment->save();
-            
+
             \Log::info("Assignment is_receive after: " . ($assignment->is_receive ? 'true' : 'false'));
 
             // Mark related notification as read
@@ -72,14 +72,14 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Project assignment accepted successfully',
                 'reload' => true
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -119,7 +119,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => ['is_accepted' => $isAccepted]
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -164,7 +164,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => $mappedEmployees
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -206,7 +206,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => $assignmentsTransformed
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -235,13 +235,13 @@ class ProjectController extends Controller
                 'project_titles' => $projectTitles,
                 'project_images' => $projectImages,
             ];
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => $data
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -261,17 +261,18 @@ class ProjectController extends Controller
             $employeeId = $user && $user->employee ? $user->employee->id : null;
             $filter = $request->input('filter', null);
             $includeUnaccepted = $request->input('include_unaccepted', false);
-            // task_scope: 'project' (default), 'me', or 'all' (return all projects regardless of membership)
             $taskScopeRaw = strtolower($request->input('task_scope', 'project'));
             $taskScope = in_array($taskScopeRaw, ['project', 'me', 'all']) ? $taskScopeRaw : 'project';
 
-            // If requesting all projects, ignore membership and auth presence
+            // =========================
+            // Jika scope = all
+            // =========================
             if ($taskScope === 'all') {
                 $projects = Project::where('status', '!=', 'DELETED')
                     ->with(['department', 'division', 'projectAssignments.employee', 'projectAssignments.project'])
-                    ->get();
+                    ->paginate(10);
 
-                $projectsTransformed = $projects->map(function ($project) use ($taskScope, $employeeId) {
+                $projectsTransformed = $projects->getCollection()->map(function ($project) {
                     $projectAssignments = $project->projectAssignments->map(function ($assignment) {
                         return [
                             'id' => $assignment->id,
@@ -283,45 +284,32 @@ class ProjectController extends Controller
                         ];
                     });
 
-                    // For 'all' scope, include all tasks under the project for counts
                     $taskBase = Task::where('project_id', $project->id);
-
                     $totalTasks = (clone $taskBase)->count();
-                    $inProgressTasks = (clone $taskBase)
-                        ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
-                        ->count();
-                    $rejectedTasks = (clone $taskBase)
-                        ->whereIn(DB::raw('LOWER(status)'), ['rejected'])
-                        ->count();
-                    $completedTasks = (clone $taskBase)
-                        ->whereIn(DB::raw('LOWER(status)'), ['completed'])
-                        ->count();
+                    $inProgressTasks = (clone $taskBase)->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])->count();
+                    $rejectedTasks = (clone $taskBase)->whereIn(DB::raw('LOWER(status)'), ['rejected'])->count();
+                    $completedTasks = (clone $taskBase)->whereIn(DB::raw('LOWER(status)'), ['completed'])->count();
                     $lateTasks = (clone $taskBase)
                         ->whereRaw('LOWER(status) <> ?', ['completed'])
                         ->whereNotNull('due_date')
-                        ->where('due_date', '<', now())
-                        ->count();
+                        ->where('due_date', '<', now())->count();
 
                     $nowTs = now();
                     $inProgressOnTime = (clone $taskBase)
                         ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
                         ->where(function ($q) use ($nowTs) {
                             $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
-                        })
-                        ->count();
+                        })->count();
                     $lateExclusive = (clone $taskBase)
                         ->whereRaw('LOWER(status) <> ?', ['completed'])
                         ->whereNotNull('due_date')
-                        ->where('due_date', '<', $nowTs)
-                        ->count();
+                        ->where('due_date', '<', $nowTs)->count();
                     $notStartedOnTime = (clone $taskBase)
                         ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
                         ->where(function ($q) use ($nowTs) {
                             $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
-                        })
-                        ->count();
+                        })->count();
 
-                    // Build author/co_authors/contributors with photo URLs if available (same as below)
                     $author = null;
                     $coAuthors = [];
                     $contributors = [];
@@ -330,12 +318,7 @@ class ProjectController extends Controller
                         if (!$employee) continue;
 
                         $userPhoto = null;
-                        $rawPhoto = null;
-                        if ($employee->user && $employee->user->photo) {
-                            $rawPhoto = $employee->user->photo;
-                        } elseif ($employee->photo) {
-                            $rawPhoto = $employee->photo;
-                        }
+                        $rawPhoto = $employee->user && $employee->user->photo ? $employee->user->photo : $employee->photo;
                         if ($rawPhoto) {
                             if (\Illuminate\Support\Str::startsWith($rawPhoto, 'file/') || \Illuminate\Support\Str::startsWith($rawPhoto, '/file/')) {
                                 $userPhoto = asset($rawPhoto);
@@ -383,53 +366,60 @@ class ProjectController extends Controller
                     ];
                 });
 
+                $projects->setCollection($projectsTransformed);
+
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
-                    'data' => $projectsTransformed
+                    'data' => $projects->items(),
+                    'pagination' => [
+                        'total' => $projects->total(),
+                        'per_page' => $projects->perPage(),
+                        'current_page' => $projects->currentPage(),
+                        'last_page' => $projects->lastPage(),
+                    ]
                 ]);
             }
 
+            // =========================
+            // Kalau tidak ada employee
+            // =========================
             if (!$employeeId) {
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
-                    'data' => []
+                    'data' => [],
+                    'pagination' => [
+                        'total' => 0,
+                        'per_page' => 10,
+                        'current_page' => 1,
+                        'last_page' => 1,
+                    ]
                 ]);
             }
-            
-            // Build the base set of projects depending on scope ('project' or 'me')
+
+            // =========================
+            // Scope project atau me
+            // =========================
             if ($taskScope === 'me') {
-                // Only include projects where user is part of the team (author/co_author/contributor)
-                // Do NOT include projects solely because the user has tasks there (per requirement).
                 $query = Project::where('status', '!=', 'DELETED')
                     ->whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
                         $query->where('employee_id', $employeeId)
-                              ->whereIn('role', ['author', 'co_author', 'contributor']);
+                            ->whereIn('role', ['author', 'co_author', 'contributor']);
                         if (!$includeUnaccepted) {
                             $query->where(function ($q) {
-                                $q->where('role', 'author')
-                                  ->orWhere('is_receive', true);
+                                $q->where('role', 'author')->orWhere('is_receive', true);
                             });
                         }
                     });
-
-                $projects = $query->with([
-                    'department',
-                    'division',
-                    'projectAssignments.employee',
-                    'projectAssignments.project'
-                ])->get();
             } else {
-                // Original behavior: only projects where user is assigned, filtering at project level
                 $query = Project::where('status', '!=', 'DELETED')
                     ->whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
                         $query->where('employee_id', $employeeId)
-                              ->whereIn('role', ['author', 'co_author', 'contributor']);
+                            ->whereIn('role', ['author', 'co_author', 'contributor']);
                         if (!$includeUnaccepted) {
                             $query->where(function ($q) {
-                                $q->where('role', 'author')
-                                  ->orWhere('is_receive', true);
+                                $q->where('role', 'author')->orWhere('is_receive', true);
                             });
                         }
                     });
@@ -452,16 +442,16 @@ class ProjectController extends Controller
                             ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)');
                     });
                 }
-
-                $projects = $query->with([
-                    'department',
-                    'division',
-                    'projectAssignments.employee',
-                    'projectAssignments.project'
-                ])->get();
             }
 
-            $projectsTransformed = $projects->map(function ($project) use ($employeeId, $taskScope) {
+            $projects = $query->with([
+                'department',
+                'division',
+                'projectAssignments.employee',
+                'projectAssignments.project'
+            ])->paginate(10);
+
+            $projectsTransformed = $projects->getCollection()->map(function ($project) use ($employeeId, $taskScope) {
                 $projectAssignments = $project->projectAssignments->map(function ($assignment) {
                     return [
                         'id' => $assignment->id,
@@ -472,191 +462,157 @@ class ProjectController extends Controller
                         'project_title' => $assignment->project ? $assignment->project->title : null,
                     ];
                 });
-                
-                // Build base query for tasks depending on scope
+
                 $taskBase = Task::where('project_id', $project->id);
                 if ($taskScope === 'me') {
-                    // Only tasks where current employee is PIC or accepted EXECUTOR
                     $taskBase = $taskBase->whereHas('assignments', function ($q) use ($employeeId) {
                         $q->where('employee_id', $employeeId)
-                          ->where(function ($roleQ) {
-                              $roleQ->where('role', 'PIC')
-                                   ->orWhere(function ($execQ) {
-                                       $execQ->where('role', 'EXECUTOR')
-                                             ->where('is_receive', true);
-                                   });
-                          });
+                        ->where(function ($roleQ) {
+                            $roleQ->where('role', 'PIC')
+                                ->orWhere(function ($execQ) {
+                                    $execQ->where('role', 'EXECUTOR')->where('is_receive', true);
+                                });
+                        });
                     });
                 }
 
-                // Get task counts for this project (scoped), treating 'rejected' as 'in_progress'
                 $totalTasks = (clone $taskBase)->count();
-                // Accept both snake_case and spaced variants for backward data compatibility
-                $inProgressTasks = (clone $taskBase)
-                    ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
-                    ->count();
-                $rejectedTasks = (clone $taskBase)
-                    ->whereIn(DB::raw('LOWER(status)'), ['rejected'])
-                    ->count();
-                $completedTasks = (clone $taskBase)
-                    ->whereIn(DB::raw('LOWER(status)'), ['completed'])
-                    ->count();
+                $inProgressTasks = (clone $taskBase)->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])->count();
+                $rejectedTasks = (clone $taskBase)->whereIn(DB::raw('LOWER(status)'), ['rejected'])->count();
+                $completedTasks = (clone $taskBase)->whereIn(DB::raw('LOWER(status)'), ['completed'])->count();
                 $lateTasks = (clone $taskBase)
                     ->whereRaw('LOWER(status) <> ?', ['completed'])
                     ->whereNotNull('due_date')
-                    ->where('due_date', '<', now())
-                    ->count();
+                    ->where('due_date', '<', now())->count();
 
-                // Mutually-exclusive buckets for charts (avoid overlap between in_progress and late)
                 $nowTs = now();
                 $inProgressOnTime = (clone $taskBase)
                     ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
                     ->where(function ($q) use ($nowTs) {
                         $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
-                    })
-                    ->count();
+                    })->count();
                 $lateExclusive = (clone $taskBase)
                     ->whereRaw('LOWER(status) <> ?', ['completed'])
                     ->whereNotNull('due_date')
-                    ->where('due_date', '<', $nowTs)
-                    ->count();
+                    ->where('due_date', '<', $nowTs)->count();
                 $notStartedOnTime = (clone $taskBase)
                     ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
                     ->where(function ($q) use ($nowTs) {
                         $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
-                    })
-                    ->count();
+                    })->count();
 
-                    // build author, co_authors and contributors with photo URLs if available
-                    $author = null;
-                    $coAuthors = [];
-                    $contributors = [];
+                $author = null;
+                $coAuthors = [];
+                $contributors = [];
+                foreach ($project->projectAssignments as $assignment) {
+                    $employee = $assignment->employee;
+                    if (!$employee) continue;
 
-                    foreach ($project->projectAssignments as $assignment) {
-                        $employee = $assignment->employee;
-                        if (!$employee) continue;
-
-                        // try to get user photo from related user record or employee photo
-                        $userPhoto = null;
-                        $rawPhoto = null;
-                        if ($employee->user && $employee->user->photo) {
-                            $rawPhoto = $employee->user->photo;
-                        } elseif ($employee->photo) {
-                            $rawPhoto = $employee->photo;
-                        }
-
-                        if ($rawPhoto) {
-                            // If stored path already points to public 'file/...' folder, use asset(raw)
-                            if (Str::startsWith($rawPhoto, 'file/') || Str::startsWith($rawPhoto, '/file/')) {
-                                $userPhoto = asset($rawPhoto);
-                            } elseif (Str::startsWith($rawPhoto, 'storage/') || Str::startsWith($rawPhoto, '/storage/')) {
-                                $userPhoto = asset($rawPhoto);
-                            } else {
-                                // otherwise assume it's a storage filename and use storage path
-                                $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
-                            }
-                        }
-
-                        if ($assignment->role === 'author') {
-                            $author = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
-                        } elseif ($assignment->role === 'co_author') {
-                            $coAuthors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
-                        } elseif ($assignment->role === 'contributor') {
-                            $contributors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                    $userPhoto = null;
+                    $rawPhoto = $employee->user && $employee->user->photo ? $employee->user->photo : $employee->photo;
+                    if ($rawPhoto) {
+                        if (Str::startsWith($rawPhoto, 'file/') || Str::startsWith($rawPhoto, '/file/')) {
+                            $userPhoto = asset($rawPhoto);
+                        } elseif (Str::startsWith($rawPhoto, 'storage/') || Str::startsWith($rawPhoto, '/storage/')) {
+                            $userPhoto = asset($rawPhoto);
+                        } else {
+                            $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
                         }
                     }
 
-                    return [
-                        'id' => $project->id,
-                        'title' => $project->title,
-                        'description' => $project->description,
-                        'image' => $project->image,
-                        'department' => $project->department,
-                        'division' => $project->division,
-                        'status' => $project->status,
-                        'project_assignments' => $projectAssignments,
-                        'author' => $author,
-                        'co_authors' => $coAuthors,
-                        'contributors' => $contributors,
-                        'task_counts' => [
-                            'total' => $totalTasks,
-                            'in_progress' => $inProgressTasks,
-                            'rejected' => $rejectedTasks,
+                    if ($assignment->role === 'author') {
+                        $author = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                    } elseif ($assignment->role === 'co_author') {
+                        $coAuthors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                    } elseif ($assignment->role === 'contributor') {
+                        $contributors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
+                    }
+                }
+
+                return [
+                    'id' => $project->id,
+                    'title' => $project->title,
+                    'description' => $project->description,
+                    'image' => $project->image,
+                    'department' => $project->department,
+                    'division' => $project->division,
+                    'status' => $project->status,
+                    'project_assignments' => $projectAssignments,
+                    'author' => $author,
+                    'co_authors' => $coAuthors,
+                    'contributors' => $contributors,
+                    'task_counts' => [
+                        'total' => $totalTasks,
+                        'in_progress' => $inProgressTasks,
+                        'rejected' => $rejectedTasks,
+                        'completed' => $completedTasks,
+                        'late' => $lateTasks,
+                        'excl' => [
                             'completed' => $completedTasks,
-                            'late' => $lateTasks,
-                            // Exclusive buckets used by charts
-                            'excl' => [
-                                'completed' => $completedTasks,
-                                'in_progress' => $inProgressOnTime,
-                                'late' => $lateExclusive,
-                                'not_started' => $notStartedOnTime,
-                            ],
-                        ]
-                    ];
+                            'in_progress' => $inProgressOnTime,
+                            'late' => $lateExclusive,
+                            'not_started' => $notStartedOnTime,
+                        ],
+                    ]
+                ];
             });
 
-            // If task_scope='me', compute chart_counts across ALL tasks assigned to this employee
-            // regardless of project membership; otherwise omit chart_counts
+            $projects->setCollection($projectsTransformed);
+
             $chartCounts = null;
             if ($taskScope === 'me') {
                 $nowTs = now();
                 $taskScopeAll = Task::query()
                     ->whereHas('assignments', function ($q) use ($employeeId) {
                         $q->where('employee_id', $employeeId)
-                          ->where(function ($roleQ) {
-                              $roleQ->where('role', 'PIC')
-                                   ->orWhere(function ($execQ) {
-                                       $execQ->where('role', 'EXECUTOR')
-                                             ->where('is_receive', true);
-                                   });
-                          });
+                        ->where(function ($roleQ) {
+                            $roleQ->where('role', 'PIC')
+                                ->orWhere(function ($execQ) {
+                                    $execQ->where('role', 'EXECUTOR')->where('is_receive', true);
+                                });
+                        });
                     })
                     ->whereHas('project', function ($pq) {
                         $pq->where('status', '!=', 'DELETED');
                     });
 
-                $totalAll = (clone $taskScopeAll)->count();
-                $completedAll = (clone $taskScopeAll)
-                    ->whereIn(DB::raw('LOWER(status)'), ['completed'])
-                    ->count();
-                $inProgressOnTimeAll = (clone $taskScopeAll)
-                    ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
-                    ->where(function ($q) use ($nowTs) {
-                        $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
-                    })
-                    ->count();
-                $lateExclusiveAll = (clone $taskScopeAll)
-                    ->whereRaw('LOWER(status) <> ?', ['completed'])
-                    ->whereNotNull('due_date')
-                    ->where('due_date', '<', $nowTs)
-                    ->count();
-                $notStartedOnTimeAll = (clone $taskScopeAll)
-                    ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
-                    ->where(function ($q) use ($nowTs) {
-                        $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
-                    })
-                    ->count();
-
                 $chartCounts = [
-                    'total' => $totalAll,
-                    'completed' => $completedAll,
-                    'in_progress' => $inProgressOnTimeAll,
-                    'late' => $lateExclusiveAll,
-                    'not_started' => $notStartedOnTimeAll,
+                    'total' => (clone $taskScopeAll)->count(),
+                    'completed' => (clone $taskScopeAll)->whereIn(DB::raw('LOWER(status)'), ['completed'])->count(),
+                    'in_progress' => (clone $taskScopeAll)
+                        ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
+                        ->where(function ($q) use ($nowTs) {
+                            $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
+                        })->count(),
+                    'late' => (clone $taskScopeAll)
+                        ->whereRaw('LOWER(status) <> ?', ['completed'])
+                        ->whereNotNull('due_date')
+                        ->where('due_date', '<', $nowTs)->count(),
+                    'not_started' => (clone $taskScopeAll)
+                        ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
+                        ->where(function ($q) use ($nowTs) {
+                            $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
+                        })->count(),
                 ];
             }
 
             $payload = [
                 'code' => 200,
                 'status' => 'success',
-                'data' => $projectsTransformed
+                'data' => $projects->items(),
+                'pagination' => [
+                    'total' => $projects->total(),
+                    'per_page' => $projects->perPage(),
+                    'current_page' => $projects->currentPage(),
+                    'last_page' => $projects->lastPage(),
+                ]
             ];
             if ($chartCounts !== null) {
                 $payload['chart_counts'] = $chartCounts;
             }
 
             return response()->json($payload);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -842,14 +798,14 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Project created successfully',
                 'project' => $project
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -920,7 +876,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => $response
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -1176,14 +1132,14 @@ class ProjectController extends Controller
             $updateData['updated_by'] = auth()->id();
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Project updated successfully',
                 'project' => $project
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1205,10 +1161,10 @@ class ProjectController extends Controller
 
             // Delete project assignments first
             $project->projectAssignments()->delete();
-            
+
             // Delete project feedbacks
             $project->projectFeedbacks()->delete();
-            
+
             // Delete project files
             if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
                 @unlink(public_path('file/project/' . $project->image));
@@ -1223,19 +1179,19 @@ class ProjectController extends Controller
                     @unlink(public_path('file/project/' . $rf));
                 }
             }
-            
+
             // Finally delete the project
             $project->deleted_by = auth()->id();
             $project->save();
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Project deleted successfully'
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1304,7 +1260,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => $payload
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -1339,7 +1295,7 @@ class ProjectController extends Controller
             $feedback->reference_url = $request->reference_url;
             $feedback->created_by = auth()->user() ? auth()->user()->id : null;
             $feedback->updated_by = auth()->user() ? auth()->user()->id : null;
-            $feedback->deleted_by = null;   
+            $feedback->deleted_by = null;
 
             // Handle feedback image upload
             if ($request->hasFile('feedback_image')) {
@@ -1360,14 +1316,14 @@ class ProjectController extends Controller
             $feedback->save();
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Feedback added successfully',
                 'feedback' => $feedback
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

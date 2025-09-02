@@ -10,6 +10,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 8px;
+    margin-bottom: 50px;
 }
 
 .project-card-container::-webkit-scrollbar {
@@ -846,7 +847,8 @@
     .btn-filter-custom,
     .btn-export-custom,
     .btn-timeline-filter-custom {
-        min-width: 50px;
+        min-width: 40px;
+        min-height: 40px;
     }
 
     .btn-filter-custom::after,
@@ -882,7 +884,7 @@
         background: white;
         position: absolute;
         top: 100%;
-        left: -20%;
+        left: 10%;
         border-radius: 20px;
         z-index: 1000;
         border: none;
@@ -902,7 +904,7 @@
     }
 
     .timeline-toggle-btn {
-        background: #E3E4EE;
+        background: #e3e4ee;
         display: inline-flex !important;
         align-items: center;
         justify-content: center;
@@ -980,6 +982,17 @@
     #all-cards-container::-webkit-scrollbar-thumb {
         background-color: #cccccc;
         border-radius: 4px;
+    }
+
+    .title-filter-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dropdown-filter-container {
+        width: 100%;
+        margin-top: 1rem;
+        left: -15px;
     }
 }
 
@@ -1366,6 +1379,7 @@
     justify-content: center;
     align-items: center;
     gap: 4px;
+    height: 40px;
 }
 
 .btn-filter-custom:hover,
@@ -1491,7 +1505,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 45px;
+    height: 40px;
 }
 
 .btn-close-reply:hover {
@@ -1509,13 +1523,12 @@
     font-size: 14px;
     border-radius: 8px;
     padding: 6px 12px;
-    border: 1px solid #ccc;
     transition: border-color 0.3s ease;
 }
 
 /* Ensure all inputs (except textarea) are same height as Task */
 .form-control:not(textarea) {
-    height: 45px !important;
+    height: 40px !important;
 }
 
 .form-control:focus {
@@ -1527,12 +1540,27 @@
     font-size: 14px;
     border-radius: 8px;
     padding: 6px 12px;
-    height: 45px !important;
-    border: 1px solid #ccc;
+    height: 40px !important;
     transition: border-color 0.3s ease;
 }
 
 .form-select:focus {
     border-color: #0d6efd;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-pagination {
+    background: transparent;
+    border: none;
+}
+
+.btn-pagination span {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+}
+
+#paginationInfo,
+#dataInfo {
+    font-size: 12px;
 }
