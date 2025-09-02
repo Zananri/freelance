@@ -71,6 +71,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
     Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
     Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
+    // Project unread and latest feedback endpoints
+    Route::get('/project/{id}/feedbacks/unread-count', [ProjectController::class, 'getUnreadFeedbackCount'])->name('project-feedbacks.unread-count');
+    Route::post('/project/{id}/feedbacks/mark-read', [ProjectController::class, 'markProjectFeedbacksRead'])->name('project-feedbacks.mark-read');
+    Route::get('/project-feedbacks/{projectId}/latest', [ProjectController::class, 'getProjectLatestFeedback'])->name('project-feedbacks.latest');
     Route::put('/project/{id}', [ProjectController::class, 'update'])->name('project.update');
     Route::delete('/project/{id}', [ProjectController::class, 'destroy'])->name('project.destroy');
 

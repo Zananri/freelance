@@ -402,6 +402,17 @@
     color: #666;
 }
 
+/* Unread dot badge next to mode_comment (parity with Task) */
+.unread-badge {
+    top: 3px !important;
+    left: 14px !important;
+    width: 6px;
+    height: 6px;
+    background: #dc3545;
+    border-radius: 50%;
+    display: inline-block;
+}
+
 .card-icons {
     margin-top: 1rem;
     display: flex;

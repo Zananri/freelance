@@ -385,10 +385,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ${renderCollaborators(project)}
 
                                         </div>
-                                        <div class="d-flex">
-                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center" title="Comment" data-project-id="${project.id}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${project.id}" style="cursor:pointer; max-width: 160px;">
+                                                <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                                                <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                                            </div>
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
                                                 <span class="project-feedback-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
+                                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${project.id}"></span>
                                             </button>
                                             <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
@@ -450,6 +455,40 @@ document.addEventListener("DOMContentLoaded", function () {
                                 }
                             });
                         });
+
+                    // Bind latest-feedback-snippet clicks to open modal and mark read
+                    try {
+                        container
+                            .querySelectorAll('.latest-feedback-snippet[data-project-id]')
+                            .forEach((el) => {
+                                el.addEventListener('click', function (ev) {
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    const pid = this.getAttribute('data-project-id');
+                                    // Hide indicators immediately and mark as read
+                                    hideProjectUnreadBadge(pid);
+                                    hideProjectLatestFeedbackSnippet(pid);
+                                    // Set target to latest payload for deep-link
+                                    try {
+                                        window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                        const latest = (window.__projectLatest && window.__projectLatest[String(pid)]) || null;
+                                        if (latest) window.__projectLatestTarget[String(pid)] = latest;
+                                    } catch (_) {}
+                                    markProjectFeedbacksRead(pid).always(() => {
+                                        const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                                        if (!projectFeedbackModalEl) return;
+                                        projectFeedbackModalEl.setAttribute('data-project-id', pid);
+                                        try { loadFeedbackData(pid); } catch (_) {}
+                                        const m = new bootstrap.Modal(projectFeedbackModalEl);
+                                        m.show();
+                                    });
+                                });
+                            });
+                    } catch (_) { /* noop */ }
+
+                    // After rendering, refresh unread badges and latest feedback snippets
+                    try { refreshAllProjectUnreadBadges(); } catch (_) {}
+                    try { refreshAllProjectLatestFeedbackSnippets(); } catch (_) {}
 
                     // Event listener for "Edit" dropdown item click
                     document.addEventListener("click", function (e) {
@@ -1569,6 +1608,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                         document.createElement("div");
                                     feedbackItem.className =
                                         "feedback-item mb-3 p-3 border-bottom";
+                                    if (feedback && feedback.id != null) {
+                                        feedbackItem.setAttribute('data-feedback-id', String(feedback.id));
+                                    }
 
                                     // Header with employee info
                                     const headerDiv =
@@ -1851,10 +1893,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                     if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
                                         const repliesCount = feedback.replies.length;
                                         const repliesWrap = document.createElement("div");
-                                        repliesWrap.className = "view-replies-wrap mt-1";
+                                        repliesWrap.className = "view-replies-wrap feedback-replies-wrap mt-1";
                                         const toggleBtn = document.createElement("button");
                                         toggleBtn.type = "button";
-                                        toggleBtn.className = "btn btn-link p-0 view-replies-toggle";
+                                        toggleBtn.className = "btn btn-link p-0 view-replies-toggle feedback-toggle-replies";
                                         toggleBtn.style.cssText = "font-size: 13px; color:#555; text-decoration: none;";
                                         toggleBtn.textContent = `View all replies (${repliesCount})`;
                                         const repliesContainer = document.createElement("div");
@@ -1864,6 +1906,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const repEmp = rep.employee || {};
                                             const repDiv = document.createElement("div");
                                             repDiv.className = "feedback-reply ms-4 mt-2 p-2 rounded";
+                                            if (rep && rep.id != null) {
+                                                repDiv.setAttribute('data-reply-id', String(rep.id));
+                                                if (feedback && feedback.id != null) {
+                                                    repDiv.setAttribute('data-parent-id', String(feedback.id));
+                                                }
+                                            }
                                             repDiv.style.background = "#fafafa";
 
                                             const repHeader = document.createElement("div");
@@ -2003,6 +2051,45 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     modalBody.appendChild(feedbackItem);
                                 });
+
+                                // After render: auto-scroll to target reply/feedback (if any)
+                                try {
+                                    const pidKey = String(projectId);
+                                    const target = (window.__projectLatestTarget && window.__projectLatestTarget[pidKey]) || null;
+                                    if (target) {
+                                        // consume it so it won't trigger next time
+                                        delete window.__projectLatestTarget[pidKey];
+                                        const isReply = target.parent_id != null && target.parent_id !== '';
+                                        if (isReply) {
+                                            const parentEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.parent_id}"]`);
+                                            if (parentEl) {
+                                                const container = parentEl.querySelector('.feedback-replies');
+                                                const toggle = parentEl.querySelector('.feedback-toggle-replies');
+                                                if (container && container.classList.contains('d-none')) {
+                                                    if (toggle) { try { toggle.click(); } catch(_) { container.classList.remove('d-none'); } }
+                                                    else { container.classList.remove('d-none'); }
+                                                }
+                                                const replyEl = parentEl.querySelector(`.feedback-reply[data-reply-id="${target.id}"]`);
+                                                if (replyEl) {
+                                                    replyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                    const oldBg = replyEl.style.backgroundColor;
+                                                    replyEl.style.transition = 'background-color 0.6s ease';
+                                                    replyEl.style.backgroundColor = '#fff9c4';
+                                                    setTimeout(() => { replyEl.style.backgroundColor = oldBg || ''; }, 1200);
+                                                }
+                                            }
+                                        } else {
+                                            const topEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.id}"]`);
+                                            if (topEl) {
+                                                topEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                const oldBg = topEl.style.backgroundColor;
+                                                topEl.style.transition = 'background-color 0.6s ease';
+                                                topEl.style.backgroundColor = '#fff9c4';
+                                                setTimeout(() => { topEl.style.backgroundColor = oldBg || ''; }, 1200);
+                                            }
+                                        }
+                                    }
+                                } catch (_) { /* noop */ }
                             })
                             .catch((error) => {
                                 modalBody.innerHTML =
@@ -2499,6 +2586,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                 projectId
                             );
 
+                            // Hide unread badge and latest feedback snippet, and mark as read
+                            hideProjectUnreadBadge(projectId);
+                            hideProjectLatestFeedbackSnippet(projectId);
+                            // Set target to latest payload when opening from dropdown Feedback
+                            try {
+                                window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                const latest = (window.__projectLatest && window.__projectLatest[String(projectId)]) || null;
+                                if (latest) window.__projectLatestTarget[String(projectId)] = latest;
+                            } catch (_) {}
+                            markProjectFeedbacksRead(projectId).always(() => {
+                                // continue to load data
+                            });
+
                             loadFeedbackData(projectId);
                             const projectFeedbackModal = new bootstrap.Modal(
                                 projectFeedbackModalEl
@@ -2529,6 +2629,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                 projectId
                             );
 
+                            // Hide unread badge and latest feedback snippet, and mark as read
+                            hideProjectUnreadBadge(projectId);
+                            hideProjectLatestFeedbackSnippet(projectId);
+                            // Set target to latest payload when opening from comment icon
+                            try {
+                                window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                const latest = (window.__projectLatest && window.__projectLatest[String(projectId)]) || null;
+                                if (latest) window.__projectLatestTarget[String(projectId)] = latest;
+                            } catch (_) {}
+                            markProjectFeedbacksRead(projectId).always(() => {
+                                // continue to load data
+                            });
+
                             loadFeedbackData(projectId);
                             const projectFeedbackModal = new bootstrap.Modal(
                                 projectFeedbackModalEl
@@ -2540,6 +2653,23 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Helper function to show image in modal (for lightbox effect)
                     function showImageModal(imageSrc) {
                         window.open(imageSrc, "_blank");
+                    }
+
+                    // Mark project feedbacks as read helper
+                    function markProjectFeedbacksRead(projectId) {
+                        return $.ajax({
+                            url: appUrl + `/project/${projectId}/feedbacks/mark-read`,
+                            type: 'POST',
+                            headers: {
+                                "X-CSRF-TOKEN": document
+                                    .querySelector('meta[name="csrf-token"]')
+                                    .getAttribute("content"),
+                            },
+                        }).always(() => {
+                            hideProjectUnreadBadge(projectId);
+                            hideProjectLatestFeedbackSnippet(projectId);
+                            latestProjectSnippetSeq[projectId] = (latestProjectSnippetSeq[projectId] || 0) + 1;
+                        });
                     }
 
                     // Remove old confirm dialog and use modal instead
@@ -3365,6 +3495,90 @@ function initProjectFilter() {
 $(document).ready(function () {
     initProjectFilter();
 });
+
+// ===== Unread badge and latest feedback snippet for Project (parity with Task) =====
+// Helpers to show/hide unread badge
+function setProjectUnreadBadge(projectId, count) {
+    try {
+        const card = document.querySelector(`.col-md-4[data-project-id="${projectId}"]`);
+        if (!card) return;
+        const badge = card.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
+        if (!badge) return;
+        const n = parseInt(count, 10) || 0;
+        if (n > 0) badge.classList.remove('d-none');
+        else badge.classList.add('d-none');
+    } catch (_) {}
+}
+function hideProjectUnreadBadge(projectId) { setProjectUnreadBadge(projectId, 0); }
+function fetchUnreadForProject(projectId) {
+    return $.ajax({ url: appUrl + `/project/${projectId}/feedbacks/unread-count`, type: 'GET' })
+        .then((res) => {
+            const c = (res && (res.count ?? res.data?.count)) || 0;
+            setProjectUnreadBadge(projectId, c);
+        })
+        .catch(() => { /* noop */ });
+}
+function refreshAllProjectUnreadBadges() {
+    document.querySelectorAll('#all-cards-container .col-md-4[data-project-id]').forEach((col) => {
+        const pid = col.getAttribute('data-project-id');
+        fetchUnreadForProject(pid);
+    });
+}
+
+// Latest feedback snippet helpers
+const latestProjectSnippetSeq = {};
+function hideProjectLatestFeedbackSnippet(projectId) {
+    try {
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+        els.forEach((el) => {
+            el.classList.add('d-none');
+            el.style.display = 'none';
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (textEl) textEl.textContent = '';
+        });
+    } catch (_) {}
+}
+function setProjectLatestFeedbackSnippet(projectId, data) {
+    const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+    if (!els || els.length === 0) return;
+    if (!data) { hideProjectLatestFeedbackSnippet(projectId); return; }
+    // Cache latest payload for deep-linking
+    try {
+        window.__projectLatest = window.__projectLatest || {};
+        window.__projectLatest[String(projectId)] = data;
+    } catch (_) {}
+    const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/profile_picture/default.png');
+    const raw = String(data.feedback_comment || '');
+    const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
+    els.forEach((el) => {
+        const avatar = el.querySelector('.latest-feedback-avatar');
+        const textEl = el.querySelector('.latest-feedback-text');
+        if (avatar) avatar.src = photo;
+        if (textEl) textEl.textContent = truncated;
+        el.classList.remove('d-none');
+        el.style.removeProperty('display');
+    });
+}
+function fetchLatestFeedbackForProject(projectId) {
+    const seq = (latestProjectSnippetSeq[projectId] = (latestProjectSnippetSeq[projectId] || 0) + 1);
+    return $.ajax({ url: appUrl + `/project-feedbacks/${projectId}/latest`, type: 'GET', dataType: 'json' })
+        .then((res) => {
+            if (latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
+            const data = res && (res.data || null);
+            setProjectLatestFeedbackSnippet(projectId, data);
+        })
+        .catch(() => {
+            if (latestProjectSnippetSeq[projectId] !== seq) return;
+            setProjectLatestFeedbackSnippet(projectId, null);
+        });
+}
+function refreshAllProjectLatestFeedbackSnippets() {
+    document.querySelectorAll('#all-cards-container .col-md-4[data-project-id]').forEach((col) => {
+        const pid = col.getAttribute('data-project-id');
+        fetchLatestFeedbackForProject(pid);
+    });
+}
+
 
     // New implementation for co-author input with checkbox multi-select and search
     function setupCoAuthorInput() {
@@ -4493,10 +4707,15 @@ $(document).ready(function () {
                                     const newFooter = `
                                         <div class="d-flex justify-content-between align-items-center mt-2">
                                             <div class="collaborators-image d-flex align-items-center">${renderCollaborators(p)}</div>
-                                            <div class="d-flex">
-                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center" title="Comment" data-project-id="${p.id}">
+                                            <div class="d-flex align-items-center">
+                                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${p.id}" style="cursor:pointer; max-width: 160px;">
+                                                    <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                                                    <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                                                </div>
+                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${p.id}">
                                                     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
                                                     <span class="project-feedback-count ms-1" data-project-id="${p.id}" style="font-size:12px; color:#454545;">${currentFb}</span>
+                                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${p.id}"></span>
                                                 </button>
                                                 <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${p.id}">
                                                     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
@@ -4522,6 +4741,29 @@ $(document).ready(function () {
                                                 if (!isVisible) dropdownMenu.classList.remove('d-none');
                                             });
                                         });
+                                        // Bind snippet click
+                                        cardEl.querySelectorAll('.latest-feedback-snippet[data-project-id]').forEach((el) => {
+                                            el.addEventListener('click', function (ev) {
+                                                ev.preventDefault();
+                                                ev.stopPropagation();
+                                                const pid = this.getAttribute('data-project-id');
+                                                hideProjectUnreadBadge(pid);
+                                                hideProjectLatestFeedbackSnippet(pid);
+                                                try {
+                                                    window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                                    const latest = (window.__projectLatest && window.__projectLatest[String(pid)]) || null;
+                                                    if (latest) window.__projectLatestTarget[String(pid)] = latest;
+                                                } catch (_) {}
+                                                markProjectFeedbacksRead(pid).always(() => {
+                                                    const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                                                    if (!projectFeedbackModalEl) return;
+                                                    projectFeedbackModalEl.setAttribute('data-project-id', pid);
+                                                    try { loadFeedbackData(pid); } catch (_) {}
+                                                    const m = new bootstrap.Modal(projectFeedbackModalEl);
+                                                    m.show();
+                                                });
+                                            });
+                                        });
                                         const tooltipTriggerList = cardEl.querySelectorAll('[data-bs-toggle="tooltip"]');
                                         tooltipTriggerList.forEach(function (el) { try { new bootstrap.Tooltip(el, { placement: 'bottom' }); } catch (e) {} });
                                     } catch (e) {}
@@ -4530,6 +4772,8 @@ $(document).ready(function () {
                                     if (typeof window.updateProjectBadges === 'function') {
                                         window.updateProjectBadges(pid);
                                     }
+                                    try { fetchUnreadForProject(pid); } catch (_) {}
+                                    try { fetchLatestFeedbackForProject(pid); } catch (_) {}
                                 })
                                 .catch(() => {
                                     // As a fallback, update badges only

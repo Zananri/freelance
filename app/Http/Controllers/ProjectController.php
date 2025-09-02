@@ -1447,4 +1447,137 @@ class ProjectController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+    /**
+     * Get unread feedback count for a project for current employee.
+     */
+    public function getUnreadFeedbackCount($projectId)
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json(['count' => 0]);
+            }
+
+            $project = Project::find($projectId);
+            if (!$project) return response()->json(['count' => 0]);
+
+            // Strategy: store per-employee last_read_at in projects.read_markers (JSON)
+            $markers = [];
+            if (!empty($project->read_markers)) {
+                $markers = is_array($project->read_markers)
+                    ? $project->read_markers
+                    : ((json_decode($project->read_markers, true)) ?: []);
+            }
+            $lastReadAt = $markers[(string)$employeeId] ?? null;
+
+            $query = ProjectFeedback::where('project_id', $projectId)
+                ->where('employee_id', '!=', $employeeId); // exclude own feedback
+            if ($lastReadAt) {
+                $query->where('created_at', '>', $lastReadAt);
+            }
+            $count = $query->count();
+
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['count' => 0]);
+        }
+    }
+
+    /**
+     * Mark all feedbacks as read for current employee for a project by updating last_read_at marker.
+     */
+    public function markProjectFeedbacksRead($projectId)
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json(['status' => 'ok']);
+            }
+
+            $project = Project::findOrFail($projectId);
+            $markers = [];
+            if (!empty($project->read_markers)) {
+                $markers = is_array($project->read_markers)
+                    ? $project->read_markers
+                    : ((json_decode($project->read_markers, true)) ?: []);
+            }
+            $markers[(string)$employeeId] = now()->toDateTimeString();
+            $project->read_markers = $markers;
+            $project->save();
+
+            return response()->json(['status' => 'ok']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'ok']);
+        }
+    }
+
+    /**
+     * Get the latest single feedback for a project
+     */
+    public function getProjectLatestFeedback($projectId)
+    {
+        try {
+            $employeeId = auth()->user()?->employee?->id;
+
+            // Apply unread window using project read_markers (per-employee last_read_at)
+            $lastReadAt = null;
+            if ($employeeId) {
+                $project = Project::find($projectId);
+                if ($project && !empty($project->read_markers)) {
+                    $markers = is_array($project->read_markers) ? $project->read_markers : (json_decode($project->read_markers, true) ?: []);
+                    $lastReadAt = $markers[(string)$employeeId] ?? null;
+                }
+            }
+
+            $latest = ProjectFeedback::with(['employee.user'])
+                ->where('project_id', $projectId)
+                // Only show if not authored by current user
+                ->when($employeeId, function ($q) use ($employeeId) {
+                    $q->where('employee_id', '!=', $employeeId);
+                })
+                // Only show if it's newer than last read
+                ->when($lastReadAt, function ($q) use ($lastReadAt) {
+                    $q->where('created_at', '>', $lastReadAt);
+                })
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$latest) {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => null
+                ]);
+            }
+
+            $payload = [
+                'id' => $latest->id,
+                'parent_id' => $latest->parent_id,
+                'feedback_comment' => $latest->feedback_comment,
+                'created_at' => $latest->created_at,
+                'employee' => $latest->employee ? [
+                    'id' => $latest->employee->id,
+                    'name' => $latest->employee->name,
+                    'photo' => ($latest->employee->user && $latest->employee->user->photo)
+                        ? asset($latest->employee->user->photo)
+                        : asset('asset/img/profile_picture/default.png'),
+                ] : null,
+            ];
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $payload,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
 }

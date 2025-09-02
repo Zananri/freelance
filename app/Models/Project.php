@@ -18,6 +18,7 @@ class Project extends Model
         'status',
         'reference_url',
     'reference_files',
+    'read_markers',
         'start_date',
         'due_date',
         'part_of_project',
@@ -32,6 +33,7 @@ class Project extends Model
      */
     protected $casts = [
         'reference_files' => 'array',
+    'read_markers' => 'array',
     ];
 
     public function department()
