@@ -196,13 +196,15 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    let currentPage = 1;
+
     // Load project card data and generate cards dynamically
-    function loadProjectCardData(filter = null) {
+    function loadProjectCardData(filter = null, page = 1) {
         $.ajax({
             url: appUrl + "/project/index",
             type: "GET",
             dataType: "json",
-            data: { filter: filter, task_scope: 'me' },
+            data: { filter: filter, task_scope: 'me', page: page },
             success: function (data) {
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
@@ -524,10 +526,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                     type: "GET",
                                     dataType: "json",
                                     success: function (data) {
-                                        console.log(
-                                            "Edit project data loaded:",
-                                            data
-                                        ); // Debug log
                                         // Populate edit modal form fields
                                         $("#edit_project_id").val(data.id);
                                         $("#edit_title").val(data.title);
@@ -3528,43 +3526,54 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Load projects for "part_of_project" select
-let allProjectsCache = [];
 
-// Render projects into relevant selects (e.g., part_of_project)
-function renderProjects(projects) {
-    try {
-        projects = Array.isArray(projects) ? projects : [];
-
-        // Populate the Add Project modal's "part_of_project" select if present
-        if (typeof partOfProjectSelect !== 'undefined' && partOfProjectSelect) {
-            let opts = '<option value="" disabled selected>Select Project</option>';
-            projects.forEach((p) => {
-                const id = (p && (p.id != null)) ? p.id : '';
-                const title = (p && (p.title || p.name)) ? (p.title || p.name) : 'Untitled';
-                opts += `<option value="${id}">${title}</option>`;
-            });
-            partOfProjectSelect.innerHTML = opts;
-            partOfProjectSelect.disabled = false;
-            partOfProjectSelect.style.display = 'block';
-        }
-    } catch (e) {
-        console.error('renderProjects error', e);
-    }
+    // Render projects into relevant selects (e.g., part_of_project)
+function renderProjects(projectsHtml) {
+    const container = document.getElementById("all-cards-container");
+    if (container) container.innerHTML = projectsHtml;
 }
 
-// Load semua project dari API
-function loadProjects() {
+    let allProjectsCache = [];
+
+function loadProjects(filter = null, page = 1) {
     $.ajax({
         url: appUrl + "/project/index",
         type: "GET",
         dataType: "json",
-        data: { task_scope: 'me' },
+        data: { task_scope: 'me', filter: filter, page: page },
         success: function (data) {
-            allProjectsCache = data.data || [];
-            renderProjects(allProjectsCache);
+            // 🚀 pake loadProjectCardData buat render card
+            loadProjectCardData(filter, page);
+
+            // pagination tetap dipanggil
+            updatePagination(data.pagination);
         },
         error: function () {
-            console.error("Failed to load projects");
+            console.error("Failed to load project cards");
+        }
+    });
+}
+
+function updatePagination(pagination, filter = null) {
+    const from = (pagination.current_page - 1) * pagination.per_page + 1;
+    let to = pagination.current_page * pagination.per_page;
+    if (to > pagination.total) to = pagination.total;
+
+    $("#paginationInfo").text(`Page ${pagination.current_page} of ${pagination.last_page}`);
+    $("#dataInfo").text(`Showing ${from}–${to} of ${pagination.total}`);
+
+    $("#prevPageBtn").prop("disabled", pagination.current_page <= 1);
+    $("#nextPageBtn").prop("disabled", pagination.current_page >= pagination.last_page);
+
+    $("#prevPageBtn").off("click").on("click", function () {
+        if (pagination.current_page > 1) {
+            loadProjects(filter, pagination.current_page - 1);
+        }
+    });
+
+    $("#nextPageBtn").off("click").on("click", function () {
+        if (pagination.current_page < pagination.last_page) {
+            loadProjects(filter, pagination.current_page + 1);
         }
     });
 }
@@ -4230,12 +4239,6 @@ function refreshAllProjectLatestFeedbackSnippets() {
         submitBtn.disabled = true;
 
         const formData = new FormData(addProjectForm);
-
-        // Debug: Log formData contents
-        console.log("FormData contents:");
-        for (let pair of formData.entries()) {
-            console.log(pair[0], pair[1]);
-        }
 
         // Append project selected reference files (if any)
         if (projectSelectedFiles && projectSelectedFiles.length) {
@@ -5244,7 +5247,6 @@ function refreshAllProjectLatestFeedbackSnippets() {
         if (applyFilterBtn) {
             applyFilterBtn.addEventListener("click", function () {
                 const selectedStatus = filterStatus ? filterStatus.value : "";
-                console.log("Filter applied with status:", selectedStatus);
                 filterDropdown.style.display = "none";
 
                 // Map UI filter values to backend filter parameters
