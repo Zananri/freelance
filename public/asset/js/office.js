@@ -179,7 +179,10 @@ $(document).ready(function() {
                 const isTask = n.type === 'task_assignment';
                 const m = (n.message || '').match(/Task ID: (\d+)/);
                 const taskId = m ? parseInt(m[1], 10) : null;
-                if (isTask && taskId && !n.is_accepted) acc.push({ taskId, notificationId: n.id });
+                const isAssigned = (n && typeof n.is_assigned !== 'undefined') ? !!n.is_assigned : true; // default true for backward compat
+                if (isTask && taskId && isAssigned && !n.is_accepted) {
+                    acc.push({ taskId, notificationId: n.id });
+                }
             } catch(_) {}
             return acc;
         }, []);
@@ -311,14 +314,23 @@ $(document).ready(function() {
         const m = new bootstrap.Modal(document.getElementById(id));
         m.show();
         const closeModal = () => { try { m.hide(); } catch(_) {} $('#'+id).on('hidden.bs.modal', function(){ $(this).remove(); }); };
+        const settle = (ret, done) => {
+            try {
+                if (!ret) { done(); return; }
+                if (typeof ret.always === 'function') { ret.always(done); return; }
+                if (typeof ret.finally === 'function') { ret.finally(done); return; }
+                if (typeof ret.then === 'function') { ret.then(done).catch(done); return; }
+                done();
+            } catch (_) { done(); }
+        };
         if (showTasks) {
-            $('#bulkAcceptTasksBtn').on('click', function(){ onTasks && onTasks().finally(() => closeModal()); });
+            $('#bulkAcceptTasksBtn').on('click', function(){ if (onTasks) settle(onTasks(), closeModal); });
         }
         if (showProjects) {
-            $('#bulkAcceptProjectsBtn').on('click', function(){ onProjects && onProjects().finally(() => closeModal()); });
+            $('#bulkAcceptProjectsBtn').on('click', function(){ if (onProjects) settle(onProjects(), closeModal); });
         }
         if (hasBoth) {
-            $('#bulkAcceptAllBtn').on('click', function(){ onAll && onAll().finally(() => closeModal()); });
+            $('#bulkAcceptAllBtn').on('click', function(){ if (onAll) settle(onAll(), closeModal); });
         }
     }
 
@@ -411,15 +423,21 @@ $(document).ready(function() {
                         type: "GET"
                     }).then(response => {
                         console.log('Accept status response for task', taskId, ':', response);
+                        const data = response && response.data ? response.data : {};
+                        const isAccepted = !!(response.is_accepted || data.is_accepted);
+                        const notAssignedMsg = String(data.message || '').toLowerCase();
+                        const isAssigned = notAssignedMsg.includes('not assigned') ? false : true;
                         return {
                             ...notification,
-                            is_accepted: response.is_accepted || (response.data && response.data.is_accepted)
+                            is_accepted: isAccepted,
+                            is_assigned: isAssigned
                         };
                     }).catch((xhr, status, error) => {
                         console.error('Failed to check accept status for task', taskId, ':', error, xhr.responseText);
                         return {
                             ...notification,
-                            is_accepted: false
+                            is_accepted: false,
+                            is_assigned: false
                         };
                     });
                 }

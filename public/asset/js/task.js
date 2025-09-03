@@ -1155,7 +1155,18 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     }
 
     // Function to create task card HTML
-    function createTaskCard(task) {
+        function createTaskCard(task) {
+            // Normalize project image early to avoid broken images when backend returns empty/invalid URL
+            const placeholderProjectImg = `${appUrl}/asset/img/profile_picture/default.png`;
+            const projectImg = (function() {
+                try {
+                    const val = (task && task.project_image) || '';
+                    if (!val || String(val).trim() === '' || String(val).toLowerCase() === 'null' || String(val).toLowerCase() === 'undefined') {
+                        return placeholderProjectImg;
+                    }
+                    return val;
+                } catch(_) { return placeholderProjectImg; }
+            })();
     // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
@@ -1258,7 +1269,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             ${iconHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                <img src="${task.project_image}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px;">
+                <img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
                 <div class="d-flex flex-column">
                     <small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>
                     <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>

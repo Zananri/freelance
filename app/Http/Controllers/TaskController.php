@@ -121,14 +121,24 @@ class TaskController extends Controller
                         ];
                     })->values();
 
+                    // Resolve project image URL safely (avoid 404 if file missing)
+                    $projectImageUrl = (function() use ($task) {
+                        if ($task->project && $task->project->image) {
+                            $image = $task->project->image;
+                            $diskPath = public_path('file/project/' . $image);
+                            if (file_exists($diskPath)) {
+                                return asset('file/project/' . $image);
+                            }
+                        }
+                        return asset('asset/img/profile_picture/default.png');
+                    })();
+
                     $response[$responseKey][] = [
                         'id' => $task->id,
                         'title' => $task->title,
                         'description' => $task->description,
                         'project_title' => $task->project ? $task->project->title : null,
-                        'project_image' => ($task->project && $task->project->image)
-                            ? asset('file/project/' . $task->project->image)
-                            : asset('asset/img/profile_picture/sample_project.png'),
+                        'project_image' => $projectImageUrl,
                         'project_id' => $task->project_id,
                         'due_date' => $task->due_date,
                         'priority' => $task->priority,
@@ -305,6 +315,17 @@ class TaskController extends Controller
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $executors = $task->assignments->where('role', 'EXECUTOR');
 
+                $projectImageUrl = (function() use ($task) {
+                    if ($task->project && $task->project->image) {
+                        $image = $task->project->image;
+                        $diskPath = public_path('file/project/' . $image);
+                        if (file_exists($diskPath)) {
+                            return asset('file/project/' . $image);
+                        }
+                    }
+                    return asset('asset/img/profile_picture/default.png');
+                })();
+
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
@@ -315,10 +336,8 @@ class TaskController extends Controller
                     'complete_date' => $task->complete_date,
             // counts for dashboard badges
             'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
-            'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
-                    'project_image' => ($task->project && $task->project->image)
-                        ? asset('file/project/' . $task->project->image)
-                        : asset('asset/img/profile_picture/sample_project.png'),
+        'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
+            'project_image' => $projectImageUrl,
                     'pic' => $pic && $pic->employee ? [
                         'id' => $pic->employee->id,
                         'name' => $pic->employee->name,
@@ -396,6 +415,17 @@ class TaskController extends Controller
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $executors = $task->assignments->where('role', 'EXECUTOR');
 
+                $projectImageUrl = (function() use ($task) {
+                    if ($task->project && $task->project->image) {
+                        $image = $task->project->image;
+                        $diskPath = public_path('file/project/' . $image);
+                        if (file_exists($diskPath)) {
+                            return asset('file/project/' . $image);
+                        }
+                    }
+                    return asset('asset/img/profile_picture/default.png');
+                })();
+
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
@@ -407,9 +437,7 @@ class TaskController extends Controller
                     'start_date' => $task->start_date,
                     'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
                     'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
-                    'project_image' => ($task->project && $task->project->image)
-                        ? asset('file/project/' . $task->project->image)
-                        : asset('asset/img/profile_picture/sample_project.png'),
+                    'project_image' => $projectImageUrl,
                     'pic' => $pic && $pic->employee ? [
                         'id' => $pic->employee->id,
                         'name' => $pic->employee->name,

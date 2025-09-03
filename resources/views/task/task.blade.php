@@ -568,7 +568,7 @@
 
     <x-slot name="script_slot">
 
-        <script src="{{ asset('asset/js/task.js') }}"></script>
+    <script src="{{ asset('asset/js/task.js') }}?v={{ filemtime(public_path('asset/js/task.js')) }}"></script>
 
         <script></script>
     </x-slot>
