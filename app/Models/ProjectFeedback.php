@@ -18,10 +18,15 @@ class ProjectFeedback extends Model
         'feedback_comment',
         'image',
         'reference_url',
+        'reference_urls',
         'reference_file',
         'created_by',
         'updated_by',
         'deleted_by',
+    ];
+
+    protected $casts = [
+        'reference_urls' => 'array',
     ];
 
     public function project()

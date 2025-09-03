@@ -82,6 +82,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupProjectReferenceFilesInput();
 
+    // Delegated handler: add/remove reference URL rows (match Task behavior)
+    document.addEventListener('click', function (e) {
+        const addBtn = e.target.closest('.add-ref-url');
+        if (addBtn) {
+            e.preventDefault();
+            const container = addBtn.closest('#feedback_reference_urls_container, #project_reference_urls_container, #edit_project_reference_urls_container');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'd-flex gap-2 align-items-center';
+            row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="url"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeBtn = e.target.closest('.remove-ref-url');
+        if (removeBtn) {
+            e.preventDefault();
+            const row = removeBtn.closest('.d-flex');
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
+
     // Helper to format role labels to capitalized form (Author, Co-Author, Contributor)
     function formatRoleText(role) {
         if (!role) return '';
@@ -423,9 +450,42 @@ document.addEventListener("DOMContentLoaded", function () {
                                         $("#edit_description").val(
                                             data.description
                                         );
-                                        $("#edit_reference_url").val(
-                                            data.reference_url
-                                        );
+                                        // Prefill multiple reference URLs in Edit Project (match Task behavior)
+                                        (function(){
+                                            try {
+                                                const container = document.getElementById('edit_project_reference_urls_container');
+                                                if (!container) return;
+                                                container.innerHTML = '';
+                                                // Normalize URLs from API: reference_urls (array or JSON) or legacy reference_url (string)
+                                                let urls = [];
+                                                if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                                                else if (typeof data.reference_urls === 'string') {
+                                                    try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                                }
+                                                if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+
+                                                function makeRow(value, withAdd){
+                                                    const row = document.createElement('div');
+                                                    row.className = 'd-flex gap-2 align-items-center';
+                                                    row.innerHTML = (
+                                                        '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                                                        (withAdd
+                                                            ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>'
+                                                            : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>')
+                                                    );
+                                                    container.appendChild(row);
+                                                    const inp = row.querySelector('input[type="url"]');
+                                                    if (inp && value) inp.value = value;
+                                                }
+
+                                                if (urls && urls.length) {
+                                                    urls.forEach((u) => makeRow(u, false));
+                                                    makeRow('', true);
+                                                } else {
+                                                    makeRow('', true);
+                                                }
+                                            } catch(_) { /* noop */ }
+                                        })();
                                         $("#edit_start_date").val(
                                             data.start_date
                                         );
@@ -746,6 +806,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         const formData = new FormData(this);
+                        // Map first non-empty reference_urls[] to single reference_url (backend expects this)
+                        try {
+                            const urlInputs = this.querySelectorAll('input[name="reference_urls[]"]');
+                            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                            if (urls.length) formData.set('reference_url', urls[0]);
+                            else formData.set('reference_url', '');
+                        } catch(_) {}
 
                         // Add _method to FormData for Laravel PUT request
                         formData.append("_method", "PUT");
@@ -1650,6 +1717,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 parent_id: null,
                                                 feedback_comment: feedback.feedback_comment || '',
                                                 reference_url: feedback.reference_url || '',
+                                                reference_urls: feedback.reference_urls || [],
                                                 reference_file_url: feedback.reference_file || '',
                                                 image_url: (function(){
                                                     const img = feedback.image || '';
@@ -1753,7 +1821,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     mediaDiv.className = "feedback-media mt-2";
 
                                     if (
-                                        feedback.reference_url ||
+                                        feedback.reference_url || feedback.reference_urls ||
                                         feedback.reference_file
                                     ) {
                                         const refContainer =
@@ -1761,20 +1829,21 @@ document.addEventListener("DOMContentLoaded", function () {
                                         refContainer.className =
                                             "feedback-reference-container";
 
-                                        if (feedback.reference_url) {
-                                            const refUrlLink =
-                                                document.createElement("a");
-                                            refUrlLink.href =
-                                                feedback.reference_url;
-                                            refUrlLink.target = "_blank";
-                                            refUrlLink.className =
-                                                "feedback-reference-url";
-
-                                            refUrlLink.innerHTML = `<span class="material-symbols-outlined">link</span> Reference Link`;
-                                            refContainer.appendChild(
-                                                refUrlLink
-                                            );
-                                        }
+                                        // Render one or multiple reference URLs
+                                        (function(){
+                                            let urls = [];
+                                            if (Array.isArray(feedback.reference_urls)) urls = feedback.reference_urls;
+                                            else if (feedback.reference_urls && typeof feedback.reference_urls === 'string') {
+                                                try { const arr = JSON.parse(feedback.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                            }
+                                            if ((!urls || urls.length === 0) && feedback.reference_url) urls = [feedback.reference_url];
+                                            urls.forEach((u, idx) => {
+                                                const a = document.createElement('a');
+                                                a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
+                                                a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                refContainer.appendChild(a);
+                                            });
+                                        })();
 
                                         if (feedback.reference_file) {
                                             const refFileLink =
@@ -1940,6 +2009,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         parent_id: feedback.id,
                                                         feedback_comment: rep.feedback_comment || '',
                                                         reference_url: rep.reference_url || '',
+                                                        reference_urls: rep.reference_urls || [],
                                                         reference_file_url: rep.reference_file || '',
                                                         image_url: (function(){
                                                             const img = rep.image || '';
@@ -1972,14 +2042,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                             const repMedia = document.createElement('div');
                                             repMedia.className = 'feedback-reference-container mb-1';
-                                            if (rep.reference_url) {
-                                                const a = document.createElement('a');
-                                                a.href = rep.reference_url;
-                                                a.target = '_blank';
-                                                a.className = 'feedback-reference-url';
-                                                a.innerHTML = '<span class="material-symbols-outlined">link</span> Reference Link';
-                                                repMedia.appendChild(a);
-                                            }
+                                            // Render one or multiple reference URLs in reply
+                                            (function(){
+                                                let urls = [];
+                                                if (Array.isArray(rep.reference_urls)) urls = rep.reference_urls;
+                                                else if (rep.reference_urls && typeof rep.reference_urls === 'string') {
+                                                    try { const arr = JSON.parse(rep.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                                }
+                                                if ((!urls || urls.length === 0) && rep.reference_url) urls = [rep.reference_url];
+                                                urls.forEach((u, idx) => {
+                                                    const a = document.createElement('a');
+                                                    a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
+                                                    a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                    repMedia.appendChild(a);
+                                                });
+                                            })();
                                             if (rep.reference_file) {
                                                 const a2 = document.createElement('a');
                                                 let href = rep.reference_file;
@@ -2120,8 +2197,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -2202,6 +2284,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         submitBtn.disabled = true;
 
                         const formData = new FormData(form);
+                        // Map first non-empty reference_urls[] to single reference_url for backend
+                        try {
+                            const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                            if (urls.length) formData.set('reference_url', urls[0]);
+                        } catch(_) {}
 
                         fetch(appUrl + "/project-feedbacks", {
                             method: "POST",
@@ -2307,8 +2395,13 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
 
             <div class="mb-3">
-                <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                <label class="form-label">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -2359,6 +2452,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const form = document.getElementById("replyFeedbackForm");
                                 if (!form) return;
                                 const fd = new FormData(form);
+                                // Map first non-empty reference_urls[] to single reference_url for backend
+                                try {
+                                    const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                                    const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                                    if (urls.length) fd.set('reference_url', urls[0]);
+                                } catch(_) {}
                                 fetch(appUrl + "/project-feedbacks", {
                                     method: "POST",
                                     headers: {
@@ -2430,8 +2529,8 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
 
             <div class="mb-3">
-                <label for="reference_url" class="form-label label-custom">Reference URL (Optional)</label>
-                <input type="url" class="form-control" id="reference_url" name="reference_url" value="${data.reference_url || ''}" placeholder="https://example.com">
+                <label class="form-label label-custom">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
             </div>
 
             <div class="mb-3">
@@ -2483,6 +2582,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const form = document.getElementById("editFeedbackForm");
                                 if (!form) return;
                                 const fd = new FormData(form);
+                                // Map first non-empty reference_urls[] to single reference_url for backend
+                                try {
+                                    const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                                    const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                                    if (urls.length) fd.set('reference_url', urls[0]);
+                                    else fd.set('reference_url', '');
+                                } catch(_) {}
                                 fd.append("_method", "PUT");
                                 fetch(appUrl + `/project-feedbacks/${data.id}` , {
                                     method: "POST",
@@ -2502,6 +2608,34 @@ document.addEventListener("DOMContentLoaded", function () {
                                     });
                             });
                         }
+
+                        // Prefill reference URLs container for edit form
+                        (function(){
+                            const container = document.getElementById('feedback_reference_urls_container');
+                            if (!container) return;
+                            container.innerHTML = '';
+                            let urls = [];
+                            if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                            else if (typeof data.reference_urls === 'string') {
+                                try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                            }
+                            if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+                            function addRow(value, withAdd){
+                                const row = document.createElement('div');
+                                row.className = 'd-flex gap-2 align-items-center';
+                                row.innerHTML = '<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">' +
+                                    (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
+                                container.appendChild(row);
+                                const inp = row.querySelector('input[type="url"]');
+                                if (inp && value) inp.value = value;
+                            }
+                            if (urls && urls.length) {
+                                urls.forEach((u) => addRow(u, false));
+                                addRow('', true);
+                            } else {
+                                addRow('', true);
+                            }
+                        })();
 
                         // Back button like Task
                         const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
@@ -2791,14 +2925,29 @@ document.addEventListener("DOMContentLoaded", function () {
                                 $("#projectDetailDivision").text(data.division || "");
                                 $("#projectDetailDescription").text(data.description || "");
 
-                                if (data.reference_url) {
-                                    $("#projectDetailReferenceUrl")
-                                        .attr("href", data.reference_url)
-                                        .text(data.reference_url)
-                                        .show();
-                                } else {
-                                    $("#projectDetailReferenceUrl").hide();
-                                }
+                                // Render multiple reference URLs (match Task behavior)
+                                (function(){
+                                    const wrap = document.getElementById('projectDetailReferenceUrls');
+                                    if (!wrap) return;
+                                    wrap.innerHTML = '';
+                                    let urls = [];
+                                    if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                                    else if (typeof data.reference_urls === 'string') {
+                                        try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                    }
+                                    if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+                                    if (urls.length > 0) {
+                                        urls.forEach((u, i) => {
+                                            const a = document.createElement('a');
+                                            a.href = u; a.target = '_blank'; a.rel = 'noopener';
+                                            a.textContent = `Link ${i+1}`;
+                                            a.className = 'me-2';
+                                            wrap.appendChild(a);
+                                        });
+                                    } else {
+                                        wrap.textContent = '-';
+                                    }
+                                })();
 
                                 if (data.reference_file) {
                                     $("#projectDetailReferenceFile")
@@ -4099,6 +4248,12 @@ function refreshAllProjectLatestFeedbackSnippets() {
         submitBtn.disabled = true;
 
         const formData = new FormData(addProjectForm);
+        // Map first non-empty reference_urls[] to single reference_url for backend compatibility
+        try {
+            const urlInputs = addProjectForm.querySelectorAll('input[name="reference_urls[]"]');
+            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+            if (urls.length) formData.set('reference_url', urls[0]);
+        } catch(_) {}
 
         // Append project selected reference files (if any)
         if (projectSelectedFiles && projectSelectedFiles.length) {

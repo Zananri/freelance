@@ -603,7 +603,10 @@ class ProjectController extends Controller
                 'department' => 'required|exists:departments,id',
                 'division' => 'required|exists:divisions,id',
                 'status' => 'string|max:50',
+                // Accept both single and multiple reference URLs
                 'reference_url' => 'nullable|url',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'part_of_project' => 'nullable|exists:projects,id',
@@ -625,7 +628,16 @@ class ProjectController extends Controller
             $project->department_id = $request->department;
             $project->division_id = $request->division;
             $project->status = $request->status ?? 'ACTIVE';
-            $project->reference_url = $request->reference_url;
+            // Normalize reference URLs
+            $refUrls = [];
+            if ($request->has('reference_urls') && is_array($request->reference_urls)) {
+                $refUrls = array_values(array_filter($request->reference_urls));
+            } elseif (!empty($request->reference_url)) {
+                $refUrls = [$request->reference_url];
+            }
+            $project->reference_urls = $refUrls;
+            // Mirror first into legacy single field for backward compatibility
+            $project->reference_url = count($refUrls) ? $refUrls[0] : null;
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
             $project->part_of_project = $request->part_of_project;
@@ -807,6 +819,8 @@ class ProjectController extends Controller
                 'department' => $project->department ? $project->department->name_department ?? $project->department->name : null,
                 'division' => $project->division ? $project->division->name_division ?? $project->division->name : null,
                 'reference_url' => $project->reference_url,
+                // Preferred multi-URL field; fallback to single if needed
+                'reference_urls' => $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []),
                 // Backward-compat alias for frontend
                 'reference_file' => $files,
                 // Preferred field
@@ -880,8 +894,10 @@ class ProjectController extends Controller
         if (!is_array($files)) {
             $files = [];
         }
-        $response['reference_files'] = $files;
+    $response['reference_files'] = $files;
         $response['reference_file'] = $files;
+    // Ensure reference_urls present and normalized
+    $response['reference_urls'] = $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []);
         $response['co_authors'] = $coAuthors;
         $response['contributors'] = $contributors;
 
@@ -910,6 +926,8 @@ class ProjectController extends Controller
                 'division' => 'required|exists:divisions,id',
                 'status' => 'string|max:50',
                 'reference_url' => 'nullable|url',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'part_of_project' => 'nullable|exists:projects,id',
@@ -929,7 +947,20 @@ class ProjectController extends Controller
             $project->department_id = $request->department;
             $project->division_id = $request->division;
             $project->status = $request->status ?? 'ACTIVE';
-            $project->reference_url = $request->reference_url;
+            // Normalize reference URLs on update
+            $refUrls = [];
+            if ($request->has('reference_urls')) {
+                $incoming = $request->input('reference_urls', []);
+                if (is_array($incoming)) {
+                    $refUrls = array_values(array_filter($incoming));
+                }
+                $project->reference_urls = $refUrls; // even if empty, set to clear
+                $project->reference_url = count($refUrls) > 0 ? $refUrls[0] : null; // mirror
+            } elseif (!empty($request->reference_url)) {
+                $refUrls = [$request->reference_url];
+                $project->reference_urls = $refUrls;
+                $project->reference_url = $request->reference_url;
+            }
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
             $project->part_of_project = $request->part_of_project;
@@ -1175,13 +1206,14 @@ class ProjectController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            $formatOne = function ($fb) {
+        $formatOne = function ($fb) {
                 $item = [
                     'id' => $fb->id,
                     'parent_id' => $fb->parent_id,
                     'feedback_comment' => $fb->feedback_comment,
                     'image' => $fb->image ? asset('file/project/' . $fb->image) : null,
                     'reference_url' => $fb->reference_url,
+            'reference_urls' => $fb->reference_urls ?: ($fb->reference_url ? [$fb->reference_url] : []),
                     'reference_file' => $fb->reference_file ? asset('file/project/' . $fb->reference_file) : null,
                     'created_at' => $fb->created_at,
                     'employee' => $fb->employee ? [
@@ -1193,13 +1225,14 @@ class ProjectController extends Controller
                     ] : null,
                 ];
 
-                $item['replies'] = $fb->replies->map(function ($r) {
+        $item['replies'] = $fb->replies->map(function ($r) {
                     return [
                         'id' => $r->id,
                         'parent_id' => $r->parent_id,
                         'feedback_comment' => $r->feedback_comment,
                         'image' => $r->image ? asset('file/project/' . $r->image) : null,
                         'reference_url' => $r->reference_url,
+            'reference_urls' => $r->reference_urls ?: ($r->reference_url ? [$r->reference_url] : []),
                         'reference_file' => $r->reference_file ? asset('file/project/' . $r->reference_file) : null,
                         'created_at' => $r->created_at,
                         'employee' => $r->employee ? [
@@ -1245,6 +1278,8 @@ class ProjectController extends Controller
                 'feedback_comment' => 'required|string',
                 'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_url' => 'nullable|url',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
             ]);
 
@@ -1253,7 +1288,15 @@ class ProjectController extends Controller
             $feedback->parent_id = $request->parent_id;
             $feedback->employee_id = $request->employee_id;
             $feedback->feedback_comment = $request->feedback_comment;
-            $feedback->reference_url = $request->reference_url;
+            // Normalize reference URLs for feedback
+            $refUrls = [];
+            if ($request->has('reference_urls') && is_array($request->reference_urls)) {
+                $refUrls = array_values(array_filter($request->reference_urls));
+            } elseif (!empty($request->reference_url)) {
+                $refUrls = [$request->reference_url];
+            }
+            $feedback->reference_urls = $refUrls;
+            $feedback->reference_url = count($refUrls) ? $refUrls[0] : null;
             $feedback->created_by = auth()->user() ? auth()->user()->id : null;
             $feedback->updated_by = auth()->user() ? auth()->user()->id : null;
             $feedback->deleted_by = null;
@@ -1318,13 +1361,25 @@ class ProjectController extends Controller
             $request->validate([
                 'feedback_comment' => 'required|string',
                 'reference_url' => 'nullable|url',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
             ]);
 
             $feedback->feedback_comment = $request->feedback_comment;
-            $feedback->reference_url = $request->reference_url ?? $feedback->reference_url;
+            // Normalize incoming reference URLs on update
+            if ($request->has('reference_urls')) {
+                $incoming = $request->input('reference_urls', []);
+                $arr = is_array($incoming) ? array_values(array_filter($incoming)) : [];
+                $feedback->reference_urls = $arr;
+                $feedback->reference_url = count($arr) ? $arr[0] : null;
+            } elseif (!is_null($request->reference_url)) {
+                $val = $request->reference_url;
+                $feedback->reference_urls = $val ? [$val] : [];
+                $feedback->reference_url = $val ?: null;
+            }
 
             // Normalize image input key
             $img = $request->file('image') ?: $request->file('feedback_image');

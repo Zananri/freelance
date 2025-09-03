@@ -278,9 +278,13 @@
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
-                            <label for="reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="project_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                    <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="reference_file" class="form-label label-custom">Reference Files</label>
@@ -403,9 +407,13 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="edit_reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="edit_project_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                    <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="edit_reference_file" class="form-label label-custom">Reference File</label>
@@ -497,8 +505,7 @@
                                 <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
                             </div>
                             <div class="project-detail-right">
-                                <p><strong>Reference URL:</strong> <a href="#" target="_blank"
-                                        id="projectDetailReferenceUrl"></a></p>
+                                <p><strong>Reference URLs:</strong> <span id="projectDetailReferenceUrls"></span></p>
                                 <p><strong>Reference File:</strong> <a href="#" id="projectDetailReferenceFile"
                                         download>Download</a></p>
                                 <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
