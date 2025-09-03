@@ -4388,17 +4388,23 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
                 if (filters.status && filters.status !== "") {
                     allTasks = allTasks.filter(task => {
-                        let taskStatus = task.status.toLowerCase().replace(" ", "_");
+                        // Normalize status: lowercase and collapse any whitespace to underscores
+                        let taskStatus = String(task.status || '')
+                            .toLowerCase()
+                            .replace(/\s+/g, "_");
                         return taskStatus === filters.status;
                     });
                 }
 
                 const groupedTasks = { new_request: [], in_progress: [], completed: [], rejected: [] };
                 allTasks.forEach(task => {
-                    let normalizedStatus = task.status.toLowerCase().replace(" ", "_");
+                    let normalizedStatus = String(task.status || '')
+                        .toLowerCase()
+                        .trim()
+                        .replace(/\s+/g, "_");
                     if (groupedTasks[normalizedStatus] !== undefined) {
                         groupedTasks[normalizedStatus].push(task);
-                    } else if (normalizedStatus === "rejected") {
+                    } else if (normalizedStatus.includes("reject")) {
                         groupedTasks.rejected.push(task);
                     }
                 });
@@ -4413,6 +4419,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 });
                 groupedTasks.completed.forEach(task => {
                     document.getElementById("completed-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
+                // Ensure rejected tasks are rendered (design choice: show under In Progress column like default view)
+                groupedTasks.rejected.forEach(task => {
+                    document.getElementById("in-progress-tasks")
                         .insertAdjacentHTML("beforeend", createTaskCard(task));
                 });
 
