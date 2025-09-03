@@ -17,6 +17,7 @@ class Project extends Model
         'division_id',
         'status',
         'reference_url',
+    'reference_urls',
     'reference_files',
     'read_markers',
         'start_date',
@@ -32,6 +33,7 @@ class Project extends Model
      * Cast reference_file to array so we can store multiple filenames as JSON
      */
     protected $casts = [
+        'reference_urls' => 'array',
         'reference_files' => 'array',
     'read_markers' => 'array',
     ];

@@ -399,6 +399,36 @@
     font-size: 1.25rem;
 }
 
+/* ===== Feedback/Reply - Reference Files (match Task styling) ===== */
+.existing-files-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.existing-file-item {
+    background-color: #f1f3f4;
+    border: 1px solid #dadce0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+}
+
+.existing-file-item a {
+    color: #1a73e8;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.existing-file-item a:hover {
+    color: #1557b0;
+    text-decoration: underline !important;
+}
+
+.existing-file-item .material-symbols-outlined {
+    color: #5f6368;
+    font-size: 18px;
+}
+
 .author {
     font-size: 0.9rem;
     color: #666;
@@ -1491,27 +1521,6 @@
 .input-custom select option {
     border: none;
     width: 95%;
-}
-
-.btn-close-reply {
-    background-color: grey;
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-weight: normal;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 40px;
-}
-
-.btn-close-reply:hover {
-    background-color: #333;
-    color: white;
 }
 
 /* Match Task form control sizing and styles */

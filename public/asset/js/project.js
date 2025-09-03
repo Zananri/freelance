@@ -82,6 +82,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupProjectReferenceFilesInput();
 
+    // Delegated handler: add/remove reference URL rows (match Task behavior)
+    document.addEventListener('click', function (e) {
+        const addBtn = e.target.closest('.add-ref-url');
+        if (addBtn) {
+            e.preventDefault();
+            const container = addBtn.closest('#feedback_reference_urls_container, #project_reference_urls_container, #edit_project_reference_urls_container');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'd-flex gap-2 align-items-center';
+            row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="url"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeBtn = e.target.closest('.remove-ref-url');
+        if (removeBtn) {
+            e.preventDefault();
+            const row = removeBtn.closest('.d-flex');
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
+
     // Helper to format role labels to capitalized form (Author, Co-Author, Contributor)
     function formatRoleText(role) {
         if (!role) return '';
@@ -136,7 +163,15 @@ document.addEventListener("DOMContentLoaded", function () {
             photoUrl = appUrl + '/asset/img/profile_picture/default.png';
         }
 
-    const name = (emp && (emp.name || emp.username || emp.full_name)) ? (emp.name || emp.username || emp.full_name) : 'Unknown';
+    // Prefer API fields in this order: explicit name, employee_name (from assignments),
+    // username/full_name, and nested employee.name when payload uses nested structure.
+    const name = (function(){
+        if (!emp) return 'Unknown';
+        const direct = emp.name || emp.employee_name || emp.username || emp.full_name;
+        if (direct) return direct;
+        const nested = (emp.employee && (emp.employee.name || emp.employee.full_name));
+        return nested || 'Unknown';
+    })();
     const roleLabel = role ? formatRoleText(role) : '';
     const roleText = roleLabel ? ` (${roleLabel})` : '';
     const titleText = `${name}${roleText}`;
@@ -182,7 +217,10 @@ document.addEventListener("DOMContentLoaded", function () {
             const overflow = coll.length - maxVisible;
             if (overflow > 0) {
                 const hidden = coll.slice(maxVisible).map(h => {
-                    const n = h.emp && (h.emp.name || h.emp.username || h.emp.full_name) ? (h.emp.name || h.emp.username || h.emp.full_name) : 'Unknown';
+                    const n = (function(emp){
+                        if (!emp) return 'Unknown';
+                        return emp.name || emp.employee_name || emp.username || emp.full_name || (emp.employee && (emp.employee.name || emp.employee.full_name)) || 'Unknown';
+                    })(h.emp);
                     return `${n} (${formatRoleText(h.type)})`;
                 }).join(', ');
 
@@ -383,12 +421,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     try { refreshAllProjectUnreadBadges(); } catch (_) {}
                     try { refreshAllProjectLatestFeedbackSnippets(); } catch (_) {}
 
-                    // Event listener for "Edit" dropdown item click
-                    document.addEventListener("click", function (e) {
-                        if (
-                            e.target &&
-                            e.target.classList.contains("dropdown-item")
-                        ) {
+                    // Event listener for "Edit" dropdown item click (bind once to avoid duplicates)
+                    if (!window.__projectEditListenerBound) {
+                        window.__projectEditListenerBound = true;
+                        document.addEventListener("click", function (e) {
+                            if (
+                                e.target &&
+                                e.target.classList.contains("dropdown-item")
+                            ) {
                             const text = e.target.textContent.trim();
                             if (text === "Edit") {
                                 e.preventDefault();
@@ -423,9 +463,42 @@ document.addEventListener("DOMContentLoaded", function () {
                                         $("#edit_description").val(
                                             data.description
                                         );
-                                        $("#edit_reference_url").val(
-                                            data.reference_url
-                                        );
+                                        // Prefill multiple reference URLs in Edit Project (match Task behavior)
+                                        (function(){
+                                            try {
+                                                const container = document.getElementById('edit_project_reference_urls_container');
+                                                if (!container) return;
+                                                container.innerHTML = '';
+                                                // Normalize URLs from API: reference_urls (array or JSON) or legacy reference_url (string)
+                                                let urls = [];
+                                                if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                                                else if (typeof data.reference_urls === 'string') {
+                                                    try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                                }
+                                                if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+
+                                                function makeRow(value, withAdd){
+                                                    const row = document.createElement('div');
+                                                    row.className = 'd-flex gap-2 align-items-center';
+                                                    row.innerHTML = (
+                                                        '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                                                        (withAdd
+                                                            ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>'
+                                                            : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>')
+                                                    );
+                                                    container.appendChild(row);
+                                                    const inp = row.querySelector('input[type="url"]');
+                                                    if (inp && value) inp.value = value;
+                                                }
+
+                                                if (urls && urls.length) {
+                                                    urls.forEach((u) => makeRow(u, false));
+                                                    makeRow('', true);
+                                                } else {
+                                                    makeRow('', true);
+                                                }
+                                            } catch(_) { /* noop */ }
+                                        })();
                                         $("#edit_start_date").val(
                                             data.start_date
                                         );
@@ -547,7 +620,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 existingContainer.appendChild(title);
 
                                                 var fileList = document.createElement('div');
-                                                fileList.className = 'existing-files-list';
+                                                fileList.className = 'existing-files-list w-100';
 
                                                 existingFiles.forEach(function (fileName, idx) {
                                                     var fileItem = document.createElement('div');
@@ -724,16 +797,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                             );
                                             return;
                                         }
-                                        const editProjectModal =
-                                            new bootstrap.Modal(
-                                                editProjectModalEl
-                                            );
+                                        const editProjectModal = (
+                                            (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
+                                                ? bootstrap.Modal.getOrCreateInstance(editProjectModalEl)
+                                                : (bootstrap.Modal.getInstance(editProjectModalEl) || new bootstrap.Modal(editProjectModalEl))
+                                        );
                                         editProjectModal.show();
                                     },
                                 });
                             }
                         }
-                    });
+                        });
+                    }
 
                     // Handle edit project form submission
                     $("#editProjectForm").on("submit", function (e) {
@@ -746,6 +821,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         const formData = new FormData(this);
+                        // Map first non-empty reference_urls[] to single reference_url (backend expects this)
+                        try {
+                            const urlInputs = this.querySelectorAll('input[name="reference_urls[]"]');
+                            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                            if (urls.length) formData.set('reference_url', urls[0]);
+                            else formData.set('reference_url', '');
+                        } catch(_) {}
 
                         // Add _method to FormData for Laravel PUT request
                         formData.append("_method", "PUT");
@@ -886,6 +968,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch (e) {}
 
                             $("#editProjectAlert").addClass("d-none").hide();
+
+                            // Safety: remove stray backdrops if no other modal is open
+                            try {
+                                const anyOpen = document.querySelector('.modal.show');
+                                if (!anyOpen) {
+                                    document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.parentNode && el.parentNode.removeChild(el); });
+                                    document.body.classList.remove('modal-open');
+                                    document.body.style.removeProperty('padding-right');
+                                }
+                            } catch (_) {}
                         }
                     );
 
@@ -1650,7 +1742,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 parent_id: null,
                                                 feedback_comment: feedback.feedback_comment || '',
                                                 reference_url: feedback.reference_url || '',
+                                                reference_urls: feedback.reference_urls || [],
                                                 reference_file_url: feedback.reference_file || '',
+                                                reference_files_urls: (function(){
+                                                    let files = [];
+                                                    let rf = feedback.reference_files;
+                                                    if (!Array.isArray(rf) && typeof rf === 'string') {
+                                                        try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                                    }
+                                                    if (Array.isArray(rf) && rf.length) {
+                                                        files = rf.map(function(f){
+                                                            if (!f) return null;
+                                                            const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                            const isPath = typeof f === 'string' && (f.startsWith('/file/project/') || f.startsWith('file/project/'));
+                                                            if (!isAbs && !isPath) return appUrl + '/file/project/' + f;
+                                                            if (!isAbs && isPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                            return f;
+                                                        }).filter(Boolean);
+                                                    } else if (feedback.reference_file) {
+                                                        let single = feedback.reference_file;
+                                                        const isAbs2 = typeof single === 'string' && (single.startsWith('http://') || single.startsWith('https://'));
+                                                        const isPath2 = typeof single === 'string' && (single.startsWith('/file/project/') || single.startsWith('file/project/'));
+                                                        if (!isAbs2 && !isPath2) single = appUrl + '/file/project/' + single;
+                                                        else if (!isAbs2 && isPath2) single = single.startsWith('/') ? (appUrl + single) : (appUrl + '/' + single);
+                                                        files = [single];
+                                                    }
+                                                    return files;
+                                                })(),
                                                 image_url: (function(){
                                                     const img = feedback.image || '';
                                                     if (!img) return '';
@@ -1753,69 +1871,54 @@ document.addEventListener("DOMContentLoaded", function () {
                                     mediaDiv.className = "feedback-media mt-2";
 
                                     if (
-                                        feedback.reference_url ||
-                                        feedback.reference_file
+                                        feedback.reference_url || feedback.reference_urls ||
+                                        feedback.reference_file || (Array.isArray(feedback.reference_files) && feedback.reference_files.length > 0)
                                     ) {
                                         const refContainer =
                                             document.createElement("div");
                                         refContainer.className =
                                             "feedback-reference-container";
 
-                                        if (feedback.reference_url) {
-                                            const refUrlLink =
-                                                document.createElement("a");
-                                            refUrlLink.href =
-                                                feedback.reference_url;
-                                            refUrlLink.target = "_blank";
-                                            refUrlLink.className =
-                                                "feedback-reference-url";
-
-                                            refUrlLink.innerHTML = `<span class="material-symbols-outlined">link</span> Reference Link`;
-                                            refContainer.appendChild(
-                                                refUrlLink
-                                            );
-                                        }
-
-                                        if (feedback.reference_file) {
-                                            const refFileLink =
-                                                document.createElement("a");
-                                            // Normalize file URL
-                                            let fileHref = feedback.reference_file;
-                                            if (
-                                                fileHref &&
-                                                !(String(fileHref).startsWith("http") || String(fileHref).startsWith("/"))
-                                            ) {
-                                                fileHref =
-                                                    appUrl +
-                                                    "/file/project/" +
-                                                    fileHref;
-                                            } else if (
-                                                fileHref &&
-                                                String(fileHref).startsWith("/")
-                                            ) {
-                                                fileHref = appUrl + fileHref;
+                                        // Render one or multiple reference URLs
+                                        (function(){
+                                            let urls = [];
+                                            if (Array.isArray(feedback.reference_urls)) urls = feedback.reference_urls;
+                                            else if (feedback.reference_urls && typeof feedback.reference_urls === 'string') {
+                                                try { const arr = JSON.parse(feedback.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
                                             }
-                                            refFileLink.href = fileHref;
-                                            refFileLink.download = "";
-                                            refFileLink.className =
-                                                "feedback-reference-file";
+                                            if ((!urls || urls.length === 0) && feedback.reference_url) urls = [feedback.reference_url];
+                                            urls.forEach((u, idx) => {
+                                                const a = document.createElement('a');
+                                                a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
+                                                a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                refContainer.appendChild(a);
+                                            });
+                                        })();
 
-                                            // Extract file extension/type from filename
-                                            const fileName =
-                                                feedback.reference_file;
-                                            let fileType = "";
-                                            const extMatch =
-                                                fileName.match(/\.(\w+)$/);
-                                            if (extMatch) {
-                                                fileType =
-                                                    extMatch[1].toUpperCase();
+                                        // Render multiple reference files
+                                        (function(){
+                                            let files = [];
+                                            let rf = feedback.reference_files;
+                                            if (!Array.isArray(rf) && typeof rf === 'string') {
+                                                try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
                                             }
-
-                                            refFileLink.innerHTML = `<span class="material-symbols-outlined">draft</span> FEEDBACK_${fileType}`;
-                                            refContainer.appendChild(
-                                                refFileLink
-                                            );
-                                        }
+                                            if (Array.isArray(rf) && rf.length) files = rf; else if (feedback.reference_file) files = [feedback.reference_file];
+                                            (files || []).forEach(function(file, idx){
+                                                if (!file) return;
+                                                let fileHref = file;
+                                                if (fileHref && !(String(fileHref).startsWith('http') || String(fileHref).startsWith('/'))) {
+                                                    fileHref = appUrl + '/file/project/' + fileHref;
+                                                } else if (fileHref && String(fileHref).startsWith('/')) {
+                                                    fileHref = appUrl + fileHref;
+                                                }
+                                                const a = document.createElement('a');
+                                                a.href = fileHref;
+                                                a.download = '';
+                                                a.className = 'feedback-reference-file ms-2';
+                                                a.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}`;
+                                                refContainer.appendChild(a);
+                                            });
+                                        })();
 
                                         mediaDiv.appendChild(refContainer);
                                     }
@@ -1940,7 +2043,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         parent_id: feedback.id,
                                                         feedback_comment: rep.feedback_comment || '',
                                                         reference_url: rep.reference_url || '',
+                                                        reference_urls: rep.reference_urls || [],
                                                         reference_file_url: rep.reference_file || '',
+                                                        reference_files_urls: (function(){
+                                                            let files = [];
+                                                            let rf = rep.reference_files;
+                                                            if (!Array.isArray(rf) && typeof rf === 'string') {
+                                                                try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                                            }
+                                                            if (Array.isArray(rf) && rf.length) {
+                                                                files = rf.map(function(f){
+                                                                    if (!f) return null;
+                                                                    const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                                    const isPath = typeof f === 'string' && (f.startsWith('/file/project/') || f.startsWith('file/project/'));
+                                                                    if (!isAbs && !isPath) return appUrl + '/file/project/' + f;
+                                                                    if (!isAbs && isPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                                    return f;
+                                                                }).filter(Boolean);
+                                                            } else if (rep.reference_file) {
+                                                                let single = rep.reference_file;
+                                                                const isAbs2 = typeof single === 'string' && (single.startsWith('http://') || single.startsWith('https://'));
+                                                                const isPath2 = typeof single === 'string' && (single.startsWith('/file/project/') || single.startsWith('file/project/'));
+                                                                if (!isAbs2 && !isPath2) single = appUrl + '/file/project/' + single;
+                                                                else if (!isAbs2 && isPath2) single = single.startsWith('/') ? (appUrl + single) : (appUrl + '/' + single);
+                                                                files = [single];
+                                                            }
+                                                            return files;
+                                                        })(),
                                                         image_url: (function(){
                                                             const img = rep.image || '';
                                                             if (!img) return '';
@@ -1972,28 +2101,44 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                             const repMedia = document.createElement('div');
                                             repMedia.className = 'feedback-reference-container mb-1';
-                                            if (rep.reference_url) {
-                                                const a = document.createElement('a');
-                                                a.href = rep.reference_url;
-                                                a.target = '_blank';
-                                                a.className = 'feedback-reference-url';
-                                                a.innerHTML = '<span class="material-symbols-outlined">link</span> Reference Link';
-                                                repMedia.appendChild(a);
-                                            }
-                                            if (rep.reference_file) {
-                                                const a2 = document.createElement('a');
-                                                let href = rep.reference_file;
-                                                if (href && !(String(href).startsWith('http') || String(href).startsWith('/'))) {
-                                                    href = appUrl + '/file/project/' + href;
-                                                } else if (href && String(href).startsWith('/')) {
-                                                    href = appUrl + href;
+                                            // Render one or multiple reference URLs in reply
+                                            (function(){
+                                                let urls = [];
+                                                if (Array.isArray(rep.reference_urls)) urls = rep.reference_urls;
+                                                else if (rep.reference_urls && typeof rep.reference_urls === 'string') {
+                                                    try { const arr = JSON.parse(rep.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
                                                 }
-                                                a2.href = href;
-                                                a2.download = '';
-                                                a2.className = 'feedback-reference-file ms-2';
-                                                a2.innerHTML = '<span class="material-symbols-outlined">draft</span> FEEDBACK_FILE';
-                                                repMedia.appendChild(a2);
-                                            }
+                                                if ((!urls || urls.length === 0) && rep.reference_url) urls = [rep.reference_url];
+                                                urls.forEach((u, idx) => {
+                                                    const a = document.createElement('a');
+                                                    a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
+                                                    a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                    repMedia.appendChild(a);
+                                                });
+                                            })();
+                                            (function(){
+                                                let files = [];
+                                                let rf = rep.reference_files;
+                                                if (!Array.isArray(rf) && typeof rf === 'string') {
+                                                    try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                                }
+                                                if (Array.isArray(rf) && rf.length) files = rf; else if (rep.reference_file) files = [rep.reference_file];
+                                                (files || []).forEach(function(file, idx){
+                                                    if (!file) return;
+                                                    let href = file;
+                                                    if (href && !(String(href).startsWith('http') || String(href).startsWith('/'))) {
+                                                        href = appUrl + '/file/project/' + href;
+                                                    } else if (href && String(href).startsWith('/')) {
+                                                        href = appUrl + href;
+                                                    }
+                                                    const a2 = document.createElement('a');
+                                                    a2.href = href;
+                                                    a2.download = '';
+                                                    a2.className = 'feedback-reference-file ms-2';
+                                                    a2.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}`;
+                                                    repMedia.appendChild(a2);
+                                                });
+                                            })();
                                             // Prepare reply image element but append later (below comment and references) like Task
                                             let rImg = null;
                                             if (rep.image) {
@@ -2014,7 +2159,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                             repDiv.appendChild(repHeader);
                                             repDiv.appendChild(repComment);
-                                            if (rep.reference_url || rep.reference_file) repDiv.appendChild(repMedia);
+                                            if ((rep.reference_url || (Array.isArray(rep.reference_urls) && rep.reference_urls.length) || rep.reference_file || (Array.isArray(rep.reference_files) && rep.reference_files.length))) repDiv.appendChild(repMedia);
                                             if (rImg) repDiv.appendChild(rImg);
                                             repliesContainer.appendChild(repDiv);
                                         });
@@ -2120,13 +2265,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
-                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
+                    <label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>
+                    <input type="file" class="form-control" id="feedback_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                    <div id="feedback_reference_files_preview" class="mt-2"></div>
                 </div>
         </form>
     `;
@@ -2171,6 +2322,48 @@ document.addEventListener("DOMContentLoaded", function () {
                             imageClearBtn.classList.add("d-none");
                         });
 
+                        // Setup multi-file preview for Add Feedback reference files
+                        (function(){
+                            try {
+                                window.addFeedbackSelectedFiles = [];
+                                const input = modalBody.querySelector('#feedback_reference_files');
+                                const preview = modalBody.querySelector('#feedback_reference_files_preview');
+                                if (!input || !preview) return;
+                                function render() {
+                                    preview.innerHTML = '';
+                                    if (!window.addFeedbackSelectedFiles.length) return;
+                                    const list = document.createElement('div');
+                                    list.className = 'selected-files-list mt-2';
+                                    window.addFeedbackSelectedFiles.forEach(function(file, idx){
+                                        const item = document.createElement('div');
+                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                                        const info = document.createElement('div');
+                                        info.className = 'd-flex align-items-center flex-grow-1';
+                                        const icon = document.createElement('span');
+                                        icon.className = 'material-symbols-outlined me-2';
+                                        icon.textContent = 'description';
+                                        const name = document.createElement('span');
+                                        name.textContent = file.name;
+                                        name.className = 'file-name';
+                                        const size = document.createElement('small');
+                                        size.className = 'text-muted ms-1';
+                                        size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
+                                        const rm = document.createElement('button');
+                                        rm.type = 'button'; rm.className = 'btn btn-sm btn-outline-danger'; rm.innerHTML = '&times;';
+                                        rm.onclick = function(){ window.addFeedbackSelectedFiles.splice(idx,1); render(); };
+                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size);
+                                        item.appendChild(info); item.appendChild(rm); list.appendChild(item);
+                                    });
+                                    preview.appendChild(list);
+                                }
+                                input.addEventListener('change', function(){
+                                    const files = Array.from(this.files || []);
+                                    window.addFeedbackSelectedFiles = window.addFeedbackSelectedFiles.concat(files);
+                                    render(); this.value = '';
+                                });
+                            } catch(_) {}
+                        })();
+
                         // Change Add Feedback button text to Submit
                         addFeedbackButton.textContent = "Submit";
 
@@ -2202,6 +2395,24 @@ document.addEventListener("DOMContentLoaded", function () {
                         submitBtn.disabled = true;
 
                         const formData = new FormData(form);
+                        // Map first non-empty reference_urls[] to single reference_url for backend
+                        try {
+                            const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                            if (urls.length) formData.set('reference_url', urls[0]);
+                        } catch(_) {}
+
+                        // Append selected reference files for add form
+                        try {
+                            if (window.addFeedbackSelectedFiles && window.addFeedbackSelectedFiles.length) {
+                                window.addFeedbackSelectedFiles.forEach(f => formData.append('reference_files[]', f));
+                            } else {
+                                const rfInput = form.querySelector('#feedback_reference_files');
+                                if (rfInput && rfInput.files && rfInput.files.length) {
+                                    Array.from(rfInput.files).forEach(f => formData.append('reference_files[]', f));
+                                }
+                            }
+                        } catch(_) {}
 
                         fetch(appUrl + "/project-feedbacks", {
                             method: "POST",
@@ -2307,13 +2518,19 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
 
             <div class="mb-3">
-                <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                <label class="form-label">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
             </div>
 
             <div class="mb-3">
-                <label for="reference_file" class="form-label">Reference File (Optional)</label>
-                <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
+                <label for="reply_reference_files" class="form-label">Reference Files (Optional)</label>
+                <input type="file" class="form-control" id="reply_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                <div id="reply_reference_files_preview" class="mt-2"></div>
             </div>
         </form>`;
 
@@ -2349,6 +2566,39 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         })();
 
+                        // Setup multi-file preview for Reply reference files
+                        (function(){
+                            try {
+                                window.replyFeedbackSelectedFiles = [];
+                                const input = modalBody.querySelector('#reply_reference_files');
+                                const preview = modalBody.querySelector('#reply_reference_files_preview');
+                                if (!input || !preview) return;
+                                function render(){
+                                    preview.innerHTML = '';
+                                    if (!window.replyFeedbackSelectedFiles.length) return;
+                                    const list = document.createElement('div');
+                                    list.className = 'selected-files-list mt-2';
+                                    window.replyFeedbackSelectedFiles.forEach(function(file, idx){
+                                        const item = document.createElement('div');
+                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                                        const info = document.createElement('div');
+                                        info.className = 'd-flex align-items-center flex-grow-1';
+                                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
+                                        const name = document.createElement('span'); name.className = 'file-name'; name.textContent = file.name;
+                                        const size = document.createElement('small'); size.className = 'text-muted ms-1'; size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
+                                        const rm = document.createElement('button'); rm.type='button'; rm.className='btn btn-sm btn-outline-danger'; rm.innerHTML='&times;'; rm.onclick=function(){ window.replyFeedbackSelectedFiles.splice(idx,1); render(); };
+                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
+                                    });
+                                    preview.appendChild(list);
+                                }
+                                input.addEventListener('change', function(){
+                                    const files = Array.from(this.files || []);
+                                    window.replyFeedbackSelectedFiles = window.replyFeedbackSelectedFiles.concat(files);
+                                    render(); this.value = '';
+                                });
+                            } catch(_) {}
+                        })();
+
                         const addBtn = document.getElementById("addFeedbackButton");
                         if (addBtn) {
                             addBtn.textContent = "Submit";
@@ -2359,6 +2609,24 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const form = document.getElementById("replyFeedbackForm");
                                 if (!form) return;
                                 const fd = new FormData(form);
+                                // Map first non-empty reference_urls[] to single reference_url for backend
+                                try {
+                                    const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                                    const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                                    if (urls.length) fd.set('reference_url', urls[0]);
+                                } catch(_) {}
+                                // Append selected reference files for reply form
+                                try {
+                                    if (window.replyFeedbackSelectedFiles && window.replyFeedbackSelectedFiles.length) {
+                                        window.replyFeedbackSelectedFiles.forEach(f => fd.append('reference_files[]', f));
+                                    } else {
+                                        const rfInput = form.querySelector('#reply_reference_files');
+                                        if (rfInput && rfInput.files && rfInput.files.length) {
+                                            Array.from(rfInput.files).forEach(f => fd.append('reference_files[]', f));
+                                        }
+                                    }
+                                } catch(_) {}
+
                                 fetch(appUrl + "/project-feedbacks", {
                                     method: "POST",
                                     headers: {
@@ -2430,14 +2698,16 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
 
             <div class="mb-3">
-                <label for="reference_url" class="form-label label-custom">Reference URL (Optional)</label>
-                <input type="url" class="form-control" id="reference_url" name="reference_url" value="${data.reference_url || ''}" placeholder="https://example.com">
+                <label class="form-label label-custom">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
             </div>
 
             <div class="mb-3">
-                <label for="reference_file" class="form-label label-custom">Reference File (Optional)</label>
-                <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx">
-                ${data.reference_file_url ? `<div class="mt-1"><a href="${data.reference_file_url}" target="_blank" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> Current File</a></div>` : ''}
+                <label for="edit_reference_files" class="form-label label-custom">Reference Files (Optional)</label>
+                <input type="file" class="form-control" id="edit_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                <div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>
+                <div id="edit_feedback_reference_files_preview" class="mt-2"></div>
             </div>
         </form>`;
 
@@ -2473,6 +2743,38 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         })();
 
+                        // Setup multi-file preview for Edit Feedback reference files
+                        (function(){
+                            try {
+                                window.editFeedbackSelectedFiles = [];
+                                const input = modalBody.querySelector('#edit_reference_files');
+                                const preview = modalBody.querySelector('#edit_feedback_reference_files_preview');
+                                if (!input || !preview) return;
+                                function render(){
+                                    preview.innerHTML='';
+                                    if (!window.editFeedbackSelectedFiles.length) return;
+                                    const list = document.createElement('div');
+                                    list.className = 'selected-files-list mt-2';
+                                    window.editFeedbackSelectedFiles.forEach(function(file, idx){
+                                        const item = document.createElement('div');
+                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                                        const info = document.createElement('div'); info.className = 'd-flex align-items-center flex-grow-1';
+                                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
+                                        const name = document.createElement('span'); name.className = 'file-name'; name.textContent = file.name;
+                                        const size = document.createElement('small'); size.className = 'text-muted ms-1'; size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
+                                        const rm = document.createElement('button'); rm.type='button'; rm.className='btn btn-sm btn-outline-danger'; rm.innerHTML='&times;'; rm.onclick=function(){ window.editFeedbackSelectedFiles.splice(idx,1); render(); };
+                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
+                                    });
+                                    preview.appendChild(list);
+                                }
+                                input.addEventListener('change', function(){
+                                    const files = Array.from(this.files || []);
+                                    window.editFeedbackSelectedFiles = window.editFeedbackSelectedFiles.concat(files);
+                                    render(); this.value='';
+                                });
+                            } catch(_) {}
+                        })();
+
                         const addBtn = document.getElementById("addFeedbackButton");
                         if (addBtn) {
                             addBtn.textContent = "Update";
@@ -2483,6 +2785,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const form = document.getElementById("editFeedbackForm");
                                 if (!form) return;
                                 const fd = new FormData(form);
+                                // Map first non-empty reference_urls[] to single reference_url for backend
+                                try {
+                                    const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                                    const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                                    if (urls.length) fd.set('reference_url', urls[0]);
+                                    else fd.set('reference_url', '');
+                                } catch(_) {}
+                                // Include existing files and new selected files for edit form
+                                try {
+                                    const existingHidden = form.querySelector('#existing_feedback_reference_files_input');
+                                    const existingList = form.querySelectorAll('#existing_feedback_reference_files .existing-file-item a');
+                                    let keep = [];
+                                    existingList.forEach(a => { const name = (a.textContent || '').trim(); if (name) keep.push(name); });
+                                    if (existingHidden) existingHidden.value = JSON.stringify(keep);
+                                } catch(_) {}
+                                try {
+                                    if (window.editFeedbackSelectedFiles && window.editFeedbackSelectedFiles.length) {
+                                        window.editFeedbackSelectedFiles.forEach(f => fd.append('reference_files[]', f));
+                                    } else {
+                                        const rfInput = form.querySelector('#edit_reference_files');
+                                        if (rfInput && rfInput.files && rfInput.files.length) {
+                                            Array.from(rfInput.files).forEach(f => fd.append('reference_files[]', f));
+                                        }
+                                    }
+                                } catch(_) {}
                                 fd.append("_method", "PUT");
                                 fetch(appUrl + `/project-feedbacks/${data.id}` , {
                                     method: "POST",
@@ -2502,6 +2829,125 @@ document.addEventListener("DOMContentLoaded", function () {
                                     });
                             });
                         }
+
+                        // Prefill reference URLs container for edit form
+                        (function(){
+                            const container = document.getElementById('feedback_reference_urls_container');
+                            if (!container) return;
+                            container.innerHTML = '';
+                            let urls = [];
+                            if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                            else if (typeof data.reference_urls === 'string') {
+                                try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                            }
+                            if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+                            function addRow(value, withAdd){
+                                const row = document.createElement('div');
+                                row.className = 'd-flex gap-2 align-items-center';
+                                row.innerHTML = '<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">' +
+                                    (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
+                                container.appendChild(row);
+                                const inp = row.querySelector('input[type="url"]');
+                                if (inp && value) inp.value = value;
+                            }
+                            // Place the ADD row first, then existing URL rows below it
+                            addRow('', true);
+                            (urls || []).forEach((u) => addRow(u, false));
+                        })();
+
+                        // Prefill existing reference files list for edit form and wire remove buttons
+                        (function(){
+                            // Scope to modalBody to avoid clashing with project edit modal elements
+                            const container = modalBody.querySelector('#existing_feedback_reference_files');
+                            const hidden = modalBody.querySelector('#existing_feedback_reference_files_input');
+                            if (!container || !hidden) return;
+
+                            // Build files array from multiple possible shapes
+                            let files = [];
+                            if (Array.isArray(data.reference_files_urls)) {
+                                files = data.reference_files_urls.slice();
+                            } else if (Array.isArray(data.reference_files)) {
+                                files = data.reference_files.slice();
+                            } else if (data.reference_file_url) {
+                                files = [data.reference_file_url];
+                            } else if (data.reference_file) {
+                                files = [data.reference_file];
+                            }
+
+                            function toUrl(v){
+                                if (!v) return '';
+                                const s = String(v);
+                                if (s.startsWith('http://') || s.startsWith('https://')) return s;
+                                if (s.startsWith('/')) return appUrl + s;
+                                return appUrl + '/file/project/' + s;
+                            }
+                            function toName(u){
+                                if (!u) return '';
+                                const s = String(u);
+                                if (s.startsWith('http://') || s.startsWith('https://')) {
+                                    try { return new URL(s).pathname.split('/').pop(); } catch(_) { return s.split('/').pop(); }
+                                }
+                                return s.split('/').pop();
+                            }
+
+                            container.innerHTML = '';
+                            if ((files || []).length > 0) {
+                                const title = document.createElement('div');
+                                title.className = 'fw-bold mb-2';
+                                title.textContent = 'Current Files:';
+                                container.appendChild(title);
+
+                                const list = document.createElement('div');
+                                list.className = 'existing-files-list w-100';
+
+                                (files || []).forEach(function(f){
+                                    const url = toUrl(f);
+                                    const name = toName(f);
+                                    if (!name) return;
+
+                                    const item = document.createElement('div');
+                                    item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+
+                                    const info = document.createElement('div');
+                                    info.className = 'd-flex align-items-center flex-grow-1';
+
+                                    const icon = document.createElement('span');
+                                    icon.className = 'material-symbols-outlined me-2';
+                                    icon.textContent = 'description';
+
+                                    const link = document.createElement('a');
+                                    link.href = url; link.textContent = name; link.className = 'text-decoration-none'; link.target = '_blank';
+
+                                    const removeBtn = document.createElement('button');
+                                    removeBtn.type = 'button';
+                                    removeBtn.className = 'btn btn-sm btn-outline-danger';
+                                    removeBtn.innerHTML = '&times;';
+                                    removeBtn.onclick = function(){
+                                        item.remove();
+                                        try {
+                                            const anchors = container.querySelectorAll('.existing-file-item a');
+                                            const next = Array.from(anchors).map(a => (a.textContent || '').trim()).filter(Boolean);
+                                            hidden.value = JSON.stringify(next);
+                                        } catch(_) {}
+                                    };
+
+                                    info.appendChild(icon);
+                                    info.appendChild(link);
+                                    item.appendChild(info);
+                                    item.appendChild(removeBtn);
+                                    list.appendChild(item);
+                                });
+
+                                container.appendChild(list);
+                            }
+
+                            // Initialize hidden keep list with all names
+                            try {
+                                const anchors = container.querySelectorAll('.existing-file-item a');
+                                const names = Array.from(anchors).map(a => (a.textContent || '').trim()).filter(Boolean);
+                                hidden.value = JSON.stringify(names);
+                            } catch(_) { hidden.value = '[]'; }
+                        })();
 
                         // Back button like Task
                         const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
@@ -2791,14 +3237,29 @@ document.addEventListener("DOMContentLoaded", function () {
                                 $("#projectDetailDivision").text(data.division || "");
                                 $("#projectDetailDescription").text(data.description || "");
 
-                                if (data.reference_url) {
-                                    $("#projectDetailReferenceUrl")
-                                        .attr("href", data.reference_url)
-                                        .text(data.reference_url)
-                                        .show();
-                                } else {
-                                    $("#projectDetailReferenceUrl").hide();
-                                }
+                                // Render multiple reference URLs (match Task behavior)
+                                (function(){
+                                    const wrap = document.getElementById('projectDetailReferenceUrls');
+                                    if (!wrap) return;
+                                    wrap.innerHTML = '';
+                                    let urls = [];
+                                    if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                                    else if (typeof data.reference_urls === 'string') {
+                                        try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                    }
+                                    if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+                                    if (urls.length > 0) {
+                                        urls.forEach((u, i) => {
+                                            const a = document.createElement('a');
+                                            a.href = u; a.target = '_blank'; a.rel = 'noopener';
+                                            a.textContent = `Link ${i+1}`;
+                                            a.className = 'me-2';
+                                            wrap.appendChild(a);
+                                        });
+                                    } else {
+                                        wrap.textContent = '-';
+                                    }
+                                })();
 
                                 if (data.reference_file) {
                                     $("#projectDetailReferenceFile")
@@ -4099,6 +4560,12 @@ function refreshAllProjectLatestFeedbackSnippets() {
         submitBtn.disabled = true;
 
         const formData = new FormData(addProjectForm);
+        // Map first non-empty reference_urls[] to single reference_url for backend compatibility
+        try {
+            const urlInputs = addProjectForm.querySelectorAll('input[name="reference_urls[]"]');
+            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+            if (urls.length) formData.set('reference_url', urls[0]);
+        } catch(_) {}
 
         // Append project selected reference files (if any)
         if (projectSelectedFiles && projectSelectedFiles.length) {
