@@ -49,6 +49,9 @@ $(document).ready(function() {
         });
     }
 
+    // Cache for latest fetched notifications with acceptance status
+    let __notificationsCache = [];
+
     function fetchNotifications() {
         console.log('Fetching notifications...');
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
@@ -74,6 +77,8 @@ $(document).ready(function() {
         checkTaskAcceptanceStatus(notifications).then(notificationsWithTaskStatus => {
             return checkProjectAcceptanceStatus(notificationsWithTaskStatus);
         }).then(notificationsWithStatus => {
+            // Cache for bulk operations
+            __notificationsCache = notificationsWithStatus || [];
             let html = '';
             notificationsWithStatus.forEach(notification => {
                 const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
@@ -166,6 +171,206 @@ $(document).ready(function() {
             }
         });
     }
+
+    // Helpers to extract task/project notifications (unaccepted only)
+    function extractTaskAssignments(list) {
+        return (list || []).reduce((acc, n) => {
+            try {
+                const isTask = n.type === 'task_assignment';
+                const m = (n.message || '').match(/Task ID: (\d+)/);
+                const taskId = m ? parseInt(m[1], 10) : null;
+                if (isTask && taskId && !n.is_accepted) acc.push({ taskId, notificationId: n.id });
+            } catch(_) {}
+            return acc;
+        }, []);
+    }
+    function extractProjectAssignments(list) {
+        return (list || []).reduce((acc, n) => {
+            try {
+                const isProj = (n.type === 'new job') && String(n.title || '').toLowerCase().includes('project');
+                if (isProj && !n.is_accepted) {
+                    const m = (n.message || '').match(/project: (.+)$/);
+                    const title = m ? m[1] : null;
+                    if (title) acc.push({ projectTitle: title, notificationId: n.id });
+                }
+            } catch(_) {}
+            return acc;
+        }, []);
+    }
+
+    // Fetch all projects once and build a map: title -> id
+    let __projectTitleToId = null;
+    function getProjectTitleMap() {
+        const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+        if (__projectTitleToId) return Promise.resolve(__projectTitleToId);
+        return $.ajax({ url: `${appUrl}/project/index?include_unaccepted=true`, type: 'GET' })
+            .then((res) => {
+                const map = {};
+                (res && Array.isArray(res.data) ? res.data : []).forEach(p => { if (p && p.title) map[p.title] = p.id; });
+                __projectTitleToId = map;
+                return map;
+            });
+    }
+
+    // Perform one acceptance + mark notification read
+    function acceptOneTask(taskId, notificationId) {
+        const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+        return $.ajax({
+            url: `${appUrl}/task/${taskId}/accept`,
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+        }).then(() => {
+            return $.ajax({ url: `${appUrl}/notifications/${notificationId}/read`, method: 'POST', headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+        }).catch((e) => {
+            // Continue bulk even if one fails
+            return $.Deferred().resolve().promise();
+        });
+    }
+    function acceptOneProject(projectId, notificationId) {
+        const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+        return $.ajax({
+            url: `${appUrl}/project/${projectId}/accept`,
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+        }).then(() => {
+            return $.ajax({ url: `${appUrl}/notifications/${notificationId}/read`, method: 'POST', headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
+        }).catch(() => {
+            return $.Deferred().resolve().promise();
+        });
+    }
+
+    function acceptAllTasks(list) {
+        const items = extractTaskAssignments(list);
+        if (items.length === 0) return Promise.resolve();
+        // Chain sequentially to avoid server overload
+        let chain = Promise.resolve();
+        items.forEach(({ taskId, notificationId }) => {
+            chain = chain.then(() => acceptOneTask(taskId, notificationId));
+        });
+        return chain;
+    }
+
+    function acceptAllProjects(list) {
+        const items = extractProjectAssignments(list);
+        if (items.length === 0) return Promise.resolve();
+        return getProjectTitleMap().then((map) => {
+            let chain = Promise.resolve();
+            items.forEach(({ projectTitle, notificationId }) => {
+                const pid = map[projectTitle];
+                if (!pid) return; // skip unknown
+                chain = chain.then(() => acceptOneProject(pid, notificationId));
+            });
+            return chain;
+        });
+    }
+
+    function showBulkAcceptModal(opts) {
+        const { showTasks, showProjects, onTasks, onProjects, onAll } = opts || {};
+        const id = 'bulkAcceptModal';
+        // Remove existing
+        $('#' + id).remove();
+        const hasBoth = !!(showTasks && showProjects);
+        const title = 'Confirmation';
+        const body = hasBoth
+            ? 'There are Task and Project notifications. Choose an action:'
+            : (showTasks ? 'Task notifications found. Proceed to accept all tasks?' : 'Project notifications found. Proceed to accept all projects?');
+
+        const actionsHtml = hasBoth
+                ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>
+                    <button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>
+                    <button type="button" class="btn btn-submit-black" id="bulkAcceptAllBtn" style="white-space: nowrap;">Accept all</button>`
+            : (showTasks
+                ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn">Accept all tasks</button>`
+                : `<button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn">Accept all projects</button>`);
+
+        const footerButtons = hasBoth
+            ? `<div class="d-flex" style="gap:8px; flex-wrap: nowrap;">
+                   ${actionsHtml}
+               </div>`
+            : `<button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
+               <div class="d-flex" style="gap:8px;">${actionsHtml}</div>`;
+
+        const html = `
+            <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" style="max-width:520px;">
+                    <div class="modal-content modal-content-custom">
+                        <div class="modal-header modal-header-custom">
+                            <h5 class="modal-title modal-title-custom">${title}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0">${body}</p>
+                        </div>
+                        <div class="modal-footer d-flex justify-content-between">
+                            ${footerButtons}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        $('body').append(html);
+        const m = new bootstrap.Modal(document.getElementById(id));
+        m.show();
+        const closeModal = () => { try { m.hide(); } catch(_) {} $('#'+id).on('hidden.bs.modal', function(){ $(this).remove(); }); };
+        if (showTasks) {
+            $('#bulkAcceptTasksBtn').on('click', function(){ onTasks && onTasks().finally(() => closeModal()); });
+        }
+        if (showProjects) {
+            $('#bulkAcceptProjectsBtn').on('click', function(){ onProjects && onProjects().finally(() => closeModal()); });
+        }
+        if (hasBoth) {
+            $('#bulkAcceptAllBtn').on('click', function(){ onAll && onAll().finally(() => closeModal()); });
+        }
+    }
+
+    function afterBulkDone(message, redirectPath = null) {
+        if (typeof window.showAlertMsg === 'function') {
+            window.showAlertMsg(message, 'light', 2000);
+        } else {
+            showDeleteSuccessAlert(message, 'success');
+        }
+        // Refresh UI state
+        fetchNotificationCount();
+        fetchNotifications();
+        // Uncheck select all
+        $('#notificationSelectAll').prop('checked', false);
+        if (redirectPath) {
+            const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+            setTimeout(() => { window.location.href = `${appUrl}${redirectPath}`; }, 800);
+        }
+    }
+
+    // Select All checkbox handler
+    $(document).on('change', '#notificationSelectAll', function(){
+        if (!this.checked) return; // only react on check
+
+        const taskItems = extractTaskAssignments(__notificationsCache);
+        const projectItems = extractProjectAssignments(__notificationsCache);
+        const hasTasks = taskItems.length > 0;
+        const hasProjects = projectItems.length > 0;
+
+        if (!hasTasks && !hasProjects) {
+            // Nothing to accept
+            if (typeof window.showAlertMsg === 'function') {
+                window.showAlertMsg('No Task/Project notifications to accept.', 'warning', 2000);
+            }
+            $(this).prop('checked', false);
+            return;
+        }
+
+        showBulkAcceptModal({
+            showTasks: hasTasks,
+            showProjects: hasProjects,
+            onTasks: () => acceptAllTasks(__notificationsCache).then(() => {
+                afterBulkDone('Successfully accepted all tasks', '/task');
+            }),
+            onProjects: () => acceptAllProjects(__notificationsCache).then(() => {
+                afterBulkDone('Successfully accepted all projects', '/project');
+            }),
+            onAll: () => acceptAllTasks(__notificationsCache).then(() => acceptAllProjects(__notificationsCache)).then(() => {
+                afterBulkDone('Successfully accepted all tasks and projects', null);
+            })
+        });
+    });
 
     // Add event listener for accept task buttons
     $(document).on('click', '.btn-accept-task', function(e) {

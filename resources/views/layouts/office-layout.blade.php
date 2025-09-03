@@ -322,6 +322,12 @@
                     Notifications
                 </h5>
             </div>
+            <div class="px-3 pt-2 pb-2 border-bottom">
+                <label for="notificationSelectAll" class="nsa-selectall-chip">
+                    <input class="form-check-input me-2" type="checkbox" value="1" id="notificationSelectAll" />
+                    <span>Select all</span>
+                </label>
+            </div>
             <div class="notification-list" id="notificationList">
                 <!-- Notifications will be loaded dynamically -->
                 <div class="text-center py-4">
