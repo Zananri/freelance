@@ -15,10 +15,6 @@ class EmployeeShift extends Model
         'date_shift',
     ];
 
-    protected $casts = [
-        'date_shift' => 'date',
-    ];
-
     public function employee()
     {
         return $this->belongsTo(Employee::class);

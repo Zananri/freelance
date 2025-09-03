@@ -17,6 +17,9 @@ use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\CalendarController;
 
+use App\Http\Controllers\DashboardController;
+
+
 use Carbon\Carbon;
 
 
@@ -49,6 +52,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
         
+
+    Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
+
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
     Route::post('/profile/verify-current-password', [ProfileController::class, 'verifyCurrentPassword'])->name('profile.verifyCurrentPassword');
@@ -117,7 +123,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/teams', [TeamsController::class, 'showTeamsPage'])->name('teams');
     Route::get('/teams/get-teams-detail', [TeamsController::class, 'getTeamsDetail'])->name('teams.getTeamsDetail');
 
-    Route::get('/dashboard', [UserController::class, 'dashboard'])->name('dashboard');
     // Client-side routes JSON
     Route::get('/client-routes', [UserController::class, 'clientRoutes'])->name('client.routes');
 
@@ -136,6 +141,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
     Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
     Route::get('/attendance/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
+    
+    Route::post('/attendance/submit-checkin', [AttendanceController::class, 'submitCheckin'])->name('attendance.submitCheckin');
+    Route::post('/attendance/submit-checkout', [AttendanceController::class, 'submitCheckout'])->name('attendance.submitCheckout');
+
     Route::post('/attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::post('/attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
     Route::get('/attendance/today/{employeeId}', [AttendanceController::class, 'getTodayAttendance'])->name('attendance.today');

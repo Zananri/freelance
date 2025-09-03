@@ -33,13 +33,13 @@
 .calendar-day.checked-in {
     position: relative;
     /* Add half triangular background for check-in (top-left) */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+    background: linear-gradient(135deg, #3391f1 50%, transparent 50%);
 }
 
 .calendar-day.checked-out {
     position: relative;
     /* Add half triangular background for check-out (bottom-right) */
-    background: linear-gradient(315deg, #6c757d 50%, transparent 50%);
+    background: linear-gradient(315deg, #8d8d8d 50%, transparent 50%);
 }
 
 .check-in-label {
@@ -48,7 +48,7 @@
     left: 2px;
     color: white;
     font-size: 16px;
-    padding: 1px 4px;d
+    padding: 1px 4px;
     border-radius: 2px;
     z-index: 10;
     font-weight: 400;
@@ -75,9 +75,10 @@
 /* When both check-in and check-out are present */
 .calendar-day.checked-in.checked-out {
     /* Single gradient with sharp half split without white line */
-    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
+    background: linear-gradient(135deg, #3391f1 50%, #8d8d8d 50%);
     color: white;
 }
+
 
 /* Fixed dimensions for calendar card with spacing */
 .calendar-container {

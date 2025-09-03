@@ -20,12 +20,6 @@ class Shift extends Model
         'deleted_by',
     ];
 
-    protected $casts = [
-        'time_start' => 'datetime:H:i',
-        'time_end' => 'datetime:H:i',
-        'total_hour' => 'decimal:2',
-    ];
-
     public function employeeShifts()
     {
         return $this->hasMany(EmployeeShift::class);

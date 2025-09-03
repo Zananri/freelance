@@ -59,6 +59,7 @@ class AttendanceController extends Controller
      * Display a listing of the resource.
      */
   
+
     public function showAttendancePage()
     {
         $userId = Auth::id();
@@ -127,14 +128,7 @@ class AttendanceController extends Controller
         try {
             DB::beginTransaction();
 
-            \Log::info('Attendance store request data:', [
-                'all_data' => $request->all(),
-                'files' => $request->allFiles(),
-                'headers' => $request->headers->all()
-            ]);
-
             $validated = $request->validate([
-                'employee_id' => 'required|exists:employees,id',
                 'is_work_outside' => 'required|in:0,1,true,false',
                 'date_attendance' => 'required|date',
                 'time_in' => 'required|date_format:H:i',
@@ -148,21 +142,21 @@ class AttendanceController extends Controller
             $dateTime = Carbon::parse($validated['date_attendance'] . ' ' . $validated['time_in']);
 
             // Ensure image is initialized as an array
-          $imageArray = [];
+            $imageArray = [];
 
-if ($request->hasFile('image')) {
-    $image = $request->file('image');
-    $imageName = 'ATTENDANCE_' . time() . '.' . $image->getClientOriginalExtension();
+            if ($request->hasFile('image')) {
+                $image = $request->file('image');
+                $imageName = 'ATTENDANCE_' . time() . '.' . $image->getClientOriginalExtension();
 
-    // Tentukan path tujuan
-    $destinationPath = public_path('file/attendance');
+                // Tentukan path tujuan
+                $destinationPath = public_path('file/attendance');
 
-    // Pindahkan file ke folder tujuan
-    $image->move($destinationPath, $imageName);
+                // Pindahkan file ke folder tujuan
+                $image->move($destinationPath, $imageName);
 
-    // Simpan path relatif ke array
-    $imageArray[] = 'file/attendance/' . $imageName;
-}
+                // Simpan path relatif ke array
+                $imageArray[] = 'file/attendance/' . $imageName;
+            }
 
 
             // Choose shift source for validation and late calculation
@@ -347,6 +341,311 @@ if ($request->hasFile('image')) {
         }
     }
 
+    public function submitCheckin(Request $request){
+        try {
+            DB::beginTransaction();
+
+            $request->validate([
+                'is_work_outside' => 'required|in:0,1,true,false',
+                'latitudeCheckIn' => 'required',
+                'longitudeCheckIn' => 'required',
+                'photo_checkin' => 'nullable|image|mimes:jpeg,png,jpg|max:10048',
+            ]);
+
+            //$request->hasFile('photo_checkin');
+            
+            $user = auth()->user();
+            $userId = $user->id;
+
+            $workOutside = $request->input('is_work_outside');
+            $latitude = $request->input('latitudeCheckIn');
+            $longitude = $request->input('longitudeCheckIn');
+            $location = $latitude . ',' . $longitude;
+
+            //$image = $request->file('photo_checkin');
+            //$imageName = 'ATTENDANCE_' . time() . '.' . $image->getClientOriginalExtension();
+
+            $now = Carbon::now();
+            $today = Carbon::today()->toDateString();
+
+            $employee = Employee::with('shift')->where('user_id', $userId)->first();
+            
+            $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+                    ->where('date_shift', $today)
+            ->first();
+
+            $shifTimeStart = Carbon::parse($employee->shift->time_start);
+            $shifTimeEnd = Carbon::parse($employee->shift->time_end);
+
+            if($employeeShift){
+                $shifTimeStart = Carbon::parse($employeeShift->shift->time_start);
+                $shifTimeEnd = Carbon::parse($employeeShift->shift->time_end);
+            }
+
+            $timeLate = '00:00:00';
+
+            if($now > $shifTimeStart){
+                $timeLate = $now->diff($shifTimeStart)->format('%H:%I:%S');
+            }
+
+            $checkEarlyTime = $now->diffInMinutes($shifTimeStart);
+
+            if($checkEarlyTime > 60){
+                throw new \Exception('To early to check in, your shift '.$shifTimeStart->format('H:i').' - '.$shifTimeEnd->format('H:i'));
+            }
+
+            if($now > $shifTimeEnd){
+                throw new \Exception('Check in only available in your shift '.$shifTimeStart->format('H:i').' - '.$shifTimeEnd->format('H:i'));
+            }
+
+            $imageArray = [];
+
+            if ($request->hasFile('photo_checkin')) {
+
+                $image = $request->file('photo_checkin');
+                $imageName = 'ATTENDANCE_' . time() . '.' . $image->getClientOriginalExtension();
+
+                $destinationPath = public_path('file/attendance');
+                $image->move($destinationPath, $imageName);
+                $imageArray[] = 'file/attendance/' . $imageName;
+            }
+
+            if($workOutside == 1 && count($imageArray) == 0){
+                throw new \Exception('Work outside, please add photo');
+            }
+
+            $attendanceExist = Attendance::where('employee_id',$employee->id)->where('date_attendance',$now->toDateString())->first();
+            $attendanceId = 0;
+
+            if($attendanceExist){
+                $attendanceId = $attendanceExist->id;
+                $attendanceExist->update([
+                    'time_in' => $now->format('H:i'),
+                    'updated_by' => $userId
+                ]);
+            }else{
+                // Create attendance record
+                $attendance = Attendance::create([
+                    'employee_id' => $employee->id,
+                    'date_attendance' => $now->toDateString(),
+                    'time_in' => $now->format('H:i'),
+                    'type_attendance' => 'check_in',
+                    'note' => null,
+                    'image' => $imageArray,
+                    'time_late' => $timeLate,
+                    'created_by' => $userId,
+                    'updated_by' => $userId
+                ]);
+
+                $attendanceId = $attendance->id;
+            }
+
+            
+
+            // Create attendance tracking record
+            $attendanceTracking = AttendanceTracking::create([
+                'attendance_id' => $attendanceId,
+                'is_work_outside' => $workOutside,
+                'type' => 'check_in',
+                'location' => $location, // Set null dulu sesuai permintaan
+                'device' => DeviceHelper::getDeviceFromRequest($request), // Simpan device awal
+                'image' => $imageArray, // Simpan juga di attendance_trackings
+                'date_time' => $now,
+                'created_by' => $userId,
+                'updated_by' => $userId
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'attendance' => $attendance,
+                    'attendance_tracking' => $attendanceTracking
+                ],
+                'message' => 'Check In successfully'
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+
+    }
+
+    public function submitCheckout(Request $request){
+        try {
+            DB::beginTransaction();
+
+            $request->validate([
+                'is_work_outside' => 'required|in:0,1,true,false',
+                'latitudeCheckOut' => 'required',
+                'longitudeCheckOut' => 'required',
+                'photo_checkout' => 'nullable|image|mimes:jpeg,png,jpg|max:10048',
+            ]);
+
+            //$request->hasFile('photo_checkin');
+            
+            $user = auth()->user();
+            $userId = $user->id;
+
+            $workOutside = $request->input('is_work_outside');
+            $latitude = $request->input('latitudeCheckOut');
+            $longitude = $request->input('longitudeCheckOut');
+            $location = $latitude . ',' . $longitude;
+
+            //$image = $request->file('photo_checkin');
+            //$imageName = 'ATTENDANCE_' . time() . '.' . $image->getClientOriginalExtension();
+
+            $now = Carbon::now();
+            $today = Carbon::today()->toDateString();
+
+            $employee = Employee::with('shift')->where('user_id', $userId)->first();
+            
+            $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+                    ->where('date_shift', $today)
+            ->first();
+
+            $shifTimeStart = Carbon::parse($employee->shift->time_start);
+            $shifTimeEnd = Carbon::parse($employee->shift->time_end);
+
+            if($employeeShift){
+                $shifTimeStart = Carbon::parse($employeeShift->shift->time_start);
+                $shifTimeEnd = Carbon::parse($employeeShift->shift->time_end);
+            }
+
+            $timeOut = '00:00:00';
+
+            if($now > $shifTimeEnd){
+                $timeOut = $now->diff($shifTimeEnd)->format('%H:%I:%S');
+            }
+
+            $checkEarlyTime = $now->diffInMinutes($shifTimeEnd);
+
+            if($checkEarlyTime > 60){
+                throw new \Exception('To early to check out, your shift '.$shifTimeStart->format('H:i').' - '.$shifTimeEnd->format('H:i'));
+            }
+
+            if($now < $shifTimeEnd){
+                throw new \Exception('Check out only available in your shift '.$shifTimeStart->format('H:i').' - '.$shifTimeEnd->format('H:i'));
+            }
+
+            $imageArray = [];
+
+            if ($request->hasFile('photo_checkout')) {
+
+                $image = $request->file('photo_checkout');
+                $imageName = 'ATTENDANCE_' . time() . '.' . $image->getClientOriginalExtension();
+
+                $destinationPath = public_path('file/attendance');
+                $image->move($destinationPath, $imageName);
+                $imageArray[] = 'file/attendance/' . $imageName;
+            }
+
+            if($workOutside == 1 && count($imageArray) == 0){
+                throw new \Exception('Work outside, please add photo');
+            }
+
+
+            $atendanceExist = Attendance::where('employee_id', $employee->id)
+                ->where('date_attendance', $now->toDateString())
+            ->first();
+
+            $attendanceId = 0;
+
+            if($atendanceExist){
+                
+                $attendanceId = $atendanceExist->id;
+
+                $atendanceExist->update([
+                    'time_out' => $now->format('H:i'),
+                    'updated_by' => $userId
+                ]);
+                
+
+            }else{
+                // Create attendance record
+                $attendance = Attendance::create([
+                    'employee_id' => $employee->id,
+                    'date_attendance' => $now->toDateString(),
+                    'time_out' => $now->format('H:i'),
+                    'type_attendance' => 'check_out',
+                    'note' => null,
+                    'image' => $imageArray,
+                    'created_by' => $userId,
+                    'updated_by' => $userId
+                ]);
+
+                $attendanceId = $attendance->id;
+            }
+            
+            $attendanceTracking = AttendanceTracking::where('attendance_id', $attendanceId)
+                ->where('type', 'check_out')
+            ->first();
+
+            if($attendanceTracking){
+
+                $attendanceTracking->update([
+                    'time_out' => $now->format('H:i'),
+                    'date_time' => $now,
+                    'device' => DeviceHelper::getDeviceFromRequest($request),
+                    'location' => $location,
+                    'is_work_outside' => $workOutside,
+                    'image' => $imageArray,
+                    'updated_by' => $userId
+                ]);
+ 
+
+            }else{
+                // Create attendance tracking record
+                $attendanceTracking = AttendanceTracking::create([
+                    'attendance_id' => $attendanceId,
+                    'is_work_outside' => $workOutside,
+                    'type' => 'check_out',
+                    'location' => $location, // Set null dulu sesuai permintaan
+                    'device' => DeviceHelper::getDeviceFromRequest($request), // Simpan device awal
+                    'image' => $imageArray, // Simpan juga di attendance_trackings
+                    'date_time' => $now,
+                    'created_by' => $userId,
+                    'updated_by' => $userId
+                ]);
+            }
+
+            
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'attendance' => $atendanceExist,
+                    'attendance_tracking' => $attendanceTracking
+                ],
+                'message' => 'Check Out successfully'
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+
+    }
     /**
      * Display the specified resource.
      */
