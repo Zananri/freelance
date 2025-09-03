@@ -1160,10 +1160,31 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             const placeholderProjectImg = `${appUrl}/asset/img/profile_picture/default.png`;
             const projectImg = (function() {
                 try {
-                    const val = (task && task.project_image) || '';
-                    if (!val || String(val).trim() === '' || String(val).toLowerCase() === 'null' || String(val).toLowerCase() === 'undefined') {
+                    const raw = (task && task.project_image) || '';
+                    const val = String(raw || '').trim();
+                    if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
                         return placeholderProjectImg;
                     }
+                    // If response already contains a file/project path, rebuild with current appUrl to support subfolder deployments
+                    if (val.includes('/file/project/')) {
+                        const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
+                        if (!fname) return placeholderProjectImg;
+                        return `${appUrl}/file/project/${fname}`;
+                    }
+                    // Asset path from root -> rewrite with appUrl
+                    if (val.startsWith('/asset/')) {
+                        const suffix = val.replace(/^\/+/, '');
+                        return `${appUrl}/${suffix}`;
+                    }
+                    // Any other root-relative path -> prefix with appUrl
+                    if (val.startsWith('/')) {
+                        return `${appUrl}${val}`;
+                    }
+                    // If it's just a filename, prefix with our appUrl
+                    if (!/^https?:\/\//i.test(val) && !val.startsWith('/')) {
+                        return `${appUrl}/file/project/${val}`;
+                    }
+                    // Otherwise trust as-is (absolute http(s) or root-relative)
                     return val;
                 } catch(_) { return placeholderProjectImg; }
             })();
