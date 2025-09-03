@@ -190,11 +190,17 @@ $(document).ready(function() {
     function extractProjectAssignments(list) {
         return (list || []).reduce((acc, n) => {
             try {
-                const isProj = (n.type === 'new job') && String(n.title || '').toLowerCase().includes('project');
-                if (isProj && !n.is_accepted) {
-                    const m = (n.message || '').match(/project: (.+)$/);
-                    const title = m ? m[1] : null;
-                    if (title) acc.push({ projectTitle: title, notificationId: n.id });
+                // Consider as project assignment only if:
+                // - type matches project type
+                // - project_id has been resolved by checkProjectAcceptanceStatus
+                // - explicitly marked as not accepted
+                // - still unread (avoid counting old already-handled items)
+                const isProjType = (n.type === 'new job') && String(n.title || '').toLowerCase().includes('project');
+                const hasProjectId = !!n.project_id; // set in checkProjectAcceptanceStatus when project found
+                const isUnread = !n.is_read;
+                const hasExplicitUnaccepted = (typeof n.is_accepted !== 'undefined') && (n.is_accepted === false);
+                if (isProjType && hasProjectId && isUnread && hasExplicitUnaccepted) {
+                    acc.push({ projectTitle: n.message?.match(/project: (.+)$/)?.[1] || '', notificationId: n.id, projectId: n.project_id });
                 }
             } catch(_) {}
             return acc;
@@ -256,10 +262,11 @@ $(document).ready(function() {
     function acceptAllProjects(list) {
         const items = extractProjectAssignments(list);
         if (items.length === 0) return Promise.resolve();
+        // Prefer already-resolved projectId; fallback to title map only when missing
         return getProjectTitleMap().then((map) => {
             let chain = Promise.resolve();
-            items.forEach(({ projectTitle, notificationId }) => {
-                const pid = map[projectTitle];
+            items.forEach(({ projectTitle, notificationId, projectId }) => {
+                const pid = projectId || map[projectTitle];
                 if (!pid) return; // skip unknown
                 chain = chain.then(() => acceptOneProject(pid, notificationId));
             });
@@ -595,29 +602,31 @@ $(document).ready(function() {
                                 url: `${appUrl}/project/${project.id}/accept-status`,
                                 type: "GET"
                             }).then(statusResponse => {
+                                const isAccepted = !!(statusResponse?.is_accepted || statusResponse?.data?.is_accepted);
                                 return {
                                     ...notification,
-                                    is_accepted: statusResponse.is_accepted,
+                                    is_accepted: isAccepted,
                                     project_id: project.id
                                 };
                             }).catch(() => {
+                                // If we cannot determine status, do not count it for bulk operations
                                 return {
                                     ...notification,
-                                    is_accepted: false,
-                                    project_id: project.id
+                                    is_accepted: true
                                 };
                             });
                         } else {
-                            // If project not found, mark as not accepted
+                            // If project not found, exclude from bulk by treating as accepted
                             return {
                                 ...notification,
-                                is_accepted: false
+                                is_accepted: true
                             };
                         }
                     }).catch(() => {
+                        // If fetching projects fails, exclude from bulk by treating as accepted
                         return {
                             ...notification,
-                            is_accepted: false
+                            is_accepted: true
                         };
                     });
                 }
