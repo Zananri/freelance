@@ -1155,7 +1155,39 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     }
 
     // Function to create task card HTML
-    function createTaskCard(task) {
+        function createTaskCard(task) {
+            // Normalize project image early to avoid broken images when backend returns empty/invalid URL
+            const placeholderProjectImg = `${appUrl}/asset/img/profile_picture/default.png`;
+            const projectImg = (function() {
+                try {
+                    const raw = (task && task.project_image) || '';
+                    const val = String(raw || '').trim();
+                    if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
+                        return placeholderProjectImg;
+                    }
+                    // If response already contains a file/project path, rebuild with current appUrl to support subfolder deployments
+                    if (val.includes('/file/project/')) {
+                        const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
+                        if (!fname) return placeholderProjectImg;
+                        return `${appUrl}/file/project/${fname}`;
+                    }
+                    // Asset path from root -> rewrite with appUrl
+                    if (val.startsWith('/asset/')) {
+                        const suffix = val.replace(/^\/+/, '');
+                        return `${appUrl}/${suffix}`;
+                    }
+                    // Any other root-relative path -> prefix with appUrl
+                    if (val.startsWith('/')) {
+                        return `${appUrl}${val}`;
+                    }
+                    // If it's just a filename, prefix with our appUrl
+                    if (!/^https?:\/\//i.test(val) && !val.startsWith('/')) {
+                        return `${appUrl}/file/project/${val}`;
+                    }
+                    // Otherwise trust as-is (absolute http(s) or root-relative)
+                    return val;
+                } catch(_) { return placeholderProjectImg; }
+            })();
     // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
@@ -1258,7 +1290,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             ${iconHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                <img src="${task.project_image}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px;">
+                <img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
                 <div class="d-flex flex-column">
                     <small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>
                     <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>

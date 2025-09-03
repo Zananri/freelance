@@ -179,7 +179,10 @@ $(document).ready(function() {
                 const isTask = n.type === 'task_assignment';
                 const m = (n.message || '').match(/Task ID: (\d+)/);
                 const taskId = m ? parseInt(m[1], 10) : null;
-                if (isTask && taskId && !n.is_accepted) acc.push({ taskId, notificationId: n.id });
+                const isAssigned = (n && typeof n.is_assigned !== 'undefined') ? !!n.is_assigned : true; // default true for backward compat
+                if (isTask && taskId && isAssigned && !n.is_accepted) {
+                    acc.push({ taskId, notificationId: n.id });
+                }
             } catch(_) {}
             return acc;
         }, []);
@@ -187,11 +190,17 @@ $(document).ready(function() {
     function extractProjectAssignments(list) {
         return (list || []).reduce((acc, n) => {
             try {
-                const isProj = (n.type === 'new job') && String(n.title || '').toLowerCase().includes('project');
-                if (isProj && !n.is_accepted) {
-                    const m = (n.message || '').match(/project: (.+)$/);
-                    const title = m ? m[1] : null;
-                    if (title) acc.push({ projectTitle: title, notificationId: n.id });
+                // Consider as project assignment only if:
+                // - type matches project type
+                // - project_id has been resolved by checkProjectAcceptanceStatus
+                // - explicitly marked as not accepted
+                // - still unread (avoid counting old already-handled items)
+                const isProjType = (n.type === 'new job') && String(n.title || '').toLowerCase().includes('project');
+                const hasProjectId = !!n.project_id; // set in checkProjectAcceptanceStatus when project found
+                const isUnread = !n.is_read;
+                const hasExplicitUnaccepted = (typeof n.is_accepted !== 'undefined') && (n.is_accepted === false);
+                if (isProjType && hasProjectId && isUnread && hasExplicitUnaccepted) {
+                    acc.push({ projectTitle: n.message?.match(/project: (.+)$/)?.[1] || '', notificationId: n.id, projectId: n.project_id });
                 }
             } catch(_) {}
             return acc;
@@ -253,10 +262,11 @@ $(document).ready(function() {
     function acceptAllProjects(list) {
         const items = extractProjectAssignments(list);
         if (items.length === 0) return Promise.resolve();
+        // Prefer already-resolved projectId; fallback to title map only when missing
         return getProjectTitleMap().then((map) => {
             let chain = Promise.resolve();
-            items.forEach(({ projectTitle, notificationId }) => {
-                const pid = map[projectTitle];
+            items.forEach(({ projectTitle, notificationId, projectId }) => {
+                const pid = projectId || map[projectTitle];
                 if (!pid) return; // skip unknown
                 chain = chain.then(() => acceptOneProject(pid, notificationId));
             });
@@ -275,20 +285,22 @@ $(document).ready(function() {
             ? 'There are Task and Project notifications. Choose an action:'
             : (showTasks ? 'Task notifications found. Proceed to accept all tasks?' : 'Project notifications found. Proceed to accept all projects?');
 
-        const actionsHtml = hasBoth
-                ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>
-                    <button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>
-                    <button type="button" class="btn btn-submit-black" id="bulkAcceptAllBtn" style="white-space: nowrap;">Accept all</button>`
-            : (showTasks
-                ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn">Accept all tasks</button>`
-                : `<button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn">Accept all projects</button>`);
+    const actionsHtml = hasBoth
+        ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>
+            <button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>
+            <button type="button" class="btn btn-submit-black" id="bulkAcceptAllBtn" style="white-space: nowrap;">Accept all</button>`
+        : (showTasks
+        ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>`
+        : `<button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>`);
 
-        const footerButtons = hasBoth
-            ? `<div class="d-flex" style="gap:8px; flex-wrap: nowrap;">
-                   ${actionsHtml}
-               </div>`
-            : `<button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
-               <div class="d-flex" style="gap:8px;">${actionsHtml}</div>`;
+    const footerButtons = hasBoth
+        ? `<div class="d-flex justify-content-center w-100" style="gap:8px; flex-wrap: nowrap;">
+           ${actionsHtml}
+           </div>`
+        : `<div class="d-flex justify-content-center w-100" style="gap:8px; flex-wrap: nowrap;">
+            <button type="button" class="btn btn-close-reply" data-bs-dismiss="modal">Cancel</button>
+            ${actionsHtml}
+           </div>`;
 
         const html = `
             <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
@@ -301,7 +313,7 @@ $(document).ready(function() {
                         <div class="modal-body">
                             <p class="mb-0">${body}</p>
                         </div>
-                        <div class="modal-footer d-flex justify-content-between">
+                        <div class="modal-footer">
                             ${footerButtons}
                         </div>
                     </div>
@@ -309,16 +321,31 @@ $(document).ready(function() {
             </div>`;
         $('body').append(html);
         const m = new bootstrap.Modal(document.getElementById(id));
+        // When modal fully hides, remove it and uncheck Select all; keep dropdown open
+        $('#'+id).on('hidden.bs.modal', function(){
+            const selectAll = $('#notificationSelectAll');
+            if (selectAll.length) selectAll.prop('checked', false);
+            $(this).remove();
+        });
         m.show();
-        const closeModal = () => { try { m.hide(); } catch(_) {} $('#'+id).on('hidden.bs.modal', function(){ $(this).remove(); }); };
+        const closeModal = () => { try { m.hide(); } catch(_) {} };
+        const settle = (ret, done) => {
+            try {
+                if (!ret) { done(); return; }
+                if (typeof ret.always === 'function') { ret.always(done); return; }
+                if (typeof ret.finally === 'function') { ret.finally(done); return; }
+                if (typeof ret.then === 'function') { ret.then(done).catch(done); return; }
+                done();
+            } catch (_) { done(); }
+        };
         if (showTasks) {
-            $('#bulkAcceptTasksBtn').on('click', function(){ onTasks && onTasks().finally(() => closeModal()); });
+            $('#bulkAcceptTasksBtn').on('click', function(){ if (onTasks) settle(onTasks(), closeModal); });
         }
         if (showProjects) {
-            $('#bulkAcceptProjectsBtn').on('click', function(){ onProjects && onProjects().finally(() => closeModal()); });
+            $('#bulkAcceptProjectsBtn').on('click', function(){ if (onProjects) settle(onProjects(), closeModal); });
         }
         if (hasBoth) {
-            $('#bulkAcceptAllBtn').on('click', function(){ onAll && onAll().finally(() => closeModal()); });
+            $('#bulkAcceptAllBtn').on('click', function(){ if (onAll) settle(onAll(), closeModal); });
         }
     }
 
@@ -411,15 +438,21 @@ $(document).ready(function() {
                         type: "GET"
                     }).then(response => {
                         console.log('Accept status response for task', taskId, ':', response);
+                        const data = response && response.data ? response.data : {};
+                        const isAccepted = !!(response.is_accepted || data.is_accepted);
+                        const notAssignedMsg = String(data.message || '').toLowerCase();
+                        const isAssigned = notAssignedMsg.includes('not assigned') ? false : true;
                         return {
                             ...notification,
-                            is_accepted: response.is_accepted || (response.data && response.data.is_accepted)
+                            is_accepted: isAccepted,
+                            is_assigned: isAssigned
                         };
                     }).catch((xhr, status, error) => {
                         console.error('Failed to check accept status for task', taskId, ':', error, xhr.responseText);
                         return {
                             ...notification,
-                            is_accepted: false
+                            is_accepted: false,
+                            is_assigned: false
                         };
                     });
                 }
@@ -472,8 +505,9 @@ $(document).ready(function() {
         hideAvatarDropdown();
     });
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside (ignore clicks inside modals)
     $(document).on('click', function(e) {
+        if ($(e.target).closest('.modal, .modal-backdrop').length) return;
         if (!$(e.target).closest('#avatarDropdownCard, #avatarDropdownToggle').length) {
             hideAvatarDropdown();
         }
@@ -491,12 +525,20 @@ $(document).ready(function() {
         if (dropdown.is(':visible')) {
             fetchNotifications();
             dropdownClosed = false;
+        } else {
+            // When dropdown is hidden via toggle, also reset Select all checkbox
+            dropdownClosed = true;
+            const selectAll = $('#notificationSelectAll');
+            if (selectAll.length) selectAll.prop('checked', false);
         }
     }
 
     function hideNotificationDropdown() {
         $('#notificationDropdownCard').hide();
         dropdownClosed = true;
+        // Reset Select all checkbox when dropdown closes
+        const selectAll = $('#notificationSelectAll');
+        if (selectAll.length) selectAll.prop('checked', false);
     }
 
     // Notification dropdown event handlers
@@ -510,8 +552,12 @@ $(document).ready(function() {
         hideNotificationDropdown();
     });
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside, but ignore clicks inside any Bootstrap modal
     $(document).on('click', function(e) {
+        // If click is inside an open modal (or its backdrop), do not close the dropdown
+        if ($(e.target).closest('.modal, .modal-backdrop').length) {
+            return;
+        }
         if (!$(e.target).closest('#notificationDropdownCard, #notificationDropdownToggle').length) {
             hideNotificationDropdown();
         }
@@ -567,29 +613,31 @@ $(document).ready(function() {
                                 url: `${appUrl}/project/${project.id}/accept-status`,
                                 type: "GET"
                             }).then(statusResponse => {
+                                const isAccepted = !!(statusResponse?.is_accepted || statusResponse?.data?.is_accepted);
                                 return {
                                     ...notification,
-                                    is_accepted: statusResponse.is_accepted,
+                                    is_accepted: isAccepted,
                                     project_id: project.id
                                 };
                             }).catch(() => {
+                                // If we cannot determine status, do not count it for bulk operations
                                 return {
                                     ...notification,
-                                    is_accepted: false,
-                                    project_id: project.id
+                                    is_accepted: true
                                 };
                             });
                         } else {
-                            // If project not found, mark as not accepted
+                            // If project not found, exclude from bulk by treating as accepted
                             return {
                                 ...notification,
-                                is_accepted: false
+                                is_accepted: true
                             };
                         }
                     }).catch(() => {
+                        // If fetching projects fails, exclude from bulk by treating as accepted
                         return {
                             ...notification,
-                            is_accepted: false
+                            is_accepted: true
                         };
                     });
                 }
