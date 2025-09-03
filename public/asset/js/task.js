@@ -2765,7 +2765,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
                         <div class="d-flex gap-2 align-items-center">
                             <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                            <button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>
+                            <button type="button" class="btn btn-submit-black add-ref-url">Add</button>
                         </div>
                     </div>
                 </div>
@@ -2882,7 +2882,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
                         <div class="d-flex gap-2 align-items-center">
                             <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                            <button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>
+                            <button type="button" class="btn btn-submit-black add-ref-url">Add</button>
                         </div>
                     </div>
                 </div>
@@ -3090,15 +3090,15 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 const row = document.createElement('div');
                 row.className = 'd-flex gap-2 align-items-center';
                 row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">` +
-                    `<button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>`;
+                    `<button type="button" class="btn btn-submit-black add-ref-url">Add</button>`;
                 container.appendChild(row);
             } else {
                 urls.forEach((u, idx) => {
                     const row = document.createElement('div');
                     row.className = 'd-flex gap-2 align-items-center';
                     const controls = (idx === 0)
-                        ? `<button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>`
-                        : `<button type="button" class="btn btn-outline-danger btn-sm remove-ref-url">Remove</button>`;
+                        ? `<button type="button" class="btn btn-submit-black add-ref-url">Add</button>`
+                        : `<button type="button" class="btn btn-danger remove-ref-url">Remove</button>`;
                     row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" value="${u}" placeholder="https://example.com">${controls}`;
                     container.appendChild(row);
                 });
@@ -4072,8 +4072,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         const row = document.createElement('div');
                         row.className = 'd-flex gap-2 align-items-center';
                         const controls = (idx === 0)
-                            ? `<button type="button" class="btn btn-outline-secondary btn-sm add-ref-url">Add</button>`
-                            : `<button type="button" class="btn btn-outline-danger btn-sm remove-ref-url">Remove</button>`;
+                            ? `<button type="button" class="btn btn-submit-black add-ref-url">Add</button>`
+                            : `<button type="button" class="btn btn-danger remove-ref-url">Remove</button>`;
                         row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
                         container.appendChild(row);
                     });
@@ -4470,7 +4470,7 @@ $(document).ready(function () {
             const row = document.createElement('div');
             row.className = 'd-flex gap-2 align-items-center';
             row.innerHTML = `<input type="url" class="form-control${container.id.startsWith('edit_task_') ? ' input-text' : ''}" name="reference_urls[]" placeholder="https://example.com">` +
-                `<button type="button" class="btn btn-outline-danger btn-sm remove-ref-url">Remove</button>`;
+                `<button type="button" class="btn btn-danger remove-ref-url">Remove</button>`;
             container.appendChild(row);
         }
         if (e.target && e.target.classList.contains('remove-ref-url')) {
