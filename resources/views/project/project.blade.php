@@ -34,7 +34,8 @@
                 {{-- project chart --}}
                 <div class="body-content chart-section p-4">
                     <div class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
-                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
+                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal"
+                            data-bs-target="#timelineModal">
                             <span class="material-symbols-outlined"
                                 style="font-size: 18px; color: #4C5060;">calendar_month</span>
                         </button>
@@ -79,7 +80,8 @@
                                         <button class="btn btn-sm" id="nextTimeline">
                                             <span class="material-symbols-outlined">chevron_right</span>
                                         </button>
-                                        <button data-bs-toggle="modal" data-bs-target="#timelineModal" class="btn btn-sm border-0 bg-transparent">
+                                        <button data-bs-toggle="modal" data-bs-target="#timelineModal"
+                                            class="btn btn-sm border-0 bg-transparent">
                                             <span id="timelineFullscreenIcon"
                                                 class="material-symbols-outlined">fullscreen</span>
                                         </button>
@@ -102,8 +104,8 @@
             </div>
 
             {{-- Modal Timeline --}}
-            <div class="modal fade timeline-modal-overlay" id="timelineModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-                aria-labelledby="timelineModalTitle" aria-hidden="true">
+            <div class="modal fade timeline-modal-overlay" id="timelineModal" data-bs-backdrop="static"
+                data-bs-keyboard="false" tabindex="-1" aria-labelledby="timelineModalTitle" aria-hidden="true">
                 <div class="modal-dialog modal-xl">
                     <div class="modal-content timeline-modal">
 
@@ -125,6 +127,7 @@
 
                         <!-- Body -->
                         <div class="modal-body p-0">
+
                             <div class="timeline-wrapper">
                                 <table class="timeline-table w-100">
                                     <thead>
@@ -139,8 +142,10 @@
             </div>
 
             <div class="bottom-project-content mt-5">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-4 all-projects-title">All Project</h6>
+                <div class="d-flex justify-content-between title-filter-container">
+                    <div class="d-flex justify-content-between title-filter-container align-items-center">
+                        <h6 class="mb-4 all-projects-title">All Project</h6>
+                    </div>
                     <div class="dropdown-filter-container">
                         <div class="btn-filter-container mb-3">
                             <div class="search-input-container position-relative me-3">
@@ -153,8 +158,14 @@
                                 <span class="material-symbols-outlined icon">filter_list</span> <span
                                     class="btn-text-filter">Filter</span>
                             </button>
+                            <button class="btn btn-icon-toggle btn-export-custom me-3" type="button"
+                                data-label="Export" id="openProjectFilterBtn">
+                                <span class="material-symbols-outlined icon">file_export</span> <span
+                                    class="btn-text-filter">Export</span>
+                            </button>
                             <button class="btn btn-icon-toggle btn-timeline-filter-custom" type="button"
-                                data-bs-toggle="modal" data-bs-target="#timelineModal" data-label="TImeline" id="openProjectFilterBtn">
+                                data-bs-toggle="modal" data-bs-target="#timelineModal" data-label="TImeline"
+                                id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">view_timeline</span> <span
                                     class="btn-text-filter">Timeline</span>
                             </button>
@@ -183,14 +194,36 @@
                 <div id="all-cards-container">
                     {{-- Content Card --}}
                 </div>
+                <div class="loader">
+                    <div class="box-loader">
+                        <div class="text-center">
+                            <div class="spinner-border text-secondary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-center mt-3">
+                    <div id="project-pagination" class="pagination-pill d-flex align-items-center">
+                        <button id="prevPageBtn" class="btn-nav" disabled>
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+
+                        <span id="paginationInfo" class="pagination-info">1 OF 1</span>
+
+                        <button id="nextPageBtn" class="btn-nav">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="timeline-overlay"></div>
     </div>
 
     <!-- Add Project Modal -->
-    <div class="modal fade add-project-modal" id="addProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="addProjectModalLabel" aria-hidden="true">
+    <div class="modal fade add-project-modal" id="addProjectModal" data-bs-backdrop="static"
+        data-bs-keyboard="false" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="addModalLoader">
@@ -245,15 +278,23 @@
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
-                            <label for="reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="project_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]"
+                                        placeholder="https://example.com">
+                                    <button type="button" class="btn btn-submit-black add-ref-url"
+                                        aria-label="Add URL"><span
+                                            class="material-symbols-outlined">add</span></button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="reference_file"
-                                name="reference_file[]" accept=".pdf,.doc,.docx" multiple>
-                            <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
+                                name="reference_file[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <div class="form-text">Multiple files supported.
+                            </div>
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
@@ -370,17 +411,25 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="edit_reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="edit_project_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]"
+                                        placeholder="https://example.com">
+                                    <button type="button" class="btn btn-submit-black add-ref-url"
+                                        aria-label="Add URL"><span
+                                            class="material-symbols-outlined">add</span></button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_reference_file" class="form-label label-custom">Reference File</label>
+                            <label for="edit_reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="edit_reference_file"
-                                name="reference_file[]" accept=".pdf,.doc,.docx" multiple>
+                                name="reference_file[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                             <div id="existing_reference_files" class="mt-2"></div>
-                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files" value="[]">
+                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"
+                                value="[]">
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;">
@@ -463,8 +512,7 @@
                                 <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
                             </div>
                             <div class="project-detail-right">
-                                <p><strong>Reference URL:</strong> <a href="#" target="_blank"
-                                        id="projectDetailReferenceUrl"></a></p>
+                                <p><strong>Reference URLs:</strong> <span id="projectDetailReferenceUrls"></span></p>
                                 <p><strong>Reference File:</strong> <a href="#" id="projectDetailReferenceFile"
                                         download>Download</a></p>
                                 <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
@@ -513,7 +561,7 @@
                 <div class="modal-body feedback-modal-body" id="projectFeedbackList">
                 </div>
                 <div class="modal-footer feedback-modal-footer">
-                    <button type="button" class="btn btn-submit-black btn-submit-custom" id="addFeedbackButton"
+                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
                         style="width: 120px; white-space: nowrap;">Add Feedback</button>
                 </div>
             </div>

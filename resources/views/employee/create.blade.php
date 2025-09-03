@@ -118,16 +118,12 @@
                             </div>
                         </div>
                         <div>
-                            <label for="grade" class="form-label">Grade</label>
-                            <select id="grade" name="grade" class="form-select input-select" required>
+                            <label for="grade_id" class="form-label">Grade</label>
+                            <select id="grade_id" name="grade_id" class="form-select input-select" required>
                                 <option value="" disabled selected>Select Grade</option>
-                                <option value="Manager">Manager</option>
-                                <option value="Analyst">Analyst</option>
-                                <option value="Senior Analyst">Senior Analyst</option>
-                                <option value="Associate">Associate</option>
-                                <option value="Junior Manager">Junior Manager</option>
-                                <option value="Junior Analyst">Junior Analyst</option>`
-                                <option value="Junior Associate">Junior Associate</option>
+                                @foreach(($grades ?? []) as $g)
+                                    <option value="{{ $g->id }}">{{ $g->title }}</option>
+                                @endforeach
                             </select>
                             <div class="invalid-feedback">
                                 Please select a grade.
@@ -137,8 +133,9 @@
                             <label for="office" class="form-label">Office</label>
                             <select id="office" name="office" class="form-select input-select" required>
                                 <option value="" disabled selected>Select Office</option>
-                                <option value="NSA Performance">NSA Performance</option>
-                                <option value="Gudang SEHA">Gudang SEHA</option>
+                                @foreach(($offices ?? []) as $o)
+                                    <option value="{{ $o->id }}">{{ $o->name }}</option>
+                                @endforeach
                             </select>
                             <div class="invalid-feedback">
                                 Please select an office.

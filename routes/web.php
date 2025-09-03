@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
 
+
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
     Route::post('/profile/verify-current-password', [ProfileController::class, 'verifyCurrentPassword'])->name('profile.verifyCurrentPassword');
@@ -70,12 +71,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
     Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
     Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
+    Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
     Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
     Route::get('/project/{id}', [ProjectController::class, 'show'])->name('project.show');
     Route::post('/project/store', [ProjectController::class, 'store'])->name('project.store');
     Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
+    Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
     Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
+    // Project unread and latest feedback endpoints
+    Route::get('/project/{id}/feedbacks/unread-count', [ProjectController::class, 'getUnreadFeedbackCount'])->name('project-feedbacks.unread-count');
+    Route::post('/project/{id}/feedbacks/mark-read', [ProjectController::class, 'markProjectFeedbacksRead'])->name('project-feedbacks.mark-read');
+    Route::get('/project-feedbacks/{projectId}/latest', [ProjectController::class, 'getProjectLatestFeedback'])->name('project-feedbacks.latest');
     Route::put('/project/{id}', [ProjectController::class, 'update'])->name('project.update');
     Route::delete('/project/{id}', [ProjectController::class, 'destroy'])->name('project.destroy');
 
@@ -91,7 +98,7 @@ Route::middleware('auth')->group(function () {
     // Employee list for projects (accessible to all authenticated users)
     Route::get('/employees-for-projects', [EmployeeController::class, 'getEmployeesForProjects'])->name('employees.for-projects');
 
-    // Department list for projects (accessible to all authenticated users) 
+    // Department list for projects (accessible to all authenticated users)
     Route::get('/departments-for-projects', [DepartmentController::class, 'getDepartmentsForProjects'])->name('departments.for-projects');
 
     // Division list for projects (accessible to all authenticated users)
@@ -108,12 +115,18 @@ Route::middleware('auth')->group(function () {
 
     // Task Feedback routes
     Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
+    Route::put('/task-feedbacks/{id}', [TaskController::class, 'updateFeedback'])->name('task-feedbacks.update');
     Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks'])->name('task-feedbacks.get');
+    Route::get('/task-feedbacks/{taskId}/latest', [TaskController::class, 'getTaskLatestFeedback'])->name('task-feedbacks.latest');
     Route::get('/task-feedbacks/count/{taskId}', [TaskController::class, 'getTaskFeedbackCount'])->name('task-feedbacks.count');
+    // Unread feedback per task
+    Route::get('/task/{id}/feedbacks/unread-count', [TaskController::class, 'getUnreadFeedbackCount'])->name('task-feedbacks.unread-count');
+    Route::post('/task/{id}/feedbacks/mark-read', [TaskController::class, 'markTaskFeedbacksRead'])->name('task-feedbacks.mark-read');
 
     // Task status update routes
     Route::put('/task/{id}/status', [TaskController::class, 'updateStatus'])->name('task.update-status');
     Route::post('/task/{id}/accept', [TaskController::class, 'acceptTask'])->name('task.accept');
+    Route::post('/task/{id}/reject', [TaskController::class, 'rejectTask'])->name('task.reject');
     Route::get('/task/{id}/accept-status', [TaskController::class, 'checkAcceptStatus'])->name('task.accept-status');
 
     // Get tasks by project
@@ -130,6 +143,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'getUserNotifications'])->name('notifications.index');
     Route::get('/notifications/count', [NotificationController::class, 'getUnreadCount'])->name('notifications.count');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+    Route::post('/notifications/task/{taskId}/mark-read', [NotificationController::class, 'markTaskAssignmentReadByTask'])->name('notifications.task.markRead');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
     Route::delete('/notifications/{id}', [NotificationController::class, 'deleteNotification'])->name('notifications.delete');
 
@@ -178,7 +192,7 @@ Route::middleware('auth','management')->group(function () {
 
 
     Route::get('/master', function () {
-        return view('master/master');
+        return view('master.master');
     })->name('master');
 
 

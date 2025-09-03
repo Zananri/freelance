@@ -24,9 +24,9 @@ class ProjectController extends Controller
     {
         try {
             DB::beginTransaction();
-            
+
             \Log::info("Accept project called for project ID: " . $id);
-            
+
             $user = auth()->user();
             if (!$user || !$user->employee) {
                 throw new \Exception('Unauthorized');
@@ -41,7 +41,7 @@ class ProjectController extends Controller
                 ->first();
 
             \Log::info("Assignment found: " . ($assignment ? 'Yes' : 'No'));
-            
+
             if (!$assignment) {
                 throw new \Exception('Project assignment not found');
             }
@@ -52,15 +52,15 @@ class ProjectController extends Controller
             // Update is_receive to true
             $assignment->is_receive = true;
             $assignment->save();
-            
+
             \Log::info("Assignment is_receive after: " . ($assignment->is_receive ? 'true' : 'false'));
 
             // Mark related notification as read
             $notification = Notification::where('employee_id', $employeeId)
                 ->where('type', 'new job')
-                ->where(function($query) use ($assignment) {
+                ->where(function ($query) use ($assignment) {
                     $query->where('title', 'like', '%co-author for project: ' . $assignment->project->title)
-                          ->orWhere('title', 'like', '%contributor for project: ' . $assignment->project->title);
+                        ->orWhere('title', 'like', '%contributor for project: ' . $assignment->project->title);
                 })
                 ->where('is_read', false)
                 ->orderBy('created_at', 'desc')
@@ -72,14 +72,14 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Project assignment accepted successfully',
                 'reload' => true
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -119,7 +119,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => ['is_accepted' => $isAccepted]
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -151,11 +151,11 @@ class ProjectController extends Controller
             $employees = $employees->orderBy('name')->get(['id', 'name', 'photo']);
 
             // Map the employees to include proper photo URL
-            $mappedEmployees = $employees->map(function($emp) {
+            $mappedEmployees = $employees->map(function ($emp) {
                 return [
                     'id' => $emp->id,
                     'name' => $emp->name,
-                    'user_photo' => $emp->photo ? asset('storage/'.$emp->photo) : asset('asset/img/profile_picture/default.png')
+                    'user_photo' => $emp->photo ? asset('storage/' . $emp->photo) : asset('asset/img/profile_picture/default.png')
                 ];
             });
 
@@ -164,7 +164,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => $mappedEmployees
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -206,7 +206,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => $assignmentsTransformed
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -235,13 +235,13 @@ class ProjectController extends Controller
                 'project_titles' => $projectTitles,
                 'project_images' => $projectImages,
             ];
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => $data
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -251,50 +251,77 @@ class ProjectController extends Controller
         }
     }
 
-    /**
-     * Display a listing of the projects.
-     */
     public function index(Request $request)
     {
         try {
             $user = auth()->user();
-            if (!$user || !$user->employee) {
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            $filter = $request->input('filter', null);
+            $includeUnaccepted = $request->input('include_unaccepted', false);
+            $taskScopeRaw = strtolower($request->input('task_scope', 'project'));
+            $taskScope = in_array($taskScopeRaw, ['project', 'me', 'all']) ? $taskScopeRaw : 'project';
+
+            if ($taskScope === 'all') {
+                $projects = Project::where('status', '!=', 'DELETED')
+                    ->with([
+                        'department',
+                        'division',
+                        'projectAssignments.employee.user',
+                    ])
+                    ->withCount([
+                        'tasks as total_tasks',
+                        'tasks as in_progress_tasks' => fn($q) =>
+                            $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected']),
+                        'tasks as rejected_tasks' => fn($q) =>
+                            $q->whereIn(DB::raw('LOWER(status)'), ['rejected']),
+                        'tasks as completed_tasks' => fn($q) =>
+                            $q->whereIn(DB::raw('LOWER(status)'), ['completed']),
+                        'tasks as late_tasks' => fn($q) =>
+                            $q->whereRaw('LOWER(status) <> ?', ['completed'])
+                                ->whereNotNull('due_date')
+                                ->where('due_date', '<', now()),
+                    ])
+                    ->withMin('tasks', 'start_date')
+                    ->withMax('tasks', 'due_date')
+                    ->get();
+
+                $projectsTransformed = $projects->map(fn($project) => $this->transformProject($project));
+
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => $projectsTransformed,
+                ]);
+            }
+
+            if (!$employeeId) {
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
                     'data' => []
                 ]);
             }
-            
-            $employeeId = $user->employee->id;
-            $filter = $request->input('filter', null);
-            $includeUnaccepted = $request->input('include_unaccepted', false);
-            // task_scope: 'project' (default, all tasks in project) or 'me' (only tasks assigned to me)
-            $taskScope = strtolower($request->input('task_scope', 'project')) === 'me' ? 'me' : 'project';
 
-            // Base query for projects
-            $query = Project::whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
-                $query->where('employee_id', $employeeId)
-                      ->whereIn('role', ['author', 'co_author', 'contributor']);
-                
-                if (!$includeUnaccepted) {
-                    $query->where(function ($q) {
-                        $q->where('role', 'author')
-                          ->orWhere('is_receive', true);
-                    });
-                }
-            });
+            $query = Project::where('status', '!=', 'DELETED')
+                ->whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
+                    $query->where('employee_id', $employeeId)
+                        ->whereIn('role', ['author', 'co_author', 'contributor']);
+                    if (!$includeUnaccepted) {
+                        $query->where(function ($q) {
+                            $q->where('role', 'author')
+                                ->orWhere('is_receive', true);
+                        });
+                    }
+                });
 
             if ($filter === 'not_started') {
                 $query->where(function ($q) {
-                    $q->whereHas('tasks', function ($q2) {
-                        $q2->where('status', 'new_request');
-                    })->orWhereDoesntHave('tasks');
+                    $q->whereHas('tasks', fn($q2) => $q2->where('status', 'new_request'))
+                        ->orWhereDoesntHave('tasks');
                 });
             } elseif ($filter === 'in_progress') {
-                $query->whereHas('tasks', function ($q) {
-                    $q->whereIn('status', ['in_progress', 'rejected']);
-                });
+                $query->whereHas('tasks', fn($q) =>
+                    $q->whereIn('status', ['in_progress', 'rejected']));
             } elseif ($filter === 'completed') {
                 $query->whereIn('projects.id', function ($subquery) {
                     $subquery->from('tasks')
@@ -307,154 +334,238 @@ class ProjectController extends Controller
             $projects = $query->with([
                 'department',
                 'division',
-                'projectAssignments.employee',
-                'projectAssignments.project'
-            ])->get();
-
-            $projectsTransformed = $projects->map(function ($project) use ($employeeId, $taskScope) {
-                $projectAssignments = $project->projectAssignments->map(function ($assignment) {
-                    return [
-                        'id' => $assignment->id,
-                        'role' => $assignment->role,
-                        'employee_id' => $assignment->employee_id,
-                        'employee_name' => $assignment->employee ? $assignment->employee->name : null,
-                        'project_id' => $assignment->project_id,
-                        'project_title' => $assignment->project ? $assignment->project->title : null,
-                    ];
-                });
-                
-                // Build base query for tasks depending on scope
-                $taskBase = Task::where('project_id', $project->id);
-                if ($taskScope === 'me') {
-                    // Only tasks where current employee is PIC or accepted EXECUTOR
-                    $taskBase = $taskBase->whereHas('assignments', function ($q) use ($employeeId) {
-                        $q->where('employee_id', $employeeId)
-                          ->where(function ($roleQ) {
-                              $roleQ->where('role', 'PIC')
-                                   ->orWhere(function ($execQ) {
-                                       $execQ->where('role', 'EXECUTOR')
-                                             ->where('is_receive', true);
-                                   });
-                          });
-                    });
-                }
-
-                // Get task counts for this project (scoped), treating 'rejected' as 'in_progress'
-                $totalTasks = (clone $taskBase)->count();
-                // Accept both snake_case and spaced variants for backward data compatibility
-                $inProgressTasks = (clone $taskBase)
-                    ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
-                    ->count();
-                $rejectedTasks = (clone $taskBase)
-                    ->whereIn(DB::raw('LOWER(status)'), ['rejected'])
-                    ->count();
-                $completedTasks = (clone $taskBase)
-                    ->whereIn(DB::raw('LOWER(status)'), ['completed'])
-                    ->count();
-                $lateTasks = (clone $taskBase)
-                    ->whereRaw('LOWER(status) <> ?', ['completed'])
-                    ->whereNotNull('due_date')
-                    ->where('due_date', '<', now())
-                    ->count();
-
-                // Mutually-exclusive buckets for charts (avoid overlap between in_progress and late)
-                $nowTs = now();
-                $inProgressOnTime = (clone $taskBase)
-                    ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
-                    ->where(function ($q) use ($nowTs) {
-                        $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
-                    })
-                    ->count();
-                $lateExclusive = (clone $taskBase)
-                    ->whereRaw('LOWER(status) <> ?', ['completed'])
-                    ->whereNotNull('due_date')
-                    ->where('due_date', '<', $nowTs)
-                    ->count();
-                $notStartedOnTime = (clone $taskBase)
-                    ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
-                    ->where(function ($q) use ($nowTs) {
-                        $q->whereNull('due_date')->orWhere('due_date', '>=', $nowTs);
-                    })
-                    ->count();
-
-                    // build author, co_authors and contributors with photo URLs if available
-                    $author = null;
-                    $coAuthors = [];
-                    $contributors = [];
-
-                    foreach ($project->projectAssignments as $assignment) {
-                        $employee = $assignment->employee;
-                        if (!$employee) continue;
-
-                        // try to get user photo from related user record or employee photo
-                        $userPhoto = null;
-                        $rawPhoto = null;
-                        if ($employee->user && $employee->user->photo) {
-                            $rawPhoto = $employee->user->photo;
-                        } elseif ($employee->photo) {
-                            $rawPhoto = $employee->photo;
+                'projectAssignments.employee.user',
+            ])
+                ->withCount([
+                    'tasks as total_tasks',
+                    'tasks as in_progress_tasks' => function ($q) use ($taskScope, $employeeId) {
+                        if ($taskScope === 'me') {
+                            $q->whereHas('assignments', function ($q2) use ($employeeId) {
+                                $q2->where('employee_id', $employeeId)
+                                    ->where(function ($roleQ) {
+                                        $roleQ->where('role', 'PIC')
+                                            ->orWhere(fn($execQ) =>
+                                                $execQ->where('role', 'EXECUTOR')->where('is_receive', true));
+                                    });
+                            });
                         }
+                        $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected']);
+                    },
+                    'tasks as rejected_tasks' => fn($q) =>
+                        $q->whereIn(DB::raw('LOWER(status)'), ['rejected']),
+                    'tasks as completed_tasks' => fn($q) =>
+                        $q->whereIn(DB::raw('LOWER(status)'), ['completed']),
+                    'tasks as late_tasks' => fn($q) =>
+                        $q->whereRaw('LOWER(status) <> ?', ['completed'])
+                            ->whereNotNull('due_date')
+                            ->where('due_date', '<', now()),
+                ])
+                ->withMin('tasks', 'start_date')
+                ->withMax('tasks', 'due_date')
+                ->get();
 
-                        if ($rawPhoto) {
-                            // If stored path already points to public 'file/...' folder, use asset(raw)
-                            if (Str::startsWith($rawPhoto, 'file/') || Str::startsWith($rawPhoto, '/file/')) {
-                                $userPhoto = asset($rawPhoto);
-                            } elseif (Str::startsWith($rawPhoto, 'storage/') || Str::startsWith($rawPhoto, '/storage/')) {
-                                $userPhoto = asset($rawPhoto);
-                            } else {
-                                // otherwise assume it's a storage filename and use storage path
-                                $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
-                            }
-                        }
-
-                        if ($assignment->role === 'author') {
-                            $author = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
-                        } elseif ($assignment->role === 'co_author') {
-                            $coAuthors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
-                        } elseif ($assignment->role === 'contributor') {
-                            $contributors[] = ['id' => $employee->id, 'name' => $employee->name, 'user_photo' => $userPhoto];
-                        }
-                    }
-
-                    return [
-                        'id' => $project->id,
-                        'title' => $project->title,
-                        'description' => $project->description,
-                        'image' => $project->image,
-                        'department' => $project->department,
-                        'division' => $project->division,
-                        'status' => $project->status,
-                        'project_assignments' => $projectAssignments,
-                        'author' => $author,
-                        'co_authors' => $coAuthors,
-                        'contributors' => $contributors,
-                        'task_counts' => [
-                            'total' => $totalTasks,
-                            'in_progress' => $inProgressTasks,
-                            'rejected' => $rejectedTasks,
-                            'completed' => $completedTasks,
-                            'late' => $lateTasks,
-                            // Exclusive buckets used by charts
-                            'excl' => [
-                                'completed' => $completedTasks,
-                                'in_progress' => $inProgressOnTime,
-                                'late' => $lateExclusive,
-                                'not_started' => $notStartedOnTime,
-                            ],
-                        ]
-                    ];
-            });
+            $projectsTransformed = $projects->map(fn($project) => $this->transformProject($project));
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => $projectsTransformed
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
                 'status' => "error",
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    protected function transformProject($project)
+    {
+        $projectAssignments = $project->projectAssignments->map(function ($assignment) {
+            $employee = $assignment->employee;
+            $userPhoto = null;
+
+            if ($employee) {
+                $rawPhoto = $employee->user->photo ?? $employee->photo ?? null;
+                if ($rawPhoto) {
+                    if (Str::startsWith($rawPhoto, ['file/', '/file/', 'storage/', '/storage/'])) {
+                        $userPhoto = asset($rawPhoto);
+                    } else {
+                        $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
+                    }
+                }
+            }
+
+            return [
+                'id' => $assignment->id,
+                'role' => $assignment->role,
+                'employee_id' => $assignment->employee_id,
+                'employee_name' => $employee ? $employee->name : null,
+                'project_id' => $assignment->project_id,
+                'project_title' => $assignment->project?->title,
+                'user_photo' => $userPhoto,
+            ];
+        });
+
+        $author = $projectAssignments->firstWhere('role', 'author');
+        $coAuthors = $projectAssignments->where('role', 'co_author')->values();
+        $contributors = $projectAssignments->where('role', 'contributor')->values();
+
+        return [
+            'id' => $project->id,
+            'title' => $project->title,
+            'description' => $project->description,
+            'image' => $project->image,
+            'department' => $project->department,
+            'division' => $project->division,
+            'status' => $project->status,
+            'project_assignments' => $projectAssignments,
+            'author' => $author,
+            'co_authors' => $coAuthors,
+            'contributors' => $contributors,
+            'task_counts' => [
+                'total' => $project->total_tasks,
+                'in_progress' => $project->in_progress_tasks,
+                'rejected' => $project->rejected_tasks,
+                'completed' => $project->completed_tasks,
+                'late' => $project->late_tasks,
+            ],
+            'start_date' => $project->tasks_min_start_date,
+            'due_date' => $project->tasks_max_due_date,
+        ];
+    }
+
+
+    public function getAllProjects(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            $filter = $request->input('filter', null);
+            $taskScope = strtolower($request->input('task_scope', 'project'));
+            $taskScope = in_array($taskScope, ['project', 'me', 'all']) ? $taskScope : 'project';
+
+            if (!$employeeId && $taskScope !== 'all') {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => [],
+                    'pagination' => [
+                        'total' => 0,
+                        'per_page' => 9,
+                        'current_page' => 1,
+                        'last_page' => 1,
+                    ]
+                ]);
+            }
+
+            $query = Project::where('status', '!=', 'DELETED');
+
+            if ($taskScope !== 'all') {
+                $query->whereHas('projectAssignments', function ($q) use ($employeeId) {
+                    $q->where('employee_id', $employeeId)
+                        ->whereIn('role', ['author', 'co_author', 'contributor']);
+                });
+            }
+
+            if ($filter === 'not_started') {
+                $query->where(function ($q) {
+                    $q->whereDoesntHave('tasks')
+                        ->orWhereHas('tasks', fn($q2) => $q2->where('status', 'new_request'));
+                });
+            } elseif ($filter === 'in_progress') {
+                $query->whereHas(
+                    'tasks',
+                    fn($q) =>
+                    $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'rejected'])
+                );
+            } elseif ($filter === 'completed') {
+                $query->whereHas('tasks', fn($q) => $q->where('status', 'completed'));
+            }
+
+            $projects = $query
+                ->with([
+                    'department',
+                    'division',
+                    'projectAssignments.employee.user',
+                ])
+                ->withCount([
+                    'tasks as total_tasks',
+                    'tasks as in_progress_tasks' => function ($q) {
+                        $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'rejected']);
+                    },
+                    'tasks as completed_tasks' => function ($q) {
+                        $q->where('status', 'completed');
+                    },
+                ])
+                ->paginate(9);
+
+            $projectsTransformed = $projects->map(function ($project) {
+                $projectAssignments = $project->projectAssignments->map(function ($a) {
+                    $employee = $a->employee;
+                    $userPhoto = null;
+
+                    if ($employee) {
+                        $rawPhoto = $employee->user->photo ?? $employee->photo;
+                        if ($rawPhoto) {
+                            if (Str::startsWith($rawPhoto, ['file/', '/file/', 'storage/', '/storage/'])) {
+                                $userPhoto = asset($rawPhoto);
+                            } else {
+                                $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
+                            }
+                        }
+                    }
+
+                    return [
+                        'id' => $a->id,
+                        'role' => $a->role,
+                        'employee_id' => $a->employee_id,
+                        'employee_name' => $employee?->name,
+                        'user_photo' => $userPhoto,
+                    ];
+                });
+
+                $author = $projectAssignments->firstWhere('role', 'author');
+                $coAuthors = $projectAssignments->where('role', 'co_author')->values();
+                $contributors = $projectAssignments->where('role', 'contributor')->values();
+
+                return [
+                    'id' => $project->id,
+                    'title' => $project->title,
+                    'description' => $project->description,
+                    'image' => $project->image,
+                    'status' => $project->status,
+                    'department' => $project->department,
+                    'division' => $project->division,
+                    'author' => $author,
+                    'co_authors' => $coAuthors,
+                    'contributors' => $contributors,
+                    'project_assignments' => $projectAssignments,
+                    'task_counts' => [
+                        'total' => $project->total_tasks,
+                        'in_progress' => $project->in_progress_tasks,
+                        'completed' => $project->completed_tasks,
+                    ]
+                ];
+            });
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $projectsTransformed,
+                'pagination' => [
+                    'total' => $projects->total(),
+                    'per_page' => $projects->perPage(),
+                    'current_page' => $projects->currentPage(),
+                    'last_page' => $projects->lastPage(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
                 'message' => $e->getMessage()
             ], $e->getCode() ?: 500);
         }
@@ -492,7 +603,10 @@ class ProjectController extends Controller
                 'department' => 'required|exists:departments,id',
                 'division' => 'required|exists:divisions,id',
                 'status' => 'string|max:50',
+                // Accept both single and multiple reference URLs
                 'reference_url' => 'nullable|url',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'part_of_project' => 'nullable|exists:projects,id',
@@ -502,9 +616,11 @@ class ProjectController extends Controller
                 'contributors.*' => 'nullable|exists:employees,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                // allow multiple files via reference_file[]
-                'reference_file' => 'nullable',
-                'reference_file.*' => 'file|mimes:pdf,doc,docx|max:10240',
+                // Allow multiple reference files (both new and legacy keys) with Task's whitelist and 5MB limit
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file' => 'nullable|array',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
 
             ]);
 
@@ -514,7 +630,16 @@ class ProjectController extends Controller
             $project->department_id = $request->department;
             $project->division_id = $request->division;
             $project->status = $request->status ?? 'ACTIVE';
-            $project->reference_url = $request->reference_url;
+            // Normalize reference URLs
+            $refUrls = [];
+            if ($request->has('reference_urls') && is_array($request->reference_urls)) {
+                $refUrls = array_values(array_filter($request->reference_urls));
+            } elseif (!empty($request->reference_url)) {
+                $refUrls = [$request->reference_url];
+            }
+            $project->reference_urls = $refUrls;
+            // Mirror first into legacy single field for backward compatibility
+            $project->reference_url = count($refUrls) ? $refUrls[0] : null;
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
             $project->part_of_project = $request->part_of_project;
@@ -531,17 +656,22 @@ class ProjectController extends Controller
                 $project->image = $imageName;
             }
 
-            // Handle reference file uploads (support multiple files) -> store into reference_files (JSON)
+            // Handle reference file uploads from either reference_files[] (preferred) or reference_file[] (legacy)
             $uploadedFiles = [];
+            $incomingFiles = [];
+            if ($request->hasFile('reference_files')) {
+                $rf = $request->file('reference_files');
+                $incomingFiles = array_merge($incomingFiles, is_array($rf) ? $rf : [$rf]);
+            }
             if ($request->hasFile('reference_file')) {
-                $files = $request->file('reference_file');
-                if (!is_array($files)) $files = [$files];
-                foreach ($files as $file) {
-                    if (!$file) continue;
-                    $fileName = 'PROJECT_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
-                    $file->move(public_path('file/project'), $fileName);
-                    $uploadedFiles[] = $fileName;
-                }
+                $rfLegacy = $request->file('reference_file');
+                $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
+            }
+            foreach ($incomingFiles as $idx => $file) {
+                if (!$file) continue;
+                $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('file/project'), $fileName);
+                $uploadedFiles[] = $fileName;
             }
             // If any files uploaded, set as array; otherwise keep null
             if (count($uploadedFiles)) {
@@ -636,14 +766,14 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Project created successfully',
                 'project' => $project
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -694,6 +824,8 @@ class ProjectController extends Controller
                 'department' => $project->department ? $project->department->name_department ?? $project->department->name : null,
                 'division' => $project->division ? $project->division->name_division ?? $project->division->name : null,
                 'reference_url' => $project->reference_url,
+                // Preferred multi-URL field; fallback to single if needed
+                'reference_urls' => $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []),
                 // Backward-compat alias for frontend
                 'reference_file' => $files,
                 // Preferred field
@@ -714,7 +846,7 @@ class ProjectController extends Controller
                 'status' => 'success',
                 'data' => $response
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -736,7 +868,8 @@ class ProjectController extends Controller
 
         foreach ($project->projectAssignments as $assignment) {
             $employee = $assignment->employee;
-            if (!$employee) continue;
+            if (!$employee)
+                continue;
             $userPhoto = null;
             // Ambil dari relasi user
             if ($employee->user && $employee->user->photo) {
@@ -766,8 +899,10 @@ class ProjectController extends Controller
         if (!is_array($files)) {
             $files = [];
         }
-        $response['reference_files'] = $files;
+    $response['reference_files'] = $files;
         $response['reference_file'] = $files;
+    // Ensure reference_urls present and normalized
+    $response['reference_urls'] = $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []);
         $response['co_authors'] = $coAuthors;
         $response['contributors'] = $contributors;
 
@@ -796,14 +931,18 @@ class ProjectController extends Controller
                 'division' => 'required|exists:divisions,id',
                 'status' => 'string|max:50',
                 'reference_url' => 'nullable|url',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'part_of_project' => 'nullable|exists:projects,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                // allow multiple files via reference_file[] on update
-                'reference_file' => 'nullable',
-                'reference_file.*' => 'file|mimes:pdf,doc,docx|max:10240',
+                // Allow multiple reference files via both keys; use Task's whitelist and 5MB limit
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file' => 'nullable|array',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
                 'co_author' => 'nullable|array',
                 'co_author.*' => 'nullable|exists:employees,id',
                 'contributors' => 'nullable|array',
@@ -815,7 +954,20 @@ class ProjectController extends Controller
             $project->department_id = $request->department;
             $project->division_id = $request->division;
             $project->status = $request->status ?? 'ACTIVE';
-            $project->reference_url = $request->reference_url;
+            // Normalize reference URLs on update
+            $refUrls = [];
+            if ($request->has('reference_urls')) {
+                $incoming = $request->input('reference_urls', []);
+                if (is_array($incoming)) {
+                    $refUrls = array_values(array_filter($incoming));
+                }
+                $project->reference_urls = $refUrls; // even if empty, set to clear
+                $project->reference_url = count($refUrls) > 0 ? $refUrls[0] : null; // mirror
+            } elseif (!empty($request->reference_url)) {
+                $refUrls = [$request->reference_url];
+                $project->reference_urls = $refUrls;
+                $project->reference_url = $request->reference_url;
+            }
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
             $project->part_of_project = $request->part_of_project;
@@ -861,16 +1013,21 @@ class ProjectController extends Controller
             // Start with preserved files
             $finalFiles = $existing;
 
-            // Handle newly uploaded files
+            // Handle newly uploaded files from both keys
+            $incomingFiles = [];
+            if ($request->hasFile('reference_files')) {
+                $rf = $request->file('reference_files');
+                $incomingFiles = array_merge($incomingFiles, is_array($rf) ? $rf : [$rf]);
+            }
             if ($request->hasFile('reference_file')) {
-                $files = $request->file('reference_file');
-                if (!is_array($files)) $files = [$files];
-                foreach ($files as $file) {
-                    if (!$file) continue;
-                    $fileName = 'PROJECT_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
-                    $file->move(public_path('file/project'), $fileName);
-                    $finalFiles[] = $fileName;
-                }
+                $rfLegacy = $request->file('reference_file');
+                $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
+            }
+            foreach ($incomingFiles as $idx => $file) {
+                if (!$file) continue;
+                $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('file/project'), $fileName);
+                $finalFiles[] = $fileName;
             }
 
             // Set final files (empty array allowed) -> primary JSON column
@@ -970,14 +1127,14 @@ class ProjectController extends Controller
             $updateData['updated_by'] = auth()->id();
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Project updated successfully',
                 'project' => $project
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -999,10 +1156,10 @@ class ProjectController extends Controller
 
             // Delete project assignments first
             $project->projectAssignments()->delete();
-            
+
             // Delete project feedbacks
             $project->projectFeedbacks()->delete();
-            
+
             // Delete project files
             if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
                 @unlink(public_path('file/project/' . $project->image));
@@ -1017,19 +1174,19 @@ class ProjectController extends Controller
                     @unlink(public_path('file/project/' . $rf));
                 }
             }
-            
+
             // Finally delete the project
             $project->deleted_by = auth()->id();
             $project->save();
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Project deleted successfully'
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1046,33 +1203,86 @@ class ProjectController extends Controller
     public function getProjectFeedbacks($projectId)
     {
         try {
-            $feedbacks = ProjectFeedback::with(['employee'])
+            // Ambil feedback dengan nested replies + order langsung
+            $feedbacks = ProjectFeedback::with([
+                'employee.user:id,photo',
+                'replies' => function ($q) {
+                    $q->with(['employee.user:id,photo'])
+                        ->orderBy('created_at', 'asc');
+                }
+            ])
                 ->where('project_id', $projectId)
+                ->whereNull('parent_id')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            $feedbacksTransformed = $feedbacks->map(function ($feedback) {
-                $employee = $feedback->employee;
-
-                return [
-                    'id' => $feedback->id,
-                    'employee_id' => $employee ? $employee->id : null,
-                    'employee_name' => $employee ? $employee->name : null,
-                    'employee_photo' => $employee ? $employee->photo : null,
-                    'feedback_comment' => $feedback->feedback_comment,
-                    'image' => $feedback->image,
-                    'reference_url' => $feedback->reference_url,
-                    'reference_file' => $feedback->reference_file,
-                    'created_at' => $feedback->created_at,
+        $formatOne = function ($fb) {
+                $item = [
+                    'id' => $fb->id,
+                    'parent_id' => $fb->parent_id,
+                    'feedback_comment' => $fb->feedback_comment,
+                    'image' => $fb->image ? asset('file/project/' . $fb->image) : null,
+                    'reference_url' => $fb->reference_url,
+            'reference_urls' => $fb->reference_urls ?: ($fb->reference_url ? [$fb->reference_url] : []),
+                    'reference_file' => $fb->reference_file ? asset('file/project/' . $fb->reference_file) : null,
+                    'reference_files' => (function() use ($fb) {
+                        $arr = $fb->reference_files;
+                        if (is_string($arr) && $arr !== '') {
+                            $dec = json_decode($arr, true);
+                            if (is_array($dec)) $arr = $dec; else $arr = [$arr];
+                        }
+                        if (!is_array($arr)) $arr = [];
+                        return array_map(function($f){ return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
+                    })(),
+                    'created_at' => $fb->created_at,
+                    'employee' => $fb->employee ? [
+                        'id' => $fb->employee->id,
+                        'name' => $fb->employee->name,
+                        'photo' => ($fb->employee->user && $fb->employee->user->photo)
+                            ? asset($fb->employee->user->photo)
+                            : asset('asset/img/profile_picture/default.png'),
+                    ] : null,
                 ];
-            });
+
+        $item['replies'] = $fb->replies->map(function ($r) {
+                    return [
+                        'id' => $r->id,
+                        'parent_id' => $r->parent_id,
+                        'feedback_comment' => $r->feedback_comment,
+                        'image' => $r->image ? asset('file/project/' . $r->image) : null,
+                        'reference_url' => $r->reference_url,
+            'reference_urls' => $r->reference_urls ?: ($r->reference_url ? [$r->reference_url] : []),
+                        'reference_file' => $r->reference_file ? asset('file/project/' . $r->reference_file) : null,
+                        'reference_files' => (function() use ($r) {
+                            $arr = $r->reference_files;
+                            if (is_string($arr) && $arr !== '') {
+                                $dec = json_decode($arr, true);
+                                if (is_array($dec)) $arr = $dec; else $arr = [$arr];
+                            }
+                            if (!is_array($arr)) $arr = [];
+                            return array_map(function($f){ return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
+                        })(),
+                        'created_at' => $r->created_at,
+                        'employee' => $r->employee ? [
+                            'id' => $r->employee->id,
+                            'name' => $r->employee->name,
+                            'photo' => ($r->employee->user && $r->employee->user->photo)
+                                ? asset($r->employee->user->photo)
+                                : asset('asset/img/profile_picture/default.png'),
+                        ] : null,
+                    ];
+                });
+
+                return $item;
+            };
+
+            $payload = $feedbacks->map($formatOne);
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $feedbacksTransformed
+                'data' => $payload
             ]);
-            
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $e->getCode() ?: 500,
@@ -1091,21 +1301,36 @@ class ProjectController extends Controller
         try {
             $request->validate([
                 'project_id' => 'required|exists:projects,id',
+                'parent_id' => 'nullable|exists:project_feedbacks,id',
                 'employee_id' => 'required|exists:employees,id',
-                'feedback_comment' => 'nullable|string',
-                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+                'feedback_comment' => 'required|string',
+                // Match Task limits (image max 2MB)
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
                 'reference_url' => 'nullable|url',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
+                // Multiple reference files support (match Task mimes & 5MB limit)
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
             ]);
 
             $feedback = new ProjectFeedback();
             $feedback->project_id = $request->project_id;
+            $feedback->parent_id = $request->parent_id;
             $feedback->employee_id = $request->employee_id;
             $feedback->feedback_comment = $request->feedback_comment;
-            $feedback->reference_url = $request->reference_url;
+            // Normalize reference URLs for feedback
+            $refUrls = [];
+            if ($request->has('reference_urls') && is_array($request->reference_urls)) {
+                $refUrls = array_values(array_filter($request->reference_urls));
+            } elseif (!empty($request->reference_url)) {
+                $refUrls = [$request->reference_url];
+            }
+            $feedback->reference_urls = $refUrls;
+            $feedback->reference_url = count($refUrls) ? $refUrls[0] : null;
             $feedback->created_by = auth()->user() ? auth()->user()->id : null;
             $feedback->updated_by = auth()->user() ? auth()->user()->id : null;
-            $feedback->deleted_by = null;   
+            $feedback->deleted_by = null;
 
             // Handle feedback image upload
             if ($request->hasFile('feedback_image')) {
@@ -1115,31 +1340,278 @@ class ProjectController extends Controller
                 $feedback->image = $imageName;
             }
 
-            // Handle reference file upload
-            if ($request->hasFile('reference_file')) {
-                $file = $request->file('reference_file');
-                $fileName = 'FEEDBACK_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('file/project'), $fileName);
-                $feedback->reference_file = $fileName;
+            // Handle multiple reference files upload
+            $uploaded = [];
+            if ($request->hasFile('reference_files')) {
+                foreach ((array) $request->file('reference_files') as $file) {
+                    if (!$file) continue;
+                    $fileName = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/project'), $fileName);
+                    $uploaded[] = $fileName;
+                }
+            }
+            if (!empty($uploaded)) {
+                $feedback->reference_files = $uploaded;
+                // mirror first file for legacy single field consumers
+                $feedback->reference_file = $uploaded[0];
             }
 
             $feedback->save();
 
             DB::commit();
-            
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Feedback added successfully',
                 'feedback' => $feedback
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'code' => $e->getCode() ?: 500,
                 'status' => "error",
                 'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * Update project feedback or reply (author-only)
+     */
+    public function updateFeedback(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $feedback = ProjectFeedback::findOrFail($id);
+
+            // Only author can edit
+            $user = $request->user();
+            $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$currentEmployeeId || (int) $feedback->employee_id !== (int) $currentEmployeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'You are not allowed to edit this feedback.',
+                ], 403);
+            }
+
+            $request->validate([
+                'feedback_comment' => 'required|string',
+                'reference_url' => 'nullable|url',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
+                // Match Task image limits (2MB)
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+                // Multiple reference files update (match Task)
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'existing_reference_files' => 'nullable', // JSON array of filenames to keep
+            ]);
+
+            $feedback->feedback_comment = $request->feedback_comment;
+            // Normalize incoming reference URLs on update
+            if ($request->has('reference_urls')) {
+                $incoming = $request->input('reference_urls', []);
+                $arr = is_array($incoming) ? array_values(array_filter($incoming)) : [];
+                $feedback->reference_urls = $arr;
+                $feedback->reference_url = count($arr) ? $arr[0] : null;
+            } elseif (!is_null($request->reference_url)) {
+                $val = $request->reference_url;
+                $feedback->reference_urls = $val ? [$val] : [];
+                $feedback->reference_url = $val ?: null;
+            }
+
+            // Normalize image input key
+            $img = $request->file('image') ?: $request->file('feedback_image');
+            if ($img) {
+                $name = 'FEEDBACK_' . time() . '.' . $img->getClientOriginalExtension();
+                $img->move(public_path('file/project'), $name);
+                $feedback->image = $name;
+            }
+
+            // Handle existing + new reference files
+            $existing = [];
+            if ($request->has('existing_reference_files')) {
+                $existing = json_decode($request->existing_reference_files, true) ?: [];
+            }
+            $existing = is_array($existing) ? $existing : [];
+            $current = $feedback->reference_files ?: ($feedback->reference_file ? [$feedback->reference_file] : []);
+            if (!is_array($current)) $current = (strlen((string) $current) ? [$current] : []);
+            // Delete removed
+            $toDelete = array_diff($current, $existing);
+            foreach ($toDelete as $del) {
+                $path = public_path('file/project/' . $del);
+                if ($del && file_exists($path)) @unlink($path);
+            }
+            $finalFiles = $existing;
+            if ($request->hasFile('reference_files')) {
+                foreach ((array) $request->file('reference_files') as $rf) {
+                    if (!$rf) continue;
+                    $name = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $rf->getClientOriginalExtension();
+                    $rf->move(public_path('file/project'), $name);
+                    $finalFiles[] = $name;
+                }
+            }
+            $feedback->reference_files = $finalFiles;
+            $feedback->reference_file = count($finalFiles) ? $finalFiles[0] : null;
+
+            if ($user) {
+                $feedback->updated_by = $user->id;
+            }
+
+            $feedback->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Project feedback updated successfully',
+                'data' => $feedback,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => 'Failed to update feedback: ' . $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
+     * Get unread feedback count for a project for current employee.
+     */
+    public function getUnreadFeedbackCount($projectId)
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json(['count' => 0]);
+            }
+
+            $project = Project::find($projectId);
+            if (!$project)
+                return response()->json(['count' => 0]);
+
+            // Strategy: store per-employee last_read_at in projects.read_markers (JSON)
+            $markers = [];
+            if (!empty($project->read_markers)) {
+                $markers = is_array($project->read_markers)
+                    ? $project->read_markers
+                    : ((json_decode($project->read_markers, true)) ?: []);
+            }
+            $lastReadAt = $markers[(string) $employeeId] ?? null;
+
+            $query = ProjectFeedback::where('project_id', $projectId)
+                ->where('employee_id', '!=', $employeeId); // exclude own feedback
+            if ($lastReadAt) {
+                $query->where('created_at', '>', $lastReadAt);
+            }
+            $count = $query->count();
+
+            return response()->json(['count' => $count]);
+        } catch (\Exception $e) {
+            return response()->json(['count' => 0]);
+        }
+    }
+
+    /**
+     * Mark all feedbacks as read for current employee for a project by updating last_read_at marker.
+     */
+    public function markProjectFeedbacksRead($projectId)
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json(['status' => 'ok']);
+            }
+
+            $project = Project::findOrFail($projectId);
+            $markers = [];
+            if (!empty($project->read_markers)) {
+                $markers = is_array($project->read_markers)
+                    ? $project->read_markers
+                    : ((json_decode($project->read_markers, true)) ?: []);
+            }
+            $markers[(string) $employeeId] = now()->toDateTimeString();
+            $project->read_markers = $markers;
+            $project->save();
+
+            return response()->json(['status' => 'ok']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'ok']);
+        }
+    }
+
+    /**
+     * Get the latest single feedback for a project
+     */
+    public function getProjectLatestFeedback($projectId)
+    {
+        try {
+            $employeeId = auth()->user()?->employee?->id;
+
+            // Apply unread window using project read_markers (per-employee last_read_at)
+            $lastReadAt = null;
+            if ($employeeId) {
+                $project = Project::find($projectId);
+                if ($project && !empty($project->read_markers)) {
+                    $markers = is_array($project->read_markers) ? $project->read_markers : (json_decode($project->read_markers, true) ?: []);
+                    $lastReadAt = $markers[(string) $employeeId] ?? null;
+                }
+            }
+
+            $latest = ProjectFeedback::with(['employee.user'])
+                ->where('project_id', $projectId)
+                // Only show if not authored by current user
+                ->when($employeeId, function ($q) use ($employeeId) {
+                    $q->where('employee_id', '!=', $employeeId);
+                })
+                // Only show if it's newer than last read
+                ->when($lastReadAt, function ($q) use ($lastReadAt) {
+                    $q->where('created_at', '>', $lastReadAt);
+                })
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$latest) {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => null
+                ]);
+            }
+
+            $payload = [
+                'id' => $latest->id,
+                'parent_id' => $latest->parent_id,
+                'feedback_comment' => $latest->feedback_comment,
+                'created_at' => $latest->created_at,
+                'employee' => $latest->employee ? [
+                    'id' => $latest->employee->id,
+                    'name' => $latest->employee->name,
+                    'photo' => ($latest->employee->user && $latest->employee->user->photo)
+                        ? asset($latest->employee->user->photo)
+                        : asset('asset/img/profile_picture/default.png'),
+                ] : null,
+            ];
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $payload,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
             ], $e->getCode() ?: 500);
         }
     }

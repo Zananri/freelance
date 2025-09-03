@@ -4,9 +4,16 @@
             .querySelector('meta[name="app-url"]')
             ?.getAttribute("content") || "";
 
+    // Current logged-in employee id (from shared modal dataset)
+    const currentEmployeeId = (function(){
+        try { return document.getElementById('taskFeedbackModal')?.dataset?.employeeId || null; } catch(_) { return null; }
+    })();
+
     // Flags to prevent duplicate global bindings
     let globalDropdownDocListenersBound = false;
     let attachFileIconListenerBound = false;
+    // Shared buffer for multi-file preview across modals (Add Task, Add/Reply Feedback)
+    let selectedFiles = [];
 
     // Initialize Bootstrap tooltips within a DOM scope (default document)
     function initBootstrapTooltips(root = document) {
@@ -21,6 +28,212 @@
     }
     // Expose globally for use outside this block
     window.initBootstrapTooltips = initBootstrapTooltips;
+
+    // Helper: determine if current viewer is an invited executor who hasn't accepted yet for this task
+    function isViewerPendingExecutor(task) {
+        if (!currentEmployeeId) return false;
+        try {
+            // If viewer is PIC, never pending
+            if (task && task.pic && String(task.pic.id) === String(currentEmployeeId)) return false;
+            const exList = Array.isArray(task?.executors) ? task.executors : [];
+            const mine = exList.find(ex => String(ex.id) === String(currentEmployeeId));
+            if (!mine) return false;
+            const isAccepted = (mine.is_receive === true || mine.is_receive === 1);
+            return !isAccepted;
+        } catch(_) { return false; }
+    }
+
+    // Helper: mark task-assignment notifications as read for this task (affects only current user)
+    function markTaskAssignmentNotificationsRead(taskId) {
+        return $.ajax({
+            url: appUrl + "/notifications/task/" + taskId + "/mark-read",
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        });
+    }
+
+    // Helper: refresh notification count badge (local copy of logic in office.js)
+    function refreshNotificationCountBadge() {
+        $.ajax({
+            url: appUrl + "/notifications/count",
+            type: "GET",
+            success: function(response) {
+                const count = response && typeof response.count === 'number' ? response.count : 0;
+                const badge = document.getElementById('notificationBadge');
+                const countEl = document.getElementById('notificationCount');
+                if (badge && countEl) {
+                    if (count > 0) {
+                        countEl.textContent = String(count);
+                        badge.style.display = '';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
+
+    // Show Accept confirmation modal (task page, no notification context)
+    function showAcceptInviteModal(taskId) {
+        // Fetch task to display context
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            method: 'GET',
+            success: function(res) {
+                const t = res && (res.data || res) || {};
+                const title = t.title || 'Accept Task';
+                const desc = t.description || '';
+                let img = (t.image ? (appUrl + '/file/task/' + t.image) : (appUrl + '/asset/img/background/add-image.png'));
+
+                const id = 'acceptInviteModal';
+                const modalHtml = `
+                    <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Accept Task</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <img src="${img}" alt="Task Image" class="rounded-circle" style="width:70px; height:70px; object-fit:cover;" onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
+                                        </div>
+                                        <div>
+                                            <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
+                                            <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptInviteBtn"><span class="material-symbols-outlined me-1" style="font-size:12px; vertical-align:middle;">check_circle</span>Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                // Append & show
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const mEl = document.getElementById(id);
+                const modal = new bootstrap.Modal(mEl);
+                modal.show();
+                mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
+                mEl.querySelector('#confirmAcceptInviteBtn').addEventListener('click', function(){
+                    this.disabled = true; this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...';
+                    $.ajax({
+                        url: appUrl + '/task/' + taskId + '/accept',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        success: function(){
+                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){ }
+                            modal.hide();
+                            markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                            fetchAndRenderTasks();
+                        },
+                        error: function(xhr){
+                            let msg = 'Failed to accept task';
+                            try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ }
+                            if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
+                        },
+                        complete: function(){
+                            const btn = mEl.querySelector('#confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined me-1" style="font-size:12px; vertical-align:middle;">check_circle</span>Accept Task'; }
+                        }
+                    });
+                });
+            },
+            error: function(){
+                // Fallback simpler confirm
+                if (confirm('Accept this task?')) {
+                    $.ajax({
+                        url: appUrl + '/task/' + taskId + '/accept',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        success: function(){ markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); fetchAndRenderTasks(); },
+                    });
+                }
+            }
+        });
+    }
+    
+
+    // Show Reject confirmation modal (task page)
+    function showRejectInviteModal(taskId) {
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            method: 'GET',
+            success: function(res){
+                const t = res && (res.data || res) || {};
+                const title = t.title || 'Reject Task';
+                const desc = t.description || '';
+                let img = (t.image ? (appUrl + '/file/task/' + t.image) : (appUrl + '/asset/img/background/add-image.png'));
+                const id = 'rejectInviteModal';
+                const modalHtml = `
+                    <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Reject Task</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <img src="${img}" alt="Task Image" class="rounded-circle" style="width:70px; height:70px; object-fit:cover;" onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
+                                        </div>
+                                        <div>
+                                            <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
+                                            <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-secondary btn-cancel-invite" id="confirmRejectInviteBtn">Reject</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const mEl = document.getElementById(id);
+                const modal = new bootstrap.Modal(mEl);
+                modal.show();
+                mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
+                mEl.querySelector('#confirmRejectInviteBtn').addEventListener('click', function(){
+                    const btn = this; btn.disabled = true; btn.textContent = 'Processing...';
+                    $.ajax({
+                        url: appUrl + '/task/' + taskId + '/reject',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        success: function(){
+                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Invitation rejected.', 'success'); } catch(_){ }
+                            modal.hide();
+                            const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                            if (card && card.parentNode) card.parentNode.removeChild(card);
+                            markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                        },
+                        error: function(xhr){
+                            let msg = 'Failed to reject task';
+                            try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ }
+                            if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
+                        },
+                        complete: function(){ btn.disabled = false; btn.textContent = 'Reject'; }
+                    });
+                });
+            },
+            error: function(){
+                if (confirm('Reject this task invitation?')) {
+                    $.ajax({
+                        url: appUrl + '/task/' + taskId + '/reject',
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        success: function(){ const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]'); if (card && card.parentNode) card.parentNode.removeChild(card); markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); }
+                    });
+                }
+            }
+        });
+    }
 
     const imageInput = document.getElementById("task_image");
     const imageLabel = document.getElementById("taskImageLabel");
@@ -67,7 +280,7 @@
 
     function loadProjects() {
         if (!projectSelect) return;
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -942,20 +1155,51 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     }
 
     // Function to create task card HTML
-   function createTaskCard(task) {
-    // Combine PIC and executors into one array for uniform rendering without duplicates
+        function createTaskCard(task) {
+            // Normalize project image early to avoid broken images when backend returns empty/invalid URL
+            const placeholderProjectImg = `${appUrl}/asset/img/profile_picture/default.png`;
+            const projectImg = (function() {
+                try {
+                    const raw = (task && task.project_image) || '';
+                    const val = String(raw || '').trim();
+                    if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
+                        return placeholderProjectImg;
+                    }
+                    // If response already contains a file/project path, rebuild with current appUrl to support subfolder deployments
+                    if (val.includes('/file/project/')) {
+                        const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
+                        if (!fname) return placeholderProjectImg;
+                        return `${appUrl}/file/project/${fname}`;
+                    }
+                    // Asset path from root -> rewrite with appUrl
+                    if (val.startsWith('/asset/')) {
+                        const suffix = val.replace(/^\/+/, '');
+                        return `${appUrl}/${suffix}`;
+                    }
+                    // Any other root-relative path -> prefix with appUrl
+                    if (val.startsWith('/')) {
+                        return `${appUrl}${val}`;
+                    }
+                    // If it's just a filename, prefix with our appUrl
+                    if (!/^https?:\/\//i.test(val) && !val.startsWith('/')) {
+                        return `${appUrl}/file/project/${val}`;
+                    }
+                    // Otherwise trust as-is (absolute http(s) or root-relative)
+                    return val;
+                } catch(_) { return placeholderProjectImg; }
+            })();
+    // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
         allExecutors.push(task.pic);
     }
-    if (task.executors && task.executors.length > 0) {
-        task.executors.forEach((executor) => {
-            // Avoid duplicate if executor is same as PIC
-            if (!allExecutors.some(e => e.id === executor.id)) {
-                allExecutors.push(executor);
-            }
-        });
-    }
+    const acceptedExecutors = (task.executors || []).filter(ex => ex && (ex.is_receive === true || ex.is_receive === 1));
+    acceptedExecutors.forEach((executor) => {
+        // Avoid duplicate if executor is same as PIC
+        if (!allExecutors.some(e => e && e.id === executor.id)) {
+            allExecutors.push(executor);
+        }
+    });
 
     // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
     const executorsHtml = allExecutors
@@ -994,7 +1238,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Add status badge for rejected tasks
     let statusBadge = '';
     if (task.status === 'rejected') {
-        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 10%; right: 90px;">REJECTED</span>';
+        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
     }
 
     // FIXED: Proper icon logic based on current status
@@ -1026,6 +1270,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
     }
 
+    // If current viewer is a pending executor, render simplified card footer with Accept/Reject controls
+    const viewerPending = isViewerPendingExecutor(task);
+
     // Check if description is long enough to need truncation
     return `
         <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}">
@@ -1043,12 +1290,15 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             ${iconHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                <img src="${task.project_image}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px;">
-                <h5 class="mb-0 task-title">${task.title}</h5>
+                <img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
+                <div class="d-flex flex-column">
+                    <small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>
+                    <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
+                </div>
             </div>
             <div class="task-description-container">
                 <p class="task-description" data-full-description="${task.description}">
-                    ${task.description}
+                    ${task.description ? task.description : ''}
                 </p>
             </div>
             <hr class="task-separator rounded-4">
@@ -1065,28 +1315,34 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="d-flex align-items-center pic-executor-container">
-                    ${executorsHtml}
-                </div>
-                <div class="d-flex">
-                   <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                        <span class="material-symbols-outlined task-icon mode_comment"
-                            data-task-id="${task.id}">mode_comment</span>
-                        ${
-                            task.feedback_comments_count > 0
-                                ? `<span class="feedback-comments-count ms-1" style="color: #555" >${task.feedback_comments_count}</span>`
-                                : ""
-                        }
+                    ${viewerPending
+                        ? `
+                        <div class="d-flex align-items-center w-100 justify-content-between gap-1">
+                            <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
+                            <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
+                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
+                                Accept Task
+                            </button>
+                        </div>
+                        `
+                    : `
+                    <div class="d-flex align-items-center pic-executor-container">${executorsHtml}</div>
+                    <div class="d-flex align-items-center">
+                        <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
+                            <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                            <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                        </div>
+                        <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
+                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+                            ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                        </div>
+                        <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                            <span class="material-symbols-outlined task-icon">attach_file</span>
+                            ${task.reference_files_count > 0 ? `<span class=\"reference-files-count ms-1\" style=\"color: #454545; font-size: 12px;\">${task.reference_files_count}</span>` : ""}
+                        </div>
                     </div>
-                    <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                        <span class="material-symbols-outlined task-icon">attach_file</span>
-                        ${
-                            task.reference_files_count > 0
-                                ? `<span class="reference-files-count ms-1" style="color: #555">${task.reference_files_count}</span>`
-                                : ""
-                        }
-                    </div>
-                </div>
+                    `}
             </div>
         </div>
     `;
@@ -1115,66 +1371,122 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Function to fetch and render tasks
     let allTasksCache = null; // simpen semua data task
 
-    function fetchAndRenderTasks() {
-        $.ajax({
-            url: appUrl + "/task/index",
-            type: "GET",
-            dataType: "json",
-            success: function (response) {
-                if (!response || response.code !== 200 || !response.data) {
-                    console.error("Invalid response data format");
-                    return;
-                }
+function fetchAndRenderTasks(statusKey = null, page = 1) {
+    const params = {};
+    if (statusKey) params.status = statusKey;
+    params.page = page;
 
-                allTasksCache = response.data; // simpen data asli
+    $.ajax({
+        url: appUrl + "/task/index",
+        type: "GET",
+        dataType: "json",
+        data: params,
+        success: function(response) {
+            console.log(response);
+            
+            if (!response || response.code !== 200 || !response.data) return;
+
+            // update cache biar gak ilang data lama
+            if (!allTasksCache) allTasksCache = {};
+            Object.keys(response.data).forEach(key => {
+                allTasksCache[key] = response.data[key];
+            });
+
+            if (statusKey) {
+                renderSingleSection(statusKey, allTasksCache[statusKey]);
+            } else {
                 renderTasks(allTasksCache);
-            },
-            error: function (xhr, status, error) {
-                console.error("Error fetching tasks:", error);
             }
+        },
+        error: function(xhr, status, error) {
+            console.error("Error fetching tasks:", error);
+        }
+    });
+}
+
+function renderTasks(data) {
+    renderSingleSection("new_request", data.new_request);
+    renderSingleSection("in_progress", {
+        ...data.in_progress,
+        tasks: [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])]
+    });
+    renderSingleSection("completed", data.completed);
+}
+
+function renderSingleSection(status, sectionData) {
+    const sectionMap = {
+        new_request: "new-request-tasks",
+        in_progress: "in-progress-tasks",
+        completed: "completed-tasks"
+    };
+
+    const containerId = sectionMap[status];
+    if (!containerId) return;
+
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+
+    if (sectionData?.tasks) {
+        sectionData.tasks.forEach(task => {
+            container.insertAdjacentHTML("beforeend", createTaskCard(task));
         });
     }
 
-    function renderTasks(data, query = "") {
-        // Clear section
-        document.getElementById("new-request-tasks").innerHTML = "";
-        document.getElementById("in-progress-tasks").innerHTML = "";
-        document.getElementById("completed-tasks").innerHTML = "";
-
-        // Function filter by query
-        const filterTasks = (tasks) => {
-            if (!Array.isArray(tasks)) return [];
-            if (!query) return tasks;
-            return tasks.filter(task =>
-                JSON.stringify(task).toLowerCase().includes(query.toLowerCase())
-            );
-        };
-
-        // Preserve dropdown state
-        const currentProject = document.getElementById("filterTaskProject").value;
-        const currentStatus = document.getElementById("filterTaskStatus").value;
-
-        // Filter + render
-        filterTasks(data.new_request).forEach(task => {
-            document.getElementById("new-request-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-
-        filterTasks(data.in_progress).forEach(task => {
-            document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-
-        filterTasks(data.completed).forEach(task => {
-            document.getElementById("completed-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-
-        filterTasks(data.rejected).forEach(task => {
-            document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-
-    // After cards are in DOM, wire listeners and tooltips
     setupTaskDropdownListeners();
     addAttachFileIconListeners();
     initBootstrapTooltips();
+    refreshAllUnreadBadges();
+    refreshAllLatestFeedbackSnippets();
+
+    updatePagination(allTasksCache);
+}
+
+
+    function updatePagination(data) {
+        const statusMap = {
+            new_request: {
+                containerId: "newTaskPagination",
+                prevBtnId: "prevPageBtnNew",
+                nextBtnId: "nextPageBtnNew",
+                infoId: "paginationInfoNew"
+            },
+            in_progress: {
+                containerId: "progressTaskPagination",
+                prevBtnId: "prevPageBtnProgress",
+                nextBtnId: "nextPageBtnProgress",
+                infoId: "paginationInfoProgress"
+            },
+            completed: {
+                containerId: "completedTaskPagination",
+                prevBtnId: "prevPageBtnCompleted",
+                nextBtnId: "nextPageBtnCompleted",
+                infoId: "paginationInfoCompleted"
+            }
+        };
+
+        Object.keys(statusMap).forEach(status => {
+            const pagination = data[status]?.pagination;
+            if (!pagination) return;
+
+            const { prevBtnId, nextBtnId, infoId } = statusMap[status];
+
+            const prevBtn = document.getElementById(prevBtnId);
+            const nextBtn = document.getElementById(nextBtnId);
+            const info = document.getElementById(infoId);
+            if (!prevBtn || !nextBtn || !info) return;
+
+            prevBtn.disabled = pagination.current_page <= 1;
+            nextBtn.disabled = pagination.current_page >= pagination.last_page;
+            info.textContent = `${pagination.current_page} of ${pagination.last_page}`;
+
+            prevBtn.onclick = () => {
+                if (pagination.current_page > 1) fetchAndRenderTasks(status, pagination.current_page - 1);
+            };
+
+            nextBtn.onclick = () => {
+                if (pagination.current_page < pagination.last_page) fetchAndRenderTasks(status, pagination.current_page + 1);
+            };
+        });
     }
 
     $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
@@ -1196,22 +1508,31 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Function to setup dropdown event listeners for task cards
     function setupTaskDropdownListeners() {
         // Add event listeners for dropdown toggle
-        document.querySelectorAll(".dropdown-icon").forEach((icon) => {
-            if (icon.dataset.bound === '1') return;
-            icon.dataset.bound = '1';
-            icon.addEventListener("click", function (e) {
+        document.addEventListener("click", function (e) {
+            const icon = e.target.closest(".dropdown-icon");
+            if (icon) {
                 e.stopPropagation();
-                const dropdownMenu = this.nextElementSibling;
+                const dropdownMenu = icon.nextElementSibling;
                 const isVisible = !dropdownMenu.classList.contains("d-none");
-                // Close all dropdowns
+
+                // Tutup semua dropdown dulu
                 document.querySelectorAll(".dropdown-menu").forEach((menu) => {
                     menu.classList.add("d-none");
                 });
-                // Toggle current dropdown
+
+                // Toggle dropdown yang di-klik
                 if (!isVisible) {
                     dropdownMenu.classList.remove("d-none");
                 }
-            });
+                return;
+            }
+
+            // Kalau klik di luar menu → tutup semua
+            if (!e.target.closest(".dropdown-menu")) {
+                document.querySelectorAll(".dropdown-menu").forEach((menu) => {
+                    menu.classList.add("d-none");
+                });
+            }
         });
 
         // Close dropdown when clicking outside (bind once)
@@ -1225,12 +1546,52 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
 
         // Open Modal from mode_comment icon click
-        document.querySelectorAll(".task-icon.mode_comment").forEach((icon) => {
-            if (icon.dataset.bound === '1') return;
-            icon.dataset.bound = '1';
-            icon.addEventListener("click", function () {
-                const taskId = this.dataset.taskId;
-                handleTaskFeedback(taskId);
+        document.addEventListener("click", function (e) {
+            $(document).on("hidden.bs.modal", "#taskFeedbackModal", function () {
+                $(".modal-backdrop").remove();
+                $("body").removeClass("modal-open").css("overflow", "");
+            });
+
+            // (Opsional) kalau masih ada double backdrop pas buka, bersihin sisanya
+            $(document).on("shown.bs.modal", "#taskFeedbackModal", function () {
+                const backdrops = $(".modal-backdrop");
+                if (backdrops.length > 1) {
+                    backdrops.not(":first").remove();
+                }
+            });
+
+            const icon = e.target.closest(".task-icon.mode_comment");
+            if (icon) {
+                const taskId = icon.dataset.taskId;
+                // Set deep-link target to latest payload if available
+                try {
+                    window.__taskLatestTarget = window.__taskLatestTarget || {};
+                    const latest = (window.__taskLatest && window.__taskLatest[String(taskId)]) || null;
+                    if (latest) window.__taskLatestTarget[String(taskId)] = latest;
+                } catch (_) {}
+                markTaskFeedbacksRead(taskId).always(() => {
+                    handleTaskFeedback(taskId);
+                });
+                return;
+            }
+        });
+
+        // Bind latest-feedback-snippet clicks
+        document.querySelectorAll('.latest-feedback-snippet').forEach((el) => {
+            if (el.dataset.bound === '1') return;
+            el.dataset.bound = '1';
+            el.addEventListener('click', function () {
+                const taskId = this.getAttribute('data-task-id');
+                hideLatestFeedbackSnippet(taskId);
+                // Set deep-link target to latest payload if available
+                try {
+                    window.__taskLatestTarget = window.__taskLatestTarget || {};
+                    const latest = (window.__taskLatest && window.__taskLatest[String(taskId)]) || null;
+                    if (latest) window.__taskLatestTarget[String(taskId)] = latest;
+                } catch (_) {}
+                markTaskFeedbacksRead(taskId).always(() => {
+                    handleTaskFeedback(taskId);
+                });
             });
         });
 
@@ -1270,10 +1631,26 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             handleTaskEdit(taskId);
                             break;
                         case "Feedback":
-                            handleTaskFeedback(taskId);
+                            // Set deep-link target to latest payload if available
+                            try {
+                                window.__taskLatestTarget = window.__taskLatestTarget || {};
+                                const latest = (window.__taskLatest && window.__taskLatest[String(taskId)]) || null;
+                                if (latest) window.__taskLatestTarget[String(taskId)] = latest;
+                            } catch (_) {}
+                            markTaskFeedbacksRead(taskId).always(() => {
+                                handleTaskFeedback(taskId);
+                            });
                             break;
                         case "mode_comment":
-                            handleTaskFeedback(taskId);
+                            // Set deep-link target to latest payload if available
+                            try {
+                                window.__taskLatestTarget = window.__taskLatestTarget || {};
+                                const latest = (window.__taskLatest && window.__taskLatest[String(taskId)]) || null;
+                                if (latest) window.__taskLatestTarget[String(taskId)] = latest;
+                            } catch (_) {}
+                            markTaskFeedbacksRead(taskId).always(() => {
+                                handleTaskFeedback(taskId);
+                            });
                             break;
                         case "Progress":
                             handleTaskProgress(taskId, taskCard);
@@ -1294,6 +1671,30 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 }
             });
             document._taskDropdownItemHandlerBound = true;
+        }
+
+        // Accept/Reject buttons for pending executor state (bind once globally)
+        if (!document._taskPendingInviteHandlerBound) {
+            document.addEventListener('click', function(e) {
+                const acceptBtn = e.target.closest('.btn-accept-invite');
+                if (acceptBtn) {
+                    e.preventDefault();
+                    const tId = acceptBtn.getAttribute('data-task-id');
+                    if (!tId) return;
+                    showAcceptInviteModal(tId);
+                    return;
+                }
+
+                const rejectBtn = e.target.closest('.btn-cancel-invite');
+                if (rejectBtn) {
+                    e.preventDefault();
+                    const tId = rejectBtn.getAttribute('data-task-id');
+                    if (!tId) return;
+                    showRejectInviteModal(tId);
+                    return;
+                }
+            });
+            document._taskPendingInviteHandlerBound = true;
         }
     }
 
@@ -1554,9 +1955,118 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         feedbackModalEl.dataset.taskId = taskId;
 
         // Load feedback data (kosongan dulu)
-        loadTaskFeedbackData(taskId);
+    loadTaskFeedbackData(taskId);
+
+    // Hide unread badge and latest feedback snippet immediately upon opening
+    hideUnreadBadge(taskId);
+    hideLatestFeedbackSnippet(taskId);
 
         feedbackModal.show();
+    }
+
+    // Unread feedback badge helpers
+    function setUnreadBadge(taskId, count) {
+        const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+        if (!card) return;
+        const badge = card.querySelector(`.unread-badge[data-task-id="${taskId}"]`);
+        if (!badge) return;
+        const n = parseInt(count, 10) || 0;
+        if (n > 0) badge.classList.remove('d-none');
+        else badge.classList.add('d-none');
+    }
+    function hideUnreadBadge(taskId) {
+        setUnreadBadge(taskId, 0);
+    }
+    function fetchUnreadForTask(taskId) {
+        return $.ajax({ url: appUrl + `/task/${taskId}/feedbacks/unread-count`, type: 'GET' })
+            .then((res) => {
+                const c = (res && (res.count ?? res.data?.count)) || 0;
+                setUnreadBadge(taskId, c);
+            })
+            .catch(() => { /* noop */ });
+    }
+    function refreshAllUnreadBadges() {
+        document.querySelectorAll('.custom-card[data-task-id]').forEach((card) => {
+            const tid = card.getAttribute('data-task-id');
+            fetchUnreadForTask(tid);
+        });
+    }
+    // Track snippet fetch sequence per task to ignore stale responses
+    const latestSnippetSeq = {};
+
+    function markTaskFeedbacksRead(taskId) {
+        return $.ajax({
+            url: appUrl + `/task/${taskId}/feedbacks/mark-read`,
+            type: 'POST',
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+        }).always(() => {
+            hideUnreadBadge(taskId);
+            hideLatestFeedbackSnippet(taskId);
+            // Invalidate any in-flight latest snippet fetches
+            latestSnippetSeq[taskId] = (latestSnippetSeq[taskId] || 0) + 1;
+        });
+    }
+
+    // Latest feedback snippet helpers
+    function hideLatestFeedbackSnippet(taskId) {
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
+        els.forEach((el) => {
+            el.classList.add('d-none');
+            el.style.display = 'none';
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (textEl) textEl.textContent = '';
+        });
+    }
+    function setLatestFeedbackSnippet(taskId, data) {
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-task-id="${taskId}"]`);
+        if (!els || els.length === 0) return;
+        if (!data) {
+            hideLatestFeedbackSnippet(taskId);
+            return;
+        }
+        const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/profile_picture/default.png');
+        const raw = String(data.feedback_comment || '');
+        const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
+        els.forEach((el) => {
+            const avatar = el.querySelector('.latest-feedback-avatar');
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (avatar) avatar.src = photo;
+            if (textEl) textEl.textContent = truncated;
+            el.classList.remove('d-none');
+            el.style.removeProperty('display');
+        });
+    }
+    function fetchLatestFeedback(taskId) {
+        // Sequence token to guard against race conditions
+        const seq = (latestSnippetSeq[taskId] = (latestSnippetSeq[taskId] || 0) + 1);
+        return $.ajax({
+            url: appUrl + `/task-feedbacks/${taskId}/latest`,
+            type: 'GET',
+            dataType: 'json',
+        }).then((res) => {
+            // Ignore stale responses
+            if (latestSnippetSeq[taskId] !== seq) return;
+            const data = res && (res.data || null);
+            // Cache latest payload per task for deep-link behavior
+            try {
+                window.__taskLatest = window.__taskLatest || {};
+                window.__taskLatest[String(taskId)] = data;
+            } catch (_) {}
+            setLatestFeedbackSnippet(taskId, data);
+        }).catch(() => {
+            if (latestSnippetSeq[taskId] !== seq) return;
+            setLatestFeedbackSnippet(taskId, null);
+        });
+    }
+    function refreshAllLatestFeedbackSnippets() {
+        document.querySelectorAll('.custom-card[data-task-id]').forEach((card) => {
+            const tid = card.getAttribute('data-task-id');
+            fetchLatestFeedback(tid);
+        });
     }
 
     // Fungsi untuk memuat data feedback
@@ -1573,6 +2083,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 if (response.data && response.data.length > 0) {
                     let feedbackHtml = "";
                     response.data.forEach(function (feedback) {
+                        // Who is the current employee (to decide edit permission)
+                        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                        const currentEmployeeId = parseInt(
+                            (feedbackModalEl?.dataset?.employeeId || feedbackModalEl?.getAttribute('data-employee-id') || '0'),
+                            10
+                        ) || 0;
+
                         // Format the date with the requested format
                         let formattedDate = "";
                         if (feedback.created_at) {
@@ -1615,47 +2132,322 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                             }
                         }
 
-                        feedbackHtml += `
-                        <div class="feedback-item mb-3 p-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <img src="${feedback.employee.photo}" alt="${
-                            feedback.employee.name
-                        }"
-                                     class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                <div>
-                                    <strong>${feedback.employee.name}</strong>
-                                    <small class="text-muted d-block">${formattedDate}</small>
-                                </div>
-                            </div>
+                                                // Build top-level feedback block
+                                                // Normalize top-level image & ref file URLs for reliable preview
+                                                let topImageUrl = feedback.image || '';
+                                                if (topImageUrl) {
+                                                    const isAbs = typeof topImageUrl === 'string' && (topImageUrl.startsWith('http://') || topImageUrl.startsWith('https://'));
+                                                    const isFileTask = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/file/task/') || topImageUrl.startsWith('file/task/'));
+                                                    const isStorage = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/storage/') || topImageUrl.startsWith('storage/'));
+                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                        topImageUrl = appUrl + '/file/task/' + topImageUrl;
+                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                        topImageUrl = topImageUrl.startsWith('/') ? (appUrl + topImageUrl) : (appUrl + '/' + topImageUrl);
+                                                    }
+                                                }
+                                                // Build top-level reference files list (array-first, fallback to single)
+                                                let topRefFiles = [];
+                                                // Coerce to array if backend sends JSON string
+                                                let topRfVal = feedback.reference_files;
+                                                if (!Array.isArray(topRfVal) && typeof topRfVal === 'string') {
+                                                    try { const parsed = JSON.parse(topRfVal); if (Array.isArray(parsed)) topRfVal = parsed; } catch(_) { /* noop */ }
+                                                }
+                                                if (Array.isArray(topRfVal) && topRfVal.length > 0) {
+                                                    topRefFiles = topRfVal.map((f) => {
+                                                        if (!f) return null;
+                                                        const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                        const isRefPath = typeof f === 'string' && (f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                                                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                        return f;
+                                                    }).filter(Boolean);
+                                                } else {
+                                                    let singleRef = feedback.reference_file || '';
+                                                    if (singleRef) {
+                                                        const isAbs2 = typeof singleRef === 'string' && (singleRef.startsWith('http://') || singleRef.startsWith('https://'));
+                                                        const isRefPath = typeof singleRef === 'string' && (singleRef.startsWith('/file/task_reference_files/') || singleRef.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs2 && !isRefPath) singleRef = appUrl + '/file/task_reference_files/' + singleRef;
+                                                        else if (!isAbs2 && isRefPath) singleRef = singleRef.startsWith('/') ? (appUrl + singleRef) : (appUrl + '/' + singleRef);
+                                                        topRefFiles = [singleRef];
+                                                    }
+                                                }
+
+                                                // Build top-level reference URL list (array-first, fallback to single)
+                                                let topRefUrls = [];
+                                                let topRuVal = feedback.reference_urls;
+                                                if (!Array.isArray(topRuVal) && typeof topRuVal === 'string') {
+                                                    try { const parsed = JSON.parse(topRuVal); if (Array.isArray(parsed)) topRuVal = parsed; } catch(_) { /* noop */ }
+                                                }
+                                                if (Array.isArray(topRuVal) && topRuVal.length > 0) {
+                                                    topRefUrls = topRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                                                } else if (feedback.reference_url) {
+                                                    topRefUrls = [feedback.reference_url];
+                                                }
+
+                                                // Determine if current user is the author of the top-level feedback
+                                                const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
+                                                const canEditTop = String(topAuthorId) === String(currentEmployeeId);
+                                                const topEditIconHtml = canEditTop
+                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
+                                                    : '';
+
+                                                let repliesHtml = '';
+                                                if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                                        const repliesCount = feedback.replies.length;
+                                                        const repliesContent = feedback.replies.map(function (rep) {
+                                                                // reply date formatting
+                                                                let rDate = '';
+                                                                if (rep.created_at) {
+                                                                        const d = new Date(rep.created_at);
+                                                                        rDate = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                                                                }
+                                                                // Normalize image URL if backend returns filename/relative
+                                                                let repImageUrl = rep.image || '';
+                                                                if (repImageUrl) {
+                                                                    const isAbs = typeof repImageUrl === 'string' && (repImageUrl.startsWith('http://') || repImageUrl.startsWith('https://'));
+                                                                    const isFileTask = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/file/task/') || repImageUrl.startsWith('file/task/'));
+                                                                    const isStorage = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/storage/') || repImageUrl.startsWith('storage/'));
+                                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                                        repImageUrl = appUrl + '/file/task/' + repImageUrl;
+                                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                                        repImageUrl = repImageUrl.startsWith('/') ? (appUrl + repImageUrl) : (appUrl + '/' + repImageUrl);
+                                                                    }
+                                                                }
+                                                                // Build reply reference files list
+                                                                let repRefFiles = [];
+                                                                let repRfVal = rep.reference_files;
+                                                                if (!Array.isArray(repRfVal) && typeof repRfVal === 'string') {
+                                                                    try { const parsed = JSON.parse(repRfVal); if (Array.isArray(parsed)) repRfVal = parsed; } catch(_) { /* noop */ }
+                                                                }
+                                                                if (Array.isArray(repRfVal) && repRfVal.length > 0) {
+                                                                    repRefFiles = repRfVal.map((f) => {
+                                                                        if (!f) return null;
+                                                                        const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                                        const isRefPath = typeof f === 'string' && (f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/'));
+                                                                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                                                                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                                        return f;
+                                                                    }).filter(Boolean);
+                                                                } else {
+                                                                    let singleRep = rep.reference_file || '';
+                                                                    if (singleRep) {
+                                                                        const isAbs2 = typeof singleRep === 'string' && (singleRep.startsWith('http://') || singleRep.startsWith('https://'));
+                                                                        const isRefPath = typeof singleRep === 'string' && (singleRep.startsWith('/file/task_reference_files/') || singleRep.startsWith('file/task_reference_files/'));
+                                                                        if (!isAbs2 && !isRefPath) singleRep = appUrl + '/file/task_reference_files/' + singleRep;
+                                                                        else if (!isAbs2 && isRefPath) singleRep = singleRep.startsWith('/') ? (appUrl + singleRep) : (appUrl + '/' + singleRep);
+                                                                        repRefFiles = [singleRep];
+                                                                    }
+                                                                }
+                                                                // Build reply reference URL list (array-first, fallback to single)
+                                                                let repRefUrls = [];
+                                                                let repRuVal = rep.reference_urls;
+                                                                if (!Array.isArray(repRuVal) && typeof repRuVal === 'string') {
+                                                                    try { const parsed = JSON.parse(repRuVal); if (Array.isArray(parsed)) repRuVal = parsed; } catch(_) { /* noop */ }
+                                                                }
+                                                                if (Array.isArray(repRuVal) && repRuVal.length > 0) {
+                                                                    repRefUrls = repRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                                                                } else if (rep.reference_url) {
+                                                                    repRefUrls = [rep.reference_url];
+                                                                }
+                                                                // Determine if current user can edit this reply
+                                                                const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                                                                const canEditReply = String(repAuthorId) === String(currentEmployeeId);
+                                                                const replyEditIconHtml = canEditReply
+                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
+                                                                    : '';
+
+                                                                return `
+                                                                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background:#fafafa;">
+                                                                        <div class="d-flex align-items-center mb-1">
+                                                                            <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
+                                                                            <div>
+                                                                                <div class="d-flex align-items-center">
+                                                                                    <strong style="font-size: 13px;">${rep.employee.name}</strong>
+                                                                                    ${replyEditIconHtml}
+                                                                                </div>
+                                                                                <small class="text-muted d-block" style="font-size: 11px;">${rDate}</small>
+                                                                            </div>
+                                                                        </div>
+                                                                        <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
+                                                                        ${
+                                                                            ((Array.isArray(repRefUrls) && repRefUrls.length > 0) || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
+                                                                                ? `
+                                                                                    <div class="feedback-reference-container mb-1">
+                                                                                        ${Array.isArray(repRefUrls) && repRefUrls.length > 0 ? repRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
+                                                                                        ${Array.isArray(repRefFiles) && repRefFiles.length > 0 ? repRefFiles.map((u, idx) => `<a href=\"${u}\" download class=\"feedback-reference-file ms-2\"><span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}</a>`).join('') : ''}
+                                                                                    </div>
+                                                                                `
+                                                                                : ''
+                                                                        }
+                                                                        ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+                                                                    </div>
+                                                                `;
+                                                        }).join('');
+
+                                                        repliesHtml = `
+                                                            <div class="view-replies-wrap feedback-replies-wrap mt-1">
+                                                                <button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>
+                                                                <div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>
+                                                            </div>
+                                                        `;
+                                                }
+
+                                                feedbackHtml += `
+                                                <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
+                                                    <div class="d-flex align-items-center mb-2 justify-content-between">
+                                                        <div class="d-flex align-items-center">
+                                                            <img src="${feedback.employee.photo}" alt="${feedback.employee.name}"
+                                                                class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                                            <div>
+                                                                <div class="d-flex align-items-center">
+                                                                    <strong>${feedback.employee.name}</strong>
+                                                                    ${topEditIconHtml}
+                                                                </div>
+                                                                <small class="text-muted d-block">${formattedDate}</small>
+                                                            </div>
+                                                        </div>
+                                                        <span class="material-symbols-outlined feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">reply</span>
+                                                    </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
                             ${
-                                feedback.reference_url ||
-                                feedback.reference_file
+                                ((Array.isArray(topRefUrls) && topRefUrls.length > 0) || (Array.isArray(topRefFiles) && topRefFiles.length > 0))
                                     ? `
                                 <div class="feedback-reference-container">
-                                    ${
-                                        feedback.reference_url
-                                            ? `<a href="${feedback.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>`
-                                            : ""
-                                    }
-                                    ${
-                                        feedback.reference_file
-                                            ? `<a href="${feedback.reference_file}" download="" class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_PDF</a>`
-                                            : ""
-                                    }
+                                    ${Array.isArray(topRefUrls) && topRefUrls.length > 0 ? topRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
+                                    ${Array.isArray(topRefFiles) && topRefFiles.length > 0 ? topRefFiles.map((u, idx) => `<a href=\"${u}\" download class=\"feedback-reference-file ms-2\"><span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}</a>`).join('') : ''}
                                 </div>
                             `
                                     : ""
                             }
                             ${
-                                feedback.image
-                                    ? `<img src="${feedback.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
+                                topImageUrl
+                                    ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
                                     : ""
                             }
+                        ${repliesHtml}
                         </div>
                     `;
                     });
                     modalBody.innerHTML = feedbackHtml;
+
+                    // Bind reply icon click
+                    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const parentId = this.getAttribute('data-feedback-id');
+                            const tId = this.getAttribute('data-task-id');
+                            showReplyFeedbackForm(tId, parentId);
+                        });
+                    });
+
+                    // Bind edit (top-level) icon click
+                    modalBody.querySelectorAll('.feedback-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const fid = this.getAttribute('data-feedback-id');
+                            const payload = {
+                                id: fid,
+                                parent_id: null,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-urls') || '[]')); } catch(e){ return []; } }).call(this),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+                            showEditFeedbackForm(tId, payload, false);
+                        });
+                    });
+
+                    // Bind edit (reply) icon click
+                    modalBody.querySelectorAll('.reply-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const rid = this.getAttribute('data-reply-id');
+                            const pid = this.getAttribute('data-parent-id');
+                            const payload = {
+                                id: rid,
+                                parent_id: pid,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-urls') || '[]')); } catch(e){ return []; } }).call(this),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+                            showEditFeedbackForm(tId, payload, true);
+                        });
+                    });
+
+                    // Bind view replies toggle per feedback
+                    modalBody.querySelectorAll('.view-replies-toggle').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const fid = this.getAttribute('data-feedback-id');
+                            const count = this.getAttribute('data-replies-count');
+                            const container = modalBody.querySelector('#replies-' + fid);
+                            if (!container) return;
+                            const hidden = container.classList.contains('d-none');
+                            if (hidden) {
+                                container.classList.remove('d-none');
+                                this.textContent = 'Hide replies';
+                            } else {
+                                container.classList.add('d-none');
+                                this.textContent = `View all replies (${count})`;
+                            }
+                            // Enforce style: no underline and #555 color
+                            this.style.textDecoration = 'none';
+                            this.style.color = '#555';
+                        });
+                    });
+
+                    // Open feedback/reply images in a new tab
+                    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                        img.addEventListener('click', function () {
+                            const src = this.getAttribute('src');
+                            if (src) {
+                                window.open(src, '_blank');
+                            }
+                        });
+                    });
+
+                    // Deep-link scroll/highlight if a target is set for this task
+                    try {
+                        const target = (window.__taskLatestTarget && window.__taskLatestTarget[String(taskId)]) || null;
+                        if (target && target.id) {
+                            // If it's a reply (parent_id present), expand its parent replies first
+                            if (target.parent_id) {
+                                const wrap = modalBody.querySelector(`.feedback-replies-wrap .feedback-toggle-replies[data-feedback-id="${target.parent_id}"]`);
+                                if (wrap) {
+                                    // Ensure container is expanded
+                                    const container = modalBody.querySelector('#replies-' + target.parent_id);
+                                    if (container && container.classList.contains('d-none')) {
+                                        container.classList.remove('d-none');
+                                    }
+                                    // Update toggle text to Hide replies
+                                    wrap.textContent = 'Hide replies';
+                                }
+                                const replyEl = modalBody.querySelector(`.feedback-reply[data-reply-id="${target.id}"][data-parent-id="${target.parent_id}"]`);
+                                if (replyEl) {
+                                    replyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    replyEl.style.transition = 'background-color 0.3s ease';
+                                    const old = replyEl.style.backgroundColor;
+                                    replyEl.style.backgroundColor = '#fff3cd';
+                                    setTimeout(() => { replyEl.style.backgroundColor = old || '#fafafa'; }, 1200);
+                                }
+                            } else {
+                                // Top-level feedback
+                                const topEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.id}"]`);
+                                if (topEl) {
+                                    topEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    topEl.style.transition = 'background-color 0.3s ease';
+                                    const old = topEl.style.backgroundColor;
+                                    topEl.style.backgroundColor = '#fff3cd';
+                                    setTimeout(() => { topEl.style.backgroundColor = old || ''; }, 1200);
+                                }
+                            }
+                        }
+                        // Clear target after using it
+                        if (window.__taskLatestTarget) delete window.__taskLatestTarget[String(taskId)];
+                    } catch (_) {}
                 } else {
                     modalBody.innerHTML =
                         '<p class="text-center text-muted">No feedback available for this task.</p>';
@@ -1674,7 +2466,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         const modalBody = document.getElementById("taskFeedbackList");
         const addFeedbackButton = document.getElementById("addFeedbackButton");
 
-        modalTitle.textContent = "Add Feedback";
+    modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
 
         const form = document.createElement("form");
@@ -1774,22 +2566,23 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
         form.appendChild(refUrlDiv);
 
-        // Reference File
+    // Reference Files
         const refFileDiv = document.createElement("div");
         refFileDiv.className = "mb-3";
 
         const refFileLabel = document.createElement("label");
-        refFileLabel.htmlFor = "reference_file";
+    refFileLabel.htmlFor = "reference_files";
         refFileLabel.className = "form-label label-custom";
-        refFileLabel.textContent = "Reference File";
+    refFileLabel.textContent = "Reference Files";
         refFileDiv.appendChild(refFileLabel);
 
         const refFileInput = document.createElement("input");
         refFileInput.type = "file";
         refFileInput.className = "form-control input-text";
-        refFileInput.id = "reference_file";
-        refFileInput.name = "reference_file";
-        refFileInput.accept = ".pdf,.doc,.docx";
+    refFileInput.id = "reference_files";
+    refFileInput.name = "reference_files[]";
+    refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+    refFileInput.multiple = true;
         refFileDiv.appendChild(refFileInput);
 
         form.appendChild(refFileDiv);
@@ -1887,6 +2680,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
 
         const formData = new FormData(form);
+        // Append multi-selected files from preview buffer
+        try {
+            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
         formData.append("task_id", taskId);
 
         $.ajax({
@@ -1920,8 +2719,20 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         freshBtn.removeAttribute('disabled');
                         freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
+                    // Remove reply close button if present
+                    const closeBtn = document.getElementById('replyCloseButton');
+                    if (closeBtn && closeBtn.parentNode) {
+                        closeBtn.parentNode.removeChild(closeBtn);
+                    }
                     loadTaskFeedbackData(taskId);
                 } catch (e) { /* noop */ }
+
+                // Clear selected files buffer and preview
+                try {
+                    selectedFiles = [];
+                    const preview = document.getElementById('feedback_reference_files_preview') || document.getElementById('reference_files_preview');
+                    if (preview) preview.innerHTML = '';
+                } catch (_) {}
 
                 // Update feedback count dynamically on the task card
                 // 1) Optimistic UI increment
@@ -1957,6 +2768,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     submitBtn.innerHTML = originalBtnHtml;
                     submitBtn.disabled = false;
                 }
+                try { selectedFiles = []; } catch (_) {}
             },
         });
     }
@@ -1984,6 +2796,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         addFeedbackButton.textContent = "Add Feedback";
         const newButton = addFeedbackButton.cloneNode(true);
         addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+        // Ensure any leftover reply close button is removed
+        const leftoverClose = document.getElementById('replyCloseButton');
+        if (leftoverClose && leftoverClose.parentNode) {
+            leftoverClose.parentNode.removeChild(leftoverClose);
+        }
 
         // Add event listener for Add Feedback button to show add feedback form
         newButton.addEventListener("click", function () {
@@ -2030,13 +2847,19 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
-                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
+                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                    <div id="feedback_reference_files_preview"></div>
                 </div>
             </form>
         `;
@@ -2073,6 +2896,26 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             imageClearBtn.classList.add("d-none");
         });
 
+        // Multi-file reference preview (same UX as Add Task)
+        try {
+            // reset global buffer for this form
+            selectedFiles = [];
+            const refInput = modalBody.querySelector('#reference_files');
+            if (refInput) {
+                refInput.addEventListener('change', function () {
+                    const files = Array.from(this.files || []);
+                    if (files.length) {
+                        selectedFiles = [...selectedFiles, ...files];
+                        if (typeof displaySelectedFiles === 'function') {
+                            displaySelectedFiles();
+                        }
+                    }
+                    // allow picking more batches
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
+
         // Change Add Feedback button text to Submit
         addFeedbackButton.textContent = "Submit";
 
@@ -2085,6 +2928,451 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             const form = document.getElementById("addFeedbackForm");
             if (form) {
                 submitFeedbackForm(form, taskId);
+            }
+        });
+    }
+
+    // Show reply form (reuses add form but with parent_id and title)
+    function showReplyFeedbackForm(taskId, parentId) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        modalTitle.textContent = "Reply Feedback";
+
+        modalBody.innerHTML = `
+            <form id="addFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                <input type="hidden" name="parent_id" value="${parentId}">
+                <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
+
+                <div class="mb-3">
+                    <label class="form-label">Upload Image</label>
+                    <div class="image-upload-container">
+                        <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
+                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
+                            <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
+                            <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
+                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                    <div id="feedback_reference_files_preview"></div>
+                </div>
+            </form>
+        `;
+
+        // Setup image preview and clear button logic (same as add feedback)
+        const imageInput = modalBody.querySelector("#feedback_image");
+        const imageLabel = modalBody.querySelector("#feedbackImageLabel");
+        const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
+
+        imageInput.addEventListener("change", function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                    imageLabel.classList.add("has-image");
+                    imageLabel.style.backgroundSize = "cover";
+                    imageLabel.style.opacity = "1";
+                    imageClearBtn.classList.remove("d-none");
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        imageClearBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            imageInput.value = "";
+            imageLabel.style.backgroundImage =
+                "url('" + appUrl + "/asset/img/background/add-image.png')";
+            imageLabel.style.backgroundPosition = "center center";
+            imageLabel.style.backgroundRepeat = "no-repeat";
+            imageLabel.style.backgroundSize = "50%";
+            imageLabel.classList.remove("has-image");
+            imageLabel.style.opacity = "0.5";
+            imageClearBtn.classList.add("d-none");
+        });
+
+        // Multi-file reference preview (same UX as Add Task)
+        try {
+            selectedFiles = [];
+            const refInput = modalBody.querySelector('#reference_files');
+            if (refInput) {
+                refInput.addEventListener('change', function () {
+                    const files = Array.from(this.files || []);
+                    if (files.length) {
+                        selectedFiles = [...selectedFiles, ...files];
+                        if (typeof displaySelectedFiles === 'function') {
+                            displaySelectedFiles();
+                        }
+                    }
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
+
+        addFeedbackButton.textContent = "Submit";
+        const newButton = addFeedbackButton.cloneNode(true);
+        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+        newButton.addEventListener("click", function (e) {
+            e.preventDefault();
+            const form = document.getElementById("addFeedbackForm");
+            if (form) {
+                submitFeedbackForm(form, taskId);
+            }
+        });
+
+        // Inject a Close button to the left of Submit to go back to list
+        let closeBtn = document.getElementById('replyCloseButton');
+        if (closeBtn && closeBtn.parentNode) {
+            closeBtn.parentNode.removeChild(closeBtn);
+        }
+        closeBtn = document.createElement('button');
+        closeBtn.id = 'replyCloseButton';
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-close-reply';
+        closeBtn.textContent = 'Close';
+        const footerSubmit = document.getElementById('addFeedbackButton');
+        if (footerSubmit && footerSubmit.parentNode) {
+            footerSubmit.parentNode.insertBefore(closeBtn, footerSubmit);
+        }
+        closeBtn.addEventListener('click', function () {
+            // Restore list state
+            const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title');
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            const addBtnRef = document.getElementById('addFeedbackButton');
+            if (addBtnRef) {
+                addBtnRef.textContent = 'Add Feedback';
+                const freshBtn = addBtnRef.cloneNode(true);
+                addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+            }
+            loadTaskFeedbackData(taskId);
+            // Remove this close button
+            if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
+        });
+    }
+
+    // Show edit form (for feedback or reply) with prefilled data
+    function showEditFeedbackForm(taskId, data, isReply) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("taskFeedbackModalLabel");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("taskFeedbackList");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        if (modalTitle) modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
+
+        // Build form HTML
+        const existingImg = data.image_url || '';
+        const bgImage = existingImg ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;` : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+        const clearBtnClass = existingImg ? '' : 'd-none';
+
+        modalBody.innerHTML = `
+            <form id="editFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                ${data.parent_id ? `<input type=\"hidden\" name=\"parent_id\" value=\"${data.parent_id}\">` : ''}
+
+                <!-- Put image section at the very top -->
+                <div class="mb-3">
+                    <div class="title-label-image">Upload Image</div>
+                    <div class="image-upload-container">
+                        <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; ${bgImage} cursor: pointer;">
+                            <input type="file" id="feedback_image" ${isReply ? 'name="image"' : 'name="feedback_image"'} accept="image/*" class="d-none">
+                            <span class="image-clear-btn ${clearBtnClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
+                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                    <div class="form-text">Multiple files supported.</div>
+                    <div id="feedback_reference_files_preview" class="mt-2"></div>
+                    <div id="existing_feedback_reference_files" class="mt-2"></div>
+                    <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                </div>
+            </form>
+        `;
+
+        // Wire image preview/clear
+        (function() {
+            const imageInput = modalBody.querySelector('#feedback_image');
+            const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
+            const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+            if (!imageInput || !imageLabel || !imageClearBtn) return;
+            // If existing image exists, ensure clear button is visible
+            if (existingImg) {
+                imageClearBtn.classList.remove('d-none');
+                imageLabel.classList.add('has-image');
+            }
+            imageInput.addEventListener('change', function () {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                        imageLabel.classList.add('has-image');
+                        imageLabel.style.backgroundSize = 'cover';
+                        imageLabel.style.opacity = '1';
+                        imageClearBtn.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+            imageClearBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                imageInput.value = '';
+                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                imageLabel.style.backgroundPosition = 'center center';
+                imageLabel.style.backgroundRepeat = 'no-repeat';
+                imageLabel.style.backgroundSize = '50%';
+                imageLabel.classList.remove('has-image');
+                imageLabel.style.opacity = '0.5';
+                imageClearBtn.classList.add('d-none');
+            });
+        })();
+
+        // Prefill multiple reference URLs for edit form
+        (function() {
+            const container = modalBody.querySelector('#feedback_reference_urls_container');
+            if (!container) return;
+            let urls = [];
+            if (Array.isArray(data.reference_urls) && data.reference_urls.length > 0) {
+                urls = data.reference_urls;
+            } else if (data.reference_url) {
+                urls = [data.reference_url];
+            }
+            if (urls.length === 0) {
+                // add one empty row
+                const row = document.createElement('div');
+                row.className = 'd-flex gap-2 align-items-center';
+                row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">` +
+                    `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`;
+                container.appendChild(row);
+            } else {
+                urls.forEach((u, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'd-flex gap-2 align-items-center';
+                    const controls = (idx === 0)
+                        ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                        : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                    row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" value="${u}" placeholder="https://example.com">${controls}`;
+                    container.appendChild(row);
+                });
+            }
+        })();
+
+        // Prefill existing reference files as removable list
+        (function() {
+            const container = document.getElementById('existing_feedback_reference_files');
+            const hidden = document.getElementById('existing_feedback_reference_files_input');
+            if (!container || !hidden) return;
+            // data.reference_files_urls contains absolute URLs; we need display names while keeping URL for click
+            let files = Array.isArray(data.reference_files_urls) ? data.reference_files_urls.slice() : [];
+            // Fallback single
+            if (files.length === 0 && data.reference_file_url) files = [data.reference_file_url];
+            // Initialize state as array of URLs (server will derive file names if needed)
+            let kept = files.slice();
+            hidden.value = JSON.stringify(kept);
+
+            container.innerHTML = '';
+            if (files.length > 0) {
+                files.forEach((url, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                    const info = document.createElement('div');
+                    info.className = 'd-flex align-items-center flex-grow-1';
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined me-2';
+                    icon.textContent = 'description';
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    const fileName = (function(){
+                        try { const u = new URL(url, window.location.origin); return decodeURIComponent(u.pathname.split('/').pop()); } catch(e) {
+                            const parts = String(url).split('/'); return decodeURIComponent(parts[parts.length-1] || String(url));
+                        }
+                    })();
+                    link.textContent = fileName;
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'btn btn-sm btn-outline-danger ms-2';
+                    remove.innerHTML = '&times;';
+                    remove.addEventListener('click', function(){
+                        // remove from DOM and state
+                        const indexInKept = kept.indexOf(url);
+                        if (indexInKept !== -1) { kept.splice(indexInKept, 1); hidden.value = JSON.stringify(kept); }
+                        item.remove();
+                    });
+                    info.appendChild(icon);
+                    info.appendChild(link);
+                    item.appendChild(info);
+                    item.appendChild(remove);
+                    container.appendChild(item);
+                });
+            }
+        })();
+
+        // Setup selected-files preview for reference files (same UX as Add/Reply)
+        try {
+            selectedFiles = [];
+            const refInput = modalBody.querySelector('#reference_files');
+            if (refInput) {
+                refInput.addEventListener('change', function () {
+                    const files = Array.from(this.files || []);
+                    if (files.length) {
+                        selectedFiles = [...selectedFiles, ...files];
+                        if (typeof displaySelectedFiles === 'function') {
+                            displaySelectedFiles();
+                        }
+                    }
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
+
+        // Change footer button to Save
+        if (addFeedbackButton) {
+            addFeedbackButton.textContent = 'Save';
+            const newBtn = addFeedbackButton.cloneNode(true);
+            addFeedbackButton.parentNode.replaceChild(newBtn, addFeedbackButton);
+            // Make sure the cloned button is enabled
+            newBtn.disabled = false;
+            newBtn.removeAttribute('disabled');
+            newBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const form = document.getElementById('editFeedbackForm');
+                if (!form) return;
+                submitEditFeedbackForm(form, taskId, data.id, isReply);
+            });
+        }
+
+        // Inject a Back button left of Save to go back to list
+        let backBtn = document.getElementById('replyCloseButton');
+        if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+        backBtn = document.createElement('button');
+        backBtn.id = 'replyCloseButton';
+        backBtn.type = 'button';
+        backBtn.className = 'btn btn-close-reply';
+        backBtn.textContent = 'Close';
+        const footerSubmit = document.getElementById('addFeedbackButton');
+        if (footerSubmit && footerSubmit.parentNode) {
+            footerSubmit.parentNode.insertBefore(backBtn, footerSubmit);
+        }
+        backBtn.addEventListener('click', function () {
+            const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            const addBtnRef = document.getElementById('addFeedbackButton');
+            if (addBtnRef) {
+                addBtnRef.textContent = 'Add Feedback';
+                const freshBtn = addBtnRef.cloneNode(true);
+                addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+            }
+            loadTaskFeedbackData(taskId);
+            if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+        });
+    }
+
+    function submitEditFeedbackForm(form, taskId, id, isReply) {
+        const submitBtn = document.getElementById('addFeedbackButton');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            submitBtn.disabled = true;
+        }
+
+        const formData = new FormData(form);
+        formData.append('_method', 'PUT');
+        // Append any newly selected reference files from preview buffer
+        try {
+            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
+        // Ensure correct image field name already set in form; nothing extra here
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + id,
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            success: function (response) {
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || 'Feedback updated successfully!', 'success');
+                }
+                // Return to list view
+                const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
+                if (titleEl) titleEl.textContent = 'Task Feedback';
+                const addBtnRef = document.getElementById('addFeedbackButton');
+                if (addBtnRef) {
+                    addBtnRef.textContent = 'Add Feedback';
+                    const freshBtn = addBtnRef.cloneNode(true);
+                    addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
+                    // Ensure the new button is enabled and clickable
+                    freshBtn.disabled = false;
+                    freshBtn.removeAttribute('disabled');
+                    freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                }
+                loadTaskFeedbackData(taskId);
+                // Refresh snippets/badges best-effort
+                try { fetchLatestFeedback(taskId); } catch(_) {}
+            },
+            error: function (xhr) {
+                let errorMessage = 'Failed to update feedback. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, 'danger');
+                } else {
+                    alert(errorMessage);
+                }
+            },
+            complete: function () {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnHtml || 'Save';
+                    submitBtn.disabled = false;
+                }
+                // Clear preview buffer after save
+                try { selectedFiles = []; const preview = document.getElementById('feedback_reference_files_preview'); if (preview) preview.innerHTML = ''; } catch(_) {}
             }
         });
     }
@@ -2102,6 +3390,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         }
 
         const formData = new FormData(form);
+        // Ensure selectedFiles (from preview buffer) are appended
+        try {
+            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
 
         $.ajax({
             url: appUrl + "/task-feedbacks",
@@ -2138,6 +3432,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     }
                     loadTaskFeedbackData(taskId);
                 } catch (e) { /* noop */ }
+
+                // Clear local buffers and preview area after successful submit
+                try {
+                    selectedFiles = [];
+                    const preview = document.getElementById('reference_files_preview');
+                    if (preview) preview.innerHTML = '';
+                } catch (_) {}
 
                 // Also try to update feedback count in-place (best-effort)
                 // 1) Optimistic UI increment
@@ -2206,6 +3507,10 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     submitBtn.innerHTML = originalBtnHtml;
                     submitBtn.disabled = false;
                 }
+                // Safety: clear preview buffer on completion
+                try {
+                    selectedFiles = [];
+                } catch (_) {}
             },
         });
     }
@@ -2213,18 +3518,16 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Function to add event listeners for attach_file icon click
     function addAttachFileIconListeners() {
         if (attachFileIconListenerBound) return;
-        // Use event delegation on the container to handle dynamically added cards
-        const container = document.getElementById("task-cards-container");
-        if (!container) return;
 
-        container.addEventListener("click", function (event) {
+        document.addEventListener("click", function (event) {
             const target = event.target;
+
             if (
                 target &&
                 target.classList.contains("task-icon") &&
                 target.textContent.trim() === "attach_file"
             ) {
-                // Find the closest task card element
+                // Cari task card terdekat (bisa desktop & mobile)
                 const taskCard = target.closest(".custom-card");
                 if (!taskCard) return;
 
@@ -2234,23 +3537,25 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     return;
                 }
 
-                // Fetch task details to get reference_files
+                // Fetch task details
                 $.ajax({
                     url: appUrl + "/task/" + taskId,
                     type: "GET",
                     dataType: "json",
                     success: function (res) {
-                        // Support both { status, data: {...} } and direct payloads
                         const payload = res && (res.data || res);
                         let referenceFiles = payload && payload.reference_files;
 
-                        // If backend sends a JSON string, parse it
-                        if (typeof referenceFiles === 'string') {
+                        if (typeof referenceFiles === "string") {
                             try {
                                 referenceFiles = JSON.parse(referenceFiles);
                             } catch (e) {
-                                // fallback: treat as single filename or comma-separated
-                                referenceFiles = referenceFiles.includes('[') ? [] : referenceFiles.split(',').map(s => s.trim()).filter(Boolean);
+                                referenceFiles = referenceFiles.includes("[")
+                                    ? []
+                                    : referenceFiles
+                                        .split(",")
+                                        .map((s) => s.trim())
+                                        .filter(Boolean);
                             }
                         }
 
@@ -2274,7 +3579,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
                         const modalEl = document.getElementById("referenceFilesModal");
                         if (modalEl) {
-                            const referenceFilesModal = new bootstrap.Modal(modalEl);
+                            const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                             referenceFilesModal.show();
                         }
                     },
@@ -2284,7 +3589,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 });
             }
         });
-    attachFileIconListenerBound = true;
+
+        attachFileIconListenerBound = true;
     }
 
     // Function to handle task detail view
@@ -2345,15 +3651,26 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     $("#taskDetailExecutors").text("None");
                 }
 
-                // Reference URL
-                if (data.reference_url) {
-                    $("#taskDetailReferenceUrl")
-                        .attr("href", data.reference_url)
-                        .text(data.reference_url)
-                        .show();
-                } else {
-                    $("#taskDetailReferenceUrl").hide();
-                }
+                // Reference URLs (list)
+                (function() {
+                    const el = document.getElementById('taskDetailReferenceUrls');
+                    if (!el) return;
+                    let urls = [];
+                    let ru = data.reference_urls;
+                    if (!Array.isArray(ru) && typeof ru === 'string') {
+                        try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
+                    }
+                    if (Array.isArray(ru) && ru.length > 0) {
+                        urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
+                    } else if (data.reference_url) {
+                        urls = [data.reference_url];
+                    }
+                    if (urls.length > 0) {
+                        el.innerHTML = urls.map((u, idx) => `<a href="${u}" target="_blank" class="d-inline-block me-2">Link ${idx+1}</a>`).join('');
+                    } else {
+                        el.textContent = 'None';
+                    }
+                })();
 
                 // Reference Files
                 if (Array.isArray(data.reference_files) && data.reference_files.length > 0) {
@@ -2408,7 +3725,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         );
         if (!editProjectSelect) return;
 
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -2511,13 +3828,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         };
     }
 
-    // Array untuk menyimpan file yang sudah dipilih
-    let selectedFiles = [];
+    // Array untuk menyimpan file yang sudah dipilih (moved to top)
 
     // Function untuk menampilkan file yang sudah dipilih
     function displaySelectedFiles() {
-        const preview = document.getElementById("reference_files_preview");
-        preview.innerHTML = "";
+    const preview = document.getElementById("feedback_reference_files_preview") || document.getElementById("reference_files_preview");
+    if (!preview) return;
+    preview.innerHTML = "";
 
         if (selectedFiles.length > 0) {
             const fileList = document.createElement("div");
@@ -2659,7 +3976,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 preview.appendChild(fileList);
             }
         };
-        
+
 
         // Function to display existing files
         window.displayExistingReferenceFiles = function (files) {
@@ -2821,9 +4138,32 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 const prioEl = document.getElementById("edit_task_priority");
                 if (prioEl) prioEl.value = (t.priority || '').toUpperCase();
 
-                // Reference URL
-                const refUrlEl = document.getElementById("edit_task_reference_url");
-                if (refUrlEl) refUrlEl.value = t.reference_url || '';
+                // Reference URLs (prefill dynamic rows)
+                (function() {
+                    const container = document.getElementById('edit_task_reference_urls_container');
+                    if (!container) return;
+                    container.innerHTML = '';
+                    let urls = [];
+                    let ru = t.reference_urls;
+                    if (!Array.isArray(ru) && typeof ru === 'string') {
+                        try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
+                    }
+                    if (Array.isArray(ru) && ru.length > 0) {
+                        urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
+                    } else if (t.reference_url) {
+                        urls = [t.reference_url];
+                    }
+                    if (urls.length === 0) urls = [''];
+                    urls.forEach((u, idx) => {
+                        const row = document.createElement('div');
+                        row.className = 'd-flex gap-2 align-items-center';
+                        const controls = (idx === 0)
+                            ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                            : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                        row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
+                        container.appendChild(row);
+                    });
+                })();
 
                 // Dates
                 const startEl = document.getElementById("edit_task_start_date");
@@ -2909,7 +4249,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
     function loadProjectsForFilterMobile() {
         if (!filterTaskProjectSelectMobile) return;
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -3001,7 +4341,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     function loadProjectsForFilter() {
         if (!filterTaskProjectSelect) return;
 
-        fetch(appUrl + "/project/index")
+        fetch(appUrl + "/project/index?task_scope=all")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to load projects");
@@ -3134,17 +4474,23 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
                 if (filters.status && filters.status !== "") {
                     allTasks = allTasks.filter(task => {
-                        let taskStatus = task.status.toLowerCase().replace(" ", "_");
+                        // Normalize status: lowercase and collapse any whitespace to underscores
+                        let taskStatus = String(task.status || '')
+                            .toLowerCase()
+                            .replace(/\s+/g, "_");
                         return taskStatus === filters.status;
                     });
                 }
 
                 const groupedTasks = { new_request: [], in_progress: [], completed: [], rejected: [] };
                 allTasks.forEach(task => {
-                    let normalizedStatus = task.status.toLowerCase().replace(" ", "_");
+                    let normalizedStatus = String(task.status || '')
+                        .toLowerCase()
+                        .trim()
+                        .replace(/\s+/g, "_");
                     if (groupedTasks[normalizedStatus] !== undefined) {
                         groupedTasks[normalizedStatus].push(task);
-                    } else if (normalizedStatus === "rejected") {
+                    } else if (normalizedStatus.includes("reject")) {
                         groupedTasks.rejected.push(task);
                     }
                 });
@@ -3161,10 +4507,16 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     document.getElementById("completed-tasks")
                         .insertAdjacentHTML("beforeend", createTaskCard(task));
                 });
+                // Ensure rejected tasks are rendered (design choice: show under In Progress column like default view)
+                groupedTasks.rejected.forEach(task => {
+                    document.getElementById("in-progress-tasks")
+                        .insertAdjacentHTML("beforeend", createTaskCard(task));
+                });
 
                 setupTaskDropdownListeners();
                 addAttachFileIconListeners();
                 initBootstrapTooltips();
+                refreshAllUnreadBadges();
 
                 // ⬇️ Refresh mobile view biar ikutin hasil terbaru
                 $("#taskStatusSelect").trigger("change");
@@ -3204,107 +4556,147 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
         applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
     }
-});
 
-$(document).ready(function () {
-  const mobileCardHtml = `
-  <div class="mobile-task-container p-3 rounded-4 d-md-none">
-    <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
-      <select id="taskStatusSelect" class="form-select border-0 bg-transparent" style="max-width:140px;">
-        <option value="new_request">New</option>
-        <option value="in_progress">In Progress</option>
-        <option value="completed">Completed</option>
-      </select>
+    function fetchMobileTasks(status, page = 1) {
+      $.ajax({
+        url: appUrl + "/task/index",
+        type: "GET",
+        dataType: "json",
+        data: { status, page },
+        success: function (response) {
+          if (!response || response.code !== 200 || !response.data) return;
+    
+          const data = response.data?.[status];
+          renderMobileTasks(status, data);
+        },
+        error: function (xhr, status, error) {
+          console.error("Error fetching mobile tasks:", error);
+        },
+      });
+    }
+    
+    function renderMobileTasks(status, data) {
+      const container = $(".mobile-task-container");
+      const list = $("#mobile-task-list");
+    
+      container.removeClass("task-mobile-new task-mobile-progress task-mobile-completed");
+      list.empty();
+      $("#newTaskPagination, #progressTaskPagination, #completedTaskPagination").hide();
+    
+      if (status === "new_request") {
+        container.addClass("task-mobile-new");
+        $("#newTaskPagination").show();
+      } else if (status === "in_progress") {
+        container.addClass("task-mobile-progress");
+        $("#progressTaskPagination").show();
+      } else if (status === "completed") {
+        container.addClass("task-mobile-completed");
+        $("#completedTaskPagination").show();
+      }
+    
+      if (!data || !data.tasks || data.tasks.length === 0) {
+        list.append('<div class="text-center text-muted py-3">No tasks found</div>');
+      } else {
+        data.tasks.forEach((task) => {
+          list.append(createTaskCard(task));
+        });
+      }
+    
+      if (window.initBootstrapTooltips) window.initBootstrapTooltips(list[0] || document);
+    
+      updateMobilePagination(status, data?.pagination);
+    }
+    
+    function updateMobilePagination(status, pagination) {
+    const $prevBtn = $("#prevPageBtn");
+    const $nextBtn = $("#nextPageBtn");
+    const $info = $("#paginationInfo");
 
-      <div class="action-buttons d-flex align-items-center gap-2">
-        <div class="search-input-container">
-          <span class="material-symbols-outlined search-icon">search</span>
-          <input class="form-control custom-form-filter" type="text" name="search_filter_mobile"
-            id="search_filter_mobile">
+    if (!pagination) {
+        $prevBtn.prop("disabled", true);
+        $nextBtn.prop("disabled", true);
+        $info.text("0 OF 0");
+        return;
+    }
+
+    $prevBtn.prop("disabled", pagination.current_page <= 1);
+    $nextBtn.prop("disabled", pagination.current_page >= pagination.last_page);
+    $info.text(`${pagination.current_page} OF ${pagination.last_page}`);
+
+    $prevBtn.off("click").on("click", () => {
+        if (pagination.current_page > 1) {
+        fetchMobileTasks(status, pagination.current_page - 1);
+        }
+    });
+
+    $nextBtn.off("click").on("click", () => {
+        if (pagination.current_page < pagination.last_page) {
+        fetchMobileTasks(status, pagination.current_page + 1);
+        }
+    });
+    }
+
+    $(document).ready(function () {
+    const mobileCardHtml = `
+    <div class="mobile-task-container p-3 rounded-4 d-md-none">
+        <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
+        <select id="taskStatusSelect" class="form-select border-0 bg-transparent" style="max-width:140px;">
+            <option value="new_request">New</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+        </select>
+
+        <div class="action-buttons d-flex align-items-center gap-2">
+            <div class="search-input-container">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
+            </div>
+
+            <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
+            <span class="material-symbols-outlined">calendar_month</span>
+            </button>
+
+            <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+            <span class="material-symbols-outlined">filter_list</span>
+            </button>
+        </div>
+        </div>
+        <div id="mobile-task-list"></div>
+        <div class="d-flex justify-content-center mt-3">
+            <div id="mobilePaginationWrapper" class="pagination-pill d-flex align-items-center">
+                <button id="prevPageBtn" class="btn-nav"><span class="material-symbols-outlined">chevron_left</span></button>
+                <span id="paginationInfo" class="pagination-info">1 OF 1</span>
+                <button id="nextPageBtn" class="btn-nav"><span class="material-symbols-outlined">chevron_right</span></button>
+            </div>
+        </div>
         </div>
 
-        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
-          <span class="material-symbols-outlined">calendar_month</span>
-        </button>
+    </div>`;
 
-        <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
-          <span class="material-symbols-outlined">filter_list</span>
-        </button>
-
-        <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
-            <div class="dropdown-filter-body">
-                <div class="mb-3">
-                    <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                    <select id="filterTaskProjectMobile" class="form-select">
-                        <option value="">All Projects</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="filterTaskStatusMobile" class="form-label">Status</label>
-                    <select id="filterTaskStatusMobile" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="new_request">New Request</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
-            </div>
-            <div class="dropdown-filter-footer">
-                <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
-            </div>
-        </div>
-      </div>
-    </div>
-    <div id="mobile-task-list"></div>
-  </div>
-`;
-
-  $("#task-cards-container").before(mobileCardHtml);
-
-  function toggleDropdownFilter() {
-    let dropdown = $(".dropdown-filter-container");
-    if ($(window).width() <= 768) {
-      dropdown.hide();
-    } else {
-      dropdown.show();
+      function toggleDropdownFilter() {
+        let dropdown = $(".dropdown-filter-container");
+        if ($(window).width() <= 768) {
+        dropdown.hide();
+        } else {
+        dropdown.show();
+        }
     }
-  }
-  toggleDropdownFilter();
-  $(window).on("resize", toggleDropdownFilter);
+    toggleDropdownFilter();
+    $(window).on("resize", toggleDropdownFilter);
 
-  $("#taskStatusSelect").on("change", function () {
-    let status = $(this).val();
-    let container = $(".mobile-task-container");
-    let list = $("#mobile-task-list");
+    $("#task-cards-container").before(mobileCardHtml);
 
-    container.removeClass("task-mobile-new task-mobile-progress task-mobile-completed");
-    list.empty();
+    $("#taskStatusSelect").on("change", function () {
+        fetchMobileTasks($(this).val(), 1);
+    });
 
-    if (status === "new_request") {
-      container.addClass("task-mobile-new");
-      let newClone = $("#new-request-tasks").clone(false, false);
-      newClone.removeAttr("id");
-      list.append(newClone);
-    } else if (status === "in_progress") {
-      container.addClass("task-mobile-progress");
-      let progressClone = $("#in-progress-tasks").clone(false, false);
-      progressClone.removeAttr("id");
-      list.append(progressClone);
-    } else if (status === "completed") {
-      container.addClass("task-mobile-completed");
-      let completedClone = $("#completed-tasks").clone(false, false);
-      completedClone.removeAttr("id");
-      list.append(completedClone);
-    }
+    $("#taskStatusSelect").val("new_request").trigger("change");
+    });
 
-    if (window.initBootstrapTooltips) {
-      window.initBootstrapTooltips(list[0] || document);
-    }
-  });
-
-  $("#taskStatusSelect").val("new_request").trigger("change");
 });
+
+// let allTasksCache = null;
+
 
 // Toggle filter mobile
 $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
@@ -3511,7 +4903,6 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
         timelineEl.addEventListener('hidden.bs.modal', onTimelineHidden, { once: true });
         tlInstance.hide();
     });
-    
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");

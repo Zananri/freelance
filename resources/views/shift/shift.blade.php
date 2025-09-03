@@ -39,9 +39,9 @@
                 </button>
 
                 <!-- Isi dropdown -->
-                <ul class="dropdown-menu dropdown-filter shadow-sm p-3" style="min-width: 250px;">
+                <ul class="dropdown-menu dropdown-filter shadow-sm p-3">
                     <!-- Department -->
-                    <li class="mb-2">
+                    <li class="mb-4">
                         <label class="form-label mb-1">Filter by Department</label>
                         <select id="filterDepartment" class="form-select">
                             <option value="">Select Department</option>
@@ -49,7 +49,7 @@
                     </li>
 
                     <!-- Division -->
-                    <li class="mb-2">
+                    <li class="mb-4">
                         <label class="form-label mb-1">Filter by Division</label>
                         <select id="filterDivision" class="form-select" disabled>
                             <option value="">Select Division</option>
@@ -57,16 +57,16 @@
                     </li>
 
                     <!-- Shift -->
-                    <li class="mb-2">
+                    <li class="mb-4">
                         <label class="form-label mb-1">Filter by Shift</label>
                         <select id="filterShift" class="form-select">
                             <option value="">Select Shift</option>
                         </select>
                     </li>
 
-                    <li class="modal-footer-custom d-flex justify-content-between mt-2">
+                    <li class="dropdown-footer-custom d-flex justify-content-between mt-2">
                         <button type="button" class="btn btn-light btn-sm" id="resetFilter">Cancel</button>
-                        <button type="button" class="btn btn-submit-black btn-sm" id="applyFilterBtn">Filter</button>
+                        <button type="button" class="btn btn-light btn-sm" id="applyFilterBtn">Filter</button>
                     </li>
                 </ul>
             </div>
@@ -79,22 +79,28 @@
     </div>
 
     <div class="body-content scrollable-container rounded-4 px-4 py-2">
-        <div class="d-flex justify-content-start align-items-center gap-2">
-            <h4 id="shiftMonthTitle" class="fw-normal mb-0 month-year-title">August 2025</h4>
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <h4 id="shiftMonthTitle" class="fw-normal mb-0 month-year-title">August 2025</h4>
 
-            <div class="dropstart">
-                <button id="monthDropdownBtn" class="btn btn-light d-flex align-items-center dropdown-btn-custom"
-                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="material-symbols-outlined">arrow_drop_down</span>
+                <div class="dropstart">
+                    <button id="monthDropdownBtn" class="btn btn-light d-flex align-items-center dropdown-btn-custom"
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="material-symbols-outlined">arrow_drop_down</span>
+                    </button>
+                    <ul id="monthDropdownMenu" class="dropdown-menu dropdown-menu-start shadow-sm"></ul>
+                </div>
+
+                <button id="prevMonthBtn" class="btn btn-pagination-table">
+                    <span class="material-symbols-outlined me-1">chevron_left</span>
                 </button>
-                <ul id="monthDropdownMenu" class="dropdown-menu dropdown-menu-start shadow-sm"></ul>
+                <button id="nextMonthBtn" class="btn btn-pagination-table">
+                    <span class="material-symbols-outlined me-1">chevron_right</span>
+                </button>
             </div>
 
-            <button id="prevMonthBtn" class="btn btn-pagination-table">
-                <span class="material-symbols-outlined me-1">chevron_left</span>
-            </button>
-            <button id="nextMonthBtn" class="btn btn-pagination-table">
-                <span class="material-symbols-outlined me-1">chevron_right</span>
+            <button class="btn btn-toggle-table-shift" data-bs-target="#fullscreenTableShift" data-bs-toggle="modal">
+                <span class="material-symbols-outlined">fullscreen</span>
             </button>
         </div>
 
@@ -108,6 +114,56 @@
                     <tbody id="shiftTableBody"></tbody>
 
                 </table>
+            </div>
+        </div>
+
+        {{-- Fullscreen Table Shift --}}
+        <div class="modal fade" id="fullscreenTableShift" tabindex="-1" aria-labelledby="fullscreenTableShiftLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-fullscreen">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header border-0 position-relative d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <h4 id="shiftMonthTitleModal" class="fw-normal mb-0 month-year-title">August 2025</h4>
+
+                            <div class="dropdown">
+                                <button id="monthDropdownBtnModal"
+                                    class="btn btn-light d-flex align-items-center dropdown-btn-custom" type="button"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="material-symbols-outlined">arrow_drop_down</span>
+                                </button>
+                                <ul id="monthDropdownMenuModal" class="dropdown-menu shadow-sm"></ul>
+                            </div>
+
+                            <button id="prevMonthBtnModal" class="btn btn-pagination-table">
+                                <span class="material-symbols-outlined me-1">chevron_left</span>
+                            </button>
+                            <button id="nextMonthBtnModal" class="btn btn-pagination-table">
+                                <span class="material-symbols-outlined me-1">chevron_right</span>
+                            </button>
+                        </div>
+
+                        <button class="btn btn-toggle-table-shift" data-bs-dismiss="modal">
+                            <span class="material-symbols-outlined">fullscreen_exit</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body modal-body-custom">
+                        <div class="table-responsive">
+                            <div class="table-scroll-wrapper">
+                                <table class="table table-bordered align-middle shift-table">
+                                    <thead>
+                                        <tr id="shiftTableHeaderModal"></tr>
+                                    </thead>
+                                    <tbody id="shiftTableBodyModal"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom justify-content-evenly">
+                        <button type="button" class="btn btn-light btn-close-custom" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -327,7 +383,8 @@
                     </div>
 
                     <div class="dropdown dropdown-container">
-                        <button class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
+                        <button
+                            class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                             type="button" data-bs-toggle="dropdown" data-bs-display="static"
                             id="editDropdownSelected" aria-expanded="false">
                             Select Shift

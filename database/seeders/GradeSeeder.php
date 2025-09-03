@@ -64,7 +64,7 @@ class GradeSeeder extends Seeder
                     'updated_by' =>  1
         ]);
 
-        $grade6 = Grade::updateOrCreate([
+    $grade7 = Grade::updateOrCreate([
                     'title' => 'Junior Associate',
                     'status' =>  'ACTIVE',
                     'created_by' =>  1,

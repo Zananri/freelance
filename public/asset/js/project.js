@@ -82,6 +82,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupProjectReferenceFilesInput();
 
+    // Delegated handler: add/remove reference URL rows (match Task behavior)
+    document.addEventListener('click', function (e) {
+        const addBtn = e.target.closest('.add-ref-url');
+        if (addBtn) {
+            e.preventDefault();
+            const container = addBtn.closest('#feedback_reference_urls_container, #project_reference_urls_container, #edit_project_reference_urls_container');
+            if (!container) return;
+            const row = document.createElement('div');
+            row.className = 'd-flex gap-2 align-items-center';
+            row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="url"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeBtn = e.target.closest('.remove-ref-url');
+        if (removeBtn) {
+            e.preventDefault();
+            const row = removeBtn.closest('.d-flex');
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
+
     // Helper to format role labels to capitalized form (Author, Co-Author, Contributor)
     function formatRoleText(role) {
         if (!role) return '';
@@ -136,7 +163,15 @@ document.addEventListener("DOMContentLoaded", function () {
             photoUrl = appUrl + '/asset/img/profile_picture/default.png';
         }
 
-    const name = (emp && (emp.name || emp.username || emp.full_name)) ? (emp.name || emp.username || emp.full_name) : 'Unknown';
+    // Prefer API fields in this order: explicit name, employee_name (from assignments),
+    // username/full_name, and nested employee.name when payload uses nested structure.
+    const name = (function(){
+        if (!emp) return 'Unknown';
+        const direct = emp.name || emp.employee_name || emp.username || emp.full_name;
+        if (direct) return direct;
+        const nested = (emp.employee && (emp.employee.name || emp.employee.full_name));
+        return nested || 'Unknown';
+    })();
     const roleLabel = role ? formatRoleText(role) : '';
     const roleText = roleLabel ? ` (${roleLabel})` : '';
     const titleText = `${name}${roleText}`;
@@ -182,7 +217,10 @@ document.addEventListener("DOMContentLoaded", function () {
             const overflow = coll.length - maxVisible;
             if (overflow > 0) {
                 const hidden = coll.slice(maxVisible).map(h => {
-                    const n = h.emp && (h.emp.name || h.emp.username || h.emp.full_name) ? (h.emp.name || h.emp.username || h.emp.full_name) : 'Unknown';
+                    const n = (function(emp){
+                        if (!emp) return 'Unknown';
+                        return emp.name || emp.employee_name || emp.username || emp.full_name || (emp.employee && (emp.employee.name || emp.employee.full_name)) || 'Unknown';
+                    })(h.emp);
                     return `${n} (${formatRoleText(h.type)})`;
                 }).join(', ');
 
@@ -196,14 +234,23 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    let currentPage = 1;
+
     // Load project card data and generate cards dynamically
-    function loadProjectCardData(filter = null) {
+    function loadProjectCardData(filter = null, page = 1) {
         $.ajax({
-            url: appUrl + "/project/index",
+            url: appUrl + "/project/get-all-projects",
             type: "GET",
             dataType: "json",
-            data: { filter: filter, task_scope: 'me' },
+            data: { filter: filter, task_scope: 'me', page: page },
+            beforeSend:function(){
+                $('.loader').fadeIn('fast');
+            },
+            error:function(res){
+                $('.loader').fadeOut('fast');
+            },
             success: function (data) {
+
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
 
@@ -211,64 +258,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 const projects = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
 
                 // compute chart counts even if zero or empty
-                try {
-                    updateProjectChartFromData(projects);
-                } catch (e) {
-                    console.error('updateProjectChartFromData error', e);
-                }
 
                 // Build timeline from actual projects and render. If list items lack start/due, fetch details.
-                (function () {
-                    // Helper to decide if project has valid date fields
-                    function hasValidDates(p) {
-                        if (!p) return false;
-                        const s = p.start_date || p.start || p.startDate || p.startAt;
-                        const e = p.due_date || p.due || p.end_date || p.endDate || p.dueAt;
-                        return !!(s && e);
-                    }
-
-                    const needsFetch = projects.filter((p) => !hasValidDates(p));
-
-                    if (needsFetch.length === 0) {
-                        try {
-                            buildTimelineFromProjects(projects);
-                            renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
-                            updateModalTimeline();
-                        } catch (e) {
-                            console.error('timeline build/render error', e);
-                        }
-                    } else {
-                        // Fetch details for projects missing dates (parallel)
-                        const fetches = needsFetch.map((p) => {
-                            return $.ajax({
-                                url: appUrl + "/project/" + p.id,
-                                type: "GET",
-                                dataType: "json",
-                            })
-                                .then((resp) => {
-                                    const data = resp.data || resp;
-                                    // merge date fields back into list item
-                                    p.start_date = p.start_date || data.start_date || data.start || data.startDate;
-                                    p.due_date = p.due_date || data.due_date || data.due || data.endDate || data.end_date;
-                                    return p;
-                                })
-                                .catch((err) => {
-                                    console.warn('failed to fetch project detail for', p.id, err);
-                                    return p;
-                                });
-                        });
-
-                        Promise.all(fetches).then(() => {
-                            try {
-                                buildTimelineFromProjects(projects);
-                                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
-                                updateModalTimeline();
-                            } catch (e) {
-                                console.error('timeline build/render error', e);
-                            }
-                        });
-                    }
-                })();
 
                 if (projects && projects.length > 0) {
                     let rowHtml = '<div class="row">';
@@ -325,10 +316,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ${renderCollaborators(project)}
 
                                         </div>
-                                        <div class="d-flex">
-                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center" title="Comment" data-project-id="${project.id}">
+                                        <div class="d-flex align-items-center">
+                                            <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${project.id}" style="cursor:pointer; max-width: 160px;">
+                                                <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                                                <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                                            </div>
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
                                                 <span class="project-feedback-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
+                                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${project.id}"></span>
                                             </button>
                                             <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
@@ -391,12 +387,48 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         });
 
-                    // Event listener for "Edit" dropdown item click
-                    document.addEventListener("click", function (e) {
-                        if (
-                            e.target &&
-                            e.target.classList.contains("dropdown-item")
-                        ) {
+                    // Bind latest-feedback-snippet clicks to open modal and mark read
+                    try {
+                        container
+                            .querySelectorAll('.latest-feedback-snippet[data-project-id]')
+                            .forEach((el) => {
+                                el.addEventListener('click', function (ev) {
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    const pid = this.getAttribute('data-project-id');
+                                    // Hide indicators immediately and mark as read
+                                    hideProjectUnreadBadge(pid);
+                                    hideProjectLatestFeedbackSnippet(pid);
+                                    // Set target to latest payload for deep-link
+                                    try {
+                                        window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                        const latest = (window.__projectLatest && window.__projectLatest[String(pid)]) || null;
+                                        if (latest) window.__projectLatestTarget[String(pid)] = latest;
+                                    } catch (_) {}
+                                    markProjectFeedbacksRead(pid).always(() => {
+                                        const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                                        if (!projectFeedbackModalEl) return;
+                                        projectFeedbackModalEl.setAttribute('data-project-id', pid);
+                                        try { loadFeedbackData(pid); } catch (_) {}
+                                        const m = new bootstrap.Modal(projectFeedbackModalEl);
+                                        m.show();
+                                    });
+                                });
+                            });
+                    } catch (_) { /* noop */ }
+
+                    // After rendering, refresh unread badges and latest feedback snippets
+                    try { refreshAllProjectUnreadBadges(); } catch (_) {}
+                    try { refreshAllProjectLatestFeedbackSnippets(); } catch (_) {}
+
+                    // Event listener for "Edit" dropdown item click (bind once to avoid duplicates)
+                    if (!window.__projectEditListenerBound) {
+                        window.__projectEditListenerBound = true;
+                        document.addEventListener("click", function (e) {
+                            if (
+                                e.target &&
+                                e.target.classList.contains("dropdown-item")
+                            ) {
                             const text = e.target.textContent.trim();
                             if (text === "Edit") {
                                 e.preventDefault();
@@ -425,19 +457,48 @@ document.addEventListener("DOMContentLoaded", function () {
                                     type: "GET",
                                     dataType: "json",
                                     success: function (data) {
-                                        console.log(
-                                            "Edit project data loaded:",
-                                            data
-                                        ); // Debug log
                                         // Populate edit modal form fields
                                         $("#edit_project_id").val(data.id);
                                         $("#edit_title").val(data.title);
                                         $("#edit_description").val(
                                             data.description
                                         );
-                                        $("#edit_reference_url").val(
-                                            data.reference_url
-                                        );
+                                        // Prefill multiple reference URLs in Edit Project (match Task behavior)
+                                        (function(){
+                                            try {
+                                                const container = document.getElementById('edit_project_reference_urls_container');
+                                                if (!container) return;
+                                                container.innerHTML = '';
+                                                // Normalize URLs from API: reference_urls (array or JSON) or legacy reference_url (string)
+                                                let urls = [];
+                                                if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                                                else if (typeof data.reference_urls === 'string') {
+                                                    try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                                }
+                                                if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+
+                                                function makeRow(value, withAdd){
+                                                    const row = document.createElement('div');
+                                                    row.className = 'd-flex gap-2 align-items-center';
+                                                    row.innerHTML = (
+                                                        '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                                                        (withAdd
+                                                            ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>'
+                                                            : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>')
+                                                    );
+                                                    container.appendChild(row);
+                                                    const inp = row.querySelector('input[type="url"]');
+                                                    if (inp && value) inp.value = value;
+                                                }
+
+                                                if (urls && urls.length) {
+                                                    urls.forEach((u) => makeRow(u, false));
+                                                    makeRow('', true);
+                                                } else {
+                                                    makeRow('', true);
+                                                }
+                                            } catch(_) { /* noop */ }
+                                        })();
                                         $("#edit_start_date").val(
                                             data.start_date
                                         );
@@ -559,7 +620,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 existingContainer.appendChild(title);
 
                                                 var fileList = document.createElement('div');
-                                                fileList.className = 'existing-files-list';
+                                                fileList.className = 'existing-files-list w-100';
 
                                                 existingFiles.forEach(function (fileName, idx) {
                                                     var fileItem = document.createElement('div');
@@ -736,16 +797,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                             );
                                             return;
                                         }
-                                        const editProjectModal =
-                                            new bootstrap.Modal(
-                                                editProjectModalEl
-                                            );
+                                        const editProjectModal = (
+                                            (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
+                                                ? bootstrap.Modal.getOrCreateInstance(editProjectModalEl)
+                                                : (bootstrap.Modal.getInstance(editProjectModalEl) || new bootstrap.Modal(editProjectModalEl))
+                                        );
                                         editProjectModal.show();
                                     },
                                 });
                             }
                         }
-                    });
+                        });
+                    }
 
                     // Handle edit project form submission
                     $("#editProjectForm").on("submit", function (e) {
@@ -758,6 +821,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         const formData = new FormData(this);
+                        // Map first non-empty reference_urls[] to single reference_url (backend expects this)
+                        try {
+                            const urlInputs = this.querySelectorAll('input[name="reference_urls[]"]');
+                            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                            if (urls.length) formData.set('reference_url', urls[0]);
+                            else formData.set('reference_url', '');
+                        } catch(_) {}
 
                         // Add _method to FormData for Laravel PUT request
                         formData.append("_method", "PUT");
@@ -877,7 +947,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             $("#edit_division").html(
                                 '<option value="" disabled selected>Select Division</option>'
                             );
-                            loadProjects();
+                            loadCardProjects();
 
                             // Clear selected co-authors and contributors display and hidden inputs
                             window.clearSelectedCoAuthorsEdit &&
@@ -898,6 +968,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch (e) {}
 
                             $("#editProjectAlert").addClass("d-none").hide();
+
+                            // Safety: remove stray backdrops if no other modal is open
+                            try {
+                                const anyOpen = document.querySelector('.modal.show');
+                                if (!anyOpen) {
+                                    document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.parentNode && el.parentNode.removeChild(el); });
+                                    document.body.classList.remove('modal-open');
+                                    document.body.style.removeProperty('padding-right');
+                                }
+                            } catch (_) {}
                         }
                     );
 
@@ -918,6 +998,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         let employees = [];
                         let filteredEmployees = [];
                         let selectedEmployees = [];
+                        let isDropdownOpen = false;
 
                         function fetchEmployees(query = "") {
                             const currentEmployeeId =
@@ -943,15 +1024,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         }
 
-                        function renderDropdown() {
+            function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
                                     '<div class="dropdown-item disabled">No employees found</div>';
-                                dropdown.style.display = "block";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                                 return;
                             }
 
-                            const html = filteredEmployees
+                            // Exclude employees already selected as Contributors
+                            function getContributorIds() {
+                                try {
+                                    const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                    const arr = JSON.parse(raw);
+                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                                } catch(_) { return []; }
+                            }
+                            const contributorIds = getContributorIds();
+                            const availableEmployees = filteredEmployees.filter(emp => !contributorIds.includes(Number(emp.id)));
+
+                            const html = availableEmployees
                                 .map((emp) => {
                                     const isChecked = selectedEmployees.some(
                                         (e) => e.id === emp.id
@@ -996,7 +1088,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 .join("");
 
                             dropdown.innerHTML = html;
-                            dropdown.style.display = "block";
+                            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
                             dropdown
                                 .querySelectorAll(".co-author-checkbox")
@@ -1036,6 +1128,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                             renderSelected();
                                             updateHiddenInput();
+                                            // Ensure contributors exclude any selected co-authors
+                                            try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
                                         }
                                     );
                                 });
@@ -1078,6 +1172,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     renderSelected();
                                     updateHiddenInput();
                                     renderDropdown();
+                                    // Ensure contributors exclude any selected co-authors
+                                    try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
                                 });
 
                                 badge.appendChild(img);
@@ -1106,10 +1202,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         input.addEventListener("input", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
                         input.addEventListener("focus", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
@@ -1118,6 +1216,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 !input.contains(e.target) &&
                                 !dropdown.contains(e.target)
                             ) {
+                                isDropdownOpen = false;
                                 dropdown.style.display = "none";
                             }
                         });
@@ -1133,7 +1232,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         };
 
                         window.setSelectedCoAuthorsEdit = function (coAuthors) {
-                            selectedEmployees = coAuthors.map((ca) => {
+                            // Filter out anyone already selected as contributor
+                            let contribIds = [];
+                            try {
+                                const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                const arr = JSON.parse(raw);
+                                contribIds = Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                            } catch(_) { contribIds = []; }
+
+                            selectedEmployees = coAuthors
+                                .filter(ca => !contribIds.includes(Number(ca.id)))
+                                .map((ca) => {
                                 let photoUrl = "";
                                 let userPhoto = ca.user_photo;
                                 if (userPhoto) {
@@ -1172,6 +1281,27 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                             renderSelected();
                             updateHiddenInput();
+                            // After programmatically setting co-authors, sync contributors and refresh dropdown
+                            try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
+                            renderDropdown();
+                        };
+
+                        // Expose sync function to be called when contributors change
+                        window.syncCoAuthorsWithContributors = function () {
+                            const contributorIds = (function(){
+                                try {
+                                    const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                    const arr = JSON.parse(raw);
+                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                                } catch(_) { return []; }
+                            })();
+                            const before = selectedEmployees.length;
+                            selectedEmployees = selectedEmployees.filter(se => !contributorIds.includes(Number(se.id)));
+                            if (selectedEmployees.length !== before) {
+                                renderSelected();
+                                updateHiddenInput();
+                            }
+                            renderDropdown();
                         };
                     }
 
@@ -1191,6 +1321,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         let employees = [];
                         let filteredEmployees = [];
                         let selectedEmployees = [];
+                        let isDropdownOpen = false;
 
                         function fetchEmployees(query = "") {
                             const currentEmployeeId =
@@ -1216,15 +1347,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                         }
 
-                        function renderDropdown() {
+            function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
                                     '<div class="dropdown-item disabled">No employees found</div>';
-                                dropdown.style.display = "block";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                                 return;
                             }
 
-                            const html = filteredEmployees
+                            // Exclude employees already selected as co-authors
+                            function getCoAuthorIds() {
+                                try {
+                                    const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                    const arr = JSON.parse(raw);
+                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                                } catch(_) { return []; }
+                            }
+                            const coAuthorIds = getCoAuthorIds();
+                            const availableEmployees = filteredEmployees.filter(emp => !coAuthorIds.includes(Number(emp.id)));
+
+                            const html = availableEmployees
                                 .map((emp) => {
                                     const isChecked = selectedEmployees.some(
                                         (e) => e.id === emp.id
@@ -1269,7 +1411,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 .join("");
 
                             dropdown.innerHTML = html;
-                            dropdown.style.display = "block";
+                            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
                             dropdown
                                 .querySelectorAll(".contributor-checkbox")
@@ -1310,6 +1452,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                             renderSelected();
                                             updateHiddenInput();
                                             renderDropdown(); // refresh dropdown setelah perubahan
+                                            // Ensure co-authors exclude any selected contributors
+                                            try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
                                         }
                                     );
                                 });
@@ -1352,6 +1496,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     renderSelected();
                                     updateHiddenInput();
                                     renderDropdown();
+                                    // After removing a contributor, refresh co-author dropdown availability
+                                    try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
                                 });
 
                                 badge.appendChild(img);
@@ -1380,10 +1526,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         input.addEventListener("input", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
                         input.addEventListener("focus", function () {
+                            isDropdownOpen = true;
                             filterEmployees(this.value);
                         });
 
@@ -1392,6 +1540,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 !input.contains(e.target) &&
                                 !dropdown.contains(e.target)
                             ) {
+                                isDropdownOpen = false;
                                 dropdown.style.display = "none";
                             }
                         });
@@ -1409,7 +1558,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         window.setSelectedContributorsEdit = function (
                             contributors
                         ) {
-                            selectedEmployees = contributors.map((ca) => {
+                            // Filter out anyone already selected as co-author
+                            let coIds = [];
+                            try {
+                                const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                const arr = JSON.parse(raw);
+                                coIds = Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                            } catch(_) { coIds = []; }
+
+                            selectedEmployees = contributors
+                                .filter((c) => !coIds.includes(Number(c.id)))
+                                .map((ca) => {
                                 let photoUrl = "";
                                 let userPhoto = ca.user_photo;
 
@@ -1448,6 +1607,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                             renderSelected();
                             updateHiddenInput();
+                            // After programmatically setting contributors, sync co-authors
+                            try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
+                        };
+
+                        // Expose sync function to be called when co-authors change
+                        window.syncContributorsWithCoAuthors = function () {
+                            const coAuthorIds = (function(){
+                                try {
+                                    const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                    const arr = JSON.parse(raw);
+                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
+                                } catch(_) { return []; }
+                            })();
+                            const before = selectedEmployees.length;
+                            selectedEmployees = selectedEmployees.filter(se => !coAuthorIds.includes(Number(se.id)));
+                            if (selectedEmployees.length !== before) {
+                                renderSelected();
+                                updateHiddenInput();
+                            }
+                            renderDropdown();
                         };
                     }
 
@@ -1509,6 +1688,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                         document.createElement("div");
                                     feedbackItem.className =
                                         "feedback-item mb-3 p-3 border-bottom";
+                                    if (feedback && feedback.id != null) {
+                                        feedbackItem.setAttribute('data-feedback-id', String(feedback.id));
+                                    }
 
                                     // Header with employee info
                                     const headerDiv =
@@ -1517,51 +1699,88 @@ document.addEventListener("DOMContentLoaded", function () {
                                         "d-flex align-items-center mb-2";
 
                                     const img = document.createElement("img");
-                                    // Adjust employee_photo path to avoid duplicate segments
-                                    let employeePhotoPath =
-                                        feedback.employee_photo || "";
-                                    if (
-                                        employeePhotoPath.startsWith(
-                                            "/file/photo"
-                                        ) ||
-                                        employeePhotoPath.startsWith(
-                                            "/file/profile_picture"
-                                        )
-                                    ) {
-                                        // already full relative path, use as is
-                                    } else if (
-                                        employeePhotoPath.startsWith(
-                                            "file/photo"
-                                        ) ||
-                                        employeePhotoPath.startsWith(
-                                            "file/profile_picture"
-                                        )
-                                    ) {
-                                        employeePhotoPath =
-                                            "/" + employeePhotoPath;
-                                    } else if (employeePhotoPath.length > 0) {
-                                        employeePhotoPath =
-                                            "/file/profile_picture/" +
-                                            employeePhotoPath;
-                                    }
-                                    img.src =
-                                        employeePhotoPath.length > 0
-                                            ? appUrl + employeePhotoPath
-                                            : appUrl +
-                                              "/asset/img/profile_picture/default.png";
+                                    // Prefer employee object if present, fallback to legacy employee_photo
+                                    (function () {
+                                        const emp = feedback.employee || {};
+                                        const raw = emp.user_photo || emp.profile_picture || emp.photo || feedback.employee_photo || "";
+                                        let url = "";
+                                        if (typeof raw === 'string' && raw.length > 0) {
+                                            if (raw.startsWith('http')) url = raw;
+                                            else if (raw.startsWith('/')) url = appUrl + raw;
+                                            else if (raw.indexOf('/') !== -1) url = appUrl + '/' + raw;
+                                            else url = appUrl + '/file/profile_picture/' + raw;
+                                        } else {
+                                            url = appUrl + '/asset/img/profile_picture/default.png';
+                                        }
+                                        img.src = url;
+                                    })();
                                     img.alt = "Employee Photo";
                                     img.className =
                                         "feedback-employee-photo me-2 rounded-circle";
                                     img.style.width = "40px";
                                     img.style.height = "40px";
 
-                                    const infoDiv =
-                                        document.createElement("div");
-                                    const nameDiv =
-                                        document.createElement("div");
-                                    nameDiv.className = "fw-bold";
-                                    nameDiv.textContent =
-                                        feedback.employee_name || "Unknown";
+                                    const infoDiv = document.createElement("div");
+                                    // Determine author/edit permissions early (used for placing edit icon next to name like Task)
+                                    const currentEmployeeIdTop = parseInt(projectFeedbackModalEl.getAttribute("data-employee-id") || "0", 10) || 0;
+                                    const authorIdTop = (feedback.employee_id != null) ? feedback.employee_id : ((feedback.employee && feedback.employee.id) || 0);
+                                    const canEditTopInline = String(authorIdTop) === String(currentEmployeeIdTop);
+                                    // Name row with edit icon inline (exactly like Task)
+                                    const nameRow = document.createElement('div');
+                                    nameRow.className = 'd-flex align-items-center';
+                                    const nameStrong = document.createElement('strong');
+                                    nameStrong.textContent = (feedback.employee && feedback.employee.name) || feedback.employee_name || 'Unknown';
+                                    nameRow.appendChild(nameStrong);
+                                    if (canEditTopInline) {
+                                        const editBtnInline = document.createElement('span');
+                                        editBtnInline.className = 'material-symbols-outlined icon feedback-edit-trigger ms-2';
+                                        editBtnInline.style.cssText = 'cursor:pointer; font-size:18px; line-height:1; color:#555;';
+                                        editBtnInline.textContent = 'edit';
+                                        editBtnInline.addEventListener('click', function(){
+                                            const payload = {
+                                                id: feedback.id,
+                                                parent_id: null,
+                                                feedback_comment: feedback.feedback_comment || '',
+                                                reference_url: feedback.reference_url || '',
+                                                reference_urls: feedback.reference_urls || [],
+                                                reference_file_url: feedback.reference_file || '',
+                                                reference_files_urls: (function(){
+                                                    let files = [];
+                                                    let rf = feedback.reference_files;
+                                                    if (!Array.isArray(rf) && typeof rf === 'string') {
+                                                        try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                                    }
+                                                    if (Array.isArray(rf) && rf.length) {
+                                                        files = rf.map(function(f){
+                                                            if (!f) return null;
+                                                            const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                            const isPath = typeof f === 'string' && (f.startsWith('/file/project/') || f.startsWith('file/project/'));
+                                                            if (!isAbs && !isPath) return appUrl + '/file/project/' + f;
+                                                            if (!isAbs && isPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                            return f;
+                                                        }).filter(Boolean);
+                                                    } else if (feedback.reference_file) {
+                                                        let single = feedback.reference_file;
+                                                        const isAbs2 = typeof single === 'string' && (single.startsWith('http://') || single.startsWith('https://'));
+                                                        const isPath2 = typeof single === 'string' && (single.startsWith('/file/project/') || single.startsWith('file/project/'));
+                                                        if (!isAbs2 && !isPath2) single = appUrl + '/file/project/' + single;
+                                                        else if (!isAbs2 && isPath2) single = single.startsWith('/') ? (appUrl + single) : (appUrl + '/' + single);
+                                                        files = [single];
+                                                    }
+                                                    return files;
+                                                })(),
+                                                image_url: (function(){
+                                                    const img = feedback.image || '';
+                                                    if (!img) return '';
+                                                    if (String(img).startsWith('http')) return img;
+                                                    if (String(img).startsWith('/')) return appUrl + img;
+                                                    return appUrl + '/file/project/' + img;
+                                                })(),
+                                            };
+                                            showEditFeedbackForm(projectId, payload, false);
+                                        });
+                                        nameRow.appendChild(editBtnInline);
+                                    }
 
                                     // Add creation date below employee name
                                     const dateDiv =
@@ -1626,11 +1845,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ? feedback.division + " | "
                                             : "") + (feedback.role || "");
 
-                                    infoDiv.appendChild(nameDiv);
+                                    infoDiv.appendChild(nameRow);
                                     infoDiv.appendChild(dateDiv);
                                     infoDiv.appendChild(roleDiv);
-                                    headerDiv.appendChild(img);
-                                    headerDiv.appendChild(infoDiv);
+                                    // Wrap left side like Task: avatar + (name/date)
+                                    const leftWrap = document.createElement('div');
+                                    leftWrap.className = 'd-flex align-items-center';
+                                    leftWrap.appendChild(img);
+                                    leftWrap.appendChild(infoDiv);
+                                    // Prepare header container with space between for reply icon on right
+                                    headerDiv.className = 'd-flex align-items-center mb-2 justify-content-between';
+                                    headerDiv.appendChild(leftWrap);
 
                                     // Comment
                                     const commentDiv =
@@ -1646,56 +1871,54 @@ document.addEventListener("DOMContentLoaded", function () {
                                     mediaDiv.className = "feedback-media mt-2";
 
                                     if (
-                                        feedback.reference_url ||
-                                        feedback.reference_file
+                                        feedback.reference_url || feedback.reference_urls ||
+                                        feedback.reference_file || (Array.isArray(feedback.reference_files) && feedback.reference_files.length > 0)
                                     ) {
                                         const refContainer =
                                             document.createElement("div");
                                         refContainer.className =
                                             "feedback-reference-container";
 
-                                        if (feedback.reference_url) {
-                                            const refUrlLink =
-                                                document.createElement("a");
-                                            refUrlLink.href =
-                                                feedback.reference_url;
-                                            refUrlLink.target = "_blank";
-                                            refUrlLink.className =
-                                                "feedback-reference-url";
-
-                                            refUrlLink.innerHTML = `<span class="material-symbols-outlined">link</span> Reference Link`;
-                                            refContainer.appendChild(
-                                                refUrlLink
-                                            );
-                                        }
-
-                                        if (feedback.reference_file) {
-                                            const refFileLink =
-                                                document.createElement("a");
-                                            refFileLink.href =
-                                                appUrl +
-                                                "/file/project/" +
-                                                feedback.reference_file;
-                                            refFileLink.download = "";
-                                            refFileLink.className =
-                                                "feedback-reference-file";
-
-                                            // Extract file extension/type from filename
-                                            const fileName =
-                                                feedback.reference_file;
-                                            let fileType = "";
-                                            const extMatch =
-                                                fileName.match(/\.(\w+)$/);
-                                            if (extMatch) {
-                                                fileType =
-                                                    extMatch[1].toUpperCase();
+                                        // Render one or multiple reference URLs
+                                        (function(){
+                                            let urls = [];
+                                            if (Array.isArray(feedback.reference_urls)) urls = feedback.reference_urls;
+                                            else if (feedback.reference_urls && typeof feedback.reference_urls === 'string') {
+                                                try { const arr = JSON.parse(feedback.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
                                             }
+                                            if ((!urls || urls.length === 0) && feedback.reference_url) urls = [feedback.reference_url];
+                                            urls.forEach((u, idx) => {
+                                                const a = document.createElement('a');
+                                                a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
+                                                a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                refContainer.appendChild(a);
+                                            });
+                                        })();
 
-                                            refFileLink.innerHTML = `<span class="material-symbols-outlined">draft</span> FEEDBACK_${fileType}`;
-                                            refContainer.appendChild(
-                                                refFileLink
-                                            );
-                                        }
+                                        // Render multiple reference files
+                                        (function(){
+                                            let files = [];
+                                            let rf = feedback.reference_files;
+                                            if (!Array.isArray(rf) && typeof rf === 'string') {
+                                                try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                            }
+                                            if (Array.isArray(rf) && rf.length) files = rf; else if (feedback.reference_file) files = [feedback.reference_file];
+                                            (files || []).forEach(function(file, idx){
+                                                if (!file) return;
+                                                let fileHref = file;
+                                                if (fileHref && !(String(fileHref).startsWith('http') || String(fileHref).startsWith('/'))) {
+                                                    fileHref = appUrl + '/file/project/' + fileHref;
+                                                } else if (fileHref && String(fileHref).startsWith('/')) {
+                                                    fileHref = appUrl + fileHref;
+                                                }
+                                                const a = document.createElement('a');
+                                                a.href = fileHref;
+                                                a.download = '';
+                                                a.className = 'feedback-reference-file ms-2';
+                                                a.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}`;
+                                                refContainer.appendChild(a);
+                                            });
+                                        })();
 
                                         mediaDiv.appendChild(refContainer);
                                     }
@@ -1703,10 +1926,23 @@ document.addEventListener("DOMContentLoaded", function () {
                                     if (feedback.image) {
                                         const feedbackImage =
                                             document.createElement("img");
-                                        feedbackImage.src =
-                                            appUrl +
-                                            "/file/project/" +
-                                            feedback.image;
+                                        // Normalize image URL
+                                        let imgSrc = feedback.image;
+                                        if (
+                                            imgSrc &&
+                                            !(String(imgSrc).startsWith("http") || String(imgSrc).startsWith("/"))
+                                        ) {
+                                            imgSrc =
+                                                appUrl +
+                                                "/file/project/" +
+                                                imgSrc;
+                                        } else if (
+                                            imgSrc &&
+                                            String(imgSrc).startsWith("/")
+                                        ) {
+                                            imgSrc = appUrl + imgSrc;
+                                        }
+                                        feedbackImage.src = imgSrc;
                                         feedbackImage.alt = "Feedback Image";
                                         feedbackImage.className =
                                             "feedback-image me-2 mb-2";
@@ -1726,12 +1962,267 @@ document.addEventListener("DOMContentLoaded", function () {
                                         mediaDiv.appendChild(feedbackImage);
                                     }
 
+                                    // Right side: Reply icon exactly like Task (far right)
+                                    const headerRight = document.createElement("div");
+                                    headerRight.className = "d-flex align-items-center";
+                                    const replyBtn = document.createElement("span");
+                                    replyBtn.className = "material-symbols-outlined feedback-reply-trigger";
+                                    replyBtn.style.cssText = "cursor:pointer; font-size:18px; line-height:1; color:#555;";
+                                    replyBtn.textContent = "reply";
+                                    replyBtn.addEventListener("click", function () {
+                                        showReplyFeedbackForm(projectId, feedback.id);
+                                    });
+                                    headerRight.appendChild(replyBtn);
+
+                                    // Append sections
                                     feedbackItem.appendChild(headerDiv);
+                                    headerDiv.appendChild(headerRight);
                                     feedbackItem.appendChild(commentDiv);
                                     feedbackItem.appendChild(mediaDiv);
 
+                                    // Replies list
+                                    if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                        const repliesCount = feedback.replies.length;
+                                        const repliesWrap = document.createElement("div");
+                                        repliesWrap.className = "view-replies-wrap feedback-replies-wrap mt-1";
+                                        const toggleBtn = document.createElement("button");
+                                        toggleBtn.type = "button";
+                                        toggleBtn.className = "btn btn-link p-0 view-replies-toggle feedback-toggle-replies";
+                                        toggleBtn.style.cssText = "font-size: 13px; color:#555; text-decoration: none;";
+                                        toggleBtn.textContent = `View all replies (${repliesCount})`;
+                                        const repliesContainer = document.createElement("div");
+                                        repliesContainer.className = "feedback-replies d-none";
+
+                                        feedback.replies.forEach((rep) => {
+                                            const repEmp = rep.employee || {};
+                                            const repDiv = document.createElement("div");
+                                            repDiv.className = "feedback-reply ms-4 mt-2 p-2 rounded";
+                                            if (rep && rep.id != null) {
+                                                repDiv.setAttribute('data-reply-id', String(rep.id));
+                                                if (feedback && feedback.id != null) {
+                                                    repDiv.setAttribute('data-parent-id', String(feedback.id));
+                                                }
+                                            }
+                                            repDiv.style.background = "#fafafa";
+
+                                            const repHeader = document.createElement("div");
+                                            repHeader.className = "d-flex align-items-center mb-1";
+                                            const repImg = document.createElement("img");
+                                            (function(){
+                                                const raw = repEmp.user_photo || repEmp.profile_picture || repEmp.photo || "";
+                                                let url = appUrl + '/asset/img/profile_picture/default.png';
+                                                if (raw) {
+                                                    if (String(raw).startsWith('http')) url = raw;
+                                                    else if (String(raw).startsWith('/')) url = appUrl + raw;
+                                                    else if (String(raw).indexOf('/') !== -1) url = appUrl + '/' + raw;
+                                                    else url = appUrl + '/file/profile_picture/' + raw;
+                                                }
+                                                repImg.src = url;
+                                            })();
+                                            repImg.alt = repEmp.name || 'Employee';
+                                            repImg.className = 'rounded-circle me-2';
+                                            repImg.style.width = '24px';
+                                            repImg.style.height = '24px';
+                                            repImg.style.objectFit = 'cover';
+                                            const repInfo = document.createElement('div');
+                                            const repNameRow = document.createElement('div');
+                                            repNameRow.className = 'd-flex align-items-center';
+                                            const repName = document.createElement('strong');
+                                            repName.style.fontSize = '13px';
+                                            repName.textContent = repEmp.name || 'Unknown';
+                                            repNameRow.appendChild(repName);
+                                            const canEditReply = String((rep.employee_id != null ? rep.employee_id : (repEmp.id || 0))) === String(currentEmployeeIdTop);
+                                            if (canEditReply) {
+                                                const rEdit = document.createElement('span');
+                                                rEdit.className = 'material-symbols-outlined icon ms-2';
+                                                rEdit.style.cssText = 'cursor:pointer; font-size:16px; line-height:1; color:#555;';
+                                                rEdit.textContent = 'edit';
+                                                rEdit.addEventListener('click', function(){
+                                                    const payload = {
+                                                        id: rep.id,
+                                                        parent_id: feedback.id,
+                                                        feedback_comment: rep.feedback_comment || '',
+                                                        reference_url: rep.reference_url || '',
+                                                        reference_urls: rep.reference_urls || [],
+                                                        reference_file_url: rep.reference_file || '',
+                                                        reference_files_urls: (function(){
+                                                            let files = [];
+                                                            let rf = rep.reference_files;
+                                                            if (!Array.isArray(rf) && typeof rf === 'string') {
+                                                                try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                                            }
+                                                            if (Array.isArray(rf) && rf.length) {
+                                                                files = rf.map(function(f){
+                                                                    if (!f) return null;
+                                                                    const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                                    const isPath = typeof f === 'string' && (f.startsWith('/file/project/') || f.startsWith('file/project/'));
+                                                                    if (!isAbs && !isPath) return appUrl + '/file/project/' + f;
+                                                                    if (!isAbs && isPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                                    return f;
+                                                                }).filter(Boolean);
+                                                            } else if (rep.reference_file) {
+                                                                let single = rep.reference_file;
+                                                                const isAbs2 = typeof single === 'string' && (single.startsWith('http://') || single.startsWith('https://'));
+                                                                const isPath2 = typeof single === 'string' && (single.startsWith('/file/project/') || single.startsWith('file/project/'));
+                                                                if (!isAbs2 && !isPath2) single = appUrl + '/file/project/' + single;
+                                                                else if (!isAbs2 && isPath2) single = single.startsWith('/') ? (appUrl + single) : (appUrl + '/' + single);
+                                                                files = [single];
+                                                            }
+                                                            return files;
+                                                        })(),
+                                                        image_url: (function(){
+                                                            const img = rep.image || '';
+                                                            if (!img) return '';
+                                                            if (String(img).startsWith('http')) return img;
+                                                            if (String(img).startsWith('/')) return appUrl + img;
+                                                            return appUrl + '/file/project/' + img;
+                                                        })(),
+                                                    };
+                                                    showEditFeedbackForm(projectId, payload, true);
+                                                });
+                                                repNameRow.appendChild(rEdit);
+                                            }
+                                            repInfo.appendChild(repNameRow);
+                                            const repTime = document.createElement('small');
+                                            repTime.className = 'text-muted d-block';
+                                            repTime.style.fontSize = '11px';
+                                            if (rep.created_at) {
+                                                const d = new Date(rep.created_at);
+                                                repTime.textContent = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                                            }
+                                            repInfo.appendChild(repTime);
+                                            repHeader.appendChild(repImg);
+                                            repHeader.appendChild(repInfo);
+
+                                            const repComment = document.createElement('p');
+                                            repComment.className = 'mb-1';
+                                            repComment.style.fontSize = '13px';
+                                            repComment.textContent = rep.feedback_comment || '';
+
+                                            const repMedia = document.createElement('div');
+                                            repMedia.className = 'feedback-reference-container mb-1';
+                                            // Render one or multiple reference URLs in reply
+                                            (function(){
+                                                let urls = [];
+                                                if (Array.isArray(rep.reference_urls)) urls = rep.reference_urls;
+                                                else if (rep.reference_urls && typeof rep.reference_urls === 'string') {
+                                                    try { const arr = JSON.parse(rep.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                                }
+                                                if ((!urls || urls.length === 0) && rep.reference_url) urls = [rep.reference_url];
+                                                urls.forEach((u, idx) => {
+                                                    const a = document.createElement('a');
+                                                    a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
+                                                    a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                    repMedia.appendChild(a);
+                                                });
+                                            })();
+                                            (function(){
+                                                let files = [];
+                                                let rf = rep.reference_files;
+                                                if (!Array.isArray(rf) && typeof rf === 'string') {
+                                                    try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                                }
+                                                if (Array.isArray(rf) && rf.length) files = rf; else if (rep.reference_file) files = [rep.reference_file];
+                                                (files || []).forEach(function(file, idx){
+                                                    if (!file) return;
+                                                    let href = file;
+                                                    if (href && !(String(href).startsWith('http') || String(href).startsWith('/'))) {
+                                                        href = appUrl + '/file/project/' + href;
+                                                    } else if (href && String(href).startsWith('/')) {
+                                                        href = appUrl + href;
+                                                    }
+                                                    const a2 = document.createElement('a');
+                                                    a2.href = href;
+                                                    a2.download = '';
+                                                    a2.className = 'feedback-reference-file ms-2';
+                                                    a2.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}`;
+                                                    repMedia.appendChild(a2);
+                                                });
+                                            })();
+                                            // Prepare reply image element but append later (below comment and references) like Task
+                                            let rImg = null;
+                                            if (rep.image) {
+                                                rImg = document.createElement('img');
+                                                let rsrc = rep.image;
+                                                if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) {
+                                                    rsrc = appUrl + '/file/project/' + rsrc;
+                                                } else if (rsrc && String(rsrc).startsWith('/')) {
+                                                    rsrc = appUrl + rsrc;
+                                                }
+                                                rImg.src = rsrc;
+                                                rImg.className = 'img-fluid rounded reply-image mt-1';
+                                                rImg.style.width = '70px';
+                                                rImg.style.borderRadius = '8px';
+                                                rImg.style.cursor = 'pointer';
+                                                rImg.addEventListener('click', () => window.open(rImg.src, '_blank'));
+                                            }
+
+                                            repDiv.appendChild(repHeader);
+                                            repDiv.appendChild(repComment);
+                                            if ((rep.reference_url || (Array.isArray(rep.reference_urls) && rep.reference_urls.length) || rep.reference_file || (Array.isArray(rep.reference_files) && rep.reference_files.length))) repDiv.appendChild(repMedia);
+                                            if (rImg) repDiv.appendChild(rImg);
+                                            repliesContainer.appendChild(repDiv);
+                                        });
+
+                                        repliesWrap.appendChild(toggleBtn);
+                                        repliesWrap.appendChild(repliesContainer);
+                                        feedbackItem.appendChild(repliesWrap);
+
+                                        toggleBtn.addEventListener('click', function () {
+                                            const hidden = repliesContainer.classList.contains('d-none');
+                                            if (hidden) {
+            repliesContainer.classList.remove('d-none');
+            this.textContent = 'Hide replies';
+                                            } else {
+            repliesContainer.classList.add('d-none');
+            this.textContent = `View all replies (${repliesCount})`;
+                                            }
+                                            this.style.textDecoration = 'none';
+                                            this.style.color = '#555';
+                                        });
+                                    }
+
                                     modalBody.appendChild(feedbackItem);
                                 });
+
+                                // After render: auto-scroll to target reply/feedback (if any)
+                                try {
+                                    const pidKey = String(projectId);
+                                    const target = (window.__projectLatestTarget && window.__projectLatestTarget[pidKey]) || null;
+                                    if (target) {
+                                        // consume it so it won't trigger next time
+                                        delete window.__projectLatestTarget[pidKey];
+                                        const isReply = target.parent_id != null && target.parent_id !== '';
+                                        if (isReply) {
+                                            const parentEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.parent_id}"]`);
+                                            if (parentEl) {
+                                                const container = parentEl.querySelector('.feedback-replies');
+                                                const toggle = parentEl.querySelector('.feedback-toggle-replies');
+                                                if (container && container.classList.contains('d-none')) {
+                                                    if (toggle) { try { toggle.click(); } catch(_) { container.classList.remove('d-none'); } }
+                                                    else { container.classList.remove('d-none'); }
+                                                }
+                                                const replyEl = parentEl.querySelector(`.feedback-reply[data-reply-id="${target.id}"]`);
+                                                if (replyEl) {
+                                                    replyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                    const oldBg = replyEl.style.backgroundColor;
+                                                    replyEl.style.transition = 'background-color 0.6s ease';
+                                                    replyEl.style.backgroundColor = '#fff9c4';
+                                                    setTimeout(() => { replyEl.style.backgroundColor = oldBg || ''; }, 1200);
+                                                }
+                                            }
+                                        } else {
+                                            const topEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.id}"]`);
+                                            if (topEl) {
+                                                topEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                const oldBg = topEl.style.backgroundColor;
+                                                topEl.style.transition = 'background-color 0.6s ease';
+                                                topEl.style.backgroundColor = '#fff9c4';
+                                                setTimeout(() => { topEl.style.backgroundColor = oldBg || ''; }, 1200);
+                                            }
+                                        }
+                                    }
+                                } catch (_) { /* noop */ }
                             })
                             .catch((error) => {
                                 modalBody.innerHTML =
@@ -1756,6 +2247,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <input type="hidden" name="employee_id" value="${
                 projectFeedbackModalEl.getAttribute("data-employee-id") || ""
             }">
+            <input type="hidden" name="parent_id" value="">
            <div class="mb-3">
                     <label class="form-label">Upload Image</label>
                     <div class="image-upload-container">
@@ -1773,13 +2265,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_url" class="form-label">Reference URL (Optional)</label>
-                    <input type="url" class="form-control" id="reference_url" name="reference_url" placeholder="https://example.com">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="reference_file" class="form-label">Reference File (Optional)</label>
-                    <input type="file" class="form-control" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
+                    <label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>
+                    <input type="file" class="form-control" id="feedback_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                    <div id="feedback_reference_files_preview" class="mt-2"></div>
                 </div>
         </form>
     `;
@@ -1824,6 +2322,48 @@ document.addEventListener("DOMContentLoaded", function () {
                             imageClearBtn.classList.add("d-none");
                         });
 
+                        // Setup multi-file preview for Add Feedback reference files
+                        (function(){
+                            try {
+                                window.addFeedbackSelectedFiles = [];
+                                const input = modalBody.querySelector('#feedback_reference_files');
+                                const preview = modalBody.querySelector('#feedback_reference_files_preview');
+                                if (!input || !preview) return;
+                                function render() {
+                                    preview.innerHTML = '';
+                                    if (!window.addFeedbackSelectedFiles.length) return;
+                                    const list = document.createElement('div');
+                                    list.className = 'selected-files-list mt-2';
+                                    window.addFeedbackSelectedFiles.forEach(function(file, idx){
+                                        const item = document.createElement('div');
+                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                                        const info = document.createElement('div');
+                                        info.className = 'd-flex align-items-center flex-grow-1';
+                                        const icon = document.createElement('span');
+                                        icon.className = 'material-symbols-outlined me-2';
+                                        icon.textContent = 'description';
+                                        const name = document.createElement('span');
+                                        name.textContent = file.name;
+                                        name.className = 'file-name';
+                                        const size = document.createElement('small');
+                                        size.className = 'text-muted ms-1';
+                                        size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
+                                        const rm = document.createElement('button');
+                                        rm.type = 'button'; rm.className = 'btn btn-sm btn-outline-danger'; rm.innerHTML = '&times;';
+                                        rm.onclick = function(){ window.addFeedbackSelectedFiles.splice(idx,1); render(); };
+                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size);
+                                        item.appendChild(info); item.appendChild(rm); list.appendChild(item);
+                                    });
+                                    preview.appendChild(list);
+                                }
+                                input.addEventListener('change', function(){
+                                    const files = Array.from(this.files || []);
+                                    window.addFeedbackSelectedFiles = window.addFeedbackSelectedFiles.concat(files);
+                                    render(); this.value = '';
+                                });
+                            } catch(_) {}
+                        })();
+
                         // Change Add Feedback button text to Submit
                         addFeedbackButton.textContent = "Submit";
 
@@ -1855,6 +2395,24 @@ document.addEventListener("DOMContentLoaded", function () {
                         submitBtn.disabled = true;
 
                         const formData = new FormData(form);
+                        // Map first non-empty reference_urls[] to single reference_url for backend
+                        try {
+                            const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                            if (urls.length) formData.set('reference_url', urls[0]);
+                        } catch(_) {}
+
+                        // Append selected reference files for add form
+                        try {
+                            if (window.addFeedbackSelectedFiles && window.addFeedbackSelectedFiles.length) {
+                                window.addFeedbackSelectedFiles.forEach(f => formData.append('reference_files[]', f));
+                            } else {
+                                const rfInput = form.querySelector('#feedback_reference_files');
+                                if (rfInput && rfInput.files && rfInput.files.length) {
+                                    Array.from(rfInput.files).forEach(f => formData.append('reference_files[]', f));
+                                }
+                            }
+                        } catch(_) {}
 
                         fetch(appUrl + "/project-feedbacks", {
                             method: "POST",
@@ -1934,6 +2492,484 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                     }
 
+                    // Show reply form for a given parent feedback (mirror Add Feedback UI)
+                    function showReplyFeedbackForm(projectId, parentId) {
+                        modalTitle.textContent = "Reply Feedback";
+                        modalBody.innerHTML = `
+        <form id="replyFeedbackForm" enctype="multipart/form-data">
+            <input type="hidden" name="project_id" value="${projectId}">
+            <input type="hidden" name="parent_id" value="${parentId}">
+            <input type="hidden" name="employee_id" value="${projectFeedbackModalEl.getAttribute('data-employee-id') || ''}">
+
+            <div class="mb-3">
+                <label class="form-label">Upload Image</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
+                        style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
+                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
+                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="reply_reference_files" class="form-label">Reference Files (Optional)</label>
+                <input type="file" class="form-control" id="reply_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                <div id="reply_reference_files_preview" class="mt-2"></div>
+            </div>
+        </form>`;
+
+                        // Setup image preview and clear like Add Feedback
+                        (function() {
+                            const imageInput = modalBody.querySelector('#feedback_image');
+                            const imageLabel = modalBody.querySelector('#feedbackImageLabel');
+                            const imageClearBtn = modalBody.querySelector('#feedbackImageClearBtn');
+                            if (!imageInput || !imageLabel || !imageClearBtn) return;
+                            imageInput.addEventListener('change', function () {
+                                if (this.files && this.files[0]) {
+                                    const reader = new FileReader();
+                                    reader.onload = function (e) {
+                                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                                        imageLabel.classList.add('has-image');
+                                        imageLabel.style.backgroundSize = 'cover';
+                                        imageLabel.style.opacity = '1';
+                                        imageClearBtn.classList.remove('d-none');
+                                    };
+                                    reader.readAsDataURL(this.files[0]);
+                                }
+                            });
+                            imageClearBtn.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                imageInput.value = '';
+                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                imageLabel.style.backgroundPosition = 'center center';
+                                imageLabel.style.backgroundRepeat = 'no-repeat';
+                                imageLabel.style.backgroundSize = '50%';
+                                imageLabel.classList.remove('has-image');
+                                imageLabel.style.opacity = '0.5';
+                                imageClearBtn.classList.add('d-none');
+                            });
+                        })();
+
+                        // Setup multi-file preview for Reply reference files
+                        (function(){
+                            try {
+                                window.replyFeedbackSelectedFiles = [];
+                                const input = modalBody.querySelector('#reply_reference_files');
+                                const preview = modalBody.querySelector('#reply_reference_files_preview');
+                                if (!input || !preview) return;
+                                function render(){
+                                    preview.innerHTML = '';
+                                    if (!window.replyFeedbackSelectedFiles.length) return;
+                                    const list = document.createElement('div');
+                                    list.className = 'selected-files-list mt-2';
+                                    window.replyFeedbackSelectedFiles.forEach(function(file, idx){
+                                        const item = document.createElement('div');
+                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                                        const info = document.createElement('div');
+                                        info.className = 'd-flex align-items-center flex-grow-1';
+                                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
+                                        const name = document.createElement('span'); name.className = 'file-name'; name.textContent = file.name;
+                                        const size = document.createElement('small'); size.className = 'text-muted ms-1'; size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
+                                        const rm = document.createElement('button'); rm.type='button'; rm.className='btn btn-sm btn-outline-danger'; rm.innerHTML='&times;'; rm.onclick=function(){ window.replyFeedbackSelectedFiles.splice(idx,1); render(); };
+                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
+                                    });
+                                    preview.appendChild(list);
+                                }
+                                input.addEventListener('change', function(){
+                                    const files = Array.from(this.files || []);
+                                    window.replyFeedbackSelectedFiles = window.replyFeedbackSelectedFiles.concat(files);
+                                    render(); this.value = '';
+                                });
+                            } catch(_) {}
+                        })();
+
+                        const addBtn = document.getElementById("addFeedbackButton");
+                        if (addBtn) {
+                            addBtn.textContent = "Submit";
+                            const fresh = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(fresh, addBtn);
+                            fresh.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                const form = document.getElementById("replyFeedbackForm");
+                                if (!form) return;
+                                const fd = new FormData(form);
+                                // Map first non-empty reference_urls[] to single reference_url for backend
+                                try {
+                                    const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                                    const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                                    if (urls.length) fd.set('reference_url', urls[0]);
+                                } catch(_) {}
+                                // Append selected reference files for reply form
+                                try {
+                                    if (window.replyFeedbackSelectedFiles && window.replyFeedbackSelectedFiles.length) {
+                                        window.replyFeedbackSelectedFiles.forEach(f => fd.append('reference_files[]', f));
+                                    } else {
+                                        const rfInput = form.querySelector('#reply_reference_files');
+                                        if (rfInput && rfInput.files && rfInput.files.length) {
+                                            Array.from(rfInput.files).forEach(f => fd.append('reference_files[]', f));
+                                        }
+                                    }
+                                } catch(_) {}
+
+                                fetch(appUrl + "/project-feedbacks", {
+                                    method: "POST",
+                                    headers: {
+                                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                    },
+                                    body: fd,
+                                })
+                                    .then((r) => (r.ok ? r.json() : r.json().then(Promise.reject)))
+                                    .then((res) => {
+                                        showFloatingAlert(res.message || "Reply submitted", "success", 1500);
+                                        loadFeedbackData(projectId);
+                                    })
+                                    .catch((err) => {
+                                        const msg =
+                                            (err && (err.message || (err.errors && Object.values(err.errors).join("\n")))) ||
+                                            "Failed to submit reply";
+                                        showFloatingAlert(msg, "warning", 3500);
+                                    });
+                            });
+                        }
+
+                        // Back button
+                        const footer = projectFeedbackModalEl.querySelector(".feedback-modal-footer");
+                        if (footer) {
+                            let closeBtn = document.getElementById('replyCloseButton');
+                            if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
+                            closeBtn = document.createElement("button");
+                            closeBtn.id = "replyCloseButton";
+                            closeBtn.type = "button";
+                            closeBtn.className = "btn btn-close-reply";
+                            closeBtn.textContent = "Close";
+                            const submitBtn = document.getElementById('addFeedbackButton');
+                            if (submitBtn && submitBtn.parentNode) submitBtn.parentNode.insertBefore(closeBtn, submitBtn);
+                            closeBtn.addEventListener("click", function () {
+                                loadFeedbackData(projectId);
+                                const btn2 = document.getElementById("addFeedbackButton");
+                                if (btn2) btn2.textContent = "Add Feedback";
+                                if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
+                            });
+                        }
+                    }
+
+                    // Show edit form for feedback or reply (mirror Add Feedback UI)
+                    function showEditFeedbackForm(projectId, data, isReply) {
+                        modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
+                        const existingImg = data.image_url || '';
+                        const bgStyle = existingImg
+                            ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;`
+                            : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+                        const clearClass = existingImg ? '' : 'd-none';
+                        modalBody.innerHTML = `
+        <form id="editFeedbackForm" enctype="multipart/form-data">
+            ${data.parent_id ? `<input type="hidden" name="parent_id" value="${data.parent_id}">` : ''}
+
+            <div class="mb-3">
+                <label class="form-label label-custom">Upload Image</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel"
+                        style="background-position: center center; background-repeat: no-repeat; ${bgStyle} cursor: pointer;">
+                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                        <span class="image-clear-btn ${clearClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
+                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label label-custom">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
+            </div>
+
+            <div class="mb-3">
+                <label for="edit_reference_files" class="form-label label-custom">Reference Files (Optional)</label>
+                <input type="file" class="form-control" id="edit_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                <div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>
+                <div id="edit_feedback_reference_files_preview" class="mt-2"></div>
+            </div>
+        </form>`;
+
+                        // Image preview/clear logic like Add
+                        (function() {
+                            const imageInput = modalBody.querySelector('#feedback_image');
+                            const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
+                            const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+                            if (!imageInput || !imageLabel || !imageClearBtn) return;
+                            imageInput.addEventListener('change', function () {
+                                if (this.files && this.files[0]) {
+                                    const reader = new FileReader();
+                                    reader.onload = function (e) {
+                                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                                        imageLabel.classList.add('has-image');
+                                        imageLabel.style.backgroundSize = 'cover';
+                                        imageLabel.style.opacity = '1';
+                                        imageClearBtn.classList.remove('d-none');
+                                    };
+                                    reader.readAsDataURL(this.files[0]);
+                                }
+                            });
+                            imageClearBtn.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                imageInput.value = '';
+                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                imageLabel.style.backgroundPosition = 'center center';
+                                imageLabel.style.backgroundRepeat = 'no-repeat';
+                                imageLabel.style.backgroundSize = '50%';
+                                imageLabel.classList.remove('has-image');
+                                imageLabel.style.opacity = '0.5';
+                                imageClearBtn.classList.add('d-none');
+                            });
+                        })();
+
+                        // Setup multi-file preview for Edit Feedback reference files
+                        (function(){
+                            try {
+                                window.editFeedbackSelectedFiles = [];
+                                const input = modalBody.querySelector('#edit_reference_files');
+                                const preview = modalBody.querySelector('#edit_feedback_reference_files_preview');
+                                if (!input || !preview) return;
+                                function render(){
+                                    preview.innerHTML='';
+                                    if (!window.editFeedbackSelectedFiles.length) return;
+                                    const list = document.createElement('div');
+                                    list.className = 'selected-files-list mt-2';
+                                    window.editFeedbackSelectedFiles.forEach(function(file, idx){
+                                        const item = document.createElement('div');
+                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                                        const info = document.createElement('div'); info.className = 'd-flex align-items-center flex-grow-1';
+                                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
+                                        const name = document.createElement('span'); name.className = 'file-name'; name.textContent = file.name;
+                                        const size = document.createElement('small'); size.className = 'text-muted ms-1'; size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
+                                        const rm = document.createElement('button'); rm.type='button'; rm.className='btn btn-sm btn-outline-danger'; rm.innerHTML='&times;'; rm.onclick=function(){ window.editFeedbackSelectedFiles.splice(idx,1); render(); };
+                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
+                                    });
+                                    preview.appendChild(list);
+                                }
+                                input.addEventListener('change', function(){
+                                    const files = Array.from(this.files || []);
+                                    window.editFeedbackSelectedFiles = window.editFeedbackSelectedFiles.concat(files);
+                                    render(); this.value='';
+                                });
+                            } catch(_) {}
+                        })();
+
+                        const addBtn = document.getElementById("addFeedbackButton");
+                        if (addBtn) {
+                            addBtn.textContent = "Update";
+                            const fresh = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(fresh, addBtn);
+                            fresh.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                const form = document.getElementById("editFeedbackForm");
+                                if (!form) return;
+                                const fd = new FormData(form);
+                                // Map first non-empty reference_urls[] to single reference_url for backend
+                                try {
+                                    const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
+                                    const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+                                    if (urls.length) fd.set('reference_url', urls[0]);
+                                    else fd.set('reference_url', '');
+                                } catch(_) {}
+                                // Include existing files and new selected files for edit form
+                                try {
+                                    const existingHidden = form.querySelector('#existing_feedback_reference_files_input');
+                                    const existingList = form.querySelectorAll('#existing_feedback_reference_files .existing-file-item a');
+                                    let keep = [];
+                                    existingList.forEach(a => { const name = (a.textContent || '').trim(); if (name) keep.push(name); });
+                                    if (existingHidden) existingHidden.value = JSON.stringify(keep);
+                                } catch(_) {}
+                                try {
+                                    if (window.editFeedbackSelectedFiles && window.editFeedbackSelectedFiles.length) {
+                                        window.editFeedbackSelectedFiles.forEach(f => fd.append('reference_files[]', f));
+                                    } else {
+                                        const rfInput = form.querySelector('#edit_reference_files');
+                                        if (rfInput && rfInput.files && rfInput.files.length) {
+                                            Array.from(rfInput.files).forEach(f => fd.append('reference_files[]', f));
+                                        }
+                                    }
+                                } catch(_) {}
+                                fd.append("_method", "PUT");
+                                fetch(appUrl + `/project-feedbacks/${data.id}` , {
+                                    method: "POST",
+                                    headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                    body: fd,
+                                })
+                                    .then((r) => (r.ok ? r.json() : r.json().then(Promise.reject)))
+                                    .then((res) => {
+                                        showFloatingAlert(res.message || "Feedback updated", "success", 1500);
+                                        loadFeedbackData(projectId);
+                                    })
+                                    .catch((err) => {
+                                        const msg =
+                                            (err && (err.message || (err.errors && Object.values(err.errors).join("\n")))) ||
+                                            "Failed to update feedback";
+                                        showFloatingAlert(msg, "warning", 3500);
+                                    });
+                            });
+                        }
+
+                        // Prefill reference URLs container for edit form
+                        (function(){
+                            const container = document.getElementById('feedback_reference_urls_container');
+                            if (!container) return;
+                            container.innerHTML = '';
+                            let urls = [];
+                            if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                            else if (typeof data.reference_urls === 'string') {
+                                try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                            }
+                            if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+                            function addRow(value, withAdd){
+                                const row = document.createElement('div');
+                                row.className = 'd-flex gap-2 align-items-center';
+                                row.innerHTML = '<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">' +
+                                    (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
+                                container.appendChild(row);
+                                const inp = row.querySelector('input[type="url"]');
+                                if (inp && value) inp.value = value;
+                            }
+                            // Place the ADD row first, then existing URL rows below it
+                            addRow('', true);
+                            (urls || []).forEach((u) => addRow(u, false));
+                        })();
+
+                        // Prefill existing reference files list for edit form and wire remove buttons
+                        (function(){
+                            // Scope to modalBody to avoid clashing with project edit modal elements
+                            const container = modalBody.querySelector('#existing_feedback_reference_files');
+                            const hidden = modalBody.querySelector('#existing_feedback_reference_files_input');
+                            if (!container || !hidden) return;
+
+                            // Build files array from multiple possible shapes
+                            let files = [];
+                            if (Array.isArray(data.reference_files_urls)) {
+                                files = data.reference_files_urls.slice();
+                            } else if (Array.isArray(data.reference_files)) {
+                                files = data.reference_files.slice();
+                            } else if (data.reference_file_url) {
+                                files = [data.reference_file_url];
+                            } else if (data.reference_file) {
+                                files = [data.reference_file];
+                            }
+
+                            function toUrl(v){
+                                if (!v) return '';
+                                const s = String(v);
+                                if (s.startsWith('http://') || s.startsWith('https://')) return s;
+                                if (s.startsWith('/')) return appUrl + s;
+                                return appUrl + '/file/project/' + s;
+                            }
+                            function toName(u){
+                                if (!u) return '';
+                                const s = String(u);
+                                if (s.startsWith('http://') || s.startsWith('https://')) {
+                                    try { return new URL(s).pathname.split('/').pop(); } catch(_) { return s.split('/').pop(); }
+                                }
+                                return s.split('/').pop();
+                            }
+
+                            container.innerHTML = '';
+                            if ((files || []).length > 0) {
+                                const title = document.createElement('div');
+                                title.className = 'fw-bold mb-2';
+                                title.textContent = 'Current Files:';
+                                container.appendChild(title);
+
+                                const list = document.createElement('div');
+                                list.className = 'existing-files-list w-100';
+
+                                (files || []).forEach(function(f){
+                                    const url = toUrl(f);
+                                    const name = toName(f);
+                                    if (!name) return;
+
+                                    const item = document.createElement('div');
+                                    item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+
+                                    const info = document.createElement('div');
+                                    info.className = 'd-flex align-items-center flex-grow-1';
+
+                                    const icon = document.createElement('span');
+                                    icon.className = 'material-symbols-outlined me-2';
+                                    icon.textContent = 'description';
+
+                                    const link = document.createElement('a');
+                                    link.href = url; link.textContent = name; link.className = 'text-decoration-none'; link.target = '_blank';
+
+                                    const removeBtn = document.createElement('button');
+                                    removeBtn.type = 'button';
+                                    removeBtn.className = 'btn btn-sm btn-outline-danger';
+                                    removeBtn.innerHTML = '&times;';
+                                    removeBtn.onclick = function(){
+                                        item.remove();
+                                        try {
+                                            const anchors = container.querySelectorAll('.existing-file-item a');
+                                            const next = Array.from(anchors).map(a => (a.textContent || '').trim()).filter(Boolean);
+                                            hidden.value = JSON.stringify(next);
+                                        } catch(_) {}
+                                    };
+
+                                    info.appendChild(icon);
+                                    info.appendChild(link);
+                                    item.appendChild(info);
+                                    item.appendChild(removeBtn);
+                                    list.appendChild(item);
+                                });
+
+                                container.appendChild(list);
+                            }
+
+                            // Initialize hidden keep list with all names
+                            try {
+                                const anchors = container.querySelectorAll('.existing-file-item a');
+                                const names = Array.from(anchors).map(a => (a.textContent || '').trim()).filter(Boolean);
+                                hidden.value = JSON.stringify(names);
+                            } catch(_) { hidden.value = '[]'; }
+                        })();
+
+                        // Back button like Task
+                        const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
+                        if (footer) {
+                            let backBtn = document.getElementById('replyCloseButton');
+                            if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+                            backBtn = document.createElement('button');
+                            backBtn.id = 'replyCloseButton';
+                            backBtn.type = 'button';
+                            backBtn.className = 'btn btn-close-reply';
+                            backBtn.textContent = 'Close';
+                            const submitRef = document.getElementById('addFeedbackButton');
+                            if (submitRef && submitRef.parentNode) submitRef.parentNode.insertBefore(backBtn, submitRef);
+                            backBtn.addEventListener('click', function () {
+                                loadFeedbackData(projectId);
+                                const addBtn2 = document.getElementById('addFeedbackButton');
+                                if (addBtn2) addBtn2.textContent = 'Add Feedback';
+                                if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+                            });
+                        }
+                    }
+
                     // Modal hidden event to reset modal title and clear modal body
                     projectFeedbackModalEl.addEventListener(
                         "hidden.bs.modal",
@@ -1984,6 +3020,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                 projectId
                             );
 
+                            // Hide unread badge and latest feedback snippet, and mark as read
+                            hideProjectUnreadBadge(projectId);
+                            hideProjectLatestFeedbackSnippet(projectId);
+                            // Set target to latest payload when opening from dropdown Feedback
+                            try {
+                                window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                const latest = (window.__projectLatest && window.__projectLatest[String(projectId)]) || null;
+                                if (latest) window.__projectLatestTarget[String(projectId)] = latest;
+                            } catch (_) {}
+                            markProjectFeedbacksRead(projectId).always(() => {
+                                // continue to load data
+                            });
+
                             loadFeedbackData(projectId);
                             const projectFeedbackModal = new bootstrap.Modal(
                                 projectFeedbackModalEl
@@ -2014,6 +3063,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                 projectId
                             );
 
+                            // Hide unread badge and latest feedback snippet, and mark as read
+                            hideProjectUnreadBadge(projectId);
+                            hideProjectLatestFeedbackSnippet(projectId);
+                            // Set target to latest payload when opening from comment icon
+                            try {
+                                window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                const latest = (window.__projectLatest && window.__projectLatest[String(projectId)]) || null;
+                                if (latest) window.__projectLatestTarget[String(projectId)] = latest;
+                            } catch (_) {}
+                            markProjectFeedbacksRead(projectId).always(() => {
+                                // continue to load data
+                            });
+
                             loadFeedbackData(projectId);
                             const projectFeedbackModal = new bootstrap.Modal(
                                 projectFeedbackModalEl
@@ -2025,6 +3087,23 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Helper function to show image in modal (for lightbox effect)
                     function showImageModal(imageSrc) {
                         window.open(imageSrc, "_blank");
+                    }
+
+                    // Mark project feedbacks as read helper
+                    function markProjectFeedbacksRead(projectId) {
+                        return $.ajax({
+                            url: appUrl + `/project/${projectId}/feedbacks/mark-read`,
+                            type: 'POST',
+                            headers: {
+                                "X-CSRF-TOKEN": document
+                                    .querySelector('meta[name="csrf-token"]')
+                                    .getAttribute("content"),
+                            },
+                        }).always(() => {
+                            hideProjectUnreadBadge(projectId);
+                            hideProjectLatestFeedbackSnippet(projectId);
+                            latestProjectSnippetSeq[projectId] = (latestProjectSnippetSeq[projectId] || 0) + 1;
+                        });
                     }
 
                     // Remove old confirm dialog and use modal instead
@@ -2131,58 +3210,56 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
 
                     // Extracted function to fetch and show Project Detail modal (reused by timeline bar clicks)
+                    let projectDetailModal = bootstrap.Modal.getOrCreateInstance(
+                        document.getElementById("projectDetailModal")
+                    );
+
                     function fetchAndShowProjectDetail(projectId) {
-                        // Fetch project details via AJAX
                         $.ajax({
                             url: appUrl + "/project/" + projectId,
                             type: "GET",
                             dataType: "json",
                             success: function (response) {
                                 const data = response.data || {};
-
-                                // Populate modal fields
                                 const baseFileUrl = appUrl + "/file/project/";
 
+                                // Populate modal fields
                                 $("#projectDetailImage").attr(
                                     "src",
                                     data.image
                                         ? baseFileUrl + data.image
-                                        : appUrl +
-                                              "/asset/img/background/add-image.png"
-                                );
-                                $("#projectDetailImage").attr(
-                                    "style",
-                                    "border-radius: 8px;"
-                                );
+                                        : appUrl + "/asset/img/background/add-image.png"
+                                ).css("border-radius", "8px");
 
-                                $("#projectDetailTitle").replaceWith(
-                                    `<h2 class="project-title" id="projectDetailTitle">${
-                                        data.title || ""
-                                    }</h2>`
-                                );
-                                $("#projectDetailAuthor")
-                                    .text(
-                                        data.author ? data.author.name : "Unknown"
-                                    )
-                                    .css("text-align", "justify");
-                                $("#projectDetailDepartment").text(
-                                    data.department || ""
-                                );
-                                $("#projectDetailDivision").text(
-                                    data.division || ""
-                                );
-                                $("#projectDetailDescription").text(
-                                    data.description || ""
-                                );
+                                $("#projectDetailTitle").text(data.title || "");
+                                $("#projectDetailAuthor").text(data.author ? data.author.name : "Unknown");
+                                $("#projectDetailDepartment").text(data.department || "");
+                                $("#projectDetailDivision").text(data.division || "");
+                                $("#projectDetailDescription").text(data.description || "");
 
-                                if (data.reference_url) {
-                                    $("#projectDetailReferenceUrl")
-                                        .attr("href", data.reference_url)
-                                        .text(data.reference_url)
-                                        .show();
-                                } else {
-                                    $("#projectDetailReferenceUrl").hide();
-                                }
+                                // Render multiple reference URLs (match Task behavior)
+                                (function(){
+                                    const wrap = document.getElementById('projectDetailReferenceUrls');
+                                    if (!wrap) return;
+                                    wrap.innerHTML = '';
+                                    let urls = [];
+                                    if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                                    else if (typeof data.reference_urls === 'string') {
+                                        try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                    }
+                                    if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+                                    if (urls.length > 0) {
+                                        urls.forEach((u, i) => {
+                                            const a = document.createElement('a');
+                                            a.href = u; a.target = '_blank'; a.rel = 'noopener';
+                                            a.textContent = `Link ${i+1}`;
+                                            a.className = 'me-2';
+                                            wrap.appendChild(a);
+                                        });
+                                    } else {
+                                        wrap.textContent = '-';
+                                    }
+                                })();
 
                                 if (data.reference_file) {
                                     $("#projectDetailReferenceFile")
@@ -2194,50 +3271,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 function formatDate(dateStr) {
                                     if (!dateStr) return "";
-                                    const options = {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    };
-                                    const dateObj = new Date(dateStr);
-                                    return dateObj.toLocaleDateString(
-                                        undefined,
-                                        options
-                                    );
+                                    const options = { year: "numeric", month: "long", day: "numeric" };
+                                    return new Date(dateStr).toLocaleDateString(undefined, options);
                                 }
 
-                                $("#projectDetailStartDate").text(
-                                    formatDate(data.start_date)
-                                );
-                                $("#projectDetailDueDate").text(
-                                    formatDate(data.due_date)
+                                $("#projectDetailStartDate").text(formatDate(data.start_date));
+                                $("#projectDetailDueDate").text(formatDate(data.due_date));
+
+                                $("#projectDetailCoAuthors").text(
+                                    data.co_authors?.length
+                                        ? data.co_authors.map((ca) => ca.name).join(", ")
+                                        : "None"
                                 );
 
-                                if (data.co_authors && data.co_authors.length > 0) {
-                                    const coAuthorNames = data.co_authors
-                                        .map((ca) => ca.name)
-                                        .join(", ");
-                                    $("#projectDetailCoAuthors").text(
-                                        coAuthorNames
-                                    );
-                                } else {
-                                    $("#projectDetailCoAuthors").text("None");
-                                }
-
-                                if (data.contributors && data.contributors.length > 0) {
-                                    const contributorNames = data.contributors
-                                        .map((c) => c.name)
-                                        .join(", ");
-                                    $("#projectDetailContributors").text(
-                                        contributorNames
-                                    );
-                                } else {
-                                    $("#projectDetailContributors").text("None");
-                                }
-
-                                const projectDetailModal = new bootstrap.Modal(
-                                    document.getElementById("projectDetailModal")
+                                $("#projectDetailContributors").text(
+                                    data.contributors?.length
+                                        ? data.contributors.map((c) => c.name).join(", ")
+                                        : "None"
                                 );
+
                                 projectDetailModal.show();
                             },
                             error: function () {
@@ -2245,6 +3297,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             },
                         });
                     }
+
 
                     // Event listener for "Detail", "Task", and "Feedback" dropdown item click
                     document.addEventListener("click", function (e) {
@@ -2298,13 +3351,44 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
 
                     // Click on timeline bar opens the same Project Detail modal
+                    // If the click comes from the timeline modal, close the timeline first,
+                    // then show Project Detail. After closing Project Detail, reopen the timeline modal.
                     document.addEventListener('click', function (e) {
                         const bar = e.target.closest('.timeline-bar[data-project-id]');
                         if (!bar) return;
                         const pid = bar.getAttribute('data-project-id');
-                        if (pid) {
-                            fetchAndShowProjectDetail(pid);
+                        if (!pid) return;
+
+                        // Detect if timeline modal is currently open
+                        const timelineModalEl = document.getElementById('timelineModal');
+                        let shouldReopenTimeline = false;
+                        if (timelineModalEl && timelineModalEl.classList.contains('show')) {
+                            try {
+                                const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                tlInstance.hide();
+                                shouldReopenTimeline = true;
+                            } catch (_) {}
                         }
+
+                        // Set a one-time handler to reopen timeline after detail is closed (only when originated from timeline)
+                        if (shouldReopenTimeline) {
+                            const detailEl = document.getElementById('projectDetailModal');
+                            if (detailEl) {
+                                const onDetailHidden = function () {
+                                    try {
+                                        const tlInstance2 = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                        tlInstance2.show();
+                                    } catch (_) {}
+                                    detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
+                                };
+                                // Ensure no duplicate handler stacking
+                                detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
+                                detailEl.addEventListener('hidden.bs.modal', onDetailHidden, { once: true });
+                            }
+                        }
+
+                        // Proceed to open Project Detail
+                        fetchAndShowProjectDetail(pid);
                     });
 
                     // Function to format task date like feedback
@@ -2678,9 +3762,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     }, 50); // Further reduced delay for instant update
                 }
                 else {
-                    // no projects - ensure chart shows zero state
-                    updateProjectChartFromData([]);
+                    // No projects. If backend provides aggregated task chart_counts,
+                    // we already updated the chart above. Only set zero state when chart_counts is missing.
+                    try {
+                        if (!data || !data.chart_counts) {
+                            updateProjectChartFromData([], null);
+                        }
+                    } catch (_) {
+                        updateProjectChartFromData([], null);
+                    }
                 }
+
+                $('.loader').fadeOut('fast');
+
             },
             error: function () {
                 console.error("Failed to load project card data.");
@@ -2745,44 +3839,63 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Load projects for "part_of_project" select
-let allProjectsCache = [];
+    let allProjectsCache = [];
 
-// Render projects into relevant selects (e.g., part_of_project)
-function renderProjects(projects) {
-    try {
-        projects = Array.isArray(projects) ? projects : [];
-
-        // Populate the Add Project modal's "part_of_project" select if present
-        if (typeof partOfProjectSelect !== 'undefined' && partOfProjectSelect) {
-            let opts = '<option value="" disabled selected>Select Project</option>';
-            projects.forEach((p) => {
-                const id = (p && (p.id != null)) ? p.id : '';
-                const title = (p && (p.title || p.name)) ? (p.title || p.name) : 'Untitled';
-                opts += `<option value="${id}">${title}</option>`;
-            });
-            partOfProjectSelect.innerHTML = opts;
-            partOfProjectSelect.disabled = false;
-            partOfProjectSelect.style.display = 'block';
-        }
-    } catch (e) {
-        console.error('renderProjects error', e);
-    }
-}
-
-// Load semua project dari API
-function loadProjects() {
+function loadProjects(filter = null) {
     $.ajax({
         url: appUrl + "/project/index",
         type: "GET",
         dataType: "json",
-        data: { task_scope: 'me' },
+        data: { task_scope: 'me', filter: filter },
         success: function (data) {
-            allProjectsCache = data.data || [];
-            renderProjects(allProjectsCache);
+            loadProjectCardData(filter, 1);
         },
         error: function () {
-            console.error("Failed to load projects");
+            console.error("Failed to load project cards (index)");
+        }
+    });
+}
+
+function loadCardProjects(page = 1) {
+    $.ajax({
+        url: appUrl + "/project/get-all-projects",
+        type: "GET",
+        dataType: "json",
+        data: { task_scope: 'me', page: page },
+        success: function (data) {
+
+            loadProjectCardData(null, page);
+
+            updatePagination(data.pagination);
+        },
+        error: function () {
+            console.error("Failed to load project cards");
+        }
+    });
+}
+
+function updatePagination(pagination) {
+    if (!pagination) return;
+
+    const currentPage = parseInt(pagination.current_page, 10);
+    const perPage = parseInt(pagination.per_page, 10);
+    const total = parseInt(pagination.total, 10);
+    const lastPage = parseInt(pagination.last_page, 10);
+
+    const from = (currentPage - 1) * perPage + 1;
+    let to = currentPage * perPage;
+    if (to > total) to = total;
+
+    $("#paginationInfo").text(`Page ${currentPage} of ${lastPage}`);
+    $("#dataInfo").text(`Showing ${from}–${to} of ${total}`);
+
+    $("#prevPageBtn").prop("disabled", currentPage <= 1).data("page", currentPage - 1);
+    $("#nextPageBtn").prop("disabled", currentPage >= lastPage).data("page", currentPage + 1);
+
+    $("#prevPageBtn, #nextPageBtn").off("click").on("click", function () {
+        const page = $(this).data("page");
+        if (page) {
+            loadCardProjects(page);
         }
     });
 }
@@ -2794,15 +3907,14 @@ function initProjectFilter() {
     searchInput.addEventListener("keyup", function () {
         const query = this.value.toLowerCase().trim();
 
-        // Ambil semua card project yang udah ada di container
         const cards = document.querySelectorAll("#all-cards-container .card");
 
         cards.forEach(card => {
             const text = card.innerText.toLowerCase();
             if (text.includes(query)) {
-                card.style.display = "";  // tampil
+                card.style.display = "";
             } else {
-                card.style.display = "none"; // sembunyi
+                card.style.display = "none";
             }
         });
     });
@@ -2813,6 +3925,90 @@ $(document).ready(function () {
     initProjectFilter();
 });
 
+// ===== Unread badge and latest feedback snippet for Project (parity with Task) =====
+// Helpers to show/hide unread badge
+function setProjectUnreadBadge(projectId, count) {
+    try {
+        const card = document.querySelector(`.col-md-4[data-project-id="${projectId}"]`);
+        if (!card) return;
+        const badge = card.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
+        if (!badge) return;
+        const n = parseInt(count, 10) || 0;
+        if (n > 0) badge.classList.remove('d-none');
+        else badge.classList.add('d-none');
+    } catch (_) {}
+}
+function hideProjectUnreadBadge(projectId) { setProjectUnreadBadge(projectId, 0); }
+function fetchUnreadForProject(projectId) {
+    return $.ajax({ url: appUrl + `/project/${projectId}/feedbacks/unread-count`, type: 'GET' })
+        .then((res) => {
+            const c = (res && (res.count ?? res.data?.count)) || 0;
+            setProjectUnreadBadge(projectId, c);
+        })
+        .catch(() => { /* noop */ });
+}
+function refreshAllProjectUnreadBadges() {
+    document.querySelectorAll('#all-cards-container .col-md-4[data-project-id]').forEach((col) => {
+        const pid = col.getAttribute('data-project-id');
+        fetchUnreadForProject(pid);
+    });
+}
+
+// Latest feedback snippet helpers
+const latestProjectSnippetSeq = {};
+function hideProjectLatestFeedbackSnippet(projectId) {
+    try {
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+        els.forEach((el) => {
+            el.classList.add('d-none');
+            el.style.display = 'none';
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (textEl) textEl.textContent = '';
+        });
+    } catch (_) {}
+}
+function setProjectLatestFeedbackSnippet(projectId, data) {
+    const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+    if (!els || els.length === 0) return;
+    if (!data) { hideProjectLatestFeedbackSnippet(projectId); return; }
+    // Cache latest payload for deep-linking
+    try {
+        window.__projectLatest = window.__projectLatest || {};
+        window.__projectLatest[String(projectId)] = data;
+    } catch (_) {}
+    const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/profile_picture/default.png');
+    const raw = String(data.feedback_comment || '');
+    const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
+    els.forEach((el) => {
+        const avatar = el.querySelector('.latest-feedback-avatar');
+        const textEl = el.querySelector('.latest-feedback-text');
+        if (avatar) avatar.src = photo;
+        if (textEl) textEl.textContent = truncated;
+        el.classList.remove('d-none');
+        el.style.removeProperty('display');
+    });
+}
+function fetchLatestFeedbackForProject(projectId) {
+    const seq = (latestProjectSnippetSeq[projectId] = (latestProjectSnippetSeq[projectId] || 0) + 1);
+    return $.ajax({ url: appUrl + `/project-feedbacks/${projectId}/latest`, type: 'GET', dataType: 'json' })
+        .then((res) => {
+            if (latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
+            const data = res && (res.data || null);
+            setProjectLatestFeedbackSnippet(projectId, data);
+        })
+        .catch(() => {
+            if (latestProjectSnippetSeq[projectId] !== seq) return;
+            setProjectLatestFeedbackSnippet(projectId, null);
+        });
+}
+function refreshAllProjectLatestFeedbackSnippets() {
+    document.querySelectorAll('#all-cards-container .col-md-4[data-project-id]').forEach((col) => {
+        const pid = col.getAttribute('data-project-id');
+        fetchLatestFeedbackForProject(pid);
+    });
+}
+
+
     // New implementation for co-author input with checkbox multi-select and search
     function setupCoAuthorInput() {
         const input = document.getElementById("co_author_input");
@@ -2822,9 +4018,10 @@ $(document).ready(function () {
         );
         const hiddenInput = document.getElementById("co_author");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -2851,11 +4048,11 @@ $(document).ready(function () {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -2898,7 +4095,7 @@ $(document).ready(function () {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             dropdown
                 .querySelectorAll(".co-author-checkbox")
@@ -2997,16 +4194,19 @@ $(document).ready(function () {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -3033,9 +4233,10 @@ $(document).ready(function () {
         );
         const hiddenInput = document.getElementById("contributors");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -3066,11 +4267,11 @@ $(document).ready(function () {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -3113,7 +4314,7 @@ $(document).ready(function () {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             // Add event listeners for checkboxes
             dropdown
@@ -3213,16 +4414,19 @@ $(document).ready(function () {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -3356,12 +4560,12 @@ $(document).ready(function () {
         submitBtn.disabled = true;
 
         const formData = new FormData(addProjectForm);
-
-        // Debug: Log formData contents
-        console.log("FormData contents:");
-        for (let pair of formData.entries()) {
-            console.log(pair[0], pair[1]);
-        }
+        // Map first non-empty reference_urls[] to single reference_url for backend compatibility
+        try {
+            const urlInputs = addProjectForm.querySelectorAll('input[name="reference_urls[]"]');
+            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+            if (urls.length) formData.set('reference_url', urls[0]);
+        } catch(_) {}
 
         // Append project selected reference files (if any)
         if (projectSelectedFiles && projectSelectedFiles.length) {
@@ -3449,11 +4653,11 @@ $(document).ready(function () {
     });
 
     // Load departments and projects on page load
-    loadDepartments();
     loadProjects();
     loadProjectCardData();
-    // loadEmployees(); // Removed obsolete function call
-    setupCoAuthorInput();
+    loadTimelineProjects();
+    loadCardProjects();
+    loadDepartments();
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
@@ -3482,9 +4686,10 @@ $(document).ready(function () {
         );
         const hiddenInput = document.getElementById("co_author");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         function fetchEmployees(query = "") {
             const currentEmployeeId =
@@ -3512,11 +4717,11 @@ $(document).ready(function () {
             });
         }
 
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -3559,7 +4764,7 @@ $(document).ready(function () {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             dropdown
                 .querySelectorAll(".co-author-checkbox")
@@ -3671,15 +4876,18 @@ $(document).ready(function () {
         }
 
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -3697,12 +4905,32 @@ $(document).ready(function () {
                 window.refreshContributorDropdown();
             }
         };
+
+        // Expose helpers to sync with contributor list without clearing all
+        window.getSelectedCoAuthorIds = function () {
+            return selectedEmployees.map((e) => e.id);
+        };
+        window.removeCoAuthorsByIds = function (ids) {
+            if (!Array.isArray(ids) || ids.length === 0) return;
+            const before = selectedEmployees.length;
+            selectedEmployees = selectedEmployees.filter((e) => !ids.includes(e.id));
+            if (selectedEmployees.length !== before) {
+                renderSelected();
+                updateHiddenInput();
+                window.selectedCoAuthorIds = selectedEmployees.map((e) => e.id);
+            }
+            renderDropdown();
+        };
+        window.refreshCoAuthorListOnly = function () {
+            // Re-fetch to apply new exclusion (selectedContributorIds)
+            fetchEmployees();
+        };
     }
 
     wrappedSetupCoAuthorInput();
 
     // Initialize contributor input
-    setupContributorInput();
+    // setupContributorInput(); // replaced by wrappedSetupContributorInput to support cross-exclusion and syncing
 
                     // Attach click handler for attach_file buttons on project cards
                     document.querySelectorAll('.project-attach-file').forEach(btn => {
@@ -3940,10 +5168,15 @@ $(document).ready(function () {
                                     const newFooter = `
                                         <div class="d-flex justify-content-between align-items-center mt-2">
                                             <div class="collaborators-image d-flex align-items-center">${renderCollaborators(p)}</div>
-                                            <div class="d-flex">
-                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center" title="Comment" data-project-id="${p.id}">
+                                            <div class="d-flex align-items-center">
+                                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${p.id}" style="cursor:pointer; max-width: 160px;">
+                                                    <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                                                    <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                                                </div>
+                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${p.id}">
                                                     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
                                                     <span class="project-feedback-count ms-1" data-project-id="${p.id}" style="font-size:12px; color:#454545;">${currentFb}</span>
+                                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${p.id}"></span>
                                                 </button>
                                                 <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${p.id}">
                                                     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
@@ -3969,6 +5202,29 @@ $(document).ready(function () {
                                                 if (!isVisible) dropdownMenu.classList.remove('d-none');
                                             });
                                         });
+                                        // Bind snippet click
+                                        cardEl.querySelectorAll('.latest-feedback-snippet[data-project-id]').forEach((el) => {
+                                            el.addEventListener('click', function (ev) {
+                                                ev.preventDefault();
+                                                ev.stopPropagation();
+                                                const pid = this.getAttribute('data-project-id');
+                                                hideProjectUnreadBadge(pid);
+                                                hideProjectLatestFeedbackSnippet(pid);
+                                                try {
+                                                    window.__projectLatestTarget = window.__projectLatestTarget || {};
+                                                    const latest = (window.__projectLatest && window.__projectLatest[String(pid)]) || null;
+                                                    if (latest) window.__projectLatestTarget[String(pid)] = latest;
+                                                } catch (_) {}
+                                                markProjectFeedbacksRead(pid).always(() => {
+                                                    const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                                                    if (!projectFeedbackModalEl) return;
+                                                    projectFeedbackModalEl.setAttribute('data-project-id', pid);
+                                                    try { loadFeedbackData(pid); } catch (_) {}
+                                                    const m = new bootstrap.Modal(projectFeedbackModalEl);
+                                                    m.show();
+                                                });
+                                            });
+                                        });
                                         const tooltipTriggerList = cardEl.querySelectorAll('[data-bs-toggle="tooltip"]');
                                         tooltipTriggerList.forEach(function (el) { try { new bootstrap.Tooltip(el, { placement: 'bottom' }); } catch (e) {} });
                                     } catch (e) {}
@@ -3977,6 +5233,8 @@ $(document).ready(function () {
                                     if (typeof window.updateProjectBadges === 'function') {
                                         window.updateProjectBadges(pid);
                                     }
+                                    try { fetchUnreadForProject(pid); } catch (_) {}
+                                    try { fetchLatestFeedbackForProject(pid); } catch (_) {}
                                 })
                                 .catch(() => {
                                     // As a fallback, update badges only
@@ -3989,33 +5247,18 @@ $(document).ready(function () {
 
     // Function to refresh contributor dropdown when co-author selection changes
     window.refreshContributorDropdown = function () {
-        // Clear contributor input and selected contributors
-        const contributorInput = document.getElementById("contributor_input");
-        const contributorDropdown = document.getElementById(
-            "contributor_dropdown"
-        );
-        const selectedContributorsContainer = document.getElementById(
-            "selected_contributors"
-        );
-        const hiddenContributorsInput = document.getElementById("contributors");
-
-        if (
-            !contributorInput ||
-            !contributorDropdown ||
-            !selectedContributorsContainer ||
-            !hiddenContributorsInput
-        ) {
-            return;
+        const coAuthorIds = window.selectedCoAuthorIds || [];
+        // Remove overlaps from current contributors without clearing all
+        if (typeof window.removeContributorsByIds === 'function') {
+            window.removeContributorsByIds(coAuthorIds.map((n) => Number(n)));
         }
-
-        // Clear current selections
-        contributorInput.value = "";
-        contributorDropdown.style.display = "none";
-        selectedContributorsContainer.innerHTML = "";
-        hiddenContributorsInput.value = "";
-
-        // Re-initialize contributor input to fetch updated employee list excluding current co-authors
-        setupContributorInput();
+        // Rebuild contributor dropdown list applying new exclusions
+        if (typeof window.refreshContributorListOnly === 'function') {
+            window.refreshContributorListOnly();
+        } else if (typeof setupContributorInput === 'function') {
+            // Fallback
+            setupContributorInput();
+        }
     };
 
     // Add global array to track selected contributors
@@ -4030,9 +5273,10 @@ $(document).ready(function () {
         );
         const hiddenInput = document.getElementById("contributors");
 
-        let employees = [];
-        let filteredEmployees = [];
-        let selectedEmployees = [];
+    let employees = [];
+    let filteredEmployees = [];
+    let selectedEmployees = [];
+    let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -4063,11 +5307,11 @@ $(document).ready(function () {
         }
 
         // Render dropdown list with checkboxes
-        function renderDropdown() {
+    function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+        dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -4110,7 +5354,7 @@ $(document).ready(function () {
                 .join("");
 
             dropdown.innerHTML = html;
-            dropdown.style.display = "block";
+            dropdown.style.display = isDropdownOpen ? "block" : "none";
 
             // Event listener untuk checkbox
             dropdown
@@ -4227,16 +5471,19 @@ $(document).ready(function () {
 
         // Event listeners
         input.addEventListener("input", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         input.addEventListener("focus", function () {
+            isDropdownOpen = true;
             filterEmployees(this.value);
         });
 
         // Hide dropdown when clicking outside
         document.addEventListener("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                isDropdownOpen = false;
                 dropdown.style.display = "none";
             }
         });
@@ -4256,37 +5503,44 @@ $(document).ready(function () {
                 window.refreshCoAuthorDropdown();
             }
         };
+
+        // Expose helpers to sync with co-author list without clearing all
+        window.getSelectedContributorIds = function () {
+            return selectedEmployees.map((e) => e.id);
+        };
+        window.removeContributorsByIds = function (ids) {
+            if (!Array.isArray(ids) || ids.length === 0) return;
+            const before = selectedEmployees.length;
+            selectedEmployees = selectedEmployees.filter((e) => !ids.includes(e.id));
+            if (selectedEmployees.length !== before) {
+                renderSelected();
+                updateHiddenInput();
+                window.selectedContributorIds = selectedEmployees.map((e) => e.id);
+            }
+            renderDropdown();
+        };
+        window.refreshContributorListOnly = function () {
+            // Re-fetch to apply new exclusion (selectedCoAuthorIds)
+            fetchEmployees();
+        };
     }
 
     wrappedSetupContributorInput();
 
     // Function to refresh co-author dropdown when contributor selection changes
     window.refreshCoAuthorDropdown = function () {
-        // Clear co-author input and selected co-authors
-        const coAuthorInput = document.getElementById("co_author_input");
-        const coAuthorDropdown = document.getElementById("co_author_dropdown");
-        const selectedCoAuthorsContainer = document.getElementById(
-            "selected_co_authors"
-        );
-        const hiddenCoAuthorsInput = document.getElementById("co_author");
-
-        if (
-            !coAuthorInput ||
-            !coAuthorDropdown ||
-            !selectedCoAuthorsContainer ||
-            !hiddenCoAuthorsInput
-        ) {
-            return;
+        const contributorIds = window.selectedContributorIds || [];
+        // Remove overlaps from current co-authors without clearing all
+        if (typeof window.removeCoAuthorsByIds === 'function') {
+            window.removeCoAuthorsByIds(contributorIds.map((n) => Number(n)));
         }
-
-        // Clear current selections
-        coAuthorInput.value = "";
-        coAuthorDropdown.style.display = "none";
-        selectedCoAuthorsContainer.innerHTML = "";
-        hiddenCoAuthorsInput.value = "";
-
-        // Re-initialize co-author input to fetch updated employee list excluding current contributors
-        wrappedSetupCoAuthorInput();
+        // Rebuild co-author dropdown list applying new exclusions
+        if (typeof window.refreshCoAuthorListOnly === 'function') {
+            window.refreshCoAuthorListOnly();
+        } else if (typeof wrappedSetupCoAuthorInput === 'function') {
+            // Fallback
+            wrappedSetupCoAuthorInput();
+        }
     };
 
     // Setup filter dropdown functionality
@@ -4320,7 +5574,6 @@ $(document).ready(function () {
         if (applyFilterBtn) {
             applyFilterBtn.addEventListener("click", function () {
                 const selectedStatus = filterStatus ? filterStatus.value : "";
-                console.log("Filter applied with status:", selectedStatus);
                 filterDropdown.style.display = "none";
 
                 // Map UI filter values to backend filter parameters
@@ -4405,6 +5658,9 @@ $(document).ready(function () {
 
 // Doughnut Chart Porject
 document.addEventListener("DOMContentLoaded", function () {
+    const ctx = document.getElementById("projectChart");
+    let projectChartInstance = null;
+
     const createDoughnut = (el, data = []) => {
         let chartData, colors, labels;
 
@@ -4414,15 +5670,19 @@ document.addEventListener("DOMContentLoaded", function () {
             labels = ["No Data"];
         } else {
             chartData = data;
-            // expect slices: Not Started, Complete, On Progress, Late
-            colors = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
+            colors = [
+                "#E8E9F2", // not started
+                "#4fc97a", // complete
+                "#5a9be6", // on progress
+                "#ff6b6b", // late
+            ];
             labels = ["Not Started", "Complete", "On Progress", "Late"];
         }
 
         return new Chart(el, {
             type: "doughnut",
             data: {
-                labels: labels,
+                labels,
                 datasets: [
                     {
                         data: chartData,
@@ -4440,90 +5700,133 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     };
 
-    const ctx = document.getElementById("projectChart");
-    let projectChartInstance = null;
     if (ctx) {
-        const dataset = [];
-        projectChartInstance = createDoughnut(ctx, dataset);
+        projectChartInstance = createDoughnut(ctx, []);
     }
 
-    // update chart and label counts based on aggregated task_counts across projects
-    function updateProjectChartFromData(projects) {
-        projects = projects || [];
+    function updateProjectChartFromData(projects, chartCounts) {
+        const numberOfProjects = Array.isArray(projects) ? projects.length : 0;
 
-        let totalTasks = 0;
-        let completed = 0;
-        let inProgress = 0; // includes rejected per backend
-        let late = 0;
+        let completed = Number(chartCounts?.completed || 0);
+        let inProgressLabel = Number(chartCounts?.in_progress || 0);
+        let late = Number(chartCounts?.late || 0);
+        let notStartedChart = Number(chartCounts?.not_started || 0);
 
-        projects.forEach((p) => {
-            const tc = p.task_counts || {};
-            if (tc.excl) {
-                completed += (tc.excl.completed || 0);
-                const ip = (tc.excl.in_progress || 0);
-                const lt = (tc.excl.late || 0);
-                const ns = (tc.excl.not_started || 0);
-                inProgress += ip;
-                late += lt;
-                totalTasks += (ip + lt + ns + (tc.excl.completed || 0));
-            } else {
-                totalTasks += (tc.total || 0);
-                completed += (tc.completed || 0);
-                inProgress += (tc.in_progress || 0);
-                late += (tc.late || 0);
+        const chartData = [notStartedChart, completed, inProgressLabel, late];
+        const totalTasks = chartData.reduce((a, b) => a + b, 0);
+
+        if (totalTasks === 0) {
+            projectChartInstance.data.labels = ["No Data"];
+            projectChartInstance.data.datasets[0].data = [1];
+            projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
+        } else {
+            projectChartInstance.data.labels = ["Not Started", "Complete", "On Progress", "Late"];
+            projectChartInstance.data.datasets[0].data = chartData;
+            projectChartInstance.data.datasets[0].backgroundColor = [
+                "#E8E9F2",
+                "#4fc97a",
+                "#5a9be6",
+                "#ff6b6b",
+            ];
+        }
+        projectChartInstance.update();
+
+        const spans = document.querySelectorAll(".chart-labels .text-center span:first-child");
+        if (spans && spans.length >= 4) {
+            spans[0].textContent = numberOfProjects;
+            spans[1].textContent = completed;
+            spans[2].textContent = inProgressLabel;
+            spans[3].textContent = late;
+        }
+    }
+
+    function loadProjectAndTaskData() {
+        $.ajax({
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+            beforeSend:function(){
+                $('.loader').fadeIn('fast');
+            },
+            error:function(res){
+                $('.loader').fadeOut('fast');
+            },
+            success: function (projectRes) {
+                const projects = Array.isArray(projectRes)
+                    ? projectRes
+                    : (Array.isArray(projectRes.data) ? projectRes.data : []);
+
+                const chartCounts = projectRes.chart_counts || null;
+
+                // kalau chart_counts ada → langsung pake
+                const hasChartCounts =
+                    chartCounts &&
+                    (Number(chartCounts.total || 0) > 0 ||
+                        Number(chartCounts.completed || 0) > 0 ||
+                        Number(chartCounts.in_progress || 0) > 0 ||
+                        Number(chartCounts.late || 0) > 0 ||
+                        Number(chartCounts.not_started || 0) > 0);
+
+                if (hasChartCounts) {
+                    updateProjectChartFromData(projects, chartCounts);
+                } else {
+                    // fallback ambil dari /task/index
+                    $.ajax({
+                        url: appUrl + "/task/index",
+                        type: "GET",
+                        dataType: "json",
+                        success: function (taskRes) {
+
+                            const d = taskRes?.data || {};
+                            const arrNew = Array.isArray(d.new_request) ? d.new_request : [];
+                            const arrInProg = Array.isArray(d.in_progress) ? d.in_progress : [];
+                            const arrCompleted = Array.isArray(d.completed) ? d.completed : [];
+                            const arrRejected = Array.isArray(d.rejected) ? d.rejected : [];
+
+                            const now = new Date();
+                            now.setHours(0, 0, 0, 0);
+
+                            const parseLocalDate = (d) => {
+                                if (!d) return null;
+                                const m = String(d).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                                return m ? new Date(m[1], m[2] - 1, m[3]) : new Date(d);
+                            };
+
+                            const isLate = (task) => {
+                                const due = parseLocalDate(task?.due_date || task?.due || task?.end_date);
+                                return due && due < now;
+                            };
+
+                            const late =
+                                arrNew.filter(isLate).length +
+                                arrInProg.filter(isLate).length +
+                                arrRejected.filter(isLate).length;
+
+                            const derived = {
+                                total: arrNew.length + arrInProg.length + arrCompleted.length + arrRejected.length,
+                                completed: arrCompleted.length,
+                                in_progress: arrInProg.length,
+                                late,
+                                not_started: arrNew.length,
+                            };
+
+                            updateProjectChartFromData(projects, derived);
+                        },
+                        error: function (err) {
+                            console.error("task/index failed", err);
+                        }
+                    });
+                }
+
+                $(".loader").fadeOut('fast');
+
+            },
+            error: function (err) {
+                console.error("project/index failed", err);
             }
         });
-
-    // Compute slices: use in-progress as reported (exclusive buckets handled by backend when available)
-    const inProgressExclLate = inProgress;
-        const notStarted = Math.max(0, totalTasks - completed - inProgressExclLate - late);
-
-        // Chart slices: Not Started, Complete, On Progress, Late
-        const chartData = [notStarted, completed, inProgressExclLate, late];
-
-        // update chart instance: set labels and colors accordingly
-        try {
-            if (projectChartInstance && projectChartInstance.data) {
-                if (totalTasks === 0) {
-                    // no projects at all -> show No Data
-                    projectChartInstance.data.labels = ["No Data"];
-                    projectChartInstance.data.datasets[0].data = [1];
-                    projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
-                } else {
-                    projectChartInstance.data.labels = ["Not Started", "Complete", "On Progress", "Late"];
-                    projectChartInstance.data.datasets[0].data = chartData;
-                    projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
-                }
-                projectChartInstance.update();
-            } else if (ctx) {
-                // create chart if missing
-                projectChartInstance = createDoughnut(ctx, totalTasks === 0 ? [] : chartData);
-            }
-        } catch (e) {
-            console.error('chart update failed', e);
-        }
-
-        // Update label numbers in the UI (Total, Complete, On Progress, Late)
-        try {
-            const labelsContainer = document.querySelector('.chart-labels');
-            if (labelsContainer) {
-                const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
-                if (spans && spans.length >= 4) {
-                    spans[0].textContent = totalTasks;
-                    spans[1].textContent = completed;
-                    spans[2].textContent = inProgressExclLate;
-                    spans[3].textContent = late;
-                }
-            }
-        } catch (e) {}
     }
-    // expose updater to global scope so other code can call it safely
-    try {
-        window.updateProjectChartFromData = updateProjectChartFromData;
-        window.getProjectChartInstance = function () { return projectChartInstance; };
-    } catch (e) {
-        // ignore
-    }
+    loadProjectAndTaskData();
 });
 
 let currentMonth = new Date().getMonth();
@@ -4551,8 +5854,67 @@ let timelineData = [];
 // color palette cycles every 4
 const TIMELINE_COLORS = ["color1", "color2", "color3", "color4"];
 
-/**
- */
+function loadTimelineProjects(filter = null) {
+    $.ajax({
+        url: appUrl + "/project/index",
+        type: "GET",
+        dataType: "json",
+        data: { task_scope: 'me', filter: filter },
+        beforeSend:function(){
+            $('.loader').fadeIn('fast');
+        },
+        success: function (res) {
+            const projects = Array.isArray(res) 
+                ? res 
+                : (Array.isArray(res.data) ? res.data : []);
+
+            const completeProjects = projects.filter(p => (p.start_date || p.start) && (p.due_date || p.due));
+            const incompleteProjects = projects.filter(p => !(p.start_date || p.start) || !(p.due_date || p.due));
+
+            try {
+                buildTimelineFromProjects(completeProjects);
+                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                updateModalTimeline();
+            } catch (e) {
+                console.error("timeline build/render error", e);
+            }
+
+            if (incompleteProjects.length > 0) {
+                incompleteProjects.forEach((p) => {
+                    $.ajax({
+                        url: appUrl + "/project/" + p.id,
+                        type: "GET",
+                        dataType: "json",
+                        success: function (resp) {
+                            const data = resp.data || resp;
+                            p.start_date = p.start_date || data.start_date || data.start;
+                            p.due_date   = p.due_date   || data.due_date   || data.due;
+
+                            try {
+                                const updatedProjects = completeProjects.concat(incompleteProjects);
+                                buildTimelineFromProjects(updatedProjects);
+                                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                                updateModalTimeline();
+                            } catch (e) {
+                                console.error("timeline update error", e);
+                            }
+                        },
+                        error: function (err) {
+                            console.warn("failed to fetch project detail for", p.id, err);
+                        }
+                    });
+                });
+            }
+
+            $('.loader').fadeOut('fast');
+        },
+        error: function () {
+            console.error("Failed to load timeline projects");
+            $('.loader').fadeOut('fast');
+        }
+    });
+}
+
 function buildTimelineFromProjects(projects) {
     timelineData = [];
     if (!Array.isArray(projects)) return;
@@ -4736,15 +6098,6 @@ function renderTimeline(
         title.textContent = `${months[month]} week ${weekIndex + 1}`;
     }
 }
-
-renderTimeline(
-    "#timelineHeader",
-    "#timelineRows",
-    "week",
-    currentMonth,
-    currentYear,
-    currentWeek
-);
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
     if (currentWeek > 0) currentWeek--;

@@ -13,14 +13,22 @@ class ProjectFeedback extends Model
 
     protected $fillable = [
         'project_id',
+    'parent_id',
         'employee_id',
         'feedback_comment',
         'image',
         'reference_url',
+        'reference_urls',
         'reference_file',
+    'reference_files',
         'created_by',
         'updated_by',
         'deleted_by',
+    ];
+
+    protected $casts = [
+    'reference_urls' => 'array',
+    'reference_files' => 'array',
     ];
 
     public function project()
@@ -31,5 +39,15 @@ class ProjectFeedback extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(ProjectFeedback::class, 'parent_id');
+    }
+
+    public function replies()
+    {
+        return $this->hasMany(ProjectFeedback::class, 'parent_id');
     }
 }

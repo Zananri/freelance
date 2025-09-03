@@ -96,8 +96,9 @@ class OfficeBasicSeeder extends Seeder
                     'birth_date' => '1990-01-01',
                     'hire_date' => '2024-01-01',
                     'resign_date' => null,
-                    'grade' => 'A',
-                    'office' => 'Head Office',
+                    // Using new integer columns: grade_id and office
+                    'grade_id' => 1,
+                    'office' => 1,
                     'created_by' => 1,
                     'updated_by' => 1,
                     'deleted_by' => null,

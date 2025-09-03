@@ -9,6 +9,7 @@
 
 .task-container {
     max-height: calc(100vh - 200px);
+    max-width: 200vh;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 8px;
@@ -34,26 +35,6 @@
 
 .col-md-4 {
     margin-bottom: 1.5rem;
-}
-
-.btn-submit-reset {
-    background-color: #1557b0;
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    font-weight: normal;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-submit-reset:hover {
-    background-color: #007bff;
-    color: white;
 }
 
 /* Spinner inside submit button */
@@ -385,7 +366,7 @@
 }
 
 .form-label {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
 }
 
@@ -565,8 +546,21 @@ p {
 .task-description-container {
     position: relative;
     height: auto;
-    max-height: none;
-    overflow: visible;
+    max-height: 75px;
+    overflow-y: auto;
+}
+
+.task-description-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.task-description-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-description-container::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
 }
 
 .task-description {
@@ -605,7 +599,6 @@ p {
     position: absolute;
     top: 8px;
     right: 8px;
-    z-index: 10;
 }
 
 /* Dropdown icon style */
@@ -768,9 +761,11 @@ p {
 .btn-submit-filter {
     background-color: #e3e4ee;
     color: #444444;
+    width: 100%;
 }
 
-.btn-submit-reset:hover .btn-submit-filter:hover {
+.btn-submit-reset:hover,
+.btn-submit-filter:hover {
     background-color: #e3e4ee;
     color: #444444;
 }
@@ -929,6 +924,7 @@ p {
     .header-task-container {
         position: sticky;
         top: 0;
+        z-index: 10;
     }
 
     .task-detail-columns {
@@ -1027,6 +1023,10 @@ p {
         background: #fff;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         padding: 12px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
     #mobile-task-container.task-mobile-new {
@@ -1046,6 +1046,9 @@ p {
         align-items: center;
         justify-content: flex-start;
         margin-bottom: 12px;
+        flex-shrink: 0;
+        padding: 8px 0;
+        z-index: 10;
     }
 
     .task-mobile-card-header .actions-buttons {
@@ -1062,6 +1065,25 @@ p {
 
     .task-mobile-card-header .btn {
         padding: 6px 8px;
+    }
+
+    #mobile-task-list {
+        flex: 1;
+        overflow-y: auto;
+        max-height: 375px;
+    }
+
+    #mobile-task-list::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    #mobile-task-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #mobile-task-list::-webkit-scrollbar-thumb {
+        background-color: #cccccc;
+        border-radius: 4px;
     }
 }
 
@@ -1412,7 +1434,10 @@ p {
     pointer-events: none;
 }
 
-.custom-form-filter {
+.custom-form-filter,
+.custom-form-filter:focus {
+    outline: none !important;
+    box-shadow: none !important;
     border: none;
     background-color: #ecedf5;
     padding-left: 35px !important;
@@ -1429,6 +1454,7 @@ p {
     height: 43px;
     font-size: 24px;
     color: #858ca0;
+    border: none;
 }
 
 .toggle-filter {
@@ -1439,12 +1465,11 @@ p {
     height: 43px;
 }
 
+.toggle-timeline:hover,
 .toggle-filter:hover {
     background: #ecedf5;
     border: none;
-    border-radius: 10px;
     color: #555c6e;
-    height: 43px;
 }
 
 .btn-add-custom {
@@ -1462,8 +1487,8 @@ p {
 }
 
 .btn-schedule-custom {
-    background: #ECEDF5;
-    color: #555C6E;
+    background: #ecedf5;
+    color: #555c6e;
     border-radius: 10px;
     padding: 10px;
     width: 100px;
@@ -1471,8 +1496,8 @@ p {
 }
 
 .btn-schedule-custom:hover {
-    background: #ECEDF5;
-    color: #555C6E;
+    background: #ecedf5;
+    color: #555c6e;
 }
 
 .dropdown-filter-menu {
@@ -1482,7 +1507,7 @@ p {
     z-index: 10;
     width: 250px;
     background: #f0f1f8;
-    border: 1px solid #dee2e6;
+    border: none;
     border-radius: 8px;
 }
 
@@ -1504,6 +1529,10 @@ p {
     padding: 16px;
 }
 
+.dropdown-filter-body select {
+    border: none;
+}
+
 .dropdown-filter-footer {
     padding: 12px 16px;
     border-top: 1px solid #dee2e6;
@@ -1511,11 +1540,8 @@ p {
     gap: 5px;
     justify-content: flex-end;
     border-radius: 0 0 8px 8px;
-}
-
-.dropdown-filter-footer {
-    padding: 4px 12px;
     font-size: 14px;
+    width: 100%;
 }
 
 /* Project Filter Display Styles */
@@ -1557,4 +1583,98 @@ p {
 #projectFilterDisplay {
     display: none; /* Initially hidden */
     position: absolute;
+}
+
+.unread-badge {
+    top: 3px !important;
+    left: 18px !important;
+    width: 8px;
+    height: 8px;
+    background: #dc3545;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.btn-cancel-invite {
+    background-color: grey;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-cancel-invite:hover {
+    background-color: #333;
+    color: white;
+}
+
+.btn-danger.remove-ref-url {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-danger.remove-ref-url:hover {
+    background-color: #c82333;
+    color: white;
+}
+
+.btn-pagination {
+    background: transparent;
+    border: none;
+}
+
+.btn-pagination span {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+}
+
+.pagination-pill {
+    background: #f0f1f8;
+    border-radius: 50px;
+    padding: 4px 12px;
+    gap: 12px;
+    margin-bottom: 50px;
+}
+
+.pagination-info {
+    font-weight: 600;
+    font-size: 12px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.btn-nav {
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }

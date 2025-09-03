@@ -78,14 +78,53 @@
             <div class="col-md-4 new-request-container">
                 <h4 class="task-section-title">New</h4>
                 <div id="new-request-tasks" class="task-list"></div>
+                <div class="d-flex justify-content-center mt-3">
+                    <div id="newTaskPagination" class="pagination-pill d-flex align-items-center">
+                        <button id="prevPageBtnNew" class="btn-nav" disabled>
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+
+                        <span id="paginationInfoNew" class="pagination-info">1 OF 1</span>
+
+                        <button id="nextPageBtnNew" class="btn-nav">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="col-md-4 in-progress-container">
                 <h4 class="task-section-title">In Progress</h4>
                 <div id="in-progress-tasks" class="task-list"></div>
+                <div class="d-flex justify-content-center mt-3">
+                    <div id="progressTaskPagination" class="pagination-pill d-flex align-items-center">
+                        <button id="prevPageBtnProgress" class="btn-nav" disabled>
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+
+                        <span id="paginationInfoProgress" class="pagination-info">1 OF 1</span>
+
+                        <button id="nextPageBtnProgress" class="btn-nav">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="col-md-4 completed-container">
                 <h4 class="task-section-title">Completed</h4>
                 <div id="completed-tasks" class="task-list"></div>
+                <div class="d-flex justify-content-center mt-3">
+                    <div id="completedTaskPagination" class="pagination-pill d-flex align-items-center">
+                        <button id="prevPageBtnCompleted" class="btn-nav" disabled>
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
+
+                        <span id="paginationInfoCompleted" class="pagination-info">1 OF 1</span>
+
+                        <button id="nextPageBtnCompleted" class="btn-nav">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -158,16 +197,23 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_task_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="edit_task_reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]"
+                                        placeholder="https://example.com">
+                                    <button type="button" class="btn btn-submit-black add-ref-url"
+                                        aria-label="Add URL"><span
+                                            class="material-symbols-outlined">add</span></button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="edit_task_reference_files" class="form-label label-custom">Reference
                                 Files</label>
                             <input type="file" class="form-control input-text" id="edit_task_reference_files"
-                                name="reference_files[]" accept=".pdf,.doc,.docx" multiple>
-                            <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
+                                name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <div class="form-text">Multiple files supported.</div>
                             <div id="existing_reference_files" class="mt-2"></div>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                         </div>
@@ -301,15 +347,22 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="task_reference_url" class="form-label label-custom">Reference URL</label>
-                            <input type="text" class="form-control input-text" id="task_reference_url"
-                                name="reference_url">
+                            <label class="form-label label-custom">Reference URLs</label>
+                            <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="url" class="form-control input-text" name="reference_urls[]"
+                                        placeholder="https://example.com">
+                                    <button type="button" class="btn btn-submit-black add-ref-url"
+                                        aria-label="Add URL"><span
+                                            class="material-symbols-outlined">add</span></button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="task_reference_files"
-                                name="reference_files[]" accept=".pdf,.doc,.docx" multiple>
-                            <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
+                                name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <div class="form-text">Multiple files supported.</div>
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
@@ -407,8 +460,7 @@
                                 <p><strong>Executors:</strong> <span id="taskDetailExecutors"></span></p>
                             </div>
                             <div class="task-detail-right">
-                                <p><strong>Reference URL:</strong> <a href="#" target="_blank"
-                                        id="taskDetailReferenceUrl"></a></p>
+                                <p><strong>Reference URLs:</strong> <span id="taskDetailReferenceUrls"></span></p>
                                 <p><strong>Reference Files:</strong> <span id="taskDetailReferenceFiles"></span></p>
                                 <p><strong>Point:</strong> <span id="taskDetailPoint"></span></p>
                                 <p><strong>Priority:</strong> <span id="taskDetailPriority"></span></p>
@@ -561,7 +613,7 @@
 
     <x-slot name="script_slot">
 
-        <script src="{{ asset('asset/js/task.js') }}"></script>
+        <script src="{{ asset('asset/js/task.js') }}?v={{ filemtime(public_path('asset/js/task.js')) }}"></script>
 
         <script></script>
     </x-slot>

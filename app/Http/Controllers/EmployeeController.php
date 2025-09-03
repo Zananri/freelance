@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\Job;
+use App\Models\Grade;
+use App\Models\Office;
 use App\Models\EmployeeShift;
 use App\Models\Attendance;
 use Carbon\Carbon;
@@ -33,13 +35,16 @@ class EmployeeController extends Controller
         if ($request->wantsJson()) {
             $excludeEmployeeId = $request->input('exclude_employee_id', null);
 
-            $employees = Employee::with(['department', 'division', 'job', 'user'])
+            $employees = Employee::with(['department', 'division', 'job', 'user', 'grade', 'officeModel'])
                 ->where('status', '!=', 'DELETED')
                 ->when($query, function ($q) use ($query) {
                     $q->where(function ($q2) use ($query) {
                         $q2->where('name', 'like', '%' . $query . '%')
                           ->orWhere('email', 'like', '%' . $query . '%')
-                          ->orWhere('office', 'like', '%' . $query . '%')
+                          // search by office name via relation
+                          ->orWhereHas('officeModel', function ($qOffice) use ($query) {
+                              $qOffice->where('name', 'like', '%' . $query . '%');
+                          })
                           ->orWhereHas('department', function ($q3) use ($query) {
                               $q3->where('name_department', 'like', '%' . $query . '%');
                           })
@@ -74,6 +79,10 @@ class EmployeeController extends Controller
                     : null;
                 $employee->first_name = $employee->first_name;
                 $employee->last_name = $employee->last_name;
+                // Map office to office name for UI backward-compat
+                $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
+                // Map grade to grade title for UI backward-compat
+                $employee->grade = $employee->grade ? $employee->grade->title : null;
                 return $employee;
             });
 
@@ -87,16 +96,27 @@ class EmployeeController extends Controller
 
     public function show($id)
     {
-        $employee = Employee::with(['department', 'division', 'job'])->find($id);
+    $employee = Employee::with(['department', 'division', 'job', 'grade', 'officeModel'])->find($id);
         if (!$employee) {
             return response()->json(['message' => 'Employee not found'], 404);
         }
-        return response()->json($employee);
+    // Map office and grade to display values for UI compatibility
+    $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
+    $employee->grade = $employee->grade ? $employee->grade->title : null;
+    return response()->json($employee);
     }
 
     public function create()
     {
-        return view('employee.create');
+        // Order grades per business-defined sequence, not alphabetically
+        $grades = Grade::orderByRaw(
+            "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
+        )->get();
+        // Ensure NSA Performance comes first, then others by name
+        $offices = Office::orderByRaw(
+            "FIELD(name, 'NSA Performance Petojo Barat 6 No. 4','Gudang SEHA')"
+        )->orderBy('name')->get();
+        return view('employee.create', compact('grades', 'offices'));
     }
 
     public function store(Request $request)
@@ -123,8 +143,8 @@ class EmployeeController extends Controller
                 'birth_date' => 'required|date',
                 'hire_date' => 'required|date',
                 'resign_date' => 'nullable|date',
-                'grade' => 'required|string',
-                'office' => 'required|string',
+                'grade_id' => 'required|exists:grades,id',
+                'office' => 'required|exists:offices,id',
             ]);
 
             if ($validator->fails()) {
@@ -208,7 +228,7 @@ class EmployeeController extends Controller
                 'birth_date' => $request->birth_date,
                 'hire_date' => $request->hire_date,
                 'resign_date' => $request->resign_date,
-                'grade' => $request->grade,
+                'grade_id' => $request->grade_id,
                 'office' => $request->office,
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
@@ -264,8 +284,8 @@ class EmployeeController extends Controller
                 'birth_date' => 'sometimes|date',
                 'hire_date' => 'sometimes|date',
                 'resign_date' => 'nullable|date',
-                'grade' => 'sometimes|string',
-                'office' => 'sometimes|string',
+                'grade_id' => 'sometimes|exists:grades,id',
+                'office' => 'sometimes|exists:offices,id',
             ]);
 
             if ($validator->fails()) {
@@ -274,7 +294,7 @@ class EmployeeController extends Controller
 
             $updateData = $request->only([
                 'department_id', 'division_id', 'job_id', 'shift_id', 'name', 'employee_niks', 'email', 'email_work', 'phone', 'status', 'address',
-                'address', 'birth_date', 'hire_date', 'resign_date', 'grade', 'office'
+                'address', 'birth_date', 'hire_date', 'resign_date', 'grade_id', 'office'
             ]);
 
             if ($request->hasFile('photo')) {
@@ -425,14 +445,21 @@ class EmployeeController extends Controller
 
     public function edit($id)
     {
-        $employee = Employee::find($id);
+    $employee = Employee::find($id);
         if (!$employee) {
             abort(404, 'Employee not found');
         }
         $departments = Department::all();
         $divisions = Division::all();
         $jobs = Job::all();
-        return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs'));
+        // Order grades and offices with the same rules as in create()
+        $grades = Grade::orderByRaw(
+            "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
+        )->get();
+        $offices = Office::orderByRaw(
+            "FIELD(name, 'NSA Performance Petojo Barat 6 No. 4','Gudang SEHA')"
+        )->orderBy('name')->get();
+    return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
     }
 
     /**

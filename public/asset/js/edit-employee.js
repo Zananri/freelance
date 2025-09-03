@@ -54,7 +54,14 @@ function loadDepartments(selectedId) {
 }
 
 function loadDivisions(departmentId, selectedId) {
-    divisionSelect.innerHTML = '<option value="" disabled>Loading...</option>';
+    // Prepare UI while loading
+    divisionSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
+    divisionSelect.disabled = true;
+    // Reset jobs while reloading divisions
+    if (jobSelect) {
+        jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
+        jobSelect.disabled = true;
+    }
     $.ajax({
         url: appUrl + "/division/index",
         method: "GET",
@@ -62,18 +69,22 @@ function loadDivisions(departmentId, selectedId) {
         dataType: "json",
         success: function (data) {
             console.log("Divisions loaded for department", departmentId, ":", data);
-            let options = '<option value="" disabled>Select Division</option>';
+            let options = '<option value="" disabled selected>Select Division</option>';
             (data.data || []).forEach((div) => {
                 options += `<option value="${div.id}" ${
                     div.id == selectedId ? "selected" : ""
                 }>${div.name_division || div.name}</option>`;
             });
             divisionSelect.innerHTML = options;
+            divisionSelect.disabled = false;
 
             if (selectedId) {
-                loadJobs(selectedId, jobSelect.getAttribute("data-current"));
+                loadJobs(selectedId, jobSelect.getAttribute("data-current"), departmentId);
             } else {
-                jobSelect.innerHTML = '<option value="" disabled>Select Job</option>';
+                if (jobSelect) {
+                    jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
+                    jobSelect.disabled = true;
+                }
             }
         },
         error: function () {
@@ -82,25 +93,37 @@ function loadDivisions(departmentId, selectedId) {
     });
 }
 
-function loadJobs(divisionId, selectedId) {
-    jobSelect.innerHTML = '<option value="" disabled>Loading...</option>';
+function loadJobs(divisionId, selectedId, departmentId) {
+    if (!jobSelect) return;
+    jobSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
+    jobSelect.disabled = true;
     $.ajax({
         url: appUrl + "/job/index",
         method: "GET",
-        data: { division_id: divisionId },
+        // Pass department_id as well to ensure strict scoping and avoid mismatches
+        data: { division_id: divisionId, department_id: departmentId || departmentSelect.value || undefined },
         dataType: "json",
         success: function (data) {
             console.log("Jobs loaded for division", divisionId, ":", data);
-            let options = '<option value="" disabled>Select Job</option>';
-            (data.data || []).forEach((job) => {
+            const jobs = data && Array.isArray(data.data) ? data.data : [];
+            if (!jobs.length) {
+                jobSelect.innerHTML = '<option value="" disabled selected>No jobs available</option>';
+                jobSelect.disabled = true;
+                return;
+            }
+            let options = '<option value="" disabled selected>Select Job</option>';
+            jobs.forEach((job) => {
                 options += `<option value="${job.id}" ${
-                    job.id == selectedId ? "selected" : ""
+                    selectedId && String(job.id) === String(selectedId) ? "selected" : ""
                 }>${job.job_name || job.name}</option>`;
             });
             jobSelect.innerHTML = options;
+            jobSelect.disabled = false;
         },
         error: function () {
             console.error("Failed to load jobs.");
+            jobSelect.innerHTML = '<option value="" disabled selected>Failed to load jobs</option>';
+            jobSelect.disabled = true;
         }
     });
 }
@@ -166,22 +189,35 @@ function loadJobs(divisionId, selectedId) {
     departmentSelect.addEventListener("change", function () {
         const deptId = this.value;
         if (deptId) {
+            // Clear current selections to avoid stale preselects
+            if (divisionSelect) {
+                divisionSelect.setAttribute("data-current", "");
+            }
+            if (jobSelect) {
+                jobSelect.setAttribute("data-current", "");
+                jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
+                jobSelect.disabled = true;
+            }
             loadDivisions(deptId, null);
         } else {
-            divisionSelect.innerHTML =
-                '<option value="" disabled>Select Division</option>';
-            jobSelect.innerHTML =
-                '<option value="" disabled>Select Job</option>';
+            divisionSelect.innerHTML = '<option value="" disabled selected>Select Division</option>';
+            divisionSelect.disabled = true;
+            jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
+            jobSelect.disabled = true;
         }
     });
 
     divisionSelect.addEventListener("change", function () {
         const divId = this.value;
         if (divId) {
-            loadJobs(divId, null);
+            // When division changes, clear any stale job preselect
+            if (jobSelect) {
+                jobSelect.setAttribute("data-current", "");
+            }
+            loadJobs(divId, null, departmentSelect ? departmentSelect.value : undefined);
         } else {
-            jobSelect.innerHTML =
-                '<option value="" disabled>Select Job</option>';
+            jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
+            jobSelect.disabled = true;
         }
     });
 
@@ -288,6 +324,13 @@ function loadJobs(divisionId, selectedId) {
         // Include shift_id if present
         if (formData.get("shift_id")) {
             formData.set("shift_id", formData.get("shift_id"));
+        }
+        // Ensure grade_id and office are ids
+        if (formData.get("grade_id")) {
+            formData.set("grade_id", formData.get("grade_id"));
+        }
+        if (formData.get("office")) {
+            formData.set("office", formData.get("office"));
         }
 
         fetch(form.action, {

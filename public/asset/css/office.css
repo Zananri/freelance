@@ -4,7 +4,7 @@ body {
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
-    background-image: url('../img/background/light-1.jpg');
+    background-image: url("../img/background/light-1.jpg");
 }
 
 .box-alert-messages {
@@ -18,7 +18,7 @@ body {
 
 @media (max-width: 567px) {
     .box-alert-messages {
-        position: fixed; 
+        position: fixed;
         left: 20px;
         width: calc(100% - 40px);
     }
@@ -30,7 +30,8 @@ body {
     background-color: #f2f7fa;
     padding: 17px 48px 17px 17px;
     min-height: 55px;
-    box-shadow: 0px 10px 35px rgba(0, 0, 0, 0.07),0px 3px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 10px 35px rgba(0, 0, 0, 0.07),
+        0px 3px 5px rgba(0, 0, 0, 0.1);
     border-radius: 15px;
 }
 
@@ -46,11 +47,11 @@ body {
     background-color: #d2224b;
 }
 
-.box-alert-messages .box-message.error .message-content{
+.box-alert-messages .box-message.error .message-content {
     color: #ffffff;
 }
 
-.box-alert-messages .btn-close-alert-messages{
+.box-alert-messages .btn-close-alert-messages {
     position: absolute;
     display: inline-block;
     top: 20px;
@@ -63,62 +64,61 @@ body {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e");
 }
 
-.box-alert-messages .btn-close-alert-messages:hover{
+.box-alert-messages .btn-close-alert-messages:hover {
     opacity: 1;
 }
 
-.box-alert-messages .box-message.error .btn-close-alert-messages{
+.box-alert-messages .box-message.error .btn-close-alert-messages {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e");
     opacity: 1;
 }
 
-.fs-8{
+.fs-8 {
     font-size: 8px;
 }
 
-.fs-9{
+.fs-9 {
     font-size: 9px;
 }
-.fs-10{
+.fs-10 {
     font-size: 10px;
 }
-.fs-11{
+.fs-11 {
     font-size: 11px;
 }
 
-.fs-12{
+.fs-12 {
     font-size: 12px;
 }
 
-.fs-14{
+.fs-14 {
     font-size: 14px;
 }
 
-.fs-16{
+.fs-16 {
     font-size: 16px;
 }
 
-.fs-18{
+.fs-18 {
     font-size: 18px;
 }
 
-.fs-20{
+.fs-20 {
     font-size: 20px;
 }
 
-.fs-22{
+.fs-22 {
     font-size: 22px;
 }
 
-.fs-24{
+.fs-24 {
     font-size: 24px;
 }
-
 
 #avatarDropdownCard {
     position: fixed;
     background-color: rgb(240, 241, 248);
-    border:0;
+    border: 0;
     top: 80px;
     right: 20px;
     width: 350px;
@@ -126,7 +126,7 @@ body {
     z-index: 1050;
 }
 
-@media (max-width: 568px) { 
+@media (max-width: 568px) {
     #avatarDropdownCard {
         width: calc(100vw - 40px);
     }
@@ -238,8 +238,6 @@ header .img-avatar span.material-symbols-outlined {
     transition: all 0.2s ease-in-out;
 }
 
-
-
 .main-content {
     height: calc(100vh - 100px);
     padding-left: 280px;
@@ -248,28 +246,26 @@ header .img-avatar span.material-symbols-outlined {
     transition: padding 0.5s;
 }
 
-[data-sidebar=hide-sidebar] .left-nav {
+[data-sidebar="hide-sidebar"] .left-nav {
     left: -300px;
 }
 
-[data-sidebar=hide-sidebar] .main-content {
+[data-sidebar="hide-sidebar"] .main-content {
     padding-left: 20px;
 }
 
-@media (max-width: 768px) { 
-
-    .left-nav{
-        left:-790px;
+@media (max-width: 768px) {
+    .left-nav {
+        left: -790px;
     }
 
     .main-content {
         padding-left: 20px;
     }
-    
+
     .hide-sidebar .left-nav {
         left: 15px;
     }
-
 }
 
 @media (max-width: 570px) {
@@ -278,12 +274,10 @@ header .img-avatar span.material-symbols-outlined {
         width: calc(100vw - 40px);
     }
 
-    .left-nav .sidebar{
+    .left-nav .sidebar {
         width: 100%;
     }
-} 
-
-
+}
 
 .main-content-hide {
     padding-left: 20px;
@@ -419,7 +413,7 @@ table.table > tbody > tr > td {
 }
 
 .btn-icon-toggle:hover {
-    background-color: white; 
+    background-color: white;
 }
 
 .btn-icon-toggle:hover .icon {
@@ -440,13 +434,13 @@ table.table > tbody > tr > td {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-size: 14px !important;;
-    font-weight: 400 !important;;
+    font-size: 14px !important;
+    font-weight: 400 !important;
     cursor: pointer;
     transition: all 0.3s;
 }
 
-.btn-profile-left .material-symbols-outlined{
+.btn-profile-left .material-symbols-outlined {
     color: #636670 !important;
     font-size: 22px !important;
 }
@@ -482,7 +476,7 @@ table.table > tbody > tr > td {
     transition: all 0.3s;
 }
 
-.btn-logout-right span.material-symbols-outlined{
+.btn-logout-right span.material-symbols-outlined {
     color: #636670 !important;
     font-size: 22px !important;
 }
@@ -506,7 +500,6 @@ table.table > tbody > tr > td {
     font-size: 14px;
 }
 
-
 .input-text:focus {
     outline: none;
 }
@@ -518,7 +511,6 @@ table.table > tbody > tr > td {
     padding: 12px 16px;
     font-size: 14px;
 }
-
 
 .input-select:focus {
     outline: none;
@@ -624,7 +616,6 @@ td > .btn-delete {
     text-align: center;
 }
 
-
 .status-INACTIVE {
     background-color: #6c757d;
     color: white;
@@ -642,7 +633,6 @@ td > .btn-delete {
     overflow-y: auto;
     padding-right: 4px;
 }
-
 
 .btn-submit-reset {
     background-color: #1557b0;
@@ -726,196 +716,221 @@ td > .btn-delete {
     background: #a8a8a8;
 }
 
-        .notification-badge {
-            font-size: 0.7rem;
-            min-width: 18px;
-            height: 18px;
-            padding: 0 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* Notification Dropdown Styles */
-        #notificationDropdownCard {
-            position: fixed;
-            background-color: rgb(240, 241, 248);
-            border: 0;
-            top: 80px;
-            right: 120px;
-            width: 350px;
-            min-height: 400px;
-            overflow-y: auto;
-            border-radius: 12px;
-            z-index: 1050;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-        }
+.notification-badge {
+    font-size: 0.7rem;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-        #notificationDropdownCard .card-body > .border-bottom {
-            border-color: #dee2e6;
-        }
+/* Notification Dropdown Styles */
+#notificationDropdownCard {
+    position: fixed;
+    background-color: rgb(240, 241, 248);
+    border: 0;
+    top: 80px;
+    right: 120px;
+    width: 350px;
+    min-height: 400px;
+    overflow-y: auto;
+    border-radius: 12px;
+    z-index: 1050;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
 
-        #notificationDropdownCard h5 {
-            font-size: 1.1rem;
-            color: #333;
-        }
+#notificationDropdownCard .card-body > .border-bottom {
+    border-color: #dee2e6;
+}
 
-        @media (max-width: 568px) { 
-            #notificationDropdownCard {
-                width: calc(100vw - 40px);
-                right: 20px;
-                left: 20px;
-            }
-        }
+#notificationDropdownCard h5 {
+    font-size: 16px;
+    color: #454545;
+}
 
-        #notificationDropdownCard .btn-close.position-absolute {
-            cursor: pointer;
-            z-index: 1060;
-            font-size: 0.8rem;
-            opacity: 0.7;
-        }
+@media (max-width: 568px) {
+    #notificationDropdownCard {
+        width: calc(100vw - 40px);
+        right: 20px;
+        left: 20px;
+    }
+}
 
-        #notificationDropdownCard .btn-close.position-absolute:hover {
-            opacity: 1;
-        }
+#notificationDropdownCard .btn-close.position-absolute {
+    cursor: pointer;
+    z-index: 1060;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
 
-        #notificationDropdownCard .notification-list {
-            max-height: 320px;
-            overflow-y: auto;
-            padding-right: 4px;
-        }
+#notificationDropdownCard .btn-close.position-absolute:hover {
+    opacity: 1;
+}
 
-        #notificationDropdownCard .notification-item {
-            display: flex;
-            align-items: flex-start;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 8px;
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-            background-color: white;
-            margin: 8px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
+#notificationDropdownCard .notification-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
 
-        #notificationDropdownCard .notification-item:hover {
-            background-color: #f8f9fa;
-            border-left-color: #0d6efd;
-            transform: translateX(2px);
-        }
+#notificationDropdownCard .notification-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+    background-color: white;
+    margin: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
 
-        #notificationDropdownCard .notification-icon {
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
+#notificationDropdownCard .notification-item:hover {
+    background-color: #f8f9fa;
+    border-left-color: #0d6efd;
+    transform: translateX(2px);
+}
 
-        #notificationDropdownCard .notification-icon .material-symbols-outlined {
-            font-size: 24px;
-            color: #0d6efd;
-        }
+#notificationDropdownCard .notification-icon {
+    margin-right: 12px;
+    flex-shrink: 0;
+}
 
-        #notificationDropdownCard .notification-content {
-            flex-grow: 1;
-            text-align: left;
-        }
+#notificationDropdownCard .notification-icon .material-symbols-outlined {
+    font-size: 24px;
+    color: #0d6efd;
+}
 
-        #notificationDropdownCard .notification-title {
-            font-weight: 500;
-            margin-bottom: 4px;
-            font-size: 14px;
-            color: #333;
-        }
+#notificationDropdownCard .notification-content {
+    flex-grow: 1;
+    text-align: left;
+}
 
-        #notificationDropdownCard .notification-text {
-            color: #6c757d;
-            font-size: 0.875rem;
-            line-height: 1.4;
-        }
+#notificationDropdownCard .notification-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+    font-size: 14px;
+    color: #333;
+}
 
-        #notificationDropdownCard .notification-time {
-            color: #6c757d;
-            font-size: 0.75rem;
-            margin-top: 4px;
-        }
+#notificationDropdownCard .notification-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
 
-        #notificationDropdownCard .notification-read-label {
-            position: absolute;
-            bottom: 4px;
-            right: 8px;
-            font-size: 0.65rem;
-            color: #6c757d;
-            font-style: italic;
-            user-select: none;
-        }
+#notificationDropdownCard .notification-time {
+    color: #6c757d;
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
 
-        #notificationDropdownCard .notification-list::-webkit-scrollbar {
-            width: 4px;
-        }
+#notificationDropdownCard .notification-read-label {
+    position: absolute;
+    bottom: 4px;
+    right: 8px;
+    font-size: 0.65rem;
+    color: #6c757d;
+    font-style: italic;
+    user-select: none;
+}
 
-        #notificationDropdownCard .notification-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
+#notificationDropdownCard .notification-list::-webkit-scrollbar {
+    width: 4px;
+}
 
-        #notificationDropdownCard .notification-list::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 2px;
-        }
+#notificationDropdownCard .notification-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
 
-        #notificationDropdownCard .notification-list::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
+#notificationDropdownCard .notification-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+}
 
-        #notificationDropdownCard .empty-notifications {
-            text-align: center;
-            padding: 2rem;
-            color: #6c757d;
-        }
+#notificationDropdownCard .notification-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
 
-        #notificationDropdownCard .btn-accept-task {
-            font-size: 12px;
-            padding: 4px 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
+#notificationDropdownCard .empty-notifications {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
 
-        #notificationDropdownCard .btn-accept-task .material-symbols-outlined {
-            font-size: 14px;
-            vertical-align: middle;
-        }
-        
-        .empty-notifications {
-            text-align: center;
-            padding: 2rem;
-            color: #6c757d;
-        }
-        
-        /* Unread notification indicator */
-        .notification-unread-dot {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 10px;
-            height: 10px;
-            background-color: #dc3545;
-            border-radius: 50%;
-            z-index: 1000;
-        }
-        
-        /* Adjust notification item padding to accommodate the dot */
-        #notificationDropdownCard .notification-item {
-            padding-right: 24px; /* Add extra padding to the right */
-        }
-        
-        /* Ensure the notification content doesn't overlap with the dot */
-        #notificationDropdownCard .notification-content {
-            padding-right: 10px;
-        }
-        
-        /* Adjust the position of the "Read" label to avoid overlapping with the dot */
-        #notificationDropdownCard .notification-read-label {
-            right: -5px; /* Move it slightly to the left */
-        }
+#notificationDropdownCard .btn-accept-task {
+    font-size: 12px;
+    padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#notificationDropdownCard .btn-accept-task .material-symbols-outlined {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.empty-notifications {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+/* Unread notification indicator */
+.notification-unread-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 10px;
+    height: 10px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    z-index: 1000;
+}
+
+/* Adjust notification item padding to accommodate the dot */
+#notificationDropdownCard .notification-item {
+    padding-right: 24px; /* Add extra padding to the right */
+}
+
+/* Ensure the notification content doesn't overlap with the dot */
+#notificationDropdownCard .notification-content {
+    padding-right: 10px;
+}
+
+/* Adjust the position of the "Read" label to avoid overlapping with the dot */
+#notificationDropdownCard .notification-read-label {
+    right: -5px; /* Move it slightly to the left */
+}
+
+/* Select-all chip styling inside notification dropdown */
+.nsa-selectall-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background-color: #f1f2f6;
+    border: 1px solid #e5e7ef;
+    color: #4b4f5e;
+    font-size: 12px;
+    user-select: none;
+    cursor: pointer;
+}
+.nsa-selectall-chip:hover {
+    background-color: #e9edf5;
+}
+.nsa-selectall-chip .form-check-input {
+    margin: 0;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
 .btn-accept {
     background-color: #0d6efd;
     color: white;
@@ -957,11 +972,52 @@ td > .btn-delete {
     color: white;
 }
 
-
-.rounded-20{
+.rounded-20 {
     border-radius: 20px;
 }
 
-.white-space-nowrap{
+.white-space-nowrap {
     white-space: nowrap;
+}
+
+.btn-close-reply {
+    background-color: grey;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-close-reply:hover {
+    background-color: #333;
+    color: white;
+}
+
+.btn-danger.remove-ref-url {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-danger.remove-ref-url:hover {
+    background-color: #c82333;
+    color: white;
 }

@@ -163,27 +163,12 @@
                             </div>
                         </div>
                         <div>
-                            <label for="grade" class="form-label">Grade</label>
-                            <select id="grade" name="grade" class="form-select input-select" required>
-                                <option value="" disabled selected>Select Grade</option>
-                                <option value="Manager" {{ $employee->grade == 'Manager' ? 'selected' : '' }}>Manager
-                                </option>
-                                <option value="Analyst" {{ $employee->grade == 'Analyst' ? 'selected' : '' }}>Analyst
-                                </option>
-                                <option value="Senior Analyst"
-                                    {{ $employee->grade == 'Senior Analyst' ? 'selected' : '' }}>Senior Analyst
-                                </option>
-                                <option value="Associate" {{ $employee->grade == 'Associate' ? 'selected' : '' }}>
-                                    Associate</option>
-                                <option value="Junior Manager"
-                                    {{ $employee->grade == 'Junior Manager' ? 'selected' : '' }}>Junior Manager
-                                </option>
-                                <option value="Junior Analyst"
-                                    {{ $employee->grade == 'Junior Analyst' ? 'selected' : '' }}>Junior Analyst
-                                </option>
-                                <option value="Junior Associate"
-                                    {{ $employee->grade == 'Junior Associate' ? 'selected' : '' }}>Junior Associate
-                                </option>
+                            <label for="grade_id" class="form-label">Grade</label>
+                            <select id="grade_id" name="grade_id" class="form-select input-select" required>
+                                <option value="" disabled>Select Grade</option>
+                                @foreach(($grades ?? []) as $g)
+                                    <option value="{{ $g->id }}" {{ (int)$employee->grade_id === (int)$g->id ? 'selected' : '' }}>{{ $g->title }}</option>
+                                @endforeach
                             </select>
                             <div class="invalid-feedback">
                                 Please select a grade.
@@ -193,11 +178,9 @@
                             <label for="office" class="form-label">Office</label>
                             <select id="office" name="office" class="form-select input-select" required>
                                 <option value="" disabled>Select Office</option>
-                                <option value="NSA Performance"
-                                    {{ $employee->office == 'NSA Performance' ? 'selected' : '' }}>NSA Performance
-                                </option>
-                                <option value="Gudang SEHA"
-                                    {{ $employee->office == 'Gudang SEHA' ? 'selected' : '' }}>Gudang SEHA</option>
+                                @foreach(($offices ?? []) as $o)
+                                    <option value="{{ $o->id }}" {{ (int)$employee->office === (int)$o->id ? 'selected' : '' }}>{{ $o->name }}</option>
+                                @endforeach
                             </select>
                             <div class="invalid-feedback">
                                 Please select an office.

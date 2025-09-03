@@ -211,6 +211,10 @@
     z-index: 2;
 }
 
+.employee-wrapper {
+    text-align: start;
+}
+
 .employee-wrapper:hover .overlay-edit-employee {
     display: flex;
 }
@@ -256,13 +260,13 @@
 
 .filter-shift-btn,
 .config-shift-btn {
-    background: #e9eef4;
+    background: #f0f1f8;
     border: none;
 }
 
 .filter-shift-btn:hover,
 .config-shift-btn:hover {
-    background: #e9eef4;
+    background: #f0f1f8;
     border: none;
 }
 
@@ -416,6 +420,25 @@
     width: 100%;
 }
 
+.dropdown-footer-custom {
+    width: 100%;
+}
+
+.dropdown-footer-custom button {
+    width: 100%;
+    background: #e3e4ee;
+    color: #596069;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 15px;
+    margin: 5px;
+}
+
+.dropdown-footer-custom button:hover {
+    background: #e3e4ee;
+    color: #596069;
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .icon-text {
@@ -504,7 +527,7 @@
 }
 
 .form-label {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 400;
 }
 
@@ -561,6 +584,7 @@
 }
 
 #monthDropdownMenu {
+    position: absolute;
     min-width: max-content;
     max-height: 300px;
     overflow-y: auto;
@@ -569,27 +593,42 @@
     overflow-x: hidden;
     top: 100% !important;
     left: auto !important;
-    right: 0 !important;
-
+    right: 25px !important;
     margin-top: 6px;
+    z-index: 1060;
+}
+
+#monthDropdownMenuModal {
+    position: absolute;
+    min-width: max-content;
+    max-height: auto;
+    overflow-y: auto;
+    background: #f0f1f8;
+    border: none;
+    overflow-x: hidden;
+    top: 0 !important;
+    left: auto !important;
+    right: 150px !important;
+    z-index: 1060;
 }
 
 #editEmployeePicture {
     margin-top: 0.5rem;
 }
 
-.filter-dropdown.show,
-.filter-dropdown:active,
-.filter-dropdown:focus {
+.filter-shift-btn.show,
+.filter-shift-btn:active,
+.filter-shift-btn:focus {
     background: #f0f1f8 !important;
 }
 
 .filter-dropdown .dropdown-filter {
     border: none;
     background-color: #f0f1f8;
-    font-size: 14px;
+    font-size: 12px;
     min-height: 300px;
     width: 100%;
+    min-width: 300px;
 }
 
 .dropdown-filter li select {
@@ -632,4 +671,18 @@
 
 .table > :not(caption) > * > * {
     padding: 0.5rem 0.4rem;
+}
+
+.btn-toggle-table-shift {
+    background: transparent;
+    border: none;
+}
+
+.btn-toggle-table-shift span {
+    font-size: 24px;
+}
+
+.btn-toggle-table-shift:hover {
+    background: transparent;
+    border: none;
 }

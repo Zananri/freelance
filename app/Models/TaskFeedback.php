@@ -14,14 +14,22 @@ class TaskFeedback extends Model
     protected $fillable = [
         'project_id',
         'task_id',
+    'parent_id',
         'employee_id',
         'feedback_comment',
         'image',
         'reference_url',
+    'reference_urls',
         'reference_file',
+        'reference_files',
         'created_by',
         'updated_by',
         'deleted_by',
+    ];
+
+    protected $casts = [
+        'reference_files' => 'array',
+    'reference_urls' => 'array',
     ];
 
     // Define relationships if needed
@@ -38,6 +46,16 @@ class TaskFeedback extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(TaskFeedback::class, 'parent_id');
+    }
+
+    public function replies()
+    {
+        return $this->hasMany(TaskFeedback::class, 'parent_id');
     }
 
     
