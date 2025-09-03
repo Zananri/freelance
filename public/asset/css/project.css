@@ -10,7 +10,6 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 8px;
-    margin-bottom: 50px;
 }
 
 .project-card-container::-webkit-scrollbar {
@@ -1563,4 +1562,19 @@
 #paginationInfo,
 #dataInfo {
     font-size: 12px;
+}
+
+#project-pagination {
+    margin-bottom: 100px;
+}
+
+#project-pagination button span {
+    transition: 0.3s;
+}
+
+#project-pagination button span:hover {
+    color: #e3e4ee;
+    background-color: #596069;
+    border-radius: 50%;
+    padding: 5px;
 }

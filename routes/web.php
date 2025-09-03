@@ -48,7 +48,7 @@ Route::get('/server-time', function () {
 Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
-        
+
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
     Route::post('/profile/verify-current-password', [ProfileController::class, 'verifyCurrentPassword'])->name('profile.verifyCurrentPassword');
@@ -64,6 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
     Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
     Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
+    Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
     Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
     Route::get('/project/{id}', [ProjectController::class, 'show'])->name('project.show');
@@ -90,7 +91,7 @@ Route::middleware('auth')->group(function () {
     // Employee list for projects (accessible to all authenticated users)
     Route::get('/employees-for-projects', [EmployeeController::class, 'getEmployeesForProjects'])->name('employees.for-projects');
 
-    // Department list for projects (accessible to all authenticated users) 
+    // Department list for projects (accessible to all authenticated users)
     Route::get('/departments-for-projects', [DepartmentController::class, 'getDepartmentsForProjects'])->name('departments.for-projects');
 
     // Division list for projects (accessible to all authenticated users)
