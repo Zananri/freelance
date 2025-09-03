@@ -201,11 +201,18 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load project card data and generate cards dynamically
     function loadProjectCardData(filter = null, page = 1) {
         $.ajax({
-            url: appUrl + "/project/index",
+            url: appUrl + "/project/get-all-projects",
             type: "GET",
             dataType: "json",
             data: { filter: filter, task_scope: 'me', page: page },
+            beforeSend:function(){
+                $('.loader').fadeIn('fast');
+            },
+            error:function(res){
+                $('.loader').fadeOut('fast');
+            },
             success: function (data) {
+
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
 
@@ -213,124 +220,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 const projects = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
 
                 // compute chart counts even if zero or empty
-                try {
-                    const chartCounts = (data && data.chart_counts) ? data.chart_counts : null;
-                    updateProjectChartFromData(projects, chartCounts);
-
-                    // Fallback: if employee has tasks but 0 projects and no chart_counts provided,
-                    // derive counts from /task/index so chart still reflects tasks.
-                    const hasProjects = Array.isArray(projects) && projects.length > 0;
-                    const hasChartCounts = chartCounts && (Number(chartCounts.total || 0) > 0 ||
-                                            Number(chartCounts.completed || 0) > 0 ||
-                                            Number(chartCounts.in_progress || 0) > 0 ||
-                                            Number(chartCounts.late || 0) > 0 ||
-                                            Number(chartCounts.not_started || 0) > 0);
-                    if (!hasProjects && !hasChartCounts) {
-                        // Helper to parse date safely (YYYY-MM-DD tolerant)
-                        function parseLocalDate(d) {
-                            if (!d) return null;
-                            try {
-                                const s = String(d).trim();
-                                const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                                if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
-                                const dt = new Date(s);
-                                return isNaN(dt.getTime()) ? null : dt;
-                            } catch(_) { return null; }
-                        }
-
-                        fetch(appUrl + '/task/index')
-                            .then(r => r.ok ? r.json() : Promise.reject(r))
-                            .then(resp => {
-                                const d = resp && resp.data ? resp.data : {};
-                                const arrNew = Array.isArray(d.new_request) ? d.new_request : [];
-                                const arrInProg = Array.isArray(d.in_progress) ? d.in_progress : [];
-                                const arrCompleted = Array.isArray(d.completed) ? d.completed : [];
-                                const arrRejected = Array.isArray(d.rejected) ? d.rejected : [];
-
-                                const total = arrNew.length + arrInProg.length + arrCompleted.length + arrRejected.length;
-                                const notStarted = arrNew.length;
-                                const inProgLabel = arrInProg.length; // exclude rejected from in_progress label
-
-                                // late = non-completed overdue (include rejected per spec "non-completed")
-                                const now = new Date(); now.setHours(0,0,0,0);
-                                function isLate(task) {
-                                    const due = parseLocalDate(task && (task.due_date || task.due || task.end_date));
-                                    return (due && due < now);
-                                }
-                                const late = arrNew.filter(isLate).length
-                                            + arrInProg.filter(isLate).length
-                                            + arrRejected.filter(isLate).length;
-
-                                const derived = {
-                                    total,
-                                    completed: arrCompleted.length,
-                                    in_progress: inProgLabel,
-                                    late,
-                                    not_started: notStarted,
-                                };
-                                updateProjectChartFromData([], derived);
-                            })
-                            .catch(err => {
-                                // keep existing zero state
-                                console.debug('tasks fallback for chart failed', err);
-                            });
-                    }
-                } catch (e) {
-                    console.error('updateProjectChartFromData error', e);
-                }
 
                 // Build timeline from actual projects and render. If list items lack start/due, fetch details.
-                (function () {
-                    // Helper to decide if project has valid date fields
-                    function hasValidDates(p) {
-                        if (!p) return false;
-                        const s = p.start_date || p.start || p.startDate || p.startAt;
-                        const e = p.due_date || p.due || p.end_date || p.endDate || p.dueAt;
-                        return !!(s && e);
-                    }
-
-                    const needsFetch = projects.filter((p) => !hasValidDates(p));
-
-                    if (needsFetch.length === 0) {
-                        try {
-                            buildTimelineFromProjects(projects);
-                            renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
-                            updateModalTimeline();
-                        } catch (e) {
-                            console.error('timeline build/render error', e);
-                        }
-                    } else {
-                        // Fetch details for projects missing dates (parallel)
-                        const fetches = needsFetch.map((p) => {
-                            return $.ajax({
-                                url: appUrl + "/project/" + p.id,
-                                type: "GET",
-                                dataType: "json",
-                            })
-                                .then((resp) => {
-                                    const data = resp.data || resp;
-                                    // merge date fields back into list item
-                                    p.start_date = p.start_date || data.start_date || data.start || data.startDate;
-                                    p.due_date = p.due_date || data.due_date || data.due || data.endDate || data.end_date;
-                                    return p;
-                                })
-                                .catch((err) => {
-                                    console.warn('failed to fetch project detail for', p.id, err);
-                                    return p;
-                                });
-                        });
-
-                        Promise.all(fetches).then(() => {
-                            try {
-                                buildTimelineFromProjects(projects);
-                                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
-                                updateModalTimeline();
-                            } catch (e) {
-                                console.error('timeline build/render error', e);
-                            }
-                        });
-                    }
-                })();
 
                 if (projects && projects.length > 0) {
                     let rowHtml = '<div class="row">';
@@ -974,7 +865,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             $("#edit_division").html(
                                 '<option value="" disabled selected>Select Division</option>'
                             );
-                            loadProjects();
+                            loadCardProjects();
 
                             // Clear selected co-authors and contributors display and hidden inputs
                             window.clearSelectedCoAuthorsEdit &&
@@ -2873,49 +2764,32 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
 
                     // Extracted function to fetch and show Project Detail modal (reused by timeline bar clicks)
+                    let projectDetailModal = bootstrap.Modal.getOrCreateInstance(
+                        document.getElementById("projectDetailModal")
+                    );
+
                     function fetchAndShowProjectDetail(projectId) {
-                        // Fetch project details via AJAX
                         $.ajax({
                             url: appUrl + "/project/" + projectId,
                             type: "GET",
                             dataType: "json",
                             success: function (response) {
                                 const data = response.data || {};
-
-                                // Populate modal fields
                                 const baseFileUrl = appUrl + "/file/project/";
 
+                                // Populate modal fields
                                 $("#projectDetailImage").attr(
                                     "src",
                                     data.image
                                         ? baseFileUrl + data.image
-                                        : appUrl +
-                                              "/asset/img/background/add-image.png"
-                                );
-                                $("#projectDetailImage").attr(
-                                    "style",
-                                    "border-radius: 8px;"
-                                );
+                                        : appUrl + "/asset/img/background/add-image.png"
+                                ).css("border-radius", "8px");
 
-                                $("#projectDetailTitle").replaceWith(
-                                    `<h2 class="project-title" id="projectDetailTitle">${
-                                        data.title || ""
-                                    }</h2>`
-                                );
-                                $("#projectDetailAuthor")
-                                    .text(
-                                        data.author ? data.author.name : "Unknown"
-                                    )
-                                    .css("text-align", "justify");
-                                $("#projectDetailDepartment").text(
-                                    data.department || ""
-                                );
-                                $("#projectDetailDivision").text(
-                                    data.division || ""
-                                );
-                                $("#projectDetailDescription").text(
-                                    data.description || ""
-                                );
+                                $("#projectDetailTitle").text(data.title || "");
+                                $("#projectDetailAuthor").text(data.author ? data.author.name : "Unknown");
+                                $("#projectDetailDepartment").text(data.department || "");
+                                $("#projectDetailDivision").text(data.division || "");
+                                $("#projectDetailDescription").text(data.description || "");
 
                                 if (data.reference_url) {
                                     $("#projectDetailReferenceUrl")
@@ -2936,50 +2810,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 function formatDate(dateStr) {
                                     if (!dateStr) return "";
-                                    const options = {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    };
-                                    const dateObj = new Date(dateStr);
-                                    return dateObj.toLocaleDateString(
-                                        undefined,
-                                        options
-                                    );
+                                    const options = { year: "numeric", month: "long", day: "numeric" };
+                                    return new Date(dateStr).toLocaleDateString(undefined, options);
                                 }
 
-                                $("#projectDetailStartDate").text(
-                                    formatDate(data.start_date)
-                                );
-                                $("#projectDetailDueDate").text(
-                                    formatDate(data.due_date)
+                                $("#projectDetailStartDate").text(formatDate(data.start_date));
+                                $("#projectDetailDueDate").text(formatDate(data.due_date));
+
+                                $("#projectDetailCoAuthors").text(
+                                    data.co_authors?.length
+                                        ? data.co_authors.map((ca) => ca.name).join(", ")
+                                        : "None"
                                 );
 
-                                if (data.co_authors && data.co_authors.length > 0) {
-                                    const coAuthorNames = data.co_authors
-                                        .map((ca) => ca.name)
-                                        .join(", ");
-                                    $("#projectDetailCoAuthors").text(
-                                        coAuthorNames
-                                    );
-                                } else {
-                                    $("#projectDetailCoAuthors").text("None");
-                                }
-
-                                if (data.contributors && data.contributors.length > 0) {
-                                    const contributorNames = data.contributors
-                                        .map((c) => c.name)
-                                        .join(", ");
-                                    $("#projectDetailContributors").text(
-                                        contributorNames
-                                    );
-                                } else {
-                                    $("#projectDetailContributors").text("None");
-                                }
-
-                                const projectDetailModal = new bootstrap.Modal(
-                                    document.getElementById("projectDetailModal")
+                                $("#projectDetailContributors").text(
+                                    data.contributors?.length
+                                        ? data.contributors.map((c) => c.name).join(", ")
+                                        : "None"
                                 );
+
                                 projectDetailModal.show();
                             },
                             error: function () {
@@ -2987,6 +2836,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             },
                         });
                     }
+
 
                     // Event listener for "Detail", "Task", and "Feedback" dropdown item click
                     document.addEventListener("click", function (e) {
@@ -3461,6 +3311,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         updateProjectChartFromData([], null);
                     }
                 }
+
+                $('.loader').fadeOut('fast');
+
             },
             error: function () {
                 console.error("Failed to load project card data.");
@@ -3525,27 +3378,33 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Load projects for "part_of_project" select
-
-    // Render projects into relevant selects (e.g., part_of_project)
-function renderProjects(projectsHtml) {
-    const container = document.getElementById("all-cards-container");
-    if (container) container.innerHTML = projectsHtml;
-}
-
     let allProjectsCache = [];
 
-function loadProjects(filter = null, page = 1) {
+function loadProjects(filter = null) {
     $.ajax({
         url: appUrl + "/project/index",
         type: "GET",
         dataType: "json",
-        data: { task_scope: 'me', filter: filter, page: page },
+        data: { task_scope: 'me', filter: filter },
         success: function (data) {
-            // 🚀 pake loadProjectCardData buat render card
-            loadProjectCardData(filter, page);
+            loadProjectCardData(filter, 1);
+        },
+        error: function () {
+            console.error("Failed to load project cards (index)");
+        }
+    });
+}
 
-            // pagination tetap dipanggil
+function loadCardProjects(page = 1) {
+    $.ajax({
+        url: appUrl + "/project/get-all-projects",
+        type: "GET",
+        dataType: "json",
+        data: { task_scope: 'me', page: page },
+        success: function (data) {
+
+            loadProjectCardData(null, page);
+
             updatePagination(data.pagination);
         },
         error: function () {
@@ -3554,26 +3413,28 @@ function loadProjects(filter = null, page = 1) {
     });
 }
 
-function updatePagination(pagination, filter = null) {
-    const from = (pagination.current_page - 1) * pagination.per_page + 1;
-    let to = pagination.current_page * pagination.per_page;
-    if (to > pagination.total) to = pagination.total;
+function updatePagination(pagination) {
+    if (!pagination) return;
 
-    $("#paginationInfo").text(`Page ${pagination.current_page} of ${pagination.last_page}`);
-    $("#dataInfo").text(`Showing ${from}–${to} of ${pagination.total}`);
+    const currentPage = parseInt(pagination.current_page, 10);
+    const perPage = parseInt(pagination.per_page, 10);
+    const total = parseInt(pagination.total, 10);
+    const lastPage = parseInt(pagination.last_page, 10);
 
-    $("#prevPageBtn").prop("disabled", pagination.current_page <= 1);
-    $("#nextPageBtn").prop("disabled", pagination.current_page >= pagination.last_page);
+    const from = (currentPage - 1) * perPage + 1;
+    let to = currentPage * perPage;
+    if (to > total) to = total;
 
-    $("#prevPageBtn").off("click").on("click", function () {
-        if (pagination.current_page > 1) {
-            loadProjects(filter, pagination.current_page - 1);
-        }
-    });
+    $("#paginationInfo").text(`Page ${currentPage} of ${lastPage}`);
+    $("#dataInfo").text(`Showing ${from}–${to} of ${total}`);
 
-    $("#nextPageBtn").off("click").on("click", function () {
-        if (pagination.current_page < pagination.last_page) {
-            loadProjects(filter, pagination.current_page + 1);
+    $("#prevPageBtn").prop("disabled", currentPage <= 1).data("page", currentPage - 1);
+    $("#nextPageBtn").prop("disabled", currentPage >= lastPage).data("page", currentPage + 1);
+
+    $("#prevPageBtn, #nextPageBtn").off("click").on("click", function () {
+        const page = $(this).data("page");
+        if (page) {
+            loadCardProjects(page);
         }
     });
 }
@@ -3585,15 +3446,14 @@ function initProjectFilter() {
     searchInput.addEventListener("keyup", function () {
         const query = this.value.toLowerCase().trim();
 
-        // Ambil semua card project yang udah ada di container
         const cards = document.querySelectorAll("#all-cards-container .card");
 
         cards.forEach(card => {
             const text = card.innerText.toLowerCase();
             if (text.includes(query)) {
-                card.style.display = "";  // tampil
+                card.style.display = "";
             } else {
-                card.style.display = "none"; // sembunyi
+                card.style.display = "none";
             }
         });
     });
@@ -4326,11 +4186,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
     });
 
     // Load departments and projects on page load
-    loadDepartments();
     loadProjects();
     loadProjectCardData();
-    // loadEmployees(); // Removed obsolete function call
-    // setupCoAuthorInput(); // replaced by wrappedSetupCoAuthorInput to support cross-exclusion and syncing
+    loadTimelineProjects();
+    loadCardProjects();
+    loadDepartments();
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
@@ -4393,7 +4253,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
     function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
-                    '<div class="dropdown-item disabled">No employees found in this place</div>';
+                    '<div class="dropdown-item disabled">No employees found</div>';
         dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
@@ -5331,6 +5191,9 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
 // Doughnut Chart Porject
 document.addEventListener("DOMContentLoaded", function () {
+    const ctx = document.getElementById("projectChart");
+    let projectChartInstance = null;
+
     const createDoughnut = (el, data = []) => {
         let chartData, colors, labels;
 
@@ -5340,15 +5203,19 @@ document.addEventListener("DOMContentLoaded", function () {
             labels = ["No Data"];
         } else {
             chartData = data;
-            // expect slices: Not Started, Complete, On Progress, Late
-            colors = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
+            colors = [
+                "#E8E9F2", // not started
+                "#4fc97a", // complete
+                "#5a9be6", // on progress
+                "#ff6b6b", // late
+            ];
             labels = ["Not Started", "Complete", "On Progress", "Late"];
         }
 
         return new Chart(el, {
             type: "doughnut",
             data: {
-                labels: labels,
+                labels,
                 datasets: [
                     {
                         data: chartData,
@@ -5366,109 +5233,133 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     };
 
-    const ctx = document.getElementById("projectChart");
-    let projectChartInstance = null;
     if (ctx) {
-        const dataset = [];
-        projectChartInstance = createDoughnut(ctx, dataset);
+        projectChartInstance = createDoughnut(ctx, []);
     }
 
-    // update chart and label counts based on aggregated task_counts across projects
-    // Requirements:
-    // - Total (label under chart): jumlah project milik employee (panjang array projects)
-    // - Complete/On Progress/Late (labels): jumlah task di dalam project dengan status completed, in_progress, dan late
-    //   Catatan: in_progress TIDAK menghitung rejected; Late = task non-completed yang lewat due_date; Not Started = new_request
     function updateProjectChartFromData(projects, chartCounts) {
-        projects = Array.isArray(projects) ? projects : [];
+        const numberOfProjects = Array.isArray(projects) ? projects.length : 0;
 
-        const numberOfProjects = projects.length; // Total project untuk label pertama
+        let completed = Number(chartCounts?.completed || 0);
+        let inProgressLabel = Number(chartCounts?.in_progress || 0);
+        let late = Number(chartCounts?.late || 0);
+        let notStartedChart = Number(chartCounts?.not_started || 0);
 
-        // Prefer backend-provided aggregated chart counts (tasks assigned to me across ALL projects)
-        // to ensure New/Not Started tasks accepted by me in non-member projects are counted.
-        let useChartCounts = chartCounts && typeof chartCounts === 'object';
-
-        let totalTasks = 0; // tetap dipakai untuk komposisi chart slices
-        let completed = 0;
-        let inProgressLabel = 0; // in_progress tanpa rejected
-        let late = 0;
-        let notStartedChart = 0;
-
-        if (useChartCounts) {
-            totalTasks = Number(chartCounts.total || 0);
-            completed = Number(chartCounts.completed || 0);
-            inProgressLabel = Number(chartCounts.in_progress || 0);
-            late = Number(chartCounts.late || 0);
-            notStartedChart = Number(chartCounts.not_started || 0);
-        } else {
-            let notStartedExclSum = 0; // jika backend menyediakan bucket eksklusif
-            let hasExclNotStarted = false;
-
-            projects.forEach((p) => {
-                const tc = p.task_counts || {};
-                totalTasks += (tc.total || 0);
-                completed += (tc.completed || (tc.excl && tc.excl.completed) || 0);
-                late += (tc.late || (tc.excl && tc.excl.late) || 0);
-                const ipRaw = (tc.in_progress || 0);
-                const rejected = (tc.rejected || 0);
-                inProgressLabel += Math.max(0, ipRaw - rejected);
-                if (tc.excl && typeof tc.excl.not_started === 'number') {
-                    notStartedExclSum += tc.excl.not_started;
-                    hasExclNotStarted = true;
-                }
-            });
-
-            notStartedChart = hasExclNotStarted
-                ? notStartedExclSum
-                : Math.max(0, totalTasks - completed - inProgressLabel - late);
-        }
-
-        // Chart slices: Not Started, Complete, On Progress, Late
         const chartData = [notStartedChart, completed, inProgressLabel, late];
+        const totalTasks = chartData.reduce((a, b) => a + b, 0);
 
-        // update chart instance: set labels and colors accordingly
-        try {
-            if (projectChartInstance && projectChartInstance.data) {
-                if (totalTasks === 0) {
-                    // tidak ada task sama sekali -> tampilkan No Data
-                    projectChartInstance.data.labels = ["No Data"];
-                    projectChartInstance.data.datasets[0].data = [1];
-                    projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
-                } else {
-                    projectChartInstance.data.labels = ["Not Started", "Complete", "On Progress", "Late"];
-                    projectChartInstance.data.datasets[0].data = chartData;
-                    projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
-                }
-                projectChartInstance.update();
-            } else if (ctx) {
-                // create chart if missing
-                projectChartInstance = createDoughnut(ctx, totalTasks === 0 ? [] : chartData);
-            }
-        } catch (e) {
-            console.error('chart update failed', e);
+        if (totalTasks === 0) {
+            projectChartInstance.data.labels = ["No Data"];
+            projectChartInstance.data.datasets[0].data = [1];
+            projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
+        } else {
+            projectChartInstance.data.labels = ["Not Started", "Complete", "On Progress", "Late"];
+            projectChartInstance.data.datasets[0].data = chartData;
+            projectChartInstance.data.datasets[0].backgroundColor = [
+                "#E8E9F2",
+                "#4fc97a",
+                "#5a9be6",
+                "#ff6b6b",
+            ];
         }
+        projectChartInstance.update();
 
-        // Update label numbers di UI (Total Project, Complete Task, On Progress Task, Late Task)
-        try {
-            const labelsContainer = document.querySelector('.chart-labels');
-            if (labelsContainer) {
-                const spans = labelsContainer.querySelectorAll('.text-center span:first-child');
-                if (spans && spans.length >= 4) {
-                    // Total = jumlah project yang dimiliki employee (bukan jumlah task)
-                    spans[0].textContent = numberOfProjects;
-                    spans[1].textContent = completed;
-                    spans[2].textContent = inProgressLabel;
-                    spans[3].textContent = late;
+        const spans = document.querySelectorAll(".chart-labels .text-center span:first-child");
+        if (spans && spans.length >= 4) {
+            spans[0].textContent = numberOfProjects;
+            spans[1].textContent = completed;
+            spans[2].textContent = inProgressLabel;
+            spans[3].textContent = late;
+        }
+    }
+
+    function loadProjectAndTaskData() {
+        $.ajax({
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+            beforeSend:function(){
+                $('.loader').fadeIn('fast');
+            },
+            error:function(res){
+                $('.loader').fadeOut('fast');
+            },
+            success: function (projectRes) {
+                const projects = Array.isArray(projectRes)
+                    ? projectRes
+                    : (Array.isArray(projectRes.data) ? projectRes.data : []);
+
+                const chartCounts = projectRes.chart_counts || null;
+
+                // kalau chart_counts ada → langsung pake
+                const hasChartCounts =
+                    chartCounts &&
+                    (Number(chartCounts.total || 0) > 0 ||
+                        Number(chartCounts.completed || 0) > 0 ||
+                        Number(chartCounts.in_progress || 0) > 0 ||
+                        Number(chartCounts.late || 0) > 0 ||
+                        Number(chartCounts.not_started || 0) > 0);
+
+                if (hasChartCounts) {
+                    updateProjectChartFromData(projects, chartCounts);
+                } else {
+                    // fallback ambil dari /task/index
+                    $.ajax({
+                        url: appUrl + "/task/index",
+                        type: "GET",
+                        dataType: "json",
+                        success: function (taskRes) {
+
+                            const d = taskRes?.data || {};
+                            const arrNew = Array.isArray(d.new_request) ? d.new_request : [];
+                            const arrInProg = Array.isArray(d.in_progress) ? d.in_progress : [];
+                            const arrCompleted = Array.isArray(d.completed) ? d.completed : [];
+                            const arrRejected = Array.isArray(d.rejected) ? d.rejected : [];
+
+                            const now = new Date();
+                            now.setHours(0, 0, 0, 0);
+
+                            const parseLocalDate = (d) => {
+                                if (!d) return null;
+                                const m = String(d).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                                return m ? new Date(m[1], m[2] - 1, m[3]) : new Date(d);
+                            };
+
+                            const isLate = (task) => {
+                                const due = parseLocalDate(task?.due_date || task?.due || task?.end_date);
+                                return due && due < now;
+                            };
+
+                            const late =
+                                arrNew.filter(isLate).length +
+                                arrInProg.filter(isLate).length +
+                                arrRejected.filter(isLate).length;
+
+                            const derived = {
+                                total: arrNew.length + arrInProg.length + arrCompleted.length + arrRejected.length,
+                                completed: arrCompleted.length,
+                                in_progress: arrInProg.length,
+                                late,
+                                not_started: arrNew.length,
+                            };
+
+                            updateProjectChartFromData(projects, derived);
+                        },
+                        error: function (err) {
+                            console.error("task/index failed", err);
+                        }
+                    });
                 }
+
+                $(".loader").fadeOut('fast');
+
+            },
+            error: function (err) {
+                console.error("project/index failed", err);
             }
-        } catch (e) {}
+        });
     }
-    // expose updater to global scope so other code can call it safely
-    try {
-        window.updateProjectChartFromData = updateProjectChartFromData;
-        window.getProjectChartInstance = function () { return projectChartInstance; };
-    } catch (e) {
-        // ignore
-    }
+    loadProjectAndTaskData();
 });
 
 let currentMonth = new Date().getMonth();
@@ -5496,8 +5387,67 @@ let timelineData = [];
 // color palette cycles every 4
 const TIMELINE_COLORS = ["color1", "color2", "color3", "color4"];
 
-/**
- */
+function loadTimelineProjects(filter = null) {
+    $.ajax({
+        url: appUrl + "/project/index",
+        type: "GET",
+        dataType: "json",
+        data: { task_scope: 'me', filter: filter },
+        beforeSend:function(){
+            $('.loader').fadeIn('fast');
+        },
+        success: function (res) {
+            const projects = Array.isArray(res) 
+                ? res 
+                : (Array.isArray(res.data) ? res.data : []);
+
+            const completeProjects = projects.filter(p => (p.start_date || p.start) && (p.due_date || p.due));
+            const incompleteProjects = projects.filter(p => !(p.start_date || p.start) || !(p.due_date || p.due));
+
+            try {
+                buildTimelineFromProjects(completeProjects);
+                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                updateModalTimeline();
+            } catch (e) {
+                console.error("timeline build/render error", e);
+            }
+
+            if (incompleteProjects.length > 0) {
+                incompleteProjects.forEach((p) => {
+                    $.ajax({
+                        url: appUrl + "/project/" + p.id,
+                        type: "GET",
+                        dataType: "json",
+                        success: function (resp) {
+                            const data = resp.data || resp;
+                            p.start_date = p.start_date || data.start_date || data.start;
+                            p.due_date   = p.due_date   || data.due_date   || data.due;
+
+                            try {
+                                const updatedProjects = completeProjects.concat(incompleteProjects);
+                                buildTimelineFromProjects(updatedProjects);
+                                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                                updateModalTimeline();
+                            } catch (e) {
+                                console.error("timeline update error", e);
+                            }
+                        },
+                        error: function (err) {
+                            console.warn("failed to fetch project detail for", p.id, err);
+                        }
+                    });
+                });
+            }
+
+            $('.loader').fadeOut('fast');
+        },
+        error: function () {
+            console.error("Failed to load timeline projects");
+            $('.loader').fadeOut('fast');
+        }
+    });
+}
+
 function buildTimelineFromProjects(projects) {
     timelineData = [];
     if (!Array.isArray(projects)) return;
@@ -5681,15 +5631,6 @@ function renderTimeline(
         title.textContent = `${months[month]} week ${weekIndex + 1}`;
     }
 }
-
-renderTimeline(
-    "#timelineHeader",
-    "#timelineRows",
-    "week",
-    currentMonth,
-    currentYear,
-    currentWeek
-);
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
     if (currentWeek > 0) currentWeek--;
