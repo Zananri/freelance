@@ -924,6 +924,7 @@ p {
     .header-task-container {
         position: sticky;
         top: 0;
+        z-index: 10;
     }
 
     .task-detail-columns {
@@ -1022,6 +1023,10 @@ p {
         background: #fff;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         padding: 12px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
     #mobile-task-container.task-mobile-new {
@@ -1041,6 +1046,9 @@ p {
         align-items: center;
         justify-content: flex-start;
         margin-bottom: 12px;
+        flex-shrink: 0;
+        padding: 8px 0;
+        z-index: 10;
     }
 
     .task-mobile-card-header .actions-buttons {
@@ -1057,6 +1065,25 @@ p {
 
     .task-mobile-card-header .btn {
         padding: 6px 8px;
+    }
+
+    #mobile-task-list {
+        flex: 1;
+        overflow-y: auto;
+        max-height: 375px;
+    }
+
+    #mobile-task-list::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    #mobile-task-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #mobile-task-list::-webkit-scrollbar-thumb {
+        background-color: #cccccc;
+        border-radius: 4px;
     }
 }
 
@@ -1408,8 +1435,7 @@ p {
 }
 
 .custom-form-filter,
-.custom-form-filter:focus
-{
+.custom-form-filter:focus {
     outline: none !important;
     box-shadow: none !important;
     border: none;
@@ -1461,8 +1487,8 @@ p {
 }
 
 .btn-schedule-custom {
-    background: #ECEDF5;
-    color: #555C6E;
+    background: #ecedf5;
+    color: #555c6e;
     border-radius: 10px;
     padding: 10px;
     width: 100px;
@@ -1470,8 +1496,8 @@ p {
 }
 
 .btn-schedule-custom:hover {
-    background: #ECEDF5;
-    color: #555C6E;
+    background: #ecedf5;
+    color: #555c6e;
 }
 
 .dropdown-filter-menu {
@@ -1588,4 +1614,67 @@ p {
 .btn-cancel-invite:hover {
     background-color: #333;
     color: white;
+}
+
+.btn-danger.remove-ref-url {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-danger.remove-ref-url:hover {
+    background-color: #c82333;
+    color: white;
+}
+
+.btn-pagination {
+    background: transparent;
+    border: none;
+}
+
+.btn-pagination span {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+}
+
+.pagination-pill {
+    background: #f0f1f8;
+    border-radius: 50px;
+    padding: 4px 12px;
+    gap: 12px;
+    margin-bottom: 50px;
+}
+
+.pagination-info {
+    font-weight: 600;
+    font-size: 12px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.btn-nav {
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }

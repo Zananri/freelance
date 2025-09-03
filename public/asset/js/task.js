@@ -1371,68 +1371,122 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // Function to fetch and render tasks
     let allTasksCache = null; // simpen semua data task
 
-    function fetchAndRenderTasks() {
-        $.ajax({
-            url: appUrl + "/task/index",
-            type: "GET",
-            dataType: "json",
-            success: function (response) {
-                if (!response || response.code !== 200 || !response.data) {
-                    console.error("Invalid response data format");
-                    return;
-                }
+function fetchAndRenderTasks(statusKey = null, page = 1) {
+    const params = {};
+    if (statusKey) params.status = statusKey;
+    params.page = page;
 
-                allTasksCache = response.data; // simpen data asli
+    $.ajax({
+        url: appUrl + "/task/index",
+        type: "GET",
+        dataType: "json",
+        data: params,
+        success: function(response) {
+            console.log(response);
+            
+            if (!response || response.code !== 200 || !response.data) return;
+
+            // update cache biar gak ilang data lama
+            if (!allTasksCache) allTasksCache = {};
+            Object.keys(response.data).forEach(key => {
+                allTasksCache[key] = response.data[key];
+            });
+
+            if (statusKey) {
+                renderSingleSection(statusKey, allTasksCache[statusKey]);
+            } else {
                 renderTasks(allTasksCache);
-            },
-            error: function (xhr, status, error) {
-                console.error("Error fetching tasks:", error);
             }
+        },
+        error: function(xhr, status, error) {
+            console.error("Error fetching tasks:", error);
+        }
+    });
+}
+
+function renderTasks(data) {
+    renderSingleSection("new_request", data.new_request);
+    renderSingleSection("in_progress", {
+        ...data.in_progress,
+        tasks: [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])]
+    });
+    renderSingleSection("completed", data.completed);
+}
+
+function renderSingleSection(status, sectionData) {
+    const sectionMap = {
+        new_request: "new-request-tasks",
+        in_progress: "in-progress-tasks",
+        completed: "completed-tasks"
+    };
+
+    const containerId = sectionMap[status];
+    if (!containerId) return;
+
+    const container = document.getElementById(containerId);
+    container.innerHTML = "";
+
+    if (sectionData?.tasks) {
+        sectionData.tasks.forEach(task => {
+            container.insertAdjacentHTML("beforeend", createTaskCard(task));
         });
     }
 
-    function renderTasks(data, query = "") {
-        // Clear section
-        document.getElementById("new-request-tasks").innerHTML = "";
-        document.getElementById("in-progress-tasks").innerHTML = "";
-        document.getElementById("completed-tasks").innerHTML = "";
-
-        // Function filter by query
-        const filterTasks = (tasks) => {
-            if (!Array.isArray(tasks)) return [];
-            if (!query) return tasks;
-            return tasks.filter(task =>
-                JSON.stringify(task).toLowerCase().includes(query.toLowerCase())
-            );
-        };
-
-        // Preserve dropdown state
-        const currentProject = document.getElementById("filterTaskProject").value;
-        const currentStatus = document.getElementById("filterTaskStatus").value;
-
-        // Filter + render
-        filterTasks(data.new_request).forEach(task => {
-            document.getElementById("new-request-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-
-        filterTasks(data.in_progress).forEach(task => {
-            document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-
-        filterTasks(data.completed).forEach(task => {
-            document.getElementById("completed-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-
-        filterTasks(data.rejected).forEach(task => {
-            document.getElementById("in-progress-tasks").insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-
-    // After cards are in DOM, wire listeners and tooltips
     setupTaskDropdownListeners();
     addAttachFileIconListeners();
     initBootstrapTooltips();
     refreshAllUnreadBadges();
     refreshAllLatestFeedbackSnippets();
+
+    updatePagination(allTasksCache);
+}
+
+
+    function updatePagination(data) {
+        const statusMap = {
+            new_request: {
+                containerId: "newTaskPagination",
+                prevBtnId: "prevPageBtnNew",
+                nextBtnId: "nextPageBtnNew",
+                infoId: "paginationInfoNew"
+            },
+            in_progress: {
+                containerId: "progressTaskPagination",
+                prevBtnId: "prevPageBtnProgress",
+                nextBtnId: "nextPageBtnProgress",
+                infoId: "paginationInfoProgress"
+            },
+            completed: {
+                containerId: "completedTaskPagination",
+                prevBtnId: "prevPageBtnCompleted",
+                nextBtnId: "nextPageBtnCompleted",
+                infoId: "paginationInfoCompleted"
+            }
+        };
+
+        Object.keys(statusMap).forEach(status => {
+            const pagination = data[status]?.pagination;
+            if (!pagination) return;
+
+            const { prevBtnId, nextBtnId, infoId } = statusMap[status];
+
+            const prevBtn = document.getElementById(prevBtnId);
+            const nextBtn = document.getElementById(nextBtnId);
+            const info = document.getElementById(infoId);
+            if (!prevBtn || !nextBtn || !info) return;
+
+            prevBtn.disabled = pagination.current_page <= 1;
+            nextBtn.disabled = pagination.current_page >= pagination.last_page;
+            info.textContent = `${pagination.current_page} of ${pagination.last_page}`;
+
+            prevBtn.onclick = () => {
+                if (pagination.current_page > 1) fetchAndRenderTasks(status, pagination.current_page - 1);
+            };
+
+            nextBtn.onclick = () => {
+                if (pagination.current_page < pagination.last_page) fetchAndRenderTasks(status, pagination.current_page + 1);
+            };
+        });
     }
 
     $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
@@ -4502,127 +4556,147 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
         applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
     }
-});
 
-$(document).ready(function () {
-    // Delegated handlers for adding/removing reference URL rows (works for add/edit task and feedback forms)
-    document.addEventListener('click', function(e) {
-        const addBtn = e.target.closest('.add-ref-url');
-        if (addBtn) {
-            const container = addBtn.closest('.mb-3')?.querySelector('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container');
-            if (!container) return;
-            const row = document.createElement('div');
-            row.className = 'd-flex gap-2 align-items-center';
-            row.innerHTML = `<input type="url" class="form-control${container.id.startsWith('edit_task_') ? ' input-text' : ''}" name="reference_urls[]" placeholder="https://example.com">` +
-                `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
-            container.appendChild(row);
-            return;
-        }
-        const removeBtn = e.target.closest('.remove-ref-url');
-        if (removeBtn) {
-            const row = removeBtn.closest('.d-flex.align-items-center');
-            if (row) row.remove();
-            return;
-        }
-    }, false);
-  const mobileCardHtml = `
-  <div class="mobile-task-container p-3 rounded-4 d-md-none">
-    <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
-      <select id="taskStatusSelect" class="form-select border-0 bg-transparent" style="max-width:140px;">
-        <option value="new_request">New</option>
-        <option value="in_progress">In Progress</option>
-        <option value="completed">Completed</option>
-      </select>
+    function fetchMobileTasks(status, page = 1) {
+      $.ajax({
+        url: appUrl + "/task/index",
+        type: "GET",
+        dataType: "json",
+        data: { status, page },
+        success: function (response) {
+          if (!response || response.code !== 200 || !response.data) return;
+    
+          const data = response.data?.[status];
+          renderMobileTasks(status, data);
+        },
+        error: function (xhr, status, error) {
+          console.error("Error fetching mobile tasks:", error);
+        },
+      });
+    }
+    
+    function renderMobileTasks(status, data) {
+      const container = $(".mobile-task-container");
+      const list = $("#mobile-task-list");
+    
+      container.removeClass("task-mobile-new task-mobile-progress task-mobile-completed");
+      list.empty();
+      $("#newTaskPagination, #progressTaskPagination, #completedTaskPagination").hide();
+    
+      if (status === "new_request") {
+        container.addClass("task-mobile-new");
+        $("#newTaskPagination").show();
+      } else if (status === "in_progress") {
+        container.addClass("task-mobile-progress");
+        $("#progressTaskPagination").show();
+      } else if (status === "completed") {
+        container.addClass("task-mobile-completed");
+        $("#completedTaskPagination").show();
+      }
+    
+      if (!data || !data.tasks || data.tasks.length === 0) {
+        list.append('<div class="text-center text-muted py-3">No tasks found</div>');
+      } else {
+        data.tasks.forEach((task) => {
+          list.append(createTaskCard(task));
+        });
+      }
+    
+      if (window.initBootstrapTooltips) window.initBootstrapTooltips(list[0] || document);
+    
+      updateMobilePagination(status, data?.pagination);
+    }
+    
+    function updateMobilePagination(status, pagination) {
+    const $prevBtn = $("#prevPageBtn");
+    const $nextBtn = $("#nextPageBtn");
+    const $info = $("#paginationInfo");
 
-      <div class="action-buttons d-flex align-items-center gap-2">
-        <div class="search-input-container">
-          <span class="material-symbols-outlined search-icon">search</span>
-          <input class="form-control custom-form-filter" type="text" name="search_filter_mobile"
-            id="search_filter_mobile">
+    if (!pagination) {
+        $prevBtn.prop("disabled", true);
+        $nextBtn.prop("disabled", true);
+        $info.text("0 OF 0");
+        return;
+    }
+
+    $prevBtn.prop("disabled", pagination.current_page <= 1);
+    $nextBtn.prop("disabled", pagination.current_page >= pagination.last_page);
+    $info.text(`${pagination.current_page} OF ${pagination.last_page}`);
+
+    $prevBtn.off("click").on("click", () => {
+        if (pagination.current_page > 1) {
+        fetchMobileTasks(status, pagination.current_page - 1);
+        }
+    });
+
+    $nextBtn.off("click").on("click", () => {
+        if (pagination.current_page < pagination.last_page) {
+        fetchMobileTasks(status, pagination.current_page + 1);
+        }
+    });
+    }
+
+    $(document).ready(function () {
+    const mobileCardHtml = `
+    <div class="mobile-task-container p-3 rounded-4 d-md-none">
+        <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
+        <select id="taskStatusSelect" class="form-select border-0 bg-transparent" style="max-width:140px;">
+            <option value="new_request">New</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+        </select>
+
+        <div class="action-buttons d-flex align-items-center gap-2">
+            <div class="search-input-container">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
+            </div>
+
+            <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
+            <span class="material-symbols-outlined">calendar_month</span>
+            </button>
+
+            <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+            <span class="material-symbols-outlined">filter_list</span>
+            </button>
+        </div>
+        </div>
+        <div id="mobile-task-list"></div>
+        <div class="d-flex justify-content-center mt-3">
+            <div id="mobilePaginationWrapper" class="pagination-pill d-flex align-items-center">
+                <button id="prevPageBtn" class="btn-nav"><span class="material-symbols-outlined">chevron_left</span></button>
+                <span id="paginationInfo" class="pagination-info">1 OF 1</span>
+                <button id="nextPageBtn" class="btn-nav"><span class="material-symbols-outlined">chevron_right</span></button>
+            </div>
+        </div>
         </div>
 
-        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
-          <span class="material-symbols-outlined">calendar_month</span>
-        </button>
+    </div>`;
 
-        <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
-          <span class="material-symbols-outlined">filter_list</span>
-        </button>
-
-        <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
-            <div class="dropdown-filter-body">
-                <div class="mb-3">
-                    <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                    <select id="filterTaskProjectMobile" class="form-select">
-                        <option value="">All Projects</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label for="filterTaskStatusMobile" class="form-label">Status</label>
-                    <select id="filterTaskStatusMobile" class="form-select">
-                        <option value="">All Status</option>
-                        <option value="new_request">New Request</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
-            </div>
-            <div class="dropdown-filter-footer">
-                <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
-            </div>
-        </div>
-      </div>
-    </div>
-    <div id="mobile-task-list"></div>
-  </div>
-`;
-
-  $("#task-cards-container").before(mobileCardHtml);
-
-  function toggleDropdownFilter() {
-    let dropdown = $(".dropdown-filter-container");
-    if ($(window).width() <= 768) {
-      dropdown.hide();
-    } else {
-      dropdown.show();
+      function toggleDropdownFilter() {
+        let dropdown = $(".dropdown-filter-container");
+        if ($(window).width() <= 768) {
+        dropdown.hide();
+        } else {
+        dropdown.show();
+        }
     }
-  }
-  toggleDropdownFilter();
-  $(window).on("resize", toggleDropdownFilter);
+    toggleDropdownFilter();
+    $(window).on("resize", toggleDropdownFilter);
 
-  $("#taskStatusSelect").on("change", function () {
-    let status = $(this).val();
-    let container = $(".mobile-task-container");
-    let list = $("#mobile-task-list");
+    $("#task-cards-container").before(mobileCardHtml);
 
-    container.removeClass("task-mobile-new task-mobile-progress task-mobile-completed");
-    list.empty();
+    $("#taskStatusSelect").on("change", function () {
+        fetchMobileTasks($(this).val(), 1);
+    });
 
-    if (status === "new_request") {
-      container.addClass("task-mobile-new");
-      let newClone = $("#new-request-tasks").clone(false, false);
-      newClone.removeAttr("id");
-      list.append(newClone);
-    } else if (status === "in_progress") {
-      container.addClass("task-mobile-progress");
-      let progressClone = $("#in-progress-tasks").clone(false, false);
-      progressClone.removeAttr("id");
-      list.append(progressClone);
-    } else if (status === "completed") {
-      container.addClass("task-mobile-completed");
-      let completedClone = $("#completed-tasks").clone(false, false);
-      completedClone.removeAttr("id");
-      list.append(completedClone);
-    }
+    $("#taskStatusSelect").val("new_request").trigger("change");
+    });
 
-    if (window.initBootstrapTooltips) {
-      window.initBootstrapTooltips(list[0] || document);
-    }
-  });
-
-  $("#taskStatusSelect").val("new_request").trigger("change");
 });
+
+// let allTasksCache = null;
+
 
 // Toggle filter mobile
 $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
@@ -4829,7 +4903,6 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
         timelineEl.addEventListener('hidden.bs.modal', onTimelineHidden, { once: true });
         tlInstance.hide();
     });
-
 
     // First render on modal show
     const timelineModal = document.getElementById("timelineModal");
