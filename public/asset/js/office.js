@@ -278,20 +278,22 @@ $(document).ready(function() {
             ? 'There are Task and Project notifications. Choose an action:'
             : (showTasks ? 'Task notifications found. Proceed to accept all tasks?' : 'Project notifications found. Proceed to accept all projects?');
 
-        const actionsHtml = hasBoth
-                ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>
-                    <button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>
-                    <button type="button" class="btn btn-submit-black" id="bulkAcceptAllBtn" style="white-space: nowrap;">Accept all</button>`
-            : (showTasks
-                ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn">Accept all tasks</button>`
-                : `<button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn">Accept all projects</button>`);
+    const actionsHtml = hasBoth
+        ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>
+            <button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>
+            <button type="button" class="btn btn-submit-black" id="bulkAcceptAllBtn" style="white-space: nowrap;">Accept all</button>`
+        : (showTasks
+        ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>`
+        : `<button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>`);
 
-        const footerButtons = hasBoth
-            ? `<div class="d-flex" style="gap:8px; flex-wrap: nowrap;">
-                   ${actionsHtml}
-               </div>`
-            : `<button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
-               <div class="d-flex" style="gap:8px;">${actionsHtml}</div>`;
+    const footerButtons = hasBoth
+        ? `<div class="d-flex justify-content-center w-100" style="gap:8px; flex-wrap: nowrap;">
+           ${actionsHtml}
+           </div>`
+        : `<div class="d-flex justify-content-center w-100" style="gap:8px; flex-wrap: nowrap;">
+            <button type="button" class="btn btn-close-reply" data-bs-dismiss="modal">Cancel</button>
+            ${actionsHtml}
+           </div>`;
 
         const html = `
             <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
@@ -304,7 +306,7 @@ $(document).ready(function() {
                         <div class="modal-body">
                             <p class="mb-0">${body}</p>
                         </div>
-                        <div class="modal-footer d-flex justify-content-between">
+                        <div class="modal-footer">
                             ${footerButtons}
                         </div>
                     </div>
@@ -509,12 +511,20 @@ $(document).ready(function() {
         if (dropdown.is(':visible')) {
             fetchNotifications();
             dropdownClosed = false;
+        } else {
+            // When dropdown is hidden via toggle, also reset Select all checkbox
+            dropdownClosed = true;
+            const selectAll = $('#notificationSelectAll');
+            if (selectAll.length) selectAll.prop('checked', false);
         }
     }
 
     function hideNotificationDropdown() {
         $('#notificationDropdownCard').hide();
         dropdownClosed = true;
+        // Reset Select all checkbox when dropdown closes
+        const selectAll = $('#notificationSelectAll');
+        if (selectAll.length) selectAll.prop('checked', false);
     }
 
     // Notification dropdown event handlers
