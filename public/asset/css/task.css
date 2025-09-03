@@ -1610,3 +1610,24 @@ p {
     background-color: #333;
     color: white;
 }
+
+.btn-danger.remove-ref-url {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-danger.remove-ref-url:hover {
+    background-color: #c82333;
+    color: white;
+}
