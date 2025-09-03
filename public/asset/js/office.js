@@ -321,8 +321,14 @@ $(document).ready(function() {
             </div>`;
         $('body').append(html);
         const m = new bootstrap.Modal(document.getElementById(id));
+        // When modal fully hides, remove it and uncheck Select all; keep dropdown open
+        $('#'+id).on('hidden.bs.modal', function(){
+            const selectAll = $('#notificationSelectAll');
+            if (selectAll.length) selectAll.prop('checked', false);
+            $(this).remove();
+        });
         m.show();
-        const closeModal = () => { try { m.hide(); } catch(_) {} $('#'+id).on('hidden.bs.modal', function(){ $(this).remove(); }); };
+        const closeModal = () => { try { m.hide(); } catch(_) {} };
         const settle = (ret, done) => {
             try {
                 if (!ret) { done(); return; }
@@ -499,8 +505,9 @@ $(document).ready(function() {
         hideAvatarDropdown();
     });
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside (ignore clicks inside modals)
     $(document).on('click', function(e) {
+        if ($(e.target).closest('.modal, .modal-backdrop').length) return;
         if (!$(e.target).closest('#avatarDropdownCard, #avatarDropdownToggle').length) {
             hideAvatarDropdown();
         }
@@ -545,8 +552,12 @@ $(document).ready(function() {
         hideNotificationDropdown();
     });
 
-    // Close dropdown when clicking outside
+    // Close dropdown when clicking outside, but ignore clicks inside any Bootstrap modal
     $(document).on('click', function(e) {
+        // If click is inside an open modal (or its backdrop), do not close the dropdown
+        if ($(e.target).closest('.modal, .modal-backdrop').length) {
+            return;
+        }
         if (!$(e.target).closest('#notificationDropdownCard, #notificationDropdownToggle').length) {
             hideNotificationDropdown();
         }
