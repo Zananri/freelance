@@ -205,6 +205,12 @@ document.addEventListener("DOMContentLoaded", function () {
             type: "GET",
             dataType: "json",
             data: { filter: filter, task_scope: 'me', page: page },
+            beforeSend:function(){
+                $('.loader').fadeIn('fast');
+            },
+            error:function(res){
+                $('.loader').fadeOut('fast');
+            },
             success: function (data) {
 
                 let container = document.getElementById("all-cards-container");
@@ -3305,6 +3311,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         updateProjectChartFromData([], null);
                     }
                 }
+
+                $('.loader').fadeOut('fast');
+
             },
             error: function () {
                 console.error("Failed to load project card data.");
@@ -3393,7 +3402,6 @@ function loadCardProjects(page = 1) {
         dataType: "json",
         data: { task_scope: 'me', page: page },
         success: function (data) {
-            console.log("page:", page, "Data:", data.data);
 
             loadProjectCardData(null, page);
 
@@ -4178,11 +4186,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
     });
 
     // Load departments and projects on page load
-    loadDepartments();
     loadProjects();
-    loadCardProjects();
-    loadTimelineProjects();
     loadProjectCardData();
+    loadTimelineProjects();
+    loadCardProjects();
+    loadDepartments();
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
@@ -5270,9 +5278,13 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/project/index",
             type: "GET",
             dataType: "json",
+            beforeSend:function(){
+                $('.loader').fadeIn('fast');
+            },
+            error:function(res){
+                $('.loader').fadeOut('fast');
+            },
             success: function (projectRes) {
-                console.log("project res:", projectRes);
-
                 const projects = Array.isArray(projectRes)
                     ? projectRes
                     : (Array.isArray(projectRes.data) ? projectRes.data : []);
@@ -5338,6 +5350,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     });
                 }
+
+                $(".loader").fadeOut('fast');
+
             },
             error: function (err) {
                 console.error("project/index failed", err);
@@ -5378,57 +5393,57 @@ function loadTimelineProjects(filter = null) {
         type: "GET",
         dataType: "json",
         data: { task_scope: 'me', filter: filter },
+        beforeSend:function(){
+            $('.loader').fadeIn('fast');
+        },
         success: function (res) {
             const projects = Array.isArray(res) 
                 ? res 
                 : (Array.isArray(res.data) ? res.data : []);
 
-            const needsFetch = projects.filter((p) => {
-                const s = p.start_date || p.start || p.startDate || p.startAt;
-                const e = p.due_date || p.due || p.end_date || p.endDate || p.dueAt;
-                return !(s && e);
-            });
+            const completeProjects = projects.filter(p => (p.start_date || p.start) && (p.due_date || p.due));
+            const incompleteProjects = projects.filter(p => !(p.start_date || p.start) || !(p.due_date || p.due));
 
-            if (needsFetch.length === 0) {
-                try {
-                    buildTimelineFromProjects(projects);
-                    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
-                    updateModalTimeline();
-                } catch (e) {
-                    console.error("timeline build/render error", e);
-                }
-            } else {
-                const fetches = needsFetch.map((p) => {
-                    return $.ajax({
+            try {
+                buildTimelineFromProjects(completeProjects);
+                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                updateModalTimeline();
+            } catch (e) {
+                console.error("timeline build/render error", e);
+            }
+
+            if (incompleteProjects.length > 0) {
+                incompleteProjects.forEach((p) => {
+                    $.ajax({
                         url: appUrl + "/project/" + p.id,
                         type: "GET",
                         dataType: "json",
-                    })
-                        .then((resp) => {
+                        success: function (resp) {
                             const data = resp.data || resp;
-                            p.start_date = p.start_date || data.start_date || data.start || data.startDate;
-                            p.due_date = p.due_date || data.due_date || data.due || data.endDate || data.end_date;
-                            return p;
-                        })
-                        .catch((err) => {
-                            console.warn("failed to fetch project detail for", p.id, err);
-                            return p;
-                        });
-                });
+                            p.start_date = p.start_date || data.start_date || data.start;
+                            p.due_date   = p.due_date   || data.due_date   || data.due;
 
-                Promise.all(fetches).then(() => {
-                    try {
-                        buildTimelineFromProjects(projects);
-                        renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
-                        updateModalTimeline();
-                    } catch (e) {
-                        console.error("timeline build/render error", e);
-                    }
+                            try {
+                                const updatedProjects = completeProjects.concat(incompleteProjects);
+                                buildTimelineFromProjects(updatedProjects);
+                                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                                updateModalTimeline();
+                            } catch (e) {
+                                console.error("timeline update error", e);
+                            }
+                        },
+                        error: function (err) {
+                            console.warn("failed to fetch project detail for", p.id, err);
+                        }
+                    });
                 });
             }
+
+            $('.loader').fadeOut('fast');
         },
         error: function () {
             console.error("Failed to load timeline projects");
+            $('.loader').fadeOut('fast');
         }
     });
 }

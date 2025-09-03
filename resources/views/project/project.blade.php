@@ -127,6 +127,7 @@
 
                         <!-- Body -->
                         <div class="modal-body p-0">
+                            
                             <div class="timeline-wrapper">
                                 <table class="timeline-table w-100">
                                     <thead>
@@ -193,13 +194,22 @@
                 <div id="all-cards-container">
                     {{-- Content Card --}}
                 </div>
+                <div class="loader">
+                    <div class="box-loader">
+                        <div class="text-center">
+                            <div class="spinner-border text-secondary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="d-flex justify-content-center mt-3">
                     <div id="project-pagination" class="pagination-pill d-flex align-items-center">
                         <button id="prevPageBtn" class="btn-nav" disabled>
                             <span class="material-symbols-outlined">chevron_left</span>
                         </button>
 
-                        <span id="paginationInfo" class="pagination-info">1 OF 10</span>
+                        <span id="paginationInfo" class="pagination-info">1 OF 1</span>
 
                         <button id="nextPageBtn" class="btn-nav">
                             <span class="material-symbols-outlined">chevron_right</span>
