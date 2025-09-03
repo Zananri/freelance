@@ -2765,7 +2765,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
                         <div class="d-flex gap-2 align-items-center">
                             <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                            <button type="button" class="btn btn-submit-black add-ref-url">Add</button>
+                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
                         </div>
                     </div>
                 </div>
@@ -2882,7 +2882,7 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
                         <div class="d-flex gap-2 align-items-center">
                             <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                            <button type="button" class="btn btn-submit-black add-ref-url">Add</button>
+                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
                         </div>
                     </div>
                 </div>
@@ -3090,15 +3090,15 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 const row = document.createElement('div');
                 row.className = 'd-flex gap-2 align-items-center';
                 row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">` +
-                    `<button type="button" class="btn btn-submit-black add-ref-url">Add</button>`;
+                    `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`;
                 container.appendChild(row);
             } else {
                 urls.forEach((u, idx) => {
                     const row = document.createElement('div');
                     row.className = 'd-flex gap-2 align-items-center';
                     const controls = (idx === 0)
-                        ? `<button type="button" class="btn btn-submit-black add-ref-url">Add</button>`
-                        : `<button type="button" class="btn btn-danger remove-ref-url">Remove</button>`;
+                        ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                        : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
                     row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" value="${u}" placeholder="https://example.com">${controls}`;
                     container.appendChild(row);
                 });
@@ -4072,8 +4072,8 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         const row = document.createElement('div');
                         row.className = 'd-flex gap-2 align-items-center';
                         const controls = (idx === 0)
-                            ? `<button type="button" class="btn btn-submit-black add-ref-url">Add</button>`
-                            : `<button type="button" class="btn btn-danger remove-ref-url">Remove</button>`;
+                            ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                            : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
                         row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
                         container.appendChild(row);
                     });
@@ -4464,18 +4464,22 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 $(document).ready(function () {
     // Delegated handlers for adding/removing reference URL rows (works for add/edit task and feedback forms)
     document.addEventListener('click', function(e) {
-        if (e.target && e.target.classList.contains('add-ref-url')) {
-            const container = e.target.closest('.mb-3')?.querySelector('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container');
+        const addBtn = e.target.closest('.add-ref-url');
+        if (addBtn) {
+            const container = addBtn.closest('.mb-3')?.querySelector('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container');
             if (!container) return;
             const row = document.createElement('div');
             row.className = 'd-flex gap-2 align-items-center';
             row.innerHTML = `<input type="url" class="form-control${container.id.startsWith('edit_task_') ? ' input-text' : ''}" name="reference_urls[]" placeholder="https://example.com">` +
-                `<button type="button" class="btn btn-danger remove-ref-url">Remove</button>`;
+                `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
             container.appendChild(row);
+            return;
         }
-        if (e.target && e.target.classList.contains('remove-ref-url')) {
-            const row = e.target.closest('.d-flex.align-items-center');
+        const removeBtn = e.target.closest('.remove-ref-url');
+        if (removeBtn) {
+            const row = removeBtn.closest('.d-flex.align-items-center');
             if (row) row.remove();
+            return;
         }
     }, false);
   const mobileCardHtml = `
