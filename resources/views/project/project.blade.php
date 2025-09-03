@@ -127,7 +127,7 @@
 
                         <!-- Body -->
                         <div class="modal-body p-0">
-                            
+
                             <div class="timeline-wrapper">
                                 <table class="timeline-table w-100">
                                     <thead>
@@ -281,16 +281,20 @@
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="project_reference_urls_container" class="d-flex flex-column gap-2">
                                 <div class="d-flex gap-2 align-items-center">
-                                    <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
-                                    <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                    <input type="url" class="form-control input-text" name="reference_urls[]"
+                                        placeholder="https://example.com">
+                                    <button type="button" class="btn btn-submit-black add-ref-url"
+                                        aria-label="Add URL"><span
+                                            class="material-symbols-outlined">add</span></button>
                                 </div>
                             </div>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="reference_file"
-                                name="reference_file[]" accept=".pdf,.doc,.docx" multiple>
-                            <div class="form-text">You can select multiple files (PDF, DOC, DOCX)</div>
+                                name="reference_file[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <div class="form-text">Multiple files supported.
+                            </div>
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 d-flex justify-content-between">
@@ -410,15 +414,18 @@
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="edit_project_reference_urls_container" class="d-flex flex-column gap-2">
                                 <div class="d-flex gap-2 align-items-center">
-                                    <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
-                                    <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                    <input type="url" class="form-control input-text" name="reference_urls[]"
+                                        placeholder="https://example.com">
+                                    <button type="button" class="btn btn-submit-black add-ref-url"
+                                        aria-label="Add URL"><span
+                                            class="material-symbols-outlined">add</span></button>
                                 </div>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_reference_file" class="form-label label-custom">Reference File</label>
+                            <label for="edit_reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="edit_reference_file"
-                                name="reference_file[]" accept=".pdf,.doc,.docx" multiple>
+                                name="reference_file[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                             <div id="existing_reference_files" class="mt-2"></div>
                             <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"

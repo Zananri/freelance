@@ -616,9 +616,11 @@ class ProjectController extends Controller
                 'contributors.*' => 'nullable|exists:employees,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                // allow multiple files via reference_file[]
-                'reference_file' => 'nullable',
-                'reference_file.*' => 'file|mimes:pdf,doc,docx|max:10240',
+                // Allow multiple reference files (both new and legacy keys) with Task's whitelist and 5MB limit
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file' => 'nullable|array',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
 
             ]);
 
@@ -654,19 +656,22 @@ class ProjectController extends Controller
                 $project->image = $imageName;
             }
 
-            // Handle reference file uploads (support multiple files) -> store into reference_files (JSON)
+            // Handle reference file uploads from either reference_files[] (preferred) or reference_file[] (legacy)
             $uploadedFiles = [];
+            $incomingFiles = [];
+            if ($request->hasFile('reference_files')) {
+                $rf = $request->file('reference_files');
+                $incomingFiles = array_merge($incomingFiles, is_array($rf) ? $rf : [$rf]);
+            }
             if ($request->hasFile('reference_file')) {
-                $files = $request->file('reference_file');
-                if (!is_array($files))
-                    $files = [$files];
-                foreach ($files as $file) {
-                    if (!$file)
-                        continue;
-                    $fileName = 'PROJECT_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
-                    $file->move(public_path('file/project'), $fileName);
-                    $uploadedFiles[] = $fileName;
-                }
+                $rfLegacy = $request->file('reference_file');
+                $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
+            }
+            foreach ($incomingFiles as $idx => $file) {
+                if (!$file) continue;
+                $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('file/project'), $fileName);
+                $uploadedFiles[] = $fileName;
             }
             // If any files uploaded, set as array; otherwise keep null
             if (count($uploadedFiles)) {
@@ -933,9 +938,11 @@ class ProjectController extends Controller
                 'part_of_project' => 'nullable|exists:projects,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                // allow multiple files via reference_file[] on update
-                'reference_file' => 'nullable',
-                'reference_file.*' => 'file|mimes:pdf,doc,docx|max:10240',
+                // Allow multiple reference files via both keys; use Task's whitelist and 5MB limit
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file' => 'nullable|array',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
                 'co_author' => 'nullable|array',
                 'co_author.*' => 'nullable|exists:employees,id',
                 'contributors' => 'nullable|array',
@@ -1006,18 +1013,21 @@ class ProjectController extends Controller
             // Start with preserved files
             $finalFiles = $existing;
 
-            // Handle newly uploaded files
+            // Handle newly uploaded files from both keys
+            $incomingFiles = [];
+            if ($request->hasFile('reference_files')) {
+                $rf = $request->file('reference_files');
+                $incomingFiles = array_merge($incomingFiles, is_array($rf) ? $rf : [$rf]);
+            }
             if ($request->hasFile('reference_file')) {
-                $files = $request->file('reference_file');
-                if (!is_array($files))
-                    $files = [$files];
-                foreach ($files as $file) {
-                    if (!$file)
-                        continue;
-                    $fileName = 'PROJECT_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
-                    $file->move(public_path('file/project'), $fileName);
-                    $finalFiles[] = $fileName;
-                }
+                $rfLegacy = $request->file('reference_file');
+                $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
+            }
+            foreach ($incomingFiles as $idx => $file) {
+                if (!$file) continue;
+                $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('file/project'), $fileName);
+                $finalFiles[] = $fileName;
             }
 
             // Set final files (empty array allowed) -> primary JSON column
@@ -1215,6 +1225,15 @@ class ProjectController extends Controller
                     'reference_url' => $fb->reference_url,
             'reference_urls' => $fb->reference_urls ?: ($fb->reference_url ? [$fb->reference_url] : []),
                     'reference_file' => $fb->reference_file ? asset('file/project/' . $fb->reference_file) : null,
+                    'reference_files' => (function() use ($fb) {
+                        $arr = $fb->reference_files;
+                        if (is_string($arr) && $arr !== '') {
+                            $dec = json_decode($arr, true);
+                            if (is_array($dec)) $arr = $dec; else $arr = [$arr];
+                        }
+                        if (!is_array($arr)) $arr = [];
+                        return array_map(function($f){ return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
+                    })(),
                     'created_at' => $fb->created_at,
                     'employee' => $fb->employee ? [
                         'id' => $fb->employee->id,
@@ -1234,6 +1253,15 @@ class ProjectController extends Controller
                         'reference_url' => $r->reference_url,
             'reference_urls' => $r->reference_urls ?: ($r->reference_url ? [$r->reference_url] : []),
                         'reference_file' => $r->reference_file ? asset('file/project/' . $r->reference_file) : null,
+                        'reference_files' => (function() use ($r) {
+                            $arr = $r->reference_files;
+                            if (is_string($arr) && $arr !== '') {
+                                $dec = json_decode($arr, true);
+                                if (is_array($dec)) $arr = $dec; else $arr = [$arr];
+                            }
+                            if (!is_array($arr)) $arr = [];
+                            return array_map(function($f){ return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
+                        })(),
                         'created_at' => $r->created_at,
                         'employee' => $r->employee ? [
                             'id' => $r->employee->id,
@@ -1276,11 +1304,14 @@ class ProjectController extends Controller
                 'parent_id' => 'nullable|exists:project_feedbacks,id',
                 'employee_id' => 'required|exists:employees,id',
                 'feedback_comment' => 'required|string',
-                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+                // Match Task limits (image max 2MB)
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
                 'reference_url' => 'nullable|url',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+                // Multiple reference files support (match Task mimes & 5MB limit)
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
             ]);
 
             $feedback = new ProjectFeedback();
@@ -1309,12 +1340,20 @@ class ProjectController extends Controller
                 $feedback->image = $imageName;
             }
 
-            // Handle reference file upload
-            if ($request->hasFile('reference_file')) {
-                $file = $request->file('reference_file');
-                $fileName = 'FEEDBACK_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('file/project'), $fileName);
-                $feedback->reference_file = $fileName;
+            // Handle multiple reference files upload
+            $uploaded = [];
+            if ($request->hasFile('reference_files')) {
+                foreach ((array) $request->file('reference_files') as $file) {
+                    if (!$file) continue;
+                    $fileName = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/project'), $fileName);
+                    $uploaded[] = $fileName;
+                }
+            }
+            if (!empty($uploaded)) {
+                $feedback->reference_files = $uploaded;
+                // mirror first file for legacy single field consumers
+                $feedback->reference_file = $uploaded[0];
             }
 
             $feedback->save();
@@ -1363,9 +1402,13 @@ class ProjectController extends Controller
                 'reference_url' => 'nullable|url',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                'reference_file' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+                // Match Task image limits (2MB)
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+                // Multiple reference files update (match Task)
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'existing_reference_files' => 'nullable', // JSON array of filenames to keep
             ]);
 
             $feedback->feedback_comment = $request->feedback_comment;
@@ -1389,12 +1432,31 @@ class ProjectController extends Controller
                 $feedback->image = $name;
             }
 
-            if ($request->hasFile('reference_file')) {
-                $ref = $request->file('reference_file');
-                $name = 'FEEDBACK_' . time() . '.' . $ref->getClientOriginalExtension();
-                $ref->move(public_path('file/project'), $name);
-                $feedback->reference_file = $name;
+            // Handle existing + new reference files
+            $existing = [];
+            if ($request->has('existing_reference_files')) {
+                $existing = json_decode($request->existing_reference_files, true) ?: [];
             }
+            $existing = is_array($existing) ? $existing : [];
+            $current = $feedback->reference_files ?: ($feedback->reference_file ? [$feedback->reference_file] : []);
+            if (!is_array($current)) $current = (strlen((string) $current) ? [$current] : []);
+            // Delete removed
+            $toDelete = array_diff($current, $existing);
+            foreach ($toDelete as $del) {
+                $path = public_path('file/project/' . $del);
+                if ($del && file_exists($path)) @unlink($path);
+            }
+            $finalFiles = $existing;
+            if ($request->hasFile('reference_files')) {
+                foreach ((array) $request->file('reference_files') as $rf) {
+                    if (!$rf) continue;
+                    $name = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $rf->getClientOriginalExtension();
+                    $rf->move(public_path('file/project'), $name);
+                    $finalFiles[] = $name;
+                }
+            }
+            $feedback->reference_files = $finalFiles;
+            $feedback->reference_file = count($finalFiles) ? $finalFiles[0] : null;
 
             if ($user) {
                 $feedback->updated_by = $user->id;
