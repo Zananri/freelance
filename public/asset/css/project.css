@@ -103,10 +103,12 @@
 
 .timeline-table thead th {
     position: sticky;
-    top: 0px;
+    top: 0;
     z-index: 10;
     font-size: 12px;
     font-weight: normal;
+    background: #e9ecef;
+    padding: 2px 3px;
 }
 
 .timeline-table th,
@@ -1559,22 +1561,33 @@
     font-size: 14px;
 }
 
-#paginationInfo,
-#dataInfo {
-    font-size: 12px;
+.pagination-pill {
+  background: #F0F1F8;
+  border-radius: 50px;
+  padding: 4px 12px;
+  gap: 12px;
+  margin-bottom: 100px;
 }
 
-#project-pagination {
-    margin-bottom: 100px;
+.pagination-info {
+  font-weight: 600;
+  font-size: 12px;
+  min-width: 80px;
+  text-align: center;
 }
 
-#project-pagination button span {
-    transition: 0.3s;
+.btn-nav {
+  background: transparent;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-#project-pagination button span:hover {
-    color: #e3e4ee;
-    background-color: #596069;
-    border-radius: 50%;
-    padding: 5px;
+.btn-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }

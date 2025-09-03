@@ -216,57 +216,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 // compute chart counts even if zero or empty
 
                 // Build timeline from actual projects and render. If list items lack start/due, fetch details.
-                (function () {
-                    // Helper to decide if project has valid date fields
-                    function hasValidDates(p) {
-                        if (!p) return false;
-                        const s = p.start_date || p.start || p.startDate || p.startAt;
-                        const e = p.due_date || p.due || p.end_date || p.endDate || p.dueAt;
-                        return !!(s && e);
-                    }
-
-                    const needsFetch = projects.filter((p) => !hasValidDates(p));
-
-                    if (needsFetch.length === 0) {
-                        try {
-                            buildTimelineFromProjects(projects);
-                            renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
-                            updateModalTimeline();
-                        } catch (e) {
-                            console.error('timeline build/render error', e);
-                        }
-                    } else {
-                        // Fetch details for projects missing dates (parallel)
-                        const fetches = needsFetch.map((p) => {
-                            return $.ajax({
-                                url: appUrl + "/project/" + p.id,
-                                type: "GET",
-                                dataType: "json",
-                            })
-                                .then((resp) => {
-                                    const data = resp.data || resp;
-                                    // merge date fields back into list item
-                                    p.start_date = p.start_date || data.start_date || data.start || data.startDate;
-                                    p.due_date = p.due_date || data.due_date || data.due || data.endDate || data.end_date;
-                                    return p;
-                                })
-                                .catch((err) => {
-                                    console.warn('failed to fetch project detail for', p.id, err);
-                                    return p;
-                                });
-                        });
-
-                        Promise.all(fetches).then(() => {
-                            try {
-                                buildTimelineFromProjects(projects);
-                                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
-                                updateModalTimeline();
-                            } catch (e) {
-                                console.error('timeline build/render error', e);
-                            }
-                        });
-                    }
-                })();
 
                 if (projects && projects.length > 0) {
                     let rowHtml = '<div class="row">';
@@ -2809,49 +2758,32 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
 
                     // Extracted function to fetch and show Project Detail modal (reused by timeline bar clicks)
+                    let projectDetailModal = bootstrap.Modal.getOrCreateInstance(
+                        document.getElementById("projectDetailModal")
+                    );
+
                     function fetchAndShowProjectDetail(projectId) {
-                        // Fetch project details via AJAX
                         $.ajax({
                             url: appUrl + "/project/" + projectId,
                             type: "GET",
                             dataType: "json",
                             success: function (response) {
                                 const data = response.data || {};
-
-                                // Populate modal fields
                                 const baseFileUrl = appUrl + "/file/project/";
 
+                                // Populate modal fields
                                 $("#projectDetailImage").attr(
                                     "src",
                                     data.image
                                         ? baseFileUrl + data.image
-                                        : appUrl +
-                                              "/asset/img/background/add-image.png"
-                                );
-                                $("#projectDetailImage").attr(
-                                    "style",
-                                    "border-radius: 8px;"
-                                );
+                                        : appUrl + "/asset/img/background/add-image.png"
+                                ).css("border-radius", "8px");
 
-                                $("#projectDetailTitle").replaceWith(
-                                    `<h2 class="project-title" id="projectDetailTitle">${
-                                        data.title || ""
-                                    }</h2>`
-                                );
-                                $("#projectDetailAuthor")
-                                    .text(
-                                        data.author ? data.author.name : "Unknown"
-                                    )
-                                    .css("text-align", "justify");
-                                $("#projectDetailDepartment").text(
-                                    data.department || ""
-                                );
-                                $("#projectDetailDivision").text(
-                                    data.division || ""
-                                );
-                                $("#projectDetailDescription").text(
-                                    data.description || ""
-                                );
+                                $("#projectDetailTitle").text(data.title || "");
+                                $("#projectDetailAuthor").text(data.author ? data.author.name : "Unknown");
+                                $("#projectDetailDepartment").text(data.department || "");
+                                $("#projectDetailDivision").text(data.division || "");
+                                $("#projectDetailDescription").text(data.description || "");
 
                                 if (data.reference_url) {
                                     $("#projectDetailReferenceUrl")
@@ -2872,50 +2804,25 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 function formatDate(dateStr) {
                                     if (!dateStr) return "";
-                                    const options = {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    };
-                                    const dateObj = new Date(dateStr);
-                                    return dateObj.toLocaleDateString(
-                                        undefined,
-                                        options
-                                    );
+                                    const options = { year: "numeric", month: "long", day: "numeric" };
+                                    return new Date(dateStr).toLocaleDateString(undefined, options);
                                 }
 
-                                $("#projectDetailStartDate").text(
-                                    formatDate(data.start_date)
-                                );
-                                $("#projectDetailDueDate").text(
-                                    formatDate(data.due_date)
+                                $("#projectDetailStartDate").text(formatDate(data.start_date));
+                                $("#projectDetailDueDate").text(formatDate(data.due_date));
+
+                                $("#projectDetailCoAuthors").text(
+                                    data.co_authors?.length
+                                        ? data.co_authors.map((ca) => ca.name).join(", ")
+                                        : "None"
                                 );
 
-                                if (data.co_authors && data.co_authors.length > 0) {
-                                    const coAuthorNames = data.co_authors
-                                        .map((ca) => ca.name)
-                                        .join(", ");
-                                    $("#projectDetailCoAuthors").text(
-                                        coAuthorNames
-                                    );
-                                } else {
-                                    $("#projectDetailCoAuthors").text("None");
-                                }
-
-                                if (data.contributors && data.contributors.length > 0) {
-                                    const contributorNames = data.contributors
-                                        .map((c) => c.name)
-                                        .join(", ");
-                                    $("#projectDetailContributors").text(
-                                        contributorNames
-                                    );
-                                } else {
-                                    $("#projectDetailContributors").text("None");
-                                }
-
-                                const projectDetailModal = new bootstrap.Modal(
-                                    document.getElementById("projectDetailModal")
+                                $("#projectDetailContributors").text(
+                                    data.contributors?.length
+                                        ? data.contributors.map((c) => c.name).join(", ")
+                                        : "None"
                                 );
+
                                 projectDetailModal.show();
                             },
                             error: function () {
@@ -2923,6 +2830,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             },
                         });
                     }
+
 
                     // Event listener for "Detail", "Task", and "Feedback" dropdown item click
                     document.addEventListener("click", function (e) {
@@ -4273,9 +4181,8 @@ function refreshAllProjectLatestFeedbackSnippets() {
     loadDepartments();
     loadProjects();
     loadCardProjects();
+    loadTimelineProjects();
     loadProjectCardData();
-    // loadEmployees(); // Removed obsolete function call
-    // setupCoAuthorInput(); // replaced by wrappedSetupCoAuthorInput to support cross-exclusion and syncing
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
@@ -5465,8 +5372,67 @@ let timelineData = [];
 // color palette cycles every 4
 const TIMELINE_COLORS = ["color1", "color2", "color3", "color4"];
 
-/**
- */
+function loadTimelineProjects(filter = null) {
+    $.ajax({
+        url: appUrl + "/project/index",
+        type: "GET",
+        dataType: "json",
+        data: { task_scope: 'me', filter: filter },
+        success: function (res) {
+            const projects = Array.isArray(res) 
+                ? res 
+                : (Array.isArray(res.data) ? res.data : []);
+
+            const needsFetch = projects.filter((p) => {
+                const s = p.start_date || p.start || p.startDate || p.startAt;
+                const e = p.due_date || p.due || p.end_date || p.endDate || p.dueAt;
+                return !(s && e);
+            });
+
+            if (needsFetch.length === 0) {
+                try {
+                    buildTimelineFromProjects(projects);
+                    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                    updateModalTimeline();
+                } catch (e) {
+                    console.error("timeline build/render error", e);
+                }
+            } else {
+                const fetches = needsFetch.map((p) => {
+                    return $.ajax({
+                        url: appUrl + "/project/" + p.id,
+                        type: "GET",
+                        dataType: "json",
+                    })
+                        .then((resp) => {
+                            const data = resp.data || resp;
+                            p.start_date = p.start_date || data.start_date || data.start || data.startDate;
+                            p.due_date = p.due_date || data.due_date || data.due || data.endDate || data.end_date;
+                            return p;
+                        })
+                        .catch((err) => {
+                            console.warn("failed to fetch project detail for", p.id, err);
+                            return p;
+                        });
+                });
+
+                Promise.all(fetches).then(() => {
+                    try {
+                        buildTimelineFromProjects(projects);
+                        renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                        updateModalTimeline();
+                    } catch (e) {
+                        console.error("timeline build/render error", e);
+                    }
+                });
+            }
+        },
+        error: function () {
+            console.error("Failed to load timeline projects");
+        }
+    });
+}
+
 function buildTimelineFromProjects(projects) {
     timelineData = [];
     if (!Array.isArray(projects)) return;
@@ -5650,15 +5616,6 @@ function renderTimeline(
         title.textContent = `${months[month]} week ${weekIndex + 1}`;
     }
 }
-
-renderTimeline(
-    "#timelineHeader",
-    "#timelineRows",
-    "week",
-    currentMonth,
-    currentYear,
-    currentWeek
-);
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
     if (currentWeek > 0) currentWeek--;

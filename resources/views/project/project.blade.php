@@ -193,19 +193,18 @@
                 <div id="all-cards-container">
                     {{-- Content Card --}}
                 </div>
-                <div id="project-pagination" class="d-flex align-items-center gap-3">
-                    <button id="prevPageBtn" class="btn btn-sm btn-pagination" disabled>
-                        <span class="material-symbols-outlined">keyboard_double_arrow_left</span>
-                    </button>
+                <div class="d-flex justify-content-center mt-3">
+                    <div id="project-pagination" class="pagination-pill d-flex align-items-center">
+                        <button id="prevPageBtn" class="btn-nav" disabled>
+                            <span class="material-symbols-outlined">chevron_left</span>
+                        </button>
 
-                    <span id="paginationInfo">Page 0 of 0</span>
+                        <span id="paginationInfo" class="pagination-info">1 OF 10</span>
 
-                    <button id="nextPageBtn" class="btn btn-sm btn-pagination" disabled>
-                        <span class="material-symbols-outlined">keyboard_double_arrow_right</span>
-                    </button>
-
-                    <!-- Info jumlah data -->
-                    <span id="dataInfo" class="ms-3 small text-muted">Showing 0–0 of 0</span>
+                        <button id="nextPageBtn" class="btn-nav">
+                            <span class="material-symbols-outlined">chevron_right</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
