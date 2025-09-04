@@ -620,6 +620,18 @@
     margin-top: 6px;
 }
 
+#monthDropdownMenuModal {
+    min-width: auto;
+    max-height: 500px;
+    overflow-y: auto;
+    background: #f0f1f8;
+    border: none;
+    overflow-x: hidden;
+    top: 25% !important;
+    left: -170px !important;
+    right: 0 !important;
+}
+
 #editEmployeePicture {
     margin-top: 0.5rem;
 }
