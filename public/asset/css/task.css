@@ -602,6 +602,45 @@
     object-fit: cover;
 }
 
+/* Selectable thumbnail for pending tasks */
+.task-selectable-thumb {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    cursor: pointer; /* clickable thumbnail */
+}
+.task-selectable-thumb .project-image {
+    width: 34px;
+    height: 34px;
+}
+.task-selectable-thumb .thumb-check {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0); /* transparent by default */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s ease-in-out, transform .15s ease-in-out, color .15s ease-in-out;
+}
+.task-selectable-thumb .thumb-check .material-symbols-outlined {
+    font-size: 18px;
+    line-height: 1;
+    color: rgba(255,255,255,0); /* hidden by default */
+}
+.task-selectable-thumb:hover .thumb-check {
+    background: rgba(0,0,0,0.25); /* soft dark overlay */
+}
+.task-selectable-thumb:hover .thumb-check .material-symbols-outlined {
+    color: rgba(255,255,255,0.7); /* soft white check */
+}
+.task-selectable-thumb.selected .thumb-check {
+    background: #5770d5; /* same as select-all */
+}
+.task-selectable-thumb.selected .thumb-check .material-symbols-outlined {
+    color: #fff;
+}
+
 .task-title {
     font-size: 16px;
     font-weight: 600;

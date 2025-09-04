@@ -1603,7 +1603,14 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             ${iconHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                ${task.project_id ? `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">` : ''}
+                ${task.project_id ? (
+                    isViewerPendingExecutor(task)
+            ? `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="1">
+                <img src="${projectImg}" alt="Project Image" class="project-image" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
+                <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
+               </div>`
+                        : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`
+                  ) : ''}
                 <div class="d-flex flex-column">
                     ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>` : ''}
                     <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
@@ -1838,8 +1845,8 @@ function renderSingleSection(status, sectionData) {
 
     // --- New flow: checkbox selects, done_all triggers modal accept ---
     (function initBulkAcceptFlow(){
-        // Keep a memory set of selected pending ids
-        let selectedPendingIds = [];
+    // Keep a memory set of selected pending ids
+    let selectedPendingIds = [];
 
         function collectPendingNewTaskIds(){
             // When viewer is executor and not accepted, cards render Accept/Reject buttons; pick those
@@ -1880,8 +1887,16 @@ function renderSingleSection(status, sectionData) {
             if (!cb) return;
             if (cb.checked) {
                 selectedPendingIds = collectPendingNewTaskIds();
+                // visually select all pending thumbnails
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb[data-pending="1"]').forEach(function(el){
+                    el.classList.add('selected');
+                });
             } else {
                 selectedPendingIds = [];
+                // clear visual selection
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected').forEach(function(el){
+                    el.classList.remove('selected');
+                });
             }
             const bulkBtn = document.getElementById('taskNewBulkAction');
             if (bulkBtn) {
@@ -1893,6 +1908,28 @@ function renderSingleSection(status, sectionData) {
 
         // Bulk action icon opens confirmation modal, then runs accept
         document.addEventListener('click', function(e){
+            // Toggle single-select on pending project image
+            const thumb = e.target.closest('.task-selectable-thumb');
+            if (thumb && thumb.dataset.pending === '1') {
+                const taskId = thumb.getAttribute('data-task-id');
+                // Toggle selection
+                if (thumb.classList.contains('selected')) {
+                    thumb.classList.remove('selected');
+                    selectedPendingIds = selectedPendingIds.filter(id => String(id) !== String(taskId));
+                } else {
+                    // Single selection if checkbox not checked; if checked, add to list
+                    thumb.classList.add('selected');
+                    if (!selectedPendingIds.includes(taskId)) selectedPendingIds.push(taskId);
+                }
+                const bulkBtn = document.getElementById('taskNewBulkAction');
+                if (bulkBtn) {
+                    const hasSel = selectedPendingIds.length > 0;
+                    bulkBtn.disabled = !hasSel;
+                    bulkBtn.style.visibility = hasSel ? 'visible' : 'hidden';
+                }
+                return;
+            }
+
             const btn = e.target.closest('#taskNewBulkAction');
             if (!btn) return;
             if (btn.disabled) return;
@@ -1928,6 +1965,8 @@ function renderSingleSection(status, sectionData) {
                     const cb = document.getElementById('taskNewAcceptAll');
                     if (cb) cb.checked = false;
                     selectedPendingIds = [];
+                    // clear UI selected class
+                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                     const bulkBtn = document.getElementById('taskNewBulkAction');
                     if (bulkBtn) bulkBtn.disabled = true;
                 });
