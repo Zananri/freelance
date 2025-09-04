@@ -878,6 +878,7 @@
         }
         sync();
     })();
+    
 
     // Schedule executor picker (clone of task executor with different IDs)
     ;(function setupScheduleExecutorInput(){
