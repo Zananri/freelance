@@ -1570,14 +1570,34 @@ $(document).ready(function () {
     });
 });
 
-document.getElementById("search_filter").addEventListener("keyup", function () {
-    const filter = this.value.toLowerCase();
-    const month = currentDate.getMonth() + 1;
-    const year = currentDate.getFullYear();
+document.getElementById("search_filter").addEventListener("keyup", async function () {
+    const query = this.value.trim();
 
-    const filteredEmployees = employees.filter((emp) => {
-        return emp.name.toLowerCase().includes(filter);
-    });
+    try {
+        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/shift/employees-basic?search=${encodeURIComponent(query)}`;
 
-    renderEmployeeTable(filteredEmployees, month, year);
+        const res = await fetch(endpoint, {
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+        const data = await res.json();
+
+        if (data.success && data.data) {
+            employees = data.data;
+            renderEmployeeTable(employees, currentDate.getMonth() + 1, currentDate.getFullYear());
+        } else {
+            console.error("Search failed:", data.message);
+            renderEmployeeTable([], currentDate.getMonth() + 1, currentDate.getFullYear());
+        }
+    } catch (err) {
+        console.error("Error searching employees:", err);
+        renderEmployeeTable([], currentDate.getMonth() + 1, currentDate.getFullYear());
+    }
 });
+

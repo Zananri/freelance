@@ -23,11 +23,12 @@ class ShiftController extends Controller
     {
         $month = $request->input('month', date('m'));
         $year = $request->input('year', date('Y'));
+        $search = $request->input('search', '');
 
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-        $employees = Employee::select(
+        $query = Employee::select(
             'employees.id',
             'employees.name',
             'employees.email',
@@ -64,7 +65,14 @@ class ShiftController extends Controller
                 $join->on('employees.shift_id', '=', 'base_shifts.id')
                     ->whereNull('base_shifts.deleted_by');
             })
-            ->where('employees.status', 'active')
+            ->where('employees.status', 'active');
+
+        // Add search filter if provided
+        if (!empty($search)) {
+            $query->where('employees.name', 'like', '%' . $search . '%');
+        }
+
+        $employees = $query
             ->orderBy('employees.name')
             ->orderBy('employee_shifts.date_shift', 'asc')
             ->get()
