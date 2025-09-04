@@ -1,8 +1,19 @@
  document.addEventListener("DOMContentLoaded", function () {
-    const appUrl =
-        document
-            .querySelector('meta[name="app-url"]')
-            ?.getAttribute("content") || "";
+    // Robust appUrl derivation: prefer meta, fallback to origin + first path segment (supports subfolders)
+    let appUrl = (function(){
+        try {
+            const meta = document.querySelector('meta[name="app-url"]');
+            let v = (meta && meta.getAttribute('content')) || '';
+            if (v) {
+                // Ensure absolute and trim trailing slash
+                v = new URL(v, window.location.origin).href.replace(/\/+$/, '');
+                return v;
+            }
+            const parts = (window.location.pathname || '').split('/').filter(Boolean);
+            const baseSeg = parts.length > 0 ? ('/' + parts[0]) : '';
+            return (window.location.origin + baseSeg).replace(/\/+$/, '');
+        } catch(_) { return (window.location.origin || '').replace(/\/+$/, ''); }
+    })();
 
     // Current logged-in employee id (from shared modal dataset)
     const currentEmployeeId = (function(){
@@ -878,6 +889,7 @@
         }
         sync();
     })();
+    
 
     // Schedule executor picker (clone of task executor with different IDs)
     ;(function setupScheduleExecutorInput(){
@@ -1467,7 +1479,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         if (!fname) return placeholderProjectImg;
                         return `${appUrl}/file/project/${fname}`;
                     }
-                    // Asset path from root -> rewrite with appUrl
+                    // Any asset path -> rewrite with appUrl (handles absolute or root-relative)
+                    if (val.includes('/asset/')) {
+                        const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
+                        return `${appUrl}/asset/${suffix}`;
+                    }
+                    // Asset path from root -> rewrite with appUrl (legacy)
                     if (val.startsWith('/asset/')) {
                         const suffix = val.replace(/^\/+/, '');
                         return `${appUrl}/${suffix}`;
@@ -1586,7 +1603,14 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             ${iconHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                ${task.project_id ? `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">` : ''}
+                ${task.project_id ? (
+                    (task.status === 'new_request' || task.status === 'new request')
+                        ? `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
+                                <img src="${projectImg}" alt="Project Image" class="project-image" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
+                                <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
+                           </div>`
+                        : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`
+                  ) : ''}
                 <div class="d-flex flex-column">
                     ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>` : ''}
                     <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
@@ -1723,7 +1747,23 @@ function renderSingleSection(status, sectionData) {
     container.innerHTML = "";
 
     if (sectionData?.tasks) {
-        sectionData.tasks.forEach(task => {
+        // For New section: put invites pending acceptance by current viewer at the very top
+        const tasks = (status === 'new_request')
+            ? (sectionData.tasks || []).slice().sort(function(a,b){
+                const pa = isViewerPendingExecutor(a) ? 1 : 0;
+                const pb = isViewerPendingExecutor(b) ? 1 : 0;
+                if (pa !== pb) return pb - pa; // pending first
+                // optional tie-breakers: earlier due date first, then id desc
+                try {
+                    const da = new Date(a.due_date).getTime() || 0;
+                    const db = new Date(b.due_date).getTime() || 0;
+                    if (da !== db) return da - db;
+                } catch(_) {}
+                return (b.id||0) - (a.id||0);
+            })
+            : sectionData.tasks;
+
+        tasks.forEach(task => {
             container.insertAdjacentHTML("beforeend", createTaskCard(task));
         });
     }
@@ -1802,6 +1842,254 @@ function renderSingleSection(status, sectionData) {
     try { setupTaskDropdownListeners(); } catch(_) {}
         fetchAndRenderTasks();
     });
+
+    // --- New flow: checkbox selects, done_all triggers Accept; arrow triggers Progress ---
+    (function initBulkAcceptFlow(){
+    // Keep a memory set of selected pending ids
+    let selectedPendingIds = [];
+    // Also track all selected ids in New (for Progress action)
+    let selectedAllNewIds = [];
+
+        function collectPendingNewTaskIds(){
+            // When viewer is executor and not accepted, cards render Accept/Reject buttons; pick those
+            const cards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card'));
+            const ids = cards.reduce((acc, el) => {
+                const tId = el.getAttribute('data-task-id');
+                const hasAccept = !!el.querySelector('.btn-accept-invite');
+                if (tId && hasAccept) acc.push(tId);
+                return acc;
+            }, []);
+            return ids;
+        }
+
+        function collectAllNewTaskIds(){
+            return Array.from(document.querySelectorAll('#new-request-tasks .custom-card'))
+                .map(el => el.getAttribute('data-task-id'))
+                .filter(Boolean);
+        }
+
+        function acceptOne(taskId){
+            return $.ajax({
+                url: appUrl + '/task/' + taskId + '/accept',
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }
+            }).then(function(){
+                // Also mark its task-assignment notifications read for this user
+                return markTaskAssignmentNotificationsRead(taskId);
+            }).catch(function(){
+                // keep going
+                return $.Deferred().resolve().promise();
+            });
+        }
+
+        function acceptAll(ids){
+            if (!ids || ids.length === 0) return Promise.resolve();
+            let chain = Promise.resolve();
+            ids.forEach((id) => { chain = chain.then(() => acceptOne(id)); });
+            return chain.then(() => { refreshNotificationCountBadge(); fetchAndRenderTasks(); });
+        }
+
+        // When checkbox is toggled, only (de)select in memory and toggle bulk icon state
+        document.addEventListener('change', function(e){
+            const cb = e.target.closest('#taskNewAcceptAll');
+            if (!cb) return;
+            if (cb.checked) {
+                // When Select All is enabled, include all tasks across pages from cache
+                if (allTasksCache && allTasksCache.new_request && Array.isArray(allTasksCache.new_request.tasks)) {
+                    const allNewTasks = allTasksCache.new_request.tasks;
+                    selectedAllNewIds = allNewTasks.map(t => String(t.id));
+                    selectedPendingIds = allNewTasks
+                        .filter(t => isViewerPendingExecutor(t))
+                        .map(t => String(t.id));
+                } else {
+                    // Fallback to current DOM
+                    selectedPendingIds = collectPendingNewTaskIds();
+                    selectedAllNewIds = collectAllNewTaskIds();
+                }
+                // visually select all thumbnails in current DOM
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb').forEach(function(el){
+                    el.classList.add('selected');
+                });
+            } else {
+                selectedPendingIds = [];
+                selectedAllNewIds = [];
+                // clear visual selection
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected').forEach(function(el){
+                    el.classList.remove('selected');
+                });
+            }
+            updateBulkHeaderButtons();
+        });
+
+        // Bulk action icon opens confirmation modal, then runs accept
+        document.addEventListener('click', function(e){
+            // Toggle single-select on pending project image
+            const thumb = e.target.closest('.task-selectable-thumb');
+            if (thumb) {
+                const taskId = thumb.getAttribute('data-task-id');
+                // Toggle selection
+                if (thumb.classList.contains('selected')) {
+                    thumb.classList.remove('selected');
+                    selectedPendingIds = selectedPendingIds.filter(id => String(id) !== String(taskId));
+                    selectedAllNewIds = selectedAllNewIds.filter(id => String(id) !== String(taskId));
+                } else {
+                    // Single selection if checkbox not checked; if checked, add to list
+                    thumb.classList.add('selected');
+                    if (thumb.dataset.pending === '1' && !selectedPendingIds.includes(taskId)) selectedPendingIds.push(taskId);
+                    if (!selectedAllNewIds.includes(taskId)) selectedAllNewIds.push(taskId);
+                }
+                updateBulkHeaderButtons();
+                return;
+            }
+
+            const btn = e.target.closest('#taskNewBulkAction');
+            if (!btn) return;
+            if (btn.disabled) return;
+            const count = selectedPendingIds.length;
+            if (count <= 0) return;
+
+            const id = 'taskBulkAcceptModal';
+            const html = `
+                <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-header modal-header-custom">
+                                <h5 class="modal-title modal-title-custom">Confirmation</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body"><p class="mb-0">Accept ${count} selected task${count>1?'s':''}?</p></div>
+                            <div class="modal-footer d-flex justify-content-center" style="gap:8px;">
+                                <button type="button" class="btn btn-close-reply" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="confirmBulkAcceptBtn">Accept</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.querySelectorAll('#'+id).forEach(n => n.remove());
+            document.body.insertAdjacentHTML('beforeend', html);
+            const modalEl = document.getElementById(id);
+            const m = new bootstrap.Modal(modalEl);
+            m.show();
+            modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove(), { once: true });
+            modalEl.querySelector('#confirmBulkAcceptBtn').addEventListener('click', function(){
+                acceptAll(selectedPendingIds).finally(() => {
+                    try { m.hide(); } catch(_) {}
+                    const cb = document.getElementById('taskNewAcceptAll');
+                    if (cb) cb.checked = false;
+                    selectedPendingIds = [];
+                    selectedAllNewIds = [];
+                    // clear UI selected class
+                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    updateBulkHeaderButtons();
+                });
+            });
+        });
+
+        // Bulk Progress button behavior
+        document.addEventListener('click', function(e){
+            const btn = e.target.closest('#taskNewBulkProgress');
+            if (!btn) return;
+            if (btn.disabled) return;
+            // If select-all checkbox is on, include all IDs across pagination from cache
+            const selectAllChecked = !!document.getElementById('taskNewAcceptAll')?.checked;
+            let ids = selectedAllNewIds.slice();
+            if (selectAllChecked && allTasksCache && allTasksCache.new_request && Array.isArray(allTasksCache.new_request.tasks)) {
+                ids = allTasksCache.new_request.tasks.map(t => String(t.id));
+            }
+            if (ids.length === 0) return;
+
+            // Only move tasks that are already accepted (non-pending thumbnails)
+            const movableIds = ids.filter(id => {
+                const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
+                if (!card) return false;
+                return !card.querySelector('.btn-accept-invite');
+            });
+            if (movableIds.length === 0) return;
+
+            if (movableIds.length === 1) {
+                // single: move directly to in_progress
+                const id = movableIds[0];
+                const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
+                bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
+                updateTaskStatus(id, 'in_progress', card);
+                bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
+                // cleanup selection
+                const cb = document.getElementById('taskNewAcceptAll');
+                if (cb) cb.checked = false;
+                selectedPendingIds = [];
+                selectedAllNewIds = [];
+                document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                fetchAndRenderTasks();
+                updateBulkHeaderButtons();
+                try { showFloatingAlert('Task moved to In Progress', 'success'); } catch(_) {}
+                return;
+            }
+
+            // multiple: show Progress modal with count
+            const modalId = 'progressStatusModal';
+            const statusModal = new bootstrap.Modal(document.getElementById(modalId));
+            const titleEl = document.getElementById('progressStatusTitle');
+            const descEl = document.getElementById('progressStatusDescription');
+            if (titleEl) titleEl.textContent = `${movableIds.length} selected`;
+            if (descEl) descEl.textContent = 'Move selected tasks to In Progress?';
+            statusModal.show();
+            const confirmBtn = document.getElementById('confirmProgressStatusBtn');
+            const handler = function(){
+                // chain updates sequentially with bulk flags to suppress per-item alerts and refresh
+                bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
+                let chain = Promise.resolve();
+                movableIds.forEach((id) => {
+                    const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
+                    chain = chain.then(() => new Promise((resolve) => {
+                        updateTaskStatus(id, 'in_progress', card);
+                        setTimeout(resolve, 120);
+                    }));
+                });
+                chain.finally(() => {
+                    bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
+                    statusModal.hide();
+                    confirmBtn.removeEventListener('click', handler);
+                    const cb = document.getElementById('taskNewAcceptAll');
+                    if (cb) cb.checked = false;
+                    selectedPendingIds = [];
+                    selectedAllNewIds = [];
+                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    fetchAndRenderTasks();
+                    updateBulkHeaderButtons();
+                    try { showFloatingAlert(`${movableIds.length} tasks moved to In Progress`, 'success'); } catch(_) {}
+                });
+            };
+            confirmBtn.addEventListener('click', handler);
+        });
+
+        function updateBulkHeaderButtons(){
+            const hasAnySelection = (selectedAllNewIds.length + selectedPendingIds.length) > 0;
+            const anyPendingSelected = selectedPendingIds.length > 0;
+            const allAcceptedSelected = hasAnySelection && !anyPendingSelected;
+
+            const bulkAccept = document.getElementById('taskNewBulkAction');
+            const bulkProgress = document.getElementById('taskNewBulkProgress');
+
+            if (bulkAccept) {
+                // Show Accept only if there are pending selected; hide otherwise
+                bulkAccept.style.display = anyPendingSelected ? 'inline-flex' : 'none';
+                bulkAccept.disabled = !anyPendingSelected;
+            }
+            if (bulkProgress) {
+                // Arrow visible only when any selection exists
+                bulkProgress.style.display = hasAnySelection ? 'inline-flex' : 'none';
+                bulkProgress.disabled = !allAcceptedSelected;
+            }
+        }
+
+        // initialize bulk button hidden and disabled by default
+        document.addEventListener('DOMContentLoaded', function(){
+            const bulkAccept = document.getElementById('taskNewBulkAction');
+            const bulkProgress = document.getElementById('taskNewBulkProgress');
+            if (bulkAccept) { bulkAccept.disabled = true; bulkAccept.style.display = 'none'; }
+            if (bulkProgress) { bulkProgress.disabled = true; bulkProgress.style.display = 'none'; }
+        });
+    })();
 
     // Function to setup dropdown event listeners for task cards
     function setupTaskDropdownListeners() {
@@ -2109,6 +2397,10 @@ function renderSingleSection(status, sectionData) {
     });
 }
 
+    // Bulk operation control flags
+    let bulkStatusOperationActive = false;
+    let bulkStatusSuppressRefresh = false;
+
     // Function to update task status via AJAX
     function updateTaskStatus(taskId, newStatus, taskCard) {
         $.ajax({
@@ -2123,23 +2415,28 @@ function renderSingleSection(status, sectionData) {
                 status: newStatus,
             },
             success: function (response) {
-                // Dispose all Bootstrap tooltips inside the taskCard before removing it
-                const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                    const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                    if (tooltipInstance) {
-                        tooltipInstance.dispose();
-                    }
-                });
+                // Dispose tooltips if card present
+                if (taskCard) {
+                    const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                        const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                        if (tooltipInstance) {
+                            tooltipInstance.dispose();
+                        }
+                    });
+                    // Remove the task card from current section
+                    taskCard.remove();
+                }
 
-                // Remove the task card from current section
-                taskCard.remove();
+                // Refresh task cards to show in new section (skip if suppressed during bulk)
+                if (!bulkStatusSuppressRefresh) {
+                    fetchAndRenderTasks();
+                }
 
-                // Refresh task cards to show in new section
-                fetchAndRenderTasks();
-
-                // Show success message
-                showFloatingAlert(response.message || "Task status updated successfully", "success");
+                // Show success message (skip if bulk)
+                if (!bulkStatusOperationActive) {
+                    showFloatingAlert(response.message || "Task status updated successfully", "success");
+                }
             },
             error: function (xhr) {
                 let errorMessage = "Failed to update task status.";

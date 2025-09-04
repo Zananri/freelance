@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 // use Illuminate\Support\Carbon; // not used directly
 
 class TaskController extends Controller
@@ -289,9 +290,28 @@ class TaskController extends Controller
                 ];
             })->values();
 
-            $projectImageUrl = ($task->project && $task->project->image && file_exists(public_path('file/project/' . $task->project->image)))
-                ? asset('file/project/' . $task->project->image)
-                : asset('asset/img/profile_picture/default.png');
+            // Robust project image URL: absolute URLs are used as-is; for local files, ensure existence or fall back to default.
+            $defaultProjectImg = asset('asset/img/profile_picture/default.png');
+            $projectImageUrl = $defaultProjectImg;
+            if ($task->project && $task->project->image) {
+                $img = $task->project->image;
+                if (Str::startsWith($img, ['http://', 'https://'])) {
+                    $projectImageUrl = $img;
+                } else {
+                    // Normalize possible prefixes
+                    $normalized = ltrim($img, '/');
+                    if (Str::startsWith($normalized, 'asset/')) {
+                        $projectImageUrl = asset($normalized);
+                    } else {
+                        // Ensure it lives under file/project
+                        if (!Str::startsWith($normalized, 'file/project/')) {
+                            $normalized = 'file/project/' . $normalized;
+                        }
+                        $disk = public_path($normalized);
+                        $projectImageUrl = file_exists($disk) ? asset($normalized) : $defaultProjectImg;
+                    }
+                }
+            }
 
             return [
                 'id' => $task->id,
