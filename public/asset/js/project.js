@@ -5770,50 +5770,32 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (hasChartCounts) {
                     updateProjectChartFromData(projects, chartCounts);
                 } else {
-                    // fallback ambil dari /task/index
+                    // fallback: ambil dari endpoint tasks tanpa pagination
                     $.ajax({
-                        url: appUrl + "/task/index",
+                        url: appUrl + "/task/index/no-pagination",
                         type: "GET",
                         dataType: "json",
                         success: function (taskRes) {
 
                             const d = taskRes?.data || {};
-                            const arrNew = Array.isArray(d.new_request) ? d.new_request : [];
-                            const arrInProg = Array.isArray(d.in_progress) ? d.in_progress : [];
-                            const arrCompleted = Array.isArray(d.completed) ? d.completed : [];
-                            const arrRejected = Array.isArray(d.rejected) ? d.rejected : [];
-
-                            const now = new Date();
-                            now.setHours(0, 0, 0, 0);
-
-                            const parseLocalDate = (d) => {
-                                if (!d) return null;
-                                const m = String(d).match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                                return m ? new Date(m[1], m[2] - 1, m[3]) : new Date(d);
-                            };
-
-                            const isLate = (task) => {
-                                const due = parseLocalDate(task?.due_date || task?.due || task?.end_date);
-                                return due && due < now;
-                            };
-
-                            const late =
-                                arrNew.filter(isLate).length +
-                                arrInProg.filter(isLate).length +
-                                arrRejected.filter(isLate).length;
+                            const notStartedCount = Number(d?.not_started?.count ?? (Array.isArray(d?.not_started?.tasks) ? d.not_started.tasks.length : 0));
+                            const inProgressCount = Number(d?.in_progress?.count ?? (Array.isArray(d?.in_progress?.tasks) ? d.in_progress.tasks.length : 0));
+                            const completedCount = Number(d?.completed?.count ?? (Array.isArray(d?.completed?.tasks) ? d.completed.tasks.length : 0));
+                            const lateCount = Number(d?.late?.count ?? (Array.isArray(d?.late?.tasks) ? d.late.tasks.length : 0));
+                            const rejectedCount = Number(d?.rejected?.count ?? (Array.isArray(d?.rejected?.tasks) ? d.rejected.tasks.length : 0));
 
                             const derived = {
-                                total: arrNew.length + arrInProg.length + arrCompleted.length + arrRejected.length,
-                                completed: arrCompleted.length,
-                                in_progress: arrInProg.length,
-                                late,
-                                not_started: arrNew.length,
+                                total: notStartedCount + inProgressCount + completedCount + rejectedCount,
+                                completed: completedCount,
+                                in_progress: inProgressCount,
+                                late: lateCount,
+                                not_started: notStartedCount,
                             };
 
                             updateProjectChartFromData(projects, derived);
                         },
                         error: function (err) {
-                            console.error("task/index failed", err);
+                            console.error("task/index/no-pagination failed", err);
                         }
                     });
                 }
@@ -6177,33 +6159,33 @@ nextBtn.addEventListener("click", () => {
     updateModalTimeline();
 });
 
-// document.addEventListener("DOMContentLoaded", function () {
-//     const searchInput = document.getElementById("search_filter");
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("search_filter");
 
-//     searchInput.addEventListener("input", function () {
-//         const query = this.value.toLowerCase();
+    searchInput.addEventListener("input", function () {
+        const query = this.value.toLowerCase();
 
-//         const cards = document.querySelectorAll(
-//             "#all-cards-container [data-project-id]"
-//         );
+        const cards = document.querySelectorAll(
+            "#all-cards-container [data-project-id]"
+        );
 
-//         cards.forEach((card) => {
-//             const projectId = card.getAttribute("data-project-id");
-//             const title =
-//                 card.querySelector("h6")?.textContent.toLowerCase() || "";
-//             const desc =
-//                 card.querySelector("p")?.textContent.toLowerCase() || "";
+        cards.forEach((card) => {
+            const projectId = card.getAttribute("data-project-id");
+            const title =
+                card.querySelector("h6")?.textContent.toLowerCase() || "";
+            const desc =
+                card.querySelector("p")?.textContent.toLowerCase() || "";
 
-//             const match =
-//                 title.includes(query) ||
-//                 desc.includes(query) ||
-//                 projectId.includes(query);
+            const match =
+                title.includes(query) ||
+                desc.includes(query) ||
+                projectId.includes(query);
 
-//             if (match) {
-//                 card.classList.remove("d-none");
-//             } else {
-//                 card.classList.add("d-none");
-//             }
-//         });
-//     });
-// });
+            if (match) {
+                card.classList.remove("d-none");
+            } else {
+                card.classList.add("d-none");
+            }
+        });
+    });
+});

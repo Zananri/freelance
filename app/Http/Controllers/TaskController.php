@@ -132,6 +132,115 @@ class TaskController extends Controller
     }
 
     /**
+     * List tasks for current employee without pagination, grouped for charts.
+     * Categories: not_started (new_request), in_progress, rejected, completed, late (overdue and not completed).
+     * Optional filter: project (project_id)
+     */
+    public function listNoPagination(Request $request)
+    {
+        try {
+            $currentUser = auth()->user();
+            $currentEmployeeId = $currentUser?->employee?->id;
+
+            if (!$currentEmployeeId) {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => [
+                        'not_started' => ['tasks' => [], 'count' => 0],
+                        'in_progress' => ['tasks' => [], 'count' => 0],
+                        'rejected' => ['tasks' => [], 'count' => 0],
+                        'completed' => ['tasks' => [], 'count' => 0],
+                        'late' => ['tasks' => [], 'count' => 0],
+                    ]
+                ]);
+            }
+
+            $projectId = $request->input('project');
+
+            // Base query: tasks where current employee is PIC or EXECUTOR
+            $baseQuery = Task::with(['project', 'assignments.employee', 'feedback_comments'])
+                ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
+                    $query->where(function ($q) use ($currentEmployeeId) {
+                        $q->where('employee_id', $currentEmployeeId)
+                            ->where(function ($q2) {
+                                $q2->where('role', 'PIC')
+                                    ->orWhere('role', 'EXECUTOR');
+                            });
+                    });
+                });
+
+            if ($projectId) {
+                $baseQuery->where('project_id', $projectId);
+            }
+
+            // Build each category without pagination
+            $notStarted = (clone $baseQuery)
+                ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $inProgress = (clone $baseQuery)
+                ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $rejected = (clone $baseQuery)
+                ->whereIn(DB::raw('LOWER(status)'), ['rejected'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $completed = (clone $baseQuery)
+                ->whereIn(DB::raw('LOWER(status)'), ['completed'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $late = (clone $baseQuery)
+                ->whereRaw('LOWER(status) <> ?', ['completed'])
+                ->whereNotNull('due_date')
+                ->where('due_date', '<', now())
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $response = [
+                'not_started' => [
+                    'tasks' => $this->mapTasks($notStarted->all()),
+                    'count' => $notStarted->count(),
+                ],
+                'in_progress' => [
+                    'tasks' => $this->mapTasks($inProgress->all()),
+                    'count' => $inProgress->count(),
+                ],
+                'rejected' => [
+                    'tasks' => $this->mapTasks($rejected->all()),
+                    'count' => $rejected->count(),
+                ],
+                'completed' => [
+                    'tasks' => $this->mapTasks($completed->all()),
+                    'count' => $completed->count(),
+                ],
+                'late' => [
+                    'tasks' => $this->mapTasks($late->all()),
+                    'count' => $late->count(),
+                ],
+            ];
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $response,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
      * Map tasks ke format frontend
      */
     private function mapTasks(array $tasks): array
