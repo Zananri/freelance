@@ -1,8 +1,19 @@
  document.addEventListener("DOMContentLoaded", function () {
-    const appUrl =
-        document
-            .querySelector('meta[name="app-url"]')
-            ?.getAttribute("content") || "";
+    // Robust appUrl derivation: prefer meta, fallback to origin + first path segment (supports subfolders)
+    let appUrl = (function(){
+        try {
+            const meta = document.querySelector('meta[name="app-url"]');
+            let v = (meta && meta.getAttribute('content')) || '';
+            if (v) {
+                // Ensure absolute and trim trailing slash
+                v = new URL(v, window.location.origin).href.replace(/\/+$/, '');
+                return v;
+            }
+            const parts = (window.location.pathname || '').split('/').filter(Boolean);
+            const baseSeg = parts.length > 0 ? ('/' + parts[0]) : '';
+            return (window.location.origin + baseSeg).replace(/\/+$/, '');
+        } catch(_) { return (window.location.origin || '').replace(/\/+$/, ''); }
+    })();
 
     // Current logged-in employee id (from shared modal dataset)
     const currentEmployeeId = (function(){
@@ -1468,7 +1479,12 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                         if (!fname) return placeholderProjectImg;
                         return `${appUrl}/file/project/${fname}`;
                     }
-                    // Asset path from root -> rewrite with appUrl
+                    // Any asset path -> rewrite with appUrl (handles absolute or root-relative)
+                    if (val.includes('/asset/')) {
+                        const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
+                        return `${appUrl}/asset/${suffix}`;
+                    }
+                    // Asset path from root -> rewrite with appUrl (legacy)
                     if (val.startsWith('/asset/')) {
                         const suffix = val.replace(/^\/+/, '');
                         return `${appUrl}/${suffix}`;
