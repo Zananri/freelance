@@ -190,9 +190,10 @@ class GenerateTasksFromSchedules extends Command
         }
 
         // Compute dates: for daily schedules, start = run day; due can be offset from recurrence_start_date
-        $runDay = Carbon::now()->toDateString();
+    $runDay = Carbon::now()->toDateString();
         $isDaily = ($s->recurrence_type === 'daily');
-        $startDate = $isDaily ? $runDay : $s->start_date;
+    // Start date is always the run day for tasks generated from schedules
+    $startDate = $runDay;
         if ($isDaily && $s->due_date && $s->recurrence_start_date) {
             try {
                 $base = Carbon::parse($s->recurrence_start_date)->startOfDay();

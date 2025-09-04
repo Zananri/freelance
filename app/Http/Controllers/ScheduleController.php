@@ -133,8 +133,9 @@ trait ScheduleImmediateGeneration
         }
 
         $today = Carbon::now()->toDateString();
-        $isDaily = ($s->recurrence_type === 'daily');
-        $startDate = $isDaily ? $today : $s->start_date;
+    $isDaily = ($s->recurrence_type === 'daily');
+    // Start date is always the run day for tasks generated from schedules
+    $startDate = $today;
         // For daily schedules, if a due_date was configured, treat it as an offset from recurrence_start_date
         if ($isDaily && $s->due_date && $s->recurrence_start_date) {
             try {
@@ -245,9 +246,9 @@ class ScheduleController extends Controller
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
                 'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
-                // Default dates: start_date optional; due_date optional (for daily, due_date allowed and handled as offset)
+                // Default dates: start_date optional and ignored for all recurrence types; due_date optional (validated vs recurrence_start_date if provided)
                 'start_date' => 'nullable|date',
-                'due_date' => 'nullable|date|after_or_equal:start_date',
+                'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
                 // Recurrence
                 'recurrence_type' => 'required|in:daily,weekly,monthly',
@@ -316,11 +317,10 @@ class ScheduleController extends Controller
             if ($data['recurrence_type'] !== 'weekly') $data['recurrence_day_of_week'] = null;
             if ($data['recurrence_type'] !== 'monthly') $data['recurrence_day_of_month'] = null;
 
-            // Daily schedules: ignore default start_date (generator will use run-day);
-            // allow due_date to be set and treat it as an offset from recurrence_start_date
+            // For all recurrence types, ignore default start_date (task start will be the render day)
+            $data['start_date'] = null;
+            // For daily schedules: allow due_date and ensure it's not before Start From (recurrence_start_date)
             if (($data['recurrence_type'] ?? 'daily') === 'daily') {
-                $data['start_date'] = null;
-                // If a due_date is provided, ensure it's not before recurrence_start_date
                 if (!empty($data['due_date']) && !empty($data['recurrence_start_date'])) {
                     $recStart = \Carbon\Carbon::parse($data['recurrence_start_date'])->startOfDay();
                     $dueBase = \Carbon\Carbon::parse($data['due_date'])->startOfDay();

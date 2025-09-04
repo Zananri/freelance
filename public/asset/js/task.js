@@ -826,7 +826,7 @@
                 monthlyDayHidden.value = '';
             }
 
-            // Toggle default dates for daily: hide start date only; allow optional due date
+        // Toggle default dates: hide start date for all repeat types; allow optional due date
             if (defaultDatesSection) {
                 // Always show the container so due date can be set
                 defaultDatesSection.classList.remove('d-none');
@@ -837,8 +837,9 @@
                 const startWrapper = defaultStart ? defaultStart.closest('.date-form') : null;
                 const dueWrapper = defaultDue ? defaultDue.closest('.date-form') : null;
                 if (startWrapper) {
-                    if (isDaily) { startWrapper.classList.add('d-none'); defaultStart.value = ''; }
-                    else { startWrapper.classList.remove('d-none'); }
+            // Hide for all recurrence types; tasks' start date equals render day
+            startWrapper.classList.add('d-none');
+            defaultStart.value = '';
                 }
                 if (dueWrapper) {
                     // Due date remains visible for all types; optional
