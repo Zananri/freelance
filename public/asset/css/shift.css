@@ -34,6 +34,7 @@
     padding-left: 40px;
     background: rgb(240, 241, 248);
     border: none;
+    height: 40px;
 }
 
 .search-input-container .custom-form-filter:focus {
@@ -109,14 +110,13 @@
     table-layout: auto;
 }
 
-/* For desktop view: first column is employee column */
-.shift-table th:first-child:not(.date-column),
-.shift-table td:first-child:not(.date-column) {
+.shift-table th:first-child,
+.shift-table td:first-child {
     min-width: 150px !important;
     white-space: normal !important;
     word-break: break-word !important;
     overflow-wrap: break-word !important;
-    vertical-align: middle;
+    text-align: justify;
 }
 
 .shift-table th,
@@ -137,16 +137,9 @@
 
 .sticky-col {
     position: sticky;
+    left: 0;
     background: #fff;
     z-index: 10;
-}
-
-.sticky-col:not(.employee-column) {
-    left: 0;
-}
-
-.employee-column {
-    right: 0;
 }
 
 .overlay-edit {
@@ -211,10 +204,6 @@
     z-index: 2;
 }
 
-.employee-wrapper {
-    text-align: start;
-}
-
 .employee-wrapper:hover .overlay-edit-employee {
     display: flex;
 }
@@ -260,13 +249,15 @@
 
 .filter-shift-btn,
 .config-shift-btn {
-    background: #f0f1f8;
+    background: #e9eef4;
     border: none;
 }
 
 .filter-shift-btn:hover,
+.filter-shift-btn.show,
+.filter-shift-btn:active,
 .config-shift-btn:hover {
-    background: #f0f1f8;
+    background: #e9eef4;
     border: none;
 }
 
@@ -420,25 +411,6 @@
     width: 100%;
 }
 
-.dropdown-footer-custom {
-    width: 100%;
-}
-
-.dropdown-footer-custom button {
-    width: 100%;
-    background: #e3e4ee;
-    color: #596069;
-    border: none;
-    border-radius: 5px;
-    padding: 10px 15px;
-    margin: 5px;
-}
-
-.dropdown-footer-custom button:hover {
-    background: #e3e4ee;
-    color: #596069;
-}
-
 /* Responsive Styles */
 @media (max-width: 768px) {
     .icon-text {
@@ -475,30 +447,25 @@
     .shift-table {
         min-width: 700%;
         min-height: 300px;
+        z-index: 3;
     }
 
-    .shift-table th:last-child,
-    .shift-table td:last-child {
-        min-width: 100px !important;
-        white-space: normal !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
+    .shift-table th:first-child {
+        text-align: center;
     }
 
     .shift-table th:first-child,
     .shift-table td:first-child {
-        z-index: 0;
+        max-width: 5px !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        overflow-wrap: break-word !important;
+        z-index: 2;
     }
 
-    .sticky-col:not(.employee-column) {
-        position: static;
-    }
-
-    .employee-column {
-        position: sticky;
-        right: 0;
-        border: 1px solid #dae3ed;
-        z-index: 10;
+    .shift-table th,
+    .shift-table td {
+        z-index: 1;
     }
 
     .modal-footer-custom button {
@@ -527,7 +494,7 @@
 }
 
 .form-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 400;
 }
 
@@ -584,7 +551,6 @@
 }
 
 #monthDropdownMenu {
-    position: absolute;
     min-width: max-content;
     max-height: 300px;
     overflow-y: auto;
@@ -593,42 +559,27 @@
     overflow-x: hidden;
     top: 100% !important;
     left: auto !important;
-    right: 25px !important;
-    margin-top: 6px;
-    z-index: 1060;
-}
+    right: 0 !important;
 
-#monthDropdownMenuModal {
-    position: absolute;
-    min-width: max-content;
-    max-height: auto;
-    overflow-y: auto;
-    background: #f0f1f8;
-    border: none;
-    overflow-x: hidden;
-    top: 0 !important;
-    left: auto !important;
-    right: 150px !important;
-    z-index: 1060;
+    margin-top: 6px;
 }
 
 #editEmployeePicture {
     margin-top: 0.5rem;
 }
 
-.filter-shift-btn.show,
-.filter-shift-btn:active,
-.filter-shift-btn:focus {
+.filter-dropdown.show,
+.filter-dropdown:active,
+.filter-dropdown:focus {
     background: #f0f1f8 !important;
 }
 
 .filter-dropdown .dropdown-filter {
     border: none;
     background-color: #f0f1f8;
-    font-size: 12px;
+    font-size: 14px;
     min-height: 300px;
     width: 100%;
-    min-width: 300px;
 }
 
 .dropdown-filter li select {
@@ -673,16 +624,10 @@
     padding: 0.5rem 0.4rem;
 }
 
-.btn-toggle-table-shift {
-    background: transparent;
-    border: none;
+.custom-dropdown-input label{
+    font-size: 12px;
 }
 
-.btn-toggle-table-shift span {
-    font-size: 24px;
-}
-
-.btn-toggle-table-shift:hover {
-    background: transparent;
+.custom-input input {
     border: none;
 }

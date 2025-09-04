@@ -59,9 +59,6 @@ async function loadEmployeeData() {
             employees = data.data;
             renderHeader(month, year);
             renderEmployeeTable(employees, month, year);
-            // For modal
-            renderHeader(month, year, '#shiftTableHeaderModal');
-            renderEmployeeTable(employees, month, year, '#shiftTableBodyModal');
         } else {
             console.error("Invalid data format:", data);
             renderError("Failed to load employee data");
@@ -73,9 +70,8 @@ async function loadEmployeeData() {
 }
 
 // Month Dropdown
-function populateMonthDropdown(selector = '#monthDropdownMenu') {
-    const monthDropdownMenu = document.querySelector(selector);
-    if (!monthDropdownMenu) return;
+function populateMonthDropdown() {
+    const monthDropdownMenu = document.getElementById("monthDropdownMenu");
     const monthNames = [
         "January",
         "February",
@@ -119,62 +115,29 @@ document.getElementById("nextMonthBtn").addEventListener("click", () => {
 });
 
 populateMonthDropdown();
-populateMonthDropdown('#monthDropdownMenuModal');
 loadEmployeeData();
 
 // Render header tanggal
-function renderHeader(month, year, selector = '#shiftTableHeader') {
-    const headerRow = document.querySelector(selector);
-    if (!headerRow) return;
-    headerRow.innerHTML = "";
+function renderHeader(month, year) {
+    const headerRow = document.getElementById("shiftTableHeader");
+    headerRow.innerHTML = `<th class="sticky-col fw-semiboled">Employee</th>`;
 
     const daysInMonth = new Date(year, month, 0).getDate();
-    const isMobile = window.innerWidth <= 768;
 
-    if (isMobile) {
-        // Mobile: first date column header (not sticky)
-        const firstDateTh = document.createElement("th");
-        firstDateTh.classList.add("fw-semiboled", "date-column");
-        firstDateTh.textContent = "1";
-        headerRow.appendChild(firstDateTh);
+    for (let i = 1; i <= daysInMonth; i++) {
+        const th = document.createElement("th");
+        const day = new Date(year, month - 1, i).getDay();
 
-        // Other date columns
-        for (let i = 2; i <= daysInMonth; i++) {
-            const th = document.createElement("th");
-            const day = new Date(year, month - 1, i).getDay();
-            th.textContent = i;
-            if (day === 0) th.classList.add("sunday");
-            headerRow.appendChild(th);
-        }
-
-        // Employee column header sticky right
-        const employeeTh = document.createElement("th");
-        employeeTh.classList.add("sticky-col", "fw-semiboled", "employee-column");
-        employeeTh.textContent = "Employee";
-        headerRow.appendChild(employeeTh);
-    } else {
-        // Desktop: employee column header first sticky left
-        const employeeTh = document.createElement("th");
-        employeeTh.classList.add("sticky-col", "fw-semiboled");
-        employeeTh.textContent = "Employee";
-        headerRow.appendChild(employeeTh);
-
-        // Date columns
-        for (let i = 1; i <= daysInMonth; i++) {
-            const th = document.createElement("th");
-            const day = new Date(year, month - 1, i).getDay();
-            th.textContent = i;
-            if (day === 0) th.classList.add("sunday");
-            headerRow.appendChild(th);
-        }
+        th.textContent = i;
+        if (day === 0) th.classList.add("sunday");
+        headerRow.appendChild(th);
     }
 }
 
 // Render Table Content
-function renderEmployeeTable(employees, month, year, selector = '#shiftTableBody') {
-    const tableBody = document.querySelector(selector);
-    const monthTitleSelector = selector === '#shiftTableBodyModal' ? '#shiftMonthTitleModal' : '#shiftMonthTitle';
-    const monthTitle = document.querySelector(monthTitleSelector);
+function renderEmployeeTable(employees, month, year) {
+    const tableBody = document.getElementById("shiftTableBody");
+    const monthTitle = document.getElementById("shiftMonthTitle");
 
     if (!tableBody) return;
     tableBody.innerHTML = "";
@@ -189,45 +152,24 @@ function renderEmployeeTable(employees, month, year, selector = '#shiftTableBody
     const monthName = new Date(year, month - 1, 1).toLocaleString("en-US", {
         month: "long",
     });
-    if (monthTitle) monthTitle.textContent = `${monthName} ${year}`;
-
-    const isMobile = window.innerWidth <= 768;
+    monthTitle.textContent = `${monthName} ${year}`;
 
     employees.forEach((employee) => {
         const row = document.createElement("tr");
 
-        if (isMobile) {
-            // On mobile, first add date cell (sticky)
-            const firstDateKey = `${year}-${String(month).padStart(2, "0")}-01`;
-            const firstShift = employee.shifts.find((s) => s.date_shift === firstDateKey);
-            const firstDateCell = createShiftCell(employee, firstShift, firstDateKey);
-            firstDateCell.classList.add("sticky-col", "date-column");
-            row.appendChild(firstDateCell);
+        // Employee cell
+        const employeeCell = createEmployeeCell(employee);
+        row.appendChild(employeeCell);
 
-            // Add other date cells except first
-            for (let i = 2; i <= daysInMonth; i++) {
-                const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-                const shift = employee.shifts.find((s) => s.date_shift === dateKey);
-                const td = createShiftCell(employee, shift, dateKey);
-                row.appendChild(td);
-            }
+        // Dates cells
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(
+                i
+            ).padStart(2, "0")}`;
+            const shift = employee.shifts.find((s) => s.date_shift === dateKey);
 
-            // Add employee cell as last column
-            const employeeCell = createEmployeeCell(employee);
-            employeeCell.classList.add("sticky-col", "employee-column");
-            row.appendChild(employeeCell);
-        } else {
-            // Desktop: employee cell first
-            const employeeCell = createEmployeeCell(employee);
-            row.appendChild(employeeCell);
-
-            // Dates cells
-            for (let i = 1; i <= daysInMonth; i++) {
-                const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-                const shift = employee.shifts.find((s) => s.date_shift === dateKey);
-                const td = createShiftCell(employee, shift, dateKey);
-                row.appendChild(td);
-            }
+            const td = createShiftCell(employee, shift, dateKey);
+            row.appendChild(td);
         }
 
         tableBody.appendChild(row);
@@ -547,8 +489,8 @@ document.addEventListener("click", async (e) => {
 
         // Replace title with input container (full width)
         titleCell.innerHTML = `
-            <div class="config-title-edit d-flex align-items-center w-100" style="min-height: 36px;">
-                <input type="text" class="form-control form-control-sm w-100" style="min-height: 32px; min-width: 0;" value="${currentTitle}">
+            <div class="config-title-edit d-flex align-items-center w-100">
+                <input type="text" class="form-control form-control-sm w-100 border-0" style="min-width: 0;" value="${currentTitle}">
             </div>`;
 
         // Build time inputs and replace only the span, keep action buttons intact
@@ -556,9 +498,9 @@ document.addEventListener("click", async (e) => {
     inputsWrap.className = "time-edit d-flex gap-1 align-items-center";
         inputsWrap.style.minHeight = "36px";
         inputsWrap.innerHTML = `
-            <input type="time" class="form-control form-control-sm" value="${timeIn}">
+            <input type="time" class="form-control form-control-sm border-0" value="${timeIn}">
             <span class="mx-1">-</span>
-            <input type="time" class="form-control form-control-sm" value="${timeOut}">
+            <input type="time" class="form-control form-control-sm border-0" value="${timeOut}">
         `;
         if (timeSpan && timeSpan.parentNode) {
             timeSpan.replaceWith(inputsWrap);
@@ -646,23 +588,6 @@ function renderError(message) {
 
 // Setup event listeners for edit buttons
 function setupEventListeners() {
-    // Event tombol prev/next bulan for modal
-    const prevModalBtn = document.getElementById("prevMonthBtnModal");
-    if (prevModalBtn) {
-        prevModalBtn.addEventListener("click", () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            loadEmployeeData();
-        });
-    }
-
-    const nextModalBtn = document.getElementById("nextMonthBtnModal");
-    if (nextModalBtn) {
-        nextModalBtn.addEventListener("click", () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            loadEmployeeData();
-        });
-    }
-
     // Save/Submit button for Add Shift Modal (assign an existing shift to employee/date)
     const addModalBtn = document.getElementById("saveShiftBtn");
     if (addModalBtn) {
@@ -687,15 +612,6 @@ function setupEventListeners() {
         editForm.addEventListener("submit", (e) => {
             e.preventDefault();
             saveShiftChanges();
-        });
-    }
-
-    // Save base shift from Shift page (Edit Employee modal on Shift page)
-    const saveEmployeeBtn = document.getElementById("saveEmployeeBtn");
-    if (saveEmployeeBtn) {
-        saveEmployeeBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            await saveEmployeeBaseShiftFromShiftPage();
         });
     }
 
@@ -1166,78 +1082,6 @@ async function saveShiftChanges() {
 function getSelectedShiftId() {
     const input = document.getElementById("editShiftId");
     return input && input.value ? input.value : null;
-}
-
-// Update an employee's BASE shift (same effect as Edit Employee page), from Shift page modal
-async function saveEmployeeBaseShiftFromShiftPage() {
-    try {
-        const modalEl =
-            document.querySelector("#editEmployeeModal") ||
-            document.querySelector(".modal.show") ||
-            document.querySelector(".modal");
-        if (!modalEl) {
-            showFloatingAlert("Edit Employee modal not found", "danger");
-            return;
-        }
-
-        const employeeId = modalEl.querySelector("#editEmployeeId")?.value;
-        const selectedShiftId = modalEl.querySelector("#editShiftId")?.value;
-        if (!employeeId) {
-            showFloatingAlert("Employee ID missing", "warning");
-            return;
-        }
-        if (!selectedShiftId) {
-            showFloatingAlert("Please select a shift", "warning");
-            return;
-        }
-
-        const basePath =
-            window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/employee/${employeeId}`;
-
-        const res = await fetch(endpoint, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": document.querySelector(
-                    'meta[name="csrf-token"]'
-                ).content,
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: JSON.stringify({ shift_id: selectedShiftId }),
-        });
-
-        if (!res.ok) {
-            const txt = await res.text().catch(() => "");
-            showFloatingAlert(
-                `Failed to update base shift: ${res.status} ${txt}`,
-                "danger"
-            );
-            return;
-        }
-
-        let json = {};
-        try {
-            json = await res.json();
-        } catch (_) {}
-
-        if (json && (json.status === "success" || json.code === 200)) {
-            const modal =
-                bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            modal.hide();
-            await ensureShiftsLoaded(true); // refresh cache in case labels changed
-            loadEmployeeData();
-            showFloatingAlert("Base shift updated successfully", "success");
-        } else {
-            showFloatingAlert(
-                (json && json.message) || "Failed to update base shift",
-                "danger"
-            );
-        }
-    } catch (err) {
-        console.error(err);
-        showFloatingAlert("Error updating base shift", "danger");
-    }
 }
 
 function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
