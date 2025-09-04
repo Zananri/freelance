@@ -29,6 +29,23 @@
     // Expose globally for use outside this block
     window.initBootstrapTooltips = initBootstrapTooltips;
 
+    // Normalize various user_photo values to a valid absolute URL
+    // Supports: full http(s), paths starting with '/', 'file/...', 'asset/...', or plain filenames
+    function buildPhotoUrl(userPhoto) {
+        try {
+            if (!userPhoto) return appUrl + '/asset/img/profile_picture/default.png';
+            if (typeof userPhoto !== 'string') userPhoto = String(userPhoto || '');
+            const up = userPhoto.trim();
+            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+            if (up.startsWith('/')) return appUrl + up; // includes '/file/...', '/asset/...'
+            if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
+            // bare filename stored
+            return appUrl + '/file/profile_picture/' + up;
+        } catch (_) {
+            return appUrl + '/asset/img/profile_picture/default.png';
+        }
+    }
+
     // Helper: determine if current viewer is an invited executor who hasn't accepted yet for this task
     function isViewerPendingExecutor(task) {
         if (!currentEmployeeId) return false;
@@ -456,41 +473,18 @@
                 return;
             }
 
-            const html = filteredEmployees
+        const html = filteredEmployees
                 .map((emp) => {
                     const isChecked = selectedEmployees.some(
                         (e) => e.id === emp.id
                     );
-                    let photoUrl = "";
-                    if (emp.user_photo) {
-                        if (emp.user_photo.startsWith("http")) {
-                            photoUrl = emp.user_photo;
-                        } else if (
-                            emp.user_photo.startsWith("/file/photo") ||
-                            emp.user_photo.startsWith("/file/profile_picture")
-                        ) {
-                            photoUrl = appUrl + emp.user_photo;
-                        } else if (
-                            emp.user_photo.startsWith("file/photo") ||
-                            emp.user_photo.startsWith("file/profile_picture")
-                        ) {
-                            photoUrl = appUrl + "/" + emp.user_photo;
-                        } else {
-                            photoUrl =
-                                appUrl +
-                                "/file/profile_picture/" +
-                                emp.user_photo;
-                        }
-                    } else {
-                        photoUrl =
-                            appUrl + "/asset/img/profile_picture/default.png";
-                    }
-                    return `
+            const photoUrl = buildPhotoUrl(emp.user_photo);
+            return `
                     <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                         <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${
+                <img src="${photoUrl}" alt="${
                         emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+            }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/profile_picture/default.png'">
                             <span>${emp.name}</span>
                         </div>
                         <input type="checkbox" class="executor-checkbox" data-id="${
@@ -538,28 +532,7 @@
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                let photoUrl = "";
-                if (emp.user_photo) {
-                    if (emp.user_photo.startsWith("http")) {
-                        photoUrl = emp.user_photo;
-                    } else if (
-                        emp.user_photo.startsWith("/file/photo") ||
-                        emp.user_photo.startsWith("/file/profile_picture")
-                    ) {
-                        photoUrl = appUrl + emp.user_photo;
-                    } else if (
-                        emp.user_photo.startsWith("file/photo") ||
-                        emp.user_photo.startsWith("file/profile_picture")
-                    ) {
-                        photoUrl = appUrl + "/" + emp.user_photo;
-                    } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + emp.user_photo;
-                    }
-                } else {
-                    photoUrl =
-                        appUrl + "/asset/img/profile_picture/default.png";
-                }
+                const photoUrl = buildPhotoUrl(emp.user_photo);
 
                 const badge = document.createElement("span");
                 badge.className =
@@ -870,9 +843,9 @@
             if (filtered.length === 0){ dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
             dropdown.innerHTML = filtered.map(emp => {
                 const isChecked = selected.some(e => e.id === emp.id);
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : (emp.user_photo.startsWith('/') ? appUrl + emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo)) : (appUrl + '/asset/img/profile_picture/default.png');
-                return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}"><span>${emp.name}</span></div>
+                const photoUrl = buildPhotoUrl(emp.user_photo);
+        return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+            <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/profile_picture/default.png'"><span>${emp.name}</span></div>
                         <input type="checkbox" class="schedule-executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
                     </label>`;
             }).join('');
@@ -890,7 +863,7 @@
         function renderSelected(){
             selectedContainer.innerHTML = '';
             selected.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : (emp.user_photo.startsWith('/') ? appUrl + emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo)) : (appUrl + '/asset/img/profile_picture/default.png');
+                const photoUrl = buildPhotoUrl(emp.user_photo);
                 const badge = document.createElement('span'); badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
                 const img = document.createElement('img'); img.src = photoUrl; img.alt = emp.name; img.className = 'rounded-circle me-2'; img.style.width='24px'; img.style.height='24px'; img.style.objectFit='cover';
                 const nameSpan = document.createElement('span'); nameSpan.textContent = emp.name;
@@ -1152,35 +1125,12 @@
                 return;
             }
 
-            const html = filteredEmployees
+        const html = filteredEmployees
                 .map((emp) => {
                     const isChecked = selectedEmployees.some(
                         (e) => e.id === emp.id
                     );
-                    let photoUrl = "";
-                    if (emp.user_photo) {
-                        if (emp.user_photo.startsWith("http")) {
-                            photoUrl = emp.user_photo;
-                        } else if (
-                            emp.user_photo.startsWith("/file/photo") ||
-                            emp.user_photo.startsWith("/file/profile_picture")
-                        ) {
-                            photoUrl = appUrl + emp.user_photo;
-                        } else if (
-                            emp.user_photo.startsWith("file/photo") ||
-                            emp.user_photo.startsWith("file/profile_picture")
-                        ) {
-                            photoUrl = appUrl + "/" + emp.user_photo;
-                        } else {
-                            photoUrl =
-                                appUrl +
-                                "/file/profile_picture/" +
-                                emp.user_photo;
-                        }
-                    } else {
-                        photoUrl =
-                            appUrl + "/asset/img/profile_picture/default.png";
-                    }
+            const photoUrl = buildPhotoUrl(emp.user_photo);
                     return `
                     <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                         <div class="d-flex align-items-center">
@@ -1234,28 +1184,7 @@
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                let photoUrl = "";
-                if (emp.user_photo) {
-                    if (emp.user_photo.startsWith("http")) {
-                        photoUrl = emp.user_photo;
-                    } else if (
-                        emp.user_photo.startsWith("/file/photo") ||
-                        emp.user_photo.startsWith("/file/profile_picture")
-                    ) {
-                        photoUrl = appUrl + emp.user_photo;
-                    } else if (
-                        emp.user_photo.startsWith("file/photo") ||
-                        emp.user_photo.startsWith("file/profile_picture")
-                    ) {
-                        photoUrl = appUrl + "/" + emp.user_photo;
-                    } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + emp.user_photo;
-                    }
-                } else {
-                    photoUrl =
-                        appUrl + "/asset/img/profile_picture/default.png";
-                }
+                const photoUrl = buildPhotoUrl(emp.user_photo);
 
                 const badge = document.createElement("span");
                 badge.className =
