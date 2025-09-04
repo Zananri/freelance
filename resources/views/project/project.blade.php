@@ -146,7 +146,7 @@
                     <div class="d-flex justify-content-between title-filter-container align-items-center">
                         <h6 class="mb-4 all-projects-title">All Project</h6>
                     </div>
-                    <div class="dropdown-filter-container">
+                    <div class="dropdown-center dropdown-filter-container">
                         <div class="btn-filter-container mb-3">
                             <div class="search-input-container position-relative me-3">
                                 <span class="material-symbols-outlined search-icon">search</span>
@@ -170,7 +170,7 @@
                                     class="btn-text-filter">Timeline</span>
                             </button>
                         </div>
-                        <div class="dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
+                        <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
                             <div class="dropdown-filter-body">
                                 <div class="mb-3">
                                     <label for="filterProjectStatus" class="form-label">Filter by Status</label>
@@ -204,7 +204,7 @@
                     </div>
                 </div>
                 <div class="d-flex justify-content-center mt-3">
-                    <div id="project-pagination" class="pagination-pill d-flex align-items-center">
+                    <div id="project-pagination" class="pagination-pill d-none align-items-center">
                         <button id="prevPageBtn" class="btn-nav" disabled>
                             <span class="material-symbols-outlined">chevron_left</span>
                         </button>
@@ -222,7 +222,7 @@
     </div>
 
     <!-- Add Project Modal -->
-    <div class="modal fade add-project-modal" id="addProjectModal" data-bs-backdrop="static"
+    <div class="modal fade modal-custom" id="addProjectModal" data-bs-backdrop="static"
         data-bs-keyboard="false" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
@@ -353,7 +353,7 @@
     </div>
 
     <!-- Edit Project Modal -->
-    <div class="modal fade" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    <div class="modal fade modal-custom" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
         aria-labelledby="editProjectModalLabel" aria-hidden="true"
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
         <div class="modal-dialog">
@@ -372,7 +372,7 @@
                             style="margin-bottom: 1rem; display:none;">
                             Project updated successfully!
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <div class="title-label-image">
                                 <span>Upload image</span>
                             </div>
@@ -387,30 +387,30 @@
                                 Please select an image file.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="edit_title" class="form-label label-custom">Title</label>
                             <input type="text" class="form-control input-text" id="edit_title" name="title"
                                 required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="edit_description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="edit_description" name="description" rows="3"></textarea>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="edit_department" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="edit_department" name="department" required>
                                 <option value="">Select Department</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="edit_division" class="form-label label-custom">Division</label>
                             <select class="form-select input-select" id="edit_division" name="division" required>
                                 <option value="">Select Division</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="edit_project_reference_urls_container" class="d-flex flex-column gap-2">
                                 <div class="d-flex gap-2 align-items-center">
@@ -422,7 +422,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="edit_reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="edit_reference_file"
                                 name="reference_file[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
@@ -431,7 +431,7 @@
                             <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"
                                 value="[]">
                         </div>
-                        <div class="mb-3 d-flex justify-content-between">
+                        <div class="mb-3 input-custom d-flex justify-content-between">
                             <div style="width: 48%;">
                                 <label for="edit_start_date" class="form-label label-custom">Start Date</label>
                                 <input type="date" class="form-control input-text" id="edit_start_date"
@@ -443,7 +443,7 @@
                                     name="due_date" required>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="edit_part_of_project" class="form-label label-custom">Part of Project</label>
                             <select class="form-select input-select" id="edit_part_of_project"
                                 name="part_of_project">
@@ -451,7 +451,7 @@
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
                             <input type="text" class="form-control input-text" id="edit_co_author_input"
                                 name="edit_co_author_input" autocomplete="off" placeholder="Search employees...">
@@ -463,7 +463,7 @@
                             </div>
                             <input type="hidden" id="edit_co_author" name="co_author" value="">
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 input-custom">
                             <label for="edit_contributor_input" class="form-label label-custom">Contributor</label>
                             <input type="text" class="form-control input-text" id="edit_contributor_input"
                                 name="edit_contributor_input" autocomplete="off" placeholder="Search employees...">
@@ -526,7 +526,7 @@
     </div>
 
     <!-- Project Reference Files Modal (exactly like Task modal) -->
-    <div class="modal fade" id="projectFilesModal" tabindex="-1" aria-labelledby="projectFilesModalLabel"
+    <div class="modal fade modal-custom" id="projectFilesModal" tabindex="-1" aria-labelledby="projectFilesModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">

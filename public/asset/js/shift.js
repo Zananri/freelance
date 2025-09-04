@@ -53,7 +53,6 @@ async function loadEmployeeData() {
         }
 
         const data = await response.json();
-        console.log(data);
 
         if (data.success && data.data) {
             employees = data.data;
@@ -87,20 +86,58 @@ function populateMonthDropdown() {
         "December",
     ];
 
-    monthDropdownMenu.innerHTML = "";
+    if (monthDropdownMenu) {
+        monthDropdownMenu.innerHTML = "";
 
-    monthNames.forEach((name, i) => {
-        const li = document.createElement("li");
-        const btn = document.createElement("button");
-        btn.className = "dropdown-item";
-        btn.textContent = `${name}`;
-        btn.addEventListener("click", () => {
-            currentDate.setMonth(i);
-            loadEmployeeData();
+        monthNames.forEach((name, i) => {
+            const li = document.createElement("li");
+            const btn = document.createElement("button");
+            btn.className = "dropdown-item";
+            btn.textContent = `${name}`;
+            btn.addEventListener("click", () => {
+                currentDate.setMonth(i);
+                loadEmployeeData();
+            });
+            li.appendChild(btn);
+            monthDropdownMenu.appendChild(li);
         });
-        li.appendChild(btn);
-        monthDropdownMenu.appendChild(li);
-    });
+    }
+}
+
+// Modal Month Dropdown
+function populateMonthDropdownModal() {
+    const monthDropdownMenuModal = document.getElementById("monthDropdownMenuModal");
+    const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ];
+
+    if (monthDropdownMenuModal) {
+        monthDropdownMenuModal.innerHTML = "";
+
+        monthNames.forEach((name, i) => {
+            const li = document.createElement("li");
+            const btn = document.createElement("button");
+            btn.className = "dropdown-item";
+            btn.textContent = `${name}`;
+            btn.addEventListener("click", () => {
+                currentDate.setMonth(i);
+                loadEmployeeData();
+            });
+            li.appendChild(btn);
+            monthDropdownMenuModal.appendChild(li);
+        });
+    }
 }
 
 // Event tombol prev/next bulan
@@ -120,60 +157,115 @@ loadEmployeeData();
 // Render header tanggal
 function renderHeader(month, year) {
     const headerRow = document.getElementById("shiftTableHeader");
-    headerRow.innerHTML = `<th class="sticky-col fw-semiboled">Employee</th>`;
+    const modalHeaderRow = document.getElementById("shiftTableHeaderModal");
 
-    const daysInMonth = new Date(year, month, 0).getDate();
+    // Render main table header
+    if (headerRow) {
+        headerRow.innerHTML = `<th class="sticky-col fw-semiboled text-center">Employee</th>`;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+            const th = document.createElement("th");
+            const day = new Date(year, month - 1, i).getDay();
+            th.textContent = i;
+            if (day === 0) th.classList.add("sunday");
+            headerRow.appendChild(th);
+        }
+    }
 
-    for (let i = 1; i <= daysInMonth; i++) {
-        const th = document.createElement("th");
-        const day = new Date(year, month - 1, i).getDay();
-
-        th.textContent = i;
-        if (day === 0) th.classList.add("sunday");
-        headerRow.appendChild(th);
+    // Render modal table header
+    if (modalHeaderRow) {
+        modalHeaderRow.innerHTML = `<th class="sticky-col fw-semiboled">Employee</th>`;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        for (let i = 1; i <= daysInMonth; i++) {
+            const th = document.createElement("th");
+            const day = new Date(year, month - 1, i).getDay();
+            th.textContent = i;
+            if (day === 0) th.classList.add("sunday");
+            modalHeaderRow.appendChild(th);
+        }
     }
 }
 
 // Render Table Content
 function renderEmployeeTable(employees, month, year) {
     const tableBody = document.getElementById("shiftTableBody");
+    const modalTableBody = document.getElementById("shiftTableBodyModal");
     const monthTitle = document.getElementById("shiftMonthTitle");
+    const modalMonthTitle = document.getElementById("shiftMonthTitleModal");
 
-    if (!tableBody) return;
-    tableBody.innerHTML = "";
+    // Render main table body
+    if (tableBody) {
+        tableBody.innerHTML = "";
 
-    if (!employees || employees.length === 0) {
-        tableBody.innerHTML =
-            '<tr><td colspan="32" class="text-center">No employees found</td></tr>';
-        return;
+        if (!employees || employees.length === 0) {
+            tableBody.innerHTML =
+                '<tr><td colspan="32" class="text-center">No employees found</td></tr>';
+        } else {
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const monthName = new Date(year, month - 1, 1).toLocaleString("en-US", {
+                month: "long",
+            });
+            monthTitle.textContent = `${monthName} ${year}`;
+
+            employees.forEach((employee) => {
+                const row = document.createElement("tr");
+
+                // Employee cell
+                const employeeCell = createEmployeeCell(employee);
+                row.appendChild(employeeCell);
+
+                // Dates cells
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(
+                        i
+                    ).padStart(2, "0")}`;
+                    const shift = employee.shifts.find((s) => s.date_shift === dateKey);
+
+                    const td = createShiftCell(employee, shift, dateKey);
+                    row.appendChild(td);
+                }
+
+                tableBody.appendChild(row);
+            });
+        }
     }
 
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const monthName = new Date(year, month - 1, 1).toLocaleString("en-US", {
-        month: "long",
-    });
-    monthTitle.textContent = `${monthName} ${year}`;
+    // Render modal table body
+    if (modalTableBody) {
+        modalTableBody.innerHTML = "";
 
-    employees.forEach((employee) => {
-        const row = document.createElement("tr");
+        if (!employees || employees.length === 0) {
+            modalTableBody.innerHTML =
+                '<tr><td colspan="32" class="text-center">No employees found</td></tr>';
+        } else {
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const monthName = new Date(year, month - 1, 1).toLocaleString("en-US", {
+                month: "long",
+            });
+            if (modalMonthTitle) modalMonthTitle.textContent = `${monthName} ${year}`;
 
-        // Employee cell
-        const employeeCell = createEmployeeCell(employee);
-        row.appendChild(employeeCell);
+            employees.forEach((employee) => {
+                const row = document.createElement("tr");
 
-        // Dates cells
-        for (let i = 1; i <= daysInMonth; i++) {
-            const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(
-                i
-            ).padStart(2, "0")}`;
-            const shift = employee.shifts.find((s) => s.date_shift === dateKey);
+                // Employee cell
+                const employeeCell = createEmployeeCell(employee);
+                row.appendChild(employeeCell);
 
-            const td = createShiftCell(employee, shift, dateKey);
-            row.appendChild(td);
+                // Dates cells
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(
+                        i
+                    ).padStart(2, "0")}`;
+                    const shift = employee.shifts.find((s) => s.date_shift === dateKey);
+
+                    const td = createShiftCell(employee, shift, dateKey);
+                    row.appendChild(td);
+                }
+
+                modalTableBody.appendChild(row);
+            });
         }
-
-        tableBody.appendChild(row);
-    });
+    }
 }
 
 function createEmployeeCell(employee) {
@@ -458,121 +550,165 @@ function setEditShiftModal(btn) {
     });
 }
 
+function renderShiftConfigTable(shifts) {
+    const tbody = document.getElementById("shiftConfigTableBody");
+    if (!tbody) return;
+
+    const formatTime = t => {
+        if (!t) return "--";
+        const [h, m] = String(t).split(":");
+        return `${h.padStart(2,"0")}:${m.padStart(2,"0")}`;
+    };
+
+    tbody.innerHTML = "";
+    if (!Array.isArray(shifts) || shifts.length === 0) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="3" class="text-center text-muted">No shifts found</td>`;
+        tbody.appendChild(tr);
+        return;
+    }
+
+    shifts.forEach(s => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td data-field="title">${s.title || "(No title)"}</td>
+            <td data-field="description">${s.description || ""}</td>
+            <td data-field="time">
+                <div class="d-flex justify-content-between align-items-center config-group-icon">
+                    <span>${formatTime(s.time_start)} - ${formatTime(s.time_end)}</span>
+                    <div class="d-flex">
+                        <button class="btn btn-sm edit-btn"
+                            data-shift-id="${s.id}"
+                            data-title="${s.title || ""}"
+                            data-description="${s.description || ""}"
+                            data-start="${s.time_start || ""}"
+                            data-end="${s.time_end || ""}">
+                            <span class="material-symbols-outlined">edit</span>
+                        </button>
+                        <button class="btn btn-sm delete-btn" data-shift-id="${s.id}">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
 function shiftConfigModal(btn) {
     const addShiftModalEl = document.getElementById("shiftConfigModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
-    // Load and render shifts into the config table
     ensureShiftsLoaded().then((shifts) => renderShiftConfigTable(shifts));
     addShiftModal.show();
 }
 
-// Inline Edit for Shift Config table (delegated handlers to support re-render)
 document.addEventListener("click", async (e) => {
     const editBtn = e.target.closest(".edit-btn");
-    const saveBtn = e.target.closest(".save-btn");
     const deleteBtn = e.target.closest(".delete-btn");
 
     if (editBtn) {
-        const row = editBtn.closest("tr");
-        const titleCell = row.querySelector('[data-field="title"]');
-        const timeCell = row.querySelector('[data-field="time"]');
-        const group = timeCell.querySelector(".config-group-icon");
-        const timeSpan = group?.querySelector("span");
-        const save = row.querySelector(".save-btn");
+        const modalEl = document.getElementById("editConfigModal");
+        const modal = new bootstrap.Modal(modalEl);
 
-        const currentTitle = (titleCell.textContent || "").trim();
-        const timeText = (timeSpan?.textContent || "").trim();
-        const [timeIn = "", timeOut = ""] = timeText.split(" - ");
+        modalEl.querySelector("#editConfigShiftId").value = editBtn.dataset.shiftId || "";
+        modalEl.querySelector("#editTitle").value = editBtn.dataset.title || "";
+        modalEl.querySelector("#editDescription").value = editBtn.dataset.description || "";
+        modalEl.querySelector("#editTimeStart").value = editBtn.dataset.start || "";
+        modalEl.querySelector("#editTimeEnd").value = editBtn.dataset.end || "";
 
-        // Ensure vertical centering during edit
-        row.querySelectorAll("td").forEach((td) => (td.style.verticalAlign = "middle"));
-
-        // Replace title with input container (full width)
-        titleCell.innerHTML = `
-            <div class="config-title-edit d-flex align-items-center w-100">
-                <input type="text" class="form-control form-control-sm w-100 border-0" style="min-width: 0;" value="${currentTitle}">
-            </div>`;
-
-        // Build time inputs and replace only the span, keep action buttons intact
-    const inputsWrap = document.createElement("div");
-    inputsWrap.className = "time-edit d-flex gap-1 align-items-center";
-        inputsWrap.style.minHeight = "36px";
-        inputsWrap.innerHTML = `
-            <input type="time" class="form-control form-control-sm border-0" value="${timeIn}">
-            <span class="mx-1">-</span>
-            <input type="time" class="form-control form-control-sm border-0" value="${timeOut}">
-        `;
-        if (timeSpan && timeSpan.parentNode) {
-            timeSpan.replaceWith(inputsWrap);
-        } else {
-            group?.prepend(inputsWrap);
-        }
-
-        // Toggle buttons
-        editBtn.classList.add("d-none");
-        if (save) save.classList.remove("d-none");
+        modal.show();
     }
 
-    if (saveBtn) {
-        const row = saveBtn.closest("tr");
-        const shiftId = saveBtn.dataset.shiftId;
-        const titleCell = row.querySelector('[data-field="title"]');
-        const timeCell = row.querySelector('[data-field="time"]');
-        const group = timeCell.querySelector(".config-group-icon");
-        const edit = row.querySelector(".edit-btn");
+    if (deleteBtn) {
+        const shiftId = deleteBtn.dataset.shiftId;
+        if (!confirm("Are you sure you want to delete this shift?")) return;
 
-        const titleInput = titleCell.querySelector("input");
-        const inputs = group?.querySelectorAll("input[type='time']") || [];
-        const newTitle = (titleInput?.value || "").trim();
-        const timeStart = inputs[0]?.value || "";
-        const timeEnd = inputs[1]?.value || "";
+        const userId = document.querySelector('meta[name="user-id"]').content || null;
 
-        if (!newTitle || !timeStart || !timeEnd) {
-            showFloatingAlert("Please fill all fields (Title, Time In, Time Out)", "warning");
+        if (!userId) {
+            showFloatingAlert("User ID not found. Please login again.", "danger");
             return;
         }
 
+        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
         try {
-            const basePath =
-                window.location.pathname.split("/").slice(0, -1).join("/") || "";
-            const endpoint = `${basePath}/shift/config/${shiftId}`;
-            const res = await fetch(endpoint, {
+            const res = await fetch(`${basePath}/shift/${shiftId}/soft-delete`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
                 },
-                body: JSON.stringify({
-                    title: newTitle,
-                    description: "",
-                    time_start: timeStart,
-                    time_end: timeEnd,
-                }),
+                body: JSON.stringify({ deleted_by: userId }),
             });
 
-            if (!res.ok) {
-                const txt = await res.text();
-                showFloatingAlert(`Failed to update shift: ${res.status} ${txt}`, "danger");
-                return;
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await res.text();
+                throw new Error("Server returned non-JSON response: " + text);
             }
+
             const json = await res.json();
             if (!json.success) {
-                showFloatingAlert(json.message || "Failed to update shift", "danger");
+                showFloatingAlert(json.message || "Failed to soft delete shift", "danger");
                 return;
             }
 
-            // Refresh shifts cache and table
-            await ensureShiftsLoaded(true);
-            renderShiftConfigTable(window.shifts);
-            showFloatingAlert("Shift updated successfully", "success");
+            window.shifts = window.shifts.map(s => {
+                if (s.id == shiftId) s.deleted_by = userId;
+                return s;
+            });
+
+            renderShiftConfigTable(window.shifts.filter(s => !s.deleted_by));
+            showFloatingAlert("Shift deleted (soft)", "success");
+
         } catch (err) {
             console.error(err);
-            showFloatingAlert("Error updating shift", "danger");
+            showFloatingAlert("Error soft deleting shift: " + err.message, "danger");
         }
     }
+});
 
-    if (deleteBtn) {
-        // No change to delete flow here; placeholder if needed later
+document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", async () => {
+    const modalEl = document.getElementById("editConfigModal");
+    const shiftId = modalEl.querySelector("#editConfigShiftId").value;
+    const title = modalEl.querySelector("#editTitle").value.trim();
+    const description = modalEl.querySelector("#editDescription").value.trim();
+    const timeStart = modalEl.querySelector("#editTimeStart").value;
+    const timeEnd = modalEl.querySelector("#editTimeEnd").value;
+
+    if (!title || !timeStart || !timeEnd) {
+        showFloatingAlert("Please fill all required fields", "warning");
+        return;
+    }
+
+    try {
+        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/shift/config/${shiftId}`;
+
+        const res = await fetch(endpoint, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({ title, description, time_start: timeStart, time_end: timeEnd }),
+        });
+
+        const json = await res.json();
+        if (!json.success) {
+            showFloatingAlert(json.message || "Failed to update shift", "danger");
+            return;
+        }
+
+        await ensureShiftsLoaded(true);
+        renderShiftConfigTable(window.shifts);
+        showFloatingAlert("Shift updated successfully", "success");
+
+        bootstrap.Modal.getInstance(modalEl).hide();
+    } catch (err) {
+        console.error(err);
+        showFloatingAlert("Error updating shift", "danger");
     }
 });
 
@@ -615,6 +751,15 @@ function setupEventListeners() {
         });
     }
 
+    // Save Employee Base Shift button
+    const saveEmployeeBtn = document.getElementById("saveEmployeeBtn");
+    if (saveEmployeeBtn) {
+        saveEmployeeBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            saveEmployeeBaseShiftFromShiftPage();
+        });
+    }
+
     // When Shift Config modal is opened, load and render shifts
     const shiftConfigEl = document.getElementById("shiftConfigModal");
     if (shiftConfigEl) {
@@ -623,6 +768,29 @@ function setupEventListeners() {
                 renderShiftConfigTable(shifts)
             );
         });
+    }
+
+    // Modal navigation buttons
+    const prevMonthBtnModal = document.getElementById("prevMonthBtnModal");
+    if (prevMonthBtnModal) {
+        prevMonthBtnModal.addEventListener("click", () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            loadEmployeeData();
+        });
+    }
+
+    const nextMonthBtnModal = document.getElementById("nextMonthBtnModal");
+    if (nextMonthBtnModal) {
+        nextMonthBtnModal.addEventListener("click", () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            loadEmployeeData();
+        });
+    }
+
+    // Modal month dropdown
+    const monthDropdownBtnModal = document.getElementById("monthDropdownBtnModal");
+    if (monthDropdownBtnModal) {
+        populateMonthDropdownModal();
     }
 }
 
@@ -1084,6 +1252,77 @@ function getSelectedShiftId() {
     return input && input.value ? input.value : null;
 }
 
+async function saveEmployeeBaseShiftFromShiftPage() {
+    try {
+        const modalEl =
+            document.querySelector("#editEmployeeModal") ||
+            document.querySelector(".modal.show") ||
+            document.querySelector(".modal");
+        if (!modalEl) {
+            showFloatingAlert("Edit Employee modal not found", "danger");
+            return;
+        }
+
+        const employeeId = modalEl.querySelector("#editEmployeeId")?.value;
+        const selectedShiftId = modalEl.querySelector("#editShiftId")?.value;
+        if (!employeeId) {
+            showFloatingAlert("Employee ID missing", "warning");
+            return;
+        }
+        if (!selectedShiftId) {
+            showFloatingAlert("Please select a shift", "warning");
+            return;
+        }
+
+        const basePath =
+            window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/employee/${employeeId}`;
+
+        const res = await fetch(endpoint, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector(
+                    'meta[name="csrf-token"]'
+                ).content,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({ shift_id: selectedShiftId }),
+        });
+
+        if (!res.ok) {
+            const txt = await res.text().catch(() => "");
+            showFloatingAlert(
+                `Failed to update base shift: ${res.status} ${txt}`,
+                "danger"
+            );
+            return;
+        }
+
+        let json = {};
+        try {
+            json = await res.json();
+        } catch (_) {}
+
+        if (json && (json.status === "success" || json.code === 200)) {
+            const modal =
+                bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.hide();
+            await ensureShiftsLoaded(true);
+            loadEmployeeData();
+            showFloatingAlert("Base shift updated successfully", "success");
+        } else {
+            showFloatingAlert(
+                (json && json.message) || "Failed to update base shift",
+                "danger"
+            );
+        }
+    } catch (err) {
+        console.error(err);
+        showFloatingAlert("Error updating base shift", "danger");
+    }
+}
+
 function populateEditShiftDropdown(modalEl, shifts, selectedId = null) {
     if (!modalEl) return;
     const dropdownContainer =
@@ -1278,55 +1517,6 @@ function showFloatingAlert(message, type = "success", delayMs = 3000) {
     try { alert(String(message || "")); } catch (_) { console.log("ALERT:", message); }
 }
 
-// Render rows in the Shift Config modal table from shifts array
-function renderShiftConfigTable(shifts) {
-    const tbody = document.getElementById("shiftConfigTableBody");
-    if (!tbody) return;
-    const formatTime = (t) => {
-        if (!t) return "--";
-        const [h, m] = String(t).split(":");
-        return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
-    };
-    tbody.innerHTML = "";
-    if (!Array.isArray(shifts) || shifts.length === 0) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="2" class="text-center text-muted">No shifts found</td>`;
-        tbody.appendChild(tr);
-        return;
-    }
-    shifts.forEach((s) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td data-field="title">${s.title || "(No title)"}</td>
-            <td data-field="time">
-                <div class="d-flex justify-content-between align-items-center config-group-icon">
-                    <span>${formatTime(s.time_start)} - ${formatTime(
-            s.time_end
-        )}</span>
-                    <div class="d-flex">
-                        <button class="btn btn-sm edit-btn" data-shift-id="${
-                            s.id
-                        }">
-                            <span class="material-symbols-outlined">edit</span>
-                        </button>
-                        <button class="btn btn-sm save-btn d-none" data-shift-id="${
-                            s.id
-                        }">
-                            <span class="material-symbols-outlined">check</span>
-                        </button>
-                        <button class="btn btn-sm delete-btn" data-shift-id="${
-                            s.id
-                        }">
-                            <span class="material-symbols-outlined">delete</span>
-                        </button>
-                    </div>
-                </div>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
 $(document).ready(function () {
     const today = new Date();
     const month = today.getMonth();
@@ -1380,14 +1570,34 @@ $(document).ready(function () {
     });
 });
 
-document.getElementById("search_filter").addEventListener("keyup", function () {
-    const filter = this.value.toLowerCase();
-    const month = currentDate.getMonth() + 1;
-    const year = currentDate.getFullYear();
+document.getElementById("search_filter").addEventListener("keyup", async function () {
+    const query = this.value.trim();
 
-    const filteredEmployees = employees.filter((emp) => {
-        return emp.name.toLowerCase().includes(filter);
-    });
+    try {
+        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/shift/employees-basic?search=${encodeURIComponent(query)}`;
 
-    renderEmployeeTable(filteredEmployees, month, year);
+        const res = await fetch(endpoint, {
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+        const data = await res.json();
+
+        if (data.success && data.data) {
+            employees = data.data;
+            renderEmployeeTable(employees, currentDate.getMonth() + 1, currentDate.getFullYear());
+        } else {
+            console.error("Search failed:", data.message);
+            renderEmployeeTable([], currentDate.getMonth() + 1, currentDate.getFullYear());
+        }
+    } catch (err) {
+        console.error("Error searching employees:", err);
+        renderEmployeeTable([], currentDate.getMonth() + 1, currentDate.getFullYear());
+    }
 });
+

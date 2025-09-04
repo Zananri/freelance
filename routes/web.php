@@ -30,7 +30,7 @@ Route::get('/', function () {
 });
 
 Route::middleware('guest')->group(function () {
-        Route::get('/login', function () {
+    Route::get('/login', function () {
         return view('auth.login');
     });
 
@@ -52,7 +52,7 @@ Route::get('/server-time', function () {
 Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
-        
+
 
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
 
@@ -161,7 +161,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
     Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
     Route::get('/attendance/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
-    
+
     Route::post('/attendance/submit-checkin', [AttendanceController::class, 'submitCheckin'])->name('attendance.submitCheckin');
     Route::post('/attendance/submit-checkout', [AttendanceController::class, 'submitCheckout'])->name('attendance.submitCheckout');
 
@@ -181,6 +181,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/shift/update/{id}', [ShiftController::class, 'update'])->name('shift.update');
     // Update an existing shift definition (used by inline edit in Shift Config modal)
     Route::put('/shift/config/{id}', [ShiftController::class, 'updateConfig'])->name('shift.config.update');
+    Route::put('/shift/{id}/soft-delete', [ShiftController::class, 'softDelete'])
+        ->name('shift.soft-delete');
 
     Route::get('/attendance/latest-unclosed/{employeeId}', [AttendanceController::class, 'getLatestUnclosedAttendance']);
     Route::get('/attendance/daily/{employeeId}/{date}', [AttendanceController::class, 'getDailyAttendances']);
@@ -194,7 +196,7 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::middleware('auth','management')->group(function () {
+Route::middleware('auth', 'management')->group(function () {
 
 
     Route::get('/master', function () {

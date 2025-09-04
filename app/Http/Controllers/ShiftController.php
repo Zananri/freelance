@@ -23,11 +23,12 @@ class ShiftController extends Controller
     {
         $month = $request->input('month', date('m'));
         $year = $request->input('year', date('Y'));
+        $search = $request->input('search', '');
 
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-        $employees = Employee::select(
+        $query = Employee::select(
             'employees.id',
             'employees.name',
             'employees.email',
@@ -56,9 +57,22 @@ class ShiftController extends Controller
                 $join->on('employees.id', '=', 'employee_shifts.employee_id')
                     ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
             })
-            ->leftJoin('shifts', 'employee_shifts.shift_id', '=', 'shifts.id')
-            ->leftJoin('shifts as base_shifts', 'employees.shift_id', '=', 'base_shifts.id')
-            ->where('employees.status', 'active')
+            ->leftJoin('shifts', function ($join) {
+                $join->on('employee_shifts.shift_id', '=', 'shifts.id')
+                    ->whereNull('shifts.deleted_by');
+            })
+            ->leftJoin('shifts as base_shifts', function ($join) {
+                $join->on('employees.shift_id', '=', 'base_shifts.id')
+                    ->whereNull('base_shifts.deleted_by');
+            })
+            ->where('employees.status', 'active');
+
+        // Add search filter if provided
+        if (!empty($search)) {
+            $query->where('employees.name', 'like', '%' . $search . '%');
+        }
+
+        $employees = $query
             ->orderBy('employees.name')
             ->orderBy('employee_shifts.date_shift', 'asc')
             ->get()
@@ -113,6 +127,7 @@ class ShiftController extends Controller
     {
         try {
             $shifts = \App\Models\Shift::select('id', 'title', 'description', 'time_start', 'time_end', 'total_hour')
+                ->whereNull('deleted_by')
                 ->orderBy('title')
                 ->get();
 
@@ -174,7 +189,7 @@ class ShiftController extends Controller
 
             DB::commit();
             return response()->json([
-                'success' => true,  
+                'success' => true,
                 'message' => 'Shift created successfully',
                 'data' => $shift
             ]);
@@ -322,4 +337,26 @@ class ShiftController extends Controller
             ], 500);
         }
     }
+
+    public function softDelete(Request $request, $id)
+    {
+        $shift = \App\Models\Shift::findOrFail($id);
+
+        $data = $request->json()->all();
+        $deletedBy = $data['deleted_by'] ?? auth()->id();
+
+        if (!$deletedBy) {
+            return response()->json([
+                'success' => false,
+                'message' => 'deleted_by missing'
+            ], 400);
+        }
+
+        $shift->deleted_by = $deletedBy;
+        $shift->updated_at = now();
+        $shift->save();
+
+        return response()->json(['success' => true]);
+    }
+
 }
