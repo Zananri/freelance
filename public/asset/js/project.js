@@ -3431,21 +3431,20 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     }
 
+                    let taskModal;
                     // Function to load project tasks
                     function loadProjectTasks(projectId) {
-                        const taskModal = new bootstrap.Modal(
-                            document.getElementById("taskModal")
-                        );
-                        const taskListContainer =
-                            document.getElementById("taskListContainer");
+                        const taskModalEl = document.getElementById("taskModal");
+                        const taskModal = bootstrap.Modal.getOrCreateInstance(taskModalEl);
 
+                        const taskListContainer = document.getElementById("taskListContainer");
                         taskListContainer.innerHTML = `
-            <div class="text-center py-4">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `;
+                            <div class="text-center py-4">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        `;
 
                         taskModal.show();
 
@@ -3456,228 +3455,114 @@ document.addEventListener("DOMContentLoaded", function () {
                             success: function (response) {
                                 if (response.data && response.data.length > 0) {
                                     let html = "";
-                                    response.data.forEach((task, index) => {
+                                    response.data.forEach((task) => {
                                         const taskImage = task.image
-                                            ? appUrl +
-                                              "/file/task/" +
-                                              task.image
-                                            : appUrl +
-                                              "/asset/img/profile_picture/default.png";
+                                            ? appUrl + "/file/task/" + task.image
+                                            : appUrl + "/asset/img/profile_picture/default.png";
 
-                                        const createdDate = formatTaskDate(
-                                            task.created_at
-                                        );
+                                        const createdDate = formatTaskDate(task.created_at);
 
-                                        // Get PIC image
-                                        let picImage =
-                                            appUrl +
-                                            "/asset/img/profile_picture/default.png";
-                                        if (task.pic && task.pic.user_photo) {
-                                            if (
-                                                task.pic.user_photo.startsWith(
-                                                    "http"
-                                                )
-                                            ) {
-                                                picImage = task.pic.user_photo;
-                                            } else if (
-                                                task.pic.user_photo.startsWith(
-                                                    "/"
-                                                )
-                                            ) {
-                                                picImage =
-                                                    appUrl +
-                                                    task.pic.user_photo;
-                                            } else {
-                                                picImage =
-                                                    appUrl +
-                                                    "/file/profile_picture/" +
-                                                    task.pic.user_photo;
-                                            }
-                                        }
-
-                                        // Get status badge class and text
-                                        let statusClass = "";
-                                        let statusText = "";
-
-                                        switch (task.status) {
-                                            case "new_request":
-                                            case "new request":
-                                                statusClass =
-                                                    "status-badge status-new-request";
-                                                statusText = "New Request";
-                                                break;
-                                            case "in_progress":
-                                            case "in progress":
-                                                statusClass =
-                                                    "status-badge status-in-progress";
-                                                statusText = "In Progress";
-                                                break;
-                                            case "completed":
-                                                statusClass =
-                                                    "status-badge status-completed";
-                                                statusText = "Completed";
-                                                break;
-                                            case "rejected":
-                                                statusClass =
-                                                    "status-badge status-rejected";
-                                                statusText = "Rejected";
-                                                break;
-                                            default:
-                                                statusClass = "status-badge";
-                                                statusText = task.status;
-                                        }
-
-                                        // Build combined PIC and Contributors HTML
-                                        let combinedImagesHtml = "";
-                                        let allPeople = [];
-
-                                        // Helper function to get correct image URL
                                         function getImageUrl(userPhoto) {
                                             if (!userPhoto) {
-                                                return (
-                                                    appUrl +
-                                                    "/asset/img/profile_picture/default.png"
-                                                );
+                                                return appUrl + "/asset/img/profile_picture/default.png";
                                             }
-
-                                            if (userPhoto.startsWith("http")) {
-                                                return userPhoto;
-                                            }
-
-                                            // Handle different path formats
-                                            if (
-                                                userPhoto.startsWith(
-                                                    "/file/photo/"
-                                                )
-                                            ) {
-                                                return appUrl + userPhoto;
-                                            } else if (
-                                                userPhoto.startsWith(
-                                                    "/file/profile_picture/"
-                                                )
-                                            ) {
-                                                return appUrl + userPhoto;
-                                            } else if (
-                                                userPhoto.startsWith(
-                                                    "file/photo/"
-                                                )
-                                            ) {
-                                                return appUrl + "/" + userPhoto;
-                                            } else if (
-                                                userPhoto.startsWith(
-                                                    "file/profile_picture/"
-                                                )
-                                            ) {
-                                                return appUrl + "/" + userPhoto;
-                                            } else if (
-                                                userPhoto.startsWith("/")
-                                            ) {
-                                                return appUrl + userPhoto;
-                                            } else {
-                                                return (
-                                                    appUrl +
-                                                    "/file/profile_picture/" +
-                                                    userPhoto
-                                                );
-                                            }
+                                            if (userPhoto.startsWith("http")) return userPhoto;
+                                            if (userPhoto.startsWith("/")) return appUrl + userPhoto;
+                                            return appUrl + "/file/profile_picture/" + userPhoto;
                                         }
 
-                                        // Add PIC first
+                                        let allPeople = [];
                                         if (task.pic) {
-                                            let picImage = getImageUrl(
-                                                task.pic.user_photo
-                                            );
                                             allPeople.push({
                                                 id: task.pic.id,
-                                                image: picImage,
-                                                name:
-                                                    task.pic.name || "Unknown",
+                                                image: getImageUrl(task.pic.user_photo),
+                                                name: task.pic.name || "Unknown",
                                                 title: "PIC",
                                             });
                                         }
 
-                                        // Add contributors (from executors field), excluding PIC duplicates
-                                        if (
-                                            task.executors &&
-                                            task.executors.length > 0
-                                        ) {
-                                            task.executors.forEach(
-                                                (executor) => {
-                                                    if (
-                                                        !allPeople.some(
-                                                            (p) =>
-                                                                p.id ===
-                                                                executor.id
-                                                        )
-                                                    ) {
-                                                        let executorImage =
-                                                            getImageUrl(
-                                                                executor.user_photo
-                                                            );
-                                                        allPeople.push({
-                                                            id: executor.id,
-                                                            image: executorImage,
-                                                            name:
-                                                                executor.name ||
-                                                                "Unknown",
-                                                            title: "Contributor",
-                                                        });
-                                                    }
+                                        if (task.executors && task.executors.length > 0) {
+                                            task.executors.forEach((executor) => {
+                                                if (!allPeople.some((p) => p.id === executor.id)) {
+                                                    allPeople.push({
+                                                        id: executor.id,
+                                                        image: getImageUrl(executor.user_photo),
+                                                        name: executor.name || "Unknown",
+                                                        title: "Contributor",
+                                                    });
                                                 }
-                                            );
+                                            });
                                         }
 
-                                        // Build combined images HTML
-                                        combinedImagesHtml = allPeople
+                                        const combinedImagesHtml = allPeople
                                             .map((person, index) => {
-                                                const overlapClass = index === 0 ? "" : "contributor-image-overlap";
-                                                const baseStyle = "width: 28px; height: 28px; object-fit: cover; border-radius: 50%;";
                                                 const overlapStyle = index === 0 ? "" : " margin-left: -8px;";
                                                 const zIndex = allPeople.length - index;
-                                                const style = `style=\"${baseStyle}${overlapStyle} z-index: ${zIndex};\"`;
-                                                return `<img src="${person.image}" alt="${person.name}" class="pic-contributor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${person.name} (${person.title})" ${style}>`;
+                                                return `
+                                                    <img src="${person.image}"
+                                                        alt="${person.name}"
+                                                        class="pic-contributor-image"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="bottom"
+                                                        title="${person.name} (${person.title})"
+                                                        style="width:28px; height:28px; object-fit:cover; border-radius:50%;${overlapStyle} z-index:${zIndex};">
+                                                `;
                                             })
                                             .join("");
 
-                                        // Initialize Bootstrap tooltips after images are added to DOM
-                                        setTimeout(() => {
-                                            var tooltipTriggerList =
-                                                [].slice.call(
-                                                    document.querySelectorAll(
-                                                        '[data-bs-toggle="tooltip"]'
-                                                    )
-                                                );
-                                            tooltipTriggerList.map(function (
-                                                tooltipTriggerEl
-                                            ) {
-                                                return new bootstrap.Tooltip(
-                                                    tooltipTriggerEl
-                                                );
-                                            });
-                                        }, 100);
+                                        let statusClass = "";
+                                        let statusText = task.status;
+                                        switch (task.status) {
+                                            case "new_request":
+                                            case "new request":
+                                                statusClass = "status-badge status-new-request";
+                                                statusText = "New Request";
+                                                break;
+                                            case "in_progress":
+                                            case "in progress":
+                                                statusClass = "status-badge status-in-progress";
+                                                statusText = "In Progress";
+                                                break;
+                                            case "completed":
+                                                statusClass = "status-badge status-completed";
+                                                statusText = "Completed";
+                                                break;
+                                            case "rejected":
+                                                statusClass = "status-badge status-rejected";
+                                                statusText = "Rejected";
+                                                break;
+                                        }
 
                                         html += `
-                            <div class="task-item d-flex align-items-start mb-3 pb-3 border-bottom">
-                                <img src="${taskImage}" alt="${task.title}" class="me-3" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="fw-bold">${task.title}</div>
-                                        <span class="${statusClass}">${statusText}</span>
-                                    </div>
-                                    <div class="text-muted small mb-2">${createdDate}</div>
-                                    <div class="d-flex align-items-center">
-                                        <div class="d-flex align-items-center">
-                                            <div class="d-flex align-items-center pic-contributor-container">
-                                                ${combinedImagesHtml}
+                                            <div class="task-item d-flex align-items-start mb-3 pb-3 border-bottom">
+                                                <img src="${taskImage}" alt="${task.title}"
+                                                    class="me-3"
+                                                    style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div class="fw-bold">${task.title}</div>
+                                                        <span class="${statusClass}">${statusText}</span>
+                                                    </div>
+                                                    <div class="text-muted small mb-2">${createdDate}</div>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="d-flex align-items-center pic-contributor-container">
+                                                            ${combinedImagesHtml}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
+                                        `;
                                     });
+
                                     taskListContainer.innerHTML = html;
+
+                                    // Init tooltip setelah DOM siap
+                                    var tooltipTriggerList = [].slice.call(
+                                        taskListContainer.querySelectorAll('[data-bs-toggle="tooltip"]')
+                                    );
+                                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                                    });
                                 } else {
                                     taskListContainer.innerHTML =
                                         '<div class="text-center py-4 text-muted">No tasks found for this project.</div>';
@@ -3882,12 +3767,18 @@ function updatePagination(pagination) {
     const total = parseInt(pagination.total, 10);
     const lastPage = parseInt(pagination.last_page, 10);
 
+    if (total <= perPage) {
+        $("#project-pagination").addClass("d-none");
+    } else {
+        $("#project-pagination").removeClass("d-none");
+        $("#project-pagination").addClass("d-flex");
+    }
+
     const from = (currentPage - 1) * perPage + 1;
     let to = currentPage * perPage;
     if (to > total) to = total;
 
-    $("#paginationInfo").text(`Page ${currentPage} of ${lastPage}`);
-    $("#dataInfo").text(`Showing ${from}–${to} of ${total}`);
+    $("#paginationInfo").text(`${currentPage} OF ${lastPage}`);
 
     $("#prevPageBtn").prop("disabled", currentPage <= 1).data("page", currentPage - 1);
     $("#nextPageBtn").prop("disabled", currentPage >= lastPage).data("page", currentPage + 1);
@@ -5846,8 +5737,8 @@ function loadTimelineProjects(filter = null) {
             $('.loader').fadeIn('fast');
         },
         success: function (res) {
-            const projects = Array.isArray(res) 
-                ? res 
+            const projects = Array.isArray(res)
+                ? res
                 : (Array.isArray(res.data) ? res.data : []);
 
             const completeProjects = projects.filter(p => (p.start_date || p.start) && (p.due_date || p.due));
