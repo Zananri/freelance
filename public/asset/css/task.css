@@ -629,7 +629,7 @@
     color: rgba(255,255,255,0); /* hidden by default */
 }
 .task-selectable-thumb:hover .thumb-check {
-    background: rgba(0,0,0,0.25); /* soft dark overlay */
+    background: grey; /* soft dark overlay */
 }
 .task-selectable-thumb:hover .thumb-check .material-symbols-outlined {
     color: rgba(255,255,255,0.7); /* soft white check */
