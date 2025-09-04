@@ -645,16 +645,30 @@
     setupEditReferenceFilesInput();
 
     loadProjects();
+    // Also load projects for schedule modal (optional select)
+    (function loadProjectsForSchedule(){
+        const select = document.getElementById('schedule_project_id');
+        if (!select) return;
+        fetch(appUrl + "/project/index?task_scope=all")
+            .then(r => r.ok ? r.json() : Promise.reject('Failed to load projects'))
+            .then(d => {
+                if (!d || !d.data) return;
+                let opts = '<option value="">No Project</option>';
+                d.data.forEach(p => { opts += `<option value="${p.id}">${p.title}</option>`; });
+                select.innerHTML = opts;
+            })
+            .catch(console.error);
+    })();
 
     // Reference URL rows: delegated handlers (Add/Edit Task + Feedback modals)
     (function initReferenceUrlDynamicRows() {
         if (window._refUrlHandlersBound) return; // bind once
         window._refUrlHandlersBound = true;
 
-    function findRefUrlsContainer(startEl) {
+        function findRefUrlsContainer(startEl) {
             if (!startEl) return null;
             // Look for known containers up the DOM tree
-            return startEl.closest('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container');
+            return startEl.closest('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container, #schedule_reference_urls_container');
         }
 
         function makeBtn(html) {
@@ -716,7 +730,7 @@
             } catch (_) { /* noop */ }
         })();
 
-        document.addEventListener('click', function (e) {
+    document.addEventListener('click', function (e) {
             const addBtn = e.target.closest('.add-ref-url');
             if (addBtn) {
                 const container = findRefUrlsContainer(addBtn);
@@ -746,6 +760,170 @@
                 normalizeRows(container);
                 return;
             }
+        });
+    })();
+
+    // Open Add Schedule Modal
+    (function initScheduleTrigger(){
+        const btn = document.querySelector('.btn.btn-schedule-custom');
+        const modalEl = document.getElementById('addScheduleModal');
+        if (btn && modalEl) {
+            btn.addEventListener('click', function(){
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            });
+        }
+    })();
+
+    // Schedule image input
+    (function initScheduleImage(){
+        const input = document.getElementById('schedule_image');
+        const label = document.getElementById('scheduleImageLabel');
+        const clearBtn = document.getElementById('scheduleImageClearBtn');
+        if (input && label && clearBtn) setupImageInput(input, label, clearBtn);
+    })();
+
+    // Schedule reference files reuse of preview util
+    (function initScheduleRefFiles(){
+        const input = document.getElementById('schedule_reference_files');
+        if (!input) return;
+        input.addEventListener('change', function(e){
+            const files = Array.from(e.target.files || []);
+            selectedFiles = []; // reuse global bucket
+            selectedFiles = [...selectedFiles, ...files];
+            const preview = document.getElementById('schedule_reference_files_preview');
+            // Create preview for schedule form
+            if (preview) {
+                preview.innerHTML = '';
+                selectedFiles.forEach((file, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'selected-file-item';
+                    item.textContent = file.name;
+                    preview.appendChild(item);
+                });
+            }
+        });
+    })();
+
+    // Schedule recurrence UI toggles
+    (function initScheduleRecurrenceToggles(){
+        const typeSel = document.getElementById('schedule_recurrence_type');
+        const weekly = document.getElementById('schedule_weekly_opts');
+        const monthly = document.getElementById('schedule_monthly_opts');
+        const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
+        const monthlyDay = document.getElementById('schedule_recurrence_day_of_month');
+        if (!typeSel || !weekly || !monthly || !weeklyDay || !monthlyDay) return;
+        const sync = () => {
+            const v = typeSel.value;
+            const isWeekly = v === 'weekly';
+            const isMonthly = v === 'monthly';
+
+            // Hide/show by class to work with Bootstrap d-none
+            if (isWeekly) weekly.classList.remove('d-none'); else weekly.classList.add('d-none');
+            if (isMonthly) monthly.classList.remove('d-none'); else monthly.classList.add('d-none');
+
+            // Required flags only for visible controls
+            weeklyDay.required = isWeekly;
+            monthlyDay.required = isMonthly;
+        };
+        typeSel.addEventListener('change', sync);
+        sync();
+    })();
+
+    // Schedule executor picker (clone of task executor with different IDs)
+    ;(function setupScheduleExecutorInput(){
+        const input = document.getElementById('schedule_executor_input');
+        const dropdown = document.getElementById('schedule_executor_dropdown');
+        const selectedContainer = document.getElementById('schedule_selected_executors');
+        const hiddenInput = document.getElementById('schedule_executors');
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let employees = [], filtered = [], selected = [];
+
+        function fetchEmployees(query = ''){
+            $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: query }, dataType: 'json' })
+                .done(res => { employees = res.data || []; filtered = employees; renderDropdown(); })
+                .fail(() => { try { showFloatingAlert('Failed to load employees.', 'warning', 3000); } catch(_) {} });
+        }
+
+        function renderDropdown(){
+            if (filtered.length === 0){ dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
+            dropdown.innerHTML = filtered.map(emp => {
+                const isChecked = selected.some(e => e.id === emp.id);
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : (emp.user_photo.startsWith('/') ? appUrl + emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo)) : (appUrl + '/asset/img/profile_picture/default.png');
+                return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                        <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}"><span>${emp.name}</span></div>
+                        <input type="checkbox" class="schedule-executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
+                    </label>`;
+            }).join('');
+            dropdown.style.display='block';
+            dropdown.querySelectorAll('.schedule-executor-checkbox').forEach(cb => {
+                cb.addEventListener('change', function(){
+                    const id = parseInt(this.getAttribute('data-id')); const name = this.getAttribute('data-name');
+                    if (this.checked) { if (!selected.some(e => e.id === id)) selected.push({ id, name, user_photo: (employees.find(e => e.id===id)||{}).user_photo || null }); }
+                    else { selected = selected.filter(e => e.id !== id); }
+                    renderSelected(); updateHidden(); renderDropdown();
+                });
+            });
+        }
+
+        function renderSelected(){
+            selectedContainer.innerHTML = '';
+            selected.forEach(emp => {
+                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : (emp.user_photo.startsWith('/') ? appUrl + emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo)) : (appUrl + '/asset/img/profile_picture/default.png');
+                const badge = document.createElement('span'); badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+                const img = document.createElement('img'); img.src = photoUrl; img.alt = emp.name; img.className = 'rounded-circle me-2'; img.style.width='24px'; img.style.height='24px'; img.style.objectFit='cover';
+                const nameSpan = document.createElement('span'); nameSpan.textContent = emp.name;
+                const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn-close btn-close-white btn-sm ms-2'; removeBtn.addEventListener('click', () => { selected = selected.filter(e => e.id !== emp.id); renderSelected(); updateHidden(); renderDropdown(); });
+                badge.appendChild(img); badge.appendChild(nameSpan); badge.appendChild(removeBtn); selectedContainer.appendChild(badge);
+            });
+        }
+
+        function updateHidden(){ hiddenInput.value = JSON.stringify(selected.map(e => e.id)); }
+
+        input.addEventListener('input', function(){ const q = this.value.trim(); fetchEmployees(q); });
+        input.addEventListener('focus', function(){ fetchEmployees(''); });
+        document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
+    })();
+
+    // Schedule form submit
+    (function initScheduleForm(){
+        const form = document.getElementById('addScheduleForm');
+        const modalEl = document.getElementById('addScheduleModal');
+        if (!form || !modalEl) return;
+        form.addEventListener('submit', function(e){
+            e.preventDefault();
+            if (!form.checkValidity()) { e.stopPropagation(); form.classList.add('was-validated'); return; }
+            form.classList.remove('was-validated');
+
+            const loader = document.getElementById('addScheduleModalLoader');
+            if (loader) loader.classList.remove('d-none');
+            const submitBtn = form.querySelector("button[type='submit']"); if (submitBtn) submitBtn.disabled = true;
+
+            const fd = new FormData(form);
+            // Attach any chosen files (reuse global selectedFiles used by schedule input change)
+            (selectedFiles || []).forEach(f => fd.append('reference_files[]', f));
+
+            $.ajax({
+                url: appUrl + '/schedules', // to be implemented on backend
+                type: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                data: fd, processData: false, contentType: false,
+            }).done(function(res){
+                setTimeout(() => {
+                    if (loader) loader.classList.add('d-none'); if (submitBtn) submitBtn.disabled = false;
+                    try { showFloatingAlert(res.message || 'Schedule created', 'success'); } catch(_) {}
+                    form.reset();
+                    const modal = bootstrap.Modal.getInstance(modalEl); if (modal) modal.hide();
+                }, 600);
+            }).fail(function(xhr){
+                if (loader) loader.classList.add('d-none'); if (submitBtn) submitBtn.disabled = false;
+                let msg = 'Failed to create schedule.';
+                if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.errors)) {
+                    msg = xhr.responseJSON.message || Object.values(xhr.responseJSON.errors).flat().join('\n');
+                }
+                try { showFloatingAlert(msg, 'danger'); } catch(_) {}
+            });
         });
     })();
 
@@ -1393,9 +1571,9 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             ${iconHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                <img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
+                ${task.project_id ? `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">` : ''}
                 <div class="d-flex flex-column">
-                    <small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>
+                    ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>` : ''}
                     <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
                 </div>
             </div>

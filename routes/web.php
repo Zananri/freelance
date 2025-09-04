@@ -11,6 +11,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ShiftController;
 
 use App\Http\Controllers\TeamsController;
@@ -132,6 +133,10 @@ Route::middleware('auth')->group(function () {
 
     // Get tasks by project
     Route::get('/projects/{id}/tasks', [TaskController::class, 'getTasksByProject'])->name('project.tasks');
+
+    // Schedules (basic endpoints for modal create & list)
+    Route::post('/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
+    Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
 
 
     Route::get('/teams', [TeamsController::class, 'showTeamsPage'])->name('teams');
