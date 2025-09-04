@@ -76,7 +76,17 @@
     <div id="task-cards-container" class="task-container container">
         <div class="row">
             <div class="col-md-4 new-request-container">
-                <h4 class="task-section-title">New</h4>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h4 class="task-section-title mb-0">New</h4>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" id="taskNewBulkAction" class="task-bulk-icon" aria-label="Confirm accept selected tasks" style="visibility:hidden;">
+                            <span class="material-symbols-outlined">done_all</span>
+                        </button>
+                        <label for="taskNewAcceptAll" class="task-selectall-toggle">
+                            <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAll" aria-label="Select all pending new tasks" />
+                        </label>
+                    </div>
+                </div>
                 <div id="new-request-tasks" class="task-list"></div>
                 <div class="d-flex justify-content-center mt-3">
                     <div id="newTaskPagination" class="pagination-pill d-flex align-items-center">

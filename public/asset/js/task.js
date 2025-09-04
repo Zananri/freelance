@@ -1740,7 +1740,23 @@ function renderSingleSection(status, sectionData) {
     container.innerHTML = "";
 
     if (sectionData?.tasks) {
-        sectionData.tasks.forEach(task => {
+        // For New section: put invites pending acceptance by current viewer at the very top
+        const tasks = (status === 'new_request')
+            ? (sectionData.tasks || []).slice().sort(function(a,b){
+                const pa = isViewerPendingExecutor(a) ? 1 : 0;
+                const pb = isViewerPendingExecutor(b) ? 1 : 0;
+                if (pa !== pb) return pb - pa; // pending first
+                // optional tie-breakers: earlier due date first, then id desc
+                try {
+                    const da = new Date(a.due_date).getTime() || 0;
+                    const db = new Date(b.due_date).getTime() || 0;
+                    if (da !== db) return da - db;
+                } catch(_) {}
+                return (b.id||0) - (a.id||0);
+            })
+            : sectionData.tasks;
+
+        tasks.forEach(task => {
             container.insertAdjacentHTML("beforeend", createTaskCard(task));
         });
     }
@@ -1819,6 +1835,111 @@ function renderSingleSection(status, sectionData) {
     try { setupTaskDropdownListeners(); } catch(_) {}
         fetchAndRenderTasks();
     });
+
+    // --- New flow: checkbox selects, done_all triggers modal accept ---
+    (function initBulkAcceptFlow(){
+        // Keep a memory set of selected pending ids
+        let selectedPendingIds = [];
+
+        function collectPendingNewTaskIds(){
+            // When viewer is executor and not accepted, cards render Accept/Reject buttons; pick those
+            const cards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card'));
+            const ids = cards.reduce((acc, el) => {
+                const tId = el.getAttribute('data-task-id');
+                const hasAccept = !!el.querySelector('.btn-accept-invite');
+                if (tId && hasAccept) acc.push(tId);
+                return acc;
+            }, []);
+            return ids;
+        }
+
+        function acceptOne(taskId){
+            return $.ajax({
+                url: appUrl + '/task/' + taskId + '/accept',
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }
+            }).then(function(){
+                // Also mark its task-assignment notifications read for this user
+                return markTaskAssignmentNotificationsRead(taskId);
+            }).catch(function(){
+                // keep going
+                return $.Deferred().resolve().promise();
+            });
+        }
+
+        function acceptAll(ids){
+            if (!ids || ids.length === 0) return Promise.resolve();
+            let chain = Promise.resolve();
+            ids.forEach((id) => { chain = chain.then(() => acceptOne(id)); });
+            return chain.then(() => { refreshNotificationCountBadge(); fetchAndRenderTasks(); });
+        }
+
+        // When checkbox is toggled, only (de)select in memory and toggle bulk icon state
+        document.addEventListener('change', function(e){
+            const cb = e.target.closest('#taskNewAcceptAll');
+            if (!cb) return;
+            if (cb.checked) {
+                selectedPendingIds = collectPendingNewTaskIds();
+            } else {
+                selectedPendingIds = [];
+            }
+            const bulkBtn = document.getElementById('taskNewBulkAction');
+            if (bulkBtn) {
+                const hasSel = selectedPendingIds.length > 0;
+                bulkBtn.disabled = !hasSel;
+                bulkBtn.style.visibility = hasSel ? 'visible' : 'hidden';
+            }
+        });
+
+        // Bulk action icon opens confirmation modal, then runs accept
+        document.addEventListener('click', function(e){
+            const btn = e.target.closest('#taskNewBulkAction');
+            if (!btn) return;
+            if (btn.disabled) return;
+            const count = selectedPendingIds.length;
+            if (count <= 0) return;
+
+            const id = 'taskBulkAcceptModal';
+            const html = `
+                <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-header modal-header-custom">
+                                <h5 class="modal-title modal-title-custom">Confirmation</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body"><p class="mb-0">Accept ${count} selected task${count>1?'s':''}?</p></div>
+                            <div class="modal-footer d-flex justify-content-center" style="gap:8px;">
+                                <button type="button" class="btn btn-close-reply" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="confirmBulkAcceptBtn">Accept</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.querySelectorAll('#'+id).forEach(n => n.remove());
+            document.body.insertAdjacentHTML('beforeend', html);
+            const modalEl = document.getElementById(id);
+            const m = new bootstrap.Modal(modalEl);
+            m.show();
+            modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove(), { once: true });
+            modalEl.querySelector('#confirmBulkAcceptBtn').addEventListener('click', function(){
+                acceptAll(selectedPendingIds).finally(() => {
+                    try { m.hide(); } catch(_) {}
+                    const cb = document.getElementById('taskNewAcceptAll');
+                    if (cb) cb.checked = false;
+                    selectedPendingIds = [];
+                    const bulkBtn = document.getElementById('taskNewBulkAction');
+                    if (bulkBtn) bulkBtn.disabled = true;
+                });
+            });
+        });
+
+        // initialize bulk button hidden and disabled by default
+        document.addEventListener('DOMContentLoaded', function(){
+            const bulkBtn = document.getElementById('taskNewBulkAction');
+            if (bulkBtn) { bulkBtn.disabled = true; bulkBtn.style.visibility = 'hidden'; }
+        });
+    })();
 
     // Function to setup dropdown event listeners for task cards
     function setupTaskDropdownListeners() {
