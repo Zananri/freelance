@@ -775,6 +775,7 @@
         }
     })();
 
+    
     // Schedule image input
     (function initScheduleImage(){
         const input = document.getElementById('schedule_image');
