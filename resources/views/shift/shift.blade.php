@@ -4,6 +4,7 @@
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/shift.css') }}" rel="stylesheet">
+        <meta name="user-id" content="{{ auth()->id() }}">
     </x-slot>
 
     <!-- SVG Symbols -->
@@ -79,22 +80,28 @@
     </div>
 
     <div class="body-content scrollable-container rounded-4 px-4 py-2">
-        <div class="d-flex justify-content-start align-items-center gap-2">
-            <h4 id="shiftMonthTitle" class="fw-normal mb-0 month-year-title">August 2025</h4>
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <h4 id="shiftMonthTitle" class="fw-normal mb-0 month-year-title">August 2025</h4>
 
-            <div class="dropstart">
-                <button id="monthDropdownBtn" class="btn btn-light d-flex align-items-center dropdown-btn-custom"
-                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="material-symbols-outlined">arrow_drop_down</span>
+                <div class="dropstart">
+                    <button id="monthDropdownBtn" class="btn btn-light d-flex align-items-center dropdown-btn-custom"
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="material-symbols-outlined">arrow_drop_down</span>
+                    </button>
+                    <ul id="monthDropdownMenu" class="dropdown-menu dropdown-menu-start shadow-sm"></ul>
+                </div>
+
+                <button id="prevMonthBtn" class="btn btn-pagination-table">
+                    <span class="material-symbols-outlined me-1">chevron_left</span>
                 </button>
-                <ul id="monthDropdownMenu" class="dropdown-menu dropdown-menu-start shadow-sm"></ul>
+                <button id="nextMonthBtn" class="btn btn-pagination-table">
+                    <span class="material-symbols-outlined me-1">chevron_right</span>
+                </button>
             </div>
 
-            <button id="prevMonthBtn" class="btn btn-pagination-table">
-                <span class="material-symbols-outlined me-1">chevron_left</span>
-            </button>
-            <button id="nextMonthBtn" class="btn btn-pagination-table">
-                <span class="material-symbols-outlined me-1">chevron_right</span>
+            <button class="btn btn-toggle-table-shift" data-bs-target="#fullscreenTableShift" data-bs-toggle="modal">
+                <span class="material-symbols-outlined">fullscreen</span>
             </button>
         </div>
 
@@ -106,6 +113,58 @@
                     </thead>
                     <tbody id="shiftTableBody"></tbody>
                 </table>
+            </div>
+        </div>
+
+        {{-- Timeline Fullscreen --}}
+        <div class="modal fade" id="fullscreenTableShift" tabindex="-1" aria-labelledby="fullscreenTableShiftLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-fullscreen">
+                <div class="modal-content modal-content-custom">
+                    <div
+                        class="modal-header border-0 position-relative d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <h4 id="shiftMonthTitleModal" class="fw-normal mb-0 month-year-title">August 2025</h4>
+
+                            <div class="dropdown">
+                                <button id="monthDropdownBtnModal"
+                                    class="btn btn-light d-flex align-items-center dropdown-btn-custom" type="button"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="material-symbols-outlined">arrow_drop_down</span>
+                                </button>
+                                <ul id="monthDropdownMenuModal" class="dropdown-menu shadow-sm"></ul>
+                            </div>
+
+                            <button id="prevMonthBtnModal" class="btn btn-pagination-table">
+                                <span class="material-symbols-outlined me-1">chevron_left</span>
+                            </button>
+                            <button id="nextMonthBtnModal" class="btn btn-pagination-table">
+                                <span class="material-symbols-outlined me-1">chevron_right</span>
+                            </button>
+                        </div>
+
+                        <button class="btn btn-toggle-table-shift" data-bs-dismiss="modal">
+                            <span class="material-symbols-outlined">fullscreen_exit</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body modal-body-custom">
+                        <div class="table-responsive">
+                            <div class="table-scroll-wrapper">
+                                <table class="table table-bordered align-middle shift-table shift-table-modal">
+                                    <thead>
+                                        <tr id="shiftTableHeaderModal"></tr>
+                                    </thead>
+                                    <tbody id="shiftTableBodyModal"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom justify-content-evenly">
+                        <button type="button" class="btn btn-light btn-close-custom"
+                            data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -337,8 +396,9 @@
                         </ul>
                     </div>
 
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-dark" id="saveEmployeeBtn">Update</button>
+                    <div class="modal-footer modal-footer-custom w-100">
+                        <button type="button" class="btn btn-dark submit-employee-btn w-100"
+                            id="saveEmployeeBtn">Update</button>
                     </div>
 
                 </div>
@@ -364,20 +424,21 @@
 
                     <div class="modal-body">
                         <div class="table-responsive">
-                            <table class="table table-bordered shift-config-table"
-                                style="table-layout: fixed; width: 100%;">
+                            <table class="table table-bordered shift-config-table">
                                 <colgroup>
-                                    <col style="width: 10%">
-                                    <col style="width: 50%">
+                                    <col style="width: 20%">
+                                    <col style="width: 40%">
+                                    <col style="width: 40%">
                                 </colgroup>
                                 <thead>
                                     <tr>
                                         <th>Title</th>
+                                        <th>Description</th>
                                         <th>Time In & Out</th>
                                     </tr>
                                 </thead>
                                 <tbody id="shiftConfigTableBody">
-                                    <!-- populated dynamically from table shifts -->
+                                    <!-- populated dynamically -->
                                 </tbody>
                             </table>
                         </div>
@@ -435,6 +496,50 @@
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                         <!-- Make this an explicit button and give it a unique ID; JS will handle the click -->
                         <button type="button" class="btn btn-submit-black" id="saveShiftConfigBtn">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Edit Config Modal --}}
+        <div class="modal fade" id="editConfigModal" tabindex="-1" aria-labelledby="editConfigModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom" id="editConfigModalLabel">Edit Shift</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body modal-body-custom">
+                        <form id="editShiftConfigForm">
+                            <input type="hidden" id="editConfigShiftId" name="shift_id">
+                            <div class="mb-3 custom-input">
+                                <label for="editTitle" class="form-label label-custom">Title</label>
+                                <input type="text" class="form-control input-text" id="editTitle" name="title"
+                                    required>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="editDescription" class="form-label label-custom">Description</label>
+                                <input type="text" class="form-control input-text" id="editDescription"
+                                    name="description">
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="editTimeStart" class="form-label label-custom">Time In</label>
+                                <input type="time" class="form-control input-text" id="editTimeStart"
+                                    name="time_start" required>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="editTimeEnd" class="form-label label-custom">Time Out</label>
+                                <input type="time" class="form-control input-text" id="editTimeEnd"
+                                    name="time_end" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-submit-black"
+                            id="saveUpdateShiftConfigBtn">Submit</button>
                     </div>
                 </div>
             </div>
