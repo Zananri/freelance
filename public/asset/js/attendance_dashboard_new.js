@@ -576,7 +576,7 @@ function submitCheckOut(){
 
 $('#checkOutBtn').click(function(){
     
-    if($('#checkInBtn').hasClass('active')){
+    if($('#checkOutBtn').hasClass('active')){
         showCheckoutDetail();
     }else{
         checkOutModal.show();

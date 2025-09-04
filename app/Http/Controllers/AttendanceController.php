@@ -370,6 +370,7 @@ class AttendanceController extends Controller
 
             $employee = Employee::with('shift')->where('user_id', $userId)->first();
             
+            $shiftId = $employee->shift_id;
             $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
                     ->where('date_shift', $today)
             ->first();
@@ -378,8 +379,12 @@ class AttendanceController extends Controller
             $shifTimeEnd = Carbon::parse($employee->shift->time_end);
 
             if($employeeShift){
+                $shiftId = $employeeShift->shift_id;
+
                 $shifTimeStart = Carbon::parse($employeeShift->shift->time_start);
                 $shifTimeEnd = Carbon::parse($employeeShift->shift->time_end);
+            }else{
+
             }
 
             $timeLate = '00:00:00';
@@ -438,6 +443,16 @@ class AttendanceController extends Controller
                 ]);
 
                 $attendanceId = $attendance->id;
+
+                EmployeeShift::updateOrCreate(
+                    [
+                        'employee_id' => $employee->id,
+                        'date_shift' => $now->toDateString(),
+                    ],
+                    [
+                        'shift_id' => $shiftId,
+                    ]
+                );
             }
 
             
@@ -510,6 +525,8 @@ class AttendanceController extends Controller
 
             $employee = Employee::with('shift')->where('user_id', $userId)->first();
             
+            $shiftId = $employee->shift_id;
+
             $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
                     ->where('date_shift', $today)
             ->first();
@@ -518,6 +535,9 @@ class AttendanceController extends Controller
             $shifTimeEnd = Carbon::parse($employee->shift->time_end);
 
             if($employeeShift){
+                
+                $shiftId = $employeeShift->shift_id;
+
                 $shifTimeStart = Carbon::parse($employeeShift->shift->time_start);
                 $shifTimeEnd = Carbon::parse($employeeShift->shift->time_end);
             }
@@ -585,6 +605,8 @@ class AttendanceController extends Controller
                 ]);
 
                 $attendanceId = $attendance->id;
+
+                
             }
             
             $attendanceTracking = AttendanceTracking::where('attendance_id', $attendanceId)

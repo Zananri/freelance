@@ -3,8 +3,8 @@
         {{ __('dashboard') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/dashboard.css') }}" rel="stylesheet">
-        <link href="{{ asset('asset/css/calendar-dashboard.css') }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/dashboard.css').'?v='.time()}}" rel="stylesheet">
+        <link href="{{ asset('asset/css/calendar-dashboard.css'.'?v='.time()) }}" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
         <link rel="stylesheet" href=" {{ asset('asset/plugin/leaflet/leaflet.css') }}"/>
 
