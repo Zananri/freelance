@@ -71,6 +71,7 @@ trait ScheduleImmediateGeneration
                 return $c;
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $start->day);
+                // If Start From is on or before today, first run is the month matching Start From date
                 return $this->safeMonthly($start->year, $start->month, $dom);
             case 'daily':
             default:
@@ -133,9 +134,23 @@ trait ScheduleImmediateGeneration
         }
 
         $today = Carbon::now()->toDateString();
-        $isDaily = ($s->recurrence_type === 'daily');
-        $startDate = $isDaily ? $today : $s->start_date;
-        $dueDate = $isDaily ? $today : $s->due_date;
+        // Start date is always the run day for tasks generated from schedules
+        $startDate = $today;
+        // Compute due date preference: due_in_days if provided; else legacy due_date rules
+        if (!is_null($s->due_in_days)) {
+            $dueDate = Carbon::parse($startDate)->addDays((int) $s->due_in_days)->toDateString();
+        } else if ($s->recurrence_type === 'daily' && $s->due_date && $s->recurrence_start_date) {
+            try {
+                $base = Carbon::parse($s->recurrence_start_date)->startOfDay();
+                $configuredDue = Carbon::parse($s->due_date)->startOfDay();
+                $offsetDays = $base->diffInDays($configuredDue, false); // can be 0 or positive
+                $dueDate = Carbon::parse($startDate)->addDays(max(0, $offsetDays))->toDateString();
+            } catch (\Throwable $e) {
+                $dueDate = $startDate; // fallback
+            }
+        } else {
+            $dueDate = $s->due_date ?: $startDate;
+        }
 
         $task = Task::create([
             'project_id' => $s->project_id,
@@ -200,6 +215,8 @@ trait ScheduleImmediateGeneration
             } catch (\Throwable $e) { /* ignore */ }
         }
 
+    // Note: Do not notify PIC/creator; only executors receive assignment notifications
+
         return $task;
     }
 }
@@ -233,15 +250,17 @@ class ScheduleController extends Controller
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
                 'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
-                // For daily schedules, default dates are not needed; for others they are optional but validated if present
+                // Default dates: start_date optional and ignored for all recurrence types; legacy due_date optional; new due_in_days optional
                 'start_date' => 'nullable|date',
-                'due_date' => 'nullable|date|after_or_equal:start_date',
+                'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
+                'due_in_days' => 'nullable|integer|min:0|max:3650',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
                 // Recurrence
                 'recurrence_type' => 'required|in:daily,weekly,monthly',
                 'recurrence_interval' => 'nullable|integer|min:1',
                 'recurrence_day_of_week' => 'required_if:recurrence_type,weekly|nullable|integer|min:0|max:6',
-                'recurrence_day_of_month' => 'required_if:recurrence_type,monthly|nullable|integer|min:1|max:31',
+                // Monthly date will default to day-of-month of Start From; no need to require client-side
+                'recurrence_day_of_month' => 'nullable|integer|min:1|max:31',
                 'recurrence_start_date' => 'required|date',
                 'recurrence_end_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'executor_ids' => 'nullable', // JSON array of IDs as string
@@ -302,12 +321,41 @@ class ScheduleController extends Controller
             // Interval is fixed as 1 from UI point of view; default to 1 if missing
             $data['recurrence_interval'] = 1;
             if ($data['recurrence_type'] !== 'weekly') $data['recurrence_day_of_week'] = null;
-            if ($data['recurrence_type'] !== 'monthly') $data['recurrence_day_of_month'] = null;
+            if ($data['recurrence_type'] !== 'monthly') {
+                $data['recurrence_day_of_month'] = null;
+            } else {
+                // Ensure monthly day-of-month follows Start From if not provided or mismatched
+                try {
+                    $recStart = \Carbon\Carbon::parse($data['recurrence_start_date']);
+                    $data['recurrence_day_of_month'] = (int) ($data['recurrence_day_of_month'] ?: $recStart->day);
+                } catch (\Throwable $e) {
+                    // Fallback: clamp to [1,31]
+                    $dom = (int) ($data['recurrence_day_of_month'] ?: 1);
+                    $data['recurrence_day_of_month'] = max(1, min(31, $dom));
+                }
+            }
 
-            // Daily schedules: ignore default dates (they'll be set to run-day by generator)
-            if (($data['recurrence_type'] ?? 'daily') === 'daily') {
-                $data['start_date'] = null;
+            // For all recurrence types, ignore default start_date (task start will be the render day)
+            $data['start_date'] = null;
+            // If using due_in_days, drop legacy due_date to avoid ambiguity
+            if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
                 $data['due_date'] = null;
+            } else {
+                // Back-compat: ensure daily due_date is not before Start From date
+                if (($data['recurrence_type'] ?? 'daily') === 'daily') {
+                    if (!empty($data['due_date']) && !empty($data['recurrence_start_date'])) {
+                        $recStart = \Carbon\Carbon::parse($data['recurrence_start_date'])->startOfDay();
+                        $dueBase = \Carbon\Carbon::parse($data['due_date'])->startOfDay();
+                        if ($dueBase->lt($recStart)) {
+                            return response()->json([
+                                'code' => 422,
+                                'status' => 'error',
+                                'message' => 'For daily schedules, due date cannot be before Start From date.',
+                                'errors' => ['due_date' => ['Due date must be on or after Start From']],
+                            ], 422);
+                        }
+                    }
+                }
             }
 
             $schedule = Schedule::create($data);

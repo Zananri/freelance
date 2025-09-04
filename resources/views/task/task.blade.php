@@ -175,10 +175,9 @@
                             <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_task_project_id" class="form-label label-custom">Project</label>
-                            <select class="form-select input-select" id="edit_task_project_id" name="project_id"
-                                required>
-                                <option value="">Select Project</option>
+                            <label for="edit_task_project_id" class="form-label label-custom">Project (optional)</label>
+                            <select class="form-select input-select" id="edit_task_project_id" name="project_id">
+                                <option value="">No Project</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -452,8 +451,9 @@
                                     </select>
                                 </div>
                                 <div id="schedule_monthly_opts" class="d-none d-flex align-items-center gap-2">
-                                    <span>on Date</span>
-                                    <input type="date" class="form-control input-text" id="schedule_recurrence_date_monthly" style="max-width: 220px;">
+                                    <span>on</span>
+                                    <input type="date" class="form-control input-text" id="schedule_monthly_date" style="max-width: 200px;" readonly>
+                                    <span>(from Start From)</span>
                                     <input type="hidden" id="schedule_recurrence_day_of_month" name="recurrence_day_of_month" value="">
                                 </div>
                             </div>
@@ -517,7 +517,12 @@
                                 <label for="schedule_start_date" class="form-label label-custom">Default Start Date</label>
                                 <input type="date" class="form-control input-text" id="schedule_start_date" name="start_date">
                             </div>
-                            <div class="date-form">
+                            <div class="date-form" id="schedule_due_days_wrapper">
+                                <label for="schedule_due_in_days" class="form-label label-custom">Due In (days)</label>
+                                <input type="number" class="form-control input-text" id="schedule_due_in_days" name="due_in_days" min="0" placeholder="e.g. 3">
+                                <div class="form-text">Tanggal due = Start From + jumlah hari ini.</div>
+                            </div>
+                            <div class="date-form d-none" id="schedule_due_date_wrapper">
                                 <label for="schedule_due_date" class="form-label label-custom">Default Due Date</label>
                                 <input type="date" class="form-control input-text" id="schedule_due_date" name="due_date">
                             </div>

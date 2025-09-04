@@ -47,15 +47,23 @@ class TaskController extends Controller
             $perPage = (int) $request->input('per_page', 10);
             $page = (int) $request->input('page', 1);
 
-            // Base query: PIC atau EXECUTOR
+            // Base query: show tasks where current employee is PIC/EXECUTOR OR tasks created by the current user
+            $currentUserId = $currentUser?->id;
             $baseQuery = Task::with(['project', 'assignments.employee', 'feedback_comments'])
-                ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
-                    $query->where(function ($q) use ($currentEmployeeId) {
-                        $q->where('employee_id', $currentEmployeeId)
-                        ->where(function ($q2) {
-                            $q2->where('role', 'PIC')
-                                ->orWhere('role', 'EXECUTOR');
+                ->where(function ($outer) use ($currentEmployeeId, $currentUserId) {
+                    $outer->whereHas('assignments', function ($query) use ($currentEmployeeId) {
+                        $query->where(function ($q) use ($currentEmployeeId) {
+                            $q->where('employee_id', $currentEmployeeId)
+                                ->where(function ($q2) {
+                                    $q2->where('role', 'PIC')
+                                        ->orWhere('role', 'EXECUTOR');
+                                });
                         });
+                    })
+                    ->orWhere(function ($q) use ($currentUserId) {
+                        if ($currentUserId) {
+                            $q->where('created_by', $currentUserId);
+                        }
                     });
                 });
 
@@ -158,15 +166,23 @@ class TaskController extends Controller
 
             $projectId = $request->input('project');
 
-            // Base query: tasks where current employee is PIC or EXECUTOR
+            // Base query: show tasks where current employee is PIC/EXECUTOR OR tasks created by the current user
+            $currentUserId = $currentUser?->id;
             $baseQuery = Task::with(['project', 'assignments.employee', 'feedback_comments'])
-                ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
-                    $query->where(function ($q) use ($currentEmployeeId) {
-                        $q->where('employee_id', $currentEmployeeId)
-                            ->where(function ($q2) {
-                                $q2->where('role', 'PIC')
-                                    ->orWhere('role', 'EXECUTOR');
-                            });
+                ->where(function ($outer) use ($currentEmployeeId, $currentUserId) {
+                    $outer->whereHas('assignments', function ($query) use ($currentEmployeeId) {
+                        $query->where(function ($q) use ($currentEmployeeId) {
+                            $q->where('employee_id', $currentEmployeeId)
+                                ->where(function ($q2) {
+                                    $q2->where('role', 'PIC')
+                                        ->orWhere('role', 'EXECUTOR');
+                                });
+                        });
+                    })
+                    ->orWhere(function ($q) use ($currentUserId) {
+                        if ($currentUserId) {
+                            $q->where('created_by', $currentUserId);
+                        }
                     });
                 });
 
@@ -610,8 +626,12 @@ class TaskController extends Controller
     {
         DB::beginTransaction();
         try {
+            // Normalize blank project_id to null so it's truly optional
+            if (!$request->filled('project_id') || $request->input('project_id') === '' || $request->input('project_id') === 'null') {
+                $request->merge(['project_id' => null]);
+            }
             $validator = Validator::make($request->all(), [
-                'project_id' => 'required|exists:projects,id',
+                'project_id' => 'nullable|exists:projects,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -925,9 +945,12 @@ class TaskController extends Controller
         DB::beginTransaction();
         try {
             $task = Task::findOrFail($id);
-
+            // Normalize blank project_id to null so it's truly optional
+            if (!$request->filled('project_id') || $request->input('project_id') === '' || $request->input('project_id') === 'null') {
+                $request->merge(['project_id' => null]);
+            }
             $validator = Validator::make($request->all(), [
-                'project_id' => 'required|exists:projects,id',
+                'project_id' => 'nullable|exists:projects,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
