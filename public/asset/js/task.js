@@ -646,6 +646,109 @@
 
     loadProjects();
 
+    // Reference URL rows: delegated handlers (Add/Edit Task + Feedback modals)
+    (function initReferenceUrlDynamicRows() {
+        if (window._refUrlHandlersBound) return; // bind once
+        window._refUrlHandlersBound = true;
+
+    function findRefUrlsContainer(startEl) {
+            if (!startEl) return null;
+            // Look for known containers up the DOM tree
+            return startEl.closest('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container');
+        }
+
+        function makeBtn(html) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html.trim();
+            return tmp.firstElementChild;
+        }
+
+        function createAddButton() {
+            return makeBtn('<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>');
+        }
+
+        function createRemoveButton() {
+            return makeBtn('<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+        }
+
+        function getRowEls(container) {
+            return Array.from(container.querySelectorAll(':scope > .d-flex'))
+                .filter(el => el.classList.contains('align-items-center'));
+        }
+
+        function normalizeRows(container) {
+            const rows = getRowEls(container);
+            if (rows.length === 0) {
+                container.appendChild(createRow(container, ''));
+            }
+            const fresh = getRowEls(container);
+            fresh.forEach((row, idx) => {
+                // Remove existing control buttons
+                row.querySelectorAll('.add-ref-url, .remove-ref-url').forEach(btn => btn.remove());
+                // First row keeps Add; others get Remove
+                const isFirst = idx === 0;
+                row.appendChild(isFirst ? createAddButton() : createRemoveButton());
+            });
+        }
+
+        function createRow(container, value = '') {
+            const row = document.createElement('div');
+            row.className = 'd-flex gap-2 align-items-center';
+            const input = document.createElement('input');
+            input.type = 'url';
+            input.name = 'reference_urls[]';
+            input.placeholder = 'https://example.com';
+            // Feedback modals used plain .form-control; task modals use .form-control.input-text
+            input.className = (container && container.id === 'feedback_reference_urls_container')
+                ? 'form-control'
+                : 'form-control input-text';
+            if (value) input.value = value;
+            row.appendChild(input);
+            row.appendChild(createAddButton());
+            return row;
+        }
+
+        // Enforce downward stacking in known containers
+        (function ensureDownwardDirection(){
+            try {
+                document.querySelectorAll('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container')
+                    .forEach(ct => { ct.style.flexDirection = 'column'; });
+            } catch (_) { /* noop */ }
+        })();
+
+        document.addEventListener('click', function (e) {
+            const addBtn = e.target.closest('.add-ref-url');
+            if (addBtn) {
+                const container = findRefUrlsContainer(addBtn);
+                if (!container) return;
+                const rows = getRowEls(container);
+                const firstRow = rows[0] || null;
+                const newRow = createRow(container, '');
+                if (firstRow && firstRow.parentElement === container) {
+                    container.insertBefore(newRow, firstRow.nextSibling);
+                } else {
+                    container.appendChild(newRow);
+                }
+                normalizeRows(container);
+                return;
+            }
+
+            const rmBtn = e.target.closest('.remove-ref-url');
+            if (rmBtn) {
+                const container = findRefUrlsContainer(rmBtn);
+                if (!container) return;
+                const row = rmBtn.closest('.d-flex');
+                if (row && row.parentElement === container) row.remove();
+                let rows = getRowEls(container);
+                if (rows.length === 0) {
+                    container.appendChild(createRow(container, ''));
+                }
+                normalizeRows(container);
+                return;
+            }
+        });
+    })();
+
     // Handle edit task form submission (rebuilt from scratch like add task)
     const editTaskModalEl = document.getElementById("editTaskModal");
     const editTaskForm = document.getElementById("editTaskForm");
