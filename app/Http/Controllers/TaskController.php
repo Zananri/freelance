@@ -47,15 +47,23 @@ class TaskController extends Controller
             $perPage = (int) $request->input('per_page', 10);
             $page = (int) $request->input('page', 1);
 
-            // Base query: PIC atau EXECUTOR
+            // Base query: show tasks where current employee is PIC/EXECUTOR OR tasks created by the current user
+            $currentUserId = $currentUser?->id;
             $baseQuery = Task::with(['project', 'assignments.employee', 'feedback_comments'])
-                ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
-                    $query->where(function ($q) use ($currentEmployeeId) {
-                        $q->where('employee_id', $currentEmployeeId)
-                        ->where(function ($q2) {
-                            $q2->where('role', 'PIC')
-                                ->orWhere('role', 'EXECUTOR');
+                ->where(function ($outer) use ($currentEmployeeId, $currentUserId) {
+                    $outer->whereHas('assignments', function ($query) use ($currentEmployeeId) {
+                        $query->where(function ($q) use ($currentEmployeeId) {
+                            $q->where('employee_id', $currentEmployeeId)
+                                ->where(function ($q2) {
+                                    $q2->where('role', 'PIC')
+                                        ->orWhere('role', 'EXECUTOR');
+                                });
                         });
+                    })
+                    ->orWhere(function ($q) use ($currentUserId) {
+                        if ($currentUserId) {
+                            $q->where('created_by', $currentUserId);
+                        }
                     });
                 });
 
@@ -158,15 +166,23 @@ class TaskController extends Controller
 
             $projectId = $request->input('project');
 
-            // Base query: tasks where current employee is PIC or EXECUTOR
+            // Base query: show tasks where current employee is PIC/EXECUTOR OR tasks created by the current user
+            $currentUserId = $currentUser?->id;
             $baseQuery = Task::with(['project', 'assignments.employee', 'feedback_comments'])
-                ->whereHas('assignments', function ($query) use ($currentEmployeeId) {
-                    $query->where(function ($q) use ($currentEmployeeId) {
-                        $q->where('employee_id', $currentEmployeeId)
-                            ->where(function ($q2) {
-                                $q2->where('role', 'PIC')
-                                    ->orWhere('role', 'EXECUTOR');
-                            });
+                ->where(function ($outer) use ($currentEmployeeId, $currentUserId) {
+                    $outer->whereHas('assignments', function ($query) use ($currentEmployeeId) {
+                        $query->where(function ($q) use ($currentEmployeeId) {
+                            $q->where('employee_id', $currentEmployeeId)
+                                ->where(function ($q2) {
+                                    $q2->where('role', 'PIC')
+                                        ->orWhere('role', 'EXECUTOR');
+                                });
+                        });
+                    })
+                    ->orWhere(function ($q) use ($currentUserId) {
+                        if ($currentUserId) {
+                            $q->where('created_by', $currentUserId);
+                        }
                     });
                 });
 

@@ -189,12 +189,12 @@ class GenerateTasksFromSchedules extends Command
             }
         }
 
-        // Compute dates: for daily schedules, start = run day; due can be offset from recurrence_start_date
-    $runDay = Carbon::now()->toDateString();
-        $isDaily = ($s->recurrence_type === 'daily');
-    // Start date is always the run day for tasks generated from schedules
-    $startDate = $runDay;
-        if ($isDaily && $s->due_date && $s->recurrence_start_date) {
+        // Compute dates: start = run day; if due_in_days provided, due = start + due_in_days; else legacy behavior
+        $runDay = Carbon::now()->toDateString();
+        $startDate = $runDay;
+        if (!is_null($s->due_in_days)) {
+            $dueDate = Carbon::parse($runDay)->addDays((int) $s->due_in_days)->toDateString();
+        } else if ($s->recurrence_type === 'daily' && $s->due_date && $s->recurrence_start_date) {
             try {
                 $base = Carbon::parse($s->recurrence_start_date)->startOfDay();
                 $configuredDue = Carbon::parse($s->due_date)->startOfDay();
@@ -204,7 +204,7 @@ class GenerateTasksFromSchedules extends Command
                 $dueDate = $runDay;
             }
         } else {
-            $dueDate = $isDaily ? $runDay : $s->due_date;
+            $dueDate = $s->due_date ?: $runDay;
         }
 
         // Build task payload mirroring relevant fields
@@ -285,6 +285,8 @@ class GenerateTasksFromSchedules extends Command
                 \Log::warning('Failed to create notification for executor ' . $eid . ' of task #' . $task->id . ': ' . $e->getMessage());
             }
         }
+
+    // Note: Do not notify PIC/creator; only executors receive assignment notifications
 
         return $task;
     }

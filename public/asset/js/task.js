@@ -797,16 +797,20 @@
 
     // Schedule recurrence UI toggles
     (function initScheduleRecurrenceToggles(){
-        const typeSel = document.getElementById('schedule_recurrence_type');
-        const weekly = document.getElementById('schedule_weekly_opts');
-        const monthly = document.getElementById('schedule_monthly_opts');
+    const typeSel = document.getElementById('schedule_recurrence_type');
+    const weekly = document.getElementById('schedule_weekly_opts');
+    const monthly = document.getElementById('schedule_monthly_opts');
+    const monthlyDateInput = document.getElementById('schedule_monthly_date');
     const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
     const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
-    const monthlyDateInput = document.getElementById('schedule_recurrence_date_monthly');
     const defaultDatesSection = document.getElementById('schedule_default_dates_section');
     const defaultStart = document.getElementById('schedule_start_date');
     const defaultDue = document.getElementById('schedule_due_date');
-    if (!typeSel || !weekly || !monthly || !weeklyDay || !monthlyDayHidden || !monthlyDateInput) return;
+    const dueDaysWrapper = document.getElementById('schedule_due_days_wrapper');
+    const dueDateWrapper = document.getElementById('schedule_due_date_wrapper');
+    const dueInDaysInput = document.getElementById('schedule_due_in_days');
+    // Note: monthly date input is removed; only ensure existing elements are present
+    if (!typeSel || !weekly || !monthly || !weeklyDay || !monthlyDayHidden) return;
         const sync = () => {
             const v = typeSel.value;
             const isWeekly = v === 'weekly';
@@ -819,12 +823,20 @@
 
             // Required flags only for visible controls
             weeklyDay.required = isWeekly;
-            monthlyDateInput.required = isMonthly;
+            // no separate date input for monthly now
             // Keep hidden field in sync
-            if (!isMonthly) {
-                monthlyDateInput.value = '';
-                monthlyDayHidden.value = '';
-            }
+            // keep monthly day in sync with Start From when monthly
+            try {
+                const startEl = document.getElementById('schedule_recurrence_start_date');
+                if (isMonthly && startEl && startEl.value) {
+                    const d = new Date(startEl.value);
+                    if (!isNaN(d.getTime())) monthlyDayHidden.value = String(d.getDate());
+                    if (monthlyDateInput) monthlyDateInput.value = startEl.value;
+                } else {
+                    monthlyDayHidden.value = '';
+                    if (monthlyDateInput) monthlyDateInput.value = '';
+                }
+            } catch(_) { monthlyDayHidden.value = ''; if (monthlyDateInput) monthlyDateInput.value = ''; }
 
         // Toggle default dates: hide start date for all repeat types; allow optional due date
             if (defaultDatesSection) {
@@ -841,22 +853,29 @@
             startWrapper.classList.add('d-none');
             defaultStart.value = '';
                 }
-                if (dueWrapper) {
-                    // Due date remains visible for all types; optional
-                    dueWrapper.classList.remove('d-none');
-                }
+                // For all recurrence types we prefer Due In Days input; hide legacy date field
+                if (dueDaysWrapper) dueDaysWrapper.classList.remove('d-none');
+                if (dueDateWrapper) dueDateWrapper.classList.add('d-none');
+                if (defaultDue) defaultDue.value = '';
             }
         };
         typeSel.addEventListener('change', sync);
-        monthlyDateInput.addEventListener('change', function(){
-            if (!this.value) { monthlyDayHidden.value = ''; return; }
-            // Extract day of month from yyyy-mm-dd
-            try {
-                const parts = this.value.split('-');
-                const day = parseInt(parts[2], 10);
-                if (!isNaN(day)) monthlyDayHidden.value = String(day);
-            } catch(_) { monthlyDayHidden.value = ''; }
-        });
+        // Sync monthly day-of-month from Start From
+        const startEl = document.getElementById('schedule_recurrence_start_date');
+        if (startEl) {
+            startEl.addEventListener('change', function(){
+                const type = typeSel.value;
+                if (type === 'monthly' && this.value) {
+                    try {
+                        const d = new Date(this.value);
+                        if (!isNaN(d.getTime())) monthlyDayHidden.value = String(d.getDate());
+                        if (monthlyDateInput) monthlyDateInput.value = this.value;
+                    } catch(_) { monthlyDayHidden.value = ''; if (monthlyDateInput) monthlyDateInput.value=''; }
+                } else {
+                    if (monthlyDateInput) monthlyDateInput.value = '';
+                }
+            });
+        }
         sync();
     })();
 
@@ -931,6 +950,12 @@
             const submitBtn = form.querySelector("button[type='submit']"); if (submitBtn) submitBtn.disabled = true;
 
             const fd = new FormData(form);
+            // Ensure only one of due_in_days or due_date is sent: prefer due_in_days
+            const dueInDaysEl = document.getElementById('schedule_due_in_days');
+            if (dueInDaysEl && dueInDaysEl.value !== '') {
+                fd.set('due_in_days', String(Math.max(0, parseInt(dueInDaysEl.value, 10) || 0)));
+                fd.delete('due_date');
+            }
             // Attach any chosen files (reuse global selectedFiles used by schedule input change)
             (selectedFiles || []).forEach(f => fd.append('reference_files[]', f));
 
