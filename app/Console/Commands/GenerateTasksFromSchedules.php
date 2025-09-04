@@ -8,6 +8,7 @@ use App\Models\Schedule;
 use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\Employee;
+use App\Models\Notification;
 use Carbon\Carbon;
 
 class GenerateTasksFromSchedules extends Command
@@ -188,6 +189,12 @@ class GenerateTasksFromSchedules extends Command
             }
         }
 
+        // Compute dates: for daily schedules, start/due = run day; for others, use defaults
+        $today = Carbon::now()->toDateString();
+        $isDaily = ($s->recurrence_type === 'daily');
+        $startDate = $isDaily ? $today : $s->start_date;
+        $dueDate = $isDaily ? $today : $s->due_date;
+
         // Build task payload mirroring relevant fields
         $data = [
             'project_id' => $s->project_id, // may be null
@@ -200,8 +207,8 @@ class GenerateTasksFromSchedules extends Command
             'reference_url' => $s->reference_url,
             'reference_urls' => $s->reference_urls ?? [],
             'reference_files' => $taskRefFiles,
-            'start_date' => $s->start_date,
-            'due_date' => $s->due_date,
+            'start_date' => $startDate,
+            'due_date' => $dueDate,
             'complete_date' => null,
             'created_by' => $s->created_by,
             'updated_by' => $s->updated_by,
@@ -243,6 +250,28 @@ class GenerateTasksFromSchedules extends Command
                 'updated_by' => $picUserId,
                 'deleted_by' => null,
             ]);
+
+            // Notify executor about the new assignment (same semantics as manual task creation)
+            try {
+                $creatorEmployeeId = $picEmployee ? $picEmployee->id : null; // Notification.created_by expects employee_id
+                $title = 'New Task Assignment';
+                $message = 'You have been assigned to task "' . ($s->title ?? 'Task') . '"';
+                // Keep Task ID trace for mark-as-read filter compatibility
+                $messageWithId = $message . ' [Task ID: ' . $task->id . ']';
+                Notification::create([
+                    'employee_id' => $eid,
+                    'type' => 'task_assignment',
+                    'title' => $title,
+                    'message' => $messageWithId,
+                    'sent_at' => now(),
+                    'is_read' => false,
+                    'created_by' => $creatorEmployeeId,
+                    'updated_by' => $creatorEmployeeId,
+                ]);
+            } catch (\Throwable $e) {
+                // Log but don't fail the task creation
+                \Log::warning('Failed to create notification for executor ' . $eid . ' of task #' . $task->id . ': ' . $e->getMessage());
+            }
         }
 
         return $task;

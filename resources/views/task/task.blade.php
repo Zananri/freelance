@@ -512,14 +512,14 @@
                             <div class="form-text">Multiple files supported.</div>
                             <div id="schedule_reference_files_preview" class="mt-2"></div>
                         </div>
-                        <div class="mb-3 d-flex justify-content-between">
+                        <div id="schedule_default_dates_section" class="mb-3 d-flex justify-content-between">
                             <div class="date-form">
                                 <label for="schedule_start_date" class="form-label label-custom">Default Start Date</label>
-                                <input type="date" class="form-control input-text" id="schedule_start_date" name="start_date" required>
+                                <input type="date" class="form-control input-text" id="schedule_start_date" name="start_date">
                             </div>
                             <div class="date-form">
                                 <label for="schedule_due_date" class="form-label label-custom">Default Due Date</label>
-                                <input type="date" class="form-control input-text" id="schedule_due_date" name="due_date" required>
+                                <input type="date" class="form-control input-text" id="schedule_due_date" name="due_date">
                             </div>
                         </div>
                         <div class="mb-3">

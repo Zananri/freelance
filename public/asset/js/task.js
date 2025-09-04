@@ -791,11 +791,15 @@
     const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
     const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
     const monthlyDateInput = document.getElementById('schedule_recurrence_date_monthly');
+    const defaultDatesSection = document.getElementById('schedule_default_dates_section');
+    const defaultStart = document.getElementById('schedule_start_date');
+    const defaultDue = document.getElementById('schedule_due_date');
     if (!typeSel || !weekly || !monthly || !weeklyDay || !monthlyDayHidden || !monthlyDateInput) return;
         const sync = () => {
             const v = typeSel.value;
             const isWeekly = v === 'weekly';
             const isMonthly = v === 'monthly';
+            const isDaily = v === 'daily';
 
             // Hide/show by class to work with Bootstrap d-none
             if (isWeekly) weekly.classList.remove('d-none'); else weekly.classList.add('d-none');
@@ -808,6 +812,20 @@
             if (!isMonthly) {
                 monthlyDateInput.value = '';
                 monthlyDayHidden.value = '';
+            }
+
+            // Toggle default start/due dates visibility for daily
+            if (defaultDatesSection) {
+                if (isDaily) {
+                    defaultDatesSection.classList.add('d-none');
+                    if (defaultStart) { defaultStart.required = false; defaultStart.value = ''; }
+                    if (defaultDue) { defaultDue.required = false; defaultDue.value = ''; }
+                } else {
+                    defaultDatesSection.classList.remove('d-none');
+                    // Optional: keep them optional in UI; backend accepts null for non-daily too
+                    if (defaultStart) defaultStart.required = false;
+                    if (defaultDue) defaultDue.required = false;
+                }
             }
         };
         typeSel.addEventListener('change', sync);
@@ -908,6 +926,10 @@
                     try { showFloatingAlert(res.message || 'Schedule created', 'success'); } catch(_) {}
                     form.reset();
                     const modal = bootstrap.Modal.getInstance(modalEl); if (modal) modal.hide();
+                    // Refresh tasks so any immediately generated task appears
+                    try { fetchAndRenderTasks(); } catch(_) {}
+                    // Refresh notification badge for any new assignments
+                    try { refreshNotificationCountBadge(); } catch(_) {}
                 }, 600);
             }).fail(function(xhr){
                 if (loader) loader.classList.add('d-none'); if (submitBtn) submitBtn.disabled = false;

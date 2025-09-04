@@ -7,9 +7,206 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use App\Models\Schedule;
+use App\Models\Task;
+use App\Models\TaskAssignment;
+use App\Models\Employee;
+use App\Models\Notification;
+use Carbon\Carbon;
+
+// Internal helpers for immediate generation
+trait ScheduleImmediateGeneration
+{
+    private function maybeGenerateNow(\App\Models\Schedule $s): void
+    {
+        $now = Carbon::now();
+        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
+        if ($now->lt($start)) {
+            // Initialize next_run_at to first occurrence in the future
+            $s->next_run_at = $this->calcInitialRunAt($s, $now);
+            $s->save();
+            return;
+        }
+
+        // Determine if today is a due date
+        $today = $now->copy()->startOfDay();
+        $dueToday = false;
+        switch ($s->recurrence_type) {
+            case 'weekly':
+                $dow = (int) ($s->recurrence_day_of_week ?? $today->dayOfWeek);
+                $dueToday = ((int)$today->dayOfWeek === $dow);
+                break;
+            case 'monthly':
+                $dom = (int) ($s->recurrence_day_of_month ?? $today->day);
+                $dueToday = ((int)$today->day === $dom);
+                break;
+            case 'daily':
+            default:
+                $dueToday = true;
+        }
+
+        if (!$dueToday) {
+            // Not due; initialize next_run_at so the scheduler can pick it up
+            $s->next_run_at = $this->calcInitialRunAt($s, $now);
+            $s->save();
+            return;
+        }
+
+        // Create the task now
+        $task = $this->createTaskFromScheduleNow($s);
+
+        // Advance next run
+        $s->last_generated_at = $now;
+        $s->next_run_at = $this->calcNextRunAt($s, $today);
+        $s->save();
+    }
+
+    private function calcInitialRunAt(\App\Models\Schedule $s, Carbon $now): Carbon
+    {
+        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
+        switch ($s->recurrence_type) {
+            case 'weekly':
+                $dow = (int) ($s->recurrence_day_of_week ?? $start->dayOfWeek);
+                $c = $start->copy();
+                while ((int)$c->dayOfWeek !== $dow) { $c->addDay(); }
+                return $c;
+            case 'monthly':
+                $dom = (int) ($s->recurrence_day_of_month ?? $start->day);
+                return $this->safeMonthly($start->year, $start->month, $dom);
+            case 'daily':
+            default:
+                return $start;
+        }
+    }
+
+    private function calcNextRunAt(\App\Models\Schedule $s, Carbon $current): Carbon
+    {
+        $interval = max((int) $s->recurrence_interval, 1);
+        $next = $current->copy();
+        switch ($s->recurrence_type) {
+            case 'weekly':
+                $next->addWeeks($interval);
+                $dow = (int) ($s->recurrence_day_of_week ?? $next->dayOfWeek);
+                while ((int)$next->dayOfWeek !== $dow) { $next->addDay(); }
+                return $next->startOfDay();
+            case 'monthly':
+                $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
+                $next->addMonthsNoOverflow($interval);
+                return $this->safeMonthly($next->year, $next->month, $dom);
+            case 'daily':
+            default:
+                return $next->addDays($interval)->startOfDay();
+        }
+    }
+
+    private function safeMonthly(int $year, int $month, int $dom): Carbon
+    {
+        $last = Carbon::create($year, $month, 1)->endOfMonth()->day;
+        $day = min(max($dom, 1), $last);
+        return Carbon::create($year, $month, $day, 0, 0, 0);
+    }
+
+    private function createTaskFromScheduleNow(\App\Models\Schedule $s): \App\Models\Task
+    {
+        // Copy image
+        $taskImage = null;
+        if (!empty($s->image)) {
+            $src = public_path('file/schedule/' . $s->image);
+            if (is_file($src)) {
+                $ext = pathinfo($s->image, PATHINFO_EXTENSION);
+                $new = 'TASK_FROM_SCHEDULE_' . time() . '.' . $ext;
+                @copy($src, public_path('file/task/' . $new));
+                $taskImage = $new;
+            }
+        }
+
+        // Copy reference files
+        $taskRefFiles = [];
+        $srcFiles = is_array($s->reference_files) ? $s->reference_files : [];
+        foreach ($srcFiles as $idx => $fname) {
+            $src = public_path('file/schedule_reference_files/' . $fname);
+            if (is_file($src)) {
+                $ext = pathinfo($fname, PATHINFO_EXTENSION);
+                $new = 'TASK_FROM_SCHEDULE_' . time() . '_' . $idx . '.' . $ext;
+                @copy($src, public_path('file/task_reference_files/' . $new));
+                $taskRefFiles[] = $new;
+            }
+        }
+
+        $today = Carbon::now()->toDateString();
+        $isDaily = ($s->recurrence_type === 'daily');
+        $startDate = $isDaily ? $today : $s->start_date;
+        $dueDate = $isDaily ? $today : $s->due_date;
+
+        $task = Task::create([
+            'project_id' => $s->project_id,
+            'point' => $s->point,
+            'title' => $s->title,
+            'description' => $s->description,
+            'image' => $taskImage,
+            'priority' => $s->priority,
+            'status' => 'new_request',
+            'reference_url' => $s->reference_url,
+            'reference_urls' => $s->reference_urls ?? [],
+            'reference_files' => $taskRefFiles,
+            'start_date' => $startDate,
+            'due_date' => $dueDate,
+            'complete_date' => null,
+            'created_by' => $s->created_by,
+            'updated_by' => $s->updated_by,
+            'deleted_by' => null,
+        ]);
+
+        // PIC assignment
+        $picUserId = $s->created_by;
+        $picEmployee = $picUserId ? Employee::where('user_id', $picUserId)->first() : null;
+        if ($picEmployee) {
+            TaskAssignment::create([
+                'task_id' => $task->id,
+                'employee_id' => $picEmployee->id,
+                'role' => 'PIC',
+                'is_receive' => true,
+                'date_receive' => now(),
+                'created_by' => $picUserId,
+                'updated_by' => $picUserId,
+                'deleted_by' => null,
+            ]);
+        }
+
+        // Executors + notifications
+        $executors = is_array($s->executor_ids) ? $s->executor_ids : [];
+        foreach ($executors as $eid) {
+            if ($picEmployee && (int)$eid === (int)$picEmployee->id) continue;
+            TaskAssignment::create([
+                'task_id' => $task->id,
+                'employee_id' => $eid,
+                'role' => 'EXECUTOR',
+                'is_receive' => false,
+                'date_receive' => null,
+                'created_by' => $picUserId,
+                'updated_by' => $picUserId,
+                'deleted_by' => null,
+            ]);
+            try {
+                Notification::create([
+                    'employee_id' => $eid,
+                    'type' => 'task_assignment',
+                    'title' => 'New Task Assignment',
+                    'message' => 'You have been assigned to task "' . ($s->title ?? 'Task') . '" [Task ID: ' . $task->id . ']',
+                    'sent_at' => now(),
+                    'is_read' => false,
+                    'created_by' => $picEmployee?->id,
+                    'updated_by' => $picEmployee?->id,
+                ]);
+            } catch (\Throwable $e) { /* ignore */ }
+        }
+
+        return $task;
+    }
+}
 
 class ScheduleController extends Controller
 {
+    use ScheduleImmediateGeneration;
     public function index(Request $request)
     {
         $schedules = Schedule::orderByDesc('created_at')->paginate(10);
@@ -36,8 +233,9 @@ class ScheduleController extends Controller
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
                 'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
-                'start_date' => 'required|date',
-                'due_date' => 'required|date|after_or_equal:start_date',
+                // For daily schedules, default dates are not needed; for others they are optional but validated if present
+                'start_date' => 'nullable|date',
+                'due_date' => 'nullable|date|after_or_equal:start_date',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
                 // Recurrence
                 'recurrence_type' => 'required|in:daily,weekly,monthly',
@@ -106,7 +304,16 @@ class ScheduleController extends Controller
             if ($data['recurrence_type'] !== 'weekly') $data['recurrence_day_of_week'] = null;
             if ($data['recurrence_type'] !== 'monthly') $data['recurrence_day_of_month'] = null;
 
+            // Daily schedules: ignore default dates (they'll be set to run-day by generator)
+            if (($data['recurrence_type'] ?? 'daily') === 'daily') {
+                $data['start_date'] = null;
+                $data['due_date'] = null;
+            }
+
             $schedule = Schedule::create($data);
+
+            // Immediately generate today's task if the schedule is due now
+            $this->maybeGenerateNow($schedule);
 
             DB::commit();
 
