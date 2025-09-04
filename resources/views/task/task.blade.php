@@ -452,8 +452,9 @@
                                     </select>
                                 </div>
                                 <div id="schedule_monthly_opts" class="d-none d-flex align-items-center gap-2">
-                                    <span>on day</span>
-                                    <input type="number" class="form-control input-text" id="schedule_recurrence_day_of_month" name="recurrence_day_of_month" min="1" max="31" style="max-width: 120px;">
+                                    <span>on Date</span>
+                                    <input type="date" class="form-control input-text" id="schedule_recurrence_date_monthly" style="max-width: 220px;">
+                                    <input type="hidden" id="schedule_recurrence_day_of_month" name="recurrence_day_of_month" value="">
                                 </div>
                             </div>
                         </div>
@@ -511,14 +512,14 @@
                             <div class="form-text">Multiple files supported.</div>
                             <div id="schedule_reference_files_preview" class="mt-2"></div>
                         </div>
-                        <div class="mb-3 d-flex justify-content-between">
+                        <div id="schedule_default_dates_section" class="mb-3 d-flex justify-content-between">
                             <div class="date-form">
                                 <label for="schedule_start_date" class="form-label label-custom">Default Start Date</label>
-                                <input type="date" class="form-control input-text" id="schedule_start_date" name="start_date" required>
+                                <input type="date" class="form-control input-text" id="schedule_start_date" name="start_date">
                             </div>
                             <div class="date-form">
                                 <label for="schedule_due_date" class="form-label label-custom">Default Due Date</label>
-                                <input type="date" class="form-control input-text" id="schedule_due_date" name="due_date" required>
+                                <input type="date" class="form-control input-text" id="schedule_due_date" name="due_date">
                             </div>
                         </div>
                         <div class="mb-3">

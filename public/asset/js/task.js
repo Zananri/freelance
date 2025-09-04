@@ -29,6 +29,23 @@
     // Expose globally for use outside this block
     window.initBootstrapTooltips = initBootstrapTooltips;
 
+    // Normalize various user_photo values to a valid absolute URL
+    // Supports: full http(s), paths starting with '/', 'file/...', 'asset/...', or plain filenames
+    function buildPhotoUrl(userPhoto) {
+        try {
+            if (!userPhoto) return appUrl + '/asset/img/profile_picture/default.png';
+            if (typeof userPhoto !== 'string') userPhoto = String(userPhoto || '');
+            const up = userPhoto.trim();
+            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+            if (up.startsWith('/')) return appUrl + up; // includes '/file/...', '/asset/...'
+            if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
+            // bare filename stored
+            return appUrl + '/file/profile_picture/' + up;
+        } catch (_) {
+            return appUrl + '/asset/img/profile_picture/default.png';
+        }
+    }
+
     // Helper: determine if current viewer is an invited executor who hasn't accepted yet for this task
     function isViewerPendingExecutor(task) {
         if (!currentEmployeeId) return false;
@@ -456,41 +473,18 @@
                 return;
             }
 
-            const html = filteredEmployees
+        const html = filteredEmployees
                 .map((emp) => {
                     const isChecked = selectedEmployees.some(
                         (e) => e.id === emp.id
                     );
-                    let photoUrl = "";
-                    if (emp.user_photo) {
-                        if (emp.user_photo.startsWith("http")) {
-                            photoUrl = emp.user_photo;
-                        } else if (
-                            emp.user_photo.startsWith("/file/photo") ||
-                            emp.user_photo.startsWith("/file/profile_picture")
-                        ) {
-                            photoUrl = appUrl + emp.user_photo;
-                        } else if (
-                            emp.user_photo.startsWith("file/photo") ||
-                            emp.user_photo.startsWith("file/profile_picture")
-                        ) {
-                            photoUrl = appUrl + "/" + emp.user_photo;
-                        } else {
-                            photoUrl =
-                                appUrl +
-                                "/file/profile_picture/" +
-                                emp.user_photo;
-                        }
-                    } else {
-                        photoUrl =
-                            appUrl + "/asset/img/profile_picture/default.png";
-                    }
-                    return `
+            const photoUrl = buildPhotoUrl(emp.user_photo);
+            return `
                     <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                         <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${
+                <img src="${photoUrl}" alt="${
                         emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+            }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/profile_picture/default.png'">
                             <span>${emp.name}</span>
                         </div>
                         <input type="checkbox" class="executor-checkbox" data-id="${
@@ -538,28 +532,7 @@
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                let photoUrl = "";
-                if (emp.user_photo) {
-                    if (emp.user_photo.startsWith("http")) {
-                        photoUrl = emp.user_photo;
-                    } else if (
-                        emp.user_photo.startsWith("/file/photo") ||
-                        emp.user_photo.startsWith("/file/profile_picture")
-                    ) {
-                        photoUrl = appUrl + emp.user_photo;
-                    } else if (
-                        emp.user_photo.startsWith("file/photo") ||
-                        emp.user_photo.startsWith("file/profile_picture")
-                    ) {
-                        photoUrl = appUrl + "/" + emp.user_photo;
-                    } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + emp.user_photo;
-                    }
-                } else {
-                    photoUrl =
-                        appUrl + "/asset/img/profile_picture/default.png";
-                }
+                const photoUrl = buildPhotoUrl(emp.user_photo);
 
                 const badge = document.createElement("span");
                 badge.className =
@@ -773,8 +746,21 @@
                 modal.show();
             });
         }
+        // Reset file state when opening the Schedule modal so previews start empty
+        if (modalEl) {
+            modalEl.addEventListener('show.bs.modal', function(){
+                try {
+                    selectedFiles = [];
+                    const pr = document.getElementById('schedule_reference_files_preview');
+                    if (pr) pr.innerHTML = '';
+                    const inp = document.getElementById('schedule_reference_files');
+                    if (inp) inp.value = '';
+                } catch (_) { /* noop */ }
+            });
+        }
     })();
 
+    
     // Schedule image input
     (function initScheduleImage(){
         const input = document.getElementById('schedule_image');
@@ -783,25 +769,17 @@
         if (input && label && clearBtn) setupImageInput(input, label, clearBtn);
     })();
 
-    // Schedule reference files reuse of preview util
+    // Schedule reference files reuse of preview util (same look & feel as Task)
     (function initScheduleRefFiles(){
         const input = document.getElementById('schedule_reference_files');
-        if (!input) return;
+        const preview = document.getElementById('schedule_reference_files_preview');
+        if (!input || !preview) return;
         input.addEventListener('change', function(e){
             const files = Array.from(e.target.files || []);
-            selectedFiles = []; // reuse global bucket
             selectedFiles = [...selectedFiles, ...files];
-            const preview = document.getElementById('schedule_reference_files_preview');
-            // Create preview for schedule form
-            if (preview) {
-                preview.innerHTML = '';
-                selectedFiles.forEach((file, idx) => {
-                    const item = document.createElement('div');
-                    item.className = 'selected-file-item';
-                    item.textContent = file.name;
-                    preview.appendChild(item);
-                });
-            }
+            displaySelectedFiles();
+            // Clear input so the same file can be chosen again if needed
+            input.value = '';
         });
     })();
 
@@ -810,13 +788,18 @@
         const typeSel = document.getElementById('schedule_recurrence_type');
         const weekly = document.getElementById('schedule_weekly_opts');
         const monthly = document.getElementById('schedule_monthly_opts');
-        const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
-        const monthlyDay = document.getElementById('schedule_recurrence_day_of_month');
-        if (!typeSel || !weekly || !monthly || !weeklyDay || !monthlyDay) return;
+    const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
+    const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
+    const monthlyDateInput = document.getElementById('schedule_recurrence_date_monthly');
+    const defaultDatesSection = document.getElementById('schedule_default_dates_section');
+    const defaultStart = document.getElementById('schedule_start_date');
+    const defaultDue = document.getElementById('schedule_due_date');
+    if (!typeSel || !weekly || !monthly || !weeklyDay || !monthlyDayHidden || !monthlyDateInput) return;
         const sync = () => {
             const v = typeSel.value;
             const isWeekly = v === 'weekly';
             const isMonthly = v === 'monthly';
+            const isDaily = v === 'daily';
 
             // Hide/show by class to work with Bootstrap d-none
             if (isWeekly) weekly.classList.remove('d-none'); else weekly.classList.add('d-none');
@@ -824,9 +807,37 @@
 
             // Required flags only for visible controls
             weeklyDay.required = isWeekly;
-            monthlyDay.required = isMonthly;
+            monthlyDateInput.required = isMonthly;
+            // Keep hidden field in sync
+            if (!isMonthly) {
+                monthlyDateInput.value = '';
+                monthlyDayHidden.value = '';
+            }
+
+            // Toggle default start/due dates visibility for daily
+            if (defaultDatesSection) {
+                if (isDaily) {
+                    defaultDatesSection.classList.add('d-none');
+                    if (defaultStart) { defaultStart.required = false; defaultStart.value = ''; }
+                    if (defaultDue) { defaultDue.required = false; defaultDue.value = ''; }
+                } else {
+                    defaultDatesSection.classList.remove('d-none');
+                    // Optional: keep them optional in UI; backend accepts null for non-daily too
+                    if (defaultStart) defaultStart.required = false;
+                    if (defaultDue) defaultDue.required = false;
+                }
+            }
         };
         typeSel.addEventListener('change', sync);
+        monthlyDateInput.addEventListener('change', function(){
+            if (!this.value) { monthlyDayHidden.value = ''; return; }
+            // Extract day of month from yyyy-mm-dd
+            try {
+                const parts = this.value.split('-');
+                const day = parseInt(parts[2], 10);
+                if (!isNaN(day)) monthlyDayHidden.value = String(day);
+            } catch(_) { monthlyDayHidden.value = ''; }
+        });
         sync();
     })();
 
@@ -850,9 +861,9 @@
             if (filtered.length === 0){ dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
             dropdown.innerHTML = filtered.map(emp => {
                 const isChecked = selected.some(e => e.id === emp.id);
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : (emp.user_photo.startsWith('/') ? appUrl + emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo)) : (appUrl + '/asset/img/profile_picture/default.png');
-                return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}"><span>${emp.name}</span></div>
+                const photoUrl = buildPhotoUrl(emp.user_photo);
+        return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+            <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/profile_picture/default.png'"><span>${emp.name}</span></div>
                         <input type="checkbox" class="schedule-executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
                     </label>`;
             }).join('');
@@ -870,7 +881,7 @@
         function renderSelected(){
             selectedContainer.innerHTML = '';
             selected.forEach(emp => {
-                const photoUrl = emp.user_photo ? (emp.user_photo.startsWith('http') ? emp.user_photo : (emp.user_photo.startsWith('/') ? appUrl + emp.user_photo : appUrl + '/file/profile_picture/' + emp.user_photo)) : (appUrl + '/asset/img/profile_picture/default.png');
+                const photoUrl = buildPhotoUrl(emp.user_photo);
                 const badge = document.createElement('span'); badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
                 const img = document.createElement('img'); img.src = photoUrl; img.alt = emp.name; img.className = 'rounded-circle me-2'; img.style.width='24px'; img.style.height='24px'; img.style.objectFit='cover';
                 const nameSpan = document.createElement('span'); nameSpan.textContent = emp.name;
@@ -915,6 +926,10 @@
                     try { showFloatingAlert(res.message || 'Schedule created', 'success'); } catch(_) {}
                     form.reset();
                     const modal = bootstrap.Modal.getInstance(modalEl); if (modal) modal.hide();
+                    // Refresh tasks so any immediately generated task appears
+                    try { fetchAndRenderTasks(); } catch(_) {}
+                    // Refresh notification badge for any new assignments
+                    try { refreshNotificationCountBadge(); } catch(_) {}
                 }, 600);
             }).fail(function(xhr){
                 if (loader) loader.classList.add('d-none'); if (submitBtn) submitBtn.disabled = false;
@@ -1132,35 +1147,12 @@
                 return;
             }
 
-            const html = filteredEmployees
+        const html = filteredEmployees
                 .map((emp) => {
                     const isChecked = selectedEmployees.some(
                         (e) => e.id === emp.id
                     );
-                    let photoUrl = "";
-                    if (emp.user_photo) {
-                        if (emp.user_photo.startsWith("http")) {
-                            photoUrl = emp.user_photo;
-                        } else if (
-                            emp.user_photo.startsWith("/file/photo") ||
-                            emp.user_photo.startsWith("/file/profile_picture")
-                        ) {
-                            photoUrl = appUrl + emp.user_photo;
-                        } else if (
-                            emp.user_photo.startsWith("file/photo") ||
-                            emp.user_photo.startsWith("file/profile_picture")
-                        ) {
-                            photoUrl = appUrl + "/" + emp.user_photo;
-                        } else {
-                            photoUrl =
-                                appUrl +
-                                "/file/profile_picture/" +
-                                emp.user_photo;
-                        }
-                    } else {
-                        photoUrl =
-                            appUrl + "/asset/img/profile_picture/default.png";
-                    }
+            const photoUrl = buildPhotoUrl(emp.user_photo);
                     return `
                     <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                         <div class="d-flex align-items-center">
@@ -1214,28 +1206,7 @@
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                let photoUrl = "";
-                if (emp.user_photo) {
-                    if (emp.user_photo.startsWith("http")) {
-                        photoUrl = emp.user_photo;
-                    } else if (
-                        emp.user_photo.startsWith("/file/photo") ||
-                        emp.user_photo.startsWith("/file/profile_picture")
-                    ) {
-                        photoUrl = appUrl + emp.user_photo;
-                    } else if (
-                        emp.user_photo.startsWith("file/photo") ||
-                        emp.user_photo.startsWith("file/profile_picture")
-                    ) {
-                        photoUrl = appUrl + "/" + emp.user_photo;
-                    } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + emp.user_photo;
-                    }
-                } else {
-                    photoUrl =
-                        appUrl + "/asset/img/profile_picture/default.png";
-                }
+                const photoUrl = buildPhotoUrl(emp.user_photo);
 
                 const badge = document.createElement("span");
                 badge.className =
@@ -4111,42 +4082,52 @@ function renderSingleSection(status, sectionData) {
 
     // Array untuk menyimpan file yang sudah dipilih (moved to top)
 
-    // Function untuk menampilkan file yang sudah dipilih
+    // Function untuk menampilkan file yang sudah dipilih (pilih preview yang sedang aktif/terlihat)
     function displaySelectedFiles() {
-    const preview = document.getElementById("feedback_reference_files_preview") || document.getElementById("reference_files_preview");
-    if (!preview) return;
-    preview.innerHTML = "";
+        function findVisiblePreview(ids) {
+            let fallback = null;
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (el && !fallback) fallback = el;
+                if (el && el.offsetParent !== null) return el; // visible
+            }
+            return fallback;
+        }
+        const preview = findVisiblePreview([
+            'schedule_reference_files_preview',
+            'feedback_reference_files_preview',
+            'reference_files_preview',
+        ]);
+        if (!preview) return;
+        preview.innerHTML = '';
 
         if (selectedFiles.length > 0) {
-            const fileList = document.createElement("div");
-            fileList.className = "selected-files-list mt-2";
+            const fileList = document.createElement('div');
+            fileList.className = 'selected-files-list mt-2';
 
             selectedFiles.forEach((file, index) => {
-                const fileItem = document.createElement("div");
-                fileItem.className =
-                    "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                const fileItem = document.createElement('div');
+                fileItem.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
 
-                const fileInfo = document.createElement("div");
-                fileInfo.className = "d-flex align-items-center flex-grow-1";
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'd-flex align-items-center flex-grow-1';
 
-                const fileIcon = document.createElement("span");
-                fileIcon.className = "material-symbols-outlined me-2";
-                fileIcon.textContent = "description";
+                const fileIcon = document.createElement('span');
+                fileIcon.className = 'material-symbols-outlined me-2';
+                fileIcon.textContent = 'description';
 
-                const fileName = document.createElement("span");
+                const fileName = document.createElement('span');
                 fileName.textContent = file.name;
-                fileName.className = "file-name";
+                fileName.className = 'file-name';
 
-                const fileSize = document.createElement("small");
-                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(
-                    2
-                )} MB)`;
-                fileSize.className = "text-muted ms-1";
+                const fileSize = document.createElement('small');
+                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileSize.className = 'text-muted ms-1';
 
-                const removeBtn = document.createElement("button");
-                removeBtn.type = "button";
-                removeBtn.className = "btn btn-sm btn-outline-danger";
-                removeBtn.innerHTML = "&times;";
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger';
+                removeBtn.innerHTML = '&times;';
                 removeBtn.onclick = function () {
                     selectedFiles.splice(index, 1);
                     displaySelectedFiles();
