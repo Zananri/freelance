@@ -2,6 +2,17 @@
     font-size: 20px;
 }
 
+.create-employee-container {
+    margin-top: 20px;
+    width: 100%;
+    font-size: 14px;
+}
+
+.form-container {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    padding: 8px;
+}
 
 .photo-upload::before {
     content: "";
@@ -10,7 +21,7 @@
     left: 50%;
     width: 40%;
     height: 40%;
-    background-image: url('../img/background/add-image.png');
+    background-image: url("../img/background/add-image.png");
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
@@ -39,11 +50,10 @@
     transition: opacity 0.3s ease;
 }
 
-@media (max-width: 576px) { 
-
-    .photo-upload.custom-image-upload-photo{
-         width: 40vw;
-         height: 60vw;
+@media (max-width: 576px) {
+    .photo-upload.custom-image-upload-photo {
+        width: 40vw;
+        height: 60vw;
     }
 
     .ktp-upload.custom-image-upload-ktp {
@@ -51,7 +61,6 @@
         height: 70vw;
     }
 }
-
 
 .photo-upload.has-image {
     opacity: 1;
@@ -100,7 +109,7 @@
     left: 50%;
     width: 40%;
     height: 40%;
-    background-image: url('../img/background/add-image.png');
+    background-image: url("../img/background/add-image.png");
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
@@ -168,7 +177,6 @@
     border-color: #28a745 !important;
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
-
 
 /* Form layout styling */
 .body-content form .row {
@@ -312,7 +320,7 @@
     z-index: 2;
     transition: background 0.2s;
     opacity: 0.85;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .image-clear-btn:hover {
     background: #b02a37;
@@ -329,7 +337,6 @@
     line-height: 1.5;
     margin-top: 8px;
 }
-
 
 .btn-submit-custom {
     display: inline-block;
@@ -379,8 +386,16 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg);}
-    100% { transform: rotate(360deg);}
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
-
+.custom-form-employee input,
+.custom-form-employee select,
+.custom-form-employee textarea {
+    border: none;
+}
