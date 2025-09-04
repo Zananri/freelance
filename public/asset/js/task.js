@@ -826,17 +826,23 @@
                 monthlyDayHidden.value = '';
             }
 
-            // Toggle default start/due dates visibility for daily
+            // Toggle default dates for daily: hide start date only; allow optional due date
             if (defaultDatesSection) {
-                if (isDaily) {
-                    defaultDatesSection.classList.add('d-none');
-                    if (defaultStart) { defaultStart.required = false; defaultStart.value = ''; }
-                    if (defaultDue) { defaultDue.required = false; defaultDue.value = ''; }
-                } else {
-                    defaultDatesSection.classList.remove('d-none');
-                    // Optional: keep them optional in UI; backend accepts null for non-daily too
-                    if (defaultStart) defaultStart.required = false;
-                    if (defaultDue) defaultDue.required = false;
+                // Always show the container so due date can be set
+                defaultDatesSection.classList.remove('d-none');
+                if (defaultStart) { defaultStart.required = false; }
+                if (defaultDue) { defaultDue.required = false; }
+
+                // Hide only the start date input when daily
+                const startWrapper = defaultStart ? defaultStart.closest('.date-form') : null;
+                const dueWrapper = defaultDue ? defaultDue.closest('.date-form') : null;
+                if (startWrapper) {
+                    if (isDaily) { startWrapper.classList.add('d-none'); defaultStart.value = ''; }
+                    else { startWrapper.classList.remove('d-none'); }
+                }
+                if (dueWrapper) {
+                    // Due date remains visible for all types; optional
+                    dueWrapper.classList.remove('d-none');
                 }
             }
         };
