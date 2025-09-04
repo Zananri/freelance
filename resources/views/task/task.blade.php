@@ -79,8 +79,11 @@
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h4 class="task-section-title mb-0">New</h4>
                     <div class="d-flex align-items-center gap-2">
-                        <button type="button" id="taskNewBulkAction" class="task-bulk-icon" aria-label="Confirm accept selected tasks" style="visibility:hidden;">
+                        <button type="button" id="taskNewBulkAction" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
                             <span class="material-symbols-outlined">done_all</span>
+                        </button>
+                        <button type="button" id="taskNewBulkProgress" class="task-bulk-icon" aria-label="Move selected tasks to In Progress">
+                            <span class="material-symbols-outlined">arrow_right_alt</span>
                         </button>
                         <label for="taskNewAcceptAll" class="task-selectall-toggle">
                             <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAll" aria-label="Select all pending new tasks" />

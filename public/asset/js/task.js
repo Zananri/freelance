@@ -1604,11 +1604,11 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
 
             <div class="d-flex align-items-center mb-2 mt-2">
                 ${task.project_id ? (
-                    isViewerPendingExecutor(task)
-            ? `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="1">
-                <img src="${projectImg}" alt="Project Image" class="project-image" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
-                <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
-               </div>`
+                    (task.status === 'new_request' || task.status === 'new request')
+                        ? `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
+                                <img src="${projectImg}" alt="Project Image" class="project-image" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
+                                <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
+                           </div>`
                         : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`
                   ) : ''}
                 <div class="d-flex flex-column">
@@ -1843,10 +1843,12 @@ function renderSingleSection(status, sectionData) {
         fetchAndRenderTasks();
     });
 
-    // --- New flow: checkbox selects, done_all triggers modal accept ---
+    // --- New flow: checkbox selects, done_all triggers Accept; arrow triggers Progress ---
     (function initBulkAcceptFlow(){
     // Keep a memory set of selected pending ids
     let selectedPendingIds = [];
+    // Also track all selected ids in New (for Progress action)
+    let selectedAllNewIds = [];
 
         function collectPendingNewTaskIds(){
             // When viewer is executor and not accepted, cards render Accept/Reject buttons; pick those
@@ -1858,6 +1860,12 @@ function renderSingleSection(status, sectionData) {
                 return acc;
             }, []);
             return ids;
+        }
+
+        function collectAllNewTaskIds(){
+            return Array.from(document.querySelectorAll('#new-request-tasks .custom-card'))
+                .map(el => el.getAttribute('data-task-id'))
+                .filter(Boolean);
         }
 
         function acceptOne(taskId){
@@ -1887,46 +1895,40 @@ function renderSingleSection(status, sectionData) {
             if (!cb) return;
             if (cb.checked) {
                 selectedPendingIds = collectPendingNewTaskIds();
-                // visually select all pending thumbnails
-                document.querySelectorAll('#new-request-tasks .task-selectable-thumb[data-pending="1"]').forEach(function(el){
+                selectedAllNewIds = collectAllNewTaskIds();
+                // visually select all thumbnails in New
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb').forEach(function(el){
                     el.classList.add('selected');
                 });
             } else {
                 selectedPendingIds = [];
+                selectedAllNewIds = [];
                 // clear visual selection
                 document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected').forEach(function(el){
                     el.classList.remove('selected');
                 });
             }
-            const bulkBtn = document.getElementById('taskNewBulkAction');
-            if (bulkBtn) {
-                const hasSel = selectedPendingIds.length > 0;
-                bulkBtn.disabled = !hasSel;
-                bulkBtn.style.visibility = hasSel ? 'visible' : 'hidden';
-            }
+            updateBulkHeaderButtons();
         });
 
         // Bulk action icon opens confirmation modal, then runs accept
         document.addEventListener('click', function(e){
             // Toggle single-select on pending project image
             const thumb = e.target.closest('.task-selectable-thumb');
-            if (thumb && thumb.dataset.pending === '1') {
+            if (thumb) {
                 const taskId = thumb.getAttribute('data-task-id');
                 // Toggle selection
                 if (thumb.classList.contains('selected')) {
                     thumb.classList.remove('selected');
                     selectedPendingIds = selectedPendingIds.filter(id => String(id) !== String(taskId));
+                    selectedAllNewIds = selectedAllNewIds.filter(id => String(id) !== String(taskId));
                 } else {
                     // Single selection if checkbox not checked; if checked, add to list
                     thumb.classList.add('selected');
-                    if (!selectedPendingIds.includes(taskId)) selectedPendingIds.push(taskId);
+                    if (thumb.dataset.pending === '1' && !selectedPendingIds.includes(taskId)) selectedPendingIds.push(taskId);
+                    if (!selectedAllNewIds.includes(taskId)) selectedAllNewIds.push(taskId);
                 }
-                const bulkBtn = document.getElementById('taskNewBulkAction');
-                if (bulkBtn) {
-                    const hasSel = selectedPendingIds.length > 0;
-                    bulkBtn.disabled = !hasSel;
-                    bulkBtn.style.visibility = hasSel ? 'visible' : 'hidden';
-                }
+                updateBulkHeaderButtons();
                 return;
             }
 
@@ -1965,18 +1967,105 @@ function renderSingleSection(status, sectionData) {
                     const cb = document.getElementById('taskNewAcceptAll');
                     if (cb) cb.checked = false;
                     selectedPendingIds = [];
+                    selectedAllNewIds = [];
                     // clear UI selected class
                     document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
-                    const bulkBtn = document.getElementById('taskNewBulkAction');
-                    if (bulkBtn) bulkBtn.disabled = true;
+                    updateBulkHeaderButtons();
                 });
             });
         });
 
+        // Bulk Progress button behavior
+        document.addEventListener('click', function(e){
+            const btn = e.target.closest('#taskNewBulkProgress');
+            if (!btn) return;
+            if (btn.disabled) return;
+            const ids = selectedAllNewIds.slice();
+            if (ids.length === 0) return;
+
+            // Only move tasks that are already accepted (non-pending thumbnails)
+            const movableIds = ids.filter(id => {
+                const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
+                if (!card) return false;
+                return !card.querySelector('.btn-accept-invite');
+            });
+            if (movableIds.length === 0) return;
+
+            if (movableIds.length === 1) {
+                // single: move directly to in_progress
+                const id = movableIds[0];
+                const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
+                updateTaskStatus(id, 'in_progress', card);
+                // cleanup selection
+                const cb = document.getElementById('taskNewAcceptAll');
+                if (cb) cb.checked = false;
+                selectedPendingIds = [];
+                selectedAllNewIds = [];
+                document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                updateBulkHeaderButtons();
+                return;
+            }
+
+            // multiple: show Progress modal with count
+            const modalId = 'progressStatusModal';
+            const statusModal = new bootstrap.Modal(document.getElementById(modalId));
+            const titleEl = document.getElementById('progressStatusTitle');
+            const descEl = document.getElementById('progressStatusDescription');
+            if (titleEl) titleEl.textContent = `${movableIds.length} selected`;
+            if (descEl) descEl.textContent = 'Move selected tasks to In Progress?';
+            statusModal.show();
+            const confirmBtn = document.getElementById('confirmProgressStatusBtn');
+            const handler = function(){
+                // chain updates sequentially
+                let chain = Promise.resolve();
+                movableIds.forEach((id) => {
+                    const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
+                    chain = chain.then(() => new Promise((resolve) => {
+                        // reuse updateTaskStatus, but wait a tick
+                        updateTaskStatus(id, 'in_progress', card);
+                        setTimeout(resolve, 150);
+                    }));
+                });
+                chain.finally(() => {
+                    statusModal.hide();
+                    confirmBtn.removeEventListener('click', handler);
+                    const cb = document.getElementById('taskNewAcceptAll');
+                    if (cb) cb.checked = false;
+                    selectedPendingIds = [];
+                    selectedAllNewIds = [];
+                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    updateBulkHeaderButtons();
+                });
+            };
+            confirmBtn.addEventListener('click', handler);
+        });
+
+        function updateBulkHeaderButtons(){
+            const hasAnySelection = (selectedAllNewIds.length + selectedPendingIds.length) > 0;
+            const anyPendingSelected = selectedPendingIds.length > 0;
+            const allAcceptedSelected = hasAnySelection && !anyPendingSelected;
+
+            const bulkAccept = document.getElementById('taskNewBulkAction');
+            const bulkProgress = document.getElementById('taskNewBulkProgress');
+
+            if (bulkAccept) {
+                // Show Accept only if there are pending selected; hide otherwise
+                bulkAccept.style.display = anyPendingSelected ? 'inline-flex' : 'none';
+                bulkAccept.disabled = !anyPendingSelected;
+            }
+            if (bulkProgress) {
+                // Arrow visible when any selection, disabled if any pending is in selection
+                bulkProgress.style.display = hasAnySelection ? 'inline-flex' : 'none';
+                bulkProgress.disabled = !allAcceptedSelected;
+            }
+        }
+
         // initialize bulk button hidden and disabled by default
         document.addEventListener('DOMContentLoaded', function(){
-            const bulkBtn = document.getElementById('taskNewBulkAction');
-            if (bulkBtn) { bulkBtn.disabled = true; bulkBtn.style.visibility = 'hidden'; }
+            const bulkAccept = document.getElementById('taskNewBulkAction');
+            const bulkProgress = document.getElementById('taskNewBulkProgress');
+            if (bulkAccept) { bulkAccept.disabled = true; bulkAccept.style.display = 'none'; }
+            if (bulkProgress) { bulkProgress.disabled = true; bulkProgress.style.display = 'none'; }
         });
     })();
 
