@@ -92,6 +92,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/task', [TaskController::class, 'showTaskPage'])->name('task');
     Route::get('/task/index', [TaskController::class, 'index'])->name('task.index');
+    Route::get('/task/index/no-pagination', [TaskController::class, 'listNoPagination'])->name('task.index.no-pagination');
     Route::get('/task/create', [TaskController::class, 'create'])->name('task.create');
     Route::get('/task/employees-for-executor', [TaskController::class, 'getEmployeesForTaskExecutor'])->name('task.employees-for-executor');
 
