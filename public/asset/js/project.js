@@ -6159,33 +6159,33 @@ nextBtn.addEventListener("click", () => {
     updateModalTimeline();
 });
 
-// document.addEventListener("DOMContentLoaded", function () {
-//     const searchInput = document.getElementById("search_filter");
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("search_filter");
 
-//     searchInput.addEventListener("input", function () {
-//         const query = this.value.toLowerCase();
+    searchInput.addEventListener("input", function () {
+        const query = this.value.toLowerCase();
 
-//         const cards = document.querySelectorAll(
-//             "#all-cards-container [data-project-id]"
-//         );
+        const cards = document.querySelectorAll(
+            "#all-cards-container [data-project-id]"
+        );
 
-//         cards.forEach((card) => {
-//             const projectId = card.getAttribute("data-project-id");
-//             const title =
-//                 card.querySelector("h6")?.textContent.toLowerCase() || "";
-//             const desc =
-//                 card.querySelector("p")?.textContent.toLowerCase() || "";
+        cards.forEach((card) => {
+            const projectId = card.getAttribute("data-project-id");
+            const title =
+                card.querySelector("h6")?.textContent.toLowerCase() || "";
+            const desc =
+                card.querySelector("p")?.textContent.toLowerCase() || "";
 
-//             const match =
-//                 title.includes(query) ||
-//                 desc.includes(query) ||
-//                 projectId.includes(query);
+            const match =
+                title.includes(query) ||
+                desc.includes(query) ||
+                projectId.includes(query);
 
-//             if (match) {
-//                 card.classList.remove("d-none");
-//             } else {
-//                 card.classList.add("d-none");
-//             }
-//         });
-//     });
-// });
+            if (match) {
+                card.classList.remove("d-none");
+            } else {
+                card.classList.add("d-none");
+            }
+        });
+    });
+});
