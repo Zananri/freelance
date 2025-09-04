@@ -1894,9 +1894,19 @@ function renderSingleSection(status, sectionData) {
             const cb = e.target.closest('#taskNewAcceptAll');
             if (!cb) return;
             if (cb.checked) {
-                selectedPendingIds = collectPendingNewTaskIds();
-                selectedAllNewIds = collectAllNewTaskIds();
-                // visually select all thumbnails in New
+                // When Select All is enabled, include all tasks across pages from cache
+                if (allTasksCache && allTasksCache.new_request && Array.isArray(allTasksCache.new_request.tasks)) {
+                    const allNewTasks = allTasksCache.new_request.tasks;
+                    selectedAllNewIds = allNewTasks.map(t => String(t.id));
+                    selectedPendingIds = allNewTasks
+                        .filter(t => isViewerPendingExecutor(t))
+                        .map(t => String(t.id));
+                } else {
+                    // Fallback to current DOM
+                    selectedPendingIds = collectPendingNewTaskIds();
+                    selectedAllNewIds = collectAllNewTaskIds();
+                }
+                // visually select all thumbnails in current DOM
                 document.querySelectorAll('#new-request-tasks .task-selectable-thumb').forEach(function(el){
                     el.classList.add('selected');
                 });
@@ -1980,7 +1990,12 @@ function renderSingleSection(status, sectionData) {
             const btn = e.target.closest('#taskNewBulkProgress');
             if (!btn) return;
             if (btn.disabled) return;
-            const ids = selectedAllNewIds.slice();
+            // If select-all checkbox is on, include all IDs across pagination from cache
+            const selectAllChecked = !!document.getElementById('taskNewAcceptAll')?.checked;
+            let ids = selectedAllNewIds.slice();
+            if (selectAllChecked && allTasksCache && allTasksCache.new_request && Array.isArray(allTasksCache.new_request.tasks)) {
+                ids = allTasksCache.new_request.tasks.map(t => String(t.id));
+            }
             if (ids.length === 0) return;
 
             // Only move tasks that are already accepted (non-pending thumbnails)
@@ -1995,14 +2010,18 @@ function renderSingleSection(status, sectionData) {
                 // single: move directly to in_progress
                 const id = movableIds[0];
                 const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
+                bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
                 updateTaskStatus(id, 'in_progress', card);
+                bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
                 // cleanup selection
                 const cb = document.getElementById('taskNewAcceptAll');
                 if (cb) cb.checked = false;
                 selectedPendingIds = [];
                 selectedAllNewIds = [];
                 document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                fetchAndRenderTasks();
                 updateBulkHeaderButtons();
+                try { showFloatingAlert('Task moved to In Progress', 'success'); } catch(_) {}
                 return;
             }
 
@@ -2016,17 +2035,18 @@ function renderSingleSection(status, sectionData) {
             statusModal.show();
             const confirmBtn = document.getElementById('confirmProgressStatusBtn');
             const handler = function(){
-                // chain updates sequentially
+                // chain updates sequentially with bulk flags to suppress per-item alerts and refresh
+                bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
                 let chain = Promise.resolve();
                 movableIds.forEach((id) => {
                     const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
                     chain = chain.then(() => new Promise((resolve) => {
-                        // reuse updateTaskStatus, but wait a tick
                         updateTaskStatus(id, 'in_progress', card);
-                        setTimeout(resolve, 150);
+                        setTimeout(resolve, 120);
                     }));
                 });
                 chain.finally(() => {
+                    bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
                     statusModal.hide();
                     confirmBtn.removeEventListener('click', handler);
                     const cb = document.getElementById('taskNewAcceptAll');
@@ -2034,7 +2054,9 @@ function renderSingleSection(status, sectionData) {
                     selectedPendingIds = [];
                     selectedAllNewIds = [];
                     document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    fetchAndRenderTasks();
                     updateBulkHeaderButtons();
+                    try { showFloatingAlert(`${movableIds.length} tasks moved to In Progress`, 'success'); } catch(_) {}
                 });
             };
             confirmBtn.addEventListener('click', handler);
@@ -2054,7 +2076,7 @@ function renderSingleSection(status, sectionData) {
                 bulkAccept.disabled = !anyPendingSelected;
             }
             if (bulkProgress) {
-                // Arrow visible when any selection, disabled if any pending is in selection
+                // Arrow visible only when any selection exists
                 bulkProgress.style.display = hasAnySelection ? 'inline-flex' : 'none';
                 bulkProgress.disabled = !allAcceptedSelected;
             }
@@ -2375,6 +2397,10 @@ function renderSingleSection(status, sectionData) {
     });
 }
 
+    // Bulk operation control flags
+    let bulkStatusOperationActive = false;
+    let bulkStatusSuppressRefresh = false;
+
     // Function to update task status via AJAX
     function updateTaskStatus(taskId, newStatus, taskCard) {
         $.ajax({
@@ -2389,23 +2415,28 @@ function renderSingleSection(status, sectionData) {
                 status: newStatus,
             },
             success: function (response) {
-                // Dispose all Bootstrap tooltips inside the taskCard before removing it
-                const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                    const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                    if (tooltipInstance) {
-                        tooltipInstance.dispose();
-                    }
-                });
+                // Dispose tooltips if card present
+                if (taskCard) {
+                    const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                        const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                        if (tooltipInstance) {
+                            tooltipInstance.dispose();
+                        }
+                    });
+                    // Remove the task card from current section
+                    taskCard.remove();
+                }
 
-                // Remove the task card from current section
-                taskCard.remove();
+                // Refresh task cards to show in new section (skip if suppressed during bulk)
+                if (!bulkStatusSuppressRefresh) {
+                    fetchAndRenderTasks();
+                }
 
-                // Refresh task cards to show in new section
-                fetchAndRenderTasks();
-
-                // Show success message
-                showFloatingAlert(response.message || "Task status updated successfully", "success");
+                // Show success message (skip if bulk)
+                if (!bulkStatusOperationActive) {
+                    showFloatingAlert(response.message || "Task status updated successfully", "success");
+                }
             },
             error: function (xhr) {
                 let errorMessage = "Failed to update task status.";
