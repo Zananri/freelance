@@ -773,6 +773,18 @@
                 modal.show();
             });
         }
+        // Reset file state when opening the Schedule modal so previews start empty
+        if (modalEl) {
+            modalEl.addEventListener('show.bs.modal', function(){
+                try {
+                    selectedFiles = [];
+                    const pr = document.getElementById('schedule_reference_files_preview');
+                    if (pr) pr.innerHTML = '';
+                    const inp = document.getElementById('schedule_reference_files');
+                    if (inp) inp.value = '';
+                } catch (_) { /* noop */ }
+            });
+        }
     })();
 
     
@@ -784,25 +796,17 @@
         if (input && label && clearBtn) setupImageInput(input, label, clearBtn);
     })();
 
-    // Schedule reference files reuse of preview util
+    // Schedule reference files reuse of preview util (same look & feel as Task)
     (function initScheduleRefFiles(){
         const input = document.getElementById('schedule_reference_files');
-        if (!input) return;
+        const preview = document.getElementById('schedule_reference_files_preview');
+        if (!input || !preview) return;
         input.addEventListener('change', function(e){
             const files = Array.from(e.target.files || []);
-            selectedFiles = []; // reuse global bucket
             selectedFiles = [...selectedFiles, ...files];
-            const preview = document.getElementById('schedule_reference_files_preview');
-            // Create preview for schedule form
-            if (preview) {
-                preview.innerHTML = '';
-                selectedFiles.forEach((file, idx) => {
-                    const item = document.createElement('div');
-                    item.className = 'selected-file-item';
-                    item.textContent = file.name;
-                    preview.appendChild(item);
-                });
-            }
+            displaySelectedFiles();
+            // Clear input so the same file can be chosen again if needed
+            input.value = '';
         });
     })();
 
@@ -811,9 +815,10 @@
         const typeSel = document.getElementById('schedule_recurrence_type');
         const weekly = document.getElementById('schedule_weekly_opts');
         const monthly = document.getElementById('schedule_monthly_opts');
-        const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
-        const monthlyDay = document.getElementById('schedule_recurrence_day_of_month');
-        if (!typeSel || !weekly || !monthly || !weeklyDay || !monthlyDay) return;
+    const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
+    const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
+    const monthlyDateInput = document.getElementById('schedule_recurrence_date_monthly');
+    if (!typeSel || !weekly || !monthly || !weeklyDay || !monthlyDayHidden || !monthlyDateInput) return;
         const sync = () => {
             const v = typeSel.value;
             const isWeekly = v === 'weekly';
@@ -825,9 +830,23 @@
 
             // Required flags only for visible controls
             weeklyDay.required = isWeekly;
-            monthlyDay.required = isMonthly;
+            monthlyDateInput.required = isMonthly;
+            // Keep hidden field in sync
+            if (!isMonthly) {
+                monthlyDateInput.value = '';
+                monthlyDayHidden.value = '';
+            }
         };
         typeSel.addEventListener('change', sync);
+        monthlyDateInput.addEventListener('change', function(){
+            if (!this.value) { monthlyDayHidden.value = ''; return; }
+            // Extract day of month from yyyy-mm-dd
+            try {
+                const parts = this.value.split('-');
+                const day = parseInt(parts[2], 10);
+                if (!isNaN(day)) monthlyDayHidden.value = String(day);
+            } catch(_) { monthlyDayHidden.value = ''; }
+        });
         sync();
     })();
 
@@ -4112,42 +4131,52 @@ function renderSingleSection(status, sectionData) {
 
     // Array untuk menyimpan file yang sudah dipilih (moved to top)
 
-    // Function untuk menampilkan file yang sudah dipilih
+    // Function untuk menampilkan file yang sudah dipilih (pilih preview yang sedang aktif/terlihat)
     function displaySelectedFiles() {
-    const preview = document.getElementById("feedback_reference_files_preview") || document.getElementById("reference_files_preview");
-    if (!preview) return;
-    preview.innerHTML = "";
+        function findVisiblePreview(ids) {
+            let fallback = null;
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (el && !fallback) fallback = el;
+                if (el && el.offsetParent !== null) return el; // visible
+            }
+            return fallback;
+        }
+        const preview = findVisiblePreview([
+            'schedule_reference_files_preview',
+            'feedback_reference_files_preview',
+            'reference_files_preview',
+        ]);
+        if (!preview) return;
+        preview.innerHTML = '';
 
         if (selectedFiles.length > 0) {
-            const fileList = document.createElement("div");
-            fileList.className = "selected-files-list mt-2";
+            const fileList = document.createElement('div');
+            fileList.className = 'selected-files-list mt-2';
 
             selectedFiles.forEach((file, index) => {
-                const fileItem = document.createElement("div");
-                fileItem.className =
-                    "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                const fileItem = document.createElement('div');
+                fileItem.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
 
-                const fileInfo = document.createElement("div");
-                fileInfo.className = "d-flex align-items-center flex-grow-1";
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'd-flex align-items-center flex-grow-1';
 
-                const fileIcon = document.createElement("span");
-                fileIcon.className = "material-symbols-outlined me-2";
-                fileIcon.textContent = "description";
+                const fileIcon = document.createElement('span');
+                fileIcon.className = 'material-symbols-outlined me-2';
+                fileIcon.textContent = 'description';
 
-                const fileName = document.createElement("span");
+                const fileName = document.createElement('span');
                 fileName.textContent = file.name;
-                fileName.className = "file-name";
+                fileName.className = 'file-name';
 
-                const fileSize = document.createElement("small");
-                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(
-                    2
-                )} MB)`;
-                fileSize.className = "text-muted ms-1";
+                const fileSize = document.createElement('small');
+                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileSize.className = 'text-muted ms-1';
 
-                const removeBtn = document.createElement("button");
-                removeBtn.type = "button";
-                removeBtn.className = "btn btn-sm btn-outline-danger";
-                removeBtn.innerHTML = "&times;";
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger';
+                removeBtn.innerHTML = '&times;';
                 removeBtn.onclick = function () {
                     selectedFiles.splice(index, 1);
                     displaySelectedFiles();

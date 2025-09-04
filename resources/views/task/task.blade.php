@@ -452,8 +452,9 @@
                                     </select>
                                 </div>
                                 <div id="schedule_monthly_opts" class="d-none d-flex align-items-center gap-2">
-                                    <span>on day</span>
-                                    <input type="number" class="form-control input-text" id="schedule_recurrence_day_of_month" name="recurrence_day_of_month" min="1" max="31" style="max-width: 120px;">
+                                    <span>on Date</span>
+                                    <input type="date" class="form-control input-text" id="schedule_recurrence_date_monthly" style="max-width: 220px;">
+                                    <input type="hidden" id="schedule_recurrence_day_of_month" name="recurrence_day_of_month" value="">
                                 </div>
                             </div>
                         </div>
