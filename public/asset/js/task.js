@@ -633,6 +633,18 @@
             .catch(console.error);
     })();
 
+    // If an Edit Schedule modal exists, make its Project field optional
+    (function relaxEditScheduleProjectRequired(){
+        try {
+            const sel = document.getElementById('edit_schedule_project_id');
+            if (sel) sel.required = false;
+            const label = document.querySelector('label[for="edit_schedule_project_id"]');
+            if (label && !/optional/i.test(label.textContent)) {
+                label.textContent = (label.textContent || 'Project').replace(/\s*\(.*\)\s*$/,'') + ' (optional)';
+            }
+        } catch(_) { /* noop */ }
+    })();
+
     // Reference URL rows: delegated handlers (Add/Edit Task + Feedback modals)
     (function initReferenceUrlDynamicRows() {
         if (window._refUrlHandlersBound) return; // bind once
@@ -1684,7 +1696,7 @@ function renderSingleSection(status, sectionData) {
         });
     }
 
-    setupTaskDropdownListeners();
+    // Dropdown listeners are bound once globally; avoid rebinding here
     addAttachFileIconListeners();
     initBootstrapTooltips();
     refreshAllUnreadBadges();
@@ -1754,47 +1766,43 @@ function renderSingleSection(status, sectionData) {
 
     // init
     $(document).ready(function () {
+    // Ensure dropdown toggle handler is bound once globally
+    try { setupTaskDropdownListeners(); } catch(_) {}
         fetchAndRenderTasks();
     });
 
     // Function to setup dropdown event listeners for task cards
     function setupTaskDropdownListeners() {
-        // Add event listeners for dropdown toggle
-        document.addEventListener("click", function (e) {
-            const icon = e.target.closest(".dropdown-icon");
-            if (icon) {
-                e.stopPropagation();
-                const dropdownMenu = icon.nextElementSibling;
-                const isVisible = !dropdownMenu.classList.contains("d-none");
+        // Add a single delegated document click handler (bind once)
+        if (!document._taskDropdownToggleHandlerBound) {
+            document.addEventListener("click", function (e) {
+                const icon = e.target.closest(".dropdown-icon");
+                if (icon) {
+                    // Toggle the dropdown menu next to the icon
+                    const dropdownMenu = icon.nextElementSibling;
+                    const isVisible = dropdownMenu && !dropdownMenu.classList.contains("d-none");
 
-                // Tutup semua dropdown dulu
-                document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-                    menu.classList.add("d-none");
-                });
+                    // Close all menus first
+                    document.querySelectorAll(".dropdown-menu").forEach((menu) => menu.classList.add("d-none"));
 
-                // Toggle dropdown yang di-klik
-                if (!isVisible) {
-                    dropdownMenu.classList.remove("d-none");
+                    // Open if it was not visible
+                    if (dropdownMenu && !isVisible) {
+                        dropdownMenu.classList.remove("d-none");
+                    }
+
+                    // Prevent any other document click handlers from immediately closing it
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+                    return;
                 }
-                return;
-            }
 
-            // Kalau klik di luar menu → tutup semua
-            if (!e.target.closest(".dropdown-menu")) {
-                document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-                    menu.classList.add("d-none");
-                });
-            }
-        });
-
-        // Close dropdown when clicking outside (bind once)
-        if (!globalDropdownDocListenersBound) {
-            document.addEventListener("click", function () {
-                document.querySelectorAll(".dropdown-menu").forEach((menu) => {
-                    menu.classList.add("d-none");
-                });
+                // Click outside any dropdown menu closes all
+                if (!e.target.closest(".dropdown-menu")) {
+                    document.querySelectorAll(".dropdown-menu").forEach((menu) => menu.classList.add("d-none"));
+                }
             });
-            globalDropdownDocListenersBound = true;
+            document._taskDropdownToggleHandlerBound = true;
         }
 
         // Open Modal from mode_comment icon click
@@ -4775,7 +4783,7 @@ function renderSingleSection(status, sectionData) {
                         .insertAdjacentHTML("beforeend", createTaskCard(task));
                 });
 
-                setupTaskDropdownListeners();
+                // Dropdown listeners are bound once globally; avoid rebinding here
                 addAttachFileIconListeners();
                 initBootstrapTooltips();
                 refreshAllUnreadBadges();

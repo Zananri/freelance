@@ -175,10 +175,9 @@
                             <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_task_project_id" class="form-label label-custom">Project</label>
-                            <select class="form-select input-select" id="edit_task_project_id" name="project_id"
-                                required>
-                                <option value="">Select Project</option>
+                            <label for="edit_task_project_id" class="form-label label-custom">Project (optional)</label>
+                            <select class="form-select input-select" id="edit_task_project_id" name="project_id">
+                                <option value="">No Project</option>
                             </select>
                         </div>
                         <div class="mb-3">

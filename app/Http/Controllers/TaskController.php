@@ -610,8 +610,12 @@ class TaskController extends Controller
     {
         DB::beginTransaction();
         try {
+            // Normalize blank project_id to null so it's truly optional
+            if (!$request->filled('project_id') || $request->input('project_id') === '' || $request->input('project_id') === 'null') {
+                $request->merge(['project_id' => null]);
+            }
             $validator = Validator::make($request->all(), [
-                'project_id' => 'required|exists:projects,id',
+                'project_id' => 'nullable|exists:projects,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -925,9 +929,12 @@ class TaskController extends Controller
         DB::beginTransaction();
         try {
             $task = Task::findOrFail($id);
-
+            // Normalize blank project_id to null so it's truly optional
+            if (!$request->filled('project_id') || $request->input('project_id') === '' || $request->input('project_id') === 'null') {
+                $request->merge(['project_id' => null]);
+            }
             $validator = Validator::make($request->all(), [
-                'project_id' => 'required|exists:projects,id',
+                'project_id' => 'nullable|exists:projects,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
