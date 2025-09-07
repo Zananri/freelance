@@ -106,7 +106,7 @@
                                     <div class="icon-circle email">
                                         <span class="material-symbols-outlined">mail</span>
                                     </div>
-                                    <div>
+                                    <div class="col-label-value">
                                         <div class="label">Email</div>
                                         <div class="value employee-email"></div>
                                     </div>
@@ -116,7 +116,7 @@
                                     <div class="icon-circle phone">
                                         <span class="material-symbols-outlined">call</span>
                                     </div>
-                                    <div>
+                                    <div class="col-label-value">
                                         <p class="label">Phone Number</p>
                                         <div class="value employee-phone"></div>
                                     </div>
@@ -126,7 +126,7 @@
                                     <div class="icon-circle department">
                                         <span class="material-symbols-outlined">work</span>
                                     </div>
-                                    <div>
+                                    <div class="col-label-value">
                                         <p class="label">Department & Division</p>
                                         <div class="value">
                                             <span class="employee-department"></span>
@@ -141,7 +141,7 @@
                                     <div class="icon-circle job">
                                         <span class="material-symbols-outlined">assignment</span>
                                     </div>
-                                    <div>
+                                    <div class="col-label-value">
                                         <p class="label">Job</p>
                                         <div class="value employee-job"></div>
                                     </div>

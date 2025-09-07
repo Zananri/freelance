@@ -367,12 +367,21 @@ class AttendanceController extends Controller
 
             $now = Carbon::now();
             $today = Carbon::today()->toDateString();
+            $yesterday = Carbon::today()->subDays(1)->toDateString();
 
             $employee = Employee::with('shift')->where('user_id', $userId)->first();
             
+            if(!$employee){
+                throw new \Exception('Employee not found');
+            }
+
             $shiftId = $employee->shift_id;
             $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
                     ->where('date_shift', $today)
+            ->first();
+
+            $employeeShiftYesterday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+                ->where('date_shift', $yesterday)
             ->first();
 
             $shifTimeStart = Carbon::parse($employee->shift->time_start);
@@ -386,12 +395,7 @@ class AttendanceController extends Controller
             }else{
 
             }
-
-            $timeLate = '00:00:00';
-
-            if($now > $shifTimeStart){
-                $timeLate = $now->diff($shifTimeStart)->format('%H:%I:%S');
-            }
+            
 
             $checkEarlyTime = $now->diffInMinutes($shifTimeStart);
 
@@ -399,7 +403,7 @@ class AttendanceController extends Controller
                 throw new \Exception('To early to check in, your shift '.$shifTimeStart->format('H:i').' - '.$shifTimeEnd->format('H:i'));
             }
 
-            if($now > $shifTimeEnd){
+            if($now > $shifTimeEnd && ($shifTimeEnd > $shifTimeStart)){
                 throw new \Exception('Check in only available in your shift '.$shifTimeStart->format('H:i').' - '.$shifTimeEnd->format('H:i'));
             }
 
@@ -419,6 +423,11 @@ class AttendanceController extends Controller
                 throw new \Exception('Work outside, please add photo');
             }
 
+            $timeLate = '00:00:00';
+
+            if($now > $shifTimeStart){
+                $timeLate = $now->diff($shifTimeStart)->format('%H:%I:%S');
+            }
             $attendanceExist = Attendance::where('employee_id',$employee->id)->where('date_attendance',$now->toDateString())->first();
             $attendanceId = 0;
 
@@ -522,41 +531,77 @@ class AttendanceController extends Controller
 
             $now = Carbon::now();
             $today = Carbon::today()->toDateString();
+            $yesterday = Carbon::today()->subDays(1)->toDateString();
+
+            //$now = Carbon::parse('2025-09-07 03:15:00');
+            $today = Carbon::parse('2025-09-07')->toDateString();
+            $yesterday = Carbon::parse('2025-09-06')->toDateString();
+
 
             $employee = Employee::with('shift')->where('user_id', $userId)->first();
             
-            $shiftId = $employee->shift_id;
-
             $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
-                    ->where('date_shift', $today)
+                ->where('date_shift', $today)
             ->first();
 
-            $shifTimeStart = Carbon::parse($employee->shift->time_start);
-            $shifTimeEnd = Carbon::parse($employee->shift->time_end);
+            $employeeShiftYesterday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+                    ->where('date_shift', $yesterday)
+            ->first();
 
+            $attendance = Attendance::where('employee_id', $employee->id)
+                ->where('date_attendance', $today)
+            ->first();
+
+            
+            
+            $timeStart = Carbon::parse($employee->shift->time_start);
+            $timeEnd = Carbon::parse($employee->shift->time_end);
+            
+            
             if($employeeShift){
+                $timeStart = Carbon::parse($employeeShift->shift->time_start);
+                $timeEnd = Carbon::parse($employeeShift->shift->time_end);
+            }
+
+            
+            $shiftTimeType = 'NORMAL';
+            
+            if($employeeShiftYesterday){
+
+                $timeStartYesterday = Carbon::parse($employeeShiftYesterday->shift->time_start);
+                $timeEndYesterday = Carbon::parse($employeeShiftYesterday->shift->time_end);
+
+                if($timeEndYesterday < $timeStartYesterday){
+                    $shiftTimeType = 'OVERNIGHT';
+
+                    
+                    
+                    //Jika belum lewat 2 jam waktu checkout
+                    if($now->diffInHours(Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)) > -2){
+
+                        $timeStart = $timeStartYesterday;
+                        $timeEnd = $timeEndYesterday;
+                        
+                        $employeeShift = $employeeShiftYesterday;
+                        $attendance = Attendance::where('employee_id', $employee->id)
+                                ->where('date_attendance', $yesterday)
+                        ->first();
+
+                    }
+
+                    //dd($now->diffInHours(Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)),$attendance);
+                }
+
+            // dd($timeEndYesterday ,$now->diffInHours($timeEndYesterday),$attendance );
                 
-                $shiftId = $employeeShift->shift_id;
-
-                $shifTimeStart = Carbon::parse($employeeShift->shift->time_start);
-                $shifTimeEnd = Carbon::parse($employeeShift->shift->time_end);
+                
             }
+            
 
-            $timeOut = '00:00:00';
+            //dd($now,$shiftTimeType,$attendance);
+            
 
-            if($now > $shifTimeEnd){
-                $timeOut = $now->diff($shifTimeEnd)->format('%H:%I:%S');
-            }
-
-            $checkEarlyTime = $now->diffInMinutes($shifTimeEnd);
-
-            if($checkEarlyTime > 60){
-                throw new \Exception('To early to check out, your shift '.$shifTimeStart->format('H:i').' - '.$shifTimeEnd->format('H:i'));
-            }
-
-            if($now < $shifTimeEnd){
-                throw new \Exception('Check out only available in your shift '.$shifTimeStart->format('H:i').' - '.$shifTimeEnd->format('H:i'));
-            }
+            
 
             $imageArray = [];
 
@@ -574,18 +619,15 @@ class AttendanceController extends Controller
                 throw new \Exception('Work outside, please add photo');
             }
 
-
-            $atendanceExist = Attendance::where('employee_id', $employee->id)
-                ->where('date_attendance', $now->toDateString())
-            ->first();
+ 
 
             $attendanceId = 0;
 
-            if($atendanceExist){
+            if($attendance){
                 
-                $attendanceId = $atendanceExist->id;
+                $attendanceId = $attendance->id;
 
-                $atendanceExist->update([
+                $attendance->update([
                     'time_out' => $now->format('H:i'),
                     'updated_by' => $userId
                 ]);
@@ -593,7 +635,7 @@ class AttendanceController extends Controller
 
             }else{
                 // Create attendance record
-                $attendance = Attendance::create([
+                $attendanceNew = Attendance::create([
                     'employee_id' => $employee->id,
                     'date_attendance' => $now->toDateString(),
                     'time_out' => $now->format('H:i'),
@@ -604,7 +646,7 @@ class AttendanceController extends Controller
                     'updated_by' => $userId
                 ]);
 
-                $attendanceId = $attendance->id;
+                $attendanceId = $attendanceNew->id;
 
                 
             }
@@ -649,7 +691,7 @@ class AttendanceController extends Controller
                 'code' => 200,
                 'status' => 'success',
                 'data' => [
-                    'attendance' => $atendanceExist,
+                    'attendance' => $attendance,
                     'attendance_tracking' => $attendanceTracking
                 ],
                 'message' => 'Check Out successfully'

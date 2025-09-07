@@ -247,6 +247,14 @@
                             <span class="text-menu">Master</span>
                         </a>
                     </li>
+
+                    <li>
+                        <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">schedule</span>
+                            <span class="text-menu">Shift</span>
+                        </a>
+                    </li>
+
                     <li>
                         <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">groups</span>
@@ -254,17 +262,18 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">schedule</span>
-                            <span class="text-menu">Shift</span>
+                        <a href="{{ route('attendance_tracking') }}" class="{{ $menu_active == 'attendance_tracking' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">calendar_clock</span>
+                            <span class="text-menu">Attendance Tracking</span>
                         </a>
                     </li>
-                    <li>
-                        {{-- <a href="#">
+                    
+                    {{-- <li>
+                        <a href="#">
                             <span class="material-symbols-outlined">notifications</span> Notification
                             <span class="notification-badge">4</span>
-                        </a> --}}
-                    </li>
+                        </a>
+                    </li> --}}
                     <li>
                         <a href="{{ route('settings') }}" class="{{ $menu_active == 'settings' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">settings</span>

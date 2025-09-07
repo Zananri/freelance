@@ -19,7 +19,9 @@ class TeamsController extends Controller
             'job_list.job_name'
         )
         ->join('job_list','employees.job_id','=','job_list.id')
+        ->join('users','employees.user_id','=','users.id')
         ->where('employees.status',"ACTIVE")
+        ->where('users.user_type','<>',"ADMINISTRATOR")
         ->get();
 
         $department = Department::where('status',"ACTIVE")->get();

@@ -58,16 +58,19 @@ $('.input-card-action.search-query').on('keyup',function(){
     console.log(searchQuery);
 
     if(searchQuery){
+        $('.card-department').addClass('d-none');
         $('.col-employee').addClass('d-none');
 
         $('.col-employee').each(function(){
             let employeeName = $(this).find('.employee-name').text();
             if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
                 $(this).removeClass('d-none');
+                $(this).closest('.card-department').removeClass('d-none');
             }
         });
 
     }else{
         $('.col-employee').removeClass('d-none');
+        $('.card-department').removeClass('d-none');
     }
 });

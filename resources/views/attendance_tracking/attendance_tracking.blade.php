@@ -1,18 +1,18 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('calendar') }}
+        {{ __('attendance_tracking') }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ __('Calendar') }}
+        {{ __('Attendance Tracking') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/calendar.css?v'.time()) }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/attendance_tracking.css?v'.time()) }}" rel="stylesheet">
     </x-slot>
 
     <div class="title-content">
         <div class="d-flex align-items-center">
             <div class="w-100">
-                <h2 class="text-title-content" >Calendar</h2>
+                <h2 class="text-title-content" >Attendance Tracking</h2>
             </div>
             {{-- <div>
                 <div>
@@ -34,6 +34,7 @@
 
                 <div class="card-content overflow-hidden">
                     <div class="header-calendar">
+
                         <div class="d-flex align-items-center">
                             <div class="month-year w-100">
 
@@ -60,38 +61,71 @@
                             <div class="box-view-control white-space-nowrap" >
                                 <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
                                 <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+                                <span class="material-symbols-outlined data-fullscreen">fullscreen</span>
+                                <span class="material-symbols-outlined data-fullscreen d-none">fullscreen_exit</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="box-table-calendar">
-
-                        <table class="table-calendar">
-                            <thead>
-                                <tr>
-                                    <th>Sun</th>
-                                    <th>Mon</th>
-                                    <th>Tue</th>
-                                    <th>Wed</th>
-                                    <th>Thu</th>
-                                    <th>Fri</th>
-                                    <th>Sat</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @for ($i = 0; $i < 7; $i++)
-
+                    <div class="box-data">
+                        <div class="table-container">
+                            <table class="table-attendance">
+                                <thead>
                                     <tr>
-                                        @for ($j = 0; $j < 7; $j++)
-                                            <td class="text-center">
-                                                </td>
+                                        <th>Employee</th>
+                                        @for ($i = 1; $i <= 31 ; $i++)
+                                            <th class="col-day" data-day="{{ $i }}">
+                                                
+                                                <div>{{ $i }}</div>
+                                                <div class="calendar-month-short">{{ date('M') }}</div>
+                                            </th>
                                         @endfor
                                     </tr>
+                                </thead>
+                                <tbody>
 
-                                @endfor
-                            </tbody>
-                        </table>
+                                    @foreach ($employee as $itemEmployee)
+                                            
+                                        
+                                        <tr class="employee-row" data-employee-id="{{ $itemEmployee->id }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
+                                            <td>
+                                                <div class="box-employee">
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="col-photo">
+                                                            <div class="employee-photo">
+                                                                <img src="{{ asset($itemEmployee->photo) }}" class="rounded-circle w-100 h-100 object-fit-cover" alt="">
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-name w-100">
+                                                            <div class="employee-name">
+                                                                {{ $itemEmployee->name }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
 
+                                             @for ($j = 1; $j <= 31 ; $j++)
+                                                <td class="col-day" data-day="{{ $j }}">
+                                                    <div class="box-attendance">
+                                                        <div class="box-time d-flex h-100 w-100 align-items-center justify-content-center">
+                                                            <div>
+                                                                <div class="time-in"></div>
+                                                                <div class="time-out"></div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                    </div>
+                                                </td>
+                                            @endfor
+                                        </tr>
+
+                                    @endforeach
+                                    <!-- Contoh data (lebih banyak data bisa ditambahkan untuk melihat efek sticky) -->
+                                    
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                 </div>
@@ -175,7 +209,7 @@
 
 
     <x-slot name="script_slot"> 
-        <script src="{{ asset('asset/js/calendar.js?='.time()) }}"></script>
+        <script src="{{ asset('asset/js/attendance_tracking.js')}}?v={{ time() }}"></script>
     </x-slot>
 
 </x-office-layout>

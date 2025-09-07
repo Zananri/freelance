@@ -17,6 +17,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\AttendanceTrackingController;
 
 use App\Http\Controllers\DashboardController;
 
@@ -191,7 +192,7 @@ Route::middleware('auth')->group(function () {
 
 
     Route::get('/calendar', [CalendarController::class, 'showCalendarPage'])->name('calendar');
-    Route::get('/calendar/get-calendar-data', [CalendarController::class, 'getCalendarData'])->name('settings.getCalendarData');
+    Route::get('/calendar/get-calendar-data', [CalendarController::class, 'getCalendarData'])->name('calendar.getCalendarData');
 
 });
 
@@ -250,7 +251,9 @@ Route::middleware('auth', 'management')->group(function () {
     Route::put('/employee/{id}', [EmployeeController::class, 'update'])->name('employee.update');
     Route::delete('/employee/{id}', [EmployeeController::class, 'destroy'])->name('employee.destroy');
 
-
+    Route::get('/attendance_tracking', [AttendanceTrackingController::class, 'showAttendanceTrackingPage'])->name('attendance_tracking');
+    Route::get('/attendance_tracking/get-attendance-tracking-data', [AttendanceTrackingController::class, 'getAttendanceTrackingData'])->name('attendance_tracking.getAttendanceTrackingData');
+    
     Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
     Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
     Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');

@@ -6,6 +6,7 @@
     padding: 25px 25px;
 }
 
+
 .card-content{
     background-color: rgb(240, 241, 248);
     border-radius: 20px;
@@ -113,9 +114,9 @@
 }
 
 .card-employee .employee-name{
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 400;
-    color: #2A3542;
+    color: #27303a;
     cursor: pointer;
     margin-bottom: 2px;
 }
@@ -194,6 +195,25 @@
     font-size: 14px;
     color: #333;
     line-height: 1.5;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+}
+
+.personal-info  .col-label-value{
+    overflow: hidden;
+}
+
+/* Gaya untuk menyembunyikan scrollbar di Chrome, Safari, dan Edge */
+.personal-info .value::-webkit-scrollbar {
+    display: none;
+    width: 0; /* Untuk memastikan scrollbar tidak mengambil ruang */
+    height: 0; /* Untuk scrollbar horizontal */
+}
+
+/* Gaya untuk menyembunyikan scrollbar di Edge Legacy */
+.personal-info .value  {
+    -ms-overflow-style: none;
 }
 
 
@@ -237,7 +257,29 @@
 }
 
 @media screen and (max-width: 568px) {
+
+    .card-department{
+            padding: 5px 5px;
+    }
+    
+    .card-employee{
+        background-color: #F0F1F8;
+        border-radius: 15px;
+        padding: 12px 12px;
+    }
+
+    .card-employee .employee-photo{
+        width: 40px;
+        height: 40px;
+    }
+
+    .card-employee .employee-name{
+        font-size: 14px;
+        color: #272f3a; 
+    }
+
     .text-title-content{
         font-size: 32px;
     }
 }
+ 
