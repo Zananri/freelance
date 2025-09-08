@@ -635,6 +635,7 @@ class TaskController extends Controller
                     'status' => $task->status,
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
+                    'project_title' => $task->project?->title, // added for dashboard avatar initials
                     // counts for dashboard badges
                     'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
                     'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
@@ -736,6 +737,7 @@ class TaskController extends Controller
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
                     'start_date' => $task->start_date,
+                    'project_title' => $task->project?->title, // added for dashboard avatar initials
                     'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
                     'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                     'project_image' => $projectImageUrl,

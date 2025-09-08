@@ -121,7 +121,28 @@ function getTaskToday() {
 
                 const topTitle = `
                     <div class="d-flex align-items-center mb-1">
-                        <img src="${t.project_image}" class="rounded-circle me-3" style="width:28px;height:28px;object-fit:cover;">
+                            ${(function(){
+                                // Fallback avatar if project_image is default placeholder
+                                const img = (t.project_image||'').toString();
+                                const isDefault = /asset\/img\/profile_picture\/default\.png$/i.test(img);
+                                const titleSource = t.project_title || t.title || '';
+                                function buildInitials(txt){
+                                    const parts = (txt||'').trim().split(/\s+/).filter(Boolean);
+                                    if (!parts.length) return 'NA';
+                                    if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+                                    return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+                                }
+                                function pickColor(key){
+                                    const colors=['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
+                                    let h=0; for(let i=0;i<key.length;i++){h=(h*31+key.charCodeAt(i))>>>0;} return colors[h%colors.length];
+                                }
+                                if (isDefault) {
+                                    const initials = buildInitials(titleSource);
+                                    const color = pickColor(titleSource||initials);
+                                    return `<div class=\"rounded-circle me-3 d-flex justify-content-center align-items-center\" style=\"width:28px;height:28px;font-size:11px;font-weight:600;color:#fff;background:${color};\">${initials}</div>`;
+                                }
+                                return `<img src=\"${img}\" class=\"rounded-circle me-3\" style=\"width:28px;height:28px;object-fit:cover;\" onerror=\"this.onerror=null;this.style.display='none';\">`;
+                            })()}
                         <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-')}</h6>
                     </div>`;
 
@@ -283,7 +304,27 @@ function getTaskTomorrow() {
 
                 const topTitle = `
                     <div class="d-flex align-items-center mb-1">
-                        <img src="${t.project_image}" class="rounded-circle me-3" style="width:28px;height:28px;object-fit:cover;">
+                            ${(function(){
+                                const img=(t.project_image||'').toString();
+                                const isDefault=/asset\/img\/profile_picture\/default\.png$/i.test(img);
+                                const titleSource=t.project_title || t.title || '';
+                                function buildInitials(txt){
+                                    const parts=(txt||'').trim().split(/\s+/).filter(Boolean);
+                                    if(!parts.length) return 'NA';
+                                    if(parts.length===1) return parts[0].substring(0,2).toUpperCase();
+                                    return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
+                                }
+                                function pickColor(key){
+                                    const colors=['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
+                                    let h=0; for(let i=0;i<key.length;i++){h=(h*31+key.charCodeAt(i))>>>0;} return colors[h%colors.length];
+                                }
+                                if(isDefault){
+                                    const initials=buildInitials(titleSource);
+                                    const color=pickColor(titleSource||initials);
+                                    return `<div class=\"rounded-circle me-3 d-flex justify-content-center align-items-center\" style=\"width:28px;height:28px;font-size:11px;font-weight:600;color:#fff;background:${color};\">${initials}</div>`;
+                                }
+                                return `<img src=\"${img}\" class=\"rounded-circle me-3\" style=\"width:28px;height:28px;object-fit:cover;\" onerror=\"this.onerror=null;this.style.display='none';\">`;
+                            })()}
                         <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-')}</h6>
                     </div>`;
 
