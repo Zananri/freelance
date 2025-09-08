@@ -5309,90 +5309,102 @@ $(document).ready(function () {
         applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
     }
 
-let mobileState = {
-  page: 1,
-  last: 1,
-  loading: false,
-  status: "new_request"
-};
+    let mobileState = {
+    page: 1,
+    last: 1,
+    loading: false,
+    status: "new_request"
+    };
 
-function fetchMobileTasks(status, page = 1, append = false) {
-  if (mobileState.loading) return;
-
-  mobileState.loading = true;
-  if (!append) $("#mobile-task-list").empty();
-
-  $("#mobile-task-list").append(
-    '<div id="mobileLoader" class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>'
-  );
-
-  $.ajax({
-    url: appUrl + "/task/index",
-    type: "GET",
-    dataType: "json",
-    data: { status, page },
-    success: function (response) {
-      if (!response || response.code !== 200 || !response.data) return;
-
-      const data = response.data?.[status];
-      mobileState.last = data?.pagination?.last_page || 1;
-
-      renderMobileTasks(status, data, append);
-    },
-    error: function (xhr, status, error) {
-      console.error("Error fetching mobile tasks:", error);
-    },
-    complete: function () {
-      mobileState.loading = false;
-      $("#mobileLoader").remove();
-    }
-  });
-}
-
-function renderMobileTasks(status, data, append = false) {
-  const list = $("#mobile-task-list");
-
-  if (!append) list.empty();
-
-  if (!data || !data.tasks || data.tasks.length === 0) {
-    if (!append) {
-      list.append('<div class="text-center text-muted py-3">No tasks found</div>');
-    }
-  } else {
-    data.tasks.forEach(task => list.append(createTaskCard(task)));
-  }
-}
-
-function initMobileInfiniteScroll() {
-  $("#mobile-task-list").on("scroll", function () {
-    const el = this;
+    function fetchMobileTasks(status, page = 1, append = false) {
     if (mobileState.loading) return;
 
-    const scrollBottom = el.scrollTop + el.clientHeight;
+    mobileState.loading = true;
+    if (!append) $("#mobile-task-list").empty();
 
-    if (scrollBottom >= el.scrollHeight - 50) {
-      if (mobileState.page < mobileState.last) {
-        mobileState.page++;
-        fetchMobileTasks(mobileState.status, mobileState.page, true);
-      }
+    $("#mobile-task-list").append(
+        '<div id="mobileLoader" class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>'
+    );
+
+    $.ajax({
+        url: appUrl + "/task/index",
+        type: "GET",
+        dataType: "json",
+        data: { status, page },
+        success: function (response) {
+        if (!response || response.code !== 200 || !response.data) return;
+
+        const data = response.data?.[status];
+        mobileState.last = data?.pagination?.last_page || 1;
+
+        renderMobileTasks(status, data, append);
+        },
+        error: function (xhr, status, error) {
+        console.error("Error fetching mobile tasks:", error);
+        },
+        complete: function () {
+        mobileState.loading = false;
+        $("#mobileLoader").remove();
+        }
+    });
     }
-  });
-}
 
-$(document).ready(function () {
-  mobileState.page = 1;
-  mobileState.status = "new_request";
+    function renderMobileTasks(status, data, append = false) {
+    const list = $("#mobile-task-list");
+    const container = $(".mobile-task-container");
 
-  fetchMobileTasks(mobileState.status, 1, false);
-  initMobileInfiniteScroll();
+    // reset background
+    container.removeClass("bg-new bg-progress bg-completed");
 
-  $("#taskStatusSelect").on("change", function () {
-    mobileState.status = $(this).val();
+    if (status === "new_request") {
+        container.addClass("bg-new");
+    } else if (status === "in_progress") {
+        container.addClass("bg-progress");
+    } else if (status === "completed") {
+        container.addClass("bg-completed");
+    }
+
+    if (!append) list.empty();
+
+    if (!data || !data.tasks || data.tasks.length === 0) {
+        if (!append) {
+        list.append('<div class="text-center text-muted py-3">No tasks found</div>');
+        }
+    } else {
+        data.tasks.forEach(task => list.append(createTaskCard(task)));
+    }
+    }
+
+    function initMobileInfiniteScroll() {
+    $("#mobile-task-list").on("scroll", function () {
+        const el = this;
+        if (mobileState.loading) return;
+
+        const scrollBottom = el.scrollTop + el.clientHeight;
+
+        if (scrollBottom >= el.scrollHeight - 50) {
+        if (mobileState.page < mobileState.last) {
+            mobileState.page++;
+            fetchMobileTasks(mobileState.status, mobileState.page, true);
+        }
+        }
+    });
+    }
+
+    $(document).ready(function () {
     mobileState.page = 1;
-    mobileState.last = 1;
+    mobileState.status = "new_request";
+
     fetchMobileTasks(mobileState.status, 1, false);
-  });
-});
+    initMobileInfiniteScroll();
+
+    $("#taskStatusSelect").on("change", function () {
+        mobileState.status = $(this).val();
+        mobileState.page = 1;
+        mobileState.last = 1;
+        fetchMobileTasks(mobileState.status, 1, false);
+    });
+    });
 
     $(document).ready(function () {
     const mobileCardHtml = `

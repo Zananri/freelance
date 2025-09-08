@@ -1096,6 +1096,18 @@ p {
         flex: 1 1 100%;
     }
 
+    .mobile-task-container.bg-new {
+        background: #a1a3a60d;
+    }
+
+    .mobile-task-container.bg-progress {
+        background: #edebdf5c;
+    }
+
+    .mobile-task-container.bg-completed {
+        background: #baeed340;
+    }
+
     .search-input-container {
         display: flex;
         align-items: center;
@@ -1233,9 +1245,7 @@ p {
     #mobile-task-list {
         flex: 1;
         overflow-y: auto;
-        height: calc(
-            100vh - 320px
-        );
+        height: calc(100vh - 320px);
         max-height: unset;
     }
 
@@ -1419,13 +1429,13 @@ p {
 
 .feedback-modal-dialog {
     max-width: 480px;
-    min-height: 600px; /* Ensure modal height is at least as tall as project view modal */
+    min-height: 600px;
     display: flex;
     flex-direction: column;
 }
 
 .feedback-modal-content {
-    background-color: #f9f9f9;
+    background-color: #f7f7f8;
     border-radius: 12px;
     padding: 0;
     height: 100%;
@@ -1441,15 +1451,8 @@ p {
     flex-grow: 1;
 }
 
-.feedback-modal-content {
-    background-color: #f9f9f9;
-    border-radius: 12px;
-    padding: 0;
-}
-
 .feedback-modal-header {
-    background-color: #ffffff;
-    border-bottom: 1px solid #ddd;
+    background-color: #f7f7f8;
     padding: 1rem 1.5rem;
 }
 
@@ -1460,7 +1463,7 @@ p {
 }
 
 #addFeedbackButton {
-    background-color: black;
+    background-color: #444444;
     color: white;
     border: none;
     padding: 10px 24px;
@@ -1472,6 +1475,7 @@ p {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
 }
 
 #addFeedbackButton:hover {

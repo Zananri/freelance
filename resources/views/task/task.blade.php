@@ -593,8 +593,9 @@
                 <div class="modal-body feedback-modal-body" id="taskFeedbackList">
                 </div>
                 <div class="modal-footer feedback-modal-footer">
-                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton">Add
-                        Feedback</button>
+                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton">
+                        Add Feedback
+                    </button>
                 </div>
             </div>
             <div class="alert-container mt-2"></div>
