@@ -6,7 +6,93 @@ document.addEventListener("DOMContentLoaded", function () {
     ensureShiftsLoaded(true).then((shifts) => {
         populateFilterShiftDropdown(shifts);
     });
+    // Load departments for filter dropdown
+    loadDepartments();
 });
+
+// Populate filterDepartment dropdown
+function populateFilterDepartmentDropdown(departments) {
+    const filterDepartmentDropdown = document.getElementById("filterDepartment");
+    if (!filterDepartmentDropdown) return;
+
+    filterDepartmentDropdown.innerHTML = '<option value="">Select Department</option>';
+
+    departments.forEach((d) => {
+        const option = document.createElement("option");
+        option.value = d.id;
+        option.textContent = d.name_department || "(No name)";
+        filterDepartmentDropdown.appendChild(option);
+    });
+}
+
+// Load departments data and populate filterDepartment dropdown
+async function loadDepartments() {
+    try {
+        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/departments-for-projects`;
+
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const json = await res.json();
+        if (json.status === 'success' && Array.isArray(json.data)) {
+            populateFilterDepartmentDropdown(json.data);
+        } else {
+            console.warn("Failed to load departments data");
+        }
+    } catch (e) {
+        console.error("Error loading departments:", e);
+    }
+}
+
+// Populate filterDivision dropdown
+function populateFilterDivisionDropdown(divisions) {
+    const filterDivisionDropdown = document.getElementById("filterDivision");
+    if (!filterDivisionDropdown) return;
+
+    filterDivisionDropdown.innerHTML = '<option value="">Select Division</option>';
+
+    divisions.forEach((d) => {
+        const option = document.createElement("option");
+        option.value = d.id;
+        option.textContent = d.name_division || "(No name)";
+        filterDivisionDropdown.appendChild(option);
+    });
+
+    filterDivisionDropdown.disabled = false;
+}
+
+// Load divisions data based on department and populate filterDivision dropdown
+async function loadDivisions(departmentId) {
+    try {
+        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+        const endpoint = `${basePath}/divisions-for-projects?department_id=${departmentId}`;
+
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const json = await res.json();
+        if (json.status === 'success' && Array.isArray(json.data)) {
+            populateFilterDivisionDropdown(json.data);
+        } else {
+            console.warn("Failed to load divisions data");
+            // Clear division dropdown
+            const filterDivision = document.getElementById("filterDivision");
+            if (filterDivision) {
+                filterDivision.innerHTML = '<option value="">Select Division</option>';
+                filterDivision.disabled = true;
+            }
+        }
+    } catch (e) {
+        console.error("Error loading divisions:", e);
+        // Clear division dropdown on error
+        const filterDivision = document.getElementById("filterDivision");
+        if (filterDivision) {
+            filterDivision.innerHTML = '<option value="">Select Division</option>';
+            filterDivision.disabled = true;
+        }
+    }
+}
 
 // Global variables
 let currentDate = new Date();
@@ -37,14 +123,25 @@ async function ensureShiftsLoaded(force = false) {
 }
 
 // Load employee data
-async function loadEmployeeData() {
+async function loadEmployeeData(filters = {}) {
     try {
         const month = currentDate.getMonth() + 1;
         const year = currentDate.getFullYear();
 
         const basePath =
             window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/shift/employees-basic?month=${month}&year=${year}`;
+        let endpoint = `${basePath}/shift/employees-basic?month=${month}&year=${year}`;
+
+        // Add filter parameters if provided
+        if (filters.department) {
+            endpoint += `&department=${encodeURIComponent(filters.department)}`;
+        }
+        if (filters.division) {
+            endpoint += `&division=${encodeURIComponent(filters.division)}`;
+        }
+        if (filters.shift) {
+            endpoint += `&shift=${encodeURIComponent(filters.shift)}`;
+        }
 
         const response = await fetch(endpoint);
 
@@ -157,7 +254,6 @@ loadEmployeeData();
 // Render header tanggal
 function renderHeader(month, year) {
     const headerRow = document.getElementById("shiftTableHeader");
-    const modalHeaderRow = document.getElementById("shiftTableHeaderModal");
 
     // Render main table header
     if (headerRow) {
@@ -171,27 +267,12 @@ function renderHeader(month, year) {
             headerRow.appendChild(th);
         }
     }
-
-    // Render modal table header
-    if (modalHeaderRow) {
-        modalHeaderRow.innerHTML = `<th class="sticky-col fw-semiboled">Employee</th>`;
-        const daysInMonth = new Date(year, month, 0).getDate();
-        for (let i = 1; i <= daysInMonth; i++) {
-            const th = document.createElement("th");
-            const day = new Date(year, month - 1, i).getDay();
-            th.textContent = i;
-            if (day === 0) th.classList.add("sunday");
-            modalHeaderRow.appendChild(th);
-        }
-    }
 }
 
 // Render Table Content
 function renderEmployeeTable(employees, month, year) {
     const tableBody = document.getElementById("shiftTableBody");
-    const modalTableBody = document.getElementById("shiftTableBodyModal");
     const monthTitle = document.getElementById("shiftMonthTitle");
-    const modalMonthTitle = document.getElementById("shiftMonthTitleModal");
 
     // Render main table body
     if (tableBody) {
@@ -226,43 +307,6 @@ function renderEmployeeTable(employees, month, year) {
                 }
 
                 tableBody.appendChild(row);
-            });
-        }
-    }
-
-    // Render modal table body
-    if (modalTableBody) {
-        modalTableBody.innerHTML = "";
-
-        if (!employees || employees.length === 0) {
-            modalTableBody.innerHTML =
-                '<tr><td colspan="32" class="text-center">No employees found</td></tr>';
-        } else {
-            const daysInMonth = new Date(year, month, 0).getDate();
-            const monthName = new Date(year, month - 1, 1).toLocaleString("en-US", {
-                month: "long",
-            });
-            if (modalMonthTitle) modalMonthTitle.textContent = `${monthName} ${year}`;
-
-            employees.forEach((employee) => {
-                const row = document.createElement("tr");
-
-                // Employee cell
-                const employeeCell = createEmployeeCell(employee);
-                row.appendChild(employeeCell);
-
-                // Dates cells
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(
-                        i
-                    ).padStart(2, "0")}`;
-                    const shift = employee.shifts.find((s) => s.date_shift === dateKey);
-
-                    const td = createShiftCell(employee, shift, dateKey);
-                    row.appendChild(td);
-                }
-
-                modalTableBody.appendChild(row);
             });
         }
     }
@@ -792,6 +836,54 @@ function setupEventListeners() {
     if (monthDropdownBtnModal) {
         populateMonthDropdownModal();
     }
+
+    // Filter event listeners
+    const applyFilterBtn = document.getElementById("applyFilterBtn");
+    if (applyFilterBtn) {
+        applyFilterBtn.addEventListener("click", applyFilters);
+    }
+
+    const resetFilterBtn = document.getElementById("resetFilter");
+    if (resetFilterBtn) {
+        resetFilterBtn.addEventListener("click", resetFilters);
+    }
+
+    const filterDepartment = document.getElementById("filterDepartment");
+    if (filterDepartment) {
+        filterDepartment.addEventListener("change", (e) => {
+            const departmentId = e.target.value;
+            if (departmentId) {
+                loadDivisions(departmentId);
+            } else {
+                // Clear division dropdown if no department selected
+                const filterDivision = document.getElementById("filterDivision");
+                if (filterDivision) {
+                    filterDivision.innerHTML = '<option value="">Select Division</option>';
+                    filterDivision.disabled = true;
+                }
+            }
+        });
+    }
+}
+
+function applyFilters() {
+    const department = document.getElementById("filterDepartment").value;
+    const division = document.getElementById("filterDivision").value;
+    const shift = document.getElementById("filterShift").value;
+
+    const filters = {};
+    if (department) filters.department = department;
+    if (division) filters.division = division;
+    if (shift) filters.shift = shift;
+
+    loadEmployeeData(filters);
+}
+
+function resetFilters() {
+    document.getElementById("filterDepartment").value = "";
+    document.getElementById("filterDivision").value = "";
+    document.getElementById("filterShift").value = "";
+    loadEmployeeData();
 }
 
 // Assign selected shift to an employee for a specific date (from Add Shift Modal)
@@ -1601,3 +1693,7 @@ document.getElementById("search_filter").addEventListener("keyup", async functio
     }
 });
 
+$(document).on('click','.data-fullscreen, .data-fullscreen-exit',function(){
+    $('.shift-container').toggleClass('fullscreen');
+    $('.data-fullscreen').toggleClass('d-none');
+});

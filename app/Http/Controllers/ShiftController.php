@@ -353,6 +353,7 @@ class ShiftController extends Controller
         }
 
         $shift->deleted_by = $deletedBy;
+        $shift->status = 'DELETED';
         $shift->updated_at = now();
         $shift->save();
 

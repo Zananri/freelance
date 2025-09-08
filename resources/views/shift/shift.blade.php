@@ -79,7 +79,7 @@
         </div>
     </div>
 
-    <div class="body-content scrollable-container rounded-4 px-4 py-2">
+    <div class="scrollable-container rounded-4 px-4 py-2 shift-container">
         <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <h4 id="shiftMonthTitle" class="fw-normal mb-0 month-year-title">August 2025</h4>
@@ -101,7 +101,8 @@
             </div>
 
             <button class="btn btn-toggle-table-shift" data-bs-target="#fullscreenTableShift" data-bs-toggle="modal">
-                <span class="material-symbols-outlined">fullscreen</span>
+                <span class="material-symbols-outlined data-fullscreen">fullscreen</span>
+                <span class="material-symbols-outlined data-fullscreen d-none">fullscreen_exit</span>
             </button>
         </div>
 
@@ -115,245 +116,29 @@
                 </table>
             </div>
         </div>
+    </div>
 
-        {{-- Timeline Fullscreen --}}
-        <div class="modal fade" id="fullscreenTableShift" tabindex="-1" aria-labelledby="fullscreenTableShiftLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-fullscreen">
-                <div class="modal-content modal-content-custom">
-                    <div
-                        class="modal-header border-0 position-relative d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-2">
-                            <h4 id="shiftMonthTitleModal" class="fw-normal mb-0 month-year-title">August 2025</h4>
+    {{-- Add Shift Modal --}}
+    <div class="modal fade" id="addShiftModal" tabindex="-1" aria-labelledby="addShiftModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <form id="addShiftForm" method="POST">
+                    @csrf
+                    @method('POST')
 
-                            <div class="dropdown">
-                                <button id="monthDropdownBtnModal"
-                                    class="btn btn-light d-flex align-items-center dropdown-btn-custom" type="button"
-                                    data-bs-toggle="dropdown" aria-expanded="false">
-                                    <span class="material-symbols-outlined">arrow_drop_down</span>
-                                </button>
-                                <ul id="monthDropdownMenuModal" class="dropdown-menu shadow-sm"></ul>
-                            </div>
-
-                            <button id="prevMonthBtnModal" class="btn btn-pagination-table">
-                                <span class="material-symbols-outlined me-1">chevron_left</span>
-                            </button>
-                            <button id="nextMonthBtnModal" class="btn btn-pagination-table">
-                                <span class="material-symbols-outlined me-1">chevron_right</span>
-                            </button>
-                        </div>
-
-                        <button class="btn btn-toggle-table-shift" data-bs-dismiss="modal">
-                            <span class="material-symbols-outlined">fullscreen_exit</span>
-                        </button>
-                    </div>
-
-                    <div class="modal-body modal-body-custom">
-                        <div class="table-responsive">
-                            <div class="table-scroll-wrapper">
-                                <table class="table table-bordered align-middle shift-table shift-table-modal">
-                                    <thead>
-                                        <tr id="shiftTableHeaderModal"></tr>
-                                    </thead>
-                                    <tbody id="shiftTableBodyModal"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom justify-content-evenly">
-                        <button type="button" class="btn btn-light btn-close-custom"
-                            data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Add Shift Modal --}}
-        <div class="modal fade" id="addShiftModal" tabindex="-1" aria-labelledby="addShiftModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-                    <form id="addShiftForm" method="POST">
-                        @csrf
-                        @method('POST')
-
-                        <!-- hidden input -->
-                        <input type="hidden" id="addShiftId" name="shift_id">
-                        <input type="hidden" id="addEmployeeId" name="employee_id">
-                        <input type="hidden" id="addDateShift" name="date">
-                        <input type="hidden" id="addEmployeeNameInput" name="employee_name">
-                        <input type="hidden" id="addTimeStart" name="time_in">
-                        <input type="hidden" id="addTimeEnd" name="time_out">
-
-                        <div class="modal-header border-0 position-relative d-flex justify-content-center">
-                            <div class="text-center">
-                                <img id="addEmployeePicture" src="" class="rounded-circle mb-2"
-                                    width="70" height="70">
-                                <h5 class="fw-normal employee-name mb-0" id="addShiftEmployeeName">Employee fullname
-                                </h5>
-                                <small id="addEmployeeGrade" class="text-muted">employee grade</small>
-                            </div>
-
-                            <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2"
-                                data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-
-                        <div class="modal-body modal-body-custom text-center">
-                            <div class="mt-3 text-start">
-                                <div class="d-flex justify-content-between">
-                                    <p class="mb-1 fw-normal">Shift :</p>
-                                    <span id="editTitleShiftDisplay"></span>
-                                </div>
-
-                                <hr class="border-3 rounded">
-
-                                <div class="d-flex justify-content-between text-shift-display">
-                                    <p class="text-shift-display">Date : </p>
-                                    <span id="addDateShiftDisplayText"></span>
-                                </div>
-                                <div class="d-flex justify-content-between text-shift-display">
-                                    <p class="text-shift-display">Time In : </p>
-                                    <span id="addTimeStartDisplay"></span>
-                                </div>
-                                <div class="d-flex justify-content-between text-shift-display">
-                                    <p class="text-shift-display">Time Out : </p>
-                                    <span id="addTimeEndDisplay"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown dropdown-container">
-                            <button
-                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
-                                type="button" data-bs-toggle="dropdown" data-bs-display="static"
-                                aria-expanded="false">
-                                Select Shift
-                                <span class="material-symbols-outlined">arrow_drop_down</span>
-                            </button>
-                            <ul class="dropdown-menu dropdown-shift dropdown-menu-end">
-                                <li>
-                                    <button class="dropdown-item d-flex justify-content-between">
-                                        <span>Shift Title</span>
-                                        <span>09:00 - 18:00</span>
-                                    </button>
-                                    <div class="d-flex justify-content-center">
-                                        <hr class="border-3 barrier-option rounded">
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="modal-footer modal-footer-custom justify-content-evenly">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                            <button id="saveShiftBtn" type="submit" class="btn btn-submit-black">Submit</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        {{-- Edit Shift Modal --}}
-        <div class="modal fade" id="editShiftModal" tabindex="-1" aria-labelledby="editShiftModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-                    <form id="editShiftForm" method="POST">
-                        @csrf
-                        @method('PUT')
-
-                        <input type="hidden" id="editShiftId" name="shift_id">
-                        <input type="hidden" id="editEmployeeId" name="employee_id">
-                        <input type="hidden" id="editDateShift" name="date">
-                        <input type="hidden" id="editEmployeeNameInput" name="employee_name">
-                        <input type="hidden" id="editTimeStart" name="time_in">
-                        <input type="hidden" id="editTimeEnd" name="time_out">
-
-                        <div class="modal-header border-0 position-relative d-flex justify-content-center">
-                            <div class="text-center">
-                                <img id="editEmployeePicture" src="" class="rounded-circle mb-2"
-                                    width="70" height="70">
-                                <h5 class="fw-normal employee-name mb-0" id="editShiftEmployeeName">Employee fullname
-                                </h5>
-                                <small id="editEmployeeGrade" class="text-muted">employee grade</small>
-                            </div>
-
-                            <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2"
-                                data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-
-                        <div class="modal-body modal-body-custom text-center">
-                            <div class="mt-3 text-start">
-                                <div class="d-flex justify-content-between">
-                                    <p class="mb-1 fw-normal">Shift :</p>
-                                    <span id="editTitleShiftDisplay"></span>
-                                </div>
-
-                                <hr class="border-3 rounded">
-
-                                <div class="d-flex justify-content-between text-shift-display">
-                                    <p class="mb-3">Date :</p>
-                                    <span id="editDateShiftDisplayText"></span>
-                                </div>
-
-                                <div class="d-flex justify-content-between text-shift-display">
-                                    <p class="mb-3">Time In :</p>
-                                    <span id="editTimeStartDisplay"></span>
-                                </div>
-
-                                <div class="d-flex justify-content-between text-shift-display">
-                                    <p class="mb-3">Time Out :</p>
-                                    <span id="editTimeEndDisplay"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown dropdown-container">
-                            <button
-                                class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
-                                type="button" data-bs-toggle="dropdown" data-bs-display="static"
-                                id="addDropdownSelected" aria-expanded="false">
-                                Select Shift
-                                <span class="material-symbols-outlined">arrow_drop_down</span>
-                            </button>
-                            <ul class="dropdown-menu dropdown-shift">
-                                <li class="dropdown-list" id="addDropdownList">
-                                    <button class="dropdown-item d-flex justify-content-between">
-                                        <span>Shift Title</span>
-                                        <span>09:00 - 18:00</span>
-                                    </button>
-                                    <div class="d-flex justify-content-center">
-                                        <hr class="border-3 barrier-option rounded">
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="modal-footer modal-footer-custom">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-submit-black">Update</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        {{-- Edit Employee Modal --}}
-        <div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-
-                    <input type="hidden" id="editShiftId" name="shift_id">
-                    <input type="hidden" id="editEmployeeId" name="employee_id">
-                    <input type="hidden" id="editEmployeeNameInput" name="employee_name">
-                    <input type="hidden" id="editTimeStart" name="time_in">
-                    <input type="hidden" id="editTimeEnd" name="time_out">
+                    <!-- hidden input -->
+                    <input type="hidden" id="addShiftId" name="shift_id">
+                    <input type="hidden" id="addEmployeeId" name="employee_id">
+                    <input type="hidden" id="addDateShift" name="date">
+                    <input type="hidden" id="addEmployeeNameInput" name="employee_name">
+                    <input type="hidden" id="addTimeStart" name="time_in">
+                    <input type="hidden" id="addTimeEnd" name="time_out">
 
                     <div class="modal-header border-0 position-relative d-flex justify-content-center">
                         <div class="text-center">
-                            <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
+                            <img id="addEmployeePicture" src="" class="rounded-circle mb-2" width="70"
                                 height="70">
-                            <h5 class="fw-normal employee-name mb-0" id="editShiftEmployeeName">Employee fullname
+                            <h5 class="fw-normal employee-name mb-0" id="addShiftEmployeeName">Employee fullname
                             </h5>
                             <small id="addEmployeeGrade" class="text-muted">employee grade</small>
                         </div>
@@ -372,6 +157,93 @@
                             <hr class="border-3 rounded">
 
                             <div class="d-flex justify-content-between text-shift-display">
+                                <p class="text-shift-display">Date : </p>
+                                <span id="addDateShiftDisplayText"></span>
+                            </div>
+                            <div class="d-flex justify-content-between text-shift-display">
+                                <p class="text-shift-display">Time In : </p>
+                                <span id="addTimeStartDisplay"></span>
+                            </div>
+                            <div class="d-flex justify-content-between text-shift-display">
+                                <p class="text-shift-display">Time Out : </p>
+                                <span id="addTimeEndDisplay"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dropdown dropdown-container">
+                        <button
+                            class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
+                            type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                            Select Shift
+                            <span class="material-symbols-outlined">arrow_drop_down</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-shift dropdown-menu-end">
+                            <li>
+                                <button class="dropdown-item d-flex justify-content-between">
+                                    <span>Shift Title</span>
+                                    <span>09:00 - 18:00</span>
+                                </button>
+                                <div class="d-flex justify-content-center">
+                                    <hr class="border-3 barrier-option rounded">
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom justify-content-evenly">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button id="saveShiftBtn" type="submit" class="btn btn-submit-black">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Edit Shift Modal --}}
+    <div class="modal fade" id="editShiftModal" tabindex="-1" aria-labelledby="editShiftModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <form id="editShiftForm" method="POST">
+                    @csrf
+                    @method('PUT')
+
+                    <input type="hidden" id="editShiftId" name="shift_id">
+                    <input type="hidden" id="editEmployeeId" name="employee_id">
+                    <input type="hidden" id="editDateShift" name="date">
+                    <input type="hidden" id="editEmployeeNameInput" name="employee_name">
+                    <input type="hidden" id="editTimeStart" name="time_in">
+                    <input type="hidden" id="editTimeEnd" name="time_out">
+
+                    <div class="modal-header border-0 position-relative d-flex justify-content-center">
+                        <div class="text-center">
+                            <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
+                                height="70">
+                            <h5 class="fw-normal employee-name mb-0" id="editShiftEmployeeName">Employee fullname
+                            </h5>
+                            <small id="editEmployeeGrade" class="text-muted">employee grade</small>
+                        </div>
+
+                        <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2"
+                            data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body modal-body-custom text-center">
+                        <div class="mt-3 text-start">
+                            <div class="d-flex justify-content-between">
+                                <p class="mb-1 fw-normal">Shift :</p>
+                                <span id="editTitleShiftDisplay"></span>
+                            </div>
+
+                            <hr class="border-3 rounded">
+
+                            <div class="d-flex justify-content-between text-shift-display">
+                                <p class="mb-3">Date :</p>
+                                <span id="editDateShiftDisplayText"></span>
+                            </div>
+
+                            <div class="d-flex justify-content-between text-shift-display">
                                 <p class="mb-3">Time In :</p>
                                 <span id="editTimeStartDisplay"></span>
                             </div>
@@ -387,165 +259,238 @@
                         <button
                             class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
                             type="button" data-bs-toggle="dropdown" data-bs-display="static"
-                            id="editDropdownSelected" aria-expanded="false">
+                            id="addDropdownSelected" aria-expanded="false">
                             Select Shift
                             <span class="material-symbols-outlined">arrow_drop_down</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-shift" id="editDropdownList">
-                            {{-- Shift Employee --}}
+                        <ul class="dropdown-menu dropdown-shift">
+                            <li class="dropdown-list" id="addDropdownList">
+                                <button class="dropdown-item d-flex justify-content-between">
+                                    <span>Shift Title</span>
+                                    <span>09:00 - 18:00</span>
+                                </button>
+                                <div class="d-flex justify-content-center">
+                                    <hr class="border-3 barrier-option rounded">
+                                </div>
+                            </li>
                         </ul>
                     </div>
 
-                    <div class="modal-footer modal-footer-custom w-100">
-                        <button type="button" class="btn btn-dark submit-employee-btn w-100"
-                            id="saveEmployeeBtn">Update</button>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        {{-- Shift Config Modal --}}
-        <div class="modal fade" id="shiftConfigModal" tabindex="-1" aria-labelledby="shiftConfigModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-md modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-
-                    <div class="modal-header d-flex justify-content-between align-items-center">
-                        <h5 class="modal-title shift-config-title" id="shiftConfigModalLabel">Shift Config</h5>
-
-                        <div class="d-flex align-items-center gap-2">
-                            <button type="button" class="btn btn-dark btn-sm add-shift-button"
-                                data-bs-toggle="modal" data-bs-target="#addConfigModal">
-                                Add
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="modal-body">
-                        <div class="table-responsive">
-                            <table class="table table-bordered shift-config-table">
-                                <colgroup>
-                                    <col style="width: 20%">
-                                    <col style="width: 40%">
-                                    <col style="width: 40%">
-                                </colgroup>
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Description</th>
-                                        <th>Time In & Out</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="shiftConfigTableBody">
-                                    <!-- populated dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-light btn-close-custom"
-                            data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Add Config Modal --}}
-        <div class="modal fade" id="addConfigModal" tabindex="-1" aria-labelledby="addConfigModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="addConfigModalLabel">Add Shift</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body modal-body-custom">
-                        <!-- Use unique form ID for shift config creation to avoid clashing with other modals -->
-                        <form id="addShiftConfigForm">
-                            <input type="hidden" id="addShiftId" name="shift_id">
-                            <input type="hidden" id="addEmployeeId" name="employee_id">
-                            <input type="hidden" id="addDateShift" name="date_shift">
-
-                            <div class="mb-3 custom-input">
-                                <label for="addTitle" class="form-label label-custom">Title</label>
-                                <input type="text" class="form-control input-text" id="addTitle" name="title">
-                            </div>
-
-                            <div class="mb-3 custom-input">
-                                <label for="addDescription" class="form-label label-custom">Description</label>
-                                <input type="text" class="form-control input-text" id="addDescription"
-                                    name="description">
-                            </div>
-
-                            <div class="mb-3 custom-input">
-                                <label for="addTimeStart" class="form-label label-custom">Time In</label>
-                                <input type="time" class="form-control input-text" id="addTimeStart"
-                                    name="time_start" required>
-                            </div>
-
-                            <div class="mb-3 custom-input">
-                                <label for="addTimeEnd" class="form-label label-custom">Time Out</label>
-                                <input type="time" class="form-control input-text" id="addTimeEnd"
-                                    name="time_end" required>
-                            </div>
-                        </form>
-                    </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <!-- Make this an explicit button and give it a unique ID; JS will handle the click -->
-                        <button type="button" class="btn btn-submit-black" id="saveShiftConfigBtn">Submit</button>
+                        <button type="submit" class="btn btn-submit-black">Update</button>
                     </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Edit Employee Modal --}}
+    <div class="modal fade" id="editEmployeeModal" tabindex="-1" aria-labelledby="editEmployeeModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+
+                <input type="hidden" id="editShiftId" name="shift_id">
+                <input type="hidden" id="editEmployeeId" name="employee_id">
+                <input type="hidden" id="editEmployeeNameInput" name="employee_name">
+                <input type="hidden" id="editTimeStart" name="time_in">
+                <input type="hidden" id="editTimeEnd" name="time_out">
+
+                <div class="modal-header border-0 position-relative d-flex justify-content-center">
+                    <div class="text-center">
+                        <img id="editEmployeePicture" src="" class="rounded-circle mb-2" width="70"
+                            height="70">
+                        <h5 class="fw-normal employee-name mb-0" id="editShiftEmployeeName">Employee fullname
+                        </h5>
+                        <small id="addEmployeeGrade" class="text-muted">employee grade</small>
+                    </div>
+
+                    <button type="button" class="btn-close position-absolute end-0 top-0 me-2 mt-2"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body modal-body-custom text-center">
+                    <div class="mt-3 text-start">
+                        <div class="d-flex justify-content-between">
+                            <p class="mb-1 fw-normal">Shift :</p>
+                            <span id="editTitleShiftDisplay"></span>
+                        </div>
+
+                        <hr class="border-3 rounded">
+
+                        <div class="d-flex justify-content-between text-shift-display">
+                            <p class="mb-3">Time In :</p>
+                            <span id="editTimeStartDisplay"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between text-shift-display">
+                            <p class="mb-3">Time Out :</p>
+                            <span id="editTimeEndDisplay"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dropdown dropdown-container">
+                    <button
+                        class="btn btn-light d-flex justify-content-between align-items-center dropdown-btn border-0"
+                        type="button" data-bs-toggle="dropdown" data-bs-display="static" id="editDropdownSelected"
+                        aria-expanded="false">
+                        Select Shift
+                        <span class="material-symbols-outlined">arrow_drop_down</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-shift" id="editDropdownList">
+                        {{-- Shift Employee --}}
+                    </ul>
+                </div>
+
+                <div class="modal-footer modal-footer-custom w-100">
+                    <button type="button" class="btn btn-dark submit-employee-btn w-100"
+                        id="saveEmployeeBtn">Update</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    {{-- Shift Config Modal --}}
+    <div class="modal fade" id="shiftConfigModal" tabindex="-1" aria-labelledby="shiftConfigModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md modal-dialog-scrollable">
+            <div class="modal-content modal-content-custom">
+
+                <div class="modal-header d-flex justify-content-between align-items-center">
+                    <h5 class="modal-title shift-config-title" id="shiftConfigModalLabel">Shift Config</h5>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-dark btn-sm add-shift-button" data-bs-toggle="modal"
+                            data-bs-target="#addConfigModal">
+                            Add
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered shift-config-table">
+                            <colgroup>
+                                <col style="width: 20%">
+                                <col style="width: 40%">
+                                <col style="width: 40%">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Description</th>
+                                    <th>Time In & Out</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shiftConfigTableBody">
+                                <!-- populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light btn-close-custom"
+                        data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        {{-- Edit Config Modal --}}
-        <div class="modal fade" id="editConfigModal" tabindex="-1" aria-labelledby="editConfigModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="editConfigModalLabel">Edit Shift</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body modal-body-custom">
-                        <form id="editShiftConfigForm">
-                            <input type="hidden" id="editConfigShiftId" name="shift_id">
-                            <div class="mb-3 custom-input">
-                                <label for="editTitle" class="form-label label-custom">Title</label>
-                                <input type="text" class="form-control input-text" id="editTitle" name="title"
-                                    required>
-                            </div>
-                            <div class="mb-3 custom-input">
-                                <label for="editDescription" class="form-label label-custom">Description</label>
-                                <input type="text" class="form-control input-text" id="editDescription"
-                                    name="description">
-                            </div>
-                            <div class="mb-3 custom-input">
-                                <label for="editTimeStart" class="form-label label-custom">Time In</label>
-                                <input type="time" class="form-control input-text" id="editTimeStart"
-                                    name="time_start" required>
-                            </div>
-                            <div class="mb-3 custom-input">
-                                <label for="editTimeEnd" class="form-label label-custom">Time Out</label>
-                                <input type="time" class="form-control input-text" id="editTimeEnd"
-                                    name="time_end" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-submit-black"
-                            id="saveUpdateShiftConfigBtn">Submit</button>
-                    </div>
+    {{-- Add Config Modal --}}
+    <div class="modal fade" id="addConfigModal" tabindex="-1" aria-labelledby="addConfigModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="addConfigModalLabel">Add Shift</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom">
+                    <!-- Use unique form ID for shift config creation to avoid clashing with other modals -->
+                    <form id="addShiftConfigForm">
+                        <input type="hidden" id="addShiftId" name="shift_id">
+                        <input type="hidden" id="addEmployeeId" name="employee_id">
+                        <input type="hidden" id="addDateShift" name="date_shift">
+
+                        <div class="mb-3 custom-input">
+                            <label for="addTitle" class="form-label label-custom">Title</label>
+                            <input type="text" class="form-control input-text" id="addTitle" name="title">
+                        </div>
+
+                        <div class="mb-3 custom-input">
+                            <label for="addDescription" class="form-label label-custom">Description</label>
+                            <input type="text" class="form-control input-text" id="addDescription"
+                                name="description">
+                        </div>
+
+                        <div class="mb-3 custom-input">
+                            <label for="addTimeStart" class="form-label label-custom">Time In</label>
+                            <input type="time" class="form-control input-text" id="addTimeStart"
+                                name="time_start" required>
+                        </div>
+
+                        <div class="mb-3 custom-input">
+                            <label for="addTimeEnd" class="form-label label-custom">Time Out</label>
+                            <input type="time" class="form-control input-text" id="addTimeEnd" name="time_end"
+                                required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <!-- Make this an explicit button and give it a unique ID; JS will handle the click -->
+                    <button type="button" class="btn btn-submit-black" id="saveShiftConfigBtn">Submit</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <x-slot name="script_slot">
-            <script src="{{ asset('asset/js/shift.js?v=' . time()) }}"></script>
-        </x-slot>
+    {{-- Edit Config Modal --}}
+    <div class="modal fade" id="editConfigModal" tabindex="-1" aria-labelledby="editConfigModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="editConfigModalLabel">Edit Shift</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom">
+                    <form id="editShiftConfigForm">
+                        <input type="hidden" id="editConfigShiftId" name="shift_id">
+                        <div class="mb-3 custom-input">
+                            <label for="editTitle" class="form-label label-custom">Title</label>
+                            <input type="text" class="form-control input-text" id="editTitle" name="title"
+                                required>
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="editDescription" class="form-label label-custom">Description</label>
+                            <input type="text" class="form-control input-text" id="editDescription"
+                                name="description">
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="editTimeStart" class="form-label label-custom">Time In</label>
+                            <input type="time" class="form-control input-text" id="editTimeStart"
+                                name="time_start" required>
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="editTimeEnd" class="form-label label-custom">Time Out</label>
+                            <input type="time" class="form-control input-text" id="editTimeEnd" name="time_end"
+                                required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="saveUpdateShiftConfigBtn">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <x-slot name="script_slot">
+        <script src="{{ asset('asset/js/shift.js?v=' . time()) }}"></script>
+    </x-slot>
 </x-office-layout>

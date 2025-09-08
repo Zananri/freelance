@@ -47,7 +47,7 @@
             if (!userPhoto) return appUrl + '/asset/img/profile_picture/default.png';
             if (typeof userPhoto !== 'string') userPhoto = String(userPhoto || '');
             const up = userPhoto.trim();
-            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+                if (up.startsWith('http://') || up.startsWith('https://')) return up; 
             if (up.startsWith('/')) return appUrl + up; // includes '/file/...', '/asset/...'
             if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
             // bare filename stored
@@ -759,27 +759,13 @@
         });
     })();
 
-    // Open Add Schedule Modal
+    // Schedule creation now uses separate page; modal trigger disabled.
     (function initScheduleTrigger(){
         const btn = document.querySelector('.btn.btn-schedule-custom');
-        const modalEl = document.getElementById('addScheduleModal');
-        if (btn && modalEl) {
-            btn.addEventListener('click', function(){
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                modal.show();
-            });
-        }
-        // Reset file state when opening the Schedule modal so previews start empty
-        if (modalEl) {
-            modalEl.addEventListener('show.bs.modal', function(){
-                try {
-                    selectedFiles = [];
-                    const pr = document.getElementById('schedule_reference_files_preview');
-                    if (pr) pr.innerHTML = '';
-                    const inp = document.getElementById('schedule_reference_files');
-                    if (inp) inp.value = '';
-                } catch (_) { /* noop */ }
-            });
+        if (btn) {
+            // Ensure no leftover modal attributes
+            btn.removeAttribute('data-bs-toggle');
+            btn.removeAttribute('data-bs-target');
         }
     })();
 
@@ -947,56 +933,7 @@
         document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
     })();
 
-    // Schedule form submit
-    (function initScheduleForm(){
-        const form = document.getElementById('addScheduleForm');
-        const modalEl = document.getElementById('addScheduleModal');
-        if (!form || !modalEl) return;
-        form.addEventListener('submit', function(e){
-            e.preventDefault();
-            if (!form.checkValidity()) { e.stopPropagation(); form.classList.add('was-validated'); return; }
-            form.classList.remove('was-validated');
-
-            const loader = document.getElementById('addScheduleModalLoader');
-            if (loader) loader.classList.remove('d-none');
-            const submitBtn = form.querySelector("button[type='submit']"); if (submitBtn) submitBtn.disabled = true;
-
-            const fd = new FormData(form);
-            // Ensure only one of due_in_days or due_date is sent: prefer due_in_days
-            const dueInDaysEl = document.getElementById('schedule_due_in_days');
-            if (dueInDaysEl && dueInDaysEl.value !== '') {
-                fd.set('due_in_days', String(Math.max(0, parseInt(dueInDaysEl.value, 10) || 0)));
-                fd.delete('due_date');
-            }
-            // Attach any chosen files (reuse global selectedFiles used by schedule input change)
-            (selectedFiles || []).forEach(f => fd.append('reference_files[]', f));
-
-            $.ajax({
-                url: appUrl + '/schedules', // to be implemented on backend
-                type: 'POST',
-                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                data: fd, processData: false, contentType: false,
-            }).done(function(res){
-                setTimeout(() => {
-                    if (loader) loader.classList.add('d-none'); if (submitBtn) submitBtn.disabled = false;
-                    try { showFloatingAlert(res.message || 'Schedule created', 'success'); } catch(_) {}
-                    form.reset();
-                    const modal = bootstrap.Modal.getInstance(modalEl); if (modal) modal.hide();
-                    // Refresh tasks so any immediately generated task appears
-                    try { fetchAndRenderTasks(); } catch(_) {}
-                    // Refresh notification badge for any new assignments
-                    try { refreshNotificationCountBadge(); } catch(_) {}
-                }, 600);
-            }).fail(function(xhr){
-                if (loader) loader.classList.add('d-none'); if (submitBtn) submitBtn.disabled = false;
-                let msg = 'Failed to create schedule.';
-                if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.errors)) {
-                    msg = xhr.responseJSON.message || Object.values(xhr.responseJSON.errors).flat().join('\n');
-                }
-                try { showFloatingAlert(msg, 'danger'); } catch(_) {}
-            });
-        });
-    })();
+    // Removed inline schedule form submit (handled on dedicated page now)
 
     // Handle edit task form submission (rebuilt from scratch like add task)
     const editTaskModalEl = document.getElementById("editTaskModal");
@@ -1412,49 +1349,7 @@ document.addEventListener("click", function (e) {
     }
 });
 
-function updateTaskStatus(taskId, newStatus, taskCard) {
-    $.ajax({
-        url: appUrl + "/task/" + taskId + "/status",
-        type: "PUT",
-        headers: {
-            "X-CSRF-TOKEN": document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content"),
-        },
-        data: {
-            status: newStatus,
-        },
-        success: function (response) {
-            // Dispose all Bootstrap tooltips inside the taskCard before removing it
-            const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                if (tooltipInstance) {
-                    tooltipInstance.dispose();
-                }
-            });
-
-            // Remove the task card from current section immediately
-            taskCard.remove();
-
-            // Refresh task cards to show in new section
-            fetchAndRenderTasks();
-
-            // Show success message
-            showFloatingAlert(response.message || "Task status updated successfully", "success");
-        },
-        error: function (xhr) {
-            let errorMessage = "Failed to update task status.";
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
-            }
-            if (xhr.responseJSON && xhr.responseJSON.errors) {
-                errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-            }
-            showFloatingAlert(errorMessage, "danger");
-        },
-    });
-}
+// (Removed duplicate early updateTaskStatus; using unified bulk-aware version later)
 
     // Function to check if all executors have accepted the task
     function hasAllExecutorsAccepted(task) {
@@ -1466,41 +1361,66 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         function createTaskCard(task) {
             // Normalize project image early to avoid broken images when backend returns empty/invalid URL
             const placeholderProjectImg = `${appUrl}/asset/img/profile_picture/default.png`;
+            // Build project image or initials avatar
+            function buildProjectInitialsAvatar(title) {
+                const text = (title || '').trim();
+                if (!text) return 'NA';
+                // Ambil maksimal dua huruf awal dari kata pertama & terakhir seperti WhatsApp (contoh: "James Mwandi" => "JM")
+                const parts = text.split(/\s+/).filter(Boolean);
+                if (parts.length === 1) {
+                    return parts[0].substring(0,2).toUpperCase();
+                }
+                const first = parts[0].charAt(0);
+                const last = parts[parts.length - 1].charAt(0);
+                return (first + last).toUpperCase();
+            }
+
+            function pickAvatarColor(key) {
+                // Deterministic color palette based on simple hash of project title
+                const colors = [
+                    '#6A5AE0', '#FF8A3C', '#00A881', '#D4526E', '#3E8EDE',
+                    '#546E7A', '#8E44AD', '#2E7D32', '#AD1457', '#EF6C00'
+                ];
+                if (!key) return colors[0];
+                let hash = 0;
+                for (let i=0;i<key.length;i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+                return colors[hash % colors.length];
+            }
+
             const projectImg = (function() {
                 try {
-                    const raw = (task && task.project_image) || '';
+                    const raw = (task && task.project_image);
+                    if (!raw) return null; // trigger initials avatar
                     const val = String(raw || '').trim();
                     if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
-                        return placeholderProjectImg;
+                        return null;
                     }
-                    // If response already contains a file/project path, rebuild with current appUrl to support subfolder deployments
                     if (val.includes('/file/project/')) {
                         const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
-                        if (!fname) return placeholderProjectImg;
+                        if (!fname) return null;
                         return `${appUrl}/file/project/${fname}`;
                     }
-                    // Any asset path -> rewrite with appUrl (handles absolute or root-relative)
                     if (val.includes('/asset/')) {
                         const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
                         return `${appUrl}/asset/${suffix}`;
                     }
-                    // Asset path from root -> rewrite with appUrl (legacy)
                     if (val.startsWith('/asset/')) {
                         const suffix = val.replace(/^\/+/, '');
                         return `${appUrl}/${suffix}`;
                     }
-                    // Any other root-relative path -> prefix with appUrl
                     if (val.startsWith('/')) {
                         return `${appUrl}${val}`;
                     }
-                    // If it's just a filename, prefix with our appUrl
                     if (!/^https?:\/\//i.test(val) && !val.startsWith('/')) {
                         return `${appUrl}/file/project/${val}`;
                     }
-                    // Otherwise trust as-is (absolute http(s) or root-relative)
                     return val;
-                } catch(_) { return placeholderProjectImg; }
+                } catch(_) { return null; }
             })();
+
+            const useInitials = !projectImg;
+            const initials = useInitials ? buildProjectInitialsAvatar(task.project_title) : '';
+            const initialsColor = useInitials ? pickAvatarColor(task.project_title || initials) : '#6A5AE0';
     // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
@@ -1586,10 +1506,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // If current viewer is a pending executor, render simplified card footer with Accept/Reject controls
     const viewerPending = isViewerPendingExecutor(task);
 
-    // Check if description is long enough to need truncation
-    return `
-        <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}">
-            ${statusBadge}
+    // For pending executor: hide action/transition icons & dropdown menu entirely
+    if (viewerPending) {
+        iconHtml = ''; // remove status progression icon
+    }
+
+    // Build dropdown (only if not pending)
+    const dropdownHtml = (!viewerPending) ? `
             <div class="dropdown-icon-container">
                 <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                 <div class="dropdown-menu d-none">
@@ -1601,16 +1524,30 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
             </div>
             ${iconHtml}
+        ` : '';
+
+    // Check if description is long enough to need truncation
+    return `
+    <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
+            ${statusBadge}
+            ${dropdownHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                ${task.project_id ? (
-                    (task.status === 'new_request' || task.status === 'new request')
-                        ? `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
-                                <img src="${projectImg}" alt="Project Image" class="project-image" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
-                                <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
-                           </div>`
-                        : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`
-                  ) : ''}
+                ${(function(){
+                    // Fallback: if no project, still show initials avatar based on task title (schedule case)
+                    const fallbackTitle = task.project_id ? task.project_title : task.title;
+                    const showInitials = !projectImg;
+                    const avatarHtml = showInitials
+                        ? `<div class="project-initial-avatar${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(fallbackTitle)}</div>`
+                        : `<img src="${projectImg}" alt="Project Image" class="project-image${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`;
+                    if (task.status === 'new_request' || task.status === 'new request') {
+                        return `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
+                            ${avatarHtml}
+                            <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
+                        </div>`;
+                    }
+                    return avatarHtml;
+                })()}
                 <div class="d-flex flex-column">
                     ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>` : ''}
                     <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
@@ -1850,6 +1787,32 @@ function renderSingleSection(status, sectionData) {
     // Also track all selected ids in New (for Progress action)
     let selectedAllNewIds = [];
 
+        // NEW: hide select-all label initially
+        const _selectAllLabelInitial = document.querySelector('.task-selectall-toggle');
+        if (_selectAllLabelInitial) {
+            // Force element to occupy space from start to avoid layout shift
+            if (getComputedStyle(_selectAllLabelInitial).display === 'none') {
+                _selectAllLabelInitial.style.display = 'inline-flex';
+            }
+            _selectAllLabelInitial.style.visibility = 'hidden';
+            _selectAllLabelInitial.style.opacity = '0';
+        }
+
+        // NEW: control visibility of select-all checkbox label
+        function updateSelectAllVisibility(){
+            const label = document.querySelector('.task-selectall-toggle');
+            if (!label) return;
+            if (selectedAllNewIds.length > 0) {
+                label.style.visibility = 'visible';
+                label.style.opacity = '1';
+            } else {
+                const cb = document.getElementById('taskNewAcceptAll');
+                if (cb) cb.checked = false;
+                label.style.visibility = 'hidden';
+                label.style.opacity = '0';
+            }
+        }
+
         function collectPendingNewTaskIds(){
             // When viewer is executor and not accepted, cards render Accept/Reject buttons; pick those
             const cards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card'));
@@ -1866,6 +1829,19 @@ function renderSingleSection(status, sectionData) {
             return Array.from(document.querySelectorAll('#new-request-tasks .custom-card'))
                 .map(el => el.getAttribute('data-task-id'))
                 .filter(Boolean);
+        }
+
+        function syncSelectAllCheckboxState(){
+            const master = document.getElementById('taskNewAcceptAll');
+            if (!master) return;
+            const allIds = collectAllNewTaskIds();
+            // Master is checked only if every current card id is in selectedAllNewIds and not empty
+            const allSelected = allIds.length > 0 && allIds.every(id => selectedAllNewIds.includes(String(id)));
+            if (master.checked && !allSelected) {
+                master.checked = false;
+            } else if (!master.checked && allSelected) {
+                master.checked = true;
+            }
         }
 
         function acceptOne(taskId){
@@ -1919,6 +1895,7 @@ function renderSingleSection(status, sectionData) {
                 });
             }
             updateBulkHeaderButtons();
+            updateSelectAllVisibility(); // NEW
         });
 
         // Bulk action icon opens confirmation modal, then runs accept
@@ -1938,7 +1915,9 @@ function renderSingleSection(status, sectionData) {
                     if (thumb.dataset.pending === '1' && !selectedPendingIds.includes(taskId)) selectedPendingIds.push(taskId);
                     if (!selectedAllNewIds.includes(taskId)) selectedAllNewIds.push(taskId);
                 }
+                syncSelectAllCheckboxState();
                 updateBulkHeaderButtons();
+                updateSelectAllVisibility(); // NEW
                 return;
             }
 
@@ -1981,6 +1960,7 @@ function renderSingleSection(status, sectionData) {
                     // clear UI selected class
                     document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                     updateBulkHeaderButtons();
+                    updateSelectAllVisibility(); // NEW
                 });
             });
         });
@@ -2007,21 +1987,20 @@ function renderSingleSection(status, sectionData) {
             if (movableIds.length === 0) return;
 
             if (movableIds.length === 1) {
-                // single: move directly to in_progress
                 const id = movableIds[0];
                 const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
                 bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
-                updateTaskStatus(id, 'in_progress', card);
-                bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
-                // cleanup selection
-                const cb = document.getElementById('taskNewAcceptAll');
-                if (cb) cb.checked = false;
-                selectedPendingIds = [];
-                selectedAllNewIds = [];
-                document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
-                fetchAndRenderTasks();
-                updateBulkHeaderButtons();
-                try { showFloatingAlert('Task moved to In Progress', 'success'); } catch(_) {}
+                bulkStatusPendingCount = 0; bulkStatusCompletedCount = 0; bulkStatusExpectedCount = 1; bulkFinalStatusMessage = null; bulkFinalAlertShown = false;
+                updateTaskStatus(id, 'in_progress', card).finally(() => {
+                    bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false; bulkStatusExpectedCount = 0;
+                    const cb = document.getElementById('taskNewAcceptAll');
+                    if (cb) cb.checked = false;
+                    selectedPendingIds = [];
+                    selectedAllNewIds = [];
+                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    updateBulkHeaderButtons();
+                    updateSelectAllVisibility();
+                });
                 return;
             }
 
@@ -2037,13 +2016,11 @@ function renderSingleSection(status, sectionData) {
             const handler = function(){
                 // chain updates sequentially with bulk flags to suppress per-item alerts and refresh
                 bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
+                bulkStatusPendingCount = 0; bulkStatusCompletedCount = 0; bulkStatusExpectedCount = movableIds.length; bulkFinalStatusMessage = null; bulkFinalAlertShown = false;
                 let chain = Promise.resolve();
                 movableIds.forEach((id) => {
                     const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
-                    chain = chain.then(() => new Promise((resolve) => {
-                        updateTaskStatus(id, 'in_progress', card);
-                        setTimeout(resolve, 120);
-                    }));
+                    chain = chain.then(() => updateTaskStatus(id, 'in_progress', card).then(()=> new Promise(r=> setTimeout(r,80))));
                 });
                 chain.finally(() => {
                     bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
@@ -2054,9 +2031,10 @@ function renderSingleSection(status, sectionData) {
                     selectedPendingIds = [];
                     selectedAllNewIds = [];
                     document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
-                    fetchAndRenderTasks();
+                    // Final refresh & alert sudah ditangani aggregator; fallback refresh bila gagal aggregator
+                    if (!bulkFinalAlertShown) fetchAndRenderTasks();
                     updateBulkHeaderButtons();
-                    try { showFloatingAlert(`${movableIds.length} tasks moved to In Progress`, 'success'); } catch(_) {}
+                    updateSelectAllVisibility(); // NEW
                 });
             };
             confirmBtn.addEventListener('click', handler);
@@ -2071,23 +2049,39 @@ function renderSingleSection(status, sectionData) {
             const bulkProgress = document.getElementById('taskNewBulkProgress');
 
             if (bulkAccept) {
-                // Show Accept only if there are pending selected; hide otherwise
-                bulkAccept.style.display = anyPendingSelected ? 'inline-flex' : 'none';
+                // Keep element in flow; toggle visibility only
+                if (getComputedStyle(bulkAccept).display === 'none') bulkAccept.style.display = 'inline-flex';
+                bulkAccept.style.visibility = anyPendingSelected ? 'visible' : 'hidden';
+                bulkAccept.style.opacity = anyPendingSelected ? '1' : '0';
                 bulkAccept.disabled = !anyPendingSelected;
             }
             if (bulkProgress) {
-                // Arrow visible only when any selection exists
-                bulkProgress.style.display = hasAnySelection ? 'inline-flex' : 'none';
+                if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
+                bulkProgress.style.visibility = hasAnySelection ? 'visible' : 'hidden';
+                bulkProgress.style.opacity = hasAnySelection ? '1' : '0';
                 bulkProgress.disabled = !allAcceptedSelected;
             }
+            // Ensure visibility sync each time state recalculated
+            updateSelectAllVisibility(); // NEW
         }
 
         // initialize bulk button hidden and disabled by default
         document.addEventListener('DOMContentLoaded', function(){
             const bulkAccept = document.getElementById('taskNewBulkAction');
             const bulkProgress = document.getElementById('taskNewBulkProgress');
-            if (bulkAccept) { bulkAccept.disabled = true; bulkAccept.style.display = 'none'; }
-            if (bulkProgress) { bulkProgress.disabled = true; bulkProgress.style.display = 'none'; }
+            if (bulkAccept) {
+                if (getComputedStyle(bulkAccept).display === 'none') bulkAccept.style.display = 'inline-flex';
+                bulkAccept.style.visibility = 'hidden';
+                bulkAccept.style.opacity = '0';
+                bulkAccept.disabled = true;
+            }
+            if (bulkProgress) {
+                if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
+                bulkProgress.style.visibility = 'hidden';
+                bulkProgress.style.opacity = '0';
+                bulkProgress.disabled = true;
+            }
+            updateSelectAllVisibility(); // NEW
         });
     })();
 
@@ -2400,56 +2394,108 @@ function renderSingleSection(status, sectionData) {
     // Bulk operation control flags
     let bulkStatusOperationActive = false;
     let bulkStatusSuppressRefresh = false;
+    let bulkStatusPendingCount = 0; // number of AJAX calls enqueued (incremental)
+    let bulkStatusCompletedCount = 0; // number of completed calls
+    let bulkStatusExpectedCount = 0; // fixed expected count for current bulk
+    let bulkFinalStatusMessage = null; // aggregated message
+    let bulkFinalAlertShown = false; // guard to ensure single final alert
 
     // Function to update task status via AJAX
     function updateTaskStatus(taskId, newStatus, taskCard) {
-        $.ajax({
-            url: appUrl + "/task/" + taskId + "/status",
-            type: "PUT",
-            headers: {
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
-            },
-            data: {
-                status: newStatus,
-            },
-            success: function (response) {
-                // Dispose tooltips if card present
-                if (taskCard) {
-                    const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                        const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                        if (tooltipInstance) {
-                            tooltipInstance.dispose();
+        if (bulkStatusOperationActive) bulkStatusPendingCount++;
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: appUrl + "/task/" + taskId + "/status",
+                type: "PUT",
+                headers: {
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute("content"),
+                },
+                data: { status: newStatus },
+                success: function (response) {
+                    if (taskCard) {
+                        const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                            const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                            if (tooltipInstance) tooltipInstance.dispose();
+                        });
+                        taskCard.remove();
+                    }
+                    if (!bulkStatusSuppressRefresh) fetchAndRenderTasks();
+                    if (bulkStatusOperationActive) {
+                        bulkStatusCompletedCount++;
+                        if (!bulkFinalStatusMessage) bulkFinalStatusMessage = response.message || 'Task status updated successfully';
+                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
+                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
+                            bulkFinalAlertShown = true;
+                            fetchAndRenderTasks();
+                            showFloatingAlert(bulkFinalStatusMessage, 'success');
+                            bulkStatusPendingCount = 0;
+                            bulkStatusCompletedCount = 0;
+                            bulkStatusExpectedCount = 0;
+                            bulkFinalStatusMessage = null;
                         }
-                    });
-                    // Remove the task card from current section
-                    taskCard.remove();
-                }
-
-                // Refresh task cards to show in new section (skip if suppressed during bulk)
-                if (!bulkStatusSuppressRefresh) {
-                    fetchAndRenderTasks();
-                }
-
-                // Show success message (skip if bulk)
-                if (!bulkStatusOperationActive) {
-                    showFloatingAlert(response.message || "Task status updated successfully", "success");
-                }
-            },
-            error: function (xhr) {
-                let errorMessage = "Failed to update task status.";
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-                }
-                showFloatingAlert(errorMessage, "danger");
-            },
+                    } else {
+                        showFloatingAlert(response.message || 'Task status updated successfully', 'success');
+                    }
+                    resolve();
+                },
+                error: function (xhr) {
+                    let errorMessage = "Failed to update task status.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) errorMessage = xhr.responseJSON.message;
+                    if (xhr.responseJSON && xhr.responseJSON.errors) errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+                    showFloatingAlert(errorMessage, "danger");
+                    if (bulkStatusOperationActive) {
+                        bulkStatusCompletedCount++;
+                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
+                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
+                            bulkFinalAlertShown = true;
+                            if (!bulkFinalStatusMessage) bulkFinalStatusMessage = 'Bulk update finished (with some errors)';
+                            fetchAndRenderTasks();
+                        }
+                    }
+                    reject(errorMessage);
+                },
+            });
         });
     }
+
+    // NEW: Bulk Progress All (across cached pages) when master checkbox is checked and user presses a dedicated trigger
+    document.addEventListener('click', function(e){
+        const trigger = e.target.closest('#taskNewBulkProgressAll');
+        if (!trigger) return;
+        // Ensure we have cache
+        if (!allTasksCache || !allTasksCache.new_request || !Array.isArray(allTasksCache.new_request.tasks)) return;
+        const allTasks = allTasksCache.new_request.tasks;
+        // Filter only tasks that are already accepted by viewer (no Accept button scenario) => backend already marks is_receive; we rely on executors list
+        const movable = allTasks.filter(t => {
+            // viewer pending executor? skip
+            return !isViewerPendingExecutor(t);
+        });
+        if (movable.length === 0) return;
+    bulkStatusOperationActive = true;
+    bulkStatusSuppressRefresh = true; // avoid intermediate refreshes
+    bulkStatusPendingCount = 0;
+    bulkStatusCompletedCount = 0;
+    bulkStatusExpectedCount = movable.length;
+    bulkFinalStatusMessage = null;
+    bulkFinalAlertShown = false;
+        // Kick sequential chain to avoid server overload
+        let chain = Promise.resolve();
+        movable.forEach(t => {
+            chain = chain.then(() => updateTaskStatus(t.id, 'in_progress', document.querySelector(`#new-request-tasks .custom-card[data-task-id="${t.id}"]`))
+                .then(()=> new Promise(r=> setTimeout(r,60))));
+        });
+        chain.finally(() => {
+            bulkStatusOperationActive = false;
+            bulkStatusSuppressRefresh = false;
+            const master = document.getElementById('taskNewAcceptAll');
+            if (master) master.checked = false;
+            document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected').forEach(el => el.classList.remove('selected'));
+            // Aggregator already refreshed & alerted; nothing more here.
+        });
+    });
 
     // New function to update task status directly without confirmation modal
     function updateTaskStatusDirect(taskId, newStatus) {
@@ -5335,31 +5381,50 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
     }
 
     async function fetchTimelineTasksOnce() {
-        if (timelineTasksCache.length) return;
+        if (timelineTasksCache.length) return; // cache already prepared
         try {
             const r = await fetch(appUrlTimeline + '/task/index', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             const j = await r.json();
-            const buckets = j && j.data ? j.data : {};
+            const buckets = (j && j.data) ? j.data : {};
             const flat = [];
-            Object.keys(buckets).forEach(k => {
-                const arr = buckets[k];
-                if (Array.isArray(arr)) arr.forEach(t => flat.push(t));
+
+            // API structure (based on other code): { new_request: {tasks:[...]}, in_progress:{tasks:[...]}, completed:{tasks:[...]}, rejected:{tasks:[...]?} }
+            Object.keys(buckets).forEach(key => {
+                const section = buckets[key];
+                if (!section) return;
+                if (Array.isArray(section)) {
+                    // In case backend returns simple array
+                    section.forEach(t => flat.push(t));
+                } else if (Array.isArray(section.tasks)) {
+                    section.tasks.forEach(t => flat.push(t));
+                }
             });
-            // Enrich missing dates
+
+            if (!flat.length) {
+                console.warn('[timeline] No tasks flattened from /task/index response. Raw keys:', Object.keys(buckets));
+            }
+
+            // Enrich missing dates (only for items lacking either start or due date)
             await Promise.all(flat.map(async (t) => {
                 if (t.start_date && t.due_date) return;
                 try {
                     const rr = await fetch(appUrlTimeline + '/task/' + t.id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!rr.ok) return;
                     const dd = await rr.json();
                     const d = dd && (dd.data || dd);
                     if (d) {
                         t.start_date = t.start_date || d.start_date || d.start || d.startDate || null;
-                        t.due_date = t.due_date || d.due_date || d.end_date || d.endDate || d.due || null;
+                        t.due_date   = t.due_date   || d.due_date   || d.end_date || d.endDate || d.due || null;
                     }
-                } catch(_){ }
+                } catch (e) {
+                    // silent – keep existing data
+                }
             }));
+
+            // Only keep tasks that have at least one bound (start/due)
             timelineTasksCache = flat.filter(t => t.start_date || t.due_date);
-        } catch(_) {
+        } catch (e) {
+            console.error('[timeline] Failed to fetch tasks for timeline', e);
             timelineTasksCache = [];
         }
     }
