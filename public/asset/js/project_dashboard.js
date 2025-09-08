@@ -268,7 +268,21 @@
                     const pid = p.id || p.project_id;
                     const tasks = tasksByProject[pid] || [];
                     if (!tasks.length){
-                        countNotStarted++; return;
+                        const tc = p.task_counts || p.taskCounts || null;
+                        if (tc && typeof tc.total === 'number' && tc.total > 0){
+                            const total = Number(tc.total)||0;
+                            const completedT = Number(tc.completed || tc.completed_tasks || 0);
+                            const inProgT = Number(tc.in_progress || tc.in_progress_tasks || 0);
+                            const rejectedT = Number(tc.rejected || tc.rejected_tasks || 0);
+                            const lateT = Number(tc.late || tc.late_tasks || 0);
+                            const inferredNotStarted = Math.max(0, total - (completedT + inProgT + rejectedT + lateT));
+                            if (lateT > 0){ countLate++; return; }
+                            if (completedT === total && total > 0){ countCompleted++; return; }
+                            if (inProgT > 0 || (completedT>0 && (inferredNotStarted>0 || rejectedT>0))){ countOnProgress++; return; }
+                            countNotStarted++; return;
+                        } else {
+                            countNotStarted++; return;
+                        }
                     }
                     const hasLate = tasks.some(t => {
                         if (t.__status === 'late') return true;
