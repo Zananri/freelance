@@ -91,51 +91,27 @@
                     </div>
                 </div>
                 <div id="new-request-tasks" class="task-list"></div>
-                <div class="d-flex justify-content-center mt-3">
-                    <div id="newTaskPagination" class="pagination-pill d-flex align-items-center">
-                        <button id="prevPageBtnNew" class="btn-nav" disabled>
-                            <span class="material-symbols-outlined">chevron_left</span>
-                        </button>
-
-                        <span id="paginationInfoNew" class="pagination-info">1 OF 1</span>
-
-                        <button id="nextPageBtnNew" class="btn-nav">
-                            <span class="material-symbols-outlined">chevron_right</span>
-                        </button>
+                <div id="newTaskLoading" class="d-flex justify-content-center mt-3 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
             </div>
             <div class="col-md-4 in-progress-container">
                 <h4 class="task-section-title">In Progress</h4>
                 <div id="in-progress-tasks" class="task-list"></div>
-                <div class="d-flex justify-content-center mt-3">
-                    <div id="progressTaskPagination" class="pagination-pill d-flex align-items-center">
-                        <button id="prevPageBtnProgress" class="btn-nav" disabled>
-                            <span class="material-symbols-outlined">chevron_left</span>
-                        </button>
-
-                        <span id="paginationInfoProgress" class="pagination-info">1 OF 1</span>
-
-                        <button id="nextPageBtnProgress" class="btn-nav">
-                            <span class="material-symbols-outlined">chevron_right</span>
-                        </button>
+                <div id="progressTaskLoading" class="d-flex justify-content-center mt-3 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
             </div>
             <div class="col-md-4 completed-container">
                 <h4 class="task-section-title">Completed</h4>
                 <div id="completed-tasks" class="task-list"></div>
-                <div class="d-flex justify-content-center mt-3">
-                    <div id="completedTaskPagination" class="pagination-pill d-flex align-items-center">
-                        <button id="prevPageBtnCompleted" class="btn-nav" disabled>
-                            <span class="material-symbols-outlined">chevron_left</span>
-                        </button>
-
-                        <span id="paginationInfoCompleted" class="pagination-info">1 OF 1</span>
-
-                        <button id="nextPageBtnCompleted" class="btn-nav">
-                            <span class="material-symbols-outlined">chevron_right</span>
-                        </button>
+                <div id="completedTaskLoading" class="d-flex justify-content-center mt-3 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
             </div>
@@ -178,27 +154,27 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_task_title" class="form-label label-custom">Title</label>
                             <input type="text" class="form-control input-text" id="edit_task_title"
                                 name="title" required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_task_description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_task_project_id" class="form-label label-custom">Project (optional)</label>
                             <select class="form-select input-select" id="edit_task_project_id" name="project_id">
                                 <option value="">No Project</option>
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_task_point" class="form-label label-custom">Point</label>
                             <input type="number" class="form-control input-text" id="edit_task_point"
                                 name="point" value="1" min="1" required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_task_priority" class="form-label label-custom">Priority</label>
                             <select class="form-select input-select" id="edit_task_priority" name="priority"
                                 required>
@@ -208,7 +184,7 @@
                                 <option value="LOW">LOW</option>
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
                                 <div class="d-flex gap-2 align-items-center">
@@ -220,7 +196,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_task_reference_files" class="form-label label-custom">Reference
                                 Files</label>
                             <input type="file" class="form-control input-text" id="edit_task_reference_files"
@@ -229,7 +205,7 @@
                             <div id="existing_reference_files" class="mt-2"></div>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                         </div>
-                        <div class="mb-3 d-flex justify-content-between">
+                        <div class="mb-3 custom-input d-flex justify-content-between">
                             <div class="date-form">
                                 <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
                                 <input type="date" class="form-control input-text" id="edit_task_start_date"
@@ -241,7 +217,7 @@
                                     name="due_date" required>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_executor_input" class="form-label label-custom">Executor</label>
                             <input type="text" class="form-control input-text" id="edit_executor_input"
                                 name="edit_executor_input" autocomplete="off" placeholder="Search employees...">
@@ -328,28 +304,28 @@
                                 Please select an image file.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="task_title" class="form-label label-custom">Title</label>
                             <input type="text" class="form-control input-text" id="task_title" name="title"
                                 required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="task_description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="task_description" name="description" rows="6"></textarea>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="task_project_id" class="form-label label-custom">Project</label>
                             <select class="form-select input-select" id="task_project_id" name="project_id" required>
                                 <option value="">Select Project</option>
                                 <!-- Options to be populated dynamically -->
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="task_point" class="form-label label-custom">Point</label>
                             <input type="number" class="form-control input-text" id="task_point" name="point"
                                 value="1" min="1" required>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="task_priority" class="form-label label-custom">Priority</label>
                             <select class="form-select input-select" id="task_priority" name="priority" required>
                                 <option value="">Select Priority</option>
@@ -358,7 +334,7 @@
                                 <option value="LOW">LOW</option>
                             </select>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
                                 <div class="d-flex gap-2 align-items-center">
@@ -370,14 +346,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="task_reference_files"
                                 name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                             <div class="form-text">Multiple files supported.</div>
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
-                        <div class="mb-3 d-flex justify-content-between">
+                        <div class="mb-3 custom-input d-flex justify-content-between">
                             <div class="date-form">
                                 <label for="task_start_date" class="form-label label-custom">Start Date</label>
                                 <input type="date" class="form-control input-text" id="task_start_date"
@@ -389,7 +365,7 @@
                                     name="due_date" required>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="executor_input" class="form-label label-custom">Executor</label>
                             <input type="text" class="form-control input-text" id="executor_input"
                                 name="executor_input" autocomplete="off" placeholder="Search employees...">

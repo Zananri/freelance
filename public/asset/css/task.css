@@ -122,7 +122,6 @@
     height: auto !important;
     min-height: 100px;
     background-color: #f0f1f8;
-    margin-right: 15px;
     border: none;
     border-radius: 20px;
     display: flex;
@@ -293,7 +292,15 @@
 }
 
 .modal-header-custom {
-    border: 0;
+    position: sticky;
+    margin-bottom: 20px;
+    z-index: 1050;
+    border: none;
+}
+
+.modal-footer-custom {
+    position: sticky;
+    z-index: 1050;
 }
 
 .modal-title-custom {
@@ -312,7 +319,9 @@
     margin-top: -12px;
 }
 .modal-body-custom {
-    padding: 0;
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    padding: 8px;
 }
 
 .label-custom {
@@ -1092,8 +1101,8 @@ p {
         align-items: center;
         background: #ecedf5;
         border-radius: 8px;
-        padding: 2px 6px;
-        max-width: 100px;
+        width: 100%;
+        max-width: unset;
     }
 
     .search-input-container input {
@@ -1112,15 +1121,16 @@ p {
 
     .toggle-filter,
     .toggle-timeline {
-        min-width: 50px;
+        min-width: 45px;
+        min-height: 45px;
     }
 
     #taskFilterDropdownMobile {
         width: 200px;
         height: 300px;
         border: none;
-        left: 100px;
-        top: 250px;
+        left: 175px;
+        top: 275px;
         padding: 5px;
         background: #f0f1f8;
     }
@@ -1170,25 +1180,28 @@ p {
 
     #mobile-task-container {
         border-radius: 16px;
-        background: #fff;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        padding: 12px;
         height: 100vh;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
     }
 
-    #mobile-task-container.task-mobile-new {
+    .task-mobile-new {
         background: #a1a3a60d;
+        margin-left: -20px;
+        margin-right: -20px;
     }
 
-    #mobile-task-container.task-mobile-progress {
+    .task-mobile-progress {
         background: #edebdf5c;
+        margin-left: -20px;
+        margin-right: -20px;
     }
 
-    #mobile-task-container.task-mobile-completed {
+    .task-mobile-completed {
         background: #baeed340;
+        margin-left: -20px;
+        margin-right: -20px;
     }
 
     .task-mobile-card-header {
@@ -1197,7 +1210,7 @@ p {
         justify-content: flex-start;
         margin-bottom: 12px;
         flex-shrink: 0;
-        padding: 8px 0;
+        /* padding: 8px 0; */
         z-index: 10;
     }
 
@@ -1220,7 +1233,10 @@ p {
     #mobile-task-list {
         flex: 1;
         overflow-y: auto;
-        max-height: 375px;
+        height: calc(
+            100vh - 320px
+        );
+        max-height: unset;
     }
 
     #mobile-task-list::-webkit-scrollbar {
@@ -1629,6 +1645,7 @@ p {
     padding: 10px;
     width: 100px;
     font-size: 14px;
+    border: none;
 }
 
 .btn-add-custom:hover {
@@ -1643,6 +1660,7 @@ p {
     padding: 10px;
     width: 100px;
     font-size: 14px;
+    border: none;
 }
 
 .btn-schedule-custom:hover {
@@ -1827,4 +1845,10 @@ p {
 .btn-nav:disabled {
     opacity: 0.3;
     cursor: not-allowed;
+}
+
+.custom-input select,
+.custom-input input,
+.custom-input textarea {
+    border: none;
 }
