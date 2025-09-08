@@ -1,4 +1,10 @@
  document.addEventListener("DOMContentLoaded", function () {
+    // Mark touch devices to adjust hover behavior (prevents stuck grey overlay after second tap)
+    try {
+        if (("ontouchstart" in window) || navigator.maxTouchPoints > 0) {
+            document.body.classList.add('touch-device');
+        }
+    } catch(_) {}
     // Robust appUrl derivation: prefer meta, fallback to origin + first path segment (supports subfolders)
     let appUrl = (function(){
         try {
@@ -1922,6 +1928,15 @@ function renderSingleSection(status, sectionData) {
                     thumb.classList.remove('selected');
                     selectedPendingIds = selectedPendingIds.filter(id => String(id) !== String(taskId));
                     selectedAllNewIds = selectedAllNewIds.filter(id => String(id) !== String(taskId));
+                    // Force clear any residual hover overlay (mobile safari may keep pseudo state)
+                    try {
+                        const chk = thumb.querySelector('.thumb-check');
+                        if (chk) {
+                            chk.style.background = 'rgba(0,0,0,0)';
+                            const ic = chk.querySelector('.material-symbols-outlined');
+                            if (ic) ic.style.color = 'rgba(255,255,255,0)';
+                        }
+                    } catch(_) {}
                 } else {
                     // Single selection if checkbox not checked; if checked, add to list
                     thumb.classList.add('selected');
