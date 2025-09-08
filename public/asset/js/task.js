@@ -1418,9 +1418,20 @@ document.addEventListener("click", function (e) {
                 } catch(_) { return null; }
             })();
 
+            // Decide which text should drive initials/color (avoid placeholders like "No", "None", "No Project")
+            const avatarTitle = (function() {
+                const projTitle = (task.project_id ? (task.project_title || '') : '').trim();
+                const taskTitle = (task.title || '').trim();
+                const placeholderRegex = /^(no project|no|none|null|n\/a|na)$/i;
+                if (projTitle && !placeholderRegex.test(projTitle)) return projTitle;
+                if (taskTitle && !placeholderRegex.test(taskTitle)) return taskTitle;
+                // fallback: if both look placeholder, return first non-empty raw string or 'NA'
+                return projTitle || taskTitle || 'NA';
+            })();
+
             const useInitials = !projectImg;
-            const initials = useInitials ? buildProjectInitialsAvatar(task.project_title) : '';
-            const initialsColor = useInitials ? pickAvatarColor(task.project_title || initials) : '#6A5AE0';
+            const initials = useInitials ? buildProjectInitialsAvatar(avatarTitle) : '';
+            const initialsColor = useInitials ? pickAvatarColor(avatarTitle || initials) : '#6A5AE0';
     // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
@@ -1535,10 +1546,9 @@ document.addEventListener("click", function (e) {
             <div class="d-flex align-items-center mb-2 mt-2">
                 ${(function(){
                     // Fallback: if no project, still show initials avatar based on task title (schedule case)
-                    const fallbackTitle = task.project_id ? task.project_title : task.title;
                     const showInitials = !projectImg;
                     const avatarHtml = showInitials
-                        ? `<div class="project-initial-avatar${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(fallbackTitle)}</div>`
+                        ? `<div class="project-initial-avatar${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
                         : `<img src="${projectImg}" alt="Project Image" class="project-image${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`;
                     if (task.status === 'new_request' || task.status === 'new request') {
                         return `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
