@@ -4,13 +4,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('scheduleCreateLoader');
     let selectedFiles = [];
 
-    // Gunakan util global showFloatingAlert bila sudah didefinisikan oleh layout utama.
-    // Jika belum ada (fallback), pakai alert biasa.
-    function showScheduleAlert(message, type='success') {
-        if (typeof window.showFloatingAlert === 'function') {
-            window.showFloatingAlert(message, type);
+    // Gunakan gaya Settings (showAlertMsg di office.js). Mapping type bootstrap -> settings.
+    function showScheduleAlert(message, type='success', delayMs=2500){
+        const mapped = (function(t){
+            if(t==='danger') return 'error';
+            if(['success','warning','error','light'].includes(t)) return t;
+            return 'light';
+        })(type||'success');
+        if (typeof window.showAlertMsg === 'function') {
+            window.showAlertMsg(String(message||''), mapped, delayMs);
         } else {
-            alert(message);
+            // Fallback: simple alert (should rarely happen since layout includes office.js)
+            try { alert((message||'').replace(/<[^>]+>/g,'')); } catch(e) {}
         }
     }
 
@@ -30,8 +35,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displaySelectedFiles(){
         const preview = document.getElementById('schedule_reference_files_preview');
-        if(!preview) return; preview.innerHTML='';
-        selectedFiles.forEach((f,idx)=>{ const div=document.createElement('div'); div.className='small'; div.textContent=`${idx+1}. ${f.name}`; preview.appendChild(div); });
+        if(!preview) return;
+        preview.innerHTML='';
+
+        if(selectedFiles.length === 0) return;
+
+        const list = document.createElement('div');
+        list.className = 'selected-files-list mt-2';
+
+        selectedFiles.forEach((file, index)=>{
+            const item = document.createElement('div');
+            item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+
+            const info = document.createElement('div');
+            info.className = 'd-flex align-items-center flex-grow-1';
+
+            const icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined me-2';
+            icon.textContent = 'description';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'file-name';
+            nameSpan.textContent = file.name;
+
+            const size = document.createElement('small');
+            size.className = 'text-muted ms-1';
+            size.textContent = ` (${(file.size/1024/1024).toFixed(2)} MB)`;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-outline-danger';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', ()=>{ selectedFiles.splice(index,1); displaySelectedFiles(); });
+
+            info.appendChild(icon);
+            info.appendChild(nameSpan);
+            info.appendChild(size);
+            item.appendChild(info);
+            item.appendChild(removeBtn);
+            list.appendChild(item);
+        });
+
+        preview.appendChild(list);
     }
 
     const refInput = document.getElementById('schedule_reference_files');
