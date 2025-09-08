@@ -387,7 +387,7 @@
     transition: border-color 0.3s ease;
 }
 
-.form-control:not(textarea) {
+.input-text:not(textarea) {
     height: 45px !important;
 }
 
@@ -1121,8 +1121,8 @@ p {
 
     .toggle-filter,
     .toggle-timeline {
-        min-width: 45px;
-        min-height: 45px;
+        min-width: 40px;
+        min-height: 40px;
     }
 
     #taskFilterDropdownMobile {
@@ -1543,7 +1543,7 @@ p {
 
 .btn-icon-toggle {
     color: #333;
-    height: 45px;
+    height: 40px;
 }
 
 /* Arrow back icon styling - FIXED positioning and hover color */
@@ -1607,7 +1607,7 @@ p {
     border: none;
     background-color: #ecedf5;
     padding-left: 35px !important;
-    height: 43px;
+    height: 40px !important;
     border-radius: 10px;
 }
 
@@ -1616,8 +1616,8 @@ p {
     border-radius: 10px;
     justify-content: center;
     align-items: center;
-    width: 43px;
-    height: 43px;
+    width: 40px;
+    height: 40px;
     font-size: 24px;
     color: #858ca0;
     border: none;
@@ -1628,7 +1628,7 @@ p {
     border: none;
     border-radius: 10px;
     color: #555c6e;
-    height: 43px;
+    height: 40px;
 }
 
 .toggle-timeline:hover,

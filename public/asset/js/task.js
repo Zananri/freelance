@@ -1667,142 +1667,198 @@ document.addEventListener("click", function (e) {
     }
     window.toggleDescription = toggleDescription;
 
-    // Function to fetch and render tasks
-    let allTasksCache = null; // simpen semua data task
+const desktopState = {
+  new_request: { page: 1, last: 1, loading: false },
+  in_progress: { page: 1, last: 1, loading: false },
+  completed: { page: 1, last: 1, loading: false }
+};
 
-function fetchAndRenderTasks(statusKey = null, page = 1) {
-    const params = {};
-    if (statusKey) params.status = statusKey;
-    params.page = page;
+window.allTasksCache = window.allTasksCache || {};
+const allTasksCache = window.allTasksCache;
 
-    $.ajax({
-        url: appUrl + "/task/index",
-        type: "GET",
-        dataType: "json",
-        data: params,
-        success: function(response) {
-            console.log(response);
+const loaderMap = {
+  new_request: "#newTaskLoading",
+  in_progress: "#progressTaskLoading",
+  completed: "#completedTaskLoading"
+};
 
-            if (!response || response.code !== 200 || !response.data) return;
+const sectionMap = {
+  new_request: "new-request-tasks",
+  in_progress: "in-progress-tasks",
+  completed: "completed-tasks"
+};
 
-            // update cache biar gak ilang data lama
-            if (!allTasksCache) allTasksCache = {};
-            Object.keys(response.data).forEach(key => {
-                allTasksCache[key] = response.data[key];
-            });
+function fetchAndRenderTasks(statusKey = null, page = 1, append = false) {
+  const params = {};
+  if (statusKey) params.status = statusKey;
+  params.page = page;
 
-            if (statusKey) {
-                renderSingleSection(statusKey, allTasksCache[statusKey]);
-            } else {
-                renderTasks(allTasksCache);
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error("Error fetching tasks:", error);
+  if (statusKey && loaderMap[statusKey]) {
+    $(loaderMap[statusKey]).removeClass("d-none");
+  }
+
+  $.ajax({
+    url: appUrl + "/task/index",
+    type: "GET",
+    dataType: "json",
+    data: params,
+    success: function(response) {
+      if (!response || response.code !== 200 || !response.data) return;
+
+      if (statusKey) {
+        const respSection = response.data?.[statusKey] ?? { tasks: [], pagination: {} };
+        desktopState[statusKey].last = respSection?.pagination?.last_page || 1;
+
+        if (!allTasksCache[statusKey] || !append) {
+          allTasksCache[statusKey] = respSection;
+        } else {
+          allTasksCache[statusKey].tasks = [
+            ...(allTasksCache[statusKey].tasks || []),
+            ...(respSection.tasks || [])
+          ];
+          allTasksCache[statusKey].pagination = respSection.pagination || allTasksCache[statusKey].pagination;
         }
-    });
+
+        renderSingleSection(statusKey, respSection, append);
+        if (typeof updatePagination === "function") updatePagination(allTasksCache);
+      } else {
+        Object.keys(response.data).forEach(key => {
+          allTasksCache[key] = response.data[key];
+          if (desktopState[key]) {
+            desktopState[key].last = response.data[key]?.pagination?.last_page || 1;
+          }
+        });
+        renderTasks(allTasksCache);
+        if (typeof updatePagination === "function") updatePagination(allTasksCache);
+      }
+    },
+    error: function(xhr, status, error) {
+      console.error("Error fetching tasks:", error);
+    },
+    complete: function() {
+      if (statusKey && loaderMap[statusKey]) {
+        $(loaderMap[statusKey]).addClass("d-none");
+      }
+      if (statusKey && desktopState[statusKey]) {
+        desktopState[statusKey].loading = false;
+      }
+    }
+  });
 }
 
 function renderTasks(data) {
-    renderSingleSection("new_request", data.new_request);
-    renderSingleSection("in_progress", {
-        ...data.in_progress,
-        tasks: [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])]
-    });
-    renderSingleSection("completed", data.completed);
+  renderSingleSection("new_request", data.new_request, false);
+  renderSingleSection("in_progress", {
+    ...data.in_progress,
+    tasks: [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])]
+  }, false);
+  renderSingleSection("completed", data.completed, false);
 }
 
-function renderSingleSection(status, sectionData) {
-    const sectionMap = {
+function renderSingleSection(status, sectionData, append = false) {
+  const containerId = sectionMap[status];
+  if (!containerId) return;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!append) {
+    container.innerHTML = "";
+  }
+
+  const incomingTasks = sectionData?.tasks || [];
+
+  if (!append) {
+    if (status === 'new_request') {
+      const tasksSorted = (incomingTasks || []).slice().sort(function(a,b){
+        const pa = isViewerPendingExecutor(a) ? 1 : 0;
+        const pb = isViewerPendingExecutor(b) ? 1 : 0;
+        if (pa !== pb) return pb - pa;
+        try {
+          const da = new Date(a.due_date).getTime() || 0;
+          const db = new Date(b.due_date).getTime() || 0;
+          if (da !== db) return da - db;
+        } catch(_) {}
+        return (b.id||0) - (a.id||0);
+      });
+      tasksSorted.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+    } else {
+      (incomingTasks || []).forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+    }
+  } else {
+    (incomingTasks || []).forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+  }
+
+  addAttachFileIconListeners();
+  initBootstrapTooltips();
+  refreshAllUnreadBadges();
+  refreshAllLatestFeedbackSnippets();
+}
+
+function initDesktopInfiniteScroll() {
+  ["new_request", "in_progress", "completed"].forEach(status => {
+    const containerId = sectionMap[status];
+    $(document).on("scroll", `#${containerId}`, function () {
+      const el = this;
+      const state = desktopState[status];
+      if (!el || !state) return;
+      if (state.loading) return;
+
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+        if (state.page < state.last) {
+          state.loading = true;
+          state.page++;
+          if (loaderMap[status]) $(loaderMap[status]).removeClass("d-none");
+          fetchAndRenderTasks(status, state.page, true);
+        }
+      }
+    });
+  });
+}
+
+$(document).ready(function () {
+  $("#new-request-tasks, #in-progress-tasks, #completed-tasks").css({
+    "max-height": "calc(100vh - 220px)",
+    "overflow-y": "auto"
+  });
+
+  ["new_request", "in_progress", "completed"].forEach(status => {
+    desktopState[status].page = 1;
+    desktopState[status].loading = false;
+    fetchAndRenderTasks(status, 1, false);
+  });
+
+  initDesktopInfiniteScroll();
+});
+
+["new_request", "in_progress", "completed"].forEach(status => {
+    const containerId = {
         new_request: "new-request-tasks",
         in_progress: "in-progress-tasks",
         completed: "completed-tasks"
-    };
+    }[status];
 
-    const containerId = sectionMap[status];
-    if (!containerId) return;
+    $(`#${containerId}`).on("scroll", function () {
+        const el = this;
+        const st = desktopState[status];
 
-    const container = document.getElementById(containerId);
-    container.innerHTML = "";
+        if (st.loading) return;
 
-    if (sectionData?.tasks) {
-        // For New section: put invites pending acceptance by current viewer at the very top
-        const tasks = (status === 'new_request')
-            ? (sectionData.tasks || []).slice().sort(function(a,b){
-                const pa = isViewerPendingExecutor(a) ? 1 : 0;
-                const pb = isViewerPendingExecutor(b) ? 1 : 0;
-                if (pa !== pb) return pb - pa; // pending first
-                // optional tie-breakers: earlier due date first, then id desc
-                try {
-                    const da = new Date(a.due_date).getTime() || 0;
-                    const db = new Date(b.due_date).getTime() || 0;
-                    if (da !== db) return da - db;
-                } catch(_) {}
-                return (b.id||0) - (a.id||0);
-            })
-            : sectionData.tasks;
-
-        tasks.forEach(task => {
-            container.insertAdjacentHTML("beforeend", createTaskCard(task));
-        });
-    }
-
-    // Dropdown listeners are bound once globally; avoid rebinding here
-    addAttachFileIconListeners();
-    initBootstrapTooltips();
-    refreshAllUnreadBadges();
-    refreshAllLatestFeedbackSnippets();
-
-    updatePagination(allTasksCache);
-}
-
-
-    function updatePagination(data) {
-        const statusMap = {
-            new_request: {
-                containerId: "newTaskPagination",
-                prevBtnId: "prevPageBtnNew",
-                nextBtnId: "nextPageBtnNew",
-                infoId: "paginationInfoNew"
-            },
-            in_progress: {
-                containerId: "progressTaskPagination",
-                prevBtnId: "prevPageBtnProgress",
-                nextBtnId: "nextPageBtnProgress",
-                infoId: "paginationInfoProgress"
-            },
-            completed: {
-                containerId: "completedTaskPagination",
-                prevBtnId: "prevPageBtnCompleted",
-                nextBtnId: "nextPageBtnCompleted",
-                infoId: "paginationInfoCompleted"
+        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+            if (st.page < st.last) {
+                st.loading = true;
+                st.page++;
+                fetchAndRenderTasks(status, st.page, true);
             }
-        };
+        }
+    });
+});
 
-        Object.keys(statusMap).forEach(status => {
-            const pagination = data[status]?.pagination;
-            if (!pagination) return;
-
-            const { prevBtnId, nextBtnId, infoId } = statusMap[status];
-
-            const prevBtn = document.getElementById(prevBtnId);
-            const nextBtn = document.getElementById(nextBtnId);
-            const info = document.getElementById(infoId);
-            if (!prevBtn || !nextBtn || !info) return;
-
-            prevBtn.disabled = pagination.current_page <= 1;
-            nextBtn.disabled = pagination.current_page >= pagination.last_page;
-            info.textContent = `${pagination.current_page} of ${pagination.last_page}`;
-
-            prevBtn.onclick = () => {
-                if (pagination.current_page > 1) fetchAndRenderTasks(status, pagination.current_page - 1);
-            };
-
-            nextBtn.onclick = () => {
-                if (pagination.current_page < pagination.last_page) fetchAndRenderTasks(status, pagination.current_page + 1);
-            };
-        });
-    }
+$(document).ready(function () {
+    ["new_request", "in_progress", "completed"].forEach(status => {
+        desktopState[status].page = 1;
+        fetchAndRenderTasks(status, 1, false);
+    });
+});
 
     $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
     const query = this.value.trim();
@@ -5253,145 +5309,152 @@ function renderSingleSection(status, sectionData) {
         applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
     }
 
-    let mobilePage = 1;
-    let mobileLastPage = 1;
-    let isLoadingMobile = false;
-    let currentStatusMobile = "new_request";
+let mobileState = {
+  page: 1,
+  last: 1,
+  loading: false,
+  status: "new_request"
+};
 
-    // Fetch data
-    function fetchMobileTasks(status, page = 1, append = false) {
-    $.ajax({
-        url: appUrl + "/task/index",
-        type: "GET",
-        dataType: "json",
-        data: { status, page },
-        success: function (response) {
-        if (!response || response.code !== 200 || !response.data) return;
+function fetchMobileTasks(status, page = 1, append = false) {
+  if (mobileState.loading) return;
 
-        const data = response.data?.[status];
-        mobileLastPage = data?.pagination?.last_page || 1;
+  mobileState.loading = true;
+  if (!append) $("#mobile-task-list").empty();
 
-        renderMobileTasks(status, data, append);
-        },
-        error: function (xhr, status, error) {
-        console.error("Error fetching mobile tasks:", error);
-        },
-        complete: function () {
-        isLoadingMobile = false;
-        $("#mobileLoader").remove();
-        },
-    });
+  $("#mobile-task-list").append(
+    '<div id="mobileLoader" class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>'
+  );
+
+  $.ajax({
+    url: appUrl + "/task/index",
+    type: "GET",
+    dataType: "json",
+    data: { status, page },
+    success: function (response) {
+      if (!response || response.code !== 200 || !response.data) return;
+
+      const data = response.data?.[status];
+      mobileState.last = data?.pagination?.last_page || 1;
+
+      renderMobileTasks(status, data, append);
+    },
+    error: function (xhr, status, error) {
+      console.error("Error fetching mobile tasks:", error);
+    },
+    complete: function () {
+      mobileState.loading = false;
+      $("#mobileLoader").remove();
     }
+  });
+}
 
-    // Render data
-    function renderMobileTasks(status, data, append = false) {
-    const list = $("#mobile-task-list");
+function renderMobileTasks(status, data, append = false) {
+  const list = $("#mobile-task-list");
 
-    if (!append) list.empty();
+  if (!append) list.empty();
 
-    if (!data || !data.tasks || data.tasks.length === 0) {
-        if (!append) list.append('<div class="text-center text-muted py-3">No tasks found</div>');
-    } else {
-        data.tasks.forEach((task) => {
-        list.append(createTaskCard(task));
-        });
+  if (!data || !data.tasks || data.tasks.length === 0) {
+    if (!append) {
+      list.append('<div class="text-center text-muted py-3">No tasks found</div>');
     }
+  } else {
+    data.tasks.forEach(task => list.append(createTaskCard(task)));
+  }
+}
+
+function initMobileInfiniteScroll() {
+  $("#mobile-task-list").on("scroll", function () {
+    const el = this;
+    if (mobileState.loading) return;
+
+    const scrollBottom = el.scrollTop + el.clientHeight;
+
+    if (scrollBottom >= el.scrollHeight - 50) {
+      if (mobileState.page < mobileState.last) {
+        mobileState.page++;
+        fetchMobileTasks(mobileState.status, mobileState.page, true);
+      }
     }
+  });
+}
 
-    // Scroll listener
-    $(document).on("scroll", "#mobile-task-list", function () {
-        const el = this;
-        const scrollTop = el.scrollTop;
-        const clientHeight = el.clientHeight;
-        const scrollHeight = el.scrollHeight;
+$(document).ready(function () {
+  mobileState.page = 1;
+  mobileState.status = "new_request";
 
-        console.log("scroll:", scrollTop + clientHeight, "/", scrollHeight);
+  fetchMobileTasks(mobileState.status, 1, false);
+  initMobileInfiniteScroll();
 
-        if (scrollTop + clientHeight >= scrollHeight - 10) {
-            console.log("👉 HALO BREEEE udah sampe bawah (div)");
-        }
-    });
+  $("#taskStatusSelect").on("change", function () {
+    mobileState.status = $(this).val();
+    mobileState.page = 1;
+    mobileState.last = 1;
+    fetchMobileTasks(mobileState.status, 1, false);
+  });
+});
 
-    // Reset kalau status diganti
-    $("#taskStatusSelect").on("change", function () {
-        currentStatusMobile = $(this).val();
-        mobilePage = 1;
-        mobileLastPage = 1;
-        fetchMobileTasks(currentStatusMobile, 1, false);
-    });
-
-    // Initial load
     $(document).ready(function () {
-        fetchMobileTasks(currentStatusMobile, 1, false);
-    });
+    const mobileCardHtml = `
+        <div class="mobile-task-container p-3 rounded-4 d-md-none">
+        <div class="task-mobile-status mb-2">
+            <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
+            <option value="new_request">New</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            </select>
+        </div>
+        <div class="task-mobile-actions d-flex justify-content-between align-items-center mb-3">
+            <div class="search-input-container flex-grow-1 me-2">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
+            </div>
+            <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
+            <span class="material-symbols-outlined">calendar_month</span>
+            </button>
+            <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+            <span class="material-symbols-outlined">filter_list</span>
+            </button>
+        </div>
+        <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
+            <div class="dropdown-filter-body">
+            <div class="mb-3">
+                <label for="filterTaskProjectMobile" class="form-label">Project</label>
+                <select id="filterTaskProjectMobile" class="form-select">
+                <option value="">All Projects</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="filterTaskStatusMobile" class="form-label">Status</label>
+                <select id="filterTaskStatusMobile" class="form-select">
+                <option value="">All Status</option>
+                <option value="new_request">New Request</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            </div>
+            <div class="dropdown-filter-footer">
+            <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
+            </div>
+        </div>
+        <div id="mobile-task-list" style="max-height: calc(100vh - 320px); overflow-y: auto;"></div>
+        </div>`;
 
+    $("#task-cards-container").before(mobileCardHtml);
 
-    $(document).ready(function () {
-        const mobileCardHtml = `
-            <div class="mobile-task-container p-3 rounded-4 d-md-none">
-
-                <div class="task-mobile-status mb-2">
-                    <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
-                        <option value="new_request">New</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
-
-                <div class="task-mobile-actions d-flex justify-content-between align-items-center mb-3">
-                    <div class="search-input-container flex-grow-1 me-2">
-                        <span class="material-symbols-outlined search-icon">search</span>
-                        <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
-                    </div>
-
-                    <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
-                        <span class="material-symbols-outlined">calendar_month</span>
-                    </button>
-
-                    <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
-                        <span class="material-symbols-outlined">filter_list</span>
-                    </button>
-                </div>
-
-                <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
-                    <div class="dropdown-filter-body">
-                        <div class="mb-3">
-                            <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                            <select id="filterTaskProjectMobile" class="form-select">
-                                <option value="">All Projects</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="filterTaskStatusMobile" class="form-label">Status</label>
-                            <select id="filterTaskStatusMobile" class="form-select">
-                                <option value="">All Status</option>
-                                <option value="new_request">New Request</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="dropdown-filter-footer">
-                        <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
-                    </div>
-                </div>
-
-                <div id="mobile-task-list"></div>
-            </div>`;
-
-      function toggleDropdownFilter() {
+    function toggleDropdownFilter() {
         let dropdown = $(".dropdown-filter-container");
-        if ($(window).width() <= 768) {
-        dropdown.hide();
-        } else {
-        dropdown.show();
-        }
+        if ($(window).width() <= 768) dropdown.hide();
+        else dropdown.show();
     }
     toggleDropdownFilter();
     $(window).on("resize", toggleDropdownFilter);
 
-    $("#task-cards-container").before(mobileCardHtml);
+    // 👇 sekarang baru init scroll + fetch
+    initMobileInfiniteScroll();
+    fetchMobileTasks(mobileState.status, 1, false);
 
     $("#taskStatusSelect").on("change", function () {
         fetchMobileTasks($(this).val(), 1);
@@ -5401,9 +5464,6 @@ function renderSingleSection(status, sectionData) {
     });
 
 });
-
-// let allTasksCache = null;
-
 
 // Toggle filter mobile
 $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
