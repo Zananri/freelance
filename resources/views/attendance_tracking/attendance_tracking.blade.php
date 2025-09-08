@@ -150,12 +150,78 @@
                         <div class="mb-4 text-center">
                             <span class="fw-normal fs-14 text-secondary attendance-date">8 September 2025</span>
                         </div>
-                        <div class="mb-3 pb-2 border-bottom border-3">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3"><img src="" alt="" class="photo-employee"></div>
-                                <div class="w-100"><span class="employee-name fw-normal fs-14">Employee Name</span></div>
+
+                        <div class="mb-2 pb-2 border-bottom border-3">
+                            <div class="d-flex mb-2 justify-content-between align-items-center w-100">
+                                <div>
+                                    <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                </div>
+                                <div>
+                                    <div class="employee-name fw-normal fs-14">00 : 00 - 00 : 00</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <div>
+                                        <div class="fs-14 text-secondary fw-normal">Shift</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-shift fs-14 fw-normal">00 : 00 - 00 : 00</div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        </div>
+
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <div>
+                                    <div class="fs-14 text-secondary fw-normal">Shift</div>
+                                </div>
+                                <div>
+                                    <div class="text-shift fs-14 fw-normal">00 : 00 - 00 : 00</div>
+                                </div>
                             </div>
                         </div>
+
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <div>
+                                    <div class="fs-14 text-secondary fw-normal">Check In</div>
+                                </div>
+                                <div>
+                                    <div class="text-checkin  fs-14 fw-normal">00 : 00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <div>
+                                    <div class="fs-14 text-secondary fw-normal">Check Out</div>
+                                </div>
+                                <div>
+                                    <div class="text-checkout  fs-14 fw-normal">00 : 00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <div>
+                                    <div class="fs-14 text-secondary fw-normal">Work Duration</div>
+                                </div>
+                                <div>
+                                    <div class="text-checkout  fs-14 fw-normal">00 : 00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        
+
+                        
 
                         
                         
