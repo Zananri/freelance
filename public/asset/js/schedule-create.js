@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 r.readAsDataURL(input.files[0]);
             }
         });
-        clearBtn.addEventListener('click', (e)=>{ e.preventDefault(); input.value=''; label.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`; label.classList.remove('has-image'); clearBtn.classList.add('d-none'); });
+    clearBtn.addEventListener('click', (e)=>{ e.preventDefault(); input.value=''; label.style.backgroundImage = ''; label.classList.remove('has-image'); clearBtn.classList.add('d-none'); });
     }
     setupImageInput('schedule_image','scheduleImageLabel','scheduleImageClearBtn');
 

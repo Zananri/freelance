@@ -35,7 +35,7 @@
 .photo-upload,
 .custom-image-upload-photo {
     width: 160px;
-    height: 160px;
+    height: 160px; /* square */
     background-position: center center;
     background-repeat: no-repeat;
     background-size: 100% 100%;
@@ -214,8 +214,11 @@
 }
 
 /* Remove any default background icon duplication on schedule image */
-#scheduleImageLabel,
-#scheduleImageLabel.photo-upload {
+#scheduleImageLabel {
+    background-position: center;
+    background-size: cover;
+}
+#scheduleImageLabel:not(.has-image) {
     background: none !important;
 }
 
