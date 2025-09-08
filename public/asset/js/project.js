@@ -236,9 +236,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let currentPage = 1;
 
+    // Unified initials logic (match task.js style) + placeholder filtering
     function getInitials(title) {
-        if (!title) return "?";
-        return title.charAt(0).toUpperCase();
+        const text = (title || '').trim();
+        if (!text) return 'NA';
+        const placeholder = /^(no project|no|none|null|n\/a|na)$/i;
+        if (placeholder.test(text)) return 'NA';
+        const parts = text.split(/\s+/).filter(Boolean);
+        if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+        return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+    }
+
+    // Deterministic background color based on title (avoid random color changing each reload)
+    function getInitialsColor(title) {
+        const colors = [
+            '#6A5AE0', '#FF8A3C', '#00A881', '#D4526E', '#3E8EDE',
+            '#546E7A', '#8E44AD', '#2E7D32', '#AD1457', '#EF6C00'
+        ];
+        const key = (title || 'NA');
+        let hash = 0;
+        for (let i=0;i<key.length;i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+        return colors[hash % colors.length];
     }
 
     // Load project card data and generate cards dynamically
@@ -284,12 +302,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ${
                                                 imageUrl
                                                     ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
-                                                    : `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                                            style="width:34px;height:34px;background:#${Math.floor(
-                                                                Math.random() * 16777215
-                                                            ).toString(16)};color:#fff;font-size:14px;font-weight:600;">
-                                                            ${getInitials(project.title)}
-                                                    </div>`
+                                                    : (function(){
+                                                        const init = getInitials(project.title);
+                                                        const color = getInitialsColor(project.title);
+                                                        return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\"
+                                                            style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`;
+                                                    })()
                                             }
                                             <h6 class="mb-0" style="font-size:14px; font-weight:600;">${project.title}</h6>
                                         </div>
