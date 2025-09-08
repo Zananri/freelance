@@ -53,17 +53,33 @@
     // Expose globally for use outside this block
     window.initBootstrapTooltips = initBootstrapTooltips;
 
+    // Listen for global avatar update: refresh visible task cards (minimal: update any img[data-avatar-universal])
+    window.addEventListener('profilePictureUpdated', function(e){
+        try {
+            // Update any universal avatar images
+            document.querySelectorAll('img[data-avatar-universal], img[data-global-avatar]').forEach(function(img){
+                const srcClean = img.src.replace(/\?t=\d+$/,'');
+                img.src = srcClean + '?t=' + Date.now();
+            });
+            // Optional: if a global function to refetch tasks exists
+            if (typeof fetchAndRenderTasks === 'function') {
+                fetchAndRenderTasks();
+            }
+        } catch(err) { console.warn('Task avatar refresh error', err); }
+    });
+
     // Normalize various user_photo values to a valid absolute URL
     // Supports: full http(s), paths starting with '/', 'file/...', 'asset/...', or plain filenames
-    function buildPhotoUrl(userPhoto) {
+    function buildPhotoUrl(userPhoto, profilePicture, profilePictureUrl) {
         try {
-            if (!userPhoto) return appUrl + '/asset/img/profile_picture/default.png';
-            if (typeof userPhoto !== 'string') userPhoto = String(userPhoto || '');
-            const up = userPhoto.trim();
-                if (up.startsWith('http://') || up.startsWith('https://')) return up;
-            if (up.startsWith('/')) return appUrl + up; // includes '/file/...', '/asset/...'
+            // Prioritise universal avatar (profile_pictureUrl > profilePicture) then fallback userPhoto
+            let candidate = profilePictureUrl || profilePicture || userPhoto;
+            if (!candidate) return appUrl + '/asset/img/profile_picture/default.png';
+            if (typeof candidate !== 'string') candidate = String(candidate || '');
+            const up = candidate.trim();
+            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+            if (up.startsWith('/')) return appUrl + up;
             if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
-            // bare filename stored
             return appUrl + '/file/profile_picture/' + up;
         } catch (_) {
             return appUrl + '/asset/img/profile_picture/default.png';
@@ -502,7 +518,7 @@
                     const isChecked = selectedEmployees.some(
                         (e) => e.id === emp.id
                     );
-            const photoUrl = buildPhotoUrl(emp.user_photo);
+            const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
             return `
                     <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                         <div class="d-flex align-items-center">
@@ -556,7 +572,7 @@
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                const photoUrl = buildPhotoUrl(emp.user_photo);
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
 
                 const badge = document.createElement("span");
                 badge.className =
@@ -910,7 +926,7 @@
             if (filtered.length === 0){ dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
             dropdown.innerHTML = filtered.map(emp => {
                 const isChecked = selected.some(e => e.id === emp.id);
-                const photoUrl = buildPhotoUrl(emp.user_photo);
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
         return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
             <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/profile_picture/default.png'"><span>${emp.name}</span></div>
                         <input type="checkbox" class="schedule-executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
@@ -930,7 +946,7 @@
         function renderSelected(){
             selectedContainer.innerHTML = '';
             selected.forEach(emp => {
-                const photoUrl = buildPhotoUrl(emp.user_photo);
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
                 const badge = document.createElement('span'); badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
                 const img = document.createElement('img'); img.src = photoUrl; img.alt = emp.name; img.className = 'rounded-circle me-2'; img.style.width='24px'; img.style.height='24px'; img.style.objectFit='cover';
                 const nameSpan = document.createElement('span'); nameSpan.textContent = emp.name;
@@ -1158,7 +1174,7 @@
                     const isChecked = selectedEmployees.some(
                         (e) => e.id === emp.id
                     );
-            const photoUrl = buildPhotoUrl(emp.user_photo);
+            const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
                     return `
                     <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                         <div class="d-flex align-items-center">
@@ -1212,7 +1228,7 @@
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                const photoUrl = buildPhotoUrl(emp.user_photo);
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
 
                 const badge = document.createElement("span");
                 badge.className =
