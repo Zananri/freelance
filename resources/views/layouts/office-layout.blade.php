@@ -322,14 +322,26 @@
 
     <!-- Notification Dropdown Card -->
     <div id="notificationDropdownCard" class="card shadow-sm rounded-5" style="display: none;">
-        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" id="closeNotificationDropdown"
-            aria-label="Close"></button>
+        
+
+        <div class="position-absolute top-0 end-0" id="closeNotificationDropdown">
+            <span class="material-symbols-outlined">
+            close
+            </span>
+        </div>
+        
         <div class="card-body p-0">
             <div class="p-3 border-bottom">
-                <h5 class="fw-semibold mb-0">
-                    <span class="material-symbols-outlined me-2 align-middle">notifications</span>
-                    Notifications
-                </h5>
+                <div class="d-flex w-100 align-items-center">
+                    <div class="icon-notification">
+                        <span class="material-symbols-outlined me-2 align-middle fs-18 text-secondary">notifications</span>
+                    </div>
+                    <div class="text-notification">
+                        <span class="fs-14 fw-medium">
+                            Notification
+                        </span>
+                    </div>
+                </div>
             </div>
             <div class="px-3 pt-2 pb-2 border-bottom">
                 <label for="notificationSelectAll" class="nsa-selectall-chip">
