@@ -30,14 +30,14 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="mb-0 table-title">List Employee</h5>
 
-            <div class="d-flex gap-1 ml-neg-5">
-                <div class="input-group min-width-200 height-38">
-                    <input type="text" id="searchInput" class="form-control input-soft border-dddd height-38"
+            <div class="d-flex gap-1">
+                <div class="input-group search-input-container">
+                    <input type="text" id="searchInput" class="form-control border-dddd height-38"
                         placeholder="Search" />
                 </div>
                 <!-- Replace dropdown filter with button to open modal -->
-                <button class="btn btn-icon-toggle border-dddd" type="button" id="openFilterModalBtn">
-                    <span class="material-symbols-outlined icon">filter_list</span> Filter
+                <button class="btn btn-icon-toggle border-dddd filter-btn" type="button" id="openFilterModalBtn">
+                    <span class="material-symbols-outlined icon">filter_list</span><span class="text-btn">Filter</span>
                 </button>
 
                 <!-- Filter Modal -->
@@ -80,8 +80,8 @@
                     </div>
                 </div>
 
-                <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd">
-                    <span class="material-symbols-outlined icon">add</span> Add Data
+                <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd add-btn">
+                    <span class="material-symbols-outlined icon">add</span><span class="text-btn">Add Data</span>
                 </a>
             </div>
         </div>
@@ -105,7 +105,7 @@
             </div>
         </div>
     </div>
-  
+
 
     <div class="alert-delete-container mb-3" style="width: 100%;"></div>
 
@@ -188,5 +188,5 @@
         <script></script>
     </x-slot>
 
-   
+
 </x-office-layout>
