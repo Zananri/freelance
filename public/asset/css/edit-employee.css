@@ -1,87 +1,19 @@
-/* Remodeled CSS for Edit Employee page based on create employee design */
-
 .mb-0 {
     font-size: 20px;
 }
 
-
-/* Stack photo and KTP upload vertically */
-.custom-image-upload-photo,
-.custom-image-upload-ktp {
-    display: block;
+.edit-employee-container {
+    margin-top: 20px;
     width: 100%;
-    height: 150px;
-    background-size: cover;
-    background-position: center;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-    cursor: pointer;
-    position: relative;
-    margin-bottom: 15px;
+    font-size: 14px;
 }
 
-/* Clear button position */
-.image-clear-btn {
-    position: absolute;
-    top: 5px;
-    right: 8px;
-    font-size: 20px;
-    color: #ff0000;
-    cursor: pointer;
-    user-select: none;
+.form-container {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    padding: 8px;
 }
 
-/* Submit button centered below form */
-.btn-submit-black {
-    background-color: #000;
-    color: #fff;
-    padding: 8px 20px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.btn-submit-black:hover {
-    background-color: #333;
-}
-
-/* Remove flex gap on photo and KTP container to stack vertically */
-.d-flex.gap-3 {
-    gap: 0 !important;
-    flex-direction: column !important;
-}
-
-/* Adjust right section column width */
-.col-md-3 {
-    max-width: 25% !important;
-}
-
-.image-clear-btn {
-    position: absolute;
-    top: -13px;
-    right: -13px;
-    background: #dc3545;
-    color: #fff;
-    font-size: 22px;
-    font-weight: bold;
-    border-radius: 50%;
-    width: 26px;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 2;
-    transition: background 0.2s;
-    opacity: 0.85;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-.image-clear-btn:hover {
-    background: #b02a37;
-    opacity: 1;
-}
-
-/* Photo upload styling */
 .photo-upload::before {
     content: "";
     position: absolute;
@@ -89,7 +21,7 @@
     left: 50%;
     width: 40%;
     height: 40%;
-    background-image: url('../img/background/add-image.png');
+    background-image: url("../img/background/add-image.png");
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
@@ -103,6 +35,7 @@
     opacity: 0;
 }
 
+/* Photo upload specific styles */
 .photo-upload.custom-image-upload-photo {
     width: 160px;
     height: 250px;
@@ -115,6 +48,18 @@
     position: relative;
     opacity: 0.5;
     transition: opacity 0.3s ease;
+}
+
+@media (max-width: 576px) {
+    .photo-upload.custom-image-upload-photo {
+        width: 40vw;
+        height: 60vw;
+    }
+
+    .ktp-upload.custom-image-upload-ktp {
+        width: 50vw;
+        height: 70vw;
+    }
 }
 
 .photo-upload.has-image {
@@ -157,7 +102,6 @@
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
 
-/* KTP upload styling */
 .ktp-upload::before {
     content: "";
     position: absolute;
@@ -165,7 +109,7 @@
     left: 50%;
     width: 40%;
     height: 40%;
-    background-image: url('../img/background/add-image.png');
+    background-image: url("../img/background/add-image.png");
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
@@ -179,6 +123,7 @@
     opacity: 0;
 }
 
+/* KTP upload specific styles */
 .ktp-upload.custom-image-upload-ktp {
     width: 250px;
     height: 160px;
@@ -233,6 +178,7 @@
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
 
+/* Form layout styling */
 .body-content form .row {
     gap: 1rem;
 }
@@ -245,6 +191,151 @@
 
 .body-content form .col-md-4.align-items-center {
     align-items: center;
+}
+
+/* Profile picture upload styling */
+.photo-upload {
+    width: 160px;
+    height: 160px;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.custom-image-upload-photo {
+    position: relative;
+    display: inline-block;
+    width: 160px;
+    height: 160px;
+    background-size: 40% auto;
+    background-position: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5;
+}
+
+.custom-image-upload-photo.has-image {
+    opacity: 1;
+}
+
+.custom-image-upload-photo:hover {
+    border-color: #333;
+}
+
+.custom-image-upload-photo.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.custom-image-upload-photo.is-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.ktp-upload.has-image {
+    opacity: 1;
+}
+
+.ktp-upload:hover {
+    opacity: 0.8;
+}
+
+.ktp-upload {
+    width: 160px;
+    height: 160px;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.ktp-upload.has-image {
+    opacity: 1;
+}
+
+.ktp-upload:hover {
+    opacity: 0.8;
+}
+
+.custom-image-upload-ktp {
+    position: relative;
+    display: inline-block;
+    width: 160px;
+    height: 160px;
+    background-size: 40% auto;
+    background-position: center;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.3s ease, opacity 0.3s ease;
+    opacity: 0.5;
+}
+
+.custom-image-upload-ktp.has-image {
+    opacity: 1;
+}
+
+.custom-image-upload-ktp:hover {
+    border-color: #333;
+}
+
+.custom-image-upload-ktp.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.custom-image-upload-ktp.is-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.image-clear-btn {
+    position: absolute;
+    top: -13px;
+    right: -13px;
+    background: #dc3545;
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background 0.2s;
+    opacity: 0.85;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.image-clear-btn:hover {
+    background: #b02a37;
+    opacity: 1;
+}
+
+.title-label-image {
+    display: block;
+    font-size: 16px;
+    color: #222;
+    margin-bottom: 10px;
+    margin-left: 2px;
+    font-family: inherit;
+    line-height: 1.5;
+    margin-top: 8px;
 }
 
 .btn-submit-custom {
@@ -295,7 +386,16 @@
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg);}
-    100% { transform: rotate(360deg);}
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
+.custom-form-employee input,
+.custom-form-employee select,
+.custom-form-employee textarea {
+    border: none;
+}
