@@ -1850,6 +1850,32 @@ function renderSingleSection(status, sectionData) {
     // Also track all selected ids in New (for Progress action)
     let selectedAllNewIds = [];
 
+        // NEW: hide select-all label initially
+        const _selectAllLabelInitial = document.querySelector('.task-selectall-toggle');
+        if (_selectAllLabelInitial) {
+            // Force element to occupy space from start to avoid layout shift
+            if (getComputedStyle(_selectAllLabelInitial).display === 'none') {
+                _selectAllLabelInitial.style.display = 'inline-flex';
+            }
+            _selectAllLabelInitial.style.visibility = 'hidden';
+            _selectAllLabelInitial.style.opacity = '0';
+        }
+
+        // NEW: control visibility of select-all checkbox label
+        function updateSelectAllVisibility(){
+            const label = document.querySelector('.task-selectall-toggle');
+            if (!label) return;
+            if (selectedAllNewIds.length > 0) {
+                label.style.visibility = 'visible';
+                label.style.opacity = '1';
+            } else {
+                const cb = document.getElementById('taskNewAcceptAll');
+                if (cb) cb.checked = false;
+                label.style.visibility = 'hidden';
+                label.style.opacity = '0';
+            }
+        }
+
         function collectPendingNewTaskIds(){
             // When viewer is executor and not accepted, cards render Accept/Reject buttons; pick those
             const cards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card'));
@@ -1919,6 +1945,7 @@ function renderSingleSection(status, sectionData) {
                 });
             }
             updateBulkHeaderButtons();
+            updateSelectAllVisibility(); // NEW
         });
 
         // Bulk action icon opens confirmation modal, then runs accept
@@ -1939,6 +1966,7 @@ function renderSingleSection(status, sectionData) {
                     if (!selectedAllNewIds.includes(taskId)) selectedAllNewIds.push(taskId);
                 }
                 updateBulkHeaderButtons();
+                updateSelectAllVisibility(); // NEW
                 return;
             }
 
@@ -1981,6 +2009,7 @@ function renderSingleSection(status, sectionData) {
                     // clear UI selected class
                     document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                     updateBulkHeaderButtons();
+                    updateSelectAllVisibility(); // NEW
                 });
             });
         });
@@ -2021,6 +2050,7 @@ function renderSingleSection(status, sectionData) {
                 document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                 fetchAndRenderTasks();
                 updateBulkHeaderButtons();
+                updateSelectAllVisibility(); // NEW
                 try { showFloatingAlert('Task moved to In Progress', 'success'); } catch(_) {}
                 return;
             }
@@ -2056,6 +2086,7 @@ function renderSingleSection(status, sectionData) {
                     document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                     fetchAndRenderTasks();
                     updateBulkHeaderButtons();
+                    updateSelectAllVisibility(); // NEW
                     try { showFloatingAlert(`${movableIds.length} tasks moved to In Progress`, 'success'); } catch(_) {}
                 });
             };
@@ -2071,23 +2102,39 @@ function renderSingleSection(status, sectionData) {
             const bulkProgress = document.getElementById('taskNewBulkProgress');
 
             if (bulkAccept) {
-                // Show Accept only if there are pending selected; hide otherwise
-                bulkAccept.style.display = anyPendingSelected ? 'inline-flex' : 'none';
+                // Keep element in flow; toggle visibility only
+                if (getComputedStyle(bulkAccept).display === 'none') bulkAccept.style.display = 'inline-flex';
+                bulkAccept.style.visibility = anyPendingSelected ? 'visible' : 'hidden';
+                bulkAccept.style.opacity = anyPendingSelected ? '1' : '0';
                 bulkAccept.disabled = !anyPendingSelected;
             }
             if (bulkProgress) {
-                // Arrow visible only when any selection exists
-                bulkProgress.style.display = hasAnySelection ? 'inline-flex' : 'none';
+                if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
+                bulkProgress.style.visibility = hasAnySelection ? 'visible' : 'hidden';
+                bulkProgress.style.opacity = hasAnySelection ? '1' : '0';
                 bulkProgress.disabled = !allAcceptedSelected;
             }
+            // Ensure visibility sync each time state recalculated
+            updateSelectAllVisibility(); // NEW
         }
 
         // initialize bulk button hidden and disabled by default
         document.addEventListener('DOMContentLoaded', function(){
             const bulkAccept = document.getElementById('taskNewBulkAction');
             const bulkProgress = document.getElementById('taskNewBulkProgress');
-            if (bulkAccept) { bulkAccept.disabled = true; bulkAccept.style.display = 'none'; }
-            if (bulkProgress) { bulkProgress.disabled = true; bulkProgress.style.display = 'none'; }
+            if (bulkAccept) {
+                if (getComputedStyle(bulkAccept).display === 'none') bulkAccept.style.display = 'inline-flex';
+                bulkAccept.style.visibility = 'hidden';
+                bulkAccept.style.opacity = '0';
+                bulkAccept.disabled = true;
+            }
+            if (bulkProgress) {
+                if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
+                bulkProgress.style.visibility = 'hidden';
+                bulkProgress.style.opacity = '0';
+                bulkProgress.disabled = true;
+            }
+            updateSelectAllVisibility(); // NEW
         });
     })();
 
