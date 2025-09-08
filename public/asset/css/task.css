@@ -528,7 +528,7 @@
     background: #ecedf5;
     border: 1px solid #e5e7ef;
     cursor: pointer;
-    transition: background-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     margin-right: 20px; /* keep same inner spacing as the left title padding */
 }
 
@@ -555,7 +555,7 @@
     display: none;
 }
 .task-bulk-icon[disabled] {
-    opacity: .45;
+    opacity: 0.45;
     cursor: not-allowed;
 }
 .task-bulk-icon .material-symbols-outlined {
@@ -567,7 +567,10 @@
 .task-bulk-icon:hover {
     color: #111 !important;
     --bs-bg-opacity: 1;
-    background-color: rgba(var(--bs-white-rgb), var(--bs-bg-opacity)) !important; /* mimic arrow icon hover */
+    background-color: rgba(
+        var(--bs-white-rgb),
+        var(--bs-bg-opacity)
+    ) !important; /* mimic arrow icon hover */
 }
 .task-selectall-toggle:hover {
     background: #e9edf5;
@@ -590,7 +593,7 @@
     border-color: #5770d5;
 }
 .task-selectall-input:checked::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 2px;
     left: 5px;
@@ -623,22 +626,26 @@
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: rgba(0,0,0,0); /* transparent by default */
+    background: rgba(0, 0, 0, 0); /* transparent by default */
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background .15s ease-in-out, transform .15s ease-in-out, color .15s ease-in-out;
+    transition: background 0.15s ease-in-out, transform 0.15s ease-in-out,
+        color 0.15s ease-in-out;
 }
 .task-selectable-thumb .thumb-check .material-symbols-outlined {
     font-size: 18px;
     line-height: 1;
-    color: rgba(255,255,255,0); /* hidden by default */
+    color: rgba(255, 255, 255, 0); /* hidden by default */
 }
-.task-selectable-thumb:hover .thumb-check {
-    background: grey; /* soft dark overlay */
-}
-.task-selectable-thumb:hover .thumb-check .material-symbols-outlined {
-    color: rgba(255,255,255,0.7); /* soft white check */
+
+@media (hover: hover) and (pointer: fine) {
+    .task-selectable-thumb:hover .thumb-check {
+        background: grey; /* soft dark overlay */
+    }
+    .task-selectable-thumb:hover .thumb-check .material-symbols-outlined {
+        color: rgba(255, 255, 255, 0.7); /* soft white check */
+    }
 }
 .task-selectable-thumb.selected .thumb-check {
     background: #5770d5; /* same as select-all */
