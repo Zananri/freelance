@@ -15,7 +15,15 @@ class TeamsController extends Controller
 
     public function showTeamsPage()
     {
-        $employee = Employee::select('employees.id','employees.department_id','employees.name','employees.status','employees.user_id','employees.photo',
+        $employee = Employee::select(
+            'employees.id',
+            'employees.department_id',
+            'employees.name',
+            'employees.status',
+            'employees.user_id',
+            'employees.photo',
+            'employees.profile_picture', // new unified avatar field
+            'users.photo as user_photo', // fallback legacy user photo
             'job_list.job_name'
         )
         ->join('job_list','employees.job_id','=','job_list.id')
@@ -45,7 +53,10 @@ class TeamsController extends Controller
             $idEmployee = $request->ID_EMPLOYEE;
         }
 
-        $employee = Employee::with('division', 'department', 'job','grade')->where('status',"ACTIVE")->where('id', $idEmployee)->first();
+        $employee = Employee::with('division', 'department', 'job','grade','user')
+            ->where('status',"ACTIVE")
+            ->where('id', $idEmployee)
+            ->first();
 
         if(!$employee){
             return response()->json([

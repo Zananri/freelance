@@ -1,6 +1,50 @@
 var appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute("content") || '').replace(/\/$/, '');
 console.log('Project.js appUrl:', appUrl);
 
+// Global avatar cache-bust version (updated when profile picture changes)
+window.__avatarVersion = Date.now();
+function appendAvatarVersion(url){
+    try {
+        if(!url) return url;
+        if(/\?(.*)(t|v)=/.test(url)) return url; // already has timestamp param
+        const sep = url.includes('?') ? '&' : '?';
+        return url + sep + 't=' + window.__avatarVersion;
+    } catch(_) { return url; }
+}
+
+// Global avatar builder (used by add/edit modals). Priority: profile_picture_url > profile_picture > user_photo (raw can be any).
+if (typeof window.buildAvatarUrl !== 'function') {
+    window.buildAvatarUrl = function(raw){
+        if(!raw) return appendAvatarVersion(appUrl + '/asset/img/profile_picture/default.png');
+        try {
+            raw = String(raw).trim();
+            const trimmed = raw.replace(/^\/+/, '');
+            if(/^https?:\/\//i.test(raw)) return appendAvatarVersion(raw);
+            if(/^(file\/|asset\/|storage\/)/.test(trimmed)) return appendAvatarVersion(appUrl + '/' + trimmed);
+            if(raw.startsWith('/')) return appendAvatarVersion(appUrl + raw);
+            if(raw.indexOf('/') !== -1) return appendAvatarVersion(appUrl + '/' + trimmed);
+            return appendAvatarVersion(appUrl + '/file/profile_picture/' + raw);
+        } catch(_) { return appendAvatarVersion(appUrl + '/asset/img/profile_picture/default.png'); }
+    };
+}
+
+window.addEventListener('profilePictureUpdated', function(){
+    window.__avatarVersion = Date.now();
+    // Update any collaborator images in add/edit modals
+    document.querySelectorAll('#selected_co_authors img, #selected_contributors img, #edit_selected_co_authors img, #edit_selected_contributors img, #co_author_dropdown img, #contributor_dropdown img, #edit_co_author_dropdown img, #edit_contributor_dropdown img').forEach(function(img){
+        try { img.src = img.src.replace(/\?t=\d+$/, ''); img.src = appendAvatarVersion(img.src); } catch(_) {}
+    });
+    // Trigger re-fetch if modals are open
+    try {
+        if(document.getElementById('addProjectModal')?.classList.contains('show')) {
+            if(typeof window.__refreshAddProjectEmployees === 'function') window.__refreshAddProjectEmployees();
+        }
+        if(document.getElementById('editProjectModal')?.classList.contains('show')) {
+            if(typeof window.__refreshEditProjectEmployees === 'function') window.__refreshEditProjectEmployees();
+        }
+    } catch(_) {}
+});
+
 document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.getElementById("department");
     const divisionSelect = document.getElementById("division");
@@ -1055,7 +1099,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 },
                                 dataType: "json",
                                 success: function (data) {
-                                    employees = data.data || [];
+                                    employees = (data.data || []).map(function(e){
+                                        const candidate = e.profile_picture_url || e.profile_picture || e.user_photo;
+                                        e.user_photo = candidate;
+                                        return e;
+                                    });
                                     filteredEmployees = employees;
                                     renderDropdown();
                                 },
@@ -1064,6 +1112,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 },
                             });
                         }
+                        window.__refreshEditProjectEmployees = function(){ fetchEmployees(document.getElementById('edit_co_author_input')?.value || ''); };
 
             function renderDropdown() {
                             if (filteredEmployees.length === 0) {
@@ -1272,6 +1321,22 @@ document.addEventListener("DOMContentLoaded", function () {
                             input.value = "";
                         };
 
+                        // Helper: build unified avatar URL (profile_picture_url > profile_picture > user_photo)
+                        function buildAvatarUrl(raw) {
+                            if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                            try {
+                                raw = String(raw).trim();
+                                const trimmed = raw.replace(/^\/+/, '');
+                                if (/^https?:\/\//i.test(raw)) return raw;
+                                if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
+                                if (raw.startsWith('/')) return appUrl + raw;
+                                if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
+                                return appUrl + '/file/profile_picture/' + raw;
+                            } catch(_) {
+                                return appUrl + '/asset/img/profile_picture/default.png';
+                            }
+                        }
+
                         window.setSelectedCoAuthorsEdit = function (coAuthors) {
                             // Filter out anyone already selected as contributor
                             let contribIds = [];
@@ -1284,42 +1349,13 @@ document.addEventListener("DOMContentLoaded", function () {
                             selectedEmployees = coAuthors
                                 .filter(ca => !contribIds.includes(Number(ca.id)))
                                 .map((ca) => {
-                                let photoUrl = "";
-                                let userPhoto = ca.user_photo;
-                                if (userPhoto) {
-                                    if (userPhoto.startsWith("http")) {
-                                        photoUrl = userPhoto;
-                                    } else if (
-                                        userPhoto.startsWith("/file/photo") ||
-                                        userPhoto.startsWith(
-                                            "/file/profile_picture"
-                                        )
-                                    ) {
-                                        photoUrl = appUrl + userPhoto;
-                                    } else if (
-                                        userPhoto.startsWith("file/photo") ||
-                                        userPhoto.startsWith(
-                                            "file/profile_picture"
-                                        )
-                                    ) {
-                                        photoUrl = appUrl + "/" + userPhoto;
-                                    } else {
-                                        photoUrl =
-                                            appUrl +
-                                            "/file/profile_picture/" +
-                                            userPhoto;
-                                    }
-                                } else {
-                                    photoUrl =
-                                        appUrl +
-                                        "/asset/img/profile_picture/default.png";
-                                }
-                                return {
-                                    id: ca.id,
-                                    name: ca.name,
-                                    user_photo: photoUrl,
-                                };
-                            });
+                                    const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
+                                    return {
+                                        id: ca.id,
+                                        name: ca.name,
+                                        user_photo: buildAvatarUrl(candidate)
+                                    };
+                                });
                             renderSelected();
                             updateHiddenInput();
                             // After programmatically setting co-authors, sync contributors and refresh dropdown
@@ -1378,7 +1414,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 },
                                 dataType: "json",
                                 success: function (data) {
-                                    employees = data.data || [];
+                                    employees = (data.data || []).map(function(e){
+                                        const candidate = e.profile_picture_url || e.profile_picture || e.user_photo;
+                                        e.user_photo = candidate;
+                                        return e;
+                                    });
                                     filteredEmployees = employees;
                                     renderDropdown();
                                 },
@@ -1387,6 +1427,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                 },
                             });
                         }
+                        window.__refreshEditProjectEmployees = (function(orig){
+                            return function(){
+                                if(typeof orig==='function') orig();
+                                fetchEmployees(document.getElementById('edit_contributor_input')?.value || '');
+                            };
+                        })(window.__refreshEditProjectEmployees);
 
             function renderDropdown() {
                             if (filteredEmployees.length === 0) {
@@ -1610,42 +1656,13 @@ document.addEventListener("DOMContentLoaded", function () {
                             selectedEmployees = contributors
                                 .filter((c) => !coIds.includes(Number(c.id)))
                                 .map((ca) => {
-                                let photoUrl = "";
-                                let userPhoto = ca.user_photo;
-
-                                if (!userPhoto) {
-                                    photoUrl =
-                                        appUrl +
-                                        "/asset/img/profile_picture/default.png";
-                                } else if (userPhoto.startsWith("http")) {
-                                    photoUrl = userPhoto;
-                                } else if (
-                                    userPhoto.startsWith("/file/photo") ||
-                                    userPhoto.startsWith(
-                                        "/file/profile_picture"
-                                    )
-                                ) {
-                                    photoUrl = appUrl + userPhoto;
-                                } else if (
-                                    userPhoto.startsWith("file/photo") ||
-                                    userPhoto.startsWith("file/profile_picture")
-                                ) {
-                                    photoUrl = appUrl + "/" + userPhoto;
-                                } else if (userPhoto.startsWith("/")) {
-                                    photoUrl = appUrl + userPhoto;
-                                } else {
-                                    photoUrl =
-                                        appUrl +
-                                        "/file/profile_picture/" +
-                                        userPhoto;
-                                }
-
-                                return {
-                                    id: ca.id,
-                                    name: ca.name,
-                                    user_photo: photoUrl,
-                                };
-                            });
+                                    const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
+                                    return {
+                                        id: ca.id,
+                                        name: ca.name,
+                                        user_photo: buildAvatarUrl(candidate)
+                                    };
+                                });
                             renderSelected();
                             updateHiddenInput();
                             // After programmatically setting contributors, sync co-authors
@@ -4003,7 +4020,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
     let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
-        function fetchEmployees(query = "") {
+    function fetchEmployees(query = "") {
             // Get current logged-in employee ID from modal data attribute
             const currentEmployeeId =
                 document
@@ -4016,7 +4033,12 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
                 success: function (data) {
-                    employees = data.data || [];
+                    employees = (data.data || []).map(function(e){
+                        // Normalize unified avatar fields
+                        const candidate = e.profile_picture_url || e.profile_picture || e.user_photo;
+                        e.user_photo = candidate; // maintain backwards key
+                        return e;
+                    });
                     filteredEmployees = employees;
                     renderDropdown();
                 },
@@ -4025,6 +4047,8 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 },
             });
         }
+        // Expose refresh function
+        window.__refreshAddProjectEmployees = function(){ fetchEmployees(document.getElementById('co_author_input')?.value || ''); };
 
         // Render dropdown list with checkboxes
     function renderDropdown() {
@@ -4037,32 +4061,25 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
             const html = filteredEmployees
                 .map((emp) => {
-                    const isChecked = selectedEmployees.some(
-                        (e) => e.id === emp.id
-                    );
-
-                    // Gunakan default foto jika tidak ada user_photo
-                    let photoUrl;
-                    if (!emp.user_photo) {
-                        photoUrl =
-                            appUrl + "/asset/img/profile_picture/default.png";
-                    } else if (emp.user_photo.startsWith("http")) {
-                        photoUrl = emp.user_photo;
-                    } else if (emp.user_photo.startsWith("/")) {
-                        photoUrl = appUrl + emp.user_photo;
-                    } else if (emp.user_photo.includes("/")) {
-                        photoUrl = appUrl + "/" + emp.user_photo;
-                    } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + emp.user_photo;
-                    }
+                    const isChecked = selectedEmployees.some((e) => e.id === emp.id);
+                    const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
+                    const photoUrl = (function(raw){
+                        if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                        try {
+                            raw = String(raw).trim();
+                            const trimmed = raw.replace(/^\/+/, '');
+                            if (/^https?:\/\//i.test(raw)) return raw;
+                            if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
+                            if (raw.startsWith('/')) return appUrl + raw;
+                            if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
+                            return appUrl + '/file/profile_picture/' + raw;
+                        } catch(_) { return appUrl + '/asset/img/profile_picture/default.png'; }
+                    })(candidate);
 
                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${photoUrl}" alt="${
-                        emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <img src="${appendAvatarVersion(photoUrl)}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                     <span>${emp.name}</span>
                 </div>
                 <input type="checkbox" class="co-author-checkbox" data-id="${
@@ -4088,13 +4105,8 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
                         if (this.checked) {
                             if (!selectedEmployees.some((e) => e.id === id)) {
-                                selectedEmployees.push({
-                                    id,
-                                    name,
-                                    user_photo: employeeObj
-                                        ? employeeObj.user_photo
-                                        : null,
-                                });
+                                const candidate = employeeObj ? (employeeObj.profile_picture_url || employeeObj.profile_picture || employeeObj.user_photo) : null;
+                                selectedEmployees.push({ id, name, user_photo: candidate });
                             }
                         } else {
                             selectedEmployees = selectedEmployees.filter(
@@ -4112,16 +4124,26 @@ function refreshAllProjectLatestFeedbackSnippets() {
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                const photoUrl =
-                    emp.user_photo ||
-                    appUrl + "/asset/img/profile_picture/default.png";
+                const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
+                const photoUrl = (function(raw){
+                    if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                    try {
+                        raw = String(raw).trim();
+                        const trimmed = raw.replace(/^\/+/, '');
+                        if (/^https?:\/\//i.test(raw)) return raw;
+                        if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
+                        if (raw.startsWith('/')) return appUrl + raw;
+                        if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
+                        return appUrl + '/file/profile_picture/' + raw;
+                    } catch(_) { return appUrl + '/asset/img/profile_picture/default.png'; }
+                })(candidate);
 
                 const badge = document.createElement("span");
                 badge.className =
                     "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
-                img.src = photoUrl;
+                img.src = appendAvatarVersion(photoUrl);
                 img.alt = emp.name;
                 img.className = "rounded-circle me-2";
                 img.style.width = "24px";
@@ -4218,7 +4240,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
     let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
-        function fetchEmployees(query = "") {
+    function fetchEmployees(query = "") {
             // Get current logged-in employee ID from modal data attribute
             const currentEmployeeId =
                 document
@@ -4235,7 +4257,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
                     const coAuthorIds = window.selectedCoAuthorIds || [];
                     employees = (data.data || []).filter(
                         (emp) => !coAuthorIds.includes(emp.id)
-                    );
+                    ).map(function(e){
+                        const candidate = e.profile_picture_url || e.profile_picture || e.user_photo;
+                        e.user_photo = candidate;
+                        return e;
+                    });
                     filteredEmployees = employees;
                     renderDropdown();
                 },
@@ -4244,6 +4270,13 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 },
             });
         }
+        window.__refreshAddProjectEmployees = (function(orig){
+            // Chain existing refresh if already defined
+            return function(){
+                if (typeof orig === 'function') orig();
+                fetchEmployees(document.getElementById('contributor_input')?.value || '');
+            };
+        })(window.__refreshAddProjectEmployees);
 
         // Render dropdown list with checkboxes
     function renderDropdown() {
@@ -4256,32 +4289,25 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
             const html = filteredEmployees
                 .map((emp) => {
-                    const isChecked = selectedEmployees.some(
-                        (e) => e.id === emp.id
-                    );
-
-                    // Perbaikan aman untuk photoUrl
-                    let photoUrl;
-                    if (!emp.user_photo) {
-                        photoUrl =
-                            appUrl + "/asset/img/profile_picture/default.png";
-                    } else if (emp.user_photo.startsWith("http")) {
-                        photoUrl = emp.user_photo;
-                    } else if (emp.user_photo.startsWith("/")) {
-                        photoUrl = appUrl + emp.user_photo;
-                    } else if (emp.user_photo.includes("/")) {
-                        photoUrl = appUrl + "/" + emp.user_photo;
-                    } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + emp.user_photo;
-                    }
+                    const isChecked = selectedEmployees.some((e) => e.id === emp.id);
+                    const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
+                    const photoUrl = (function(raw){
+                        if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                        try {
+                            raw = String(raw).trim();
+                            const trimmed = raw.replace(/^\/+/, '');
+                            if (/^https?:\/\//i.test(raw)) return raw;
+                            if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
+                            if (raw.startsWith('/')) return appUrl + raw;
+                            if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
+                            return appUrl + '/file/profile_picture/' + raw;
+                        } catch(_) { return appUrl + '/asset/img/profile_picture/default.png'; }
+                    })(candidate);
 
                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${photoUrl}" alt="${
-                        emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <img src="${appendAvatarVersion(photoUrl)}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                     <span>${emp.name}</span>
                 </div>
                 <input type="checkbox" class="contributor-checkbox" data-id="${
@@ -4308,13 +4334,8 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
                         if (this.checked) {
                             if (!selectedEmployees.some((e) => e.id === id)) {
-                                selectedEmployees.push({
-                                    id,
-                                    name,
-                                    user_photo: employeeObj
-                                        ? employeeObj.user_photo
-                                        : null,
-                                });
+                                const candidate = employeeObj ? (employeeObj.profile_picture_url || employeeObj.profile_picture || employeeObj.user_photo) : null;
+                                selectedEmployees.push({ id, name, user_photo: candidate });
                             }
                         } else {
                             selectedEmployees = selectedEmployees.filter(
@@ -4332,16 +4353,26 @@ function refreshAllProjectLatestFeedbackSnippets() {
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                const photoUrl =
-                    emp.user_photo ||
-                    appUrl + "/asset/img/profile_picture/default.png";
+                const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
+                const photoUrl = (function(raw){
+                    if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                    try {
+                        raw = String(raw).trim();
+                        const trimmed = raw.replace(/^\/+/, '');
+                        if (/^https?:\/\//i.test(raw)) return raw;
+                        if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
+                        if (raw.startsWith('/')) return appUrl + raw;
+                        if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
+                        return appUrl + '/file/profile_picture/' + raw;
+                    } catch(_) { return appUrl + '/asset/img/profile_picture/default.png'; }
+                })(candidate);
 
                 const badge = document.createElement("span");
                 badge.className =
                     "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
-                img.src = photoUrl;
+                img.src = appendAvatarVersion(photoUrl);
                 img.alt = emp.name;
                 img.className = "rounded-circle me-2";
                 img.style.width = "24px";
