@@ -5381,31 +5381,50 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
     }
 
     async function fetchTimelineTasksOnce() {
-        if (timelineTasksCache.length) return;
+        if (timelineTasksCache.length) return; // cache already prepared
         try {
             const r = await fetch(appUrlTimeline + '/task/index', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             const j = await r.json();
-            const buckets = j && j.data ? j.data : {};
+            const buckets = (j && j.data) ? j.data : {};
             const flat = [];
-            Object.keys(buckets).forEach(k => {
-                const arr = buckets[k];
-                if (Array.isArray(arr)) arr.forEach(t => flat.push(t));
+
+            // API structure (based on other code): { new_request: {tasks:[...]}, in_progress:{tasks:[...]}, completed:{tasks:[...]}, rejected:{tasks:[...]?} }
+            Object.keys(buckets).forEach(key => {
+                const section = buckets[key];
+                if (!section) return;
+                if (Array.isArray(section)) {
+                    // In case backend returns simple array
+                    section.forEach(t => flat.push(t));
+                } else if (Array.isArray(section.tasks)) {
+                    section.tasks.forEach(t => flat.push(t));
+                }
             });
-            // Enrich missing dates
+
+            if (!flat.length) {
+                console.warn('[timeline] No tasks flattened from /task/index response. Raw keys:', Object.keys(buckets));
+            }
+
+            // Enrich missing dates (only for items lacking either start or due date)
             await Promise.all(flat.map(async (t) => {
                 if (t.start_date && t.due_date) return;
                 try {
                     const rr = await fetch(appUrlTimeline + '/task/' + t.id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    if (!rr.ok) return;
                     const dd = await rr.json();
                     const d = dd && (dd.data || dd);
                     if (d) {
                         t.start_date = t.start_date || d.start_date || d.start || d.startDate || null;
-                        t.due_date = t.due_date || d.due_date || d.end_date || d.endDate || d.due || null;
+                        t.due_date   = t.due_date   || d.due_date   || d.end_date || d.endDate || d.due || null;
                     }
-                } catch(_){ }
+                } catch (e) {
+                    // silent – keep existing data
+                }
             }));
+
+            // Only keep tasks that have at least one bound (start/due)
             timelineTasksCache = flat.filter(t => t.start_date || t.due_date);
-        } catch(_) {
+        } catch (e) {
+            console.error('[timeline] Failed to fetch tasks for timeline', e);
             timelineTasksCache = [];
         }
     }
