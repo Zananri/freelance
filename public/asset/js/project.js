@@ -326,10 +326,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                         </div>
                                     </div>
 
-                                    <!-- Description -->
-                                    <p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">
-                                        ${project.description || "No Description"}
-                                    </p>
+                                    <!-- Description (render only if non-empty) -->
+                                    ${ (function(){
+                                            const d = (project.description||'').trim();
+                                            if(!d) return '';
+                                            return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
+                                        })() }
 
                                     <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
 
@@ -5123,7 +5125,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
                                             </div>
                                         </div>`;
 
-                                    const newDesc = `<p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${(p.description || 'No Description')}</p>`;
+                                    const newDesc = (function(){
+                                        const d = (p.description||'').trim();
+                                        if(!d) return '';
+                                        return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
+                                    })();
 
                                     const newFooter = `
                                         <div class="d-flex justify-content-between align-items-center mt-2">
