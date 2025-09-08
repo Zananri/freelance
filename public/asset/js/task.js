@@ -1412,49 +1412,7 @@ document.addEventListener("click", function (e) {
     }
 });
 
-function updateTaskStatus(taskId, newStatus, taskCard) {
-    $.ajax({
-        url: appUrl + "/task/" + taskId + "/status",
-        type: "PUT",
-        headers: {
-            "X-CSRF-TOKEN": document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content"),
-        },
-        data: {
-            status: newStatus,
-        },
-        success: function (response) {
-            // Dispose all Bootstrap tooltips inside the taskCard before removing it
-            const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                if (tooltipInstance) {
-                    tooltipInstance.dispose();
-                }
-            });
-
-            // Remove the task card from current section immediately
-            taskCard.remove();
-
-            // Refresh task cards to show in new section
-            fetchAndRenderTasks();
-
-            // Show success message
-            showFloatingAlert(response.message || "Task status updated successfully", "success");
-        },
-        error: function (xhr) {
-            let errorMessage = "Failed to update task status.";
-            if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMessage = xhr.responseJSON.message;
-            }
-            if (xhr.responseJSON && xhr.responseJSON.errors) {
-                errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-            }
-            showFloatingAlert(errorMessage, "danger");
-        },
-    });
-}
+// (Removed duplicate early updateTaskStatus; using unified bulk-aware version later)
 
     // Function to check if all executors have accepted the task
     function hasAllExecutorsAccepted(task) {
@@ -2092,22 +2050,20 @@ function renderSingleSection(status, sectionData) {
             if (movableIds.length === 0) return;
 
             if (movableIds.length === 1) {
-                // single: move directly to in_progress
                 const id = movableIds[0];
                 const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
                 bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
-                updateTaskStatus(id, 'in_progress', card);
-                bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
-                // cleanup selection
-                const cb = document.getElementById('taskNewAcceptAll');
-                if (cb) cb.checked = false;
-                selectedPendingIds = [];
-                selectedAllNewIds = [];
-                document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
-                fetchAndRenderTasks();
-                updateBulkHeaderButtons();
-                updateSelectAllVisibility(); // NEW
-                try { showFloatingAlert('Task moved to In Progress', 'success'); } catch(_) {}
+                bulkStatusPendingCount = 0; bulkStatusCompletedCount = 0; bulkStatusExpectedCount = 1; bulkFinalStatusMessage = null; bulkFinalAlertShown = false;
+                updateTaskStatus(id, 'in_progress', card).finally(() => {
+                    bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false; bulkStatusExpectedCount = 0;
+                    const cb = document.getElementById('taskNewAcceptAll');
+                    if (cb) cb.checked = false;
+                    selectedPendingIds = [];
+                    selectedAllNewIds = [];
+                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    updateBulkHeaderButtons();
+                    updateSelectAllVisibility();
+                });
                 return;
             }
 
@@ -2123,13 +2079,11 @@ function renderSingleSection(status, sectionData) {
             const handler = function(){
                 // chain updates sequentially with bulk flags to suppress per-item alerts and refresh
                 bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
+                bulkStatusPendingCount = 0; bulkStatusCompletedCount = 0; bulkStatusExpectedCount = movableIds.length; bulkFinalStatusMessage = null; bulkFinalAlertShown = false;
                 let chain = Promise.resolve();
                 movableIds.forEach((id) => {
                     const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
-                    chain = chain.then(() => new Promise((resolve) => {
-                        updateTaskStatus(id, 'in_progress', card);
-                        setTimeout(resolve, 120);
-                    }));
+                    chain = chain.then(() => updateTaskStatus(id, 'in_progress', card).then(()=> new Promise(r=> setTimeout(r,80))));
                 });
                 chain.finally(() => {
                     bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
@@ -2140,10 +2094,10 @@ function renderSingleSection(status, sectionData) {
                     selectedPendingIds = [];
                     selectedAllNewIds = [];
                     document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
-                    fetchAndRenderTasks();
+                    // Final refresh & alert sudah ditangani aggregator; fallback refresh bila gagal aggregator
+                    if (!bulkFinalAlertShown) fetchAndRenderTasks();
                     updateBulkHeaderButtons();
                     updateSelectAllVisibility(); // NEW
-                    try { showFloatingAlert(`${movableIds.length} tasks moved to In Progress`, 'success'); } catch(_) {}
                 });
             };
             confirmBtn.addEventListener('click', handler);
@@ -2503,56 +2457,108 @@ function renderSingleSection(status, sectionData) {
     // Bulk operation control flags
     let bulkStatusOperationActive = false;
     let bulkStatusSuppressRefresh = false;
+    let bulkStatusPendingCount = 0; // number of AJAX calls enqueued (incremental)
+    let bulkStatusCompletedCount = 0; // number of completed calls
+    let bulkStatusExpectedCount = 0; // fixed expected count for current bulk
+    let bulkFinalStatusMessage = null; // aggregated message
+    let bulkFinalAlertShown = false; // guard to ensure single final alert
 
     // Function to update task status via AJAX
     function updateTaskStatus(taskId, newStatus, taskCard) {
-        $.ajax({
-            url: appUrl + "/task/" + taskId + "/status",
-            type: "PUT",
-            headers: {
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
-            },
-            data: {
-                status: newStatus,
-            },
-            success: function (response) {
-                // Dispose tooltips if card present
-                if (taskCard) {
-                    const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                        const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                        if (tooltipInstance) {
-                            tooltipInstance.dispose();
+        if (bulkStatusOperationActive) bulkStatusPendingCount++;
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: appUrl + "/task/" + taskId + "/status",
+                type: "PUT",
+                headers: {
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute("content"),
+                },
+                data: { status: newStatus },
+                success: function (response) {
+                    if (taskCard) {
+                        const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                            const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                            if (tooltipInstance) tooltipInstance.dispose();
+                        });
+                        taskCard.remove();
+                    }
+                    if (!bulkStatusSuppressRefresh) fetchAndRenderTasks();
+                    if (bulkStatusOperationActive) {
+                        bulkStatusCompletedCount++;
+                        if (!bulkFinalStatusMessage) bulkFinalStatusMessage = response.message || 'Task status updated successfully';
+                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
+                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
+                            bulkFinalAlertShown = true;
+                            fetchAndRenderTasks();
+                            showFloatingAlert(bulkFinalStatusMessage, 'success');
+                            bulkStatusPendingCount = 0;
+                            bulkStatusCompletedCount = 0;
+                            bulkStatusExpectedCount = 0;
+                            bulkFinalStatusMessage = null;
                         }
-                    });
-                    // Remove the task card from current section
-                    taskCard.remove();
-                }
-
-                // Refresh task cards to show in new section (skip if suppressed during bulk)
-                if (!bulkStatusSuppressRefresh) {
-                    fetchAndRenderTasks();
-                }
-
-                // Show success message (skip if bulk)
-                if (!bulkStatusOperationActive) {
-                    showFloatingAlert(response.message || "Task status updated successfully", "success");
-                }
-            },
-            error: function (xhr) {
-                let errorMessage = "Failed to update task status.";
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-                }
-                showFloatingAlert(errorMessage, "danger");
-            },
+                    } else {
+                        showFloatingAlert(response.message || 'Task status updated successfully', 'success');
+                    }
+                    resolve();
+                },
+                error: function (xhr) {
+                    let errorMessage = "Failed to update task status.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) errorMessage = xhr.responseJSON.message;
+                    if (xhr.responseJSON && xhr.responseJSON.errors) errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+                    showFloatingAlert(errorMessage, "danger");
+                    if (bulkStatusOperationActive) {
+                        bulkStatusCompletedCount++;
+                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
+                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
+                            bulkFinalAlertShown = true;
+                            if (!bulkFinalStatusMessage) bulkFinalStatusMessage = 'Bulk update finished (with some errors)';
+                            fetchAndRenderTasks();
+                        }
+                    }
+                    reject(errorMessage);
+                },
+            });
         });
     }
+
+    // NEW: Bulk Progress All (across cached pages) when master checkbox is checked and user presses a dedicated trigger
+    document.addEventListener('click', function(e){
+        const trigger = e.target.closest('#taskNewBulkProgressAll');
+        if (!trigger) return;
+        // Ensure we have cache
+        if (!allTasksCache || !allTasksCache.new_request || !Array.isArray(allTasksCache.new_request.tasks)) return;
+        const allTasks = allTasksCache.new_request.tasks;
+        // Filter only tasks that are already accepted by viewer (no Accept button scenario) => backend already marks is_receive; we rely on executors list
+        const movable = allTasks.filter(t => {
+            // viewer pending executor? skip
+            return !isViewerPendingExecutor(t);
+        });
+        if (movable.length === 0) return;
+    bulkStatusOperationActive = true;
+    bulkStatusSuppressRefresh = true; // avoid intermediate refreshes
+    bulkStatusPendingCount = 0;
+    bulkStatusCompletedCount = 0;
+    bulkStatusExpectedCount = movable.length;
+    bulkFinalStatusMessage = null;
+    bulkFinalAlertShown = false;
+        // Kick sequential chain to avoid server overload
+        let chain = Promise.resolve();
+        movable.forEach(t => {
+            chain = chain.then(() => updateTaskStatus(t.id, 'in_progress', document.querySelector(`#new-request-tasks .custom-card[data-task-id="${t.id}"]`))
+                .then(()=> new Promise(r=> setTimeout(r,60))));
+        });
+        chain.finally(() => {
+            bulkStatusOperationActive = false;
+            bulkStatusSuppressRefresh = false;
+            const master = document.getElementById('taskNewAcceptAll');
+            if (master) master.checked = false;
+            document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected').forEach(el => el.classList.remove('selected'));
+            // Aggregator already refreshed & alerted; nothing more here.
+        });
+    });
 
     // New function to update task status directly without confirmation modal
     function updateTaskStatusDirect(taskId, newStatus) {
