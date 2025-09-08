@@ -1,8 +1,15 @@
  document.addEventListener("DOMContentLoaded", function () {
-    // Mark touch devices to adjust hover behavior (prevents stuck grey overlay after second tap)
+    // Mark pure touch-only devices (coarse pointer & no hover) to adjust hover behavior.
+    // Avoid disabling hover on hybrid laptops (touchscreen + mouse) which report touch capabilities.
     try {
-        if (("ontouchstart" in window) || navigator.maxTouchPoints > 0) {
+        const hasTouchCap = ("ontouchstart" in window) || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+        const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
+        const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        const pureTouch = hasTouchCap && noHover && coarse; // stricter condition
+        if (pureTouch) {
             document.body.classList.add('touch-device');
+        } else {
+            document.body.classList.remove('touch-device');
         }
     } catch(_) {}
     // Robust appUrl derivation: prefer meta, fallback to origin + first path segment (supports subfolders)
