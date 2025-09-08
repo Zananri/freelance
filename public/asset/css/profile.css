@@ -152,6 +152,52 @@
     font-size: 16px;
 }
 
+/* Profile Image Circular Uploader (moved from inline style in profile.blade.php) */
+#profileImageLabel.custom-image-upload {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background-size: 55%;
+    opacity: .5;
+    border: 1px dashed #bbb;
+    cursor: pointer; /* ensure pointer when empty */
+}
+#profileImageLabel.custom-image-upload.has-image {
+    opacity: 1;
+    border-style: solid;
+    cursor: pointer; /* keep pointer even with image */
+}
+#profileImageLabel.custom-image-upload:hover {
+    border-color: #666;
+}
+#profileImageLabel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+#clearProfilePhotoBtn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #dc3545;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    line-height: 22px;
+    border: none;
+    cursor: pointer;
+    opacity: .9;
+}
+#clearProfilePhotoBtn:hover {
+    opacity: 1;
+}
+
+
 /* Mobile */
 @media (max-width: 768px) {
   .profile-card-mobile {
