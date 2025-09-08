@@ -1936,6 +1936,19 @@ function renderSingleSection(status, sectionData) {
                 .filter(Boolean);
         }
 
+        function syncSelectAllCheckboxState(){
+            const master = document.getElementById('taskNewAcceptAll');
+            if (!master) return;
+            const allIds = collectAllNewTaskIds();
+            // Master is checked only if every current card id is in selectedAllNewIds and not empty
+            const allSelected = allIds.length > 0 && allIds.every(id => selectedAllNewIds.includes(String(id)));
+            if (master.checked && !allSelected) {
+                master.checked = false;
+            } else if (!master.checked && allSelected) {
+                master.checked = true;
+            }
+        }
+
         function acceptOne(taskId){
             return $.ajax({
                 url: appUrl + '/task/' + taskId + '/accept',
@@ -2007,6 +2020,7 @@ function renderSingleSection(status, sectionData) {
                     if (thumb.dataset.pending === '1' && !selectedPendingIds.includes(taskId)) selectedPendingIds.push(taskId);
                     if (!selectedAllNewIds.includes(taskId)) selectedAllNewIds.push(taskId);
                 }
+                syncSelectAllCheckboxState();
                 updateBulkHeaderButtons();
                 updateSelectAllVisibility(); // NEW
                 return;
