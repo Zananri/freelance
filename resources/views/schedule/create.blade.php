@@ -55,7 +55,7 @@
                             </div>
                             @php
                                 $now = now();
-                                $monthlyDisplay = $now->translatedFormat('l, j F Y'); // Monday, 8 September 2025
+                                $monthlyDisplay = $now->translatedFormat('l, j F Y');
                             @endphp
                             <div class="custom-form-employee d-none" id="schedule_monthly_opts">
                                 <label for="schedule_monthly_date" class="form-label">Start date</label>
