@@ -74,9 +74,8 @@ class EmployeeController extends Controller
 
             // Append user photo and first_name, last_name to each employee
             $employees->transform(function ($employee) {
-                $employee->user_photo = $employee->user && $employee->user->photo
-                    ? $employee->user->photo
-                    : null;
+                $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
+                $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
                 $employee->first_name = $employee->first_name;
                 $employee->last_name = $employee->last_name;
                 // Map office to office name for UI backward-compat
@@ -96,13 +95,15 @@ class EmployeeController extends Controller
 
     public function show($id)
     {
-    $employee = Employee::with(['department', 'division', 'job', 'grade', 'officeModel'])->find($id);
+    $employee = Employee::with(['department', 'division', 'job', 'grade', 'officeModel', 'user'])->find($id);
         if (!$employee) {
             return response()->json(['message' => 'Employee not found'], 404);
         }
     // Map office and grade to display values for UI compatibility
     $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
     $employee->grade = $employee->grade ? $employee->grade->title : null;
+    $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
+    $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
     return response()->json($employee);
     }
 
@@ -306,6 +307,20 @@ class EmployeeController extends Controller
                 $updateData['photo'] = 'file/photo/' . $photoFilename;
             }
 
+            // Handle dedicated profile_picture (kept independent from user->photo after creation)
+            if ($request->hasFile('profile_picture')) {
+                $pf = $request->file('profile_picture');
+                $profileFilename = 'PROFILE_PICTURE_' . time() . '.' . $pf->getClientOriginalExtension();
+                $profileDest = public_path('file/profile_picture');
+                if (!file_exists($profileDest)) mkdir($profileDest, 0777, true);
+                // Delete old profile_picture file if exists
+                if ($employee->profile_picture && file_exists(public_path($employee->profile_picture))) {
+                    @unlink(public_path($employee->profile_picture));
+                }
+                $pf->move($profileDest, $profileFilename);
+                $updateData['profile_picture'] = 'file/profile_picture/' . $profileFilename;
+            }
+
             if ($request->hasFile('ktp')) {
                 // Delete old ktp file if exists
                 if ($employee->ktp && file_exists(public_path($employee->ktp))) {
@@ -380,7 +395,7 @@ class EmployeeController extends Controller
                 }
             }
 
-            // Update corresponding user record
+            // Update corresponding user record (only name/email, NOT photo for independence)
             $user = User::find($employee->user_id);
             if ($user) {
                 $user->name = $employee->name;
@@ -395,6 +410,7 @@ class EmployeeController extends Controller
                 'status' => 'success',
                 'data' => $employee,
                 'message' => 'Employee updated successfully',
+                'profile_picture_url' => $employee->profile_picture ? asset($employee->profile_picture) : null,
                 'redirect_url' => route('employee')
             ]);
 

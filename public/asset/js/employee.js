@@ -167,12 +167,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         employees.forEach((employee) => {
-            // Jangan pernah ambil foto dari localStorage di tabel, hanya dari API/database
-            const profilePicture = employee.user_photo
-                ? `${appUrl}/${employee.user_photo}`
-                : employee.profile_picture
-                ? `${appUrl}/${employee.profile_picture}`
-                : `${appUrl}/asset/img/default-profile.png`;
+            // Tabel employee menampilkan avatar universal (profile_picture) agar edit halaman employee (photo) hanya mempengaruhi modal detail.
+            let profilePicture = employee.profile_picture_url || employee.profile_picture || null;
+            if (!profilePicture) profilePicture = `${appUrl}/asset/img/default-profile.png`;
+            if (!/^https?:\/\//i.test(profilePicture) && !profilePicture.startsWith(appUrl)) {
+                profilePicture = `${appUrl}/${profilePicture.replace(/^\//,'')}`;
+            }
             const departmentName = employee.department
                 ? employee.department.name_department
                 : "-";
@@ -240,9 +240,11 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             success: function (employee) {
                 // Populate modal fields
-              const photoUrl = employee.profile_picture
-                    ? `${appUrl}/${employee.profile_picture}`
-                    : `${appUrl}/asset/img/default-profile.png`;
+              let photoUrl = employee.profile_picture_url || employee.profile_picture || null;
+              if (!photoUrl) photoUrl = `${appUrl}/asset/img/default-profile.png`;
+              if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
+                  photoUrl = `${appUrl}/${photoUrl.replace(/^\//,'')}`;
+              }
 
                 $(".delete-employee-photo").css({
                     "background-image": `url(${photoUrl})`,
@@ -386,11 +388,12 @@ $(document).on("click", ".btn-detail", function () {
 
 
                 // Use updated photo if available, else use employee.photo
-            const photoUrl = updatedPhoto
-                ? updatedPhoto // bisa berupa blob, base64, atau URL full
-                : employee.photo
-                ? `${appUrl}/${employee.photo}` // pastikan pathnya benar
-                : `${appUrl}/asset/img/default-profile.png`;
+            // Detail modal harus menggunakan foto internal (employee.photo) saja agar perubahan dari halaman profile (profile_picture) tidak mempengaruhi.
+            let photoUrl = updatedPhoto || employee.photo || null;
+            if (!photoUrl) photoUrl = `${appUrl}/asset/img/default-profile.png`;
+            if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
+                photoUrl = `${appUrl}/${photoUrl.replace(/^\//,'')}`;
+            }
 
             $("#detailPhoto").attr("src", photoUrl);
 

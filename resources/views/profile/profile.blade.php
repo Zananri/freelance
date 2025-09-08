@@ -41,8 +41,14 @@
             <div class="row profile-card-wrapper">
                 <div class="col-md-4 d-flex flex-column gap-3">
                     <div class="body-content profile-section p-5 pt-4 text-center">
-                        <img class="profile-photo" src="{{ asset($employee->photo ?? 'asset/img/image.png') }}"
-                            alt="">
+                        <!-- Profile Picture Wrapper -->
+                        <label for="profile_photo_input" id="profileImageLabel" class="custom-image-upload position-relative {{ ($profilePhotoUrl ?? null) ? 'has-image' : '' }}" style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}'); background-position:center; background-repeat:no-repeat; background-size:55%;">
+                            <input type="file" id="profile_photo_input" name="profile_photo" accept="image/*" hidden />
+                            <img id="profilePreview" src="{{ $profilePhotoUrl ?? '' }}" alt="" style="{{ ($profilePhotoUrl ?? null) ? '' : 'display:none;' }}">
+                            <button type="button" id="clearProfilePhotoBtn" style="display: {{ ($profilePhotoUrl ?? null) ? 'flex' : 'none' }}; align-items:center; justify-content:center;" title="Clear Image">&times;</button>
+                        </label>
+                        <!-- Placeholder to force empty removal flag -->
+                        <input type="hidden" name="remove_profile_photo" id="remove_profile_photo" value="0" />
 
                         <!-- User Info -->
                         <h5 class="text-employee-name mt-3 mb-2">{{ $employee->name }}</h5>
@@ -64,11 +70,16 @@
                             <div class="invalid-feedback">Please enter a new password.</div>
                         </div>
 
-                        <!-- Submit Button -->
+                        <!-- Change Password Button -->
                         <div class="mb-3 text-center">
                             <button type="submit" class="btn-submit custom-submit" disabled>
                                 Change Password
                             </button>
+                        </div>
+
+                        <!-- Upload Profile Picture Submit (separate action) -->
+                        <div class="mb-3 text-center">
+                            <button type="button" id="uploadProfilePhotoBtn" class="btn-submit custom-submit">Upload Profile Picture</button>
                         </div>
                     </div>
                 </div>
