@@ -74,14 +74,66 @@ class TaskController extends Controller
 
             $response = [];
 
-            if ($statusFilter) {
+            // Helper: tasks where CURRENT employee (as EXECUTOR) belum accept
+            $currentEmployeePendingAcceptance = function ($q) use ($currentEmployeeId) {
+                $q->whereHas('assignments', function ($a) use ($currentEmployeeId) {
+                    $a->where('role', 'EXECUTOR')
+                        ->where('employee_id', $currentEmployeeId)
+                        ->where(function ($r) {
+                            $r->whereNull('is_receive')->orWhere('is_receive', false);
+                        });
+                });
+            };
+
+            // Aturan baru PER USER:
+            // - Jika user adalah EXECUTOR dan belum accept task tsb, task tetap muncul di kolom NEW (meski status database sudah in_progress / rejected / completed).
+            // - Untuk user lain (PIC, creator, executor yang sudah accept) task tampil sesuai status asli.
+
+                if ($statusFilter) {
                 // Jika filter status di-apply
                 $query = clone $baseQuery;
 
-                if ($statusFilter === 'in_progress') {
-                    $query->whereIn('status', ['in_progress', 'rejected']); // gabung rejected
+                $normalizedFilter = $statusFilter;
+                if ($normalizedFilter === 'in_progress') {
+                    // in_progress bucket includes in_progress + rejected (existing behavior) excluding tasks current user belum accept
+                    $query->whereIn('status', ['in_progress', 'rejected'])
+                        ->where(function ($q) use ($currentEmployeeId) {
+                            $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                                $a->where('role', 'EXECUTOR')
+                                    ->where('employee_id', $currentEmployeeId)
+                                    ->where(function ($r) {
+                                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                    });
+                            });
+                        });
+                } elseif ($normalizedFilter === 'new_request') {
+                    // new_request bucket includes original new_request OR tasks where current user belum accept
+                    $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
+                        $q->where('status', 'new_request')
+                          ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
+                    });
+                } elseif ($normalizedFilter === 'completed') {
+                    $query->where('status', 'completed')
+                        ->where(function ($q) use ($currentEmployeeId) {
+                            $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                                $a->where('role', 'EXECUTOR')
+                                    ->where('employee_id', $currentEmployeeId)
+                                    ->where(function ($r) {
+                                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                    });
+                            });
+                        });
                 } else {
-                    $query->where('status', $statusFilter);
+                    $query->where('status', $normalizedFilter)
+                        ->where(function ($q) use ($currentEmployeeId) {
+                            $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                                $a->where('role', 'EXECUTOR')
+                                    ->where('employee_id', $currentEmployeeId)
+                                    ->where(function ($r) {
+                                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                    });
+                            });
+                        });
                 }
 
                 $paginator = $query->paginate($perPage, ['*'], 'page', $page);
@@ -98,31 +150,69 @@ class TaskController extends Controller
                     ]
                 ];
             } else {
-                // Ambil semua status
-                $statuses = ['new_request', 'in_progress', 'completed'];
+                // Bucket per-user
+                // NEW_REQUEST
+                $newQuery = clone $baseQuery;
+                $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
+                    $q->where('status', 'new_request')
+                      ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
+                });
+                $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
+                $response['new_request'] = [
+                    'tasks' => $this->mapTasks($newPaginator->items()),
+                    'pagination' => [
+                        'current_page' => $newPaginator->currentPage(),
+                        'per_page' => $newPaginator->perPage(),
+                        'total' => $newPaginator->total(),
+                        'last_page' => $newPaginator->lastPage(),
+                    ]
+                ];
 
-                foreach ($statuses as $st) {
-                    $query = clone $baseQuery;
+                // IN_PROGRESS (includes rejected), exclude tasks where current user belum accept
+                $progressQuery = clone $baseQuery;
+                $progressQuery->whereIn('status', ['in_progress', 'rejected'])
+                    ->where(function ($q) use ($currentEmployeeId) {
+                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                            $a->where('role', 'EXECUTOR')
+                                ->where('employee_id', $currentEmployeeId)
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
+                        });
+                    });
+                $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'in_progress_page');
+                $response['in_progress'] = [
+                    'tasks' => $this->mapTasks($progressPaginator->items()),
+                    'pagination' => [
+                        'current_page' => $progressPaginator->currentPage(),
+                        'per_page' => $progressPaginator->perPage(),
+                        'total' => $progressPaginator->total(),
+                        'last_page' => $progressPaginator->lastPage(),
+                    ]
+                ];
 
-                    if ($st === 'in_progress') {
-                        $query->whereIn('status', ['in_progress', 'rejected']); // gabung rejected
-                    } else {
-                        $query->where('status', $st);
-                    }
-
-                    $paginator = $query->paginate($perPage, ['*'], $st . '_page');
-                    $tasks = $paginator->items();
-
-                    $response[$st] = [
-                        'tasks' => $this->mapTasks($tasks),
-                        'pagination' => [
-                            'current_page' => $paginator->currentPage(),
-                            'per_page' => $paginator->perPage(),
-                            'total' => $paginator->total(),
-                            'last_page' => $paginator->lastPage(),
-                        ]
-                    ];
-                }
+                // COMPLETED exclude tasks where current user belum accept
+                $completedQuery = clone $baseQuery;
+                $completedQuery->where('status', 'completed')
+                    ->where(function ($q) use ($currentEmployeeId) {
+                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                            $a->where('role', 'EXECUTOR')
+                                ->where('employee_id', $currentEmployeeId)
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
+                        });
+                    });
+                $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'completed_page');
+                $response['completed'] = [
+                    'tasks' => $this->mapTasks($completedPaginator->items()),
+                    'pagination' => [
+                        'current_page' => $completedPaginator->currentPage(),
+                        'per_page' => $completedPaginator->perPage(),
+                        'total' => $completedPaginator->total(),
+                        'last_page' => $completedPaginator->lastPage(),
+                    ]
+                ];
             }
 
             return response()->json([
@@ -191,27 +281,69 @@ class TaskController extends Controller
                 $baseQuery->where('project_id', $projectId);
             }
 
-            // Build each category without pagination
+            // Per-user pending acceptance (only tasks this user hasn't accepted as EXECUTOR)
+            $userPending = function ($q) use ($currentEmployeeId) {
+                $q->whereHas('assignments', function ($a) use ($currentEmployeeId) {
+                    $a->where('role', 'EXECUTOR')
+                        ->where('employee_id', $currentEmployeeId)
+                        ->where(function ($r) {
+                            $r->whereNull('is_receive')->orWhere('is_receive', false);
+                        });
+                });
+            };
+
+            // NOT STARTED: original new_request or userPending
             $notStarted = (clone $baseQuery)
-                ->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
+                ->where(function ($q) use ($userPending) {
+                    $q->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
+                      ->orWhere(function ($qq) use ($userPending) { $userPending($qq); });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             $inProgress = (clone $baseQuery)
                 ->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress'])
+                ->where(function ($q) use ($currentEmployeeId) {
+                    $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                        $a->where('role', 'EXECUTOR')
+                            ->where('employee_id', $currentEmployeeId)
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
+                    });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             $rejected = (clone $baseQuery)
                 ->whereIn(DB::raw('LOWER(status)'), ['rejected'])
+                ->where(function ($q) use ($currentEmployeeId) {
+                    $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                        $a->where('role', 'EXECUTOR')
+                            ->where('employee_id', $currentEmployeeId)
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
+                    });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             $completed = (clone $baseQuery)
                 ->whereIn(DB::raw('LOWER(status)'), ['completed'])
+                ->where(function ($q) use ($currentEmployeeId) {
+                    $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                        $a->where('role', 'EXECUTOR')
+                            ->where('employee_id', $currentEmployeeId)
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
+                    });
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
+            // LATE keep original grouping (overdue but not completed). We don't exclude pending so a user still sees overdue tasks even if not yet accepted.
             $late = (clone $baseQuery)
                 ->whereRaw('LOWER(status) <> ?', ['completed'])
                 ->whereNotNull('due_date')
@@ -291,24 +423,26 @@ class TaskController extends Controller
             })->values();
 
             // Robust project image URL: absolute URLs are used as-is; for local files, ensure existence or fall back to default.
-            $defaultProjectImg = asset('asset/img/profile_picture/default.png');
-            $projectImageUrl = $defaultProjectImg;
+            $projectHasImage = false;
+            $projectImageUrl = null; // null menandakan tidak ada gambar -> frontend akan render avatar inisial
             if ($task->project && $task->project->image) {
                 $img = $task->project->image;
+                $normalized = ltrim($img, '/');
                 if (Str::startsWith($img, ['http://', 'https://'])) {
                     $projectImageUrl = $img;
+                    $projectHasImage = true;
+                } elseif (Str::startsWith($normalized, 'asset/')) {
+                    $full = asset($normalized);
+                    $projectImageUrl = $full;
+                    $projectHasImage = true;
                 } else {
-                    // Normalize possible prefixes
-                    $normalized = ltrim($img, '/');
-                    if (Str::startsWith($normalized, 'asset/')) {
+                    if (!Str::startsWith($normalized, 'file/project/')) {
+                        $normalized = 'file/project/' . $normalized;
+                    }
+                    $disk = public_path($normalized);
+                    if (file_exists($disk)) {
                         $projectImageUrl = asset($normalized);
-                    } else {
-                        // Ensure it lives under file/project
-                        if (!Str::startsWith($normalized, 'file/project/')) {
-                            $normalized = 'file/project/' . $normalized;
-                        }
-                        $disk = public_path($normalized);
-                        $projectImageUrl = file_exists($disk) ? asset($normalized) : $defaultProjectImg;
+                        $projectHasImage = true;
                     }
                 }
             }
@@ -318,7 +452,8 @@ class TaskController extends Controller
                 'title' => $task->title,
                 'description' => $task->description,
                 'project_title' => $task->project?->title,
-                'project_image' => $projectImageUrl,
+                'project_image' => $projectImageUrl, // null jika tidak ada gambar
+                'project_has_image' => $projectHasImage,
                 'project_id' => $task->project_id,
                 'due_date' => $task->due_date,
                 'priority' => $task->priority,
@@ -1242,9 +1377,12 @@ class TaskController extends Controller
             $validator = Validator::make($request->all(), [
                 'task_id' => 'required|exists:tasks,id',
                 'parent_id' => 'nullable|exists:task_feedbacks,id',
-                'employee_id' => 'required|exists:employees,id',
+                // Allow missing employee_id and fallback to authenticated user's employee id
+                'employee_id' => 'nullable|exists:employees,id',
                 'feedback_comment' => 'required|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                // Accept alias coming from some legacy JS (feedback_image)
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
@@ -1264,6 +1402,18 @@ class TaskController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Fallback employee_id if not explicitly provided
+            if (empty($data['employee_id']) && $request->user() && $request->user()->employee) {
+                $data['employee_id'] = $request->user()->employee->id;
+            }
+            if (empty($data['employee_id'])) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Unable to resolve employee_id for feedback.'
+                ], 422);
+            }
 
             // Normalize feedback reference URLs (allow clearing on edit)
             $refUrls = [];
@@ -1288,24 +1438,58 @@ class TaskController extends Controller
             // Get task to determine project_id
             $task = Task::findOrFail($data['task_id']);
             $data['project_id'] = $task->project_id;
+            // Mulai sekarang project_id boleh null; tidak ada guard khusus di sini.
 
-            // Handle image upload
+            // Ensure directories exist before file operations
+            $taskImgDir = public_path('file/task');
+            $taskRefDir = public_path('file/task_reference_files');
+            if (!is_dir($taskImgDir)) {
+                @mkdir($taskImgDir, 0775, true);
+            }
+            if (!is_dir($taskRefDir)) {
+                @mkdir($taskRefDir, 0775, true);
+            }
+
+            // Handle image upload (accept both 'image' and 'feedback_image')
+            $imageField = null;
             if ($request->hasFile('image')) {
-                $imageFile = $request->file('image');
+                $imageField = 'image';
+            } elseif ($request->hasFile('feedback_image')) {
+                $imageField = 'feedback_image';
+            }
+            if ($imageField) {
+                $imageFile = $request->file($imageField);
                 $imageExtension = $imageFile->getClientOriginalExtension();
                 $imageName = 'TASK_FEEDBACK_' . time() . '.' . $imageExtension;
-                $imageFile->move(public_path('file/task'), $imageName);
-                $data['image'] = $imageName;
+                try {
+                    $imageFile->move($taskImgDir, $imageName);
+                    $data['image'] = $imageName;
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'code' => 500,
+                        'status' => 'error',
+                        'message' => 'Failed to store feedback image: ' . $e->getMessage(),
+                    ], 500);
+                }
             }
 
             // Handle reference files upload (multiple)
             $uploadedRefFiles = [];
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $idx => $file) {
+                    if (!$file) { continue; }
                     $ext = $file->getClientOriginalExtension();
                     $name = 'TASK_FEEDBACK_' . time() . '_' . $idx . '.' . $ext;
-                    $file->move(public_path('file/task_reference_files'), $name);
-                    $uploadedRefFiles[] = $name;
+                    try {
+                        $file->move($taskRefDir, $name);
+                        $uploadedRefFiles[] = $name;
+                    } catch (\Exception $e) {
+                        return response()->json([
+                            'code' => 500,
+                            'status' => 'error',
+                            'message' => 'Failed to store one of the reference files: ' . $e->getMessage(),
+                        ], 500);
+                    }
                 }
             }
             if (!empty($uploadedRefFiles)) {
@@ -1333,11 +1517,23 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $rawCode = (string)$e->getCode();
+            $httpCode = 500;
+            if (in_array((int)$rawCode, [400,401,403,404,409,422])) {
+                $httpCode = (int)$rawCode;
+            } elseif ($rawCode === '23000') { // integrity constraint
+                $httpCode = 422;
+            }
+            $message = 'Failed to submit feedback: ' . $e->getMessage();
+            if ($rawCode === '23000') {
+                $message = 'Gagal menyimpan feedback karena pelanggaran integritas data (kemungkinan project_id/task_id/employee_id tidak valid atau null). Pastikan task memiliki project & relasi benar.';
+            }
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $httpCode,
                 'status' => 'error',
-                'message' => 'Failed to submit feedback: ' . $e->getMessage(),
-            ], $e->getCode() ?: 500);
+                'message' => $message,
+                'sqlstate' => $rawCode,
+            ], $httpCode);
         }
     }
 
