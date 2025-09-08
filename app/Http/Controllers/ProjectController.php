@@ -152,10 +152,24 @@ class ProjectController extends Controller
 
             // Map the employees to include proper photo URL
             $mappedEmployees = $employees->map(function ($emp) {
+                $rawPhoto = $emp->photo;
+                $photoUrl = asset('asset/img/profile_picture/default.png');
+                if ($rawPhoto) {
+                    $trimmed = ltrim($rawPhoto, '/');
+                    if (Str::startsWith($rawPhoto, ['http://','https://'])) {
+                        $photoUrl = $rawPhoto;
+                    } elseif (Str::startsWith($trimmed, ['asset/','file/','storage/','profile_picture/'])) {
+                        $photoUrl = asset($trimmed);
+                    } elseif (file_exists(public_path($trimmed))) {
+                        $photoUrl = asset($trimmed);
+                    } elseif (file_exists(storage_path('app/public/' . $trimmed))) {
+                        $photoUrl = asset('storage/' . $trimmed);
+                    }
+                }
                 return [
                     'id' => $emp->id,
                     'name' => $emp->name,
-                    'user_photo' => $emp->photo ? asset('storage/' . $emp->photo) : asset('asset/img/profile_picture/default.png')
+                    'user_photo' => $photoUrl,
                 ];
             });
 
@@ -390,11 +404,28 @@ class ProjectController extends Controller
             if ($employee) {
                 $rawPhoto = $employee->user->photo ?? $employee->photo ?? null;
                 if ($rawPhoto) {
-                    if (Str::startsWith($rawPhoto, ['file/', '/file/', 'storage/', '/storage/'])) {
-                        $userPhoto = asset($rawPhoto);
-                    } else {
-                        $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
+                    $trimmed = ltrim($rawPhoto, '/');
+                    // Jika sudah URL penuh
+                    if (Str::startsWith($rawPhoto, ['http://', 'https://'])) {
+                        $userPhoto = $rawPhoto;
                     }
+                    // Jika berada di folder publik langsung (asset/, file/, storage/)
+                    elseif (Str::startsWith($trimmed, ['asset/', 'file/', 'storage/'])) {
+                        $userPhoto = asset($trimmed);
+                    }
+                    // Jika file ada di public root
+                    elseif (file_exists(public_path($trimmed))) {
+                        $userPhoto = asset($trimmed);
+                    }
+                    // Jika file ada di storage/app/public
+                    elseif (file_exists(storage_path('app/public/' . $trimmed))) {
+                        $userPhoto = asset('storage/' . $trimmed);
+                    } else {
+                        // Fallback default avatar
+                        $userPhoto = asset('asset/img/profile_picture/default.png');
+                    }
+                } else {
+                    $userPhoto = asset('asset/img/profile_picture/default.png');
                 }
             }
 
@@ -508,13 +539,22 @@ class ProjectController extends Controller
                     $userPhoto = null;
 
                     if ($employee) {
-                        $rawPhoto = $employee->user->photo ?? $employee->photo;
+                        $rawPhoto = $employee->user->photo ?? $employee->photo ?? null;
                         if ($rawPhoto) {
-                            if (Str::startsWith($rawPhoto, ['file/', '/file/', 'storage/', '/storage/'])) {
-                                $userPhoto = asset($rawPhoto);
+                            $trimmed = ltrim($rawPhoto, '/');
+                            if (Str::startsWith($rawPhoto, ['http://', 'https://'])) {
+                                $userPhoto = $rawPhoto;
+                            } elseif (Str::startsWith($trimmed, ['asset/', 'file/', 'storage/'])) {
+                                $userPhoto = asset($trimmed);
+                            } elseif (file_exists(public_path($trimmed))) {
+                                $userPhoto = asset($trimmed);
+                            } elseif (file_exists(storage_path('app/public/' . $trimmed))) {
+                                $userPhoto = asset('storage/' . $trimmed);
                             } else {
-                                $userPhoto = asset('storage/' . ltrim($rawPhoto, '/'));
+                                $userPhoto = asset('asset/img/profile_picture/default.png');
                             }
+                        } else {
+                            $userPhoto = asset('asset/img/profile_picture/default.png');
                         }
                     }
 

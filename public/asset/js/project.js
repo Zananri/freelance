@@ -131,31 +131,31 @@ document.addEventListener("DOMContentLoaded", function () {
         let photoUrl = "";
         if (userPhoto) {
             try {
-                // full URL
-                if (typeof userPhoto === 'string' && userPhoto.startsWith('http')) {
-                    photoUrl = userPhoto;
+                const raw = String(userPhoto).trim();
+                const trimmed = raw.replace(/^\/+/, '');
+
+                // 1. Sudah full URL
+                if (/^https?:\/\//i.test(raw)) {
+                    photoUrl = raw;
                 }
-                // paths already starting with /file or file/ or /storage
-                else if (typeof userPhoto === 'string' && (userPhoto.startsWith('/file/') || userPhoto.startsWith('file/') || userPhoto.startsWith('/storage/') || userPhoto.startsWith('storage/'))) {
-                    // make absolute via appUrl if it doesn't already contain host
-                    if (userPhoto.startsWith('/')) {
-                        photoUrl = appUrl + userPhoto;
-                    } else {
-                        photoUrl = appUrl + '/' + userPhoto;
-                    }
+                // 2. Path yang sudah mengarah ke folder publik kita: file/, asset/, storage/
+                else if (/^(file\/|asset\/|storage\/)/.test(trimmed)) {
+                    photoUrl = appUrl + '/' + trimmed;
                 }
-                // absolute path starting with /
-                else if (typeof userPhoto === 'string' && userPhoto.startsWith('/')) {
-                    photoUrl = appUrl + userPhoto;
+                // 3. Absolute path diawali '/'
+                else if (raw.startsWith('/')) {
+                    photoUrl = appUrl + raw;
                 }
-                // contains a slash (maybe relative path like file/photo/..., keep appending)
-                else if (typeof userPhoto === 'string' && userPhoto.indexOf('/') !== -1) {
-                    photoUrl = appUrl + '/' + userPhoto;
+                // 4. Memiliki slash (subfolder lain) -> sambung langsung
+                else if (raw.indexOf('/') !== -1) {
+                    photoUrl = appUrl + '/' + trimmed;
                 }
-                // otherwise treat as filename stored in storage and use storage URL
+                // 5. Hanya filename -> coba di file/profile_picture/ sebelum fallback
                 else {
-                    photoUrl = appUrl + '/storage/' + userPhoto;
+                    photoUrl = appUrl + '/file/profile_picture/' + raw;
                 }
+                // Jika ternyata menghasilkan /storage/asset (kasus lama) koreksi ke tanpa storage
+                photoUrl = photoUrl.replace(/\/storage\/asset\//, '/asset/');
             } catch (e) {
                 photoUrl = appUrl + '/asset/img/profile_picture/default.png';
             }
