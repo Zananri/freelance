@@ -18,8 +18,17 @@
             <div class="attendance-profile-container">
                 <div class="profile-section">
                     <div class="profile-image-container">
-                        <img src="{{ $employee && $employee->profile_picture ? asset($employee->profile_picture) : asset('asset/img/default-profile.png') }}"
-                            alt="User Profile" class="profile-image">
+                        @php
+                            $attAvatar = null;
+                            if ($employee) {
+                                $attAvatar = $employee->profile_picture ?: ($employee->photo ?? null);
+                            }
+                            if ($attAvatar && !preg_match('/^(https?:)?\/\//i', $attAvatar)) {
+                                $attAvatar = asset($attAvatar);
+                            }
+                            if (!$attAvatar) { $attAvatar = asset('asset/img/default-profile.png'); }
+                        @endphp
+                        <img src="{{ $attAvatar }}" alt="User Profile" class="profile-image" data-global-avatar data-default="{{ asset('asset/img/default-profile.png') }}">
                     </div>
                     <div class="user-info mt-2">
                         <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>

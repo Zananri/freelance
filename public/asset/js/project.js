@@ -109,6 +109,22 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // Global avatar update listener: refresh collaborator images (simple approach: re-trigger any lightweight rerender if project list cached globally)
+    window.addEventListener('profilePictureUpdated', function(){
+        try {
+            // If we have a global projects array and a render function, invoke it.
+            if (window.currentProjects && Array.isArray(window.currentProjects) && typeof window.renderProjectCards === 'function') {
+                window.renderProjectCards(window.currentProjects, true); // pass true to indicate avatar-only refresh if supported
+            } else {
+                // Fallback: update any img with data-author-current attribute
+                document.querySelectorAll('img[data-author-current="1"]').forEach(function(img){
+                    // Append cache buster
+                    img.src = img.src.replace(/\?t=\d+$/,'') + '?t=' + Date.now();
+                });
+            }
+        } catch(e) { console.warn('Project avatar refresh failed', e); }
+    });
+
     // Helper to format role labels to capitalized form (Author, Co-Author, Contributor)
     function formatRoleText(role) {
         if (!role) return '';
@@ -127,7 +143,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Helper to resolve employee photo URL and return img HTML string
     function resolvePhotoHtml(emp, size = 30, marginLeft = 0, role = '') {
-        let userPhoto = emp && (emp.profile_picture || emp.user_photo || emp.user_photo_path || emp.user_photo_url);
+        // Prioritize universal profile picture fields
+        let userPhoto = emp && (emp.profile_picture_url || emp.profile_picture || emp.user_photo || emp.user_photo_url || emp.user_photo_path);
         let photoUrl = "";
         if (userPhoto) {
             try {

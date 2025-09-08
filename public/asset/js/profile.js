@@ -288,12 +288,15 @@ $(document).ready(function () {
                         if (clearBtn) clearBtn.style.display = 'flex';
                         removeFlag.value = '0';
                         // Update any global avatar images (navbar, dropdown)
+                        // Update global nav avatars
                         document.querySelectorAll('img[data-global-avatar]').forEach(function(img){
                             const baseUrl = res.photo_url;
                             if (baseUrl) {
                                 img.src = baseUrl + '?t=' + Date.now();
                             }
                         });
+                        // Dispatch custom event so other modules (user/project/task/attendance/dashboard) can listen and update their avatar elements
+                        window.dispatchEvent(new CustomEvent('profilePictureUpdated', { detail: { url: res.photo_url + '?t=' + Date.now() } }));
                     } else {
                         // cleared
                         resetToPlaceholder();
@@ -303,6 +306,7 @@ $(document).ready(function () {
                             const def = img.getAttribute('data-default');
                             if (def) { img.src = def + '?t=' + Date.now(); }
                         });
+                        window.dispatchEvent(new CustomEvent('profilePictureUpdated', { detail: { url: null } }));
                     }
                 },
                 error: function(xhr){

@@ -29,17 +29,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const userDetailModal = new bootstrap.Modal(userDetailModalEl);
     let currentUserId = null;
 
-    function fetchUsers() {
+    function fetchUsers(cb) {
         $.ajax({
             url: appUrl + "/user/index",
             type: "GET",
             dataType: "json",
             success: function (response) {
-                renderUsers(response.data);
+                renderUsers(response.data || []);
+                if (typeof cb === 'function') cb();
             },
             error: function () {
-                tableBody.innerHTML =
-                    '<tr><td colspan="5">Failed to load user data.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="5">Failed to load user data.</td></tr>';
                 showFloatingAlert('Failed to load users.', 'warning', 3500);
             },
         });
@@ -54,7 +54,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         users.forEach((user) => {
-            const photo = user.photo ? user.photo : appUrl + "/asset/img/default-profile.png";
+            // Prefer universal profile_picture if nested employee exists
+            let photo = null;
+            if (user.employee && (user.employee.profile_picture || user.employee.profile_picture_url)) {
+                photo = user.employee.profile_picture_url || (user.employee.profile_picture ? (user.employee.profile_picture.startsWith('http') ? user.employee.profile_picture : (appUrl + '/' + user.employee.profile_picture.replace(/^\//,''))) : null);
+            }
+            if (!photo) photo = user.photo ? (user.photo.startsWith('http') ? user.photo : appUrl + '/' + user.photo.replace(/^\//,'')) : appUrl + "/asset/img/default-profile.png";
 
             rows += `
                 <tr data-id="${user.id}">
@@ -91,7 +96,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 $("#detailUserName").text(user.name);
                 $("#detailUserEmail").text(user.email);
 
-                const photoUrl = user.photo ? user.photo : appUrl + "/asset/img/default-profile.png";
+                let photoUrl = null;
+                if (user.employee && (user.employee.profile_picture || user.employee.profile_picture_url)) {
+                    photoUrl = user.employee.profile_picture_url || (user.employee.profile_picture ? (user.employee.profile_picture.startsWith('http') ? user.employee.profile_picture : (appUrl + '/' + user.employee.profile_picture.replace(/^\//,''))) : null);
+                }
+                if (!photoUrl) photoUrl = user.photo ? (user.photo.startsWith('http') ? user.photo : appUrl + '/' + user.photo.replace(/^\//,'')) : appUrl + "/asset/img/default-profile.png";
                 $("#detailUserPhoto").attr("src", photoUrl);
 
                 if (user.employee && user.employee.division) {
@@ -147,4 +156,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     fetchUsers();
+
+    // Listen for global profile picture updates and refetch users to update displayed avatar for current logged user row
+    window.addEventListener('profilePictureUpdated', function(){
+        fetchUsers();
+    });
 });

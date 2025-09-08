@@ -447,4 +447,9 @@ $(document).on("click", ".btn-detail", function () {
 
     // Initial fetch employees without filters
     fetchEmployees();
+
+    window.addEventListener('profilePictureUpdated', function(){
+        // Refresh table so current user's universal avatar updates immediately.
+        fetchEmployees(currentFilters);
+    });
 });
