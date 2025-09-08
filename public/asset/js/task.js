@@ -1,4 +1,17 @@
  document.addEventListener("DOMContentLoaded", function () {
+    // Mark pure touch-only devices (coarse pointer & no hover) to adjust hover behavior.
+    // Avoid disabling hover on hybrid laptops (touchscreen + mouse) which report touch capabilities.
+    try {
+        const hasTouchCap = ("ontouchstart" in window) || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+        const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
+        const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        const pureTouch = hasTouchCap && noHover && coarse; // stricter condition
+        if (pureTouch) {
+            document.body.classList.add('touch-device');
+        } else {
+            document.body.classList.remove('touch-device');
+        }
+    } catch(_) {}
     // Robust appUrl derivation: prefer meta, fallback to origin + first path segment (supports subfolders)
     let appUrl = (function(){
         try {
@@ -47,7 +60,7 @@
             if (!userPhoto) return appUrl + '/asset/img/profile_picture/default.png';
             if (typeof userPhoto !== 'string') userPhoto = String(userPhoto || '');
             const up = userPhoto.trim();
-                if (up.startsWith('http://') || up.startsWith('https://')) return up; 
+                if (up.startsWith('http://') || up.startsWith('https://')) return up;
             if (up.startsWith('/')) return appUrl + up; // includes '/file/...', '/asset/...'
             if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
             // bare filename stored
@@ -184,7 +197,7 @@
             }
         });
     }
-    
+
 
     // Show Reject confirmation modal (task page)
     function showRejectInviteModal(taskId) {
@@ -769,7 +782,7 @@
         }
     })();
 
-    
+
     // Schedule image input
     (function initScheduleImage(){
         const input = document.getElementById('schedule_image');
@@ -875,7 +888,7 @@
         }
         sync();
     })();
-    
+
 
     // Schedule executor picker (clone of task executor with different IDs)
     ;(function setupScheduleExecutorInput(){
@@ -1653,7 +1666,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1) {
         data: params,
         success: function(response) {
             console.log(response);
-            
+
             if (!response || response.code !== 200 || !response.data) return;
 
             // update cache biar gak ilang data lama
@@ -1922,6 +1935,15 @@ function renderSingleSection(status, sectionData) {
                     thumb.classList.remove('selected');
                     selectedPendingIds = selectedPendingIds.filter(id => String(id) !== String(taskId));
                     selectedAllNewIds = selectedAllNewIds.filter(id => String(id) !== String(taskId));
+                    // Force clear any residual hover overlay (mobile safari may keep pseudo state)
+                    try {
+                        const chk = thumb.querySelector('.thumb-check');
+                        if (chk) {
+                            chk.style.background = 'rgba(0,0,0,0)';
+                            const ic = chk.querySelector('.material-symbols-outlined');
+                            if (ic) ic.style.color = 'rgba(255,255,255,0)';
+                        }
+                    } catch(_) {}
                 } else {
                     // Single selection if checkbox not checked; if checked, add to list
                     thumb.classList.add('selected');
@@ -5215,121 +5237,132 @@ function renderSingleSection(status, sectionData) {
         applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
     }
 
-    function fetchMobileTasks(status, page = 1) {
-      $.ajax({
+    let mobilePage = 1;
+    let mobileLastPage = 1;
+    let isLoadingMobile = false;
+    let currentStatusMobile = "new_request";
+
+    // Fetch data
+    function fetchMobileTasks(status, page = 1, append = false) {
+    $.ajax({
         url: appUrl + "/task/index",
         type: "GET",
         dataType: "json",
         data: { status, page },
         success: function (response) {
-          if (!response || response.code !== 200 || !response.data) return;
-    
-          const data = response.data?.[status];
-          renderMobileTasks(status, data);
+        if (!response || response.code !== 200 || !response.data) return;
+
+        const data = response.data?.[status];
+        mobileLastPage = data?.pagination?.last_page || 1;
+
+        renderMobileTasks(status, data, append);
         },
         error: function (xhr, status, error) {
-          console.error("Error fetching mobile tasks:", error);
+        console.error("Error fetching mobile tasks:", error);
         },
-      });
+        complete: function () {
+        isLoadingMobile = false;
+        $("#mobileLoader").remove();
+        },
+    });
     }
-    
-    function renderMobileTasks(status, data) {
-      const container = $(".mobile-task-container");
-      const list = $("#mobile-task-list");
-    
-      container.removeClass("task-mobile-new task-mobile-progress task-mobile-completed");
-      list.empty();
-      $("#newTaskPagination, #progressTaskPagination, #completedTaskPagination").hide();
-    
-      if (status === "new_request") {
-        container.addClass("task-mobile-new");
-        $("#newTaskPagination").show();
-      } else if (status === "in_progress") {
-        container.addClass("task-mobile-progress");
-        $("#progressTaskPagination").show();
-      } else if (status === "completed") {
-        container.addClass("task-mobile-completed");
-        $("#completedTaskPagination").show();
-      }
-    
-      if (!data || !data.tasks || data.tasks.length === 0) {
-        list.append('<div class="text-center text-muted py-3">No tasks found</div>');
-      } else {
+
+    // Render data
+    function renderMobileTasks(status, data, append = false) {
+    const list = $("#mobile-task-list");
+
+    if (!append) list.empty();
+
+    if (!data || !data.tasks || data.tasks.length === 0) {
+        if (!append) list.append('<div class="text-center text-muted py-3">No tasks found</div>');
+    } else {
         data.tasks.forEach((task) => {
-          list.append(createTaskCard(task));
+        list.append(createTaskCard(task));
         });
-      }
-    
-      if (window.initBootstrapTooltips) window.initBootstrapTooltips(list[0] || document);
-    
-      updateMobilePagination(status, data?.pagination);
     }
-    
-    function updateMobilePagination(status, pagination) {
-    const $prevBtn = $("#prevPageBtn");
-    const $nextBtn = $("#nextPageBtn");
-    const $info = $("#paginationInfo");
-
-    if (!pagination) {
-        $prevBtn.prop("disabled", true);
-        $nextBtn.prop("disabled", true);
-        $info.text("0 OF 0");
-        return;
     }
 
-    $prevBtn.prop("disabled", pagination.current_page <= 1);
-    $nextBtn.prop("disabled", pagination.current_page >= pagination.last_page);
-    $info.text(`${pagination.current_page} OF ${pagination.last_page}`);
+    // Scroll listener
+    $(document).on("scroll", "#mobile-task-list", function () {
+        const el = this;
+        const scrollTop = el.scrollTop;
+        const clientHeight = el.clientHeight;
+        const scrollHeight = el.scrollHeight;
 
-    $prevBtn.off("click").on("click", () => {
-        if (pagination.current_page > 1) {
-        fetchMobileTasks(status, pagination.current_page - 1);
+        console.log("scroll:", scrollTop + clientHeight, "/", scrollHeight);
+
+        if (scrollTop + clientHeight >= scrollHeight - 10) {
+            console.log("👉 HALO BREEEE udah sampe bawah (div)");
         }
     });
 
-    $nextBtn.off("click").on("click", () => {
-        if (pagination.current_page < pagination.last_page) {
-        fetchMobileTasks(status, pagination.current_page + 1);
-        }
+    // Reset kalau status diganti
+    $("#taskStatusSelect").on("change", function () {
+        currentStatusMobile = $(this).val();
+        mobilePage = 1;
+        mobileLastPage = 1;
+        fetchMobileTasks(currentStatusMobile, 1, false);
     });
-    }
+
+    // Initial load
+    $(document).ready(function () {
+        fetchMobileTasks(currentStatusMobile, 1, false);
+    });
+
 
     $(document).ready(function () {
-    const mobileCardHtml = `
-    <div class="mobile-task-container p-3 rounded-4 d-md-none">
-        <div class="task-mobile-card-header d-flex justify-content-between align-items-center">
-        <select id="taskStatusSelect" class="form-select border-0 bg-transparent" style="max-width:140px;">
-            <option value="new_request">New</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-        </select>
+        const mobileCardHtml = `
+            <div class="mobile-task-container p-3 rounded-4 d-md-none">
 
-        <div class="action-buttons d-flex align-items-center gap-2">
-            <div class="search-input-container">
-            <span class="material-symbols-outlined search-icon">search</span>
-            <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
-            </div>
+                <div class="task-mobile-status mb-2">
+                    <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
+                        <option value="new_request">New</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
 
-            <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
-            <span class="material-symbols-outlined">calendar_month</span>
-            </button>
+                <div class="task-mobile-actions d-flex justify-content-between align-items-center mb-3">
+                    <div class="search-input-container flex-grow-1 me-2">
+                        <span class="material-symbols-outlined search-icon">search</span>
+                        <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
+                    </div>
 
-            <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
-            <span class="material-symbols-outlined">filter_list</span>
-            </button>
-        </div>
-        </div>
-        <div id="mobile-task-list"></div>
-        <div class="d-flex justify-content-center mt-3">
-            <div id="mobilePaginationWrapper" class="pagination-pill d-flex align-items-center">
-                <button id="prevPageBtn" class="btn-nav"><span class="material-symbols-outlined">chevron_left</span></button>
-                <span id="paginationInfo" class="pagination-info">1 OF 1</span>
-                <button id="nextPageBtn" class="btn-nav"><span class="material-symbols-outlined">chevron_right</span></button>
-            </div>
-        </div>
-        </div>
+                    <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
+                        <span class="material-symbols-outlined">calendar_month</span>
+                    </button>
 
-    </div>`;
+                    <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+                        <span class="material-symbols-outlined">filter_list</span>
+                    </button>
+                </div>
+
+                <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
+                    <div class="dropdown-filter-body">
+                        <div class="mb-3">
+                            <label for="filterTaskProjectMobile" class="form-label">Project</label>
+                            <select id="filterTaskProjectMobile" class="form-select">
+                                <option value="">All Projects</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="filterTaskStatusMobile" class="form-label">Status</label>
+                            <select id="filterTaskStatusMobile" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="new_request">New Request</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="dropdown-filter-footer">
+                        <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
+                    </div>
+                </div>
+
+                <div id="mobile-task-list"></div>
+            </div>`;
 
       function toggleDropdownFilter() {
         let dropdown = $(".dropdown-filter-container");

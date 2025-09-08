@@ -203,6 +203,119 @@ $(document).ready(function () {
             },
         });
     });
+
+    /* ================= Profile Photo Logic ================= */
+    const photoInput = document.getElementById('profile_photo_input');
+    const photoPreview = document.getElementById('profilePreview');
+    const clearBtn = document.getElementById('clearProfilePhotoBtn');
+    const removeFlag = document.getElementById('remove_profile_photo');
+    const uploadBtn = document.getElementById('uploadProfilePhotoBtn');
+    const profileImageLabel = document.getElementById('profileImageLabel');
+
+    function resetToPlaceholder() {
+        // Hide preview, remove has-image class so background shows add-image icon
+        if (photoPreview) {
+            photoPreview.style.display = 'none';
+            photoPreview.src = '';
+        }
+        if (profileImageLabel) profileImageLabel.classList.remove('has-image');
+    }
+
+    // Clicking label already triggers file input via for attribute
+
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e){
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(ev){
+                    photoPreview.src = ev.target.result;
+                    photoPreview.style.display = 'block';
+                    if (profileImageLabel) profileImageLabel.classList.add('has-image');
+                    if (clearBtn) clearBtn.style.display = 'flex';
+                    removeFlag.value = '0';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                resetToPlaceholder();
+            }
+        });
+    }
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function(){
+            // Clear input & preview
+            if (photoInput) photoInput.value = '';
+            resetToPlaceholder();
+            if (clearBtn) clearBtn.style.display = 'none';
+            removeFlag.value = '1';
+        });
+    }
+
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', function(){
+            // Build a FormData solely for photo upload (and CSRF token)
+            const fd = new FormData();
+            const tokenInput = document.querySelector('input[name="_token"]');
+            if (tokenInput) fd.append('_token', tokenInput.value);
+            if (removeFlag.value === '1') {
+                fd.append('remove_profile_photo', '1');
+            } else if (photoInput && photoInput.files[0]) {
+                fd.append('profile_photo', photoInput.files[0]);
+            } else {
+                showFloatingAlert('Tidak ada perubahan foto.', 'warning', 2000);
+                return;
+            }
+
+            loaderOverlay.removeClass('d-none');
+            uploadBtn.disabled = true;
+
+            $.ajax({
+                url: appUrl + '/profile/update',
+                method: 'POST',
+                data: fd,
+                processData: false,
+                contentType: false,
+                headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
+                success: function(res){
+                    showFloatingAlert(res.message || 'Foto profil diperbarui.', 'success', 1200);
+                    if (res.photo_url) {
+                        if (photoPreview) {
+                            photoPreview.src = res.photo_url + '?t=' + Date.now(); // cache bust
+                            photoPreview.style.display = 'block';
+                        }
+                        if (profileImageLabel) profileImageLabel.classList.add('has-image');
+                        if (clearBtn) clearBtn.style.display = 'flex';
+                        removeFlag.value = '0';
+                        // Update any global avatar images (navbar, dropdown)
+                        document.querySelectorAll('img[data-global-avatar]').forEach(function(img){
+                            const baseUrl = res.photo_url;
+                            if (baseUrl) {
+                                img.src = baseUrl + '?t=' + Date.now();
+                            }
+                        });
+                    } else {
+                        // cleared
+                        resetToPlaceholder();
+                        if (clearBtn) clearBtn.style.display = 'none';
+                        // Revert global avatars to default if cleared
+                        document.querySelectorAll('img[data-global-avatar]').forEach(function(img){
+                            const def = img.getAttribute('data-default');
+                            if (def) { img.src = def + '?t=' + Date.now(); }
+                        });
+                    }
+                },
+                error: function(xhr){
+                    const msg = xhr.responseJSON?.error || 'Gagal memperbarui foto profil.';
+                    showFloatingAlert(msg, 'warning', 3000);
+                },
+                complete: function(){
+                    loaderOverlay.addClass('d-none');
+                    uploadBtn.disabled = false;
+                }
+            });
+        });
+    }
 });
 
 function adjustLayout() {

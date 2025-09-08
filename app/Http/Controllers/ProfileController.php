@@ -21,9 +21,13 @@ class ProfileController extends Controller
 
         $today = Carbon::today()->toDateString();
  
+        $resolvedPhoto = null;
         if ($employee) {
-            // Prefer profile_picture if available, else photo
-            $photo = $employee->profile_picture ?? $employee->photo;
+            // Source priority for profile page: employee->profile_picture > employee->photo > user->photo (legacy)
+            $employeeProfilePicture = $employee->profile_picture ?? null;
+            $employeeLegacyPhoto = $employee->photo ?? null;
+            $userPhoto = $user->photo ?? null; // fallback only
+            $photo = $employeeProfilePicture ?: ($employeeLegacyPhoto ?: $userPhoto);
             $attendance = Attendance::where('employee_id', $employee->id)
                 ->where('date_attendance', $today)
                 ->where('type_attendance', 'check_in')
@@ -31,14 +35,19 @@ class ProfileController extends Controller
 
         }
 
-        // If photo is a relative path, convert to asset URL
-        if ($photo) {
-            $photo = asset($photo);
+        if (isset($photo) && $photo) {
+            // if already absolute (http) leave, else asset
+            if (preg_match('/^(https?:)?\/\//i', $photo)) {
+                $resolvedPhoto = $photo;
+            } else {
+                $resolvedPhoto = asset($photo);
+            }
         }
 
         return view('profile/profile', [
             'id' => $user->id,
-            'employee' => $employee
+            'employee' => $employee,
+            'profilePhotoUrl' => $resolvedPhoto
         ], compact('employee'));
     }
 
@@ -52,15 +61,23 @@ class ProfileController extends Controller
         $user->load('employee.department', 'employee.division', 'employee.job');
 
         if ($user->employee) {
-            $photo = $user->employee->profile_picture ?? $user->employee->photo;
-            if ($photo) {
-                if (str_starts_with($photo, 'file/profile_picture')) {
-                    $user->employee->photo_url = asset($photo);
+            $rawPhoto = $user->employee->profile_picture ?? $user->employee->photo; // may be full relative path or just filename
+            $photoPath = null;
+
+            if ($rawPhoto) {
+                // If already starts with a known folder (file/...), leave as-is
+                if (str_starts_with($rawPhoto, 'file/')) {
+                    $photoPath = $rawPhoto;
+                } elseif (preg_match('/^(https?:)?\/\//i', $rawPhoto)) { // absolute URL
+                    $user->employee->photo_url = $rawPhoto; // assign and skip asset()
                 } else {
-                    $user->employee->photo_url = asset('file/profile_picture/' . $photo);
+                    // treat as bare filename -> assume stored in profile_picture directory
+                    $photoPath = 'file/profile_picture/' . ltrim($rawPhoto, '/');
                 }
-            } else {
-                $user->employee->photo_url = null;
+            }
+
+            if (!isset($user->employee->photo_url)) { // only if not absolute URL case above
+                $user->employee->photo_url = $photoPath ? asset($photoPath) : null;
             }
         }
 
@@ -110,11 +127,16 @@ class ProfileController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+    // NOTE: This method intentionally updates ONLY Employee.profile_picture (primary public avatar)
+    // and leaves Employee.photo (used for edit/detail context) unchanged after initial creation.
+    // user->photo is left untouched for backward compatibility.
+
         // Validate only profile_photo and optional password fields, current_password is optional now
         $request->validate([
             'current_password' => 'nullable|string',
             'password' => 'nullable|string|min:6',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'remove_profile_photo' => 'nullable|in:0,1'
         ]);
 
         // If password is provided, verify current password
@@ -126,38 +148,42 @@ class ProfileController extends Controller
             $user->password = Hash::make($request->password);
         }
 
-        // Handle profile photo upload
-        if ($request->hasFile('profile_photo')) {
-            $file = $request->file('profile_photo');
+        $employee = Employee::where('user_id', $user->id)->first();
 
-            // Delete old images if exist
-            if ($user->photo) {
-                $oldUserPhotoPath = public_path($user->photo);
-                if (file_exists($oldUserPhotoPath)) {
-                    unlink($oldUserPhotoPath);
+        // Handle removal if requested
+        if ($request->input('remove_profile_photo') === '1') {
+            if ($employee && $employee->profile_picture) {
+                $oldPath = public_path($employee->profile_picture);
+                if (file_exists($oldPath)) { @unlink($oldPath); }
+                $employee->profile_picture = null;
+                $employee->save();
+            }
+        } else {
+            // Handle profile picture upload -> employee.profile_picture
+            if ($request->hasFile('profile_photo') && $employee) {
+                $file = $request->file('profile_photo');
+                if ($employee->profile_picture) {
+                    $oldPath = public_path($employee->profile_picture);
+                    if (file_exists($oldPath)) { @unlink($oldPath); }
                 }
+                $extension = $file->getClientOriginalExtension();
+                $filename = 'PROFILE_PICTURE_' . time() . '.' . $extension;
+                $destinationPath = public_path('file/profile_picture');
+                if (!file_exists($destinationPath)) { mkdir($destinationPath, 0777, true); }
+                $file->move($destinationPath, $filename);
+                $employee->profile_picture = 'file/profile_picture/' . $filename;
+                $employee->save();
             }
-
-            $extension = $file->getClientOriginalExtension();
-            $filename = 'PROFILE_PICTURE_' . time() . '.' . $extension;
-            $destinationPath = public_path('file/profile_picture');
-            $file->move($destinationPath, $filename);
-
-            // Update user photo field only
-            $user->photo = 'file/profile_picture/' . $filename;
-
-            // Removed updating employee profile_picture to keep it unchanged on profile update
-            /*
-            if ($user->employee) {
-                $user->employee->profile_picture = 'file/profile_picture/' . $filename;
-                $user->employee->save();
-            }
-            */
         }
 
-        $user->save();
+    $user->save(); // password changes only (if any)
 
-        return response()->json(['message' => 'Profile updated successfully']);
+    $newPhotoUrl = $employee && $employee->profile_picture ? asset($employee->profile_picture) : null;
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'photo_url' => $newPhotoUrl
+        ]);
     }
 
     public function verifyCurrentPassword(Request $request)

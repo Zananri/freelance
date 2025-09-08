@@ -326,10 +326,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                         </div>
                                     </div>
 
-                                    <!-- Description -->
-                                    <p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">
-                                        ${project.description || "No Description"}
-                                    </p>
+                                    <!-- Description (render only if non-empty) -->
+                                    ${ (function(){
+                                            const d = (project.description||'').trim();
+                                            if(!d) return '';
+                                            return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
+                                        })() }
 
                                     <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
 
@@ -3475,10 +3477,56 @@ document.addEventListener("DOMContentLoaded", function () {
                             success: function (response) {
                                 if (response.data && response.data.length > 0) {
                                     let html = "";
+                                    // Ensure global fallback handler exists (once)
+                                    if (!window.replaceTaskImageError) {
+                    window.replaceTaskImageError = function(imgEl, title) {
+                                            try {
+                                                if (!imgEl) return;
+                                                const txt = (title || '').trim();
+                                                let initials = 'NA';
+                                                if (typeof getInitials === 'function') {
+                                                    initials = getInitials(txt) || 'NA';
+                                                } else if (txt) {
+                                                    const parts = txt.split(/\s+/).filter(Boolean);
+                                                    initials = parts.length === 1
+                                                        ? parts[0].substring(0,2).toUpperCase()
+                                                        : (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+                                                }
+                                                let color = '#6A5AE0';
+                                                if (typeof getInitialsColor === 'function') {
+                                                    color = getInitialsColor(txt) || color;
+                                                }
+                                                const avatar = document.createElement('div');
+                        avatar.className = 'task-modal-initial-avatar me-3';
+                        avatar.style.cssText = 'width:100px;height:100px;flex:0 0 100px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:30px;color:#fff;border-radius:8px;background:' + color + ';';
+                                                avatar.textContent = initials;
+                                                imgEl.replaceWith(avatar);
+                                            } catch(_) {}
+                                        };
+                                    }
+
                                     response.data.forEach((task) => {
-                                        const taskImage = task.image
-                                            ? appUrl + "/file/task/" + task.image
-                                            : appUrl + "/asset/img/profile_picture/default.png";
+                                        const hasImage = !!(task.image && String(task.image).trim());
+                                        const taskImage = hasImage ? (appUrl + "/file/task/" + task.image) : null;
+                                        const safeTitle = (task.title || '').replace(/['"\\]/g, function(m){ return '\\' + m; });
+                                        let imageBlockHtml;
+                                        if (taskImage) {
+                                            imageBlockHtml = `<img src="${taskImage}" alt="${safeTitle}" class="me-3" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;" onerror="window.replaceTaskImageError && window.replaceTaskImageError(this, '${safeTitle}')">`;
+                                        } else {
+                                            // Directly render initials avatar
+                                            let initials = 'NA';
+                                            if (typeof getInitials === 'function') { initials = getInitials(task.title || '') || 'NA'; }
+                                            else {
+                                                const txt = (task.title || '').trim();
+                                                if (txt) {
+                                                    const parts = txt.split(/\s+/).filter(Boolean);
+                                                    initials = parts.length === 1 ? parts[0].substring(0,2).toUpperCase() : (parts[0].charAt(0)+parts[parts.length-1].charAt(0)).toUpperCase();
+                                                }
+                                            }
+                                            let color = '#6A5AE0';
+                                            if (typeof getInitialsColor === 'function') { color = getInitialsColor(task.title || '') || color; }
+                                            imageBlockHtml = `<div class=\"task-modal-initial-avatar me-3\" style=\"width:100px;height:100px;flex:0 0 100px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:30px;color:#fff;border-radius:8px;background:${color};\">${initials}</div>`;
+                                        }
 
                                         const createdDate = formatTaskDate(task.created_at);
 
@@ -3486,9 +3534,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             if (!userPhoto) {
                                                 return appUrl + "/asset/img/profile_picture/default.png";
                                             }
-                                            if (userPhoto.startsWith("http")) return userPhoto;
-                                            if (userPhoto.startsWith("/")) return appUrl + userPhoto;
-                                            return appUrl + "/file/profile_picture/" + userPhoto;
+                                            // Absolute URL
+                                            if (/^https?:\/\//i.test(userPhoto)) return userPhoto;
+                                            // Already has leading slash, just append base appUrl
+                                            if (userPhoto.startsWith('/')) return appUrl + userPhoto;
+                                            // If it's already a relative path with directories (e.g. file/photo/..., file/profile_picture/..., asset/img/...) don't re-prefix profile_picture
+                                            if (userPhoto.includes('/')) return appUrl + '/' + userPhoto.replace(/^\/+/, '');
+                                            // Otherwise treat as bare filename that lives in profile_picture
+                                            return appUrl + '/file/profile_picture/' + userPhoto;
                                         }
 
                                         let allPeople = [];
@@ -3555,9 +3608,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                         html += `
                                             <div class="task-item d-flex align-items-start mb-3 pb-3 border-bottom">
-                                                <img src="${taskImage}" alt="${task.title}"
-                                                    class="me-3"
-                                                    style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                                ${imageBlockHtml}
                                                 <div class="flex-grow-1">
                                                     <div class="d-flex justify-content-between align-items-start">
                                                         <div class="fw-bold">${task.title}</div>
@@ -5074,7 +5125,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
                                             </div>
                                         </div>`;
 
-                                    const newDesc = `<p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${(p.description || 'No Description')}</p>`;
+                                    const newDesc = (function(){
+                                        const d = (p.description||'').trim();
+                                        if(!d) return '';
+                                        return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
+                                    })();
 
                                     const newFooter = `
                                         <div class="d-flex justify-content-between align-items-center mt-2">
@@ -5652,70 +5707,161 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadProjectAndTaskData() {
+        // Step 1: ambil daftar project
         $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            beforeSend:function(){
-                $('.loader').fadeIn('fast');
-            },
-            error:function(res){
-                $('.loader').fadeOut('fast');
-            },
-            success: function (projectRes) {
-                const projects = Array.isArray(projectRes)
-                    ? projectRes
-                    : (Array.isArray(projectRes.data) ? projectRes.data : []);
+            url: appUrl + '/project/index',
+            type: 'GET',
+            dataType: 'json',
+            beforeSend: function(){ $('.loader').fadeIn('fast'); },
+            success: function(projectRes){
+                const projects = Array.isArray(projectRes) ? projectRes : (Array.isArray(projectRes.data) ? projectRes.data : []);
 
-                const chartCounts = projectRes.chart_counts || null;
+                // Selalu hitung ulang berbasis project & task sesuai aturan baru user.
+                // Aturan:
+                //  - Complete  : semua task di project status completed.
+                //  - Late      : minimal 1 task overdue (due_date lewat & belum completed) ATAU dikategorikan late.
+                //                Late override kategori lain (walau ada task completed / in progress).
+                //  - On Progress: ada kombinasi status (tidak semua completed, tidak semua not_started) dan tidak Late.
+                //  - Not Started: project belum punya task ATAU semua task masih status not_started/new_request.
+                // Total = jumlah project.
 
-                // kalau chart_counts ada → langsung pake
-                const hasChartCounts =
-                    chartCounts &&
-                    (Number(chartCounts.total || 0) > 0 ||
-                        Number(chartCounts.completed || 0) > 0 ||
-                        Number(chartCounts.in_progress || 0) > 0 ||
-                        Number(chartCounts.late || 0) > 0 ||
-                        Number(chartCounts.not_started || 0) > 0);
+                // Step 2: ambil semua task (tanpa pagination) lalu kelompokkan per project.
+                $.ajax({
+                    url: appUrl + '/task/index/no-pagination',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(taskRes){
+                        const buckets = taskRes?.data || {};
+                        // Build map project_id -> array of task objects dengan properti __status
+                        const tasksByProject = {};
 
-                if (hasChartCounts) {
-                    updateProjectChartFromData(projects, chartCounts);
-                } else {
-                    // fallback: ambil dari endpoint tasks tanpa pagination
-                    $.ajax({
-                        url: appUrl + "/task/index/no-pagination",
-                        type: "GET",
-                        dataType: "json",
-                        success: function (taskRes) {
-
-                            const d = taskRes?.data || {};
-                            const notStartedCount = Number(d?.not_started?.count ?? (Array.isArray(d?.not_started?.tasks) ? d.not_started.tasks.length : 0));
-                            const inProgressCount = Number(d?.in_progress?.count ?? (Array.isArray(d?.in_progress?.tasks) ? d.in_progress.tasks.length : 0));
-                            const completedCount = Number(d?.completed?.count ?? (Array.isArray(d?.completed?.tasks) ? d.completed.tasks.length : 0));
-                            const lateCount = Number(d?.late?.count ?? (Array.isArray(d?.late?.tasks) ? d.late.tasks.length : 0));
-                            const rejectedCount = Number(d?.rejected?.count ?? (Array.isArray(d?.rejected?.tasks) ? d.rejected.tasks.length : 0));
-
-                            const derived = {
-                                total: notStartedCount + inProgressCount + completedCount + rejectedCount,
-                                completed: completedCount,
-                                in_progress: inProgressCount,
-                                late: lateCount,
-                                not_started: notStartedCount,
-                            };
-
-                            updateProjectChartFromData(projects, derived);
-                        },
-                        error: function (err) {
-                            console.error("task/index/no-pagination failed", err);
+                        function pushTasks(arr, statusName){
+                            if (!Array.isArray(arr)) return;
+                            arr.forEach(t => {
+                                const projId = t.project_id || t.projectId || (t.project && (t.project.id || t.project.project_id));
+                                if (!projId) return;
+                                if (!tasksByProject[projId]) tasksByProject[projId] = [];
+                                tasksByProject[projId].push(Object.assign({}, t, { __status: statusName }));
+                            });
                         }
-                    });
-                }
+                        pushTasks(buckets.not_started?.tasks, 'not_started');
+                        pushTasks(buckets.in_progress?.tasks, 'in_progress');
+                        pushTasks(buckets.completed?.tasks, 'completed');
+                        pushTasks(buckets.late?.tasks, 'late');
+                        pushTasks(buckets.rejected?.tasks, 'rejected');
+                        // kemungkinan status tambahan (new_request) kalau ada
+                        pushTasks(buckets.new_request?.tasks, 'new_request');
 
-                $(".loader").fadeOut('fast');
+                        // Helper parse due date (gunakan akhir hari agar tidak false overdue)
+                        function parseDue(dateStr){
+                            if (!dateStr) return null;
+                            const s = String(dateStr).trim();
+                            const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                            if (m){
+                                const y = +m[1]; const mo = +m[2]-1; const d = +m[3];
+                                return new Date(y, mo, d, 23,59,59,999);
+                            }
+                            const dt = new Date(s);
+                            if (!isNaN(dt.getTime())) return dt;
+                            return null;
+                        }
 
+                        const now = new Date();
+
+                        let countCompleted = 0;
+                        let countOnProgress = 0;
+                        let countLate = 0;
+                        let countNotStarted = 0;
+
+                        projects.forEach(p => {
+                            const pid = p.id || p.project_id;
+                            const tasks = tasksByProject[pid] || [];
+
+                            if (!tasks.length){
+                                // Fallback gunakan aggregate task_counts jika tersedia agar tidak salah klasifikasi
+                                const tc = p.task_counts || p.taskCounts || null;
+                                if (tc && typeof tc.total === 'number' && tc.total > 0){
+                                    const total = Number(tc.total)||0;
+                                    const completedT = Number(tc.completed || tc.completed_tasks || 0);
+                                    const inProgT = Number(tc.in_progress || tc.in_progress_tasks || 0);
+                                    const rejectedT = Number(tc.rejected || tc.rejected_tasks || 0);
+                                    const lateT = Number(tc.late || tc.late_tasks || 0);
+                                    const inferredNotStarted = Math.max(0, total - (completedT + inProgT + rejectedT + lateT));
+
+                                    if (lateT > 0){
+                                        countLate++; return;
+                                    }
+                                    if (completedT === total && total > 0){
+                                        countCompleted++; return;
+                                    }
+                                    if (inProgT > 0 || (completedT>0 && (inferredNotStarted>0 || rejectedT>0))){
+                                        countOnProgress++; return;
+                                    }
+                                    // else semua dianggap not started
+                                    countNotStarted++; return;
+                                } else {
+                                    countNotStarted++; return;
+                                }
+                            }
+
+                            const hasLate = tasks.some(t => {
+                                if (t.__status === 'late') return true;
+                                const dueStr = t.due_date || t.due || t.deadline;
+                                const due = parseDue(dueStr);
+                                if (!due) return false;
+                                // overdue jika due < sekarang dan status bukan completed
+                                return (due.getTime() < now.getTime()) && t.__status !== 'completed';
+                            });
+                            if (hasLate){
+                                countLate++;
+                                return;
+                            }
+
+                            const allCompleted = tasks.length > 0 && tasks.every(t => t.__status === 'completed');
+                            if (allCompleted){
+                                countCompleted++;
+                                return;
+                            }
+
+                            const allNotStarted = tasks.every(t => (t.__status === 'not_started' || t.__status === 'new_request'));
+                            if (allNotStarted){
+                                countNotStarted++;
+                                return;
+                            }
+
+                            // sisanya -> On Progress
+                            countOnProgress++;
+                        });
+
+                        const derivedCounts = {
+                            total: projects.length,
+                            completed: countCompleted,
+                            in_progress: countOnProgress, // dipakai slot "On Progress"
+                            late: countLate,
+                            not_started: countNotStarted
+                        };
+
+                        updateProjectChartFromData(projects, derivedCounts);
+                        $('.loader').fadeOut('fast');
+                    },
+                    error: function(err){
+                        console.error('task/index/no-pagination failed', err);
+                        // fallback minimal: semua dianggap not started
+                        const fallbackCounts = {
+                            total: projects.length,
+                            completed: 0,
+                            in_progress: 0,
+                            late: 0,
+                            not_started: projects.length
+                        };
+                        updateProjectChartFromData(projects, fallbackCounts);
+                        $('.loader').fadeOut('fast');
+                    }
+                });
             },
-            error: function (err) {
-                console.error("project/index failed", err);
+            error: function(err){
+                console.error('project/index failed', err);
+                $('.loader').fadeOut('fast');
             }
         });
     }
