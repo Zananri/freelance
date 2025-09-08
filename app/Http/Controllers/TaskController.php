@@ -1377,9 +1377,12 @@ class TaskController extends Controller
             $validator = Validator::make($request->all(), [
                 'task_id' => 'required|exists:tasks,id',
                 'parent_id' => 'nullable|exists:task_feedbacks,id',
-                'employee_id' => 'required|exists:employees,id',
+                // Allow missing employee_id and fallback to authenticated user's employee id
+                'employee_id' => 'nullable|exists:employees,id',
                 'feedback_comment' => 'required|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                // Accept alias coming from some legacy JS (feedback_image)
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
@@ -1399,6 +1402,18 @@ class TaskController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Fallback employee_id if not explicitly provided
+            if (empty($data['employee_id']) && $request->user() && $request->user()->employee) {
+                $data['employee_id'] = $request->user()->employee->id;
+            }
+            if (empty($data['employee_id'])) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Unable to resolve employee_id for feedback.'
+                ], 422);
+            }
 
             // Normalize feedback reference URLs (allow clearing on edit)
             $refUrls = [];
@@ -1423,24 +1438,58 @@ class TaskController extends Controller
             // Get task to determine project_id
             $task = Task::findOrFail($data['task_id']);
             $data['project_id'] = $task->project_id;
+            // Mulai sekarang project_id boleh null; tidak ada guard khusus di sini.
 
-            // Handle image upload
+            // Ensure directories exist before file operations
+            $taskImgDir = public_path('file/task');
+            $taskRefDir = public_path('file/task_reference_files');
+            if (!is_dir($taskImgDir)) {
+                @mkdir($taskImgDir, 0775, true);
+            }
+            if (!is_dir($taskRefDir)) {
+                @mkdir($taskRefDir, 0775, true);
+            }
+
+            // Handle image upload (accept both 'image' and 'feedback_image')
+            $imageField = null;
             if ($request->hasFile('image')) {
-                $imageFile = $request->file('image');
+                $imageField = 'image';
+            } elseif ($request->hasFile('feedback_image')) {
+                $imageField = 'feedback_image';
+            }
+            if ($imageField) {
+                $imageFile = $request->file($imageField);
                 $imageExtension = $imageFile->getClientOriginalExtension();
                 $imageName = 'TASK_FEEDBACK_' . time() . '.' . $imageExtension;
-                $imageFile->move(public_path('file/task'), $imageName);
-                $data['image'] = $imageName;
+                try {
+                    $imageFile->move($taskImgDir, $imageName);
+                    $data['image'] = $imageName;
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'code' => 500,
+                        'status' => 'error',
+                        'message' => 'Failed to store feedback image: ' . $e->getMessage(),
+                    ], 500);
+                }
             }
 
             // Handle reference files upload (multiple)
             $uploadedRefFiles = [];
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $idx => $file) {
+                    if (!$file) { continue; }
                     $ext = $file->getClientOriginalExtension();
                     $name = 'TASK_FEEDBACK_' . time() . '_' . $idx . '.' . $ext;
-                    $file->move(public_path('file/task_reference_files'), $name);
-                    $uploadedRefFiles[] = $name;
+                    try {
+                        $file->move($taskRefDir, $name);
+                        $uploadedRefFiles[] = $name;
+                    } catch (\Exception $e) {
+                        return response()->json([
+                            'code' => 500,
+                            'status' => 'error',
+                            'message' => 'Failed to store one of the reference files: ' . $e->getMessage(),
+                        ], 500);
+                    }
                 }
             }
             if (!empty($uploadedRefFiles)) {
@@ -1468,11 +1517,23 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $rawCode = (string)$e->getCode();
+            $httpCode = 500;
+            if (in_array((int)$rawCode, [400,401,403,404,409,422])) {
+                $httpCode = (int)$rawCode;
+            } elseif ($rawCode === '23000') { // integrity constraint
+                $httpCode = 422;
+            }
+            $message = 'Failed to submit feedback: ' . $e->getMessage();
+            if ($rawCode === '23000') {
+                $message = 'Gagal menyimpan feedback karena pelanggaran integritas data (kemungkinan project_id/task_id/employee_id tidak valid atau null). Pastikan task memiliki project & relasi benar.';
+            }
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $httpCode,
                 'status' => 'error',
-                'message' => 'Failed to submit feedback: ' . $e->getMessage(),
-            ], $e->getCode() ?: 500);
+                'message' => $message,
+                'sqlstate' => $rawCode,
+            ], $httpCode);
         }
     }
 

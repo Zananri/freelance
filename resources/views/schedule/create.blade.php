@@ -53,10 +53,14 @@
                                     <option value="6">Saturday</option>
                                 </select>
                             </div>
+                            @php
+                                $now = now();
+                                $monthlyDisplay = $now->translatedFormat('l, j F Y'); // Monday, 8 September 2025
+                            @endphp
                             <div class="custom-form-employee d-none" id="schedule_monthly_opts">
-                                <label for="schedule_monthly_date" class="form-label">Monthly Day</label>
-                                <input type="text" id="schedule_monthly_date" class="form-control input-text" readonly value="{{ now()->day }}">
-                                <input type="hidden" id="schedule_recurrence_day_of_month" name="recurrence_day_of_month" value="{{ now()->day }}">
+                                <label for="schedule_monthly_date" class="form-label">Start date</label>
+                                <input type="text" id="schedule_monthly_date" class="form-control input-text" readonly value="{{ $monthlyDisplay }}" data-initial-display="{{ $monthlyDisplay }}">
+                                <input type="hidden" id="schedule_recurrence_day_of_month" name="recurrence_day_of_month" value="{{ $now->day }}">
                             </div>
                             <div class="custom-form-employee">
                                 <label for="schedule_point" class="form-label">Point</label>

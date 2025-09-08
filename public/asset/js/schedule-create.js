@@ -4,10 +4,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const loader = document.getElementById('scheduleCreateLoader');
     let selectedFiles = [];
 
-    function showFloatingAlert(message, type='success') {
-        // reuse existing global if available
-        if (window.showFloatingAlert) { window.showFloatingAlert(message, type); return; }
-        alert(message);
+    // Gunakan util global showFloatingAlert bila sudah didefinisikan oleh layout utama.
+    // Jika belum ada (fallback), pakai alert biasa.
+    function showScheduleAlert(message, type='success') {
+        if (typeof window.showFloatingAlert === 'function') {
+            window.showFloatingAlert(message, type);
+        } else {
+            alert(message);
+        }
     }
 
     function setupImageInput(id,labelId,clearId){
@@ -50,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function fetchEmployees(q=''){
             fetch(appUrl + '/task/employees-for-executor?q='+encodeURIComponent(q))
                 .then(r=>r.json()).then(d=>{ employees = d.data||[]; filtered=employees; renderDropdown(); })
-                .catch(()=>showFloatingAlert('Failed load employees','danger'));
+                .catch(()=>showScheduleAlert('Failed load employees','danger'));
         }
         function renderDropdown(){
             if(filtered.length===0){ dropdown.innerHTML='<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
@@ -79,15 +83,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if(v==='weekly') { document.getElementById('schedule_recurrence_day_of_week').required=true; }
             else { document.getElementById('schedule_recurrence_day_of_week').required=false; }
             if(v==='monthly') {
-                // monthly day already pre-filled from server-rendered hidden input; ensure it's retained
+                // Tampilkan format lengkap. Jika input kosong (misal setelah switch), isi ulang.
                 if(!monthlyDayHidden.value){
                     const today = new Date();
                     monthlyDayHidden.value = today.getDate();
-                    monthlyDateInput.value = today.getDate();
+                }
+                if(!monthlyDateInput.value){
+                    const today = new Date();
+                    const full = today.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long', year:'numeric'});
+                    monthlyDateInput.value = full;
                 }
             } else {
-                monthlyDayHidden.value='';
-                monthlyDateInput.value='';
+                // Jangan hapus value jika user kembali lagi ke monthly; cukup biarkan.
             }
         }
         typeSel.addEventListener('change', sync);
@@ -114,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Prefer due_in_days over due_date (no due_date field visible anyway)
         fetch(appUrl + '/schedules', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: fd })
             .then(r=> r.json().then(j=>({ok:r.ok, body:j})))
-            .then(({ok, body})=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; if(!ok || body.code!==200){ const msg = (body && (body.message || 'Failed to create schedule')) || 'Failed.'; showFloatingAlert(msg,'danger'); return; } showFloatingAlert(body.message || 'Schedule created successfully','success'); form.reset(); selectedFiles=[]; displaySelectedFiles(); document.getElementById('scheduleImageLabel').style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`; window.location.href = appUrl + '/task'; })
-            .catch(()=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; showFloatingAlert('Failed to create schedule','danger'); });
+            .then(({ok, body})=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; if(!ok || body.code!==200){ const msg = (body && (body.message || 'Failed to create schedule')) || 'Failed.'; showScheduleAlert(msg,'danger'); return; } showScheduleAlert(body.message || 'Schedule created successfully','success'); form.reset(); selectedFiles=[]; displaySelectedFiles(); document.getElementById('scheduleImageLabel').style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`; window.location.href = appUrl + '/task'; })
+            .catch(()=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; showScheduleAlert('Failed to create schedule','danger'); });
     });
 });
