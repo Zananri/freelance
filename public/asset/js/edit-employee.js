@@ -44,7 +44,9 @@ function loadDepartments(selectedId) {
             departmentSelect.innerHTML = options;
 
             if (selectedId) {
-                loadDivisions(selectedId, divisionSelect.getAttribute("data-current"));
+                // Use the data-current-dept attribute for division preselect
+                const currentDept = departmentSelect.getAttribute("data-current-dept") || selectedId;
+                loadDivisions(selectedId, divisionSelect.getAttribute("data-current") || null);
             }
         },
         error: function () {
@@ -129,18 +131,15 @@ function loadJobs(divisionId, selectedId, departmentId) {
 }
 
 
-    // Initialize dropdowns with current employee data
-    const currentDepartmentId = window.currentEmployeeData
-        ? window.currentEmployeeData.departmentId
-        : null;
-    const currentDivisionId = window.currentEmployeeData
-        ? window.currentEmployeeData.divisionId
-        : null;
-    const currentJobId = window.currentEmployeeData
-        ? window.currentEmployeeData.jobId
-        : null;
+    // Initialize dropdowns with current employee data from data attributes
+    const currentDepartmentId = departmentSelect.getAttribute("data-current-dept") || null;
+    const currentDivisionId = divisionSelect.getAttribute("data-current") || null;
+    const currentJobId = jobSelect.getAttribute("data-current") || null;
 
-    loadDepartments(currentDepartmentId);
+    // Only load departments dynamically if we have a current department ID
+    if (currentDepartmentId) {
+        loadDepartments(currentDepartmentId);
+    }
 
     // Load shifts for selection and preselect current
     function loadShifts(selectedId) {

@@ -119,7 +119,7 @@
                             <div class="custom-form-employee">
                                 <label for="department_id" class="form-label">Department Name</label>
                                 <select id="department_id" name="department_id" class="form-select input-select"
-                                    required data-current="{{ $employee->department_id }}">
+                                    required data-current="{{ $employee->department_id }}" data-current-dept="{{ $employee->department_id }}">
                                     <option value="" disabled>Select Department</option>
                                     @foreach ($departments as $department)
                                         <option value="{{ $department->id }}"
