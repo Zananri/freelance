@@ -47,7 +47,7 @@
             if (!userPhoto) return appUrl + '/asset/img/profile_picture/default.png';
             if (typeof userPhoto !== 'string') userPhoto = String(userPhoto || '');
             const up = userPhoto.trim();
-            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+                if (up.startsWith('http://') || up.startsWith('https://')) return up; 
             if (up.startsWith('/')) return appUrl + up; // includes '/file/...', '/asset/...'
             if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
             // bare filename stored
@@ -1466,41 +1466,66 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
         function createTaskCard(task) {
             // Normalize project image early to avoid broken images when backend returns empty/invalid URL
             const placeholderProjectImg = `${appUrl}/asset/img/profile_picture/default.png`;
+            // Build project image or initials avatar
+            function buildProjectInitialsAvatar(title) {
+                const text = (title || '').trim();
+                if (!text) return 'NA';
+                // Ambil maksimal dua huruf awal dari kata pertama & terakhir seperti WhatsApp (contoh: "James Mwandi" => "JM")
+                const parts = text.split(/\s+/).filter(Boolean);
+                if (parts.length === 1) {
+                    return parts[0].substring(0,2).toUpperCase();
+                }
+                const first = parts[0].charAt(0);
+                const last = parts[parts.length - 1].charAt(0);
+                return (first + last).toUpperCase();
+            }
+
+            function pickAvatarColor(key) {
+                // Deterministic color palette based on simple hash of project title
+                const colors = [
+                    '#6A5AE0', '#FF8A3C', '#00A881', '#D4526E', '#3E8EDE',
+                    '#546E7A', '#8E44AD', '#2E7D32', '#AD1457', '#EF6C00'
+                ];
+                if (!key) return colors[0];
+                let hash = 0;
+                for (let i=0;i<key.length;i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+                return colors[hash % colors.length];
+            }
+
             const projectImg = (function() {
                 try {
-                    const raw = (task && task.project_image) || '';
+                    const raw = (task && task.project_image);
+                    if (!raw) return null; // trigger initials avatar
                     const val = String(raw || '').trim();
                     if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
-                        return placeholderProjectImg;
+                        return null;
                     }
-                    // If response already contains a file/project path, rebuild with current appUrl to support subfolder deployments
                     if (val.includes('/file/project/')) {
                         const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
-                        if (!fname) return placeholderProjectImg;
+                        if (!fname) return null;
                         return `${appUrl}/file/project/${fname}`;
                     }
-                    // Any asset path -> rewrite with appUrl (handles absolute or root-relative)
                     if (val.includes('/asset/')) {
                         const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
                         return `${appUrl}/asset/${suffix}`;
                     }
-                    // Asset path from root -> rewrite with appUrl (legacy)
                     if (val.startsWith('/asset/')) {
                         const suffix = val.replace(/^\/+/, '');
                         return `${appUrl}/${suffix}`;
                     }
-                    // Any other root-relative path -> prefix with appUrl
                     if (val.startsWith('/')) {
                         return `${appUrl}${val}`;
                     }
-                    // If it's just a filename, prefix with our appUrl
                     if (!/^https?:\/\//i.test(val) && !val.startsWith('/')) {
                         return `${appUrl}/file/project/${val}`;
                     }
-                    // Otherwise trust as-is (absolute http(s) or root-relative)
                     return val;
-                } catch(_) { return placeholderProjectImg; }
+                } catch(_) { return null; }
             })();
+
+            const useInitials = !projectImg;
+            const initials = useInitials ? buildProjectInitialsAvatar(task.project_title) : '';
+            const initialsColor = useInitials ? pickAvatarColor(task.project_title || initials) : '#6A5AE0';
     // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
     const allExecutors = [];
     if (task.pic) {
@@ -1613,14 +1638,21 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
             ${dropdownHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
-                ${task.project_id ? (
-                    (task.status === 'new_request' || task.status === 'new request')
-                        ? `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
-                                <img src="${projectImg}" alt="Project Image" class="project-image" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">
-                                <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
-                           </div>`
-                        : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width: 34px; height: 34px; object-fit: cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`
-                  ) : ''}
+                ${(function(){
+                    // Fallback: if no project, still show initials avatar based on task title (schedule case)
+                    const fallbackTitle = task.project_id ? task.project_title : task.title;
+                    const showInitials = !projectImg;
+                    const avatarHtml = showInitials
+                        ? `<div class="project-initial-avatar${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(fallbackTitle)}</div>`
+                        : `<img src="${projectImg}" alt="Project Image" class="project-image${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`;
+                    if (task.status === 'new_request' || task.status === 'new request') {
+                        return `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
+                            ${avatarHtml}
+                            <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
+                        </div>`;
+                    }
+                    return avatarHtml;
+                })()}
                 <div class="d-flex flex-column">
                     ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>` : ''}
                     <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>

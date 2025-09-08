@@ -423,24 +423,26 @@ class TaskController extends Controller
             })->values();
 
             // Robust project image URL: absolute URLs are used as-is; for local files, ensure existence or fall back to default.
-            $defaultProjectImg = asset('asset/img/profile_picture/default.png');
-            $projectImageUrl = $defaultProjectImg;
+            $projectHasImage = false;
+            $projectImageUrl = null; // null menandakan tidak ada gambar -> frontend akan render avatar inisial
             if ($task->project && $task->project->image) {
                 $img = $task->project->image;
+                $normalized = ltrim($img, '/');
                 if (Str::startsWith($img, ['http://', 'https://'])) {
                     $projectImageUrl = $img;
+                    $projectHasImage = true;
+                } elseif (Str::startsWith($normalized, 'asset/')) {
+                    $full = asset($normalized);
+                    $projectImageUrl = $full;
+                    $projectHasImage = true;
                 } else {
-                    // Normalize possible prefixes
-                    $normalized = ltrim($img, '/');
-                    if (Str::startsWith($normalized, 'asset/')) {
+                    if (!Str::startsWith($normalized, 'file/project/')) {
+                        $normalized = 'file/project/' . $normalized;
+                    }
+                    $disk = public_path($normalized);
+                    if (file_exists($disk)) {
                         $projectImageUrl = asset($normalized);
-                    } else {
-                        // Ensure it lives under file/project
-                        if (!Str::startsWith($normalized, 'file/project/')) {
-                            $normalized = 'file/project/' . $normalized;
-                        }
-                        $disk = public_path($normalized);
-                        $projectImageUrl = file_exists($disk) ? asset($normalized) : $defaultProjectImg;
+                        $projectHasImage = true;
                     }
                 }
             }
@@ -450,7 +452,8 @@ class TaskController extends Controller
                 'title' => $task->title,
                 'description' => $task->description,
                 'project_title' => $task->project?->title,
-                'project_image' => $projectImageUrl,
+                'project_image' => $projectImageUrl, // null jika tidak ada gambar
+                'project_has_image' => $projectHasImage,
                 'project_id' => $task->project_id,
                 'due_date' => $task->due_date,
                 'priority' => $task->priority,
