@@ -3486,9 +3486,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             if (!userPhoto) {
                                                 return appUrl + "/asset/img/profile_picture/default.png";
                                             }
-                                            if (userPhoto.startsWith("http")) return userPhoto;
-                                            if (userPhoto.startsWith("/")) return appUrl + userPhoto;
-                                            return appUrl + "/file/profile_picture/" + userPhoto;
+                                            // Absolute URL
+                                            if (/^https?:\/\//i.test(userPhoto)) return userPhoto;
+                                            // Already has leading slash, just append base appUrl
+                                            if (userPhoto.startsWith('/')) return appUrl + userPhoto;
+                                            // If it's already a relative path with directories (e.g. file/photo/..., file/profile_picture/..., asset/img/...) don't re-prefix profile_picture
+                                            if (userPhoto.includes('/')) return appUrl + '/' + userPhoto.replace(/^\/+/, '');
+                                            // Otherwise treat as bare filename that lives in profile_picture
+                                            return appUrl + '/file/profile_picture/' + userPhoto;
                                         }
 
                                         let allPeople = [];
