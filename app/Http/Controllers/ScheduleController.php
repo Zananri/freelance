@@ -234,6 +234,12 @@ class ScheduleController extends Controller
         ]);
     }
 
+    public function create(Request $request)
+    {
+        // Provide any data needed by form (e.g. projects) via AJAX later; just serve view
+        return view('schedule.create');
+    }
+
     public function store(Request $request)
     {
         DB::beginTransaction();
@@ -261,7 +267,7 @@ class ScheduleController extends Controller
                 'recurrence_day_of_week' => 'required_if:recurrence_type,weekly|nullable|integer|min:0|max:6',
                 // Monthly date will default to day-of-month of Start From; no need to require client-side
                 'recurrence_day_of_month' => 'nullable|integer|min:1|max:31',
-                'recurrence_start_date' => 'required|date',
+                'recurrence_start_date' => 'nullable|date',
                 'recurrence_end_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'executor_ids' => 'nullable', // JSON array of IDs as string
             ]);
@@ -318,22 +324,29 @@ class ScheduleController extends Controller
             }
 
             // Prepare recurrence defaults
-            // Interval is fixed as 1 from UI point of view; default to 1 if missing
+            // Default start date to today if not provided (schedule valid indefinitely)
+            if (empty($data['recurrence_start_date'])) {
+                $data['recurrence_start_date'] = Carbon::today()->toDateString();
+            }
+            // Interval fixed 1
             $data['recurrence_interval'] = 1;
-            if ($data['recurrence_type'] !== 'weekly') $data['recurrence_day_of_week'] = null;
-            if ($data['recurrence_type'] !== 'monthly') {
+            if (($data['recurrence_type'] ?? '') !== 'weekly') {
+                $data['recurrence_day_of_week'] = null;
+            }
+            if (($data['recurrence_type'] ?? '') !== 'monthly') {
                 $data['recurrence_day_of_month'] = null;
             } else {
-                // Ensure monthly day-of-month follows Start From if not provided or mismatched
+                // Monthly: derive day-of-month from provided value or from (now/today) if missing
                 try {
-                    $recStart = \Carbon\Carbon::parse($data['recurrence_start_date']);
-                    $data['recurrence_day_of_month'] = (int) ($data['recurrence_day_of_month'] ?: $recStart->day);
-                } catch (\Throwable $e) {
-                    // Fallback: clamp to [1,31]
-                    $dom = (int) ($data['recurrence_day_of_month'] ?: 1);
+                    $base = Carbon::parse($data['recurrence_start_date']);
+                    $data['recurrence_day_of_month'] = (int) ($data['recurrence_day_of_month'] ?: $base->day);
+                } catch(\Throwable $e) {
+                    $dom = (int) ($data['recurrence_day_of_month'] ?: Carbon::today()->day);
                     $data['recurrence_day_of_month'] = max(1, min(31, $dom));
                 }
             }
+            // Ignore recurrence_end_date (leave null) to mean indefinitely active
+            $data['recurrence_end_date'] = null;
 
             // For all recurrence types, ignore default start_date (task start will be the render day)
             $data['start_date'] = null;

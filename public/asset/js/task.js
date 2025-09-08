@@ -759,27 +759,13 @@
         });
     })();
 
-    // Open Add Schedule Modal
+    // Schedule creation now uses separate page; modal trigger disabled.
     (function initScheduleTrigger(){
         const btn = document.querySelector('.btn.btn-schedule-custom');
-        const modalEl = document.getElementById('addScheduleModal');
-        if (btn && modalEl) {
-            btn.addEventListener('click', function(){
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                modal.show();
-            });
-        }
-        // Reset file state when opening the Schedule modal so previews start empty
-        if (modalEl) {
-            modalEl.addEventListener('show.bs.modal', function(){
-                try {
-                    selectedFiles = [];
-                    const pr = document.getElementById('schedule_reference_files_preview');
-                    if (pr) pr.innerHTML = '';
-                    const inp = document.getElementById('schedule_reference_files');
-                    if (inp) inp.value = '';
-                } catch (_) { /* noop */ }
-            });
+        if (btn) {
+            // Ensure no leftover modal attributes
+            btn.removeAttribute('data-bs-toggle');
+            btn.removeAttribute('data-bs-target');
         }
     })();
 
@@ -947,56 +933,7 @@
         document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
     })();
 
-    // Schedule form submit
-    (function initScheduleForm(){
-        const form = document.getElementById('addScheduleForm');
-        const modalEl = document.getElementById('addScheduleModal');
-        if (!form || !modalEl) return;
-        form.addEventListener('submit', function(e){
-            e.preventDefault();
-            if (!form.checkValidity()) { e.stopPropagation(); form.classList.add('was-validated'); return; }
-            form.classList.remove('was-validated');
-
-            const loader = document.getElementById('addScheduleModalLoader');
-            if (loader) loader.classList.remove('d-none');
-            const submitBtn = form.querySelector("button[type='submit']"); if (submitBtn) submitBtn.disabled = true;
-
-            const fd = new FormData(form);
-            // Ensure only one of due_in_days or due_date is sent: prefer due_in_days
-            const dueInDaysEl = document.getElementById('schedule_due_in_days');
-            if (dueInDaysEl && dueInDaysEl.value !== '') {
-                fd.set('due_in_days', String(Math.max(0, parseInt(dueInDaysEl.value, 10) || 0)));
-                fd.delete('due_date');
-            }
-            // Attach any chosen files (reuse global selectedFiles used by schedule input change)
-            (selectedFiles || []).forEach(f => fd.append('reference_files[]', f));
-
-            $.ajax({
-                url: appUrl + '/schedules', // to be implemented on backend
-                type: 'POST',
-                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                data: fd, processData: false, contentType: false,
-            }).done(function(res){
-                setTimeout(() => {
-                    if (loader) loader.classList.add('d-none'); if (submitBtn) submitBtn.disabled = false;
-                    try { showFloatingAlert(res.message || 'Schedule created', 'success'); } catch(_) {}
-                    form.reset();
-                    const modal = bootstrap.Modal.getInstance(modalEl); if (modal) modal.hide();
-                    // Refresh tasks so any immediately generated task appears
-                    try { fetchAndRenderTasks(); } catch(_) {}
-                    // Refresh notification badge for any new assignments
-                    try { refreshNotificationCountBadge(); } catch(_) {}
-                }, 600);
-            }).fail(function(xhr){
-                if (loader) loader.classList.add('d-none'); if (submitBtn) submitBtn.disabled = false;
-                let msg = 'Failed to create schedule.';
-                if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.errors)) {
-                    msg = xhr.responseJSON.message || Object.values(xhr.responseJSON.errors).flat().join('\n');
-                }
-                try { showFloatingAlert(msg, 'danger'); } catch(_) {}
-            });
-        });
-    })();
+    // Removed inline schedule form submit (handled on dedicated page now)
 
     // Handle edit task form submission (rebuilt from scratch like add task)
     const editTaskModalEl = document.getElementById("editTaskModal");
