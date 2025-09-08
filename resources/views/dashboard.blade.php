@@ -33,7 +33,14 @@
                                 
                                 <input type="hidden" name="employee_id" value="{{ $employee->id }}">
                                
-                                <img class="profile-image" src="{{ asset($employee->photo)}}" alt="User Profile">
+                                @php
+                                    $dashAvatar = $employee->profile_picture ?: ($employee->photo ?? null);
+                                    if ($dashAvatar && !preg_match('/^(https?:)?\/\//i', $dashAvatar)) {
+                                        $dashAvatar = asset($dashAvatar);
+                                    }
+                                    if (!$dashAvatar) { $dashAvatar = asset('asset/img/default-profile.png'); }
+                                @endphp
+                                <img class="profile-image" src="{{ $dashAvatar }}" alt="User Profile" data-global-avatar data-default="{{ asset('asset/img/default-profile.png') }}">
                             </div>
                             <div class="profile-text mt-2">
                                 <p class="user-name fw-light text-secondary">{{ $employee->name }}</p>

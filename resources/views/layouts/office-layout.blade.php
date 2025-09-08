@@ -191,6 +191,21 @@
         {{ $slot }}
     </section>
 
+    <script>
+        // Listener untuk pembaruan foto profil universal
+        window.addEventListener('profilePictureUpdated', function(e){
+            var newUrl = e.detail && e.detail.url; // bisa null (clear)
+            document.querySelectorAll('img[data-global-avatar], img[data-avatar-universal]').forEach(function(img){
+                var fallback = img.getAttribute('data-default');
+                if (newUrl) {
+                    img.src = newUrl.indexOf('?t=') !== -1 ? newUrl : (newUrl + '?t=' + Date.now());
+                } else if (fallback) {
+                    img.src = fallback + '?t=' + Date.now();
+                }
+            });
+        });
+    </script>
+
 
     <aside class="left-nav rounded-4">
         <div class="scrollable-container" style="max-height: calc(100vh - 120px)">

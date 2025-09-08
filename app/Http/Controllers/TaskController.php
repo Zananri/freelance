@@ -18,6 +18,17 @@ use Illuminate\Support\Str;
 class TaskController extends Controller
 {
     /**
+     * Resolve universal avatar for an employee (profile_picture > photo > user.photo > default)
+     */
+    private function resolveEmployeeAvatar($employee)
+    {
+        if (!$employee) return asset('asset/img/default-profile.png');
+        $raw = $employee->profile_picture ?: ($employee->photo ?: ($employee->user->photo ?? null));
+        if (!$raw) return asset('asset/img/default-profile.png');
+        if (preg_match('/^(https?:)?\/\//', $raw)) return $raw; // already absolute
+        return asset(ltrim($raw, '/'));
+    }
+    /**
      * Display a listing of the resource.
      */
     public function showTaskPage()
@@ -400,23 +411,27 @@ class TaskController extends Controller
 
             $picData = null;
             if ($pic && $pic->employee) {
+                $emp = $pic->employee;
+                $raw = $emp->profile_picture ?: ($emp->photo ?: ($emp->user->photo ?? null));
+                $resolved = $raw ? (preg_match('/^(https?:)?\/\//', $raw) ? $raw : asset($raw)) : asset('asset/img/default-profile.png');
                 $picData = [
-                    'id' => $pic->employee->id,
-                    'name' => $pic->employee->name,
-                    'image' => $pic->employee->user && $pic->employee->user->photo
-                        ? asset($pic->employee->user->photo)
-                        : asset('asset/img/profile_picture/default.png'),
+                    'id' => $emp->id,
+                    'name' => $emp->name,
+                    'image' => $resolved,
+                    'profile_picture' => $resolved,
                     'is_receive' => true,
                 ];
             }
 
             $executorsData = $executors->map(function ($executor) {
+                $emp = $executor->employee;
+                $raw = $emp->profile_picture ?: ($emp->photo ?: ($emp->user->photo ?? null));
+                $resolved = $raw ? (preg_match('/^(https?:)?\/\//', $raw) ? $raw : asset($raw)) : asset('asset/img/default-profile.png');
                 return [
-                    'id' => $executor->employee->id,
-                    'name' => $executor->employee->name,
-                    'image' => $executor->employee->user && $executor->employee->user->photo
-                        ? asset($executor->employee->user->photo)
-                        : asset('asset/img/profile_picture/default.png'),
+                    'id' => $emp->id,
+                    'name' => $emp->name,
+                    'image' => $resolved,
+                    'profile_picture' => $resolved,
                     'is_receive' => $executor->is_receive,
                     'role' => $executor->role,
                 ];
@@ -643,17 +658,15 @@ class TaskController extends Controller
                     'pic' => $pic && $pic->employee ? [
                         'id' => $pic->employee->id,
                         'name' => $pic->employee->name,
-                        'photo' => ($pic->employee->user && $pic->employee->user->photo)
-                            ? asset($pic->employee->user->photo)
-                            : asset('asset/img/profile_picture/default.png'),
+                        'photo' => $this->resolveEmployeeAvatar($pic->employee),
+                        'profile_picture' => $this->resolveEmployeeAvatar($pic->employee),
                     ] : null,
                     'executors' => $executors->map(function ($ex) {
                         return [
                             'id' => $ex->employee->id,
                             'name' => $ex->employee->name,
-                            'photo' => ($ex->employee->user && $ex->employee->user->photo)
-                                ? asset($ex->employee->user->photo)
-                                : asset('asset/img/profile_picture/default.png'),
+                            'photo' => $this->resolveEmployeeAvatar($ex->employee),
+                            'profile_picture' => $this->resolveEmployeeAvatar($ex->employee),
                             'is_receive' => (bool) $ex->is_receive,
                         ];
                     })->values(),
@@ -744,17 +757,15 @@ class TaskController extends Controller
                     'pic' => $pic && $pic->employee ? [
                         'id' => $pic->employee->id,
                         'name' => $pic->employee->name,
-                        'photo' => ($pic->employee->user && $pic->employee->user->photo)
-                            ? asset($pic->employee->user->photo)
-                            : asset('asset/img/profile_picture/default.png'),
+                        'photo' => $this->resolveEmployeeAvatar($pic->employee),
+                        'profile_picture' => $this->resolveEmployeeAvatar($pic->employee),
                     ] : null,
                     'executors' => $executors->map(function ($ex) {
                         return [
                             'id' => $ex->employee->id,
                             'name' => $ex->employee->name,
-                            'photo' => ($ex->employee->user && $ex->employee->user->photo)
-                                ? asset($ex->employee->user->photo)
-                                : asset('asset/img/profile_picture/default.png'),
+                            'photo' => $this->resolveEmployeeAvatar($ex->employee),
+                            'profile_picture' => $this->resolveEmployeeAvatar($ex->employee),
                             'is_receive' => (bool) $ex->is_receive,
                         ];
                     })->values(),
@@ -1006,13 +1017,13 @@ class TaskController extends Controller
                 'pic' => ($pic && $pic->employee) ? [
                     'id' => $pic->employee->id,
                     'name' => $pic->employee->name ?? '',
-                    'user_photo' => $pic->employee->user->photo
-                        ? asset($pic->employee->user->photo)
-                        : asset('asset/img/profile_picture/default.png'),
+                    'user_photo' => $this->resolveEmployeeAvatar($pic->employee),
+                    'profile_picture' => $this->resolveEmployeeAvatar($pic->employee),
                 ] : [
                     'id' => null,
                     'name' => 'None',
-                    'user_photo' => asset('asset/img/profile_picture/default.png'),
+                    'user_photo' => asset('asset/img/default-profile.png'),
+                    'profile_picture' => asset('asset/img/default-profile.png'),
                 ],
 
                 // Executors dengan default
@@ -1021,9 +1032,8 @@ class TaskController extends Controller
                         return [
                             'id' => $executor->employee->id,
                             'name' => $executor->employee->name ?? '',
-                            'user_photo' => $executor->employee->user->photo
-                                ? asset($executor->employee->user->photo)
-                                : asset('asset/img/profile_picture/default.png'),
+                            'user_photo' => $this->resolveEmployeeAvatar($executor->employee),
+                            'profile_picture' => $this->resolveEmployeeAvatar($executor->employee),
                         ];
                     })->values()
                     : [],
@@ -1086,7 +1096,8 @@ class TaskController extends Controller
                 return [
                     'id' => $executor->employee->id,
                     'name' => $executor->employee->name,
-                    'user_photo' => $executor->employee->user->photo ?? null,
+                    'user_photo' => $this->resolveEmployeeAvatar($executor->employee),
+                    'profile_picture' => $this->resolveEmployeeAvatar($executor->employee),
                 ];
             })->values(),
         ];
@@ -1751,9 +1762,8 @@ class TaskController extends Controller
                     'employee' => [
                         'id' => $feedback->employee->id,
                         'name' => $feedback->employee->name,
-                        'photo' => $feedback->employee->user && $feedback->employee->user->photo
-                            ? asset($feedback->employee->user->photo)
-                            : asset('asset/img/profile_picture/default.png'),
+                        'photo' => $this->resolveEmployeeAvatar($feedback->employee),
+                        'profile_picture' => $this->resolveEmployeeAvatar($feedback->employee),
                     ],
                 ];
                 // Map nested replies (one-level for now)
@@ -1799,9 +1809,8 @@ class TaskController extends Controller
                             'employee' => [
                                 'id' => $r->employee->id,
                                 'name' => $r->employee->name,
-                                'photo' => $r->employee->user && $r->employee->user->photo
-                                    ? asset($r->employee->user->photo)
-                                    : asset('asset/img/profile_picture/default.png'),
+                                'photo' => $this->resolveEmployeeAvatar($r->employee),
+                                'profile_picture' => $this->resolveEmployeeAvatar($r->employee),
                             ],
                         ];
                     });
@@ -1890,9 +1899,8 @@ class TaskController extends Controller
                 'employee' => [
                     'id' => $latest->employee->id,
                     'name' => $latest->employee->name,
-                    'photo' => $latest->employee->user && $latest->employee->user->photo
-                        ? asset($latest->employee->user->photo)
-                        : asset('asset/img/profile_picture/default.png'),
+                    'photo' => $this->resolveEmployeeAvatar($latest->employee),
+                    'profile_picture' => $this->resolveEmployeeAvatar($latest->employee),
                 ],
             ];
 
@@ -1957,9 +1965,8 @@ class TaskController extends Controller
                     $picData = [
                         'id' => $pic->employee->id,
                         'name' => $pic->employee->name ?? 'Not assigned',
-                        'user_photo' => $pic->employee->user && $pic->employee->user->photo
-                            ? $pic->employee->user->photo
-                            : null,
+                        'user_photo' => $this->resolveEmployeeAvatar($pic->employee),
+                        'profile_picture' => $this->resolveEmployeeAvatar($pic->employee),
                     ];
                 }
 
@@ -1969,9 +1976,8 @@ class TaskController extends Controller
                     return [
                         'id' => $executor->employee->id,
                         'name' => $executor->employee->name ?? 'Unknown',
-                        'user_photo' => $executor->employee->user && $executor->employee->user->photo
-                            ? $executor->employee->user->photo
-                            : null,
+                        'user_photo' => $this->resolveEmployeeAvatar($executor->employee),
+                        'profile_picture' => $this->resolveEmployeeAvatar($executor->employee),
                     ];
                 })->values();
 
@@ -2160,18 +2166,31 @@ class TaskController extends Controller
     {
         try {
             $query = $request->input('q', '');
-
-            $employees = Employee::query()
+            // Include user relation for legacy photo fallback; we'll compute a universal avatar.
+            $employees = Employee::with('user')
                 ->when($query !== '', function ($q) use ($query) {
-                    return $q->where('name', 'like', '%' . $query . '%');
+                    $q->where('name', 'like', '%' . $query . '%');
                 })
                 ->orderBy('name')
-                ->get(['id', 'name', 'photo as user_photo']);
+                ->get();
+
+            $mapped = $employees->map(function ($emp) {
+                $resolved = $this->resolveEmployeeAvatar($emp);
+                return [
+                    'id' => $emp->id,
+                    'name' => $emp->name,
+                    // Keep legacy user_photo field (raw original user->photo if exists) for backward compatibility
+                    'user_photo' => $emp->user && $emp->user->photo ? (preg_match('/^(https?:)?\/\//', $emp->user->photo) ? $emp->user->photo : asset(ltrim($emp->user->photo,'/'))) : null,
+                    // Provide unified avatar fields consumed by buildPhotoUrl in task.js
+                    'profile_picture' => $resolved,
+                    'profile_picture_url' => $resolved,
+                ];
+            })->values();
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $employees
+                'data' => $mapped
             ]);
 
         } catch (\Exception $e) {

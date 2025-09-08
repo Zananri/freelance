@@ -251,6 +251,11 @@ document.getElementById("nextMonthBtn").addEventListener("click", () => {
 populateMonthDropdown();
 loadEmployeeData();
 
+// When global profile picture updated, reload employee data to refresh table avatars
+window.addEventListener('profilePictureUpdated', function(){
+    try { loadEmployeeData(); } catch(e) { console.warn('Failed to refresh shift employee data after avatar update', e); }
+});
+
 // Render header tanggal
 function renderHeader(month, year) {
     const headerRow = document.getElementById("shiftTableHeader");
@@ -316,7 +321,8 @@ function createEmployeeCell(employee) {
     const td = document.createElement("td");
     td.classList.add("sticky-col");
 
-    const profile = employee.profile_picture || "/asset/img/default-profile.png";
+    // Use universal avatar (profile_picture) if available
+    const profile = employee.profile_picture || employee.profile_picture_url || "/asset/img/default-profile.png";
     // Try to read any available base shift info on employee, otherwise fallback to empty strings
     const baseShift = employee.shift || null;
     const baseTitle = (baseShift && baseShift.title) || employee.shift_title || "";
