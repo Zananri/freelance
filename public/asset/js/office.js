@@ -106,12 +106,10 @@ $(document).ready(function() {
                     // Show accept button for unaccepted task assignments
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-sm btn-submit-black btn-accept-task"
+                            <button class="btn btn-accept-task btn-submit-black"
                                     data-task-id="${taskId}"
-                                    data-notification-id="${notification.id}"
-                                    style="font-size: 12px; padding: 4px 8px;">
-                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
-                                Accept Task
+                                    data-notification-id="${notification.id}">
+                                Accept
                             </button>
                         </div>
                     `;
@@ -120,12 +118,10 @@ $(document).ready(function() {
                     const escapedProjectTitle = (projectTitle || '').replace(/"/g, '&quot;');
                     actionElement = `
                         <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-sm btn-submit-black btn-accept-project"
+                            <button class="btn btn-submit-black btn-accept-project"
                                     data-project-title="${escapedProjectTitle}"
-                                    data-notification-id="${notification.id}"
-                                    style="font-size: 12px; padding: 4px 8px;">
-                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
-                                Accept Project
+                                    data-notification-id="${notification.id}"">
+                                Accept
                             </button>
                         </div>
                     `;
@@ -286,12 +282,12 @@ $(document).ready(function() {
             : (showTasks ? 'Task notifications found. Proceed to accept all tasks?' : 'Project notifications found. Proceed to accept all projects?');
 
     const actionsHtml = hasBoth
-        ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>
-            <button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>
-            <button type="button" class="btn btn-submit-black" id="bulkAcceptAllBtn" style="white-space: nowrap;">Accept all</button>`
+        ? `<button type="button" class="btn btn-submit-black btn-accept-all" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>
+            <button type="button" class="btn btn-submit-black btn-accept-all" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>
+            <button type="button" class="btn btn-submit-black btn-accept-all" id="bulkAcceptAllBtn" style="white-space: nowrap;">Accept all</button>`
         : (showTasks
-        ? `<button type="button" class="btn btn-submit-black" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>`
-        : `<button type="button" class="btn btn-submit-black" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>`);
+        ? `<button type="button" class="btn btn-submit-black btn-accept-all" id="bulkAcceptTasksBtn" style="white-space: nowrap;">Accept all tasks</button>`
+        : `<button type="button" class="btn btn-submit-black btn-accept-all" id="bulkAcceptProjectsBtn" style="white-space: nowrap;">Accept all projects</button>`);
 
     const footerButtons = hasBoth
         ? `<div class="d-flex justify-content-center w-100" style="gap:8px; flex-wrap: nowrap;">

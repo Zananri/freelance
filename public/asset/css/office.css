@@ -872,17 +872,18 @@ td > .btn-delete {
     color: #6c757d;
 }
 
-#notificationDropdownCard .btn-accept-task {
+.btn-accept-task
+.btn-accept-project {
     font-size: 12px;
-    padding: 4px 8px;
+    padding: 5px 15px;
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    background-color: #444444;
 }
 
-#notificationDropdownCard .btn-accept-task .material-symbols-outlined {
-    font-size: 14px;
-    vertical-align: middle;
+.btn-accept-all {
+    background-color: #444444;
 }
 
 .empty-notifications {
@@ -963,7 +964,7 @@ td > .btn-delete {
 }
 
 .btn-submit-black {
-    background-color: black;
+    background-color: #444444;
     color: white;
     border: none;
     padding: 10px 24px;
@@ -992,8 +993,8 @@ td > .btn-delete {
 }
 
 .btn-close-reply {
-    background-color: grey;
-    color: white;
+    background-color: #e3e4ee;
+    color: #444444;
     border: none;
     padding: 10px 24px;
     border-radius: 8px;
@@ -1008,8 +1009,8 @@ td > .btn-delete {
 }
 
 .btn-close-reply:hover {
-    background-color: #333;
-    color: white;
+    background-color: #e3e4ee;
+    color: #444444;
 }
 
 .btn-danger.remove-ref-url {
