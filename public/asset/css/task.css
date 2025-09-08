@@ -654,6 +654,26 @@
     color: #fff;
 }
 
+/* Touch device overrides: disable hover grey overlay; only show when selected */
+body.touch-device .task-selectable-thumb .thumb-check {
+    background: rgba(0, 0, 0, 0) !important;
+}
+body.touch-device
+    .task-selectable-thumb
+    .thumb-check
+    .material-symbols-outlined {
+    color: rgba(255, 255, 255, 0) !important;
+}
+body.touch-device .task-selectable-thumb.selected .thumb-check {
+    background: #5770d5 !important;
+}
+body.touch-device
+    .task-selectable-thumb.selected
+    .thumb-check
+    .material-symbols-outlined {
+    color: #fff !important;
+}
+
 .task-title {
     font-size: 16px;
     font-weight: 600;

@@ -1,4 +1,17 @@
  document.addEventListener("DOMContentLoaded", function () {
+    // Mark pure touch-only devices (coarse pointer & no hover) to adjust hover behavior.
+    // Avoid disabling hover on hybrid laptops (touchscreen + mouse) which report touch capabilities.
+    try {
+        const hasTouchCap = ("ontouchstart" in window) || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+        const noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
+        const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+        const pureTouch = hasTouchCap && noHover && coarse; // stricter condition
+        if (pureTouch) {
+            document.body.classList.add('touch-device');
+        } else {
+            document.body.classList.remove('touch-device');
+        }
+    } catch(_) {}
     // Robust appUrl derivation: prefer meta, fallback to origin + first path segment (supports subfolders)
     let appUrl = (function(){
         try {
@@ -1922,6 +1935,15 @@ function renderSingleSection(status, sectionData) {
                     thumb.classList.remove('selected');
                     selectedPendingIds = selectedPendingIds.filter(id => String(id) !== String(taskId));
                     selectedAllNewIds = selectedAllNewIds.filter(id => String(id) !== String(taskId));
+                    // Force clear any residual hover overlay (mobile safari may keep pseudo state)
+                    try {
+                        const chk = thumb.querySelector('.thumb-check');
+                        if (chk) {
+                            chk.style.background = 'rgba(0,0,0,0)';
+                            const ic = chk.querySelector('.material-symbols-outlined');
+                            if (ic) ic.style.color = 'rgba(255,255,255,0)';
+                        }
+                    } catch(_) {}
                 } else {
                     // Single selection if checkbox not checked; if checked, add to list
                     thumb.classList.add('selected');
