@@ -353,23 +353,18 @@
 }
 
 .modal-footer-custom button {
-    width: 100%;
+    flex: 1;
     border: none;
     border-radius: 10px;
     padding: 10px;
-    background-color: #444444;
-    color: #ebecf2;
 }
 
-.btn-submit-custom {
-    width: auto;
-    min-width: auto;
-    height: 36px;
-    padding: 6px 16px;
-    font-size: 12px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+.modal-footer-custom .btn-custom-close {
+    background-color: #ebecf2;
+    color: #444444;
+}
+
+.modal-footer-custom .btn-submit-custom {
     background-color: #444444;
     color: #ebecf2;
 }
@@ -382,7 +377,7 @@
 .form-control {
     font-size: 14px;
     border-radius: 8px;
-    padding: 6px 12px;
+    padding: 12px 16px;
     border: 1px solid #ccc;
     transition: border-color 0.3s ease;
 }
@@ -1768,8 +1763,8 @@ p {
 }
 
 .btn-cancel-invite {
-    background-color: grey;
-    color: white;
+    background-color: #e3e4ee;
+    color: #444444;
     border: none;
     padding: 10px 15px;
     border-radius: 8px;
@@ -1784,8 +1779,8 @@ p {
 }
 
 .btn-cancel-invite:hover {
-    background-color: #333;
-    color: white;
+    background-color: #e3e4ee;
+    color: #444444;
 }
 
 .btn-danger.remove-ref-url {

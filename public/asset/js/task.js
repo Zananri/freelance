@@ -1688,62 +1688,51 @@ const sectionMap = {
   completed: "completed-tasks"
 };
 
-function fetchAndRenderTasks(statusKey = null, page = 1, append = false) {
-  const params = {};
-  if (statusKey) params.status = statusKey;
-  params.page = page;
+function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query = "") {
+    const params = {};
+    if (statusKey) params.status = statusKey;
+    params.page = page;
+    if (query) params.search = query;
 
-  if (statusKey && loaderMap[statusKey]) {
-    $(loaderMap[statusKey]).removeClass("d-none");
-  }
-
-  $.ajax({
-    url: appUrl + "/task/index",
-    type: "GET",
-    dataType: "json",
-    data: params,
-    success: function(response) {
-      if (!response || response.code !== 200 || !response.data) return;
-
-      if (statusKey) {
-        const respSection = response.data?.[statusKey] ?? { tasks: [], pagination: {} };
-        desktopState[statusKey].last = respSection?.pagination?.last_page || 1;
-
-        if (!allTasksCache[statusKey] || !append) {
-          allTasksCache[statusKey] = respSection;
-        } else {
-          allTasksCache[statusKey].tasks = [
-            ...(allTasksCache[statusKey].tasks || []),
-            ...(respSection.tasks || [])
-          ];
-          allTasksCache[statusKey].pagination = respSection.pagination || allTasksCache[statusKey].pagination;
-        }
-
-        renderSingleSection(statusKey, respSection, append);
-        if (typeof updatePagination === "function") updatePagination(allTasksCache);
-      } else {
-        Object.keys(response.data).forEach(key => {
-          allTasksCache[key] = response.data[key];
-          if (desktopState[key]) {
-            desktopState[key].last = response.data[key]?.pagination?.last_page || 1;
-          }
-        });
-        renderTasks(allTasksCache);
-        if (typeof updatePagination === "function") updatePagination(allTasksCache);
-      }
-    },
-    error: function(xhr, status, error) {
-      console.error("Error fetching tasks:", error);
-    },
-    complete: function() {
-      if (statusKey && loaderMap[statusKey]) {
-        $(loaderMap[statusKey]).addClass("d-none");
-      }
-      if (statusKey && desktopState[statusKey]) {
-        desktopState[statusKey].loading = false;
-      }
+    if (statusKey && loaderMap[statusKey]) {
+        $(loaderMap[statusKey]).removeClass("d-none");
     }
-  });
+
+    $.ajax({
+        url: appUrl + "/task/index",
+        type: "GET",
+        dataType: "json",
+        data: params,
+        success: function(response) {
+            if (!response || response.code !== 200 || !response.data) return;
+
+            const respSection = response.data?.[statusKey] ?? { tasks: [], pagination: {} };
+
+            if (!desktopState[statusKey]) {
+                desktopState[statusKey] = { page: 1, last: 1, loading: false };
+            }
+            desktopState[statusKey].last = respSection?.pagination?.last_page || 1;
+
+            if (!allTasksCache[statusKey] || !append) {
+                allTasksCache[statusKey] = respSection;
+            } else {
+                allTasksCache[statusKey].tasks = [
+                    ...(allTasksCache[statusKey].tasks || []),
+                    ...(respSection.tasks || [])
+                ];
+                allTasksCache[statusKey].pagination = respSection.pagination || allTasksCache[statusKey].pagination;
+            }
+
+            renderSingleSection(statusKey, respSection, append);
+        },
+        error: function(err) {
+            console.error(err);
+        },
+        complete: function() {
+            if (statusKey && loaderMap[statusKey]) $(loaderMap[statusKey]).addClass("d-none");
+            if (statusKey && desktopState[statusKey]) desktopState[statusKey].loading = false;
+        }
+    });
 }
 
 function renderTasks(data) {
@@ -1794,25 +1783,23 @@ function renderSingleSection(status, sectionData, append = false) {
   refreshAllLatestFeedbackSnippets();
 }
 
-function initDesktopInfiniteScroll() {
-  ["new_request", "in_progress", "completed"].forEach(status => {
-    const containerId = sectionMap[status];
-    $(document).on("scroll", `#${containerId}`, function () {
-      const el = this;
-      const state = desktopState[status];
-      if (!el || !state) return;
-      if (state.loading) return;
+function initDesktopInfiniteScroll(query = "") {
+    ["new_request", "in_progress", "completed"].forEach(status => {
+        const containerId = sectionMap[status];
+        $(document).on("scroll", `#${containerId}`, function () {
+            const el = this;
+            const state = desktopState[status];
+            if (!el || !state || state.loading) return;
 
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-        if (state.page < state.last) {
-          state.loading = true;
-          state.page++;
-          if (loaderMap[status]) $(loaderMap[status]).removeClass("d-none");
-          fetchAndRenderTasks(status, state.page, true);
-        }
-      }
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+                if (state.page < state.last) {
+                    state.loading = true;
+                    state.page++;
+                    fetchAndRenderTasks(status, state.page, true, query);
+                }
+            }
+        });
     });
-  });
 }
 
 $(document).ready(function () {
@@ -1858,6 +1845,19 @@ $(document).ready(function () {
         desktopState[status].page = 1;
         fetchAndRenderTasks(status, 1, false);
     });
+});
+
+let searchTimeout;
+$(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+
+    searchTimeout = setTimeout(() => {
+        ["new_request", "in_progress", "completed"].forEach(status => {
+            desktopState[status].page = 1;
+            fetchAndRenderTasks(status, 1, false, query);
+        });
+    }, 300);
 });
 
     $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
@@ -3572,7 +3572,7 @@ $(document).ready(function () {
                     feedbackModalEl.dataset.employeeId || ""
                 }">
 
-                <div class="mb-3">
+                <div class="mb-3 input-custom">
                     <label class="form-label">Upload Image</label>
                     <div class="image-upload-container">
                         <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
@@ -3583,12 +3583,12 @@ $(document).ready(function () {
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 input-custom">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 input-custom">
                     <label class="form-label">Reference URLs (Optional)</label>
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
                         <div class="d-flex gap-2 align-items-center">
@@ -3598,7 +3598,7 @@ $(document).ready(function () {
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 input-custom">
                     <label for="reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                     <div id="feedback_reference_files_preview"></div>
@@ -3689,7 +3689,7 @@ $(document).ready(function () {
                 <input type="hidden" name="parent_id" value="${parentId}">
                 <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
 
-                <div class="mb-3">
+                <div class="mb-3 input-custom">
                     <label class="form-label">Upload Image</label>
                     <div class="image-upload-container">
                         <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
@@ -3700,12 +3700,12 @@ $(document).ready(function () {
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 input-custom">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 input-custom">
                     <label class="form-label">Reference URLs (Optional)</label>
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
                         <div class="d-flex gap-2 align-items-center">
@@ -3715,7 +3715,7 @@ $(document).ready(function () {
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 input-custom">
                     <label for="reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                     <div id="feedback_reference_files_preview"></div>
