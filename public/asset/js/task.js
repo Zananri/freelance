@@ -1419,14 +1419,17 @@ document.addEventListener("click", function (e) {
             })();
 
             // Decide which text should drive initials/color (avoid placeholders like "No", "None", "No Project")
+            // Avatar initials requirement:
+            // 1. If project has image -> show image.
+            // 2. Otherwise ALWAYS use task (or schedule) title initials, not project title.
+            // Only fall back to project title if task title truly empty.
             const avatarTitle = (function() {
-                const projTitle = (task.project_id ? (task.project_title || '') : '').trim();
                 const taskTitle = (task.title || '').trim();
+                const projTitle = (task.project_title || '').trim();
                 const placeholderRegex = /^(no project|no|none|null|n\/a|na)$/i;
-                if (projTitle && !placeholderRegex.test(projTitle)) return projTitle;
                 if (taskTitle && !placeholderRegex.test(taskTitle)) return taskTitle;
-                // fallback: if both look placeholder, return first non-empty raw string or 'NA'
-                return projTitle || taskTitle || 'NA';
+                if (projTitle && !placeholderRegex.test(projTitle)) return projTitle;
+                return taskTitle || projTitle || 'NA';
             })();
 
             const useInitials = !projectImg;
