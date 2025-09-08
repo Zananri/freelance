@@ -236,6 +236,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let currentPage = 1;
 
+    function getInitials(title) {
+        if (!title) return "?";
+        return title.charAt(0).toUpperCase();
+    }
+
     // Load project card data and generate cards dynamically
     function loadProjectCardData(filter = null, page = 1) {
         $.ajax({
@@ -267,28 +272,33 @@ document.addEventListener("DOMContentLoaded", function () {
                     projects.forEach((project) => {
                         let imageUrl = project.image
                             ? appUrl + "/file/project/" + project.image
-                            : appUrl + "/asset/img/background/add-image.png";
+                            : null;
 
                         rowHtml += `
-                            <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${
-                                project.id
-                            }">
+                            <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${project.id}">
                                 <div class="project-card p-4 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
 
                                     <!-- Header -->
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="d-flex align-items-center">
-                                            <img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;">
-                                            <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
-                                                project.title
-                                            }</h6>
+                                            ${
+                                                imageUrl
+                                                    ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
+                                                    : `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                            style="width:34px;height:34px;background:#${Math.floor(
+                                                                Math.random() * 16777215
+                                                            ).toString(16)};color:#fff;font-size:14px;font-weight:600;">
+                                                            ${getInitials(project.title)}
+                                                    </div>`
+                                            }
+                                            <h6 class="mb-0" style="font-size:14px; font-weight:600;">${project.title}</h6>
                                         </div>
                                         <div class="dropdown-icon-container">
                                             <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
                                                     style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
                                             </button>
-                                            <div class="dropdown-menu d-none">
+                                            <div class="dropdown-menu dropdown-action d-none">
                                                 <div class="dropdown-item">Detail</div>
                                                 <div class="dropdown-item">Task</div>
                                                 <div class="dropdown-item">Feedback</div>
@@ -300,21 +310,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     <!-- Description -->
                                     <p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">
-                                        ${
-                                            project.description ||
-                                            "No Description"
-                                        }
+                                        ${project.description || "No Description"}
                                     </p>
 
-                                    <hr class="my-2 border-3"style="border-top:1px solid #DEDFE7;">
+                                    <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
 
                                     <!-- Footer -->
                                     <div class="d-flex justify-content-between align-items-center mt-2">
                                         <div class="collaborators-image d-flex align-items-center">
-
-                                            <!-- collaborators will be injected here -->
                                             ${renderCollaborators(project)}
-
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${project.id}" style="cursor:pointer; max-width: 160px;">
@@ -2235,52 +2239,50 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                     }
 
-                    // ...existing code...
-
                     // Function to show add feedback form
                     function showAddFeedbackForm(projectId) {
                         modalTitle.textContent = "Add Feedback";
 
                         modalBody.innerHTML = `
-        <form id="addFeedbackForm" enctype="multipart/form-data">
-            <input type="hidden" name="project_id" value="${projectId}">
-            <input type="hidden" name="employee_id" value="${
-                projectFeedbackModalEl.getAttribute("data-employee-id") || ""
-            }">
-            <input type="hidden" name="parent_id" value="">
-           <div class="mb-3">
-                    <label class="form-label">Upload Image</label>
-                    <div class="image-upload-container">
-                        <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
-                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                            <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
-                            <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
-                        </label>
-                    </div>
-                </div>
+                            <form id="addFeedbackForm" enctype="multipart/form-data">
+                                <input type="hidden" name="project_id" value="${projectId}">
+                                <input type="hidden" name="employee_id" value="${
+                                    projectFeedbackModalEl.getAttribute("data-employee-id") || ""
+                                }">
+                                <input type="hidden" name="parent_id" value="">
+                                    <div class="mb-3">
+                                        <label class="form-label">Upload Image</label>
+                                        <div class="image-upload-container">
+                                            <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
+                                                style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
+                                                <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                                                <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                                            </label>
+                                        </div>
+                                    </div>
 
-                <div class="mb-3">
-                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
-                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
-                </div>
+                                    <div class="mb-3 input-custom">
+                                        <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                                        <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+                                    </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Reference URLs (Optional)</label>
-                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
-                        </div>
-                    </div>
-                </div>
+                                    <div class="mb-3 input-custom">
+                                        <label class="form-label">Reference URLs (Optional)</label>
+                                        <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                                <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                <div class="mb-3">
-                    <label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>
-                    <input type="file" class="form-control" id="feedback_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                    <div id="feedback_reference_files_preview" class="mt-2"></div>
-                </div>
-        </form>
-    `;
+                                    <div class="mb-3 input-custom">
+                                        <label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>
+                                        <input type="file" class="form-control" id="feedback_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                        <div id="feedback_reference_files_preview" class="mt-2"></div>
+                                    </div>
+                            </form>
+                        `;
 
                         // Setup image preview and clear button logic
                         const imageInput =
@@ -2496,43 +2498,43 @@ document.addEventListener("DOMContentLoaded", function () {
                     function showReplyFeedbackForm(projectId, parentId) {
                         modalTitle.textContent = "Reply Feedback";
                         modalBody.innerHTML = `
-        <form id="replyFeedbackForm" enctype="multipart/form-data">
-            <input type="hidden" name="project_id" value="${projectId}">
-            <input type="hidden" name="parent_id" value="${parentId}">
-            <input type="hidden" name="employee_id" value="${projectFeedbackModalEl.getAttribute('data-employee-id') || ''}">
+                        <form id="replyFeedbackForm" enctype="multipart/form-data">
+                            <input type="hidden" name="project_id" value="${projectId}">
+                            <input type="hidden" name="parent_id" value="${parentId}">
+                            <input type="hidden" name="employee_id" value="${projectFeedbackModalEl.getAttribute('data-employee-id') || ''}">
 
-            <div class="mb-3">
-                <label class="form-label">Upload Image</label>
-                <div class="image-upload-container">
-                    <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
-                        style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
-                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
-                    </label>
-                </div>
-            </div>
+                            <div class="mb-3 input-custom">
+                                <label class="form-label">Upload Image</label>
+                                <div class="image-upload-container">
+                                    <label for="feedback_image" class="custom-image-upload position-relative label-custom" id="feedbackImageLabel"
+                                        style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
+                                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                                    </label>
+                                </div>
+                            </div>
 
-            <div class="mb-3">
-                <label for="feedback_comment" class="form-label">Feedback Comment</label>
-                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
-            </div>
+                            <div class="mb-3 input-custom">
+                                <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
+                                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+                            </div>
 
-            <div class="mb-3">
-                <label class="form-label">Reference URLs (Optional)</label>
-                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
-                    <div class="d-flex gap-2 align-items-center">
-                        <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
-                    </div>
-                </div>
-            </div>
+                            <div class="mb-3 input-custom">
+                                <label class="form-label label-custom">Reference URLs (Optional)</label>
+                                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                    </div>
+                                </div>
+                            </div>
 
-            <div class="mb-3">
-                <label for="reply_reference_files" class="form-label">Reference Files (Optional)</label>
-                <input type="file" class="form-control" id="reply_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                <div id="reply_reference_files_preview" class="mt-2"></div>
-            </div>
-        </form>`;
+                            <div class="mb-3 input-custom">
+                                <label for="reply_reference_files" class="form-label label-custom">Reference Files (Optional)</label>
+                                <input type="file" class="form-control" id="reply_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                <div id="reply_reference_files_preview" class="mt-2"></div>
+                            </div>
+                        </form>`;
 
                         // Setup image preview and clear like Add Feedback
                         (function() {
@@ -2678,38 +2680,38 @@ document.addEventListener("DOMContentLoaded", function () {
                             : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
                         const clearClass = existingImg ? '' : 'd-none';
                         modalBody.innerHTML = `
-        <form id="editFeedbackForm" enctype="multipart/form-data">
-            ${data.parent_id ? `<input type="hidden" name="parent_id" value="${data.parent_id}">` : ''}
+                        <form id="editFeedbackForm" enctype="multipart/form-data">
+                            ${data.parent_id ? `<input type="hidden" name="parent_id" value="${data.parent_id}">` : ''}
 
-            <div class="mb-3">
-                <label class="form-label label-custom">Upload Image</label>
-                <div class="image-upload-container">
-                    <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel"
-                        style="background-position: center center; background-repeat: no-repeat; ${bgStyle} cursor: pointer;">
-                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
-                        <span class="image-clear-btn ${clearClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
-                    </label>
-                </div>
-            </div>
+                            <div class="mb-3 input-custom">
+                                <label class="form-label label-custom">Upload Image</label>
+                                <div class="image-upload-container">
+                                    <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel"
+                                        style="background-position: center center; background-repeat: no-repeat; ${bgStyle} cursor: pointer;">
+                                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                                        <span class="image-clear-btn ${clearClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
+                                    </label>
+                                </div>
+                            </div>
 
-            <div class="mb-3">
-                <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
-                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
-            </div>
+                            <div class="mb-3 input-custom">
+                                <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
+                                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
+                            </div>
 
-            <div class="mb-3">
-                <label class="form-label label-custom">Reference URLs (Optional)</label>
-                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
-            </div>
+                            <div class="mb-3 input-custom">
+                                <label class="form-label label-custom">Reference URLs (Optional)</label>
+                                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
+                            </div>
 
-            <div class="mb-3">
-                <label for="edit_reference_files" class="form-label label-custom">Reference Files (Optional)</label>
-                <input type="file" class="form-control" id="edit_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
-                <div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>
-                <div id="edit_feedback_reference_files_preview" class="mt-2"></div>
-            </div>
-        </form>`;
+                            <div class="mb-3 input-custom">
+                                <label for="edit_reference_files" class="form-label label-custom">Reference Files (Optional)</label>
+                                <input type="file" class="form-control" id="edit_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                                <div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>
+                                <div id="edit_feedback_reference_files_preview" class="mt-2"></div>
+                            </div>
+                        </form>`;
 
                         // Image preview/clear logic like Add
                         (function() {
@@ -2844,7 +2846,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             function addRow(value, withAdd){
                                 const row = document.createElement('div');
                                 row.className = 'd-flex gap-2 align-items-center';
-                                row.innerHTML = '<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">' +
+                                row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                                     (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
                                 container.appendChild(row);
                                 const inp = row.querySelector('input[type="url"]');

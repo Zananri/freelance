@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         if (!Schema::hasTable('shifts')) {
@@ -16,6 +15,7 @@ return new class extends Migration
                 $table->time('time_start');
                 $table->time('time_end');
                 $table->decimal('total_hour', 4, 2)->default(0.00);
+                $table->enum('status', ['ACTIVE', 'DELETED'])->default('ACTIVE');
                 $table->bigInteger('created_by')->nullable();
                 $table->bigInteger('updated_by')->nullable();
                 $table->bigInteger('deleted_by')->nullable();
@@ -48,6 +48,9 @@ return new class extends Migration
                 }
                 if (!Schema::hasColumn('shifts', 'updated_by')) {
                     $table->bigInteger('updated_by')->nullable();
+                }
+                if (!Schema::hasColumn('shifts', 'status')) {
+                    $table->enum('status', ['ACTIVE', 'DELETED'])->default('ACTIVE');
                 }
                 if (!Schema::hasColumn('shifts', 'deleted_by')) {
                     $table->bigInteger('deleted_by')->nullable();

@@ -15,6 +15,7 @@ class Shift extends Model
         'time_start',
         'time_end',
         'total_hour',
+        'status',
         'created_by',
         'updated_by',
         'deleted_by',
