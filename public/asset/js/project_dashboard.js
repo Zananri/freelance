@@ -101,6 +101,7 @@
             }
         } catch(_) {}
     }
+    
 
     // Build timeline data from projects
     function buildTimelineData(projects) {
