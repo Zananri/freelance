@@ -1586,10 +1586,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
     // If current viewer is a pending executor, render simplified card footer with Accept/Reject controls
     const viewerPending = isViewerPendingExecutor(task);
 
-    // Check if description is long enough to need truncation
-    return `
-        <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}">
-            ${statusBadge}
+    // For pending executor: hide action/transition icons & dropdown menu entirely
+    if (viewerPending) {
+        iconHtml = ''; // remove status progression icon
+    }
+
+    // Build dropdown (only if not pending)
+    const dropdownHtml = (!viewerPending) ? `
             <div class="dropdown-icon-container">
                 <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                 <div class="dropdown-menu d-none">
@@ -1601,6 +1604,13 @@ function updateTaskStatus(taskId, newStatus, taskCard) {
                 </div>
             </div>
             ${iconHtml}
+        ` : '';
+
+    // Check if description is long enough to need truncation
+    return `
+    <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
+            ${statusBadge}
+            ${dropdownHtml}
 
             <div class="d-flex align-items-center mb-2 mt-2">
                 ${task.project_id ? (
