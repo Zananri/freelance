@@ -1,32 +1,49 @@
 const appUrl = $('meta[name=app-url]').attr("content");
 
-const modalConfig = new bootstrap.Modal('#modalConfig', {
+const modalAttendance = new bootstrap.Modal('#modalAttendance', {
   keyboard: false
 });
 
 
-$('#btn-show-config').click(function(){
-    modalConfig.show();
+
+
+$('.input-search-query').on('keyup',function(){
+    let searchQuery = $(this).val();
+    console.log(searchQuery);
+
+    if(searchQuery){
+        $('.employee-row').addClass('d-none');
+        
+         
+
+        $('.employee-row').each(function(){
+            let employeeName = $(this).find('.employee-name').text();
+            if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
+                $(this).removeClass('d-none');
+            }
+        });
+
+    }else{
+        $('.employee-row').removeClass('d-none');
+    }
 });
 
 
 
 
-
-
-let currentDate = new Date();
+let CURRENT_DATE = new Date();
 
 function renderCalendar(year, month) {
     
 
-    getTeamsDetail(month+1,year);
+    getAttendanceTrackingData(month+1,year);
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
     const monthNames = new Date(year,month);
 
 
-    $('.calendar-month').text(`${currentDate.toLocaleString('default', { month: 'long' })}`);
-    $('.calendar-month-short').text(`${currentDate.toLocaleString('default', { month: 'short' })}`);
+    $('.calendar-month').text(`${CURRENT_DATE.toLocaleString('default', { month: 'long' })}`);
+    $('.calendar-month-short').text(`${CURRENT_DATE.toLocaleString('default', { month: 'short' })}`);
     $('.calendar-year').text(`${year}`);
 
     $('.col-day').removeClass('d-none');
@@ -36,31 +53,43 @@ function renderCalendar(year, month) {
  
 }
 
-renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+renderCalendar(CURRENT_DATE.getFullYear(), CURRENT_DATE.getMonth());
 
 $('.calendar-prev-month').click(function() {
-    currentDate.setMonth(currentDate.getMonth() - 1);
-    renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    CURRENT_DATE.setMonth(CURRENT_DATE.getMonth() - 1);
+    renderCalendar(CURRENT_DATE.getFullYear(), CURRENT_DATE.getMonth());
 });
 
 $('.calendar-next-month').click(function() {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    CURRENT_DATE.setMonth(CURRENT_DATE.getMonth() + 1);
+    renderCalendar(CURRENT_DATE.getFullYear(), CURRENT_DATE.getMonth());
 });
 
 $(document).on('click','.dropdown-month .month-item',function(){
     let monthNum = $(this).attr('data-month');
     
-    currentDate.setMonth(parseInt(monthNum));
+    CURRENT_DATE.setMonth(parseInt(monthNum));
 
-    renderCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    renderCalendar(CURRENT_DATE.getFullYear(), CURRENT_DATE.getMonth());
 
     //$('.dropdown-month.show').removeClass('show');
 });
 
 $(document).on('click','tbody .col-day',function(){
     let dateCalendar = $(this).attr('data-day');
-    alert(dateCalendar);
+    let employeeName = $(this).closest('.employee-row').find('.employee-name').text();
+    let employeeId = $(this).closest('.employee-row').attr('data-employee-id');
+    let employeePhoto = $(this).closest('.employee-row').find('.employee-photo img').attr('src');
+
+    let attendanceDate =dateCalendar +' '+ CURRENT_DATE.toLocaleString('default', { month: 'long' }) +' '+CURRENT_DATE.getFullYear();
+
+    $('#modalAttendance .attendance-date').text(attendanceDate)
+    
+
+    $('#modalAttendance .employee-name').text(employeeName);
+    $('#modalAttendance .photo-employee').attr('src',employeePhoto);
+    
+    modalAttendance.show();
 });
 
 
@@ -73,7 +102,7 @@ $(document).on('click','.data-fullscreen, .data-fullscreen-exit',function(){
     $('.data-fullscreen').toggleClass('d-none');
 });
 
-function getTeamsDetail(month,year)
+function getAttendanceTrackingData(month,year)
 {
 
     $.ajax({

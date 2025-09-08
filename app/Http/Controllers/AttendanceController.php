@@ -104,7 +104,7 @@ class AttendanceController extends Controller
             $isLate = $attendance && !empty($attendance->time_late);
         }
 
-        return view('attendance/attendance', compact('employee', 'attendance', 'attendanceStatus', 'timeIn', 'isLate'));
+        return view('attendance.attendance', compact('employee', 'attendance', 'attendanceStatus', 'timeIn', 'isLate'));
     }
 
     public function index()

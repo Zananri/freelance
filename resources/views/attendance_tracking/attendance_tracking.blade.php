@@ -10,20 +10,15 @@
     </x-slot>
 
     <div class="title-content">
-        <div class="d-flex align-items-center">
-            <div class="w-100">
-                <h2 class="text-title-content" >Attendance Tracking</h2>
+        <div class="row">
+            <div class="col-12 col-md-9">
+                <h2 class="text-title-content mb-3" >Attendance Tracking</h2>
             </div>
-            {{-- <div>
-                <div>
-                    <button id="btn-show-config" class=" btn btn-default d-inline-flex align-items-center" type="button">
-                        <span class="material-symbols-outlined icon" type="button">settings</span>
-                        <span class="text-button">Config</span>
-                    </button>
-                </div>
-                
-            </div> --}}
+            <div class="col-12 col-md-3">
+                <input type="text" class="input-search-query w-100">
+            </div>
         </div>
+       
         
     </div>
 
@@ -141,47 +136,29 @@
     <x-slot name="body_end_slot"> 
         
         <!-- Modal -->
-        <div class="modal fade" id="modalConfig" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalConfigLabel" aria-hidden="true">
+        <div class="modal fade" id="modalAttendance" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalAttendanceLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
 
-                    <div class="modal-body position-relative">
-                        <div class="config-header mb-3">
+                    <div class="modal-body p-4 position-relative">
+                        <div class="position-absolute top-0 end-0 m-3 p-2 " data-bs-dismiss="modal">
+                            <span class="material-symbols-outlined fs-18 text-secondary">close</span>
+                        </div>
+                        <div class="text-center">
+                                <span class="fw-light fs-24">Attendance</span>
+                        </div>
+                        <div class="mb-4 text-center">
+                            <span class="fw-normal fs-14 text-secondary attendance-date">8 September 2025</span>
+                        </div>
+                        <div class="mb-3 pb-2 border-bottom border-3">
                             <div class="d-flex align-items-center">
-
-                                <div class="month-year w-100">
-                                    <div class="dropdown dropdown-month">
-                                        <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                            
-                                            <div class="d-inline-flex align-items-center">
-                                                <span class="calendar-month">{{ date('F') }}</span>
-                                                <span class="calendar-year">{{ date('Y') }}</span>
-                                            </div>
-
-                                        </div>
-
-                                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                            @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
-                                                <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
-                                            @endfor
-                                            
-                                        </ul>
-                                    </div>
-                                </div>
-                                <div class="box-view-control white-space-nowrap" >
-                                    <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
-                                    <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
-                                </div>
+                                <div class="me-3"><img src="" alt="" class="photo-employee"></div>
+                                <div class="w-100"><span class="employee-name fw-normal fs-14">Employee Name</span></div>
                             </div>
                         </div>
-                        <div class="config-body">
-                            <div class="p-3 rounded-3 fs-14 bg-light mb-3">
-                                17 August 2025 Indonesia independence day
-                            </div>
-                            <div class="p-3 rounded-3 fs-14 bg-light mb-3">
-                                18 August 2025 Colective leave
-                            </div>
-                        </div>
+
+                        
+                        
                         <div class="config-footer">
                             <div class="row">
                                 <div class="col-12">
@@ -189,6 +166,7 @@
                                 </div>
                             </div>
                         </div>
+
                         <div class="loader d-none" >
                             <div class="box-loader rounded-20" >
                                 <div class="text-center">
