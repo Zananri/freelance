@@ -3475,10 +3475,56 @@ document.addEventListener("DOMContentLoaded", function () {
                             success: function (response) {
                                 if (response.data && response.data.length > 0) {
                                     let html = "";
+                                    // Ensure global fallback handler exists (once)
+                                    if (!window.replaceTaskImageError) {
+                    window.replaceTaskImageError = function(imgEl, title) {
+                                            try {
+                                                if (!imgEl) return;
+                                                const txt = (title || '').trim();
+                                                let initials = 'NA';
+                                                if (typeof getInitials === 'function') {
+                                                    initials = getInitials(txt) || 'NA';
+                                                } else if (txt) {
+                                                    const parts = txt.split(/\s+/).filter(Boolean);
+                                                    initials = parts.length === 1
+                                                        ? parts[0].substring(0,2).toUpperCase()
+                                                        : (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+                                                }
+                                                let color = '#6A5AE0';
+                                                if (typeof getInitialsColor === 'function') {
+                                                    color = getInitialsColor(txt) || color;
+                                                }
+                                                const avatar = document.createElement('div');
+                        avatar.className = 'task-modal-initial-avatar me-3';
+                        avatar.style.cssText = 'width:100px;height:100px;flex:0 0 100px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:30px;color:#fff;border-radius:8px;background:' + color + ';';
+                                                avatar.textContent = initials;
+                                                imgEl.replaceWith(avatar);
+                                            } catch(_) {}
+                                        };
+                                    }
+
                                     response.data.forEach((task) => {
-                                        const taskImage = task.image
-                                            ? appUrl + "/file/task/" + task.image
-                                            : appUrl + "/asset/img/profile_picture/default.png";
+                                        const hasImage = !!(task.image && String(task.image).trim());
+                                        const taskImage = hasImage ? (appUrl + "/file/task/" + task.image) : null;
+                                        const safeTitle = (task.title || '').replace(/['"\\]/g, function(m){ return '\\' + m; });
+                                        let imageBlockHtml;
+                                        if (taskImage) {
+                                            imageBlockHtml = `<img src="${taskImage}" alt="${safeTitle}" class="me-3" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;" onerror="window.replaceTaskImageError && window.replaceTaskImageError(this, '${safeTitle}')">`;
+                                        } else {
+                                            // Directly render initials avatar
+                                            let initials = 'NA';
+                                            if (typeof getInitials === 'function') { initials = getInitials(task.title || '') || 'NA'; }
+                                            else {
+                                                const txt = (task.title || '').trim();
+                                                if (txt) {
+                                                    const parts = txt.split(/\s+/).filter(Boolean);
+                                                    initials = parts.length === 1 ? parts[0].substring(0,2).toUpperCase() : (parts[0].charAt(0)+parts[parts.length-1].charAt(0)).toUpperCase();
+                                                }
+                                            }
+                                            let color = '#6A5AE0';
+                                            if (typeof getInitialsColor === 'function') { color = getInitialsColor(task.title || '') || color; }
+                                            imageBlockHtml = `<div class=\"task-modal-initial-avatar me-3\" style=\"width:100px;height:100px;flex:0 0 100px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:30px;color:#fff;border-radius:8px;background:${color};\">${initials}</div>`;
+                                        }
 
                                         const createdDate = formatTaskDate(task.created_at);
 
@@ -3486,9 +3532,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             if (!userPhoto) {
                                                 return appUrl + "/asset/img/profile_picture/default.png";
                                             }
-                                            if (userPhoto.startsWith("http")) return userPhoto;
-                                            if (userPhoto.startsWith("/")) return appUrl + userPhoto;
-                                            return appUrl + "/file/profile_picture/" + userPhoto;
+                                            // Absolute URL
+                                            if (/^https?:\/\//i.test(userPhoto)) return userPhoto;
+                                            // Already has leading slash, just append base appUrl
+                                            if (userPhoto.startsWith('/')) return appUrl + userPhoto;
+                                            // If it's already a relative path with directories (e.g. file/photo/..., file/profile_picture/..., asset/img/...) don't re-prefix profile_picture
+                                            if (userPhoto.includes('/')) return appUrl + '/' + userPhoto.replace(/^\/+/, '');
+                                            // Otherwise treat as bare filename that lives in profile_picture
+                                            return appUrl + '/file/profile_picture/' + userPhoto;
                                         }
 
                                         let allPeople = [];
@@ -3555,9 +3606,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                         html += `
                                             <div class="task-item d-flex align-items-start mb-3 pb-3 border-bottom">
-                                                <img src="${taskImage}" alt="${task.title}"
-                                                    class="me-3"
-                                                    style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                                ${imageBlockHtml}
                                                 <div class="flex-grow-1">
                                                     <div class="d-flex justify-content-between align-items-start">
                                                         <div class="fw-bold">${task.title}</div>

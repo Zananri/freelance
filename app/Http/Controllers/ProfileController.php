@@ -52,15 +52,23 @@ class ProfileController extends Controller
         $user->load('employee.department', 'employee.division', 'employee.job');
 
         if ($user->employee) {
-            $photo = $user->employee->profile_picture ?? $user->employee->photo;
-            if ($photo) {
-                if (str_starts_with($photo, 'file/profile_picture')) {
-                    $user->employee->photo_url = asset($photo);
+            $rawPhoto = $user->employee->profile_picture ?? $user->employee->photo; // may be full relative path or just filename
+            $photoPath = null;
+
+            if ($rawPhoto) {
+                // If already starts with a known folder (file/...), leave as-is
+                if (str_starts_with($rawPhoto, 'file/')) {
+                    $photoPath = $rawPhoto;
+                } elseif (preg_match('/^(https?:)?\/\//i', $rawPhoto)) { // absolute URL
+                    $user->employee->photo_url = $rawPhoto; // assign and skip asset()
                 } else {
-                    $user->employee->photo_url = asset('file/profile_picture/' . $photo);
+                    // treat as bare filename -> assume stored in profile_picture directory
+                    $photoPath = 'file/profile_picture/' . ltrim($rawPhoto, '/');
                 }
-            } else {
-                $user->employee->photo_url = null;
+            }
+
+            if (!isset($user->employee->photo_url)) { // only if not absolute URL case above
+                $user->employee->photo_url = $photoPath ? asset($photoPath) : null;
             }
         }
 
