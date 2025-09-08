@@ -190,19 +190,19 @@
                                     </div>
                                     <div class="chart-labels d-flex justify-content-between align-items-center mt-3">
                                         <div class="text-center">
-                                            <span style="font-weight: bold; color: #222;">10</span><br>
+                                            <span style="font-weight: bold; color: #222;">0</span><br>
                                             <span style="color: #828282; font-size: 12px;">Total</span>
                                         </div>
                                         <div class="text-center">
-                                            <span style="font-weight: bold; color: #4fc97a;">3</span><br>
+                                            <span style="font-weight: bold; color: #4fc97a;">0</span><br>
                                             <span style="color: #828282; font-size: 12px;">Complete</span>
                                         </div>
                                         <div class="text-center">
-                                            <span style="font-weight: bold; color: #5a9be6;">5</span><br>
+                                            <span style="font-weight: bold; color: #5a9be6;">0</span><br>
                                             <span style="color: #828282; font-size: 12px;">On Progress</span>
                                         </div>
                                         <div class="text-center">
-                                            <span style="font-weight: bold; color: #ff6b6b;">2</span><br>
+                                            <span style="font-weight: bold; color: #ff6b6b;">0</span><br>
                                             <span style="color: #828282; font-size: 12px;">Late</span>
                                         </div>
                                     </div>

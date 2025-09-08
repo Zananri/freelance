@@ -65,74 +65,41 @@
         });
     }
 
-    function updateChartAndLabels(projects) {
-        projects = Array.isArray(projects) ? projects : [];
+    // Mirror logic from project.js -> updateProjectChartFromData
+    function updateChartAndLabels(projects, chartCounts) {
+        const numberOfProjects = Array.isArray(projects) ? projects.length : 0;
 
-        // Task-level aggregation: sum task_counts across all projects
-        // Slices are made mutually exclusive by allocating all late tasks to "Late",
-        // then subtracting them from in_progress when computing the chart.
-        let totalTasks = 0;
-        let completed = 0;
-        let inProgress = 0; // includes rejected by backend
-        let late = 0;
+        let completed = Number(chartCounts?.completed || 0);
+        let inProgress = Number(chartCounts?.in_progress || 0);
+        let late = Number(chartCounts?.late || 0);
+        let notStarted = Number(chartCounts?.not_started || 0);
 
-        projects.forEach((p) => {
-            const tc = p.task_counts || {};
-            // Prefer exclusive buckets if provided by backend
-            if (tc.excl) {
-                completed += (tc.excl.completed || 0);
-                const ip = (tc.excl.in_progress || 0);
-                const lt = (tc.excl.late || 0);
-                const ns = (tc.excl.not_started || 0);
-                inProgress += ip;
-                late += lt;
-                totalTasks += (ip + lt + ns + (tc.excl.completed || 0));
-            } else {
-                totalTasks += (tc.total || 0);
-                completed += (tc.completed || 0);
-                inProgress += (tc.in_progress || 0);
-                late += (tc.late || 0);
-            }
-        });
-
-    // Compute exclusive slices: notStarted makes the total balance, so no need to subtract late from in-progress here
-    const inProgressExclLate = inProgress;
-    const notStarted = Math.max(0, totalTasks - completed - inProgressExclLate - late);
-
-        // Update labels under chart: Total, Complete, On Progress, Late (in that order)
-        try {
-            const blocks = document.querySelectorAll('.chart-labels .text-center');
-            if (blocks && blocks.length >= 4) {
-                const nums = [totalTasks, completed, inProgressExclLate, late];
-                blocks.forEach((el, idx) => {
-                    const numSpan = el.querySelector('span:first-child');
-                    if (numSpan) numSpan.textContent = String(nums[idx] || 0);
-                });
-            }
-        } catch (e) {}
+        const chartData = [notStarted, completed, inProgress, late];
+        const total = chartData.reduce((a,b)=>a+b,0);
 
         if (chartInstance) {
-            if (totalTasks === 0) {
+            if (total === 0) {
                 chartInstance.data.labels = ["No Data"]; 
                 chartInstance.data.datasets[0].data = [1];
                 chartInstance.data.datasets[0].backgroundColor = [CHART_COLORS[0]];
             } else {
-                chartInstance.data.labels = [
-                    "Not Started",
-                    "Complete",
-                    "On Progress",
-                    "Late",
-                ];
-                chartInstance.data.datasets[0].data = [
-                    notStarted,
-                    completed,
-                    inProgressExclLate,
-                    late,
-                ];
+                chartInstance.data.labels = ["Not Started","Complete","On Progress","Late"]; 
+                chartInstance.data.datasets[0].data = chartData;
                 chartInstance.data.datasets[0].backgroundColor = CHART_COLORS;
             }
-            try { chartInstance.update(); } catch (e) {}
+            try { chartInstance.update(); } catch(_) {}
         }
+
+        // Labels: Total (projects), Complete, On Progress, Late
+        try {
+            const spans = document.querySelectorAll('.chart-labels .text-center span:first-child');
+            if (spans && spans.length >= 4) {
+                spans[0].textContent = numberOfProjects; // project count (match project.js semantics)
+                spans[1].textContent = completed;
+                spans[2].textContent = inProgress;
+                spans[3].textContent = late;
+            }
+        } catch(_) {}
     }
 
     // Build timeline data from projects
@@ -233,12 +200,13 @@
 
     async function fetchProjectsAndRender() {
         try {
-            // Request per-employee scoped task counts so chart and labels match the current user
             const url = appUrl + "/project/index?task_scope=me";
             const resp = await fetch(url);
             const json = await resp.json();
             const projects = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
-            // If start/due dates are missing, fetch details in parallel to enrich
+            const chartCounts = json.chart_counts || null;
+
+            // Enrich dates if missing
             const needsDetail = projects.filter(p => !(p.start_date && p.due_date));
             if (needsDetail.length) {
                 await Promise.all(needsDetail.map(async (p) => {
@@ -250,16 +218,49 @@
                             p.start_date = p.start_date || data.start_date || data.start || data.startDate;
                             p.due_date = p.due_date || data.due_date || data.due || data.end_date || data.endDate;
                         }
-                    } catch (_) { /* ignore */ }
+                    } catch(_) {}
                 }));
             }
+
+            const hasChartCounts = chartCounts && (
+                Number(chartCounts.total||0) > 0 ||
+                Number(chartCounts.completed||0) > 0 ||
+                Number(chartCounts.in_progress||0) > 0 ||
+                Number(chartCounts.late||0) > 0 ||
+                Number(chartCounts.not_started||0) > 0
+            );
+
+            if (hasChartCounts) {
+                updateChartAndLabels(projects, chartCounts);
+            } else {
+                // fallback fetch tasks aggregate as in project.js
+                try {
+                    const tResp = await fetch(appUrl + '/task/index/no-pagination');
+                    const tJson = await tResp.json();
+                    const d = tJson?.data || {};
+                    const notStartedCount = Number(d?.not_started?.count ?? (Array.isArray(d?.not_started?.tasks) ? d.not_started.tasks.length : 0));
+                    const inProgressCount = Number(d?.in_progress?.count ?? (Array.isArray(d?.in_progress?.tasks) ? d.in_progress.tasks.length : 0));
+                    const completedCount = Number(d?.completed?.count ?? (Array.isArray(d?.completed?.tasks) ? d.completed.tasks.length : 0));
+                    const lateCount = Number(d?.late?.count ?? (Array.isArray(d?.late?.tasks) ? d.late.tasks.length : 0));
+                    const rejectedCount = Number(d?.rejected?.count ?? (Array.isArray(d?.rejected?.tasks) ? d.rejected.tasks.length : 0));
+                    const derived = {
+                        total: notStartedCount + inProgressCount + completedCount + rejectedCount,
+                        completed: completedCount,
+                        in_progress: inProgressCount,
+                        late: lateCount,
+                        not_started: notStartedCount,
+                    };
+                    updateChartAndLabels(projects, derived);
+                } catch(_) {
+                    updateChartAndLabels(projects, {completed:0,in_progress:0,late:0,not_started:0});
+                }
+            }
+
             projectsCache = projects;
-            updateChartAndLabels(projectsCache);
             renderTimeline("#timelineRows", "#timelineTitle");
-        } catch (e) {
-            // fallback to zeros
+        } catch(_) {
             projectsCache = [];
-            updateChartAndLabels(projectsCache);
+            updateChartAndLabels([], {completed:0,in_progress:0,late:0,not_started:0});
             renderTimeline("#timelineRows", "#timelineTitle");
         }
     }
@@ -270,7 +271,7 @@
         if (ctx) chartInstance = createChart(ctx);
 
         // Initial render (will update after fetch)
-        updateChartAndLabels([]);
+    updateChartAndLabels([], {completed:0,in_progress:0,late:0,not_started:0});
         renderTimeline("#timelineRows", "#timelineTitle");
 
         // Navigation buttons
