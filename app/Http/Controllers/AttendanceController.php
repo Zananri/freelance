@@ -422,11 +422,18 @@ class AttendanceController extends Controller
                 throw new \Exception('Work outside, please add photo');
             }
 
+            $statusAttendance = 'INCOMPLETE_CHECK';
             $timeLate = '00:00:00';
 
             if($now > $shifTimeStart){
                 $timeLate = $now->diff($shifTimeStart)->format('%H:%I:%S');
             }
+
+            if($timeLate != '00:00:00'){
+                $statusAttendance = 'LATE';
+            };
+
+
             $attendanceExist = Attendance::where('employee_id',$employee->id)->where('date_attendance',$now->toDateString())->first();
             $attendanceId = 0;
 
@@ -434,6 +441,8 @@ class AttendanceController extends Controller
                 $attendanceId = $attendanceExist->id;
                 $attendanceExist->update([
                     'time_in' => $now->format('H:i'),
+                    'status'    => $statusAttendance,
+                    'time_late' => $timeLate,
                     'updated_by' => $userId
                 ]);
             }else{
@@ -444,6 +453,7 @@ class AttendanceController extends Controller
                     'time_in' => $now->format('H:i'),
                     'type_attendance' => 'check_in',
                     'note' => null,
+                    'status' => $statusAttendance,
                     'image' => $imageArray,
                     'time_late' => $timeLate,
                     'created_by' => $userId,
@@ -483,10 +493,7 @@ class AttendanceController extends Controller
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => [
-                    'attendance' => $attendance,
-                    'attendance_tracking' => $attendanceTracking
-                ],
+                'data' => [],
                 'message' => 'Check In successfully'
             ]);
 
@@ -673,7 +680,15 @@ class AttendanceController extends Controller
                 ]);
             }
 
-            
+
+            Attendance::where('employee_id', $employee->id)
+                ->where('date_attendance', $dateAttendance)
+                ->whereNotNull('time_out')
+                ->whereNotNull('time_in')
+            ->update([
+                'status' => 'PRESENT'
+            ]);
+
 
             DB::commit();
 
