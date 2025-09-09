@@ -474,7 +474,7 @@
                     <p class="text-center mb-4 modal-description" id="progressStatusDescription">
                         Task is being worked on
                     </p>
-                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to go back to Request?</p>
+                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to go In Progress?</p>
                     <div class="d-flex justify-content-center gap-3 w-100">
                         <button type="button" class="btn btn-submit-black"
                             id="confirmProgressStatusBtn">Confirm</button>
