@@ -561,8 +561,8 @@
                 <div class="modal-body feedback-modal-body" id="projectFeedbackList">
                 </div>
                 <div class="modal-footer feedback-modal-footer">
-                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
-                        style="width: 120px; white-space: nowrap;">Add Feedback</button>
+                    <button type="button" class="btn btn-submit-black w-100" id="addFeedbackButton"
+                        style="white-space: nowrap;">Add Feedback</button>
                 </div>
             </div>
             <div class="alert-container mt-2" style="width: 100%;"></div>

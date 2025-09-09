@@ -2439,6 +2439,48 @@ document.addEventListener("DOMContentLoaded", function () {
                                 submitFeedbackForm(form, projectId);
                             }
                         });
+                        // Arrange Close & Submit buttons side-by-side like Accept/Reject task buttons
+                        (function(){
+                            try {
+                                const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
+                                if(!footer) return;
+                                const submitBtnRef = document.getElementById('addFeedbackButton');
+                                if(!submitBtnRef) return;
+                                // Remove full-width styling
+                                submitBtnRef.classList.remove('w-100');
+                                submitBtnRef.style.flex = '1 1 0';
+                                submitBtnRef.style.padding = '8px 12px';
+                                submitBtnRef.style.fontSize = '12px';
+
+                                // Cleanup old wrapper if any
+                                const oldWrapper = footer.querySelector('#feedbackFormButtonsWrapper');
+                                if (oldWrapper) oldWrapper.remove();
+
+                                // Create wrapper
+                                const wrap = document.createElement('div');
+                                wrap.id = 'feedbackFormButtonsWrapper';
+                                wrap.className = 'd-flex align-items-center w-100 justify-content-between gap-1';
+
+                                // Create Close button
+                                const closeBtn = document.createElement('button');
+                                closeBtn.id = 'replyCloseButton';
+                                closeBtn.type = 'button';
+                                closeBtn.className = 'btn btn-close-reply';
+                                closeBtn.textContent = 'Close';
+                                closeBtn.style.flex = '1 1 0';
+                                closeBtn.style.padding = '8px 12px';
+                                closeBtn.style.fontSize = '12px';
+                                closeBtn.addEventListener('click', function(){
+                                    loadFeedbackData(projectId);
+                                });
+
+                                // Insert elements
+                                wrap.appendChild(closeBtn);
+                                wrap.appendChild(submitBtnRef);
+                                footer.innerHTML = ''; // clear footer then add wrapper
+                                footer.appendChild(wrap);
+                            } catch(_) { /* noop */ }
+                        })();
                     }
 
                     function submitFeedbackForm(form, projectId) {
@@ -2704,26 +2746,39 @@ document.addEventListener("DOMContentLoaded", function () {
                                     });
                             });
                         }
-
-                        // Back button
-                        const footer = projectFeedbackModalEl.querySelector(".feedback-modal-footer");
-                        if (footer) {
-                            let closeBtn = document.getElementById('replyCloseButton');
-                            if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
-                            closeBtn = document.createElement("button");
-                            closeBtn.id = "replyCloseButton";
-                            closeBtn.type = "button";
-                            closeBtn.className = "btn btn-close-reply";
-                            closeBtn.textContent = "Close";
-                            const submitBtn = document.getElementById('addFeedbackButton');
-                            if (submitBtn && submitBtn.parentNode) submitBtn.parentNode.insertBefore(closeBtn, submitBtn);
-                            closeBtn.addEventListener("click", function () {
-                                loadFeedbackData(projectId);
-                                const btn2 = document.getElementById("addFeedbackButton");
-                                if (btn2) btn2.textContent = "Add Feedback";
-                                if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
-                            });
-                        }
+                        // Arrange Close & Submit buttons side-by-side
+                        (function(){
+                            try {
+                                const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
+                                if(!footer) return;
+                                const submitBtnRef = document.getElementById('addFeedbackButton');
+                                if(!submitBtnRef) return;
+                                submitBtnRef.classList.remove('w-100');
+                                submitBtnRef.style.flex = '1 1 0';
+                                submitBtnRef.style.padding = '8px 12px';
+                                submitBtnRef.style.fontSize = '12px';
+                                const oldWrapper = footer.querySelector('#feedbackFormButtonsWrapper');
+                                if (oldWrapper) oldWrapper.remove();
+                                const wrap = document.createElement('div');
+                                wrap.id = 'feedbackFormButtonsWrapper';
+                                wrap.className = 'd-flex align-items-center w-100 justify-content-between gap-1';
+                                const closeBtn = document.createElement('button');
+                                closeBtn.id = 'replyCloseButton';
+                                closeBtn.type = 'button';
+                                closeBtn.className = 'btn btn-close-reply';
+                                closeBtn.textContent = 'Close';
+                                closeBtn.style.flex = '1 1 0';
+                                closeBtn.style.padding = '8px 12px';
+                                closeBtn.style.fontSize = '12px';
+                                closeBtn.addEventListener('click', function(){
+                                    loadFeedbackData(projectId);
+                                });
+                                wrap.appendChild(closeBtn);
+                                wrap.appendChild(submitBtnRef);
+                                footer.innerHTML='';
+                                footer.appendChild(wrap);
+                            } catch(_) { /* noop */ }
+                        })();
                     }
 
                     // Show edit form for feedback or reply (mirror Add Feedback UI)
@@ -3006,25 +3061,39 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch(_) { hidden.value = '[]'; }
                         })();
 
-                        // Back button like Task
-                        const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
-                        if (footer) {
-                            let backBtn = document.getElementById('replyCloseButton');
-                            if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
-                            backBtn = document.createElement('button');
-                            backBtn.id = 'replyCloseButton';
-                            backBtn.type = 'button';
-                            backBtn.className = 'btn btn-close-reply';
-                            backBtn.textContent = 'Close';
-                            const submitRef = document.getElementById('addFeedbackButton');
-                            if (submitRef && submitRef.parentNode) submitRef.parentNode.insertBefore(backBtn, submitRef);
-                            backBtn.addEventListener('click', function () {
-                                loadFeedbackData(projectId);
-                                const addBtn2 = document.getElementById('addFeedbackButton');
-                                if (addBtn2) addBtn2.textContent = 'Add Feedback';
-                                if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
-                            });
-                        }
+                        // Arrange Close & Update buttons side-by-side
+                        (function(){
+                            try {
+                                const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
+                                if(!footer) return;
+                                const submitBtnRef = document.getElementById('addFeedbackButton');
+                                if(!submitBtnRef) return;
+                                submitBtnRef.classList.remove('w-100');
+                                submitBtnRef.style.flex = '1 1 0';
+                                submitBtnRef.style.padding = '8px 12px';
+                                submitBtnRef.style.fontSize = '12px';
+                                const oldWrapper = footer.querySelector('#feedbackFormButtonsWrapper');
+                                if (oldWrapper) oldWrapper.remove();
+                                const wrap = document.createElement('div');
+                                wrap.id = 'feedbackFormButtonsWrapper';
+                                wrap.className = 'd-flex align-items-center w-100 justify-content-between gap-1';
+                                const closeBtn = document.createElement('button');
+                                closeBtn.id = 'replyCloseButton';
+                                closeBtn.type = 'button';
+                                closeBtn.className = 'btn btn-close-reply';
+                                closeBtn.textContent = 'Close';
+                                closeBtn.style.flex = '1 1 0';
+                                closeBtn.style.padding = '8px 12px';
+                                closeBtn.style.fontSize = '12px';
+                                closeBtn.addEventListener('click', function(){
+                                    loadFeedbackData(projectId);
+                                });
+                                wrap.appendChild(closeBtn);
+                                wrap.appendChild(submitBtnRef);
+                                footer.innerHTML='';
+                                footer.appendChild(wrap);
+                            } catch(_) { /* noop */ }
+                        })();
                     }
 
                     // Modal hidden event to reset modal title and clear modal body
@@ -3707,6 +3776,29 @@ document.addEventListener("DOMContentLoaded", function () {
                         const addFeedbackButton =
                             document.getElementById("addFeedbackButton");
                         addFeedbackButton.textContent = "Add Feedback";
+                        // Restore footer to single full-width button (remove wrapper / close button if present)
+                        try {
+                            const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
+                            if (footer) {
+                                const wrapper = footer.querySelector('#feedbackFormButtonsWrapper');
+                                if (wrapper) {
+                                    const submitBtn = wrapper.querySelector('#addFeedbackButton');
+                                    if (submitBtn) {
+                                        submitBtn.style.flex = '';
+                                        submitBtn.style.padding = '';
+                                        submitBtn.style.fontSize = '';
+                                        submitBtn.classList.add('w-100');
+                                        footer.innerHTML = '';
+                                        footer.appendChild(submitBtn);
+                                    }
+                                } else {
+                                    // Ensure w-100 if wrapper already gone
+                                    addFeedbackButton.classList.add('w-100');
+                                }
+                                const closeBtn = footer.querySelector('#replyCloseButton');
+                                if (closeBtn) closeBtn.remove();
+                            }
+                        } catch(_) { /* noop */ }
 
                         // Clone tombol untuk menghapus semua event listener sebelumnya
                         const newButton = addFeedbackButton.cloneNode(true);
