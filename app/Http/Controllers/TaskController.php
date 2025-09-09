@@ -56,10 +56,10 @@ class TaskController extends Controller
 
             $projectId = $request->input('project');
             $statusFilter = $request->input('status'); // optional
+            $search = $request->input('search'); // optional search keyword
             $perPage = (int) $request->input('per_page', 10);
             $page = (int) $request->input('page', 1);
 
-            // Base query: show tasks where current employee is PIC/EXECUTOR OR tasks created by the current user
             $currentUserId = $currentUser?->id;
             $baseQuery = Task::with(['project', 'assignments.employee', 'feedback_comments'])
                 ->where(function ($outer) use ($currentEmployeeId, $currentUserId) {
@@ -68,45 +68,42 @@ class TaskController extends Controller
                             $q->where('employee_id', $currentEmployeeId)
                                 ->where(function ($q2) {
                                     $q2->where('role', 'PIC')
-                                        ->orWhere('role', 'EXECUTOR');
+                                    ->orWhere('role', 'EXECUTOR');
                                 });
                         });
                     })
                     ->orWhere(function ($q) use ($currentUserId) {
-                        if ($currentUserId) {
-                            $q->where('created_by', $currentUserId);
-                        }
+                        if ($currentUserId) $q->where('created_by', $currentUserId);
                     });
                 });
 
-            if ($projectId) {
-                $baseQuery->where('project_id', $projectId);
+            if ($projectId) $baseQuery->where('project_id', $projectId);
+
+            // ===== Tambah filter search =====
+            if ($search) {
+                $baseQuery->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+                });
             }
 
             $response = [];
 
-            // Helper: tasks where CURRENT employee (as EXECUTOR) belum accept
             $currentEmployeePendingAcceptance = function ($q) use ($currentEmployeeId) {
                 $q->whereHas('assignments', function ($a) use ($currentEmployeeId) {
                     $a->where('role', 'EXECUTOR')
-                        ->where('employee_id', $currentEmployeeId)
-                        ->where(function ($r) {
-                            $r->whereNull('is_receive')->orWhere('is_receive', false);
-                        });
+                    ->where('employee_id', $currentEmployeeId)
+                    ->where(function ($r) {
+                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                    });
                 });
             };
 
-            // Aturan baru PER USER:
-            // - Jika user adalah EXECUTOR dan belum accept task tsb, task tetap muncul di kolom NEW (meski status database sudah in_progress / rejected / completed).
-            // - Untuk user lain (PIC, creator, executor yang sudah accept) task tampil sesuai status asli.
-
-                if ($statusFilter) {
-                // Jika filter status di-apply
+            if ($statusFilter) {
                 $query = clone $baseQuery;
-
                 $normalizedFilter = $statusFilter;
+
                 if ($normalizedFilter === 'in_progress') {
-                    // in_progress bucket includes in_progress + rejected (existing behavior) excluding tasks current user belum accept
                     $query->whereIn('status', ['in_progress', 'rejected'])
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
@@ -118,10 +115,9 @@ class TaskController extends Controller
                             });
                         });
                 } elseif ($normalizedFilter === 'new_request') {
-                    // new_request bucket includes original new_request OR tasks where current user belum accept
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
-                          ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
+                        ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
                     });
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
@@ -161,12 +157,11 @@ class TaskController extends Controller
                     ]
                 ];
             } else {
-                // Bucket per-user
-                // NEW_REQUEST
+                // ===== NEW_REQUEST =====
                 $newQuery = clone $baseQuery;
                 $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
                     $q->where('status', 'new_request')
-                      ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
+                    ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
                 });
                 $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
                 $response['new_request'] = [
@@ -179,18 +174,18 @@ class TaskController extends Controller
                     ]
                 ];
 
-                // IN_PROGRESS (includes rejected), exclude tasks where current user belum accept
+                // ===== IN_PROGRESS =====
                 $progressQuery = clone $baseQuery;
                 $progressQuery->whereIn('status', ['in_progress', 'rejected'])
-                    ->where(function ($q) use ($currentEmployeeId) {
-                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
-                            $a->where('role', 'EXECUTOR')
-                                ->where('employee_id', $currentEmployeeId)
-                                ->where(function ($r) {
-                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            ->where(function ($q) use ($currentEmployeeId) {
+                                $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                                    $a->where('role', 'EXECUTOR')
+                                        ->where('employee_id', $currentEmployeeId)
+                                        ->where(function ($r) {
+                                            $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                        });
                                 });
-                        });
-                    });
+                            });
                 $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'in_progress_page');
                 $response['in_progress'] = [
                     'tasks' => $this->mapTasks($progressPaginator->items()),
@@ -202,18 +197,18 @@ class TaskController extends Controller
                     ]
                 ];
 
-                // COMPLETED exclude tasks where current user belum accept
+                // ===== COMPLETED =====
                 $completedQuery = clone $baseQuery;
                 $completedQuery->where('status', 'completed')
-                    ->where(function ($q) use ($currentEmployeeId) {
-                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
-                            $a->where('role', 'EXECUTOR')
-                                ->where('employee_id', $currentEmployeeId)
-                                ->where(function ($r) {
-                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            ->where(function ($q) use ($currentEmployeeId) {
+                                $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                                    $a->where('role', 'EXECUTOR')
+                                        ->where('employee_id', $currentEmployeeId)
+                                        ->where(function ($r) {
+                                            $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                        });
                                 });
-                        });
-                    });
+                            });
                 $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'completed_page');
                 $response['completed'] = [
                     'tasks' => $this->mapTasks($completedPaginator->items()),

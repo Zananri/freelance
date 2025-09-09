@@ -79,41 +79,44 @@
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h4 class="task-section-title mb-0">New</h4>
                     <div class="d-flex align-items-center gap-2">
-                        <button type="button" id="taskNewBulkAction" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
+                        <button type="button" id="taskNewBulkAction" class="task-bulk-icon"
+                            aria-label="Confirm accept selected tasks">
                             <span class="material-symbols-outlined">done_all</span>
                         </button>
-                        <button type="button" id="taskNewBulkProgress" class="task-bulk-icon" aria-label="Move selected tasks to In Progress">
+                        <button type="button" id="taskNewBulkProgress" class="task-bulk-icon"
+                            aria-label="Move selected tasks to In Progress">
                             <span class="material-symbols-outlined">arrow_right_alt</span>
                         </button>
                         <label for="taskNewAcceptAll" class="task-selectall-toggle">
-                            <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAll" aria-label="Select all pending new tasks" />
+                            <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAll"
+                                aria-label="Select all pending new tasks" />
                         </label>
                     </div>
                 </div>
-                <div id="new-request-tasks" class="task-list"></div>
                 <div id="newTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
+                <div id="new-request-tasks" class="task-list"></div>
             </div>
             <div class="col-md-4 in-progress-container">
                 <h4 class="task-section-title">In Progress</h4>
-                <div id="in-progress-tasks" class="task-list"></div>
                 <div id="progressTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
+                <div id="in-progress-tasks" class="task-list"></div>
             </div>
             <div class="col-md-4 completed-container">
                 <h4 class="task-section-title">Completed</h4>
-                <div id="completed-tasks" class="task-list"></div>
                 <div id="completedTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
+                <div id="completed-tasks" class="task-list"></div>
             </div>
         </div>
     </div>
@@ -164,7 +167,8 @@
                             <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="edit_task_project_id" class="form-label label-custom">Project (optional)</label>
+                            <label for="edit_task_project_id" class="form-label label-custom">Project
+                                (optional)</label>
                             <select class="form-select input-select" id="edit_task_project_id" name="project_id">
                                 <option value="">No Project</option>
                             </select>
@@ -227,7 +231,12 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit">Submit</button>
+                        <button type="button" class="btn-custom-close" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                        <button type="submit" class="btn-submit-custom">
+                            Submit
+                        </button>
                     </div>
                 </form>
             </div>
@@ -378,7 +387,10 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit">
+                        <button type="button" class="btn-custom-close" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                        <button type="submit" class="btn-submit-custom">
                             Submit
                         </button>
                     </div>
@@ -389,43 +401,6 @@
     </div>
 
     <!-- Schedule modal removed; now using separate create page -->
-
-    <!-- Edit Task Modal -->
-    <div class="modal fade" id="timelineModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="timelineModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content timeline-modal">
-
-                <!-- Header -->
-                <div class="modal-header d-flex justify-content-between align-items-center">
-                    <h5 class="modal-title fw-normal mb-0" id="timelineModalTitle">Timeline</h5>
-                    <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-sm" id="prevTimelineModal">
-                            <span class="material-symbols-outlined">chevron_left</span>
-                        </button>
-                        <button class="btn btn-sm me-3" id="nextTimelineModal">
-                            <span class="material-symbols-outlined">chevron_right</span>
-                        </button>
-                        <button class="exit-fullscreen-btn" type="button" data-bs-dismiss="modal">
-                            <span class="material-symbols-outlined">fullscreen_exit</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Body -->
-                <div class="modal-body p-0">
-                    <div class="timeline-wrapper">
-                        <table class="timeline-table w-100">
-                            <thead>
-                                <tr id="timelineHeaderModal"></tr>
-                            </thead>
-                            <tbody id="timelineRowsModal"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Task Detail Modal -->
     <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
@@ -593,8 +568,9 @@
                 <div class="modal-body feedback-modal-body" id="taskFeedbackList">
                 </div>
                 <div class="modal-footer feedback-modal-footer">
-                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton">Add
-                        Feedback</button>
+                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton">
+                        Add Feedback
+                    </button>
                 </div>
             </div>
             <div class="alert-container mt-2"></div>

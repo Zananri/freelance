@@ -353,23 +353,18 @@
 }
 
 .modal-footer-custom button {
-    width: 100%;
+    flex: 1;
     border: none;
     border-radius: 10px;
     padding: 10px;
-    background-color: #444444;
-    color: #ebecf2;
 }
 
-.btn-submit-custom {
-    width: auto;
-    min-width: auto;
-    height: 36px;
-    padding: 6px 16px;
-    font-size: 12px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+.modal-footer-custom .btn-custom-close {
+    background-color: #ebecf2;
+    color: #444444;
+}
+
+.modal-footer-custom .btn-submit-custom {
     background-color: #444444;
     color: #ebecf2;
 }
@@ -382,12 +377,12 @@
 .form-control {
     font-size: 14px;
     border-radius: 8px;
-    padding: 6px 12px;
+    padding: 12px 16px;
     border: 1px solid #ccc;
     transition: border-color 0.3s ease;
 }
 
-.form-control:not(textarea) {
+.input-text:not(textarea) {
     height: 45px !important;
 }
 
@@ -1096,6 +1091,18 @@ p {
         flex: 1 1 100%;
     }
 
+    .mobile-task-container.bg-new {
+        background: #a1a3a60d;
+    }
+
+    .mobile-task-container.bg-progress {
+        background: #edebdf5c;
+    }
+
+    .mobile-task-container.bg-completed {
+        background: #baeed340;
+    }
+
     .search-input-container {
         display: flex;
         align-items: center;
@@ -1121,8 +1128,8 @@ p {
 
     .toggle-filter,
     .toggle-timeline {
-        min-width: 45px;
-        min-height: 45px;
+        min-width: 40px;
+        min-height: 40px;
     }
 
     #taskFilterDropdownMobile {
@@ -1233,9 +1240,7 @@ p {
     #mobile-task-list {
         flex: 1;
         overflow-y: auto;
-        height: calc(
-            100vh - 320px
-        );
+        height: calc(100vh - 320px);
         max-height: unset;
     }
 
@@ -1419,13 +1424,13 @@ p {
 
 .feedback-modal-dialog {
     max-width: 480px;
-    min-height: 600px; /* Ensure modal height is at least as tall as project view modal */
+    min-height: 600px;
     display: flex;
     flex-direction: column;
 }
 
 .feedback-modal-content {
-    background-color: #f9f9f9;
+    background-color: #f7f7f8;
     border-radius: 12px;
     padding: 0;
     height: 100%;
@@ -1441,15 +1446,8 @@ p {
     flex-grow: 1;
 }
 
-.feedback-modal-content {
-    background-color: #f9f9f9;
-    border-radius: 12px;
-    padding: 0;
-}
-
 .feedback-modal-header {
-    background-color: #ffffff;
-    border-bottom: 1px solid #ddd;
+    background-color: #f7f7f8;
     padding: 1rem 1.5rem;
 }
 
@@ -1460,7 +1458,7 @@ p {
 }
 
 #addFeedbackButton {
-    background-color: black;
+    background-color: #444444;
     color: white;
     border: none;
     padding: 10px 24px;
@@ -1472,6 +1470,7 @@ p {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
 }
 
 #addFeedbackButton:hover {
@@ -1543,7 +1542,7 @@ p {
 
 .btn-icon-toggle {
     color: #333;
-    height: 45px;
+    height: 40px;
 }
 
 /* Arrow back icon styling - FIXED positioning and hover color */
@@ -1607,7 +1606,7 @@ p {
     border: none;
     background-color: #ecedf5;
     padding-left: 35px !important;
-    height: 43px;
+    height: 40px !important;
     border-radius: 10px;
 }
 
@@ -1616,8 +1615,8 @@ p {
     border-radius: 10px;
     justify-content: center;
     align-items: center;
-    width: 43px;
-    height: 43px;
+    width: 40px;
+    height: 40px;
     font-size: 24px;
     color: #858ca0;
     border: none;
@@ -1628,7 +1627,7 @@ p {
     border: none;
     border-radius: 10px;
     color: #555c6e;
-    height: 43px;
+    height: 40px;
 }
 
 .toggle-timeline:hover,
@@ -1764,8 +1763,8 @@ p {
 }
 
 .btn-cancel-invite {
-    background-color: grey;
-    color: white;
+    background-color: #e3e4ee;
+    color: #444444;
     border: none;
     padding: 10px 15px;
     border-radius: 8px;
@@ -1780,8 +1779,8 @@ p {
 }
 
 .btn-cancel-invite:hover {
-    background-color: #333;
-    color: white;
+    background-color: #e3e4ee;
+    color: #444444;
 }
 
 .btn-danger.remove-ref-url {
