@@ -1999,48 +1999,40 @@ $(document).on("keyup", "#search_filter", function () {
 
         // NEW: control visibility of select-all checkbox label
         function updateSelectAllVisibility(){
-            const label = document.querySelector('.task-selectall-toggle');
-            if (!label) return;
+            const labels = document.querySelectorAll('.task-selectall-toggle');
+            if (!labels.length) return;
             if (selectedAllNewIds.length > 0) {
-                label.style.visibility = 'visible';
-                label.style.opacity = '1';
+                labels.forEach(label=>{ label.style.visibility='visible'; label.style.opacity='1'; });
             } else {
-                const cb = document.getElementById('taskNewAcceptAll');
-                if (cb) cb.checked = false;
-                label.style.visibility = 'hidden';
-                label.style.opacity = '0';
+                ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const cb=document.getElementById(id); if(cb) cb.checked=false; });
+                labels.forEach(label=>{ label.style.visibility='hidden'; label.style.opacity='0'; });
             }
         }
 
         function collectPendingNewTaskIds(){
-            // When viewer is executor and not accepted, cards render Accept/Reject buttons; pick those
-            const cards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card'));
-            const ids = cards.reduce((acc, el) => {
+            const cards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card, #mobile-task-list .custom-card'));
+            return cards.reduce((acc, el) => {
                 const tId = el.getAttribute('data-task-id');
-                const hasAccept = !!el.querySelector('.btn-accept-invite');
-                if (tId && hasAccept) acc.push(tId);
+                if (tId && el.querySelector('.btn-accept-invite')) acc.push(tId);
                 return acc;
             }, []);
-            return ids;
         }
 
         function collectAllNewTaskIds(){
-            return Array.from(document.querySelectorAll('#new-request-tasks .custom-card'))
+            return Array.from(document.querySelectorAll('#new-request-tasks .custom-card, #mobile-task-list .custom-card'))
                 .map(el => el.getAttribute('data-task-id'))
                 .filter(Boolean);
         }
 
         function syncSelectAllCheckboxState(){
-            const master = document.getElementById('taskNewAcceptAll');
-            if (!master) return;
             const allIds = collectAllNewTaskIds();
-            // Master is checked only if every current card id is in selectedAllNewIds and not empty
             const allSelected = allIds.length > 0 && allIds.every(id => selectedAllNewIds.includes(String(id)));
-            if (master.checked && !allSelected) {
-                master.checked = false;
-            } else if (!master.checked && allSelected) {
-                master.checked = true;
-            }
+            ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(mid => {
+                const master = document.getElementById(mid);
+                if (!master) return;
+                if (master.checked && !allSelected) master.checked = false;
+                else if (!master.checked && allSelected) master.checked = true;
+            });
         }
 
         function acceptOne(taskId){
@@ -2074,7 +2066,7 @@ $(document).on("keyup", "#search_filter", function () {
 
         // When checkbox is toggled, only (de)select in memory and toggle bulk icon state
         document.addEventListener('change', function(e){
-            const cb = e.target.closest('#taskNewAcceptAll');
+            const cb = e.target.closest('#taskNewAcceptAll, #taskNewAcceptAllMobile');
             if (!cb) return;
             if (cb.checked) {
                 // When Select All is enabled, include all tasks across pages from cache
@@ -2089,17 +2081,13 @@ $(document).on("keyup", "#search_filter", function () {
                     selectedPendingIds = collectPendingNewTaskIds();
                     selectedAllNewIds = collectAllNewTaskIds();
                 }
-                // visually select all thumbnails in current DOM
-                document.querySelectorAll('#new-request-tasks .task-selectable-thumb').forEach(function(el){
-                    el.classList.add('selected');
-                });
+                // visually select all thumbnails (desktop + mobile list)
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb, #mobile-task-list .task-selectable-thumb').forEach(el=> el.classList.add('selected'));
             } else {
                 selectedPendingIds = [];
                 selectedAllNewIds = [];
-                // clear visual selection
-                document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected').forEach(function(el){
-                    el.classList.remove('selected');
-                });
+                // clear visual selection (desktop + mobile)
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(el=> el.classList.remove('selected'));
             }
             updateBulkHeaderButtons();
             updateSelectAllVisibility(); // NEW
@@ -2169,12 +2157,11 @@ $(document).on("keyup", "#search_filter", function () {
             modalEl.querySelector('#confirmBulkAcceptBtn').addEventListener('click', function(){
                 acceptAll(selectedPendingIds).finally(() => {
                     try { m.hide(); } catch(_) {}
-                    const cb = document.getElementById('taskNewAcceptAll');
-                    if (cb) cb.checked = false;
+                    ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
                     selectedPendingIds = [];
                     selectedAllNewIds = [];
                     // clear UI selected class
-                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                     updateBulkHeaderButtons();
                     updateSelectAllVisibility(); // NEW
                 });
@@ -2183,11 +2170,11 @@ $(document).on("keyup", "#search_filter", function () {
 
         // Bulk Progress button behavior
         document.addEventListener('click', function(e){
-            const btn = e.target.closest('#taskNewBulkProgress');
+            const btn = e.target.closest('#taskNewBulkProgress, #taskNewBulkProgressMobile');
             if (!btn) return;
             if (btn.disabled) return;
             // If select-all checkbox is on, include all IDs across pagination from cache
-            const selectAllChecked = !!document.getElementById('taskNewAcceptAll')?.checked;
+            const selectAllChecked = !!document.getElementById('taskNewAcceptAll')?.checked || !!document.getElementById('taskNewAcceptAllMobile')?.checked;
             let ids = selectedAllNewIds.slice();
             if (selectAllChecked && allTasksCache && allTasksCache.new_request && Array.isArray(allTasksCache.new_request.tasks)) {
                 ids = allTasksCache.new_request.tasks.map(t => String(t.id));
@@ -2220,11 +2207,10 @@ $(document).on("keyup", "#search_filter", function () {
                     updateTaskStatus(id, 'in_progress', card).finally(() => {
                         bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false; bulkStatusExpectedCount = 0;
                         try { statusModal.hide(); } catch(_){ }
-                        const cb = document.getElementById('taskNewAcceptAll');
-                        if (cb) cb.checked = false;
+                        ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
                         selectedPendingIds = [];
                         selectedAllNewIds = [];
-                        document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                        document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                         updateBulkHeaderButtons();
                         updateSelectAllVisibility();
                     });
@@ -2255,11 +2241,10 @@ $(document).on("keyup", "#search_filter", function () {
                     bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
                     statusModal.hide();
                     confirmBtn.removeEventListener('click', handler);
-                    const cb = document.getElementById('taskNewAcceptAll');
-                    if (cb) cb.checked = false;
+                    ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
                     selectedPendingIds = [];
                     selectedAllNewIds = [];
-                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                     // Final refresh & alert sudah ditangani aggregator; fallback refresh bila gagal aggregator
                     if (!bulkFinalAlertShown) fetchAndRenderTasks();
                     updateBulkHeaderButtons();
@@ -2275,7 +2260,9 @@ $(document).on("keyup", "#search_filter", function () {
             const allAcceptedSelected = hasAnySelection && !anyPendingSelected;
 
             const bulkAccept = document.getElementById('taskNewBulkAction');
+            const bulkAcceptMobile = document.getElementById('taskNewBulkActionMobile');
             const bulkProgress = document.getElementById('taskNewBulkProgress');
+            const bulkProgressMobile = document.getElementById('taskNewBulkProgressMobile');
 
             if (bulkAccept) {
                 // Keep element in flow; toggle visibility only
@@ -2284,31 +2271,73 @@ $(document).on("keyup", "#search_filter", function () {
                 bulkAccept.style.opacity = anyPendingSelected ? '1' : '0';
                 bulkAccept.disabled = !anyPendingSelected;
             }
+            if (bulkAcceptMobile) {
+                if (getComputedStyle(bulkAcceptMobile).display === 'none') bulkAcceptMobile.style.display = 'inline-flex';
+                bulkAcceptMobile.style.visibility = anyPendingSelected ? 'visible' : 'hidden';
+                bulkAcceptMobile.style.opacity = anyPendingSelected ? '1' : '0';
+                bulkAcceptMobile.disabled = !anyPendingSelected;
+            }
             if (bulkProgress) {
                 if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
                 bulkProgress.style.visibility = hasAnySelection ? 'visible' : 'hidden';
                 bulkProgress.style.opacity = hasAnySelection ? '1' : '0';
                 bulkProgress.disabled = !allAcceptedSelected;
             }
+            if (bulkProgressMobile) {
+                if (getComputedStyle(bulkProgressMobile).display === 'none') bulkProgressMobile.style.display = 'inline-flex';
+                bulkProgressMobile.style.visibility = hasAnySelection ? 'visible' : 'hidden';
+                bulkProgressMobile.style.opacity = hasAnySelection ? '1' : '0';
+                bulkProgressMobile.disabled = !allAcceptedSelected;
+            }
             // Ensure visibility sync each time state recalculated
             updateSelectAllVisibility(); // NEW
+
+            // Mobile container: only show if status select is New & there is at least one selection
+            try {
+                const statusSel = document.getElementById('taskStatusSelect');
+                const mobileContainer = document.getElementById('mobileBulkControls');
+                if (statusSel && mobileContainer) {
+                    const statusIsNew = statusSel.value === 'new_request';
+                    if (statusIsNew && hasAnySelection) {
+                        mobileContainer.style.display = 'flex';
+                        mobileContainer.dataset.forcedShow = '1';
+                    } else {
+                        mobileContainer.style.display = 'none';
+                        delete mobileContainer.dataset.forcedShow;
+                    }
+                }
+            } catch(_) {}
         }
 
         // initialize bulk button hidden and disabled by default
         document.addEventListener('DOMContentLoaded', function(){
             const bulkAccept = document.getElementById('taskNewBulkAction');
             const bulkProgress = document.getElementById('taskNewBulkProgress');
+            const bulkAcceptMobile = document.getElementById('taskNewBulkActionMobile');
+            const bulkProgressMobile = document.getElementById('taskNewBulkProgressMobile');
             if (bulkAccept) {
                 if (getComputedStyle(bulkAccept).display === 'none') bulkAccept.style.display = 'inline-flex';
                 bulkAccept.style.visibility = 'hidden';
                 bulkAccept.style.opacity = '0';
                 bulkAccept.disabled = true;
             }
+            if (bulkAcceptMobile) {
+                if (getComputedStyle(bulkAcceptMobile).display === 'none') bulkAcceptMobile.style.display = 'inline-flex';
+                bulkAcceptMobile.style.visibility = 'hidden';
+                bulkAcceptMobile.style.opacity = '0';
+                bulkAcceptMobile.disabled = true;
+            }
             if (bulkProgress) {
                 if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
                 bulkProgress.style.visibility = 'hidden';
                 bulkProgress.style.opacity = '0';
                 bulkProgress.disabled = true;
+            }
+            if (bulkProgressMobile) {
+                if (getComputedStyle(bulkProgressMobile).display === 'none') bulkProgressMobile.style.display = 'inline-flex';
+                bulkProgressMobile.style.visibility = 'hidden';
+                bulkProgressMobile.style.opacity = '0';
+                bulkProgressMobile.disabled = true;
             }
             updateSelectAllVisibility(); // NEW
         });
@@ -2714,6 +2743,7 @@ $(document).on("keyup", "#search_filter", function () {
                 },
                 data: { status: newStatus },
                 success: function (response) {
+                    const oldStatus = (taskCard && taskCard.getAttribute('data-task-status')) || null;
                     if (taskCard) {
                         const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
                         tooltipTriggerList.forEach(function (tooltipTriggerEl) {
@@ -2723,6 +2753,22 @@ $(document).on("keyup", "#search_filter", function () {
                         taskCard.remove();
                     }
                     if (!bulkStatusSuppressRefresh) fetchAndRenderTasks();
+                    // Mobile dynamic refresh (avoid full reload): if mobile status selector present
+                    try {
+                        const mobileStatusSel = document.getElementById('taskStatusSelect');
+                        if (mobileStatusSel) {
+                            const currentMobileStatus = mobileStatusSel.value;
+                            const newStat = newStatus; // already target
+                            // If user is viewing the source bucket or the destination bucket, refresh that list
+                            if (currentMobileStatus === newStat || (oldStatus && currentMobileStatus === oldStatus)) {
+                                // Reset page state for mobile and re-fetch only current view
+                                if (typeof mobileState !== 'undefined') {
+                                    mobileState.page = 1; mobileState.last = 1; mobileState.status = currentMobileStatus;
+                                }
+                                try { fetchMobileTasks(currentMobileStatus, 1, false); } catch(_) {}
+                            }
+                        }
+                    } catch(_) {}
                     if (bulkStatusOperationActive) {
                         bulkStatusCompletedCount++;
                         if (!bulkFinalStatusMessage) bulkFinalStatusMessage = response.message || 'Task status updated successfully';
@@ -5593,6 +5639,18 @@ $(document).on("keyup", "#search_filter", function () {
     } else {
         data.tasks.forEach(task => list.append(createTaskCard(task)));
     }
+
+    // Pastikan kontrol bulk tampil di luar card (pojok kanan atas container) hanya untuk status new_request
+    try {
+        const bulk = document.getElementById('mobileBulkControls');
+        if (bulk) {
+            if (status === 'new_request') {
+                bulk.style.display = 'inline-flex';
+            } else {
+                bulk.style.display = 'none';
+            }
+        }
+    } catch(_) {}
     }
 
     function initMobileInfiniteScroll() {
@@ -5636,7 +5694,7 @@ $(document).on("keyup", "#search_filter", function () {
             <option value="completed">Completed</option>
             </select>
         </div>
-        <div class="task-mobile-actions d-flex justify-content-between align-items-center mb-3">
+        <div class="task-mobile-actions d-flex justify-content-between align-items-center">
             <div class="search-input-container flex-grow-1 me-2">
             <span class="material-symbols-outlined search-icon">search</span>
             <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
@@ -5647,6 +5705,17 @@ $(document).on("keyup", "#search_filter", function () {
             <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
             <span class="material-symbols-outlined">filter_list</span>
             </button>
+        </div>
+        <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-3" style="display:none;">
+            <button type="button" id="taskNewBulkActionMobile" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
+                <span class="material-symbols-outlined">done_all</span>
+            </button>
+            <button type="button" id="taskNewBulkProgressMobile" class="task-bulk-icon" aria-label="Move selected tasks to In Progress">
+                <span class="material-symbols-outlined">arrow_right_alt</span>
+            </button>
+            <label for="taskNewAcceptAllMobile" class="task-selectall-toggle">
+                <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAllMobile" aria-label="Select all pending new tasks" />
+            </label>
         </div>
         <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
             <div class="dropdown-filter-body">
@@ -5684,15 +5753,36 @@ $(document).on("keyup", "#search_filter", function () {
     toggleDropdownFilter();
     $(window).on("resize", toggleDropdownFilter);
 
+    function updateMobileBulkControlsVisibility(){
+        // Show container only when status = new_request AND there is at least one selection.
+        const statusIsNew = $("#taskStatusSelect").val() === 'new_request';
+        if(!statusIsNew){ $("#mobileBulkControls").hide(); return; }
+        // Selection will toggle via updateBulkHeaderButtons; here we keep it hidden by default.
+        if($("#mobileBulkControls").data('forced-show') !== '1') {
+            $("#mobileBulkControls").hide();
+        }
+    }
+
     // 👇 sekarang baru init scroll + fetch
     initMobileInfiniteScroll();
     fetchMobileTasks(mobileState.status, 1, false);
 
     $("#taskStatusSelect").on("change", function () {
         fetchMobileTasks($(this).val(), 1);
+        updateMobileBulkControlsVisibility();
     });
 
     $("#taskStatusSelect").val("new_request").trigger("change");
+    // Initialize newly injected mobile bulk elements hidden (same logic desktop)
+    (function initMobileBulkHidden(){
+        const ids=['taskNewBulkActionMobile','taskNewBulkProgressMobile'];
+        ids.forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='inline-flex'; el.style.visibility='hidden'; el.style.opacity='0'; el.disabled=true; } });
+        const lab=document.getElementById('taskNewAcceptAllMobile');
+        if(lab){ const wrap=lab.closest('.task-selectall-toggle'); if(wrap){ wrap.style.visibility='hidden'; wrap.style.opacity='0'; } }
+        // container hidden until first selection
+        const cont=document.getElementById('mobileBulkControls'); if(cont) cont.style.display='none';
+    })();
+    updateMobileBulkControlsVisibility();
     });
 
 });
