@@ -237,7 +237,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const roleText = roleLabel ? ` (${roleLabel})` : '';
     const titleText = `${name}${roleText}`;
 
-    return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}">`;
+    return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
     }
 
     // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.

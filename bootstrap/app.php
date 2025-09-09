@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Console\Commands\GenerateTasksFromSchedules;
+use App\Console\Commands\DiagnoseSchedules;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         GenerateTasksFromSchedules::class,
+        DiagnoseSchedules::class,
     ])
     ->withSchedule(function (Schedule $schedule) {
         // Run the generator every minute to materialize tasks from schedules
