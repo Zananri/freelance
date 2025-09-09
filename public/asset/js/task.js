@@ -1808,11 +1808,6 @@ function initDesktopInfiniteScroll(query = "") {
 }
 
 $(document).ready(function () {
-  $("#new-request-tasks, #in-progress-tasks, #completed-tasks").css({
-    "max-height": "calc(100vh - 220px)",
-    "overflow-y": "auto"
-  });
-
   ["new_request", "in_progress", "completed"].forEach(status => {
     desktopState[status].page = 1;
     desktopState[status].loading = false;
