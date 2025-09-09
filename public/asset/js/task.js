@@ -4353,20 +4353,55 @@ $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
                 (function() {
                     const imgEl = document.getElementById('taskDetailImage');
                     if (!imgEl) return;
+
                     const placeholder = appUrl + '/asset/img/background/add-image.png';
                     let imgUrl = data.image || '';
+
+                    function getRandomColor() {
+                        const colors = ['#F44336', '#E91E63', '#9C27B0', '#3F51B5', '#2196F3', '#009688', '#FF9800', '#795548'];
+                        return colors[Math.floor(Math.random() * colors.length)];
+                    }
+
+                    function createInitialImage(initial) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 200;
+                        canvas.height = 200;
+                        const ctx = canvas.getContext('2d');
+
+                        // Background random
+                        ctx.fillStyle = getRandomColor();
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        // Text inisial
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '100px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(initial.toUpperCase(), canvas.width / 2, canvas.height / 2);
+
+                        return canvas.toDataURL();
+                    }
+
                     if (!imgUrl) {
-                        imgEl.src = placeholder;
+                        // Ambil inisial nama dari data.userName, kalo gaada pake "?"
+                        const initial = (data.title || '?')[0];
+                        imgEl.src = createInitialImage(initial);
                     } else {
                         const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
                         const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
                         const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+
                         if (!isAbsolute && !isFileTask && !isPublicPath) {
                             imgUrl = appUrl + '/file/task/' + imgUrl;
                         } else if (!isAbsolute && (isFileTask || isPublicPath)) {
                             imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
                         }
-                        imgEl.onerror = function() { this.onerror = null; this.src = placeholder; };
+
+                        imgEl.onerror = function() {
+                            this.onerror = null;
+                            const initial = (data.title || '?')[0];
+                            this.src = createInitialImage(initial);
+                        };
                         imgEl.src = imgUrl;
                     }
                 })();
