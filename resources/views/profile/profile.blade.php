@@ -44,7 +44,23 @@
                         <!-- Profile Picture Wrapper -->
                         <label for="profile_photo_input" id="profileImageLabel" class="custom-image-upload position-relative {{ ($profilePhotoUrl ?? null) ? 'has-image' : '' }}" style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}'); background-position:center; background-repeat:no-repeat; background-size:55%;">
                             <input type="file" id="profile_photo_input" name="profile_photo" accept="image/*" hidden />
-                            <img id="profilePreview" src="{{ $profilePhotoUrl ?? '' }}" alt="" style="{{ ($profilePhotoUrl ?? null) ? '' : 'display:none;' }}">
+                            @php
+                                $profileResolved = $profilePhotoUrl ?? '';
+                                if($profileResolved) {
+                                    if(preg_match('/^(https?:)?\/\//', $profileResolved)) {
+                                        // absolute keep
+                                    } else {
+                                        $normalized = ltrim($profileResolved,'/');
+                                        if(!file_exists(public_path($normalized))) {
+                                            $profileResolved = asset('asset/img/avatar.png');
+                                        } else {
+                                            $profileResolved = asset($normalized);
+                                        }
+                                    }
+                                }
+                                if(!$profileResolved) { $profileResolved = asset('asset/img/avatar.png'); }
+                            @endphp
+                            <img id="profilePreview" src="{{ $profileResolved }}" alt="" data-default="{{ asset('asset/img/avatar.png') }}" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';" style="">
                             <button type="button" id="clearProfilePhotoBtn" style="display: {{ ($profilePhotoUrl ?? null) ? 'flex' : 'none' }}; align-items:center; justify-content:center;" title="Clear Image">&times;</button>
                         </label>
                         <!-- Placeholder to force empty removal flag -->

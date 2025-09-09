@@ -1480,14 +1480,19 @@ document.addEventListener("click", function (e) {
     // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
     const executorsHtml = allExecutors
         .map((executor, index) => {
+            const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
             const overlapClass = index === 0 ? "" : "executor-image-overlap";
             const zIndexStyle = `style="z-index: ${index + 1};"`;
             const isPic = task.pic && executor && task.pic.id === executor.id;
             const roleLabel = isPic ? 'PIC' : 'Executor';
             const tooltipTitle = `${executor.name} (${roleLabel})`;
+            let imgSrc = (executor && executor.image) ? String(executor.image).trim() : '';
+            if (!imgSrc || imgSrc.toLowerCase() === 'null' || imgSrc.toLowerCase() === 'undefined') {
+                imgSrc = fallbackAvatar;
+            }
             return `
             <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
-                <img src="${executor.image}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${tooltipTitle}" ${zIndexStyle}>
+                <img src="${imgSrc}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${tooltipTitle}" ${zIndexStyle} onerror="this.onerror=null;this.src='${fallbackAvatar}';">
             </div>
             `;
         })
