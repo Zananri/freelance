@@ -45,10 +45,21 @@
                                                 @php
                                                     $empAvatar = $rowEmmployee->profile_picture
                                                         ?: ($rowEmmployee->photo ?: ($rowEmmployee->user_photo ?? null));
+                                                    if($empAvatar) {
+                                                        if(preg_match('/^(https?:)?\/\//',$empAvatar)) {
+                                                            // absolute keep
+                                                        } else {
+                                                            $normalized = ltrim($empAvatar,'/');
+                                                            if(!file_exists(public_path($normalized))) {
+                                                                $empAvatar = asset('asset/img/avatar.png');
+                                                            } else {
+                                                                $empAvatar = asset($normalized);
+                                                            }
+                                                        }
+                                                    }
                                                     if(!$empAvatar) { $empAvatar = asset('asset/img/avatar.png'); }
-                                                    elseif(!preg_match('/^(https?:)?\/\//',$empAvatar)) { $empAvatar = asset(ltrim($empAvatar,'/')); }
                                                 @endphp
-                                                <img class="employee-photo rounded-circle" src="{{ $empAvatar }}" alt="{{ $rowEmmployee->name }}" data-global-avatar data-default="{{ asset('asset/img/avatar.png') }}">
+                                                <img class="employee-photo rounded-circle" src="{{ $empAvatar }}" alt="{{ $rowEmmployee->name }}" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                                             </div>
                                             <div class="w-100">
                                                 <h4 class="employee-name">{{ $rowEmmployee->name }}</h4>
@@ -98,7 +109,7 @@
                         <div class="mb-4 p-4 pt-0">
 
                             <div class="box-user-photo text-center mb-3">
-                                <img class="employee-photo rounded-circle" src="" alt="" width="70" height="70" class="rounded-circle">
+                                <img class="employee-photo rounded-circle" src="{{ asset('asset/img/avatar.png') }}" alt="Employee" width="70" height="70" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                             </div>
 
                             <div class="text-center mb-4">

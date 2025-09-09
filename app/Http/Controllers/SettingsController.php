@@ -74,7 +74,33 @@ class SettingsController extends Controller
 
         $dtResult = $dtResult->orderBy('employees.name','desc')->paginate($totalRow);
 
-        return response()->json( ['data_result' => json_encode($dtResult)]);
+        // Map collection to resolve avatar with file existence check (profile_picture > photo > user_photo > default)
+        $collection = $dtResult->getCollection()->map(function($item){
+            $raw = $item->profile_picture ?: ($item->photo ?: ($item->user_photo ?? null));
+            $resolved = null;
+            if ($raw) {
+                if (preg_match('/^(https?:)?\/\//i', $raw)) {
+                    $resolved = $raw; // absolute URL
+                } else {
+                    $relative = ltrim($raw,'/');
+                    $publicPath = public_path($relative);
+                    if (is_file($publicPath)) {
+                        $resolved = asset($relative);
+                    }
+                }
+            }
+            if (!$resolved) {
+                $resolved = asset('asset/img/avatar.png');
+            }
+            // Override profile_picture so existing frontend logic picks it first
+            $item->profile_picture = $resolved;
+            // Provide explicit URL field as well (future-safe)
+            $item->profile_picture_url = $resolved;
+            return $item;
+        });
+        $dtResult->setCollection($collection);
+
+        return response()->json(['data_result' => json_encode($dtResult)]);
 
     }
 

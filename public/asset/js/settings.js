@@ -13,8 +13,10 @@ $(document).on('click','.btn-edit-role',function(){
 
 function resolveAvatar(raw){
     if(!raw) return null;
-    if(/^https?:\/\//i.test(raw)) return raw; // already absolute
-    return appUrl + '/' + raw.replace(/^\//,'');
+    const val = String(raw).trim();
+    if(!val || val.toLowerCase()==='null' || val.toLowerCase()==='undefined') return null;
+    if(/^https?:\/\//i.test(val)) return val; // already absolute
+    return appUrl + '/' + val.replace(/^\//,'');
 }
 
 function pickAvatar(row){
@@ -24,7 +26,7 @@ function pickAvatar(row){
 function buildAvatarUrl(row){
     const chosen = pickAvatar(row);
     const url = resolveAvatar(chosen);
-        return url || (appUrl + '/asset/img/avatar.png');
+    return (url && url.length > 0) ? url : (appUrl + '/asset/img/avatar.png');
 }
 
 function setUserModalData(employeeId){
@@ -107,7 +109,7 @@ function showAllData()
 showAllData();
 
 function htmlDataRow(dataRow){
-  const avatar = buildAvatarUrl(dataRow);
+    const avatar = buildAvatarUrl(dataRow);
   let htmlRow = `
     <tr data-id="${dataRow.id}" data-user-id="${dataRow.user_id}" class="row-item">
         <td>

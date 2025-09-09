@@ -169,9 +169,11 @@ document.addEventListener("DOMContentLoaded", function () {
         employees.forEach((employee) => {
             // Tabel employee menampilkan avatar universal (profile_picture) agar edit halaman employee (photo) hanya mempengaruhi modal detail.
             let profilePicture = employee.profile_picture_url || employee.profile_picture || null;
-            if (!profilePicture) profilePicture = `${appUrl}/asset/img/avatar.png`;
-            if (!/^https?:\/\//i.test(profilePicture) && !profilePicture.startsWith(appUrl)) {
-                profilePicture = `${appUrl}/${profilePicture.replace(/^\//,'')}`;
+            const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
+            if (!profilePicture || String(profilePicture).toLowerCase() === 'null' || String(profilePicture).toLowerCase() === 'undefined') {
+                profilePicture = fallbackAvatar;
+            } else if (!/^https?:\/\//i.test(profilePicture) && !profilePicture.startsWith(appUrl)) {
+                profilePicture = `${appUrl}/${String(profilePicture).replace(/^\//,'')}`;
             }
             const departmentName = employee.department
                 ? employee.department.name_department
@@ -189,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <tr data-id="${employee.id}">
                     <td>
                         <div class="d-flex align-items-center gap-3">
-                            <img src="${profilePicture}" alt="Profile Picture" class="table-image rounded-circle" width="40" height="40" />
+                            <img src="${profilePicture}" alt="Profile Picture" class="table-image rounded-circle" width="40" height="40" onerror="this.onerror=null;this.src='${fallbackAvatar}';" />
                             <div>
                                 <div class="fw-semibold" style="font-size: 14px;">${employee.first_name} ${employee.last_name}</div>
                                 <div style="font-size: 10px; color: #6c757d;">${employee.email}</div>
@@ -241,8 +243,9 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (employee) {
                 // Populate modal fields
               let photoUrl = employee.profile_picture_url || employee.profile_picture || null;
-              if (!photoUrl) photoUrl = `${appUrl}/asset/img/avatar.png`;
-              if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
+              const fallbackAvatarDel = `${appUrl}/asset/img/avatar.png`;
+              if (!photoUrl || String(photoUrl).toLowerCase() === 'null' || String(photoUrl).toLowerCase() === 'undefined') photoUrl = fallbackAvatarDel;
+              else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
                   photoUrl = `${appUrl}/${photoUrl.replace(/^\//,'')}`;
               }
 
