@@ -3,7 +3,7 @@
         {{ __('profile') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/profile.css') }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/profile.css?v=' . time()) }}" rel="stylesheet">
     </x-slot>
 
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
@@ -42,7 +42,7 @@
                 <div class="col-md-4 d-flex flex-column gap-3">
                     <div class="body-content profile-section p-5 pt-4 text-center">
                         <!-- Profile Picture Wrapper -->
-                        <label for="profile_photo_input" id="profileImageLabel" class="custom-image-upload position-relative {{ ($profilePhotoUrl ?? null) ? 'has-image' : '' }}" style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}'); background-position:center; background-repeat:no-repeat; background-size:55%;">
+                        <label for="profile_photo_input" id="profileImageLabel" class="custom-image-upload position-relative {{ ($profilePhotoUrl ?? null) ? 'has-image' : '' }}" style="background-position:center; background-repeat:no-repeat; background-size:55%;">
                             <input type="file" id="profile_photo_input" name="profile_photo" accept="image/*" hidden />
                             <img id="profilePreview" src="{{ $profilePhotoUrl ?? '' }}" alt="" style="{{ ($profilePhotoUrl ?? null) ? '' : 'display:none;' }}">
                             <button type="button" id="clearProfilePhotoBtn" style="display: {{ ($profilePhotoUrl ?? null) ? 'flex' : 'none' }}; align-items:center; justify-content:center;" title="Clear Image">&times;</button>
