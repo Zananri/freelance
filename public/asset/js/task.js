@@ -1853,7 +1853,7 @@ $(document).ready(function () {
 });
 
 let searchTimeout;
-$(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
+$(document).on("keyup", "#search_filter", function () {
     clearTimeout(searchTimeout);
     const query = this.value.trim();
 
@@ -1865,7 +1865,7 @@ $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
     }, 300);
 });
 
-    $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
+    $(document).on("keyup", "#search_filter", function () {
     const query = this.value.trim();
 
     if (allTasksCache) {
@@ -5162,18 +5162,17 @@ $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
     }
 
     // Apply task filters
-    if (applyTaskFilterBtn) {
-        applyTaskFilterBtn.addEventListener("click", function() {
-            currentTaskFilters.project = filterTaskProjectSelect.value;
-            currentTaskFilters.status = filterTaskStatusSelect.value;
+    if (applyTaskFilterBtnMobile) {
+        applyTaskFilterBtnMobile.addEventListener("click", function () {
+            currentTaskFilters.project = filterTaskProjectSelectMobile.value;
+            currentTaskFilters.status = filterTaskStatusSelectMobile.value;
 
-            fetchAndRenderFilteredTasks(currentTaskFilters);
+            const status = $("#taskStatusSelect").val();
+            mobileState.page = 1;
+            mobileState.last = 1;
+            fetchMobileTasks(status, 1, false);
 
-            // Update project filter display
-            updateProjectFilterDisplay();
-
-            // Hide the dropdown
-            document.getElementById("taskFilterDropdown").style.display = "none";
+            document.getElementById("taskFilterDropdownMobile").style.display = "none";
         });
     }
 
@@ -5356,37 +5355,63 @@ $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
     status: "new_request"
     };
 
-    function fetchMobileTasks(status, page = 1, append = false) {
-    if (mobileState.loading) return;
+    let searchQueryMobile = '';
 
-    mobileState.loading = true;
-    if (!append) $("#mobile-task-list").empty();
+    $(document).on("keyup", "#search_filter_mobile", function () {
+        clearTimeout(searchTimeout);
+        searchQueryMobile = this.value.trim();
 
-    $("#mobile-task-list").append(
-        '<div id="mobileLoader" class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>'
-    );
-
-    $.ajax({
-        url: appUrl + "/task/index",
-        type: "GET",
-        dataType: "json",
-        data: { status, page },
-        success: function (response) {
-        if (!response || response.code !== 200 || !response.data) return;
-
-        const data = response.data?.[status];
-        mobileState.last = data?.pagination?.last_page || 1;
-
-        renderMobileTasks(status, data, append);
-        },
-        error: function (xhr, status, error) {
-        console.error("Error fetching mobile tasks:", error);
-        },
-        complete: function () {
-        mobileState.loading = false;
-        $("#mobileLoader").remove();
-        }
+        searchTimeout = setTimeout(() => {
+            const status = $("#taskStatusSelect").val();
+            mobileState.page = 1;
+            mobileState.last = 1;
+            fetchMobileTasks(status, 1, false);
+        }, 300);
     });
+
+    function fetchMobileTasks(status, page = 1, append = false) {
+        if (mobileState.loading) return;
+
+        mobileState.loading = true;
+        if (!append) $("#mobile-task-list").empty();
+
+        $("#mobile-task-list").append(
+            '<div id="mobileLoader" class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>'
+        );
+
+        const params = { status, page };
+
+        if (searchQueryMobile && searchQueryMobile.trim() !== "") {
+            params.search = searchQueryMobile.trim();
+        }
+        if (currentTaskFilters?.project) {
+            params.project_id = currentTaskFilters.project;
+        }
+        if (currentTaskFilters?.status) {
+            params.status = currentTaskFilters.status;
+        }
+
+        $.ajax({
+            url: appUrl + "/task/index",
+            type: "GET",
+            dataType: "json",
+            data: params,
+            success: function (response) {
+                if (!response || response.code !== 200 || !response.data) return;
+
+                const data = response.data?.[status];
+                mobileState.last = data?.pagination?.last_page || 1;
+
+                renderMobileTasks(status, data, append);
+            },
+            error: function (xhr, status, error) {
+                console.error("Error fetching mobile tasks:", error);
+            },
+            complete: function () {
+                mobileState.loading = false;
+                $("#mobileLoader").remove();
+            }
+        });
     }
 
     function renderMobileTasks(status, data, append = false) {
