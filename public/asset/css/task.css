@@ -1092,6 +1092,7 @@ p {
         display: none; /* dikontrol JS */
         gap: 6px;
     }
+    
     #mobileBulkControls .task-selectall-toggle {
         margin-right: 0;
         background: #ecedf5;
