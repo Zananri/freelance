@@ -813,6 +813,15 @@ class ProjectController extends Controller
         try {
             $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
 
+            // If project was soft-deleted, pretend it doesn't exist for the frontend
+            if (isset($project->status) && $project->status === 'DELETED') {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Project not found'
+                ], 404);
+            }
+
             // Extract author and co_authors
             $author = null;
             $coAuthors = [];
@@ -1196,29 +1205,11 @@ class ProjectController extends Controller
         try {
             $project = Project::findOrFail($id);
 
-            // Delete project assignments first
-            $project->projectAssignments()->delete();
-
-            // Delete project feedbacks
-            $project->projectFeedbacks()->delete();
-
-            // Delete project files
-            if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
-                @unlink(public_path('file/project/' . $project->image));
-            }
-            // reference files can be array or string; handle both, prefer JSON column
-            $refFiles = $project->reference_files ?? $project->reference_file ?? [];
-            if (!is_array($refFiles) && $refFiles) {
-                $refFiles = [$refFiles];
-            }
-            foreach ($refFiles as $rf) {
-                if ($rf && file_exists(public_path('file/project/' . $rf))) {
-                    @unlink(public_path('file/project/' . $rf));
-                }
-            }
-
-            // Finally delete the project
+            // Soft-delete behavior: mark status as DELETED and record who deleted it.
+            // Do NOT remove related assignments, feedbacks, or files so data remains in DB.
+            $project->status = 'DELETED';
             $project->deleted_by = auth()->id();
+            $project->updated_by = auth()->id();
             $project->save();
 
             DB::commit();
@@ -1245,6 +1236,14 @@ class ProjectController extends Controller
     public function getProjectFeedbacks($projectId)
     {
         try {
+            $project = Project::find($projectId);
+            if (!$project || ($project->status ?? null) === 'DELETED') {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Project not found'
+                ], 404);
+            }
             // Ambil feedback dengan nested replies + order langsung
             $feedbacks = ProjectFeedback::with([
                 'employee.user:id,photo',
@@ -1545,7 +1544,7 @@ class ProjectController extends Controller
             }
 
             $project = Project::find($projectId);
-            if (!$project)
+            if (!$project || ($project->status ?? null) === 'DELETED')
                 return response()->json(['count' => 0]);
 
             // Strategy: store per-employee last_read_at in projects.read_markers (JSON)
@@ -1583,6 +1582,9 @@ class ProjectController extends Controller
             }
 
             $project = Project::findOrFail($projectId);
+            if (($project->status ?? null) === 'DELETED') {
+                return response()->json(['status' => 'ok']);
+            }
             $markers = [];
             if (!empty($project->read_markers)) {
                 $markers = is_array($project->read_markers)
@@ -1611,7 +1613,15 @@ class ProjectController extends Controller
             $lastReadAt = null;
             if ($employeeId) {
                 $project = Project::find($projectId);
-                if ($project && !empty($project->read_markers)) {
+                if (!$project || ($project->status ?? null) === 'DELETED') {
+                    return response()->json([
+                        'code' => 200,
+                        'status' => 'success',
+                        'data' => null
+                    ]);
+                }
+
+                if (!empty($project->read_markers)) {
                     $markers = is_array($project->read_markers) ? $project->read_markers : (json_decode($project->read_markers, true) ?: []);
                     $lastReadAt = $markers[(string) $employeeId] ?? null;
                 }
