@@ -2128,20 +2128,29 @@ $(document).on("keyup", "#search_filter", function () {
                     thumb.classList.remove('selected');
                     selectedPendingIds = selectedPendingIds.filter(id => String(id) !== String(taskId));
                     selectedAllNewIds = selectedAllNewIds.filter(id => String(id) !== String(taskId));
-                    // Force clear any residual hover overlay (mobile safari may keep pseudo state)
+                    // Remove any inline styles previously applied so CSS can drive next visual state
                     try {
                         const chk = thumb.querySelector('.thumb-check');
                         if (chk) {
-                            chk.style.background = 'rgba(0,0,0,0)';
+                            chk.style.removeProperty('background');
                             const ic = chk.querySelector('.material-symbols-outlined');
-                            if (ic) ic.style.color = 'rgba(255,255,255,0)';
+                            if (ic) ic.style.removeProperty('color');
                         }
-                    } catch(_) {}
+                    } catch(_) { /* noop */ }
                 } else {
                     // Single selection if checkbox not checked; if checked, add to list
                     thumb.classList.add('selected');
                     if (thumb.dataset.pending === '1' && !selectedPendingIds.includes(taskId)) selectedPendingIds.push(taskId);
                     if (!selectedAllNewIds.includes(taskId)) selectedAllNewIds.push(taskId);
+                    // Ensure any stale inline styles from previous deselect are cleared so overlay becomes visible
+                    try {
+                        const chk = thumb.querySelector('.thumb-check');
+                        if (chk) {
+                            chk.style.removeProperty('background');
+                            const ic = chk.querySelector('.material-symbols-outlined');
+                            if (ic) ic.style.removeProperty('color');
+                        }
+                    } catch(_) { /* noop */ }
                 }
                 syncSelectAllCheckboxState();
                 updateBulkHeaderButtons();
@@ -2782,14 +2791,26 @@ $(document).on("keyup", "#search_filter", function () {
                         const mobileStatusSel = document.getElementById('taskStatusSelect');
                         if (mobileStatusSel) {
                             const currentMobileStatus = mobileStatusSel.value;
-                            const newStat = newStatus; // already target
-                            // If user is viewing the source bucket or the destination bucket, refresh that list
-                            if (currentMobileStatus === newStat || (oldStatus && currentMobileStatus === oldStatus)) {
-                                // Reset page state for mobile and re-fetch only current view
+                            const destStatus = String(newStatus);
+                            const sourceStatus = oldStatus ? String(oldStatus).toLowerCase() : null;
+                            const needsRefreshCurrent = (currentMobileStatus === destStatus) || (sourceStatus && currentMobileStatus === sourceStatus);
+                            // Always refresh destination bucket so moved card appears when user switches later
+                            const statusesToRefresh = new Set();
+                            if (sourceStatus) statusesToRefresh.add(sourceStatus);
+                            statusesToRefresh.add(destStatus);
+                            statusesToRefresh.forEach(st => {
                                 if (typeof mobileState !== 'undefined') {
-                                    mobileState.page = 1; mobileState.last = 1; mobileState.status = currentMobileStatus;
+                                    const prevActive = (st === currentMobileStatus);
+                                    // Reset pagination for that status and fetch
+                                    mobileState.page = 1; mobileState.last = 1; mobileState.status = prevActive ? currentMobileStatus : st;
                                 }
-                                try { fetchMobileTasks(currentMobileStatus, 1, false); } catch(_) {}
+                                try { fetchMobileTasks(st, 1, false, { prefetch: true }); } catch(_) {}
+                            });
+                            // Restore selector value if we temporarily changed state.status in loop
+                            if (typeof mobileState !== 'undefined') mobileState.status = currentMobileStatus;
+                            if (needsRefreshCurrent) {
+                                // Ensure currently viewed list reflects new data (already fetched above) and scroll stays at top
+                                try { const list = document.getElementById('mobile-task-list'); if (list) list.scrollTop = 0; } catch(_) {}
                             }
                         }
                     } catch(_) {}
@@ -5580,6 +5601,9 @@ $(document).on("keyup", "#search_filter", function () {
     status: "new_request"
     };
 
+    // Flag continuous auto load for in_progress list
+    let mobileAutoFullLoad = false;
+
     let searchQueryMobile = '';
 
     $(document).on("keyup", "#search_filter_mobile", function () {
@@ -5594,8 +5618,11 @@ $(document).on("keyup", "#search_filter", function () {
         }, 300);
     });
 
-    function fetchMobileTasks(status, page = 1, append = false) {
+    function fetchMobileTasks(status, page = 1, append = false, opts = {}) {
         if (mobileState.loading) return;
+        if (!append && opts.loadAll && status === 'in_progress' && page === 1) {
+            mobileAutoFullLoad = true;
+        }
 
         mobileState.loading = true;
         if (!append) $("#mobile-task-list").empty();
@@ -5623,20 +5650,68 @@ $(document).on("keyup", "#search_filter", function () {
             data: params,
             success: function (response) {
                 if (!response || response.code !== 200 || !response.data) return;
-
-                const data = response.data?.[status];
+                let data = response.data?.[status];
+                // Parity with desktop: merge rejected into in_progress bucket so they are visible
+                if (status === 'in_progress' && response.data?.rejected?.tasks) {
+                    const rej = response.data.rejected.tasks;
+                    if (Array.isArray(rej) && rej.length) {
+                        const baseTasks = Array.isArray(data?.tasks) ? data.tasks : [];
+                        data = { ...(data || {}), tasks: [...baseTasks, ...rej] };
+                    }
+                }
                 mobileState.last = data?.pagination?.last_page || 1;
 
                 renderMobileTasks(status, data, append);
+                // Optional prefetch next page to smooth infinite scroll for non-new_request buckets
+                if (!append && opts.prefetch && mobileState.page === 1 && mobileState.last > 1 && status !== 'new_request') {
+                    // Prefetch page 2 silently
+                    setTimeout(() => {
+                        if (mobileState.status === status && mobileState.page === 1) {
+                            mobileState.page = 2; // advance
+                            fetchMobileTasks(status, 2, true, { prefetch: false });
+                        }
+                    }, 80);
+                }
+                // After rendering, try auto-fill if content belum cukup untuk scroll
+                attemptAutoFillMobile(status);
+                if (mobileAutoFullLoad && status === 'in_progress') {
+                    if (mobileState.page < mobileState.last) {
+                        setTimeout(() => {
+                            if (!mobileState.loading) {
+                                mobileState.page++;
+                                fetchMobileTasks(status, mobileState.page, true, { loadAll: true });
+                            }
+                        }, 100);
+                    } else {
+                        mobileAutoFullLoad = false;
+                    }
+                }
             },
             error: function (xhr, status, error) {
                 console.error("Error fetching mobile tasks:", error);
+                mobileAutoFullLoad = false;
             },
             complete: function () {
                 mobileState.loading = false;
                 $("#mobileLoader").remove();
             }
         });
+    }
+
+    // Helper: auto load next page if list height belum cukup untuk scroll
+    function attemptAutoFillMobile(status){
+        try {
+            const list = document.getElementById('mobile-task-list');
+            if (!list) return;
+            // If all pages fetched or currently loading, skip
+            if (mobileState.loading) return;
+            if (mobileState.page >= mobileState.last) return;
+            // If content height not exceeding container (no scroll bar) fetch next page
+            if (list.scrollHeight <= list.clientHeight + 4) {
+                mobileState.page++;
+                fetchMobileTasks(status, mobileState.page, true, { prefetch:false });
+            }
+        } catch(_) { /* noop */ }
     }
 
     function renderMobileTasks(status, data, append = false) {
@@ -5691,20 +5766,37 @@ $(document).on("keyup", "#search_filter", function () {
         }
         }
     });
+    // Fallback: if internal scroll tidak aktif karena tinggi container kecil, gunakan window scroll
+    window.addEventListener('scroll', function(){
+        try {
+            const list = document.getElementById('mobile-task-list');
+            if (!list) return;
+            if (mobileState.loading) return;
+            // Check if list bottom is within viewport threshold and we still have pages
+            const rect = list.getBoundingClientRect();
+            const vh = window.innerHeight || document.documentElement.clientHeight;
+            if (rect.bottom - vh < 50) {
+                if (mobileState.page < mobileState.last) {
+                    mobileState.page++;
+                    fetchMobileTasks(mobileState.status, mobileState.page, true);
+                }
+            }
+        } catch(_) {}
+    }, { passive: true });
     }
 
     $(document).ready(function () {
     mobileState.page = 1;
     mobileState.status = "new_request";
 
-    fetchMobileTasks(mobileState.status, 1, false);
+    fetchMobileTasks(mobileState.status, 1, false, { loadAll: false });
     initMobileInfiniteScroll();
 
     $("#taskStatusSelect").on("change", function () {
-        mobileState.status = $(this).val();
-        mobileState.page = 1;
-        mobileState.last = 1;
-        fetchMobileTasks(mobileState.status, 1, false);
+        const st = $(this).val();
+        mobileState.status = st;
+        mobileState.page = 1; mobileState.last = 1; mobileAutoFullLoad = false;
+        fetchMobileTasks(st, 1, false, { loadAll: st === 'in_progress' });
     });
     });
 
@@ -5764,7 +5856,7 @@ $(document).on("keyup", "#search_filter", function () {
             <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
             </div>
         </div>
-        <div id="mobile-task-list" style="max-height: calc(100vh - 320px); overflow-y: auto;"></div>
+    <div id="mobile-task-list" style="max-height: calc(100vh - 320px); overflow-y: auto;"></div>
         </div>`;
 
     $("#task-cards-container").before(mobileCardHtml);
@@ -5786,6 +5878,19 @@ $(document).on("keyup", "#search_filter", function () {
             $("#mobileBulkControls").hide();
         }
     }
+
+    // Dynamic height adjust for mobile task list to ensure scroll triggers after first 10 items
+    function adjustMobileListHeight(){
+        const list = document.getElementById('mobile-task-list');
+        if(!list) return;
+        const rect = list.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        const desired = Math.max(200, vh - rect.top - 16); // leave small bottom space
+        list.style.maxHeight = desired + 'px';
+    }
+    window.addEventListener('resize', adjustMobileListHeight);
+    setTimeout(adjustMobileListHeight, 50);
+    setTimeout(adjustMobileListHeight, 350); // second pass after fonts/images load
 
     // 👇 sekarang baru init scroll + fetch
     initMobileInfiniteScroll();
