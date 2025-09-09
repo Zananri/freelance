@@ -22,6 +22,7 @@ class Attendance extends Model
         'time_in',
         'time_out',
         'time_late',
+        'status',
         'type_attendance',
         'note',
         'image',
