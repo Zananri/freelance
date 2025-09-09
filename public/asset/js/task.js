@@ -1347,34 +1347,19 @@ document.addEventListener("click", function (e) {
     if (e.target && e.target.classList.contains("arrow-forward-icon")) {
         const taskId = e.target.getAttribute("data-task-id");
         const currentStatus = e.target.getAttribute("data-task-status");
-
-        if (!taskId) {
-            showFloatingAlert("Task ID not found.", "warning", 3000);
-            return;
-        }
-
-        // Determine next status based on current status
+        if (!taskId) { showFloatingAlert("Task ID not found.", "warning", 3000); return; }
         let nextStatus = '';
-        let actionDescription = '';
-
         if (currentStatus === 'new_request' || currentStatus === 'new request') {
             nextStatus = 'in_progress';
-            actionDescription = 'Progress';
         } else if (currentStatus === 'in_progress' || currentStatus === 'in progress') {
             nextStatus = 'completed';
-            actionDescription = 'Set to Complete';
         } else if (currentStatus === 'rejected') {
             nextStatus = 'completed';
-            actionDescription = 'Set to Complete';
         }
-
-      if (nextStatus) {
-    // Cari card task
-    const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-
-    // Langsung update status tanpa modal
-    updateTaskStatus(taskId, nextStatus, taskCard);
-}
+        if (nextStatus) {
+            const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            updateTaskStatus(taskId, nextStatus, taskCard);
+        }
     }
 });
 
@@ -1680,7 +1665,9 @@ const sectionMap = {
   completed: "completed-tasks"
 };
 
+let taskFetchSeq = 0; // guard untuk cegah overwrite oleh response lama
 function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query = "") {
+    const callSeq = ++taskFetchSeq;
     const params = {};
     if (statusKey) params.status = statusKey; // when null => fetch all buckets
     params.page = page;
@@ -1696,6 +1683,8 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
         dataType: "json",
         data: params,
         success: function(response) {
+            // Abaikan response lama
+            if (callSeq !== taskFetchSeq) return;
             if (!response || response.code !== 200 || !response.data) return;
 
             // FULL REFRESH (no specific status requested)
@@ -1711,6 +1700,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
                 ["new_request", "in_progress", "completed"].forEach(sk => {
                     if (!desktopState[sk]) desktopState[sk] = { page: 1, last: 1, loading: false };
                     desktopState[sk].last = data[sk]?.pagination?.last_page || 1;
+                    desktopState[sk].page = 1; // reset supaya infinite scroll sinkron
                     allTasksCache[sk] = data[sk] || { tasks: [], pagination: {} };
                 });
                 renderTasks(data);
@@ -1733,6 +1723,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
                 desktopState[statusKey] = { page: 1, last: 1, loading: false };
             }
             desktopState[statusKey].last = respSection?.pagination?.last_page || 1;
+            if (!append && page === 1) desktopState[statusKey].page = 1; // reset page ketika reload awal
 
             if (!allTasksCache[statusKey] || !append) {
                 allTasksCache[statusKey] = respSection;
@@ -2213,19 +2204,32 @@ $(document).on("keyup", "#search_filter", function () {
 
             if (movableIds.length === 1) {
                 const id = movableIds[0];
-                const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
-                bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
-                bulkStatusPendingCount = 0; bulkStatusCompletedCount = 0; bulkStatusExpectedCount = 1; bulkFinalStatusMessage = null; bulkFinalAlertShown = false;
-                updateTaskStatus(id, 'in_progress', card).finally(() => {
-                    bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false; bulkStatusExpectedCount = 0;
-                    const cb = document.getElementById('taskNewAcceptAll');
-                    if (cb) cb.checked = false;
-                    selectedPendingIds = [];
-                    selectedAllNewIds = [];
-                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
-                    updateBulkHeaderButtons();
-                    updateSelectAllVisibility();
-                });
+                const modalId = 'progressStatusModal';
+                const statusModal = new bootstrap.Modal(document.getElementById(modalId));
+                const titleEl = document.getElementById('progressStatusTitle');
+                const descEl = document.getElementById('progressStatusDescription');
+                if (titleEl) titleEl.textContent = '1 selected';
+                if (descEl) descEl.textContent = 'Move selected task to In Progress?';
+                statusModal.show();
+                const confirmBtn = document.getElementById('confirmProgressStatusBtn');
+                const singleHandler = function(){
+                    confirmBtn.removeEventListener('click', singleHandler);
+                    const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
+                    bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
+                    bulkStatusPendingCount = 0; bulkStatusCompletedCount = 0; bulkStatusExpectedCount = 1; bulkFinalStatusMessage = null; bulkFinalAlertShown = false;
+                    updateTaskStatus(id, 'in_progress', card).finally(() => {
+                        bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false; bulkStatusExpectedCount = 0;
+                        try { statusModal.hide(); } catch(_){ }
+                        const cb = document.getElementById('taskNewAcceptAll');
+                        if (cb) cb.checked = false;
+                        selectedPendingIds = [];
+                        selectedAllNewIds = [];
+                        document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                        updateBulkHeaderButtons();
+                        updateSelectAllVisibility();
+                    });
+                };
+                confirmBtn.addEventListener('click', singleHandler);
                 return;
             }
 
