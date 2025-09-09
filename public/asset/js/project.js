@@ -240,6 +240,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
     }
 
+    
     // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.
     function renderCollaborators(project) {
         try {
