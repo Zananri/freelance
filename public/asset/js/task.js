@@ -1724,7 +1724,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
                 ["new_request", "in_progress", "completed"].forEach(sk => {
                     if (!desktopState[sk]) desktopState[sk] = { page: 1, last: 1, loading: false };
                     desktopState[sk].last = data[sk]?.pagination?.last_page || 1;
-                    desktopState[sk].page = 1; // reset supaya infinite scroll sinkron
+                    desktopState[sk].page = 1;
                     allTasksCache[sk] = data[sk] || { tasks: [], pagination: {} };
                 });
                 renderTasks(data);
@@ -2081,9 +2081,9 @@ $(document).on("keyup", "#search_filter", function () {
             if (!ids || ids.length === 0) return Promise.resolve();
             let chain = Promise.resolve();
             ids.forEach((id) => { chain = chain.then(() => acceptOne(id)); });
-            return chain.then(() => { 
-                refreshNotificationCountBadge(); 
-                fetchAndRenderTasks(); 
+            return chain.then(() => {
+                refreshNotificationCountBadge();
+                fetchAndRenderTasks();
                 try { showFloatingAlert(ids.length + ' task(s) accepted', 'success', 1500); } catch(_) {}
             });
         }
@@ -3003,20 +3003,29 @@ $(document).on("keyup", "#search_filter", function () {
     function hideUnreadBadge(taskId) {
         setUnreadBadge(taskId, 0);
     }
-    function fetchUnreadForTask(taskId) {
-        return $.ajax({ url: appUrl + `/task/${taskId}/feedbacks/unread-count`, type: 'GET' })
-            .then((res) => {
-                const c = (res && (res.count ?? res.data?.count)) || 0;
-                setUnreadBadge(taskId, c);
-            })
-            .catch(() => { /* noop */ });
-    }
-    function refreshAllUnreadBadges() {
-        document.querySelectorAll('.custom-card[data-task-id]').forEach((card) => {
-            const tid = card.getAttribute('data-task-id');
-            fetchUnreadForTask(tid);
+    function fetchLatestFeedback(taskIds) {
+        if (!taskIds.length) return;
+
+        return $.ajax({
+            url: appUrl + "/task-feedbacks/latest",
+            type: "GET",
+            dataType: "json",
+            traditional: true,
+            data: { ids: taskIds },
+        }).then((res) => {
+            const map = res.data || {};
+            taskIds.forEach((tid) => {
+                setLatestFeedbackSnippet(tid, map[tid] || null);
+            });
+        }).catch(() => {
+            taskIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
         });
     }
+function refreshAllUnreadBadges() {
+    const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
+        .map(card => card.getAttribute('data-task-id'));
+    fetchLatestFeedback(ids);
+}
     // Track snippet fetch sequence per task to ignore stale responses
     const latestSnippetSeq = {};
 
@@ -3066,34 +3075,30 @@ $(document).on("keyup", "#search_filter", function () {
             el.style.removeProperty('display');
         });
     }
-    function fetchLatestFeedback(taskId) {
-        // Sequence token to guard against race conditions
-        const seq = (latestSnippetSeq[taskId] = (latestSnippetSeq[taskId] || 0) + 1);
+    function fetchLatestFeedback(taskIds) {
+        if (!taskIds.length) return;
+
         return $.ajax({
-            url: appUrl + `/task-feedbacks/${taskId}/latest`,
-            type: 'GET',
-            dataType: 'json',
+            url: appUrl + "/task-feedbacks/latest",
+            type: "GET",
+            dataType: "json",
+            traditional: true, // penting buat serialize array jadi ids[]=1&ids[]=2
+            data: { ids: taskIds },
         }).then((res) => {
-            // Ignore stale responses
-            if (latestSnippetSeq[taskId] !== seq) return;
-            const data = res && (res.data || null);
-            // Cache latest payload per task for deep-link behavior
-            try {
-                window.__taskLatest = window.__taskLatest || {};
-                window.__taskLatest[String(taskId)] = data;
-            } catch (_) {}
-            setLatestFeedbackSnippet(taskId, data);
+            const map = res.data || {};
+            taskIds.forEach((tid) => {
+                setLatestFeedbackSnippet(tid, map[tid] || null);
+            });
         }).catch(() => {
-            if (latestSnippetSeq[taskId] !== seq) return;
-            setLatestFeedbackSnippet(taskId, null);
+            taskIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
         });
     }
     function refreshAllLatestFeedbackSnippets() {
-        document.querySelectorAll('.custom-card[data-task-id]').forEach((card) => {
-            const tid = card.getAttribute('data-task-id');
-            fetchLatestFeedback(tid);
-        });
+        const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
+            .map(card => card.getAttribute('data-task-id'));
+        fetchLatestFeedback(ids);
     }
+
 
     // Fungsi untuk memuat data feedback
     function loadTaskFeedbackData(taskId) {
@@ -5265,8 +5270,6 @@ $(document).on("keyup", "#search_filter", function () {
             }
         });
     }
-    // Fetch and render tasks on page load
-    fetchAndRenderTasks();
 
     // Enhanced Task Filtering with All Project Support
     let currentTaskFilters = {
