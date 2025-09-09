@@ -947,7 +947,7 @@ class ProjectController extends Controller
 
             $request->validate([
                 'title' => 'required|string|max:255',
-                'description' => 'required|string',
+                'description' => 'nullable|string',
                 'department' => 'required|exists:departments,id',
                 'division' => 'required|exists:divisions,id',
                 'status' => 'string|max:50',
@@ -969,6 +969,17 @@ class ProjectController extends Controller
                 'contributors' => 'nullable|array',
                 'contributors.*' => 'nullable|exists:employees,id',
             ]);
+
+            // Get existing co-authors and contributors before update
+            $existingCoAuthors = ProjectAssignment::where('project_id', $project->id)
+                ->where('role', 'co_author')
+                ->pluck('employee_id')
+                ->toArray();
+            
+            $existingContributors = ProjectAssignment::where('project_id', $project->id)
+                ->where('role', 'contributor')
+                ->pluck('employee_id')
+                ->toArray();
 
             $project->title = $request->title;
             $project->description = $request->description;
@@ -1071,20 +1082,19 @@ class ProjectController extends Controller
                 throw new \Exception('User not authenticated');
             }
 
+            // Handle co-author changes
+            $newCoAuthors = $request->co_author && is_array($request->co_author) ? $request->co_author : [];
+            $addedCoAuthors = array_diff($newCoAuthors, $existingCoAuthors);
+
             // Remove existing co_author assignments
             ProjectAssignment::where('project_id', $project->id)
                 ->where('role', 'co_author')
                 ->delete();
 
-            // Remove existing contributor assignments
-            ProjectAssignment::where('project_id', $project->id)
-                ->where('role', 'contributor')
-                ->delete();
-
-            // Insert new co_author assignments and create notifications
-            if ($request->co_author && is_array($request->co_author)) {
+            // Insert new co_author assignments and create notifications only for new co-authors
+            if ($newCoAuthors) {
                 $coAuthorAssignments = [];
-                foreach ($request->co_author as $employeeId) {
+                foreach ($newCoAuthors as $employeeId) {
                     if (!Employee::where('id', $employeeId)->exists()) {
                         throw new \Exception("Co-author employee ID {$employeeId} does not exist");
                     }
@@ -1097,26 +1107,37 @@ class ProjectController extends Controller
                         'updated_at' => now(),
                     ];
 
-                    // Create notification for new co-author
-                    $authorEmployee = auth()->user()->employee;
-                    Notification::create([
-                        'employee_id' => $employeeId,
-                        'type' => 'new job',
-                        'title' => 'You have been assigned as co-author for project: ' . $project->title,
-                        'message' => 'You have been assigned as co-author for project: ' . $project->title,
-                        'sent_at' => now(),
-                        'created_by' => $authorEmployee ? $authorEmployee->id : null,
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]);
+                    // Create notification only for newly added co-authors
+                    if (in_array($employeeId, $addedCoAuthors)) {
+                        $authorEmployee = auth()->user()->employee;
+                        Notification::create([
+                            'employee_id' => $employeeId,
+                            'type' => 'new job',
+                            'title' => 'You have been assigned as co-author for project: ' . $project->title,
+                            'message' => 'You have been assigned as co-author for project: ' . $project->title,
+                            'sent_at' => now(),
+                            'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ]);
+                    }
                 }
                 ProjectAssignment::insert($coAuthorAssignments);
             }
 
-            // Insert new contributor assignments
-            if ($request->contributors && is_array($request->contributors)) {
+            // Handle contributor changes
+            $newContributors = $request->contributors && is_array($request->contributors) ? $request->contributors : [];
+            $addedContributors = array_diff($newContributors, $existingContributors);
+
+            // Remove existing contributor assignments
+            ProjectAssignment::where('project_id', $project->id)
+                ->where('role', 'contributor')
+                ->delete();
+
+            // Insert new contributor assignments and create notifications only for new contributors
+            if ($newContributors) {
                 $contributorAssignments = [];
-                foreach ($request->contributors as $employeeId) {
+                foreach ($newContributors as $employeeId) {
                     if (!Employee::where('id', $employeeId)->exists()) {
                         throw new \Exception("Contributor employee ID {$employeeId} does not exist");
                     }
@@ -1129,23 +1150,23 @@ class ProjectController extends Controller
                         'updated_at' => now(),
                     ];
 
-                    // Create notification for new contributor
-                    $authorEmployee = auth()->user()->employee;
-                    Notification::create([
-                        'employee_id' => $employeeId,
-                        'type' => 'new job',
-                        'title' => 'You have been assigned as contributor for project: ' . $project->title,
-                        'message' => 'You have been assigned as contributor for project: ' . $project->title,
-                        'sent_at' => now(),
-                        'created_by' => $authorEmployee ? $authorEmployee->id : null,
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]);
+                    // Create notification only for newly added contributors
+                    if (in_array($employeeId, $addedContributors)) {
+                        $authorEmployee = auth()->user()->employee;
+                        Notification::create([
+                            'employee_id' => $employeeId,
+                            'type' => 'new job',
+                            'title' => 'You have been assigned as contributor for project: ' . $project->title,
+                            'message' => 'You have been assigned as contributor for project: ' . $project->title,
+                            'sent_at' => now(),
+                            'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ]);
+                    }
                 }
                 ProjectAssignment::insert($contributorAssignments);
             }
-
-            $updateData['updated_by'] = auth()->id();
 
             DB::commit();
 
