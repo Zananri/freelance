@@ -393,6 +393,19 @@
                 addTaskForm.classList.add("was-validated");
                 return;
             }
+            // Executor required validation
+            try {
+                const execHidden = document.getElementById('executors');
+                let execVal = execHidden ? execHidden.value : '';
+                let execArr = [];
+                if (execVal) {
+                    try { execArr = JSON.parse(execVal); } catch(_) { execArr = []; }
+                }
+                if (!Array.isArray(execArr) || execArr.length === 0) {
+                    showFloatingAlert('Please select at least one executor.', 'warning', 2500);
+                    return;
+                }
+            } catch(_) {}
             addTaskForm.classList.remove("was-validated");
 
             // Show loading overlay and disable submit button
@@ -983,6 +996,17 @@
                 editTaskForm.classList.add("was-validated");
                 return;
             }
+            // Executor required validation (edit)
+            try {
+                const execHidden = document.getElementById('edit_executors');
+                let execVal = execHidden ? execHidden.value : '';
+                let execArr = [];
+                if (execVal) { try { execArr = JSON.parse(execVal); } catch(_) { execArr = []; } }
+                if (!Array.isArray(execArr) || execArr.length === 0) {
+                    showFloatingAlert('Please select at least one executor.', 'warning', 2500);
+                    return;
+                }
+            } catch(_) {}
             editTaskForm.classList.remove("was-validated");
 
             // Show loading overlay and disable submit button
