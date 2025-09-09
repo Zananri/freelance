@@ -1204,6 +1204,15 @@ class ProjectController extends Controller
         DB::beginTransaction();
         try {
             $project = Project::findOrFail($id);
+            // If project has any tasks, do not allow deletion
+            if ($project->tasks()->exists()) {
+                DB::rollBack();
+                return response()->json([
+                    'code' => 400,
+                    'status' => 'error',
+                    'message' => 'This project has a task, it cannot be deleted'
+                ], 400);
+            }
 
             // Soft-delete behavior: mark status as DELETED and record who deleted it.
             // Do NOT remove related assignments, feedbacks, or files so data remains in DB.
