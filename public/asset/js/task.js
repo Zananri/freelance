@@ -141,32 +141,34 @@
             success: function(res) {
                 const t = res && (res.data || res) || {};
                 const title = t.title || 'Accept Task';
+                const project_title = t.project.title || '';
                 const desc = t.description || '';
-                let img = (t.image ? (appUrl + '/file/task/' + t.image) : (appUrl + '/asset/img/background/add-image.png'));
+                let img = appUrl + '/file/task/' + t.image;
 
                 const id = 'acceptInviteModal';
                 const modalHtml = `
                     <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
-                            <div class="modal-content">
+                            <div class="modal-content modal-content-custom">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">Accept Task</h5>
+                                    <h5 class="modal-title fs-6">Accept Task</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="d-flex">
                                         <div class="me-3">
-                                            <img src="${img}" alt="Task Image" class="rounded-circle" style="width:70px; height:70px; object-fit:cover;" onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
+                                            <img src="${img}" alt="Task Image" class="rounded-circle" style="width:34px; height:34px; object-fit:cover;" onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
                                         </div>
                                         <div>
+                                            ${id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${project_title || '-'}</small>` : ''}
                                             <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
                                             <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptInviteBtn"><span class="material-symbols-outlined me-1" style="font-size:12px; vertical-align:middle;">check_circle</span>Accept Task</button>
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptInviteBtn">Accept Task</button>
                                 </div>
                             </div>
                         </div>
@@ -195,7 +197,7 @@
                             if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
                         },
                         complete: function(){
-                            const btn = mEl.querySelector('#confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined me-1" style="font-size:12px; vertical-align:middle;">check_circle</span>Accept Task'; }
+                            const btn = mEl.querySelector('#confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; }
                         }
                     });
                 });
@@ -1620,7 +1622,6 @@ document.addEventListener("click", function (e) {
                             <div class="d-flex align-items-center w-100 justify-content-between gap-1">
                                 <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
                                 <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
-                                    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
                                     Accept Task
                                 </button>
                             </div>
@@ -3522,7 +3523,7 @@ function refreshAllUnreadBadges() {
 
         // Comment field
         const commentDiv = document.createElement("div");
-        commentDiv.className = "mb-3";
+        commentDiv.className = "mb-3 custom-input";
 
         const commentLabel = document.createElement("label");
         commentLabel.htmlFor = "feedback_comment";
@@ -3874,7 +3875,7 @@ function refreshAllUnreadBadges() {
                     feedbackModalEl.dataset.employeeId || ""
                 }">
 
-                <div class="mb-3 input-custom">
+                <div class="mb-3 custom-input">
                     <label class="form-label">Upload Image</label>
                     <div class="image-upload-container">
                         <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
@@ -3885,12 +3886,12 @@ function refreshAllUnreadBadges() {
                     </div>
                 </div>
 
-                <div class="mb-3 input-custom">
+                <div class="mb-3 custom-input">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
                 </div>
 
-                <div class="mb-3 input-custom">
+                <div class="mb-3 custom-input">
                     <label class="form-label">Reference URLs (Optional)</label>
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
                         <div class="d-flex gap-2 align-items-center">
@@ -3900,7 +3901,7 @@ function refreshAllUnreadBadges() {
                     </div>
                 </div>
 
-                <div class="mb-3 input-custom">
+                <div class="mb-3 custom-input">
                     <label for="reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                     <div id="feedback_reference_files_preview"></div>
@@ -3981,7 +3982,7 @@ function refreshAllUnreadBadges() {
                 <input type="hidden" name="parent_id" value="${parentId}">
                 <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
 
-                <div class="mb-3 input-custom">
+                <div class="mb-3 custom-input">
                     <label class="form-label">Upload Image</label>
                     <div class="image-upload-container">
                         <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
@@ -3992,12 +3993,12 @@ function refreshAllUnreadBadges() {
                     </div>
                 </div>
 
-                <div class="mb-3 input-custom">
+                <div class="mb-3 custom-input">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
                 </div>
 
-                <div class="mb-3 input-custom">
+                <div class="mb-3 custom-input">
                     <label class="form-label">Reference URLs (Optional)</label>
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
                         <div class="d-flex gap-2 align-items-center">
@@ -4007,7 +4008,7 @@ function refreshAllUnreadBadges() {
                     </div>
                 </div>
 
-                <div class="mb-3 input-custom">
+                <div class="mb-3 custom-input">
                     <label for="reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                     <div id="feedback_reference_files_preview"></div>
@@ -4101,17 +4102,17 @@ function refreshAllUnreadBadges() {
                     </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 custom-input">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 custom-input">
                     <label class="form-label">Reference URLs (Optional)</label>
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 custom-input">
                     <label for="reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                     <div class="form-text">Multiple files supported.</div>

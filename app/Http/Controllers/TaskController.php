@@ -65,7 +65,7 @@ class TaskController extends Controller
             $projectId = $request->input('project');
             $statusFilter = $request->input('status'); // optional
             $search = $request->input('search'); // optional search keyword
-            $perPage = (int) $request->input('per_page', 10);
+            $perPage = (int) $request->input('per_page', 7);
             $page = (int) $request->input('page', 1);
 
             $currentUserId = $currentUser?->id;
