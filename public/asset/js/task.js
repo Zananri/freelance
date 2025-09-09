@@ -1999,48 +1999,40 @@ $(document).on("keyup", "#search_filter", function () {
 
         // NEW: control visibility of select-all checkbox label
         function updateSelectAllVisibility(){
-            const label = document.querySelector('.task-selectall-toggle');
-            if (!label) return;
+            const labels = document.querySelectorAll('.task-selectall-toggle');
+            if (!labels.length) return;
             if (selectedAllNewIds.length > 0) {
-                label.style.visibility = 'visible';
-                label.style.opacity = '1';
+                labels.forEach(label=>{ label.style.visibility='visible'; label.style.opacity='1'; });
             } else {
-                const cb = document.getElementById('taskNewAcceptAll');
-                if (cb) cb.checked = false;
-                label.style.visibility = 'hidden';
-                label.style.opacity = '0';
+                ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const cb=document.getElementById(id); if(cb) cb.checked=false; });
+                labels.forEach(label=>{ label.style.visibility='hidden'; label.style.opacity='0'; });
             }
         }
 
         function collectPendingNewTaskIds(){
-            // When viewer is executor and not accepted, cards render Accept/Reject buttons; pick those
-            const cards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card'));
-            const ids = cards.reduce((acc, el) => {
+            const cards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card, #mobile-task-list .custom-card'));
+            return cards.reduce((acc, el) => {
                 const tId = el.getAttribute('data-task-id');
-                const hasAccept = !!el.querySelector('.btn-accept-invite');
-                if (tId && hasAccept) acc.push(tId);
+                if (tId && el.querySelector('.btn-accept-invite')) acc.push(tId);
                 return acc;
             }, []);
-            return ids;
         }
 
         function collectAllNewTaskIds(){
-            return Array.from(document.querySelectorAll('#new-request-tasks .custom-card'))
+            return Array.from(document.querySelectorAll('#new-request-tasks .custom-card, #mobile-task-list .custom-card'))
                 .map(el => el.getAttribute('data-task-id'))
                 .filter(Boolean);
         }
 
         function syncSelectAllCheckboxState(){
-            const master = document.getElementById('taskNewAcceptAll');
-            if (!master) return;
             const allIds = collectAllNewTaskIds();
-            // Master is checked only if every current card id is in selectedAllNewIds and not empty
             const allSelected = allIds.length > 0 && allIds.every(id => selectedAllNewIds.includes(String(id)));
-            if (master.checked && !allSelected) {
-                master.checked = false;
-            } else if (!master.checked && allSelected) {
-                master.checked = true;
-            }
+            ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(mid => {
+                const master = document.getElementById(mid);
+                if (!master) return;
+                if (master.checked && !allSelected) master.checked = false;
+                else if (!master.checked && allSelected) master.checked = true;
+            });
         }
 
         function acceptOne(taskId){
@@ -2074,7 +2066,7 @@ $(document).on("keyup", "#search_filter", function () {
 
         // When checkbox is toggled, only (de)select in memory and toggle bulk icon state
         document.addEventListener('change', function(e){
-            const cb = e.target.closest('#taskNewAcceptAll');
+            const cb = e.target.closest('#taskNewAcceptAll, #taskNewAcceptAllMobile');
             if (!cb) return;
             if (cb.checked) {
                 // When Select All is enabled, include all tasks across pages from cache
@@ -2089,17 +2081,13 @@ $(document).on("keyup", "#search_filter", function () {
                     selectedPendingIds = collectPendingNewTaskIds();
                     selectedAllNewIds = collectAllNewTaskIds();
                 }
-                // visually select all thumbnails in current DOM
-                document.querySelectorAll('#new-request-tasks .task-selectable-thumb').forEach(function(el){
-                    el.classList.add('selected');
-                });
+                // visually select all thumbnails (desktop + mobile list)
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb, #mobile-task-list .task-selectable-thumb').forEach(el=> el.classList.add('selected'));
             } else {
                 selectedPendingIds = [];
                 selectedAllNewIds = [];
-                // clear visual selection
-                document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected').forEach(function(el){
-                    el.classList.remove('selected');
-                });
+                // clear visual selection (desktop + mobile)
+                document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(el=> el.classList.remove('selected'));
             }
             updateBulkHeaderButtons();
             updateSelectAllVisibility(); // NEW
@@ -2169,12 +2157,11 @@ $(document).on("keyup", "#search_filter", function () {
             modalEl.querySelector('#confirmBulkAcceptBtn').addEventListener('click', function(){
                 acceptAll(selectedPendingIds).finally(() => {
                     try { m.hide(); } catch(_) {}
-                    const cb = document.getElementById('taskNewAcceptAll');
-                    if (cb) cb.checked = false;
+                    ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
                     selectedPendingIds = [];
                     selectedAllNewIds = [];
                     // clear UI selected class
-                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                     updateBulkHeaderButtons();
                     updateSelectAllVisibility(); // NEW
                 });
@@ -2183,11 +2170,11 @@ $(document).on("keyup", "#search_filter", function () {
 
         // Bulk Progress button behavior
         document.addEventListener('click', function(e){
-            const btn = e.target.closest('#taskNewBulkProgress');
+            const btn = e.target.closest('#taskNewBulkProgress, #taskNewBulkProgressMobile');
             if (!btn) return;
             if (btn.disabled) return;
             // If select-all checkbox is on, include all IDs across pagination from cache
-            const selectAllChecked = !!document.getElementById('taskNewAcceptAll')?.checked;
+            const selectAllChecked = !!document.getElementById('taskNewAcceptAll')?.checked || !!document.getElementById('taskNewAcceptAllMobile')?.checked;
             let ids = selectedAllNewIds.slice();
             if (selectAllChecked && allTasksCache && allTasksCache.new_request && Array.isArray(allTasksCache.new_request.tasks)) {
                 ids = allTasksCache.new_request.tasks.map(t => String(t.id));
@@ -2220,11 +2207,10 @@ $(document).on("keyup", "#search_filter", function () {
                     updateTaskStatus(id, 'in_progress', card).finally(() => {
                         bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false; bulkStatusExpectedCount = 0;
                         try { statusModal.hide(); } catch(_){ }
-                        const cb = document.getElementById('taskNewAcceptAll');
-                        if (cb) cb.checked = false;
+                        ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
                         selectedPendingIds = [];
                         selectedAllNewIds = [];
-                        document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                        document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                         updateBulkHeaderButtons();
                         updateSelectAllVisibility();
                     });
@@ -2255,11 +2241,10 @@ $(document).on("keyup", "#search_filter", function () {
                     bulkStatusOperationActive = false; bulkStatusSuppressRefresh = false;
                     statusModal.hide();
                     confirmBtn.removeEventListener('click', handler);
-                    const cb = document.getElementById('taskNewAcceptAll');
-                    if (cb) cb.checked = false;
+                    ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
                     selectedPendingIds = [];
                     selectedAllNewIds = [];
-                    document.querySelectorAll('.task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
+                    document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
                     // Final refresh & alert sudah ditangani aggregator; fallback refresh bila gagal aggregator
                     if (!bulkFinalAlertShown) fetchAndRenderTasks();
                     updateBulkHeaderButtons();
@@ -2275,7 +2260,9 @@ $(document).on("keyup", "#search_filter", function () {
             const allAcceptedSelected = hasAnySelection && !anyPendingSelected;
 
             const bulkAccept = document.getElementById('taskNewBulkAction');
+            const bulkAcceptMobile = document.getElementById('taskNewBulkActionMobile');
             const bulkProgress = document.getElementById('taskNewBulkProgress');
+            const bulkProgressMobile = document.getElementById('taskNewBulkProgressMobile');
 
             if (bulkAccept) {
                 // Keep element in flow; toggle visibility only
@@ -2284,31 +2271,73 @@ $(document).on("keyup", "#search_filter", function () {
                 bulkAccept.style.opacity = anyPendingSelected ? '1' : '0';
                 bulkAccept.disabled = !anyPendingSelected;
             }
+            if (bulkAcceptMobile) {
+                if (getComputedStyle(bulkAcceptMobile).display === 'none') bulkAcceptMobile.style.display = 'inline-flex';
+                bulkAcceptMobile.style.visibility = anyPendingSelected ? 'visible' : 'hidden';
+                bulkAcceptMobile.style.opacity = anyPendingSelected ? '1' : '0';
+                bulkAcceptMobile.disabled = !anyPendingSelected;
+            }
             if (bulkProgress) {
                 if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
                 bulkProgress.style.visibility = hasAnySelection ? 'visible' : 'hidden';
                 bulkProgress.style.opacity = hasAnySelection ? '1' : '0';
                 bulkProgress.disabled = !allAcceptedSelected;
             }
+            if (bulkProgressMobile) {
+                if (getComputedStyle(bulkProgressMobile).display === 'none') bulkProgressMobile.style.display = 'inline-flex';
+                bulkProgressMobile.style.visibility = hasAnySelection ? 'visible' : 'hidden';
+                bulkProgressMobile.style.opacity = hasAnySelection ? '1' : '0';
+                bulkProgressMobile.disabled = !allAcceptedSelected;
+            }
             // Ensure visibility sync each time state recalculated
             updateSelectAllVisibility(); // NEW
+
+            // Mobile container: only show if status select is New & there is at least one selection
+            try {
+                const statusSel = document.getElementById('taskStatusSelect');
+                const mobileContainer = document.getElementById('mobileBulkControls');
+                if (statusSel && mobileContainer) {
+                    const statusIsNew = statusSel.value === 'new_request';
+                    if (statusIsNew && hasAnySelection) {
+                        mobileContainer.style.display = 'flex';
+                        mobileContainer.dataset.forcedShow = '1';
+                    } else {
+                        mobileContainer.style.display = 'none';
+                        delete mobileContainer.dataset.forcedShow;
+                    }
+                }
+            } catch(_) {}
         }
 
         // initialize bulk button hidden and disabled by default
         document.addEventListener('DOMContentLoaded', function(){
             const bulkAccept = document.getElementById('taskNewBulkAction');
             const bulkProgress = document.getElementById('taskNewBulkProgress');
+            const bulkAcceptMobile = document.getElementById('taskNewBulkActionMobile');
+            const bulkProgressMobile = document.getElementById('taskNewBulkProgressMobile');
             if (bulkAccept) {
                 if (getComputedStyle(bulkAccept).display === 'none') bulkAccept.style.display = 'inline-flex';
                 bulkAccept.style.visibility = 'hidden';
                 bulkAccept.style.opacity = '0';
                 bulkAccept.disabled = true;
             }
+            if (bulkAcceptMobile) {
+                if (getComputedStyle(bulkAcceptMobile).display === 'none') bulkAcceptMobile.style.display = 'inline-flex';
+                bulkAcceptMobile.style.visibility = 'hidden';
+                bulkAcceptMobile.style.opacity = '0';
+                bulkAcceptMobile.disabled = true;
+            }
             if (bulkProgress) {
                 if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
                 bulkProgress.style.visibility = 'hidden';
                 bulkProgress.style.opacity = '0';
                 bulkProgress.disabled = true;
+            }
+            if (bulkProgressMobile) {
+                if (getComputedStyle(bulkProgressMobile).display === 'none') bulkProgressMobile.style.display = 'inline-flex';
+                bulkProgressMobile.style.visibility = 'hidden';
+                bulkProgressMobile.style.opacity = '0';
+                bulkProgressMobile.disabled = true;
             }
             updateSelectAllVisibility(); // NEW
         });
@@ -2714,6 +2743,7 @@ $(document).on("keyup", "#search_filter", function () {
                 },
                 data: { status: newStatus },
                 success: function (response) {
+                    const oldStatus = (taskCard && taskCard.getAttribute('data-task-status')) || null;
                     if (taskCard) {
                         const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
                         tooltipTriggerList.forEach(function (tooltipTriggerEl) {
@@ -2723,6 +2753,22 @@ $(document).on("keyup", "#search_filter", function () {
                         taskCard.remove();
                     }
                     if (!bulkStatusSuppressRefresh) fetchAndRenderTasks();
+                    // Mobile dynamic refresh (avoid full reload): if mobile status selector present
+                    try {
+                        const mobileStatusSel = document.getElementById('taskStatusSelect');
+                        if (mobileStatusSel) {
+                            const currentMobileStatus = mobileStatusSel.value;
+                            const newStat = newStatus; // already target
+                            // If user is viewing the source bucket or the destination bucket, refresh that list
+                            if (currentMobileStatus === newStat || (oldStatus && currentMobileStatus === oldStatus)) {
+                                // Reset page state for mobile and re-fetch only current view
+                                if (typeof mobileState !== 'undefined') {
+                                    mobileState.page = 1; mobileState.last = 1; mobileState.status = currentMobileStatus;
+                                }
+                                try { fetchMobileTasks(currentMobileStatus, 1, false); } catch(_) {}
+                            }
+                        }
+                    } catch(_) {}
                     if (bulkStatusOperationActive) {
                         bulkStatusCompletedCount++;
                         if (!bulkFinalStatusMessage) bulkFinalStatusMessage = response.message || 'Task status updated successfully';
@@ -3522,21 +3568,38 @@ $(document).on("keyup", "#search_filter", function () {
 
         form.appendChild(refFileDiv);
 
-        // Buttons
-        const buttonDiv = document.createElement("div");
-        buttonDiv.className = "d-flex justify-content-between mt-4";
+        // Footer buttons wrapper (Close + Submit) mirip project feedback modal
+        const buttonsWrapper = document.createElement('div');
+        buttonsWrapper.id = 'taskFeedbackFormButtonsWrapper';
+        buttonsWrapper.className = 'd-flex gap-2 mt-4';
 
-        const cancelBtn = document.createElement("button");
-        cancelBtn.type = "button";
-        cancelBtn.className = "btn btn-secondary";
-        cancelBtn.textContent = "Cancel";
-        cancelBtn.addEventListener("click", function () {
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-close-reply flex-grow-1';
+        closeBtn.textContent = 'Close';
+        closeBtn.addEventListener('click', function(){
+            // Kembali ke list feedback
             loadTaskFeedbackData(taskId);
-            document.getElementById("addFeedbackButton").textContent =
-                "Add Feedback";
+            const addBtnRef = document.getElementById('addFeedbackButton');
+            if (addBtnRef) {
+                addBtnRef.textContent = 'Add Feedback';
+                const cloned = addBtnRef.cloneNode(true);
+                addBtnRef.parentNode.replaceChild(cloned, addBtnRef);
+                cloned.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
+            }
         });
 
-        form.appendChild(buttonDiv);
+        // Kita gunakan tombol existing addFeedbackButton sebagai Submit; pindahkan ke wrapper
+        if (addFeedbackButton && addFeedbackButton.parentElement) {
+            addFeedbackButton.textContent = 'Submit';
+            // Remove existing handlers dengan clone sebelumnya nanti
+        }
+
+        buttonsWrapper.appendChild(closeBtn);
+        // Temporarily append placeholder for submit; actual click bound di bawah
+        buttonsWrapper.appendChild(addFeedbackButton);
+
+        form.appendChild(buttonsWrapper);
         modalBody.appendChild(form);
 
         // Setup image preview
@@ -3548,15 +3611,11 @@ $(document).on("keyup", "#search_filter", function () {
             submitTaskFeedbackForm(this, taskId);
         });
 
-        // Change button text to Submit
-        addFeedbackButton.textContent = "Submit";
-
-        // Remove previous click handler
-        const newButton = addFeedbackButton.cloneNode(true);
-        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-
-        // Add new click handler for submit
-        newButton.addEventListener("click", function (e) {
+    // Remove previous click handler by cloning
+    const newButton = addFeedbackButton.cloneNode(true);
+    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+    // Add submit handler
+    newButton.addEventListener("click", function (e) {
             e.preventDefault();
             const form = document.getElementById("addFeedbackForm");
             if (form) {
@@ -3851,19 +3910,9 @@ $(document).on("keyup", "#search_filter", function () {
             }
         } catch (_) {}
 
-        // Change Add Feedback button text to Submit
-        addFeedbackButton.textContent = "Submit";
-
-        // Remove previous event listeners and add submit handler
-        const newButton = addFeedbackButton.cloneNode(true);
-        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-
-        newButton.addEventListener("click", function (e) {
-            e.preventDefault();
-            const form = document.getElementById("addFeedbackForm");
-            if (form) {
-                submitFeedbackForm(form, taskId);
-            }
+        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
+            const form = document.getElementById('addFeedbackForm');
+            if (form) submitFeedbackForm(form, taskId);
         });
     }
 
@@ -3966,45 +4015,9 @@ $(document).on("keyup", "#search_filter", function () {
             }
         } catch (_) {}
 
-        addFeedbackButton.textContent = "Submit";
-        const newButton = addFeedbackButton.cloneNode(true);
-        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-        newButton.addEventListener("click", function (e) {
-            e.preventDefault();
-            const form = document.getElementById("addFeedbackForm");
-            if (form) {
-                submitFeedbackForm(form, taskId);
-            }
-        });
-
-        // Inject a Close button to the left of Submit to go back to list
-        let closeBtn = document.getElementById('replyCloseButton');
-        if (closeBtn && closeBtn.parentNode) {
-            closeBtn.parentNode.removeChild(closeBtn);
-        }
-        closeBtn = document.createElement('button');
-        closeBtn.id = 'replyCloseButton';
-        closeBtn.type = 'button';
-        closeBtn.className = 'btn btn-close-reply';
-        closeBtn.textContent = 'Close';
-        const footerSubmit = document.getElementById('addFeedbackButton');
-        if (footerSubmit && footerSubmit.parentNode) {
-            footerSubmit.parentNode.insertBefore(closeBtn, footerSubmit);
-        }
-        closeBtn.addEventListener('click', function () {
-            // Restore list state
-            const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title');
-            if (titleEl) titleEl.textContent = 'Task Feedback';
-            const addBtnRef = document.getElementById('addFeedbackButton');
-            if (addBtnRef) {
-                addBtnRef.textContent = 'Add Feedback';
-                const freshBtn = addBtnRef.cloneNode(true);
-                addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
-            }
-            loadTaskFeedbackData(taskId);
-            // Remove this close button
-            if (closeBtn && closeBtn.parentNode) closeBtn.parentNode.removeChild(closeBtn);
+        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
+            const form = document.getElementById('addFeedbackForm');
+            if (form) submitFeedbackForm(form, taskId);
         });
     }
 
@@ -4195,47 +4208,47 @@ $(document).on("keyup", "#search_filter", function () {
             }
         } catch (_) {}
 
-        // Change footer button to Save
-        if (addFeedbackButton) {
-            addFeedbackButton.textContent = 'Save';
-            const newBtn = addFeedbackButton.cloneNode(true);
-            addFeedbackButton.parentNode.replaceChild(newBtn, addFeedbackButton);
-            // Make sure the cloned button is enabled
-            newBtn.disabled = false;
-            newBtn.removeAttribute('disabled');
-            newBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                const form = document.getElementById('editFeedbackForm');
-                if (!form) return;
-                submitEditFeedbackForm(form, taskId, data.id, isReply);
-            });
-        }
-
-        // Inject a Back button left of Save to go back to list
-        let backBtn = document.getElementById('replyCloseButton');
-        if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
-        backBtn = document.createElement('button');
-        backBtn.id = 'replyCloseButton';
-        backBtn.type = 'button';
-        backBtn.className = 'btn btn-close-reply';
-        backBtn.textContent = 'Close';
-        const footerSubmit = document.getElementById('addFeedbackButton');
-        if (footerSubmit && footerSubmit.parentNode) {
-            footerSubmit.parentNode.insertBefore(backBtn, footerSubmit);
-        }
-        backBtn.addEventListener('click', function () {
-            const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
-            if (titleEl) titleEl.textContent = 'Task Feedback';
-            const addBtnRef = document.getElementById('addFeedbackButton');
-            if (addBtnRef) {
-                addBtnRef.textContent = 'Add Feedback';
-                const freshBtn = addBtnRef.cloneNode(true);
-                addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
-            }
-            loadTaskFeedbackData(taskId);
-            if (backBtn && backBtn.parentNode) backBtn.parentNode.removeChild(backBtn);
+        setUnifiedTaskFeedbackFooter(taskId, 'Save', function(){
+            const form = document.getElementById('editFeedbackForm');
+            if (!form) return; submitEditFeedbackForm(form, taskId, data.id, isReply);
         });
+    }
+
+    // Helper to unify footer button styling (Close + Submit/Save) identical to Add Feedback modal
+    function setUnifiedTaskFeedbackFooter(taskId, submitLabel, onSubmit){
+        const modal = document.getElementById('taskFeedbackModal');
+        if (!modal) return;
+        const footer = modal.querySelector('.feedback-modal-footer');
+        const titleEl = modal.querySelector('.feedback-modal-title');
+        if (!footer) return;
+        footer.innerHTML = '';
+        const wrapper = document.createElement('div');
+        wrapper.id = 'taskFeedbackFormButtonsWrapper';
+        wrapper.className = 'd-flex gap-2 w-100';
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-close-reply flex-grow-1';
+        closeBtn.textContent = 'Close';
+        closeBtn.addEventListener('click', function(){
+            footer.innerHTML = '';
+            const restore = document.createElement('button');
+            restore.type = 'button';
+            restore.className = 'btn btn-submit-black';
+            restore.id = 'addFeedbackButton';
+            restore.textContent = 'Add Feedback';
+            restore.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
+            footer.appendChild(restore);
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            loadTaskFeedbackData(taskId);
+        });
+        const submitBtn = document.createElement('button');
+        submitBtn.type = 'button';
+        submitBtn.className = 'btn btn-submit-black flex-grow-1';
+        submitBtn.textContent = submitLabel;
+        submitBtn.addEventListener('click', function(e){ e.preventDefault(); onSubmit && onSubmit(); });
+        wrapper.appendChild(closeBtn);
+        wrapper.appendChild(submitBtn);
+        footer.appendChild(wrapper);
     }
 
     function submitEditFeedbackForm(form, taskId, id, isReply) {
@@ -5626,6 +5639,18 @@ $(document).on("keyup", "#search_filter", function () {
     } else {
         data.tasks.forEach(task => list.append(createTaskCard(task)));
     }
+
+    // Pastikan kontrol bulk tampil di luar card (pojok kanan atas container) hanya untuk status new_request
+    try {
+        const bulk = document.getElementById('mobileBulkControls');
+        if (bulk) {
+            if (status === 'new_request') {
+                bulk.style.display = 'inline-flex';
+            } else {
+                bulk.style.display = 'none';
+            }
+        }
+    } catch(_) {}
     }
 
     function initMobileInfiniteScroll() {
@@ -5669,7 +5694,7 @@ $(document).on("keyup", "#search_filter", function () {
             <option value="completed">Completed</option>
             </select>
         </div>
-        <div class="task-mobile-actions d-flex justify-content-between align-items-center mb-3">
+        <div class="task-mobile-actions d-flex justify-content-between align-items-center">
             <div class="search-input-container flex-grow-1 me-2">
             <span class="material-symbols-outlined search-icon">search</span>
             <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
@@ -5680,6 +5705,17 @@ $(document).on("keyup", "#search_filter", function () {
             <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
             <span class="material-symbols-outlined">filter_list</span>
             </button>
+        </div>
+        <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-3" style="display:none;">
+            <button type="button" id="taskNewBulkActionMobile" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
+                <span class="material-symbols-outlined">done_all</span>
+            </button>
+            <button type="button" id="taskNewBulkProgressMobile" class="task-bulk-icon" aria-label="Move selected tasks to In Progress">
+                <span class="material-symbols-outlined">arrow_right_alt</span>
+            </button>
+            <label for="taskNewAcceptAllMobile" class="task-selectall-toggle">
+                <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAllMobile" aria-label="Select all pending new tasks" />
+            </label>
         </div>
         <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
             <div class="dropdown-filter-body">
@@ -5717,15 +5753,36 @@ $(document).on("keyup", "#search_filter", function () {
     toggleDropdownFilter();
     $(window).on("resize", toggleDropdownFilter);
 
+    function updateMobileBulkControlsVisibility(){
+        // Show container only when status = new_request AND there is at least one selection.
+        const statusIsNew = $("#taskStatusSelect").val() === 'new_request';
+        if(!statusIsNew){ $("#mobileBulkControls").hide(); return; }
+        // Selection will toggle via updateBulkHeaderButtons; here we keep it hidden by default.
+        if($("#mobileBulkControls").data('forced-show') !== '1') {
+            $("#mobileBulkControls").hide();
+        }
+    }
+
     // 👇 sekarang baru init scroll + fetch
     initMobileInfiniteScroll();
     fetchMobileTasks(mobileState.status, 1, false);
 
     $("#taskStatusSelect").on("change", function () {
         fetchMobileTasks($(this).val(), 1);
+        updateMobileBulkControlsVisibility();
     });
 
     $("#taskStatusSelect").val("new_request").trigger("change");
+    // Initialize newly injected mobile bulk elements hidden (same logic desktop)
+    (function initMobileBulkHidden(){
+        const ids=['taskNewBulkActionMobile','taskNewBulkProgressMobile'];
+        ids.forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='inline-flex'; el.style.visibility='hidden'; el.style.opacity='0'; el.disabled=true; } });
+        const lab=document.getElementById('taskNewAcceptAllMobile');
+        if(lab){ const wrap=lab.closest('.task-selectall-toggle'); if(wrap){ wrap.style.visibility='hidden'; wrap.style.opacity='0'; } }
+        // container hidden until first selection
+        const cont=document.getElementById('mobileBulkControls'); if(cont) cont.style.display='none';
+    })();
+    updateMobileBulkControlsVisibility();
     });
 
 });

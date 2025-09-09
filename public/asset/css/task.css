@@ -1083,6 +1083,30 @@ p {
         z-index: 10;
     }
 
+    /* Mobile bulk controls bar di bawah action buttons */
+    #mobileBulkControls {
+        position: static;
+        margin: 6px 0 12px 0 !important;
+        z-index: auto;
+        padding: 10px;
+        display: none; /* dikontrol JS */
+        gap: 6px;
+    }
+    #mobileBulkControls .task-selectall-toggle {
+        margin-right: 0;
+        background: #ecedf5;
+    }
+    #mobileBulkControls .task-bulk-icon {
+        width: 30px;
+        height: 30px;
+    }
+    #mobileBulkControls .task-bulk-icon .material-symbols-outlined {
+        font-size: 20px;
+    }
+    #mobile-task-list {
+        margin-top: 0;
+    }
+
     .task-detail-columns {
         flex-direction: column;
         gap: 1rem;
