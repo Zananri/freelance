@@ -1569,11 +1569,13 @@ document.addEventListener("click", function (e) {
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
                         const showInitials = !projectImg;
+                        const viewerPendingLocal = isViewerPendingExecutor(task);
+                        const selectable = viewerPendingLocal || task.status === 'new_request' || task.status === 'new request';
                         const avatarHtml = showInitials
-                            ? `<div class="project-initial-avatar${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
-                            : `<img src="${projectImg}" alt="Project Image" class="project-image${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
-                        if (task.status === 'new_request' || task.status === 'new request') {
-                            return `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
+                            ? `<div class="project-initial-avatar${selectable ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
+                            : `<img src="${projectImg}" alt="Project Image" class="project-image${selectable ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
+                        if (selectable) {
+                            return `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${viewerPendingLocal ? '1' : '0'}">
                                 ${avatarHtml}
                                 <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
                             </div>`;
@@ -1680,7 +1682,7 @@ const sectionMap = {
 
 function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query = "") {
     const params = {};
-    if (statusKey) params.status = statusKey;
+    if (statusKey) params.status = statusKey; // when null => fetch all buckets
     params.page = page;
     if (query) params.search = query;
 
@@ -1696,7 +1698,36 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
         success: function(response) {
             if (!response || response.code !== 200 || !response.data) return;
 
+            // FULL REFRESH (no specific status requested)
+            if (!statusKey) {
+                const data = response.data;
+                // Merge rejected into in_progress (same logic as renderTasks previously) to keep rejected visible
+                if (data.in_progress && data.rejected && Array.isArray(data.rejected.tasks)) {
+                    const inPT = Array.isArray(data.in_progress.tasks) ? data.in_progress.tasks : [];
+                    const rejT = data.rejected.tasks || [];
+                    data.in_progress.tasks = [...inPT, ...rejT];
+                }
+                // Update caches and pagination state
+                ["new_request", "in_progress", "completed"].forEach(sk => {
+                    if (!desktopState[sk]) desktopState[sk] = { page: 1, last: 1, loading: false };
+                    desktopState[sk].last = data[sk]?.pagination?.last_page || 1;
+                    allTasksCache[sk] = data[sk] || { tasks: [], pagination: {} };
+                });
+                renderTasks(data);
+                injectRejectedIfMissing(response.data);
+                return;
+            }
+
+            // SINGLE SECTION REFRESH
             const respSection = response.data?.[statusKey] ?? { tasks: [], pagination: {} };
+
+            // If refreshing in_progress, append rejected tasks (only on non-append to avoid duplicating)
+            if (statusKey === 'in_progress' && !append && response.data?.rejected?.tasks) {
+                const rej = response.data.rejected.tasks;
+                if (Array.isArray(rej) && rej.length) {
+                    respSection.tasks = [...(respSection.tasks || []), ...rej];
+                }
+            }
 
             if (!desktopState[statusKey]) {
                 desktopState[statusKey] = { page: 1, last: 1, loading: false };
@@ -1714,6 +1745,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
             }
 
             renderSingleSection(statusKey, respSection, append);
+            injectRejectedIfMissing(response.data);
         },
         error: function(err) {
             console.error(err);
@@ -1732,6 +1764,7 @@ function renderTasks(data) {
     tasks: [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])]
   }, false);
   renderSingleSection("completed", data.completed, false);
+    ensureRejectedCardsPlaced();
 }
 
 function renderSingleSection(status, sectionData, append = false) {
@@ -1768,10 +1801,10 @@ function renderSingleSection(status, sectionData, append = false) {
         const isPic = picId && uid && picId === uid;
         const isExecutor = executorIds.includes(uid);
 
+        // Revisi: tampilkan task rejected untuk PIC maupun Executor agar konsisten dengan dashboard "My Task"
         if (isRejected) {
-            if (isPic) return false;
-            if (isExecutor) return true;
-            return false;
+            if (isPic || isExecutor) return true; // sebelumnya PIC disembunyikan
+            return false; // user lain tetap tidak melihat
         }
 
         return true;
@@ -1808,6 +1841,61 @@ function renderSingleSection(status, sectionData, append = false) {
   initBootstrapTooltips();
   refreshAllUnreadBadges();
   refreshAllLatestFeedbackSnippets();
+    // Setelah tiap section dirender, pastikan rejected selalu di kolom In Progress
+    if (!append) ensureRejectedCardsPlaced();
+}
+
+// Normalisasi posisi card rejected (fallback jika ada card nyasar / tidak tergabung)
+function ensureRejectedCardsPlaced(){
+    try {
+        const inProgressCol = document.getElementById('in-progress-tasks');
+        if(!inProgressCol) return;
+        const allRejected = document.querySelectorAll('.custom-card[data-task-status]');
+        allRejected.forEach(card => {
+            const st = String(card.getAttribute('data-task-status')||'').toLowerCase();
+            if(st.includes('reject')){
+                // Tambah badge jika belum ada
+                if(!card.querySelector('.badge.bg-danger')){
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-danger position-absolute';
+                    badge.style.cssText = 'font-size:10px;font-weight:500;top:25%;right:18px;';
+                    badge.textContent = 'REJECTED';
+                    card.appendChild(badge);
+                }
+                if(card.parentElement !== inProgressCol){
+                    card.parentElement && card.parentElement.removeChild(card);
+                    inProgressCol.prepend(card);
+                }
+            }
+        });
+    } catch(err){ console.warn('ensureRejectedCardsPlaced error', err); }
+}
+
+// Jika backend belum mengirim bucket rejected terpisah atau belum tergabung, force inject
+function injectRejectedIfMissing(rawData){
+    try {
+        if(!rawData) return;
+        const inProgressCol = document.getElementById('in-progress-tasks');
+        if(!inProgressCol) return;
+        // Kumpulkan semua task potensial yang statusnya rejected di semua bucket yang diterima
+        const buckets = ['new_request','in_progress','completed','rejected'];
+        const collected = [];
+        buckets.forEach(b=>{
+            const arr = rawData[b]?.tasks; if(Array.isArray(arr)) collected.push(...arr);
+        });
+        const rejected = collected.filter(t => String(t.status||'').toLowerCase().includes('reject'));
+        if(!rejected.length) return;
+        // Index existing card ids
+        const existingIds = new Set(Array.from(inProgressCol.querySelectorAll('.custom-card[data-task-id]')).map(c=>c.getAttribute('data-task-id')));
+        rejected.forEach(task => {
+            const idStr = String(task.id);
+            if(!existingIds.has(idStr)){
+                inProgressCol.insertAdjacentHTML('afterbegin', createTaskCard(task));
+                existingIds.add(idStr);
+            }
+        });
+        ensureRejectedCardsPlaced();
+    } catch(err){ console.warn('injectRejectedIfMissing error', err); }
 }
 
 function initDesktopInfiniteScroll(query = "") {
@@ -1971,7 +2059,11 @@ $(document).on("keyup", "#search_filter", function () {
                 headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }
             }).then(function(){
                 // Also mark its task-assignment notifications read for this user
-                return markTaskAssignmentNotificationsRead(taskId);
+                return markTaskAssignmentNotificationsRead(taskId).then(function(){
+                    // Immediate refresh (AJAX) without full reload
+                    fetchAndRenderTasks();
+                    try { showFloatingAlert('Task accepted', 'success', 1200); } catch(_) {}
+                });
             }).catch(function(){
                 // keep going
                 return $.Deferred().resolve().promise();
@@ -1982,7 +2074,11 @@ $(document).on("keyup", "#search_filter", function () {
             if (!ids || ids.length === 0) return Promise.resolve();
             let chain = Promise.resolve();
             ids.forEach((id) => { chain = chain.then(() => acceptOne(id)); });
-            return chain.then(() => { refreshNotificationCountBadge(); fetchAndRenderTasks(); });
+            return chain.then(() => { 
+                refreshNotificationCountBadge(); 
+                fetchAndRenderTasks(); 
+                try { showFloatingAlert(ids.length + ' task(s) accepted', 'success', 1500); } catch(_) {}
+            });
         }
 
         // When checkbox is toggled, only (de)select in memory and toggle bulk icon state
@@ -2517,6 +2613,77 @@ $(document).on("keyup", "#search_filter", function () {
                 statusModal.hide();
             };
         }
+    });
+
+    // Dynamic status change handling (progress, complete, reject, back) with instant UI refresh & alert
+    document.addEventListener('click', function(e){
+        const item = e.target.closest('.dropdown-item.progress-task, .dropdown-item.complete-task, .dropdown-item.reject-task, .dropdown-item.back-to-request');
+        if (!item) return;
+        e.preventDefault();
+        const card = item.closest('.custom-card');
+        if (!card) return;
+        const taskId = card.getAttribute('data-task-id');
+        if (!taskId) return;
+        let action = '';
+        if (item.classList.contains('progress-task')) action = 'progress';
+        else if (item.classList.contains('complete-task')) action = 'complete';
+        else if (item.classList.contains('reject-task')) action = 'reject';
+        else if (item.classList.contains('back-to-request')) action = 'back';
+        if (!action) return;
+        const urlMap = {
+            progress: appUrl + '/task/' + taskId + '/progress',
+            complete: appUrl + '/task/' + taskId + '/complete',
+            reject: appUrl + '/task/' + taskId + '/reject',
+            back: appUrl + '/task/' + taskId + '/back-to-request'
+        };
+        const targetUrl = urlMap[action];
+        if (!targetUrl) return;
+        const originalHtml = item.innerHTML;
+        item.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        function immediateMove(newStatus){
+            if(!card) return;
+            card.setAttribute('data-task-status', newStatus);
+            // Remove existing REJECTED badge if any
+            card.querySelectorAll('.badge.bg-danger').forEach(b=>b.remove());
+            if(newStatus === 'rejected'){
+                // Add badge
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-danger position-absolute';
+                badge.style.cssText = 'font-size:10px;font-weight:500;top:25%;right:18px;';
+                badge.textContent = 'REJECTED';
+                card.appendChild(badge);
+            }
+            // Determine destination column id
+            let destId = '';
+            if (newStatus === 'completed') destId = 'completed-tasks';
+            else if (newStatus === 'rejected' || newStatus === 'in_progress' || newStatus === 'in progress') destId = 'in-progress-tasks';
+            else if (newStatus === 'new_request' || newStatus === 'new request') destId = 'new-request-tasks';
+            if(destId){
+                const dest = document.getElementById(destId);
+                if (dest && !dest.contains(card)) {
+                    card.parentNode && card.parentNode.removeChild(card);
+                    dest.prepend(card); // show at top
+                }
+            }
+        }
+
+        fetch(targetUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }
+        }).then(r => r.ok ? r.json() : r.json().then(Promise.reject))
+          .then(res => {
+              try { showFloatingAlert(res.message || 'Status updated', 'success', 1300); } catch(_) {}
+              // If response contains new status, apply immediate move
+              const newStatus = (res.data && (res.data.status || res.data.new_status)) || res.status || res.new_status || null;
+              if(newStatus) immediateMove(String(newStatus).toLowerCase());
+              // Refresh lists without full reload
+              fetchAndRenderTasks();
+          })
+          .catch(err => {
+              try { showFloatingAlert((err && (err.message||'Failed to update status')),'warning',2500); } catch(_) {}
+          })
+          .finally(()=>{ item.innerHTML = originalHtml; });
     });
 }
 
