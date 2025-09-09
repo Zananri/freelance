@@ -34,8 +34,17 @@ class SettingsController extends Controller
             
         }
 
-        $dtResult = Employee::select('employees.id','employees.name','employees.status','employees.user_id','employees.photo',
-        'users.email', 'users.user_type','users.user_role'
+        $dtResult = Employee::select(
+            'employees.id',
+            'employees.name',
+            'employees.status',
+            'employees.user_id',
+            'employees.photo', // legacy employee photo
+            'employees.profile_picture', // new primary avatar
+            'users.photo as user_photo', // user-level legacy photo
+            'users.email',
+            'users.user_type',
+            'users.user_role'
         )
         ->join('users','employees.user_id','=','users.id')
         ->where('employees.status',"ACTIVE");

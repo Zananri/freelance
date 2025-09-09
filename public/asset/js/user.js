@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (user.employee && (user.employee.profile_picture || user.employee.profile_picture_url)) {
                 photo = user.employee.profile_picture_url || (user.employee.profile_picture ? (user.employee.profile_picture.startsWith('http') ? user.employee.profile_picture : (appUrl + '/' + user.employee.profile_picture.replace(/^\//,''))) : null);
             }
-            if (!photo) photo = user.photo ? (user.photo.startsWith('http') ? user.photo : appUrl + '/' + user.photo.replace(/^\//,'')) : appUrl + "/asset/img/default-profile.png";
+            if (!photo) photo = user.photo ? (user.photo.startsWith('http') ? user.photo : appUrl + '/' + user.photo.replace(/^\//,'')) : appUrl + "/asset/img/avatar.png";
 
             rows += `
                 <tr data-id="${user.id}">
@@ -100,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (user.employee && (user.employee.profile_picture || user.employee.profile_picture_url)) {
                     photoUrl = user.employee.profile_picture_url || (user.employee.profile_picture ? (user.employee.profile_picture.startsWith('http') ? user.employee.profile_picture : (appUrl + '/' + user.employee.profile_picture.replace(/^\//,''))) : null);
                 }
-                if (!photoUrl) photoUrl = user.photo ? (user.photo.startsWith('http') ? user.photo : appUrl + '/' + user.photo.replace(/^\//,'')) : appUrl + "/asset/img/default-profile.png";
+                if (!photoUrl) photoUrl = user.photo ? (user.photo.startsWith('http') ? user.photo : appUrl + '/' + user.photo.replace(/^\//,'')) : appUrl + "/asset/img/avatar.png";
                 $("#detailUserPhoto").attr("src", photoUrl);
 
                 if (user.employee && user.employee.division) {

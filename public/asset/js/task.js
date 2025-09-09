@@ -74,7 +74,7 @@
         try {
             // Prioritise universal avatar (profile_pictureUrl > profilePicture) then fallback userPhoto
             let candidate = profilePictureUrl || profilePicture || userPhoto;
-            if (!candidate) return appUrl + '/asset/img/profile_picture/default.png';
+            if (!candidate) return appUrl + '/asset/img/avatar.png';
             if (typeof candidate !== 'string') candidate = String(candidate || '');
             const up = candidate.trim();
             if (up.startsWith('http://') || up.startsWith('https://')) return up;
@@ -82,7 +82,7 @@
             if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
             return appUrl + '/file/profile_picture/' + up;
         } catch (_) {
-            return appUrl + '/asset/img/profile_picture/default.png';
+            return appUrl + '/asset/img/avatar.png';
         }
     }
 
@@ -524,7 +524,7 @@
                         <div class="d-flex align-items-center">
                 <img src="${photoUrl}" alt="${
                         emp.name
-            }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/profile_picture/default.png'">
+            }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
                             <span>${emp.name}</span>
                         </div>
                         <input type="checkbox" class="executor-checkbox" data-id="${
@@ -928,7 +928,7 @@
                 const isChecked = selected.some(e => e.id === emp.id);
                 const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
         return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-            <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/profile_picture/default.png'"><span>${emp.name}</span></div>
+            <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'"><span>${emp.name}</span></div>
                         <input type="checkbox" class="schedule-executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
                     </label>`;
             }).join('');
@@ -1330,7 +1330,7 @@
                     }
                 } else {
                     photoUrl =
-                        appUrl + "/asset/img/profile_picture/default.png";
+                        appUrl + "/asset/img/avatar.png";
                 }
                 return {
                     id: ex.id,
@@ -1389,7 +1389,7 @@ document.addEventListener("click", function (e) {
     // Function to create task card HTML
         function createTaskCard(task) {
             // Normalize project image early to avoid broken images when backend returns empty/invalid URL
-            const placeholderProjectImg = `${appUrl}/asset/img/profile_picture/default.png`;
+            const placeholderProjectImg = `${appUrl}/asset/img/avatar.png`;
             // Build project image or initials avatar
             function buildProjectInitialsAvatar(title) {
                 const text = (title || '').trim();
@@ -1581,7 +1581,7 @@ document.addEventListener("click", function (e) {
                     const showInitials = !projectImg;
                     const avatarHtml = showInitials
                         ? `<div class="project-initial-avatar${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
-                        : `<img src="${projectImg}" alt="Project Image" class="project-image${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/profile_picture/default.png'">`;
+                        : `<img src="${projectImg}" alt="Project Image" class="project-image${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
                     if (task.status === 'new_request' || task.status === 'new request') {
                         return `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
                             ${avatarHtml}
@@ -2770,7 +2770,7 @@ $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
             hideLatestFeedbackSnippet(taskId);
             return;
         }
-        const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/profile_picture/default.png');
+    const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/avatar.png');
         const raw = String(data.feedback_comment || '');
         const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
         els.forEach((el) => {

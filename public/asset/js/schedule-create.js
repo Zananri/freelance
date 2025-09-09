@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!input||!dropdown||!selectedContainer||!hidden) return;
         let employees = [], filtered = [], selected = [];
         function buildPhotoUrl(userPhoto){
-            if(!userPhoto) return appUrl + '/asset/img/profile_picture/default.png';
+            if(!userPhoto) return appUrl + '/asset/img/avatar.png';
             if(/^https?:/i.test(userPhoto)) return userPhoto; if(userPhoto.startsWith('/')) return appUrl+userPhoto; if(userPhoto.startsWith('file/')||userPhoto.startsWith('asset/')) return appUrl+'/'+userPhoto; return appUrl + '/file/profile_picture/' + userPhoto;
         }
         function fetchEmployees(q=''){

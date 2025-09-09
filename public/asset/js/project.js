@@ -15,7 +15,7 @@ function appendAvatarVersion(url){
 // Global avatar builder (used by add/edit modals). Priority: profile_picture_url > profile_picture > user_photo (raw can be any).
 if (typeof window.buildAvatarUrl !== 'function') {
     window.buildAvatarUrl = function(raw){
-        if(!raw) return appendAvatarVersion(appUrl + '/asset/img/profile_picture/default.png');
+    if(!raw) return appendAvatarVersion(appUrl + '/asset/img/avatar.png');
         try {
             raw = String(raw).trim();
             const trimmed = raw.replace(/^\/+/, '');
@@ -24,7 +24,7 @@ if (typeof window.buildAvatarUrl !== 'function') {
             if(raw.startsWith('/')) return appendAvatarVersion(appUrl + raw);
             if(raw.indexOf('/') !== -1) return appendAvatarVersion(appUrl + '/' + trimmed);
             return appendAvatarVersion(appUrl + '/file/profile_picture/' + raw);
-        } catch(_) { return appendAvatarVersion(appUrl + '/asset/img/profile_picture/default.png'); }
+    } catch(_) { return appendAvatarVersion(appUrl + '/asset/img/avatar.png'); }
     };
 }
 
@@ -218,10 +218,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Jika ternyata menghasilkan /storage/asset (kasus lama) koreksi ke tanpa storage
                 photoUrl = photoUrl.replace(/\/storage\/asset\//, '/asset/');
             } catch (e) {
-                photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+                photoUrl = appUrl + '/asset/img/avatar.png';
             }
         } else {
-            photoUrl = appUrl + '/asset/img/profile_picture/default.png';
+            photoUrl = appUrl + '/asset/img/avatar.png';
         }
 
     // Prefer API fields in this order: explicit name, employee_name (from assignments),
@@ -1142,7 +1142,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // Atur default user_photo jika kosong
                                     if (!emp.user_photo) {
                                         emp.user_photo =
-                                            "/asset/img/profile_picture/default.png"; // relatif terhadap appUrl
+                                            "/asset/img/avatar.png"; // relatif terhadap appUrl
                                     }
 
                                     // Bangun URL gambar profile
@@ -1232,7 +1232,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const photoUrl =
                                     emp.user_photo ||
                                     appUrl +
-                                        "/asset/img/profile_picture/default.png";
+                                        "/asset/img/avatar.png";
                                 const badge = document.createElement("span");
                                 badge.className =
                                     "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
@@ -1323,7 +1323,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         // Helper: build unified avatar URL (profile_picture_url > profile_picture > user_photo)
                         function buildAvatarUrl(raw) {
-                            if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                            if (!raw) return appUrl + '/asset/img/avatar.png';
                             try {
                                 raw = String(raw).trim();
                                 const trimmed = raw.replace(/^\/+/, '');
@@ -1333,7 +1333,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
                                 return appUrl + '/file/profile_picture/' + raw;
                             } catch(_) {
-                                return appUrl + '/asset/img/profile_picture/default.png';
+                                return appUrl + '/asset/img/avatar.png';
                             }
                         }
 
@@ -1462,7 +1462,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // Pastikan user_photo ada, jika tidak set default
                                     if (!emp.user_photo) {
                                         emp.user_photo =
-                                            "/asset/img/profile_picture/default.png"; // relatif terhadap appUrl
+                                            "/asset/img/avatar.png"; // relatif terhadap appUrl
                                     }
 
                                     // Tentukan URL gambar profil
@@ -1553,7 +1553,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const photoUrl =
                                     emp.user_photo ||
                                     appUrl +
-                                        "/asset/img/profile_picture/default.png";
+                                        "/asset/img/avatar.png";
                                 const badge = document.createElement("span");
                                 badge.className =
                                     "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
@@ -1768,7 +1768,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             else if (raw.indexOf('/') !== -1) url = appUrl + '/' + raw;
                                             else url = appUrl + '/file/profile_picture/' + raw;
                                         } else {
-                                            url = appUrl + '/asset/img/profile_picture/default.png';
+                                            url = appUrl + '/asset/img/avatar.png';
                                         }
                                         img.src = url;
                                     })();
@@ -2068,7 +2068,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const repImg = document.createElement("img");
                                             (function(){
                                                 const raw = repEmp.user_photo || repEmp.profile_picture || repEmp.photo || "";
-                                                let url = appUrl + '/asset/img/profile_picture/default.png';
+                                                let url = appUrl + '/asset/img/avatar.png';
                                                 if (raw) {
                                                     if (String(raw).startsWith('http')) url = raw;
                                                     else if (String(raw).startsWith('/')) url = appUrl + raw;
@@ -3566,7 +3566,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                         function getImageUrl(userPhoto) {
                                             if (!userPhoto) {
-                                                return appUrl + "/asset/img/profile_picture/default.png";
+                                                return appUrl + "/asset/img/avatar.png";
                                             }
                                             // Absolute URL
                                             if (/^https?:\/\//i.test(userPhoto)) return userPhoto;
@@ -3972,7 +3972,7 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
         window.__projectLatest = window.__projectLatest || {};
         window.__projectLatest[String(projectId)] = data;
     } catch (_) {}
-    const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/profile_picture/default.png');
+    const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/avatar.png');
     const raw = String(data.feedback_comment || '');
     const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
     els.forEach((el) => {
@@ -4064,7 +4064,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                     const isChecked = selectedEmployees.some((e) => e.id === emp.id);
                     const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
                     const photoUrl = (function(raw){
-                        if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                        if (!raw) return appUrl + '/asset/img/avatar.png';
                         try {
                             raw = String(raw).trim();
                             const trimmed = raw.replace(/^\/+/, '');
@@ -4073,7 +4073,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                             if (raw.startsWith('/')) return appUrl + raw;
                             if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
                             return appUrl + '/file/profile_picture/' + raw;
-                        } catch(_) { return appUrl + '/asset/img/profile_picture/default.png'; }
+                        } catch(_) { return appUrl + '/asset/img/avatar.png'; }
                     })(candidate);
 
                     return `
@@ -4126,7 +4126,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
             selectedEmployees.forEach((emp) => {
                 const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
                 const photoUrl = (function(raw){
-                    if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                    if (!raw) return appUrl + '/asset/img/avatar.png';
                     try {
                         raw = String(raw).trim();
                         const trimmed = raw.replace(/^\/+/, '');
@@ -4135,7 +4135,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                         if (raw.startsWith('/')) return appUrl + raw;
                         if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
                         return appUrl + '/file/profile_picture/' + raw;
-                    } catch(_) { return appUrl + '/asset/img/profile_picture/default.png'; }
+                    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
                 })(candidate);
 
                 const badge = document.createElement("span");
@@ -4292,7 +4292,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                     const isChecked = selectedEmployees.some((e) => e.id === emp.id);
                     const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
                     const photoUrl = (function(raw){
-                        if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                        if (!raw) return appUrl + '/asset/img/avatar.png';
                         try {
                             raw = String(raw).trim();
                             const trimmed = raw.replace(/^\/+/, '');
@@ -4301,7 +4301,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                             if (raw.startsWith('/')) return appUrl + raw;
                             if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
                             return appUrl + '/file/profile_picture/' + raw;
-                        } catch(_) { return appUrl + '/asset/img/profile_picture/default.png'; }
+                        } catch(_) { return appUrl + '/asset/img/avatar.png'; }
                     })(candidate);
 
                     return `
@@ -4355,7 +4355,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
             selectedEmployees.forEach((emp) => {
                 const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
                 const photoUrl = (function(raw){
-                    if (!raw) return appUrl + '/asset/img/profile_picture/default.png';
+                    if (!raw) return appUrl + '/asset/img/avatar.png';
                     try {
                         raw = String(raw).trim();
                         const trimmed = raw.replace(/^\/+/, '');
@@ -4364,7 +4364,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                         if (raw.startsWith('/')) return appUrl + raw;
                         if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
                         return appUrl + '/file/profile_picture/' + raw;
-                    } catch(_) { return appUrl + '/asset/img/profile_picture/default.png'; }
+                    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
                 })(candidate);
 
                 const badge = document.createElement("span");
@@ -4745,7 +4745,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                     let photoUrl;
                     if (!emp.user_photo) {
                         photoUrl =
-                            appUrl + "/asset/img/profile_picture/default.png";
+                            appUrl + "/asset/img/avatar.png";
                     } else if (emp.user_photo.startsWith("http")) {
                         photoUrl = emp.user_photo;
                     } else if (emp.user_photo.startsWith("/")) {
@@ -4824,7 +4824,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 // Ganti semua logika pengambilan foto dengan:
                 const photoUrl =
                     emp.user_photo ||
-                    appUrl + "/asset/img/profile_picture/default.png";
+                    appUrl + "/asset/img/avatar.png";
                 const badge = document.createElement("span");
                 badge.className =
                     "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
@@ -5339,7 +5339,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                     let photoUrl;
                     if (!emp.user_photo) {
                         photoUrl =
-                            appUrl + "/asset/img/profile_picture/default.png";
+                            appUrl + "/asset/img/avatar.png";
                     } else if (emp.user_photo.startsWith("http")) {
                         photoUrl = emp.user_photo;
                     } else if (emp.user_photo.startsWith("/")) {
@@ -5419,7 +5419,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
             selectedEmployees.forEach((emp) => {
                 const photoUrl =
                     emp.user_photo ||
-                    appUrl + "/asset/img/profile_picture/default.png";
+                    appUrl + "/asset/img/avatar.png";
 
                 const badge = document.createElement("span");
                 badge.className =

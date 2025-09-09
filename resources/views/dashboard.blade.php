@@ -35,12 +35,21 @@
                                
                                 @php
                                     $dashAvatar = $employee->profile_picture ?: ($employee->photo ?? null);
-                                    if ($dashAvatar && !preg_match('/^(https?:)?\/\//i', $dashAvatar)) {
-                                        $dashAvatar = asset($dashAvatar);
+                                    if ($dashAvatar) {
+                                        if (preg_match('/^(https?:)?\/\//i', $dashAvatar)) {
+                                            // absolute URL
+                                        } else {
+                                            $normalized = ltrim($dashAvatar, '/');
+                                            if (!file_exists(public_path($normalized))) {
+                                                $dashAvatar = asset('asset/img/avatar.png');
+                                            } else {
+                                                $dashAvatar = asset($normalized);
+                                            }
+                                        }
                                     }
-                                    if (!$dashAvatar) { $dashAvatar = asset('asset/img/default-profile.png'); }
+                                    if (!$dashAvatar) { $dashAvatar = asset('asset/img/avatar.png'); }
                                 @endphp
-                                <img class="profile-image" src="{{ $dashAvatar }}" alt="User Profile" data-global-avatar data-default="{{ asset('asset/img/default-profile.png') }}">
+                                <img class="profile-image" src="{{ $dashAvatar }}" alt="User Profile" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                             </div>
                             <div class="profile-text mt-2">
                                 <p class="user-name fw-light text-secondary">{{ $employee->name }}</p>

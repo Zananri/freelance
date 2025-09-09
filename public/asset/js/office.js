@@ -1,5 +1,48 @@
 $(document).ready(function() {
 
+    // === Global Avatar Utilities (office scope) ===
+    (function(){
+        const appUrlMeta = document.querySelector('meta[name="app-url"]');
+        const APP_URL = appUrlMeta ? appUrlMeta.getAttribute('content').replace(/\/$/,'') : '';
+
+        function resolveAvatarPath(raw){
+            if(!raw) return null;
+            if(/^https?:\/\//i.test(raw)) return raw; // absolute already
+            return APP_URL + '/' + raw.replace(/^\//,'');
+        }
+        window.pickEmployeeAvatar = function(obj){
+            if(!obj) return null;
+            return obj.profile_picture || obj.photo || obj.user_photo || null;
+        };
+        window.buildEmployeeAvatarUrl = function(obj){
+            const chosen = window.pickEmployeeAvatar(obj);
+            const url = resolveAvatarPath(chosen);
+            return url || (APP_URL + '/asset/img/avatar.png');
+        };
+
+        // Auto-upgrade any existing img[data-global-avatar] without src or with legacy avatar.png 404 pattern
+        document.addEventListener('DOMContentLoaded', function(){
+            document.querySelectorAll('img[data-global-avatar]').forEach(function(img){
+                if(!img.getAttribute('data-default')){
+                    img.setAttribute('data-default', APP_URL + '/asset/img/avatar.png');
+                }
+            });
+        });
+
+        // Listener (reinforced) for profilePictureUpdated to ensure any late-loaded avatars update
+        window.addEventListener('profilePictureUpdated', function(e){
+            const newUrl = e.detail && e.detail.url;
+            document.querySelectorAll('img[data-global-avatar]').forEach(function(img){
+                const fallback = img.getAttribute('data-default') || (APP_URL + '/asset/img/avatar.png');
+                if(newUrl){
+                    img.src = newUrl.indexOf('?t=') !== -1 ? newUrl : (newUrl + '?t=' + Date.now());
+                } else {
+                    img.src = fallback + '?t=' + Date.now();
+                }
+            });
+        });
+    })();
+
      function toggleSidebar() {
         $('body').toggleClass('hide-sidebar');
 
@@ -269,7 +312,7 @@ $(document).ready(function() {
             return chain;
         });
     }
-    
+
 
     function showBulkAcceptModal(opts) {
         const { showTasks, showProjects, onTasks, onProjects, onAll } = opts || {};

@@ -103,20 +103,26 @@
                         }
                         if ($raw) {
                             if (preg_match('/^(https?:)?\/\//i', $raw)) {
-                                $avatarUrl = $raw; // already absolute
+                                $avatarUrl = $raw; // absolute external / protocol-relative
                             } else {
-                                $avatarUrl = asset($raw);
+                                $normalized = ltrim($raw, '/');
+                                // Cek file fisik ada, kalau tidak fallback default
+                                if (!file_exists(public_path($normalized))) {
+                                    $avatarUrl = asset('asset/img/avatar.png');
+                                } else {
+                                    $avatarUrl = asset($normalized);
+                                }
                             }
                         }
                     }
                     if (!$avatarUrl) {
-                        $avatarUrl = asset('asset/img/default-profile.png');
+                        $avatarUrl = asset('asset/img/avatar.png');
                     }
                 @endphp
 
                 @if (Auth::check())
-                    <img src="{{ $avatarUrl }}" alt="User Avatar" class="rounded-circle" data-global-avatar data-default="{{ asset('asset/img/default-profile.png') }}"
-                        style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;">
+                    <img src="{{ $avatarUrl }}" alt="User Avatar" class="rounded-circle" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}"
+                        style="width: 40px; height: 40px; object-fit: cover; cursor: pointer;" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                 @else
                     <div class="d-inline-block rounded-circle bg-secondary opacity-50"
                         style="width: 40px; height: 40px; cursor: pointer;"></div>
@@ -129,8 +135,8 @@
                         style="min-height: 220px;">
                         <div class="mb-3 mt-3">
                             @if (Auth::check())
-                                <img src="{{ $avatarUrl }}" alt="User Avatar" class="rounded-circle" data-global-avatar data-default="{{ asset('asset/img/default-profile.png') }}"
-                                    style="width: 70px; height: 70px; object-fit: cover; ">
+                                <img src="{{ $avatarUrl }}" alt="User Avatar" class="rounded-circle" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}"
+                                    style="width: 70px; height: 70px; object-fit: cover; " onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                             @else
                                 <div class="d-inline-block rounded-circle bg-secondary opacity-50"
                                     style="width: 70px; height: 70px;"></div>

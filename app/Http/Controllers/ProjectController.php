@@ -22,11 +22,28 @@ class ProjectController extends Controller
      */
     private function resolveEmployeeAvatar($employee)
     {
-        if (!$employee) return asset('asset/img/default-profile.png');
+        // No employee object at all
+        if (!$employee) return asset('asset/img/avatar.png');
+
+        // Pick first non-empty source
         $raw = $employee->profile_picture ?: ($employee->photo ?: ($employee->user->photo ?? null));
-        if (!$raw) return asset('asset/img/default-profile.png');
+        if (!$raw) return asset('asset/img/avatar.png');
+
+        // If already absolute (external or protocol-relative) just return
         if (preg_match('/^(https?:)?\/\//', $raw)) return $raw; // already absolute URL
-        return asset(ltrim($raw, '/'));
+
+        // Normalize relative path
+        $relative = ltrim($raw, '/');
+
+        // Build public path (assuming uploaded files live under public/)
+        $publicPath = public_path($relative);
+
+        // If the file recorded in DB no longer exists on disk, fallback to default avatar
+        if (!is_file($publicPath)) {
+            return asset('asset/img/avatar.png');
+        }
+
+        return asset($relative);
     }
     /**
      * Accept project assignment for the authenticated user.
