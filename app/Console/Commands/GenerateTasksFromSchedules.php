@@ -49,6 +49,11 @@ class GenerateTasksFromSchedules extends Command
         $this->info('Processing ' . $schedules->count() . ' schedule(s)...');
 
         foreach ($schedules as $schedule) {
+            \Log::info('[schedules:generate] Processing schedule', [
+                'id' => $schedule->id,
+                'next_run_at' => $schedule->next_run_at,
+                'recurrence_type' => $schedule->recurrence_type,
+            ]);
             try {
                 DB::beginTransaction();
 
@@ -60,7 +65,7 @@ class GenerateTasksFromSchedules extends Command
                 }
 
                 if (!$runAt) {
-                    // Nothing to run yet
+                    \Log::info('[schedules:generate] Skip (no runAt)', ['id' => $schedule->id]);
                     DB::rollBack();
                     continue;
                 }
@@ -72,6 +77,7 @@ class GenerateTasksFromSchedules extends Command
                         // Past end; deactivate
                         $schedule->is_active = false;
                         $schedule->save();
+                        \Log::info('[schedules:generate] Deactivated past end date', ['id' => $schedule->id]);
                         DB::commit();
                         continue;
                     }
@@ -81,9 +87,11 @@ class GenerateTasksFromSchedules extends Command
                 if ($runAt->lessThanOrEqualTo($now)) {
                     if ($dryRun) {
                         $this->line("[DRY] Would create task from schedule #{$schedule->id} for runAt {$runAt}");
+                        \Log::info('[schedules:generate] DRY create', ['id' => $schedule->id, 'runAt' => $runAt]);
                     } else {
                         $task = $this->createTaskFromSchedule($schedule);
                         $this->line("Created task #{$task->id} from schedule #{$schedule->id}");
+                        \Log::info('[schedules:generate] Created task', ['schedule_id' => $schedule->id, 'task_id' => $task->id]);
                     }
 
                     // Advance next_run_at
@@ -91,12 +99,22 @@ class GenerateTasksFromSchedules extends Command
                     $schedule->last_generated_at = $now;
                     $schedule->next_run_at = $next;
                     $schedule->save();
+                    \Log::info('[schedules:generate] Advanced schedule', [
+                        'id' => $schedule->id,
+                        'next_run_at' => $schedule->next_run_at,
+                        'last_generated_at' => $schedule->last_generated_at,
+                    ]);
                 }
 
                 DB::commit();
             } catch (\Throwable $e) {
                 DB::rollBack();
                 $this->error("Failed processing schedule #{$schedule->id}: " . $e->getMessage());
+                \Log::error('[schedules:generate] Exception', [
+                    'id' => $schedule->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
             }
         }
 
