@@ -49,6 +49,46 @@ document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.getElementById("department");
     const divisionSelect = document.getElementById("division");
     const partOfProjectSelect = document.getElementById("part_of_project");
+    
+    // Helper: populate part_of_project selects (add + edit). If currentProjectId is provided
+    // ensure an option for it exists even if the fetched list does not contain it.
+    function populatePartOfProjectSelects(currentProjectId = null, currentProjectTitle = '', selectedPartOfProjectId = '') {
+        fetch(appUrl + '/project/index?task_scope=all')
+            .then(function(response) {
+                if (!response.ok) throw new Error('Failed to load projects');
+                return response.json();
+            })
+            .then(function(payload) {
+                const arr = Array.isArray(payload) ? payload : (Array.isArray(payload.data) ? payload.data : []);
+                let options = '<option value="">Select Project</option>';
+                let foundCurrent = false;
+                arr.forEach(function(p) {
+                    if (!p) return;
+                    const id = p.id;
+                    const title = p.title || p.name || ('Project ' + id);
+                    if (String(id) === String(currentProjectId)) foundCurrent = true;
+                    options += `<option value="${id}">${title}</option>`;
+                });
+
+                if (currentProjectId && !foundCurrent) {
+                    const safeTitle = currentProjectTitle || ('Project ' + currentProjectId);
+                    options += `<option value="${currentProjectId}">${safeTitle}</option>`;
+                }
+
+                try { if (partOfProjectSelect) partOfProjectSelect.innerHTML = options; } catch(_) {}
+                try {
+                    const editSel = document.getElementById('edit_part_of_project');
+                    if (editSel) editSel.innerHTML = options;
+                } catch(_) {}
+
+                if (selectedPartOfProjectId) {
+                    try { $('#edit_part_of_project').val(selectedPartOfProjectId); } catch(_) {}
+                }
+            })
+            .catch(function(err){
+                console.warn('populatePartOfProjectSelects failed', err);
+            });
+    }
     const imageInput = document.getElementById("image");
     const imageLabel = document.getElementById("imageLabel");
     const imageClearBtn = document.getElementById("imageClearBtn");
@@ -520,14 +560,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                 e.preventDefault();
                                 e.stopPropagation();
 
-                                // const card = e.target.closest(".col-md-4");
-                                // if (!card) {
-                                //     showFloatingAlert("Project card not found.", 'warning', 3000);
-                                //     return;
-                                // }
+                                // Find the project card container from the clicked dropdown item
+                                const card = e.target.closest('.col-md-4');
+                                if (!card) {
+                                    showFloatingAlert('Project card not found.', 'warning', 3000);
+                                    return;
+                                }
 
-                                const projectId =
-                                    card.getAttribute("data-project-id");
+                                const projectId = card.getAttribute('data-project-id');
                                 if (!projectId) {
                                     showFloatingAlert("Project ID not found.", 'warning', 3000);
                                     return;
@@ -589,9 +629,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             data.start_date
                                         );
                                         $("#edit_due_date").val(data.due_date);
-                                        $("#edit_part_of_project").val(
-                                            data.part_of_project
-                                        );
+                                        // Populate part_of_project selects and ensure the current project appears
+                                        try {
+                                            const currentProjectId = data.id || $('#edit_project_id').val();
+                                            const currentProjectTitle = data.title || '';
+                                            populatePartOfProjectSelects(currentProjectId, currentProjectTitle, data.part_of_project);
+                                        } catch(_) {
+                                            try { $("#edit_part_of_project").val(data.part_of_project); } catch(_) {}
+                                        }
 
                                         // Load departments and set selected department
                                         loadDepartments(function () {
@@ -4815,6 +4860,8 @@ function refreshAllProjectLatestFeedbackSnippets() {
     loadTimelineProjects();
     loadCardProjects();
     loadDepartments();
+    // Populate "Part of Project" selects for Add and Edit modals
+    try { populatePartOfProjectSelects(); } catch(_) {}
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
