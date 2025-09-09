@@ -3097,11 +3097,30 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
 
                     // Modal hidden event to reset modal title and clear modal body
+                    // Also customize backdrop brightness specifically for this modal
+                    projectFeedbackModalEl.addEventListener(
+                        'show.bs.modal',
+                        function() {
+                            try {
+                                // Mark body so CSS scope applies only while this modal open
+                                document.body.classList.add('feedback-modal-open');
+                                // Inject style once
+                                if (!document.getElementById('feedbackBackdropStyle')) {
+                                    const style = document.createElement('style');
+                                    style.id = 'feedbackBackdropStyle';
+                                    // Reduce darkness of backdrop only while feedback modal open
+                                    style.textContent = `.feedback-modal-open .modal-backdrop.show {opacity:0.18 !important;}`;
+                                    document.head.appendChild(style);
+                                }
+                            } catch(_) { /* noop */ }
+                        }
+                    );
                     projectFeedbackModalEl.addEventListener(
                         "hidden.bs.modal",
                         function () {
                             modalTitle.textContent = "Feedback";
                             modalBody.innerHTML = "";
+                            try { document.body.classList.remove('feedback-modal-open'); } catch(_) { /* noop */ }
 
                             // Remove any leftover modal backdrop elements to fix background remaining dark issue
                             const backdrops =
@@ -3120,6 +3139,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         if (!target) return;
 
+                        // Helper to safely resolve project ID from various possible DOM contexts
+                        function resolveProjectId(el) {
+                            if (!el) return null;
+                            // 1. Direct ancestor card .col-md-4
+                            const cardEl = el.closest && el.closest('.col-md-4[data-project-id]');
+                            if (cardEl && cardEl.getAttribute('data-project-id')) return cardEl.getAttribute('data-project-id');
+                            // 2. Element itself data-project-id
+                            if (el.getAttribute && el.getAttribute('data-project-id')) return el.getAttribute('data-project-id');
+                            // 3. Any ancestor carrying data-project-id
+                            const anyAncestor = el.closest && el.closest('[data-project-id]');
+                            if (anyAncestor && anyAncestor.getAttribute('data-project-id')) return anyAncestor.getAttribute('data-project-id');
+                            // 4. Fallback: previously stored on modal (e.g., from detail view)
+                            try {
+                                if (projectFeedbackModalEl && projectFeedbackModalEl.getAttribute('data-project-id')) {
+                                    return projectFeedbackModalEl.getAttribute('data-project-id');
+                                }
+                            } catch(_) { /* noop */ }
+                            return null;
+                        }
+
                         // --- Klik dari dropdown Feedback ---
                         if (
                             target.classList.contains("dropdown-item") &&
@@ -3127,19 +3166,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         ) {
                             e.preventDefault();
                             e.stopPropagation();
-
-                            const card = target.closest(".col-md-4");
-                            // if (!card) {
-                            //     alert("Project card not found.");
-                            //     return;
-                            // }
-
-                            const projectId =
-                                card.getAttribute("data-project-id");
-                            if (!projectId) {
-                                alert("Project ID not found.");
-                                return;
-                            }
+                            const projectId = resolveProjectId(target);
+                            if (!projectId) { alert("Project ID not found."); return; }
 
                             projectFeedbackModalEl.setAttribute(
                                 "data-project-id",
@@ -3170,19 +3198,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (target.getAttribute("title") === "Comment") {
                             e.preventDefault();
                             e.stopPropagation();
-
-                            const card = target.closest(".col-md-4");
-                            // if (!card) {
-                            //     alert("Project card not found.");
-                            //     return;
-                            // }
-
-                            const projectId =
-                                card.getAttribute("data-project-id");
-                            if (!projectId) {
-                                alert("Project ID not found.");
-                                return;
-                            }
+                            const projectId = resolveProjectId(target);
+                            if (!projectId) { alert("Project ID not found."); return; }
 
                             projectFeedbackModalEl.setAttribute(
                                 "data-project-id",
