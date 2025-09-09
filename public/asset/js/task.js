@@ -1387,270 +1387,255 @@ document.addEventListener("click", function (e) {
     }
 
     // Function to create task card HTML
-        function createTaskCard(task) {
-            // Normalize project image early to avoid broken images when backend returns empty/invalid URL
-            const placeholderProjectImg = `${appUrl}/asset/img/avatar.png`;
-            // Build project image or initials avatar
-            function buildProjectInitialsAvatar(title) {
-                const text = (title || '').trim();
-                if (!text) return 'NA';
-                // Ambil maksimal dua huruf awal dari kata pertama & terakhir seperti WhatsApp (contoh: "James Mwandi" => "JM")
-                const parts = text.split(/\s+/).filter(Boolean);
-                if (parts.length === 1) {
-                    return parts[0].substring(0,2).toUpperCase();
+    function createTaskCard(task) {
+    const userId = window.CurrentUserId;
+
+    const isExecutor = (task.executors || []).some(ex => ex.id === userId);
+    const isPic = task.pic && task.pic.id === userId;
+
+    if (task.status === "rejected" && isExecutor && !isPic) {
+        return "";
+    }
+
+        const placeholderProjectImg = `${appUrl}/asset/img/avatar.png`;
+
+        function buildProjectInitialsAvatar(title) {
+            const text = (title || '').trim();
+            if (!text) return 'NA';
+            const parts = text.split(/\s+/).filter(Boolean);
+            if (parts.length === 1) {
+                return parts[0].substring(0,2).toUpperCase();
+            }
+            const first = parts[0].charAt(0);
+            const last = parts[parts.length - 1].charAt(0);
+            return (first + last).toUpperCase();
+        }
+
+        function pickAvatarColor(key) {
+            const colors = [
+                '#6A5AE0', '#FF8A3C', '#00A881', '#D4526E', '#3E8EDE',
+                '#546E7A', '#8E44AD', '#2E7D32', '#AD1457', '#EF6C00'
+            ];
+            if (!key) return colors[0];
+            let hash = 0;
+            for (let i=0;i<key.length;i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+            return colors[hash % colors.length];
+        }
+
+        const projectImg = (function() {
+            try {
+                const raw = (task && task.project_image);
+                if (!raw) return null;
+                const val = String(raw || '').trim();
+                if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
+                    return null;
                 }
-                const first = parts[0].charAt(0);
-                const last = parts[parts.length - 1].charAt(0);
-                return (first + last).toUpperCase();
-            }
+                if (val.includes('/file/project/')) {
+                    const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
+                    if (!fname) return null;
+                    return `${appUrl}/file/project/${fname}`;
+                }
+                if (val.includes('/asset/')) {
+                    const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
+                    return `${appUrl}/asset/${suffix}`;
+                }
+                if (val.startsWith('/asset/')) {
+                    const suffix = val.replace(/^\/+/, '');
+                    return `${appUrl}/${suffix}`;
+                }
+                if (val.startsWith('/')) {
+                    return `${appUrl}${val}`;
+                }
+                if (!/^https?:\/\//i.test(val) && !val.startsWith('/')) {
+                    return `${appUrl}/file/project/${val}`;
+                }
+                return val;
+            } catch(_) { return null; }
+        })();
 
-            function pickAvatarColor(key) {
-                // Deterministic color palette based on simple hash of project title
-                const colors = [
-                    '#6A5AE0', '#FF8A3C', '#00A881', '#D4526E', '#3E8EDE',
-                    '#546E7A', '#8E44AD', '#2E7D32', '#AD1457', '#EF6C00'
-                ];
-                if (!key) return colors[0];
-                let hash = 0;
-                for (let i=0;i<key.length;i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-                return colors[hash % colors.length];
-            }
+        const avatarTitle = (function() {
+            const taskTitle = (task.title || '').trim();
+            const projTitle = (task.project_title || '').trim();
+            const placeholderRegex = /^(no project|no|none|null|n\/a|na)$/i;
+            if (taskTitle && !placeholderRegex.test(taskTitle)) return taskTitle;
+            if (projTitle && !placeholderRegex.test(projTitle)) return projTitle;
+            return taskTitle || projTitle || 'NA';
+        })();
 
-            const projectImg = (function() {
-                try {
-                    const raw = (task && task.project_image);
-                    if (!raw) return null; // trigger initials avatar
-                    const val = String(raw || '').trim();
-                    if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
-                        return null;
-                    }
-                    if (val.includes('/file/project/')) {
-                        const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
-                        if (!fname) return null;
-                        return `${appUrl}/file/project/${fname}`;
-                    }
-                    if (val.includes('/asset/')) {
-                        const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
-                        return `${appUrl}/asset/${suffix}`;
-                    }
-                    if (val.startsWith('/asset/')) {
-                        const suffix = val.replace(/^\/+/, '');
-                        return `${appUrl}/${suffix}`;
-                    }
-                    if (val.startsWith('/')) {
-                        return `${appUrl}${val}`;
-                    }
-                    if (!/^https?:\/\//i.test(val) && !val.startsWith('/')) {
-                        return `${appUrl}/file/project/${val}`;
-                    }
-                    return val;
-                } catch(_) { return null; }
-            })();
+        const useInitials = !projectImg;
+        const initials = useInitials ? buildProjectInitialsAvatar(avatarTitle) : '';
+        const initialsColor = useInitials ? pickAvatarColor(avatarTitle || initials) : '#6A5AE0';
 
-            // Decide which text should drive initials/color (avoid placeholders like "No", "None", "No Project")
-            // Avatar initials requirement:
-            // 1. If project has image -> show image.
-            // 2. Otherwise ALWAYS use task (or schedule) title initials, not project title.
-            // Only fall back to project title if task title truly empty.
-            const avatarTitle = (function() {
-                const taskTitle = (task.title || '').trim();
-                const projTitle = (task.project_title || '').trim();
-                const placeholderRegex = /^(no project|no|none|null|n\/a|na)$/i;
-                if (taskTitle && !placeholderRegex.test(taskTitle)) return taskTitle;
-                if (projTitle && !placeholderRegex.test(projTitle)) return projTitle;
-                return taskTitle || projTitle || 'NA';
-            })();
-
-            const useInitials = !projectImg;
-            const initials = useInitials ? buildProjectInitialsAvatar(avatarTitle) : '';
-            const initialsColor = useInitials ? pickAvatarColor(avatarTitle || initials) : '#6A5AE0';
-    // Build list of avatars: always include PIC; include only executors who have accepted (is_receive = true)
-    const allExecutors = [];
-    if (task.pic) {
-        allExecutors.push(task.pic);
-    }
-    const acceptedExecutors = (task.executors || []).filter(ex => ex && (ex.is_receive === true || ex.is_receive === 1));
-    acceptedExecutors.forEach((executor) => {
-        // Avoid duplicate if executor is same as PIC
-        if (!allExecutors.some(e => e && e.id === executor.id)) {
-            allExecutors.push(executor);
+        const allExecutors = [];
+        if (task.pic) {
+            allExecutors.push(task.pic);
         }
-    });
-
-    // Remove picHtml variable usage, use only executorsHtml for rendering all images overlapped
-    const executorsHtml = allExecutors
-        .map((executor, index) => {
-            const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
-            const overlapClass = index === 0 ? "" : "executor-image-overlap";
-            const zIndexStyle = `style="z-index: ${index + 1};"`;
-            const isPic = task.pic && executor && task.pic.id === executor.id;
-            const roleLabel = isPic ? 'PIC' : 'Executor';
-            const tooltipTitle = `${executor.name} (${roleLabel})`;
-            let imgSrc = (executor && executor.image) ? String(executor.image).trim() : '';
-            if (!imgSrc || imgSrc.toLowerCase() === 'null' || imgSrc.toLowerCase() === 'undefined') {
-                imgSrc = fallbackAvatar;
+        const acceptedExecutors = (task.executors || []).filter(ex => ex && (ex.is_receive === true || ex.is_receive === 1));
+        acceptedExecutors.forEach((executor) => {
+            if (!allExecutors.some(e => e && e.id === executor.id)) {
+                allExecutors.push(executor);
             }
-            return `
-            <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
-                <img src="${imgSrc}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${tooltipTitle}" ${zIndexStyle} onerror="this.onerror=null;this.src='${fallbackAvatar}';">
-            </div>
-            `;
-        })
-        .join("");
+        });
 
-    // Determine status-based menu items
-    let statusMenuItem = '';
+        const executorsHtml = allExecutors
+            .map((executor, index) => {
+                const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
+                const overlapClass = index === 0 ? "" : "executor-image-overlap";
+                const zIndexStyle = `style="z-index: ${index + 1};"`;
+                const isPic = task.pic && executor && task.pic.id === executor.id;
+                const roleLabel = isPic ? 'PIC' : 'Executor';
+                const tooltipTitle = `${executor.name} (${roleLabel})`;
+                let imgSrc = (executor && executor.image) ? String(executor.image).trim() : '';
+                if (!imgSrc || imgSrc.toLowerCase() === 'null' || imgSrc.toLowerCase() === 'undefined') {
+                    imgSrc = fallbackAvatar;
+                }
+                return `
+                <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
+                    <img src="${imgSrc}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${tooltipTitle}" ${zIndexStyle} onerror="this.onerror=null;this.src='${fallbackAvatar}';">
+                </div>
+                `;
+            })
+            .join("");
 
-    if (task.status === 'new_request' || task.status === 'new request') {
-        statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
-    } else if (task.status === 'in_progress' || task.status === 'in progress') {
-        statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
-    } else if (task.status === 'completed') {
-        statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
-    } else if (task.status === 'rejected') {
-        statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
-    }
-
-    // Determine if delete should be shown (only for new_request and rejected)
-    const showDelete = task.status === 'new_request' ||
-                      task.status === 'new request' ||
-                      task.status === 'rejected';
-
-    // Add status badge for rejected tasks
-    let statusBadge = '';
-    if (task.status === 'rejected') {
-        statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
-    }
-
-    // FIXED: Proper icon logic based on current status
-    let iconHtml = '';
-
-    if (task.status !== 'completed') {
-    if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
-            // Show check icon for In Progress and Rejected tasks (both can be completed)
-            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
-                data-bs-toggle="tooltip"
-        data-bs-placement="bottom"
-                data-task-id="${task.id}"
-                data-task-status="${task.status}"
-                title="Set to Complete"
-                style="cursor: pointer;">
-                check
-            </span>`;
-        } else if (task.status === 'new_request' || task.status === 'new request') {
-            // Show arrow icon for New Request tasks
-            iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
-                data-bs-toggle="tooltip"
-        data-bs-placement="bottom"
-                data-task-id="${task.id}"
-                data-task-status="${task.status}"
-                title="Progress"
-                style="cursor: pointer;">
-                arrow_right_alt
-            </span>`;
+        let statusMenuItem = '';
+        if (task.status === 'new_request' || task.status === 'new request') {
+            statusMenuItem = '<div class="dropdown-item progress-task">Progress</div>';
+        } else if (task.status === 'in_progress' || task.status === 'in progress') {
+            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
+        } else if (task.status === 'completed') {
+            statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
+        } else if (task.status === 'rejected') {
+            statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
         }
-    }
 
-    // If current viewer is a pending executor, render simplified card footer with Accept/Reject controls
-    const viewerPending = isViewerPendingExecutor(task);
+        const showDelete = task.status === 'new_request' ||
+                        task.status === 'new request' ||
+                        task.status === 'rejected';
 
-    // For pending executor: hide action/transition icons & dropdown menu entirely
-    if (viewerPending) {
-        iconHtml = ''; // remove status progression icon
-    }
+        let statusBadge = '';
+        if (task.status === 'rejected') {
+            statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
+        }
 
-    // Build dropdown (only if not pending)
-    const dropdownHtml = (!viewerPending) ? `
-            <div class="dropdown-icon-container">
-                <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
-                <div class="dropdown-menu d-none">
-                    <div class="dropdown-item">Detail</div>
-                    <div class="dropdown-item">Edit</div>
-                    <div class="dropdown-item">Feedback</div>
-                    ${statusMenuItem}
-                    ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
-                </div>
-            </div>
-            ${iconHtml}
-        ` : '';
+        let iconHtml = '';
+        if (task.status !== 'completed') {
+            if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
+                iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    data-task-id="${task.id}"
+                    data-task-status="${task.status}"
+                    title="Set to Complete"
+                    style="cursor: pointer;">
+                    check
+                </span>`;
+            } else if (task.status === 'new_request' || task.status === 'new request') {
+                iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    data-task-id="${task.id}"
+                    data-task-status="${task.status}"
+                    title="Progress"
+                    style="cursor: pointer;">
+                    arrow_right_alt
+                </span>`;
+            }
+        }
 
-    // Check if description is long enough to need truncation
-    return `
-    <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
-            ${statusBadge}
-            ${dropdownHtml}
+        const viewerPending = isViewerPendingExecutor(task);
+        if (viewerPending) {
+            iconHtml = '';
+        }
 
-            <div class="d-flex align-items-center mb-2 mt-2">
-                ${(function(){
-                    // Fallback: if no project, still show initials avatar based on task title (schedule case)
-                    const showInitials = !projectImg;
-                    const avatarHtml = showInitials
-                        ? `<div class="project-initial-avatar${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
-                        : `<img src="${projectImg}" alt="Project Image" class="project-image${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
-                    if (task.status === 'new_request' || task.status === 'new request') {
-                        return `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
-                            ${avatarHtml}
-                            <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
-                        </div>`;
-                    }
-                    return avatarHtml;
-                })()}
-                <div class="d-flex flex-column">
-                    ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>` : ''}
-                    <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
-                </div>
-            </div>
-            <div class="task-description-container">
-                <p class="task-description" data-full-description="${task.description}">
-                    ${task.description ? task.description : ''}
-                </p>
-            </div>
-            <hr class="task-separator rounded-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <div style="font-size: 10px; font-weight: 400;">
-                    <span style="color: #797E91;">Priority: </span>
-                    <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">
-                        ${task.priority}
-                    </span>
-                </div>
-                <div style="font-size: 10px; font-weight: 400;">
-                    <span style="color: #797E91;">Deadline: </span>
-                    <span style="#color: #4B4F5E">${task.due_date }</span>
-                </div>
-            </div>
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                    ${viewerPending
-                        ? `
-                        <div class="d-flex align-items-center w-100 justify-content-between gap-1">
-                            <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
-                            <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
-                                <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
-                                Accept Task
-                            </button>
-                        </div>
-                        `
-                    : `
-                    <div class="d-flex align-items-center pic-executor-container">${executorsHtml}</div>
-                    <div class="d-flex align-items-center">
-                        <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
-                            <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
-                            <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
-                        </div>
-                        <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
-                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
-                            ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
-                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
-                        </div>
-                        <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                            <span class="material-symbols-outlined task-icon">attach_file</span>
-                            ${task.reference_files_count > 0 ? `<span class=\"reference-files-count ms-1\" style=\"color: #454545; font-size: 12px;\">${task.reference_files_count}</span>` : ""}
-                        </div>
+        const dropdownHtml = (!viewerPending) ? `
+                <div class="dropdown-icon-container">
+                    <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
+                    <div class="dropdown-menu d-none">
+                        <div class="dropdown-item">Detail</div>
+                        <div class="dropdown-item">Edit</div>
+                        <div class="dropdown-item">Feedback</div>
+                        ${statusMenuItem}
+                        ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
                     </div>
-                    `}
+                </div>
+                ${iconHtml}
+            ` : '';
+
+        return `
+        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
+                ${statusBadge}
+                ${dropdownHtml}
+
+                <div class="d-flex align-items-center mb-2 mt-2">
+                    ${(function(){
+                        const showInitials = !projectImg;
+                        const avatarHtml = showInitials
+                            ? `<div class="project-initial-avatar${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
+                            : `<img src="${projectImg}" alt="Project Image" class="project-image${(task.status === 'new_request'||task.status==='new request') ? '' : ' me-3'}" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
+                        if (task.status === 'new_request' || task.status === 'new request') {
+                            return `<div class="task-selectable-thumb me-3" data-task-id="${task.id}" data-pending="${isViewerPendingExecutor(task) ? '1' : '0'}">
+                                ${avatarHtml}
+                                <span class="thumb-check"><span class="material-symbols-outlined">check</span></span>
+                            </div>`;
+                        }
+                        return avatarHtml;
+                    })()}
+                    <div class="d-flex flex-column">
+                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>` : ''}
+                        <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
+                    </div>
+                </div>
+                <div class="task-description-container">
+                    <p class="task-description" data-full-description="${task.description}">
+                        ${task.description ? task.description : ''}
+                    </p>
+                </div>
+                <hr class="task-separator rounded-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div style="font-size: 10px; font-weight: 400;">
+                        <span style="color: #797E91;">Priority: </span>
+                        <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">
+                            ${task.priority}
+                        </span>
+                    </div>
+                    <div style="font-size: 10px; font-weight: 400;">
+                        <span style="color: #797E91;">Deadline: </span>
+                        <span style="#color: #4B4F5E">${task.due_date }</span>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                        ${viewerPending
+                            ? `
+                            <div class="d-flex align-items-center w-100 justify-content-between gap-1">
+                                <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
+                                <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
+                                    <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">check_circle</span>
+                                    Accept Task
+                                </button>
+                            </div>
+                            `
+                        : `
+                        <div class="d-flex align-items-center pic-executor-container">${executorsHtml}</div>
+                        <div class="d-flex align-items-center">
+                            <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
+                                <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                                <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                            </div>
+                            <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
+                                <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+                                ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
+                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                            </div>
+                            <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                                <span class="material-symbols-outlined task-icon">attach_file</span>
+                                ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>` : ""}
+                            </div>
+                        </div>
+                        `}
+                </div>
             </div>
-        </div>
-    `;
-}
+        `;
+    }
 
     // Function to toggle description expansion
     function toggleDescription(element) {
@@ -1759,11 +1744,42 @@ function renderSingleSection(status, sectionData, append = false) {
     container.innerHTML = "";
   }
 
-  const incomingTasks = sectionData?.tasks || [];
+  // Ambil current user id dengan beberapa fallback, simpan sebagai string
+  const userIdMeta = document.querySelector('meta[name="user-id"]');
+  let currentUserId = null;
+  if (userIdMeta && userIdMeta.content !== undefined && userIdMeta.content !== null) {
+    currentUserId = String(userIdMeta.content);
+  } else if (typeof window.CurrentUserId !== "undefined" && window.CurrentUserId !== null) {
+    currentUserId = String(window.CurrentUserId);
+  } else {
+    currentUserId = ""; // kosong = unknown
+  }
+
+  let incomingTasks = Array.isArray(sectionData?.tasks) ? sectionData.tasks.slice() : [];
+
+    incomingTasks = incomingTasks.filter(task => {
+        const statusNorm = String(task.status || "").trim().toLowerCase();
+        const isRejected = statusNorm.includes("reject");
+
+        const picId = task.pic ? String(task.pic.id) : "";
+        const executorIds = (task.executors || []).map(e => String(e.id));
+        const uid = String(currentUserId || "");
+
+        const isPic = picId && uid && picId === uid;
+        const isExecutor = executorIds.includes(uid);
+
+        if (isRejected) {
+            if (isPic) return false;
+            if (isExecutor) return true;
+            return false;
+        }
+
+        return true;
+    });
 
   if (!append) {
-    if (status === 'new_request') {
-      const tasksSorted = (incomingTasks || []).slice().sort(function(a,b){
+    if (status === "new_request") {
+      const tasksSorted = incomingTasks.slice().sort(function (a, b) {
         const pa = isViewerPendingExecutor(a) ? 1 : 0;
         const pb = isViewerPendingExecutor(b) ? 1 : 0;
         if (pa !== pb) return pb - pa;
@@ -1771,15 +1787,21 @@ function renderSingleSection(status, sectionData, append = false) {
           const da = new Date(a.due_date).getTime() || 0;
           const db = new Date(b.due_date).getTime() || 0;
           if (da !== db) return da - db;
-        } catch(_) {}
-        return (b.id||0) - (a.id||0);
+        } catch (_) {}
+        return (b.id || 0) - (a.id || 0);
       });
-      tasksSorted.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+      tasksSorted.forEach(task =>
+        container.insertAdjacentHTML("beforeend", createTaskCard(task))
+      );
     } else {
-      (incomingTasks || []).forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+      incomingTasks.forEach(task =>
+        container.insertAdjacentHTML("beforeend", createTaskCard(task))
+      );
     }
   } else {
-    (incomingTasks || []).forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+    incomingTasks.forEach(task =>
+      container.insertAdjacentHTML("beforeend", createTaskCard(task))
+    );
   }
 
   addAttachFileIconListeners();
@@ -1808,11 +1830,6 @@ function initDesktopInfiniteScroll(query = "") {
 }
 
 $(document).ready(function () {
-  $("#new-request-tasks, #in-progress-tasks, #completed-tasks").css({
-    "max-height": "calc(100vh - 220px)",
-    "overflow-y": "auto"
-  });
-
   ["new_request", "in_progress", "completed"].forEach(status => {
     desktopState[status].page = 1;
     desktopState[status].loading = false;
@@ -1853,7 +1870,7 @@ $(document).ready(function () {
 });
 
 let searchTimeout;
-$(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
+$(document).on("keyup", "#search_filter", function () {
     clearTimeout(searchTimeout);
     const query = this.value.trim();
 
@@ -1865,7 +1882,7 @@ $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
     }, 300);
 });
 
-    $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
+    $(document).on("keyup", "#search_filter", function () {
     const query = this.value.trim();
 
     if (allTasksCache) {
@@ -5162,18 +5179,17 @@ $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
     }
 
     // Apply task filters
-    if (applyTaskFilterBtn) {
-        applyTaskFilterBtn.addEventListener("click", function() {
-            currentTaskFilters.project = filterTaskProjectSelect.value;
-            currentTaskFilters.status = filterTaskStatusSelect.value;
+    if (applyTaskFilterBtnMobile) {
+        applyTaskFilterBtnMobile.addEventListener("click", function () {
+            currentTaskFilters.project = filterTaskProjectSelectMobile.value;
+            currentTaskFilters.status = filterTaskStatusSelectMobile.value;
 
-            fetchAndRenderFilteredTasks(currentTaskFilters);
+            const status = $("#taskStatusSelect").val();
+            mobileState.page = 1;
+            mobileState.last = 1;
+            fetchMobileTasks(status, 1, false);
 
-            // Update project filter display
-            updateProjectFilterDisplay();
-
-            // Hide the dropdown
-            document.getElementById("taskFilterDropdown").style.display = "none";
+            document.getElementById("taskFilterDropdownMobile").style.display = "none";
         });
     }
 
@@ -5356,37 +5372,63 @@ $(document).on("keyup", "#search_filter, #search_filter_mobile", function () {
     status: "new_request"
     };
 
-    function fetchMobileTasks(status, page = 1, append = false) {
-    if (mobileState.loading) return;
+    let searchQueryMobile = '';
 
-    mobileState.loading = true;
-    if (!append) $("#mobile-task-list").empty();
+    $(document).on("keyup", "#search_filter_mobile", function () {
+        clearTimeout(searchTimeout);
+        searchQueryMobile = this.value.trim();
 
-    $("#mobile-task-list").append(
-        '<div id="mobileLoader" class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>'
-    );
-
-    $.ajax({
-        url: appUrl + "/task/index",
-        type: "GET",
-        dataType: "json",
-        data: { status, page },
-        success: function (response) {
-        if (!response || response.code !== 200 || !response.data) return;
-
-        const data = response.data?.[status];
-        mobileState.last = data?.pagination?.last_page || 1;
-
-        renderMobileTasks(status, data, append);
-        },
-        error: function (xhr, status, error) {
-        console.error("Error fetching mobile tasks:", error);
-        },
-        complete: function () {
-        mobileState.loading = false;
-        $("#mobileLoader").remove();
-        }
+        searchTimeout = setTimeout(() => {
+            const status = $("#taskStatusSelect").val();
+            mobileState.page = 1;
+            mobileState.last = 1;
+            fetchMobileTasks(status, 1, false);
+        }, 300);
     });
+
+    function fetchMobileTasks(status, page = 1, append = false) {
+        if (mobileState.loading) return;
+
+        mobileState.loading = true;
+        if (!append) $("#mobile-task-list").empty();
+
+        $("#mobile-task-list").append(
+            '<div id="mobileLoader" class="text-center p-2"><div class="spinner-border spinner-border-sm"></div></div>'
+        );
+
+        const params = { status, page };
+
+        if (searchQueryMobile && searchQueryMobile.trim() !== "") {
+            params.search = searchQueryMobile.trim();
+        }
+        if (currentTaskFilters?.project) {
+            params.project_id = currentTaskFilters.project;
+        }
+        if (currentTaskFilters?.status) {
+            params.status = currentTaskFilters.status;
+        }
+
+        $.ajax({
+            url: appUrl + "/task/index",
+            type: "GET",
+            dataType: "json",
+            data: params,
+            success: function (response) {
+                if (!response || response.code !== 200 || !response.data) return;
+
+                const data = response.data?.[status];
+                mobileState.last = data?.pagination?.last_page || 1;
+
+                renderMobileTasks(status, data, append);
+            },
+            error: function (xhr, status, error) {
+                console.error("Error fetching mobile tasks:", error);
+            },
+            complete: function () {
+                mobileState.loading = false;
+                $("#mobileLoader").remove();
+            }
+        });
     }
 
     function renderMobileTasks(status, data, append = false) {

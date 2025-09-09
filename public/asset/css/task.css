@@ -8,10 +8,9 @@
 }
 
 .task-container {
-    max-height: calc(100vh - 200px);
+    max-height: 75vh;
     max-width: 200vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     padding-right: 8px;
 }
 
@@ -75,6 +74,7 @@
     min-height: 500px;
     max-height: 500px;
     padding-right: 10px;
+    margin-bottom: 20px;
 }
 
 .in-progress-container {
@@ -89,12 +89,13 @@
     min-height: 500px;
     max-height: 500px;
     padding-right: 10px;
+    margin-bottom: 100px;
 }
 
 .completed-container {
     background: #baeed340;
     padding: 20px 0 20px 20px;
-    border-radius: 20px;
+    border-radius: 100px;
 }
 
 .completed-container .task-list {
@@ -103,6 +104,7 @@
     min-height: 500px;
     max-height: 500px;
     padding-right: 10px;
+    margin-bottom: 100px;
 }
 
 .task-list::-webkit-scrollbar {
@@ -1193,7 +1195,7 @@ p {
         flex-direction: column;
     }
 
-    .task-mobile-new {
+    .bg-new {
         background: #a1a3a60d;
         margin-left: -20px;
         margin-right: -20px;
