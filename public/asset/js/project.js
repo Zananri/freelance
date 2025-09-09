@@ -3128,7 +3128,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             e.preventDefault();
                             e.stopPropagation();
 
-                            // const card = target.closest(".col-md-4");
+                            const card = target.closest(".col-md-4");
                             // if (!card) {
                             //     alert("Project card not found.");
                             //     return;
@@ -3171,7 +3171,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             e.preventDefault();
                             e.stopPropagation();
 
-                            // const card = target.closest(".col-md-4");
+                            const card = target.closest(".col-md-4");
                             // if (!card) {
                             //     alert("Project card not found.");
                             //     return;
