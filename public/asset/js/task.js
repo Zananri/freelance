@@ -132,6 +132,27 @@
         });
     }
 
+    function getTaskInitials(title) {
+        if (!title) return "NA";
+        const words = title.trim().split(/\s+/);
+        if (words.length === 1) {
+            return words[0].substring(0, 2).toUpperCase();
+        }
+        return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    }
+
+    function getRandomColorFromText(text) {
+        const colors = [
+            "#6A5AE0", "#FF8A3C", "#00A881", "#D4526E", "#3E8EDE",
+            "#546E7A", "#8E44AD", "#2E7D32", "#AD1457", "#EF6C00"
+        ];
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+            hash = text.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    }
+ 
     // Show Accept confirmation modal (task page, no notification context)
     function showAcceptInviteModal(taskId) {
         // Fetch task to display context
@@ -143,21 +164,39 @@
                 const title = t.title || 'Accept Task';
                 const project_title = t.project.title || '';
                 const desc = t.description || '';
-                let img = appUrl + '/file/task/' + t.image;
+                const priority = t.priority || '';
+                const due_date = t.due_date || '';
+                let img = "";
+                if (t.image) {
+                    // Kalau ada gambar
+                    img = `<img src="${appUrl}/file/task/${t.image}" 
+                                    alt="Task Image" 
+                                    class="rounded-circle" 
+                                    style="width:34px; height:34px; object-fit:cover;" 
+                                    onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                } else {
+                    const initials = getTaskInitials(t.title);
+                    const bgColor = getRandomColorFromText(t.title);
+
+                    img = `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:34px;height:34px;background:${bgColor};color:#fff;
+                                            font-size:13px;font-weight:600;">
+                                    ${initials}
+                            </div>`;
+                }
 
                 const id = 'acceptInviteModal';
                 const modalHtml = `
                     <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
                             <div class="modal-content modal-content-custom">
-                                <div class="modal-header">
-                                    <h5 class="modal-title fs-6">Accept Task</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <div class="modal-header border-0">
+                                    <h5 class="modal-title fs-5">Accept Task</h5>
                                 </div>
-                                <div class="modal-body">
+                                <div class="modal-body modal-body-custom">
                                     <div class="d-flex">
                                         <div class="me-3">
-                                            <img src="${img}" alt="Task Image" class="rounded-circle" style="width:34px; height:34px; object-fit:cover;" onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
+                                        ${img}
                                         </div>
                                         <div>
                                             ${id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${project_title || '-'}</small>` : ''}
@@ -165,6 +204,21 @@
                                             <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
                                         </div>
                                     </div>
+
+                                    <hr class="text-seperator rounded-md">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div style="font-size: 10px; font-weight: 400;">
+                                            <span style="color: #797E91;">Priority: </span>
+                                            <span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">
+                                                ${priority}
+                                            </span>
+                                        </div>
+                                        <div style="font-size: 10px; font-weight: 400;">
+                                            <span style="color: #797E91;">Deadline: </span>
+                                            <span style="#color: #4B4F5E">${due_date }</span>
+                                        </div>
+                                    </div>
+
                                 </div>
                                 <div class="modal-footer modal-footer-custom">
                                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
@@ -226,30 +280,64 @@
                 const t = res && (res.data || res) || {};
                 const title = t.title || 'Reject Task';
                 const desc = t.description || '';
-                let img = (t.image ? (appUrl + '/file/task/' + t.image) : (appUrl + '/asset/img/background/add-image.png'));
-                const id = 'rejectInviteModal';
+                const project_title = t.project.title || '';
+                const priority = t.priority || '';
+                const due_date = t.due_date || '';
+                let img = "";
+                if (t.image) {
+                    // Kalau ada gambar
+                    img = `<img src="${appUrl}/file/task/${t.image}" 
+                                    alt="Task Image" 
+                                    class="rounded-circle" 
+                                    style="width:34px; height:34px; object-fit:cover;" 
+                                    onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                } else {
+                    const initials = getTaskInitials(t.title);
+                    const bgColor = getRandomColorFromText(t.title);
+
+                    img = `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:34px;height:34px;background:${bgColor};color:#fff;
+                                            font-size:13px;font-weight:600;">
+                                    ${initials}
+                            </div>`;
+                }                const id = 'rejectInviteModal';
                 const modalHtml = `
                     <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Reject Task</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-header border-0">
+                                    <h5 class="modal-title fs-5">Reject Task</h5>
                                 </div>
-                                <div class="modal-body">
+                                <div class="modal-body modal-body-custom">
                                     <div class="d-flex">
                                         <div class="me-3">
-                                            <img src="${img}" alt="Task Image" class="rounded-circle" style="width:70px; height:70px; object-fit:cover;" onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
+                                        ${img}
                                         </div>
                                         <div>
+                                            ${id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${project_title || '-'}</small>` : ''}
                                             <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
                                             <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
                                         </div>
                                     </div>
+
+                                    <hr class="text-seperator rounded-md">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div style="font-size: 10px; font-weight: 400;">
+                                            <span style="color: #797E91;">Priority: </span>
+                                            <span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">
+                                                ${priority}
+                                            </span>
+                                        </div>
+                                        <div style="font-size: 10px; font-weight: 400;">
+                                            <span style="color: #797E91;">Deadline: </span>
+                                            <span style="#color: #4B4F5E">${due_date }</span>
+                                        </div>
+                                    </div>
+
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-secondary btn-cancel-invite" id="confirmRejectInviteBtn">Reject</button>
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmRejectInviteBtn">Accept Task</button>
                                 </div>
                             </div>
                         </div>
@@ -3289,7 +3377,7 @@ function refreshAllUnreadBadges() {
                                                                     : '';
 
                                                                 return `
-                                                                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background:#fafafa;">
+                                                                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background: rgb(240, 241, 248);">
                                                                         <div class="d-flex align-items-center mb-1">
                                                                             <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
                                                                             <div>

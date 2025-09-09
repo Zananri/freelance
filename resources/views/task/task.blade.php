@@ -539,7 +539,7 @@
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="referenceFilesModalLabel">Reference Files</h5>
+                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceFilesModalLabel">Reference Files</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <hr>
@@ -560,7 +560,7 @@
             <div class="modal-content modal-content-custom">
                 <div
                     class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
-                    <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate"
+                    <h5 class="modal-title feedback-modal-title flex-grow-1 fs-5 fw-normal"
                         id="taskFeedbackModalLabel">Task Feedback</h5>
                     <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
                         aria-label="Close"></button>
