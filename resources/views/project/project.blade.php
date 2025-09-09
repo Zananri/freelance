@@ -170,7 +170,8 @@
                                     class="btn-text-filter">Timeline</span>
                             </button>
                         </div>
-                        <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
+                        <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown"
+                            style="display: none;">
                             <div class="dropdown-filter-body">
                                 <div class="mb-3">
                                     <label for="filterProjectStatus" class="form-label">Filter by Status</label>
@@ -222,8 +223,8 @@
     </div>
 
     <!-- Add Project Modal -->
-    <div class="modal fade modal-custom" id="addProjectModal" data-bs-backdrop="static"
-        data-bs-keyboard="false" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
+    <div class="modal fade modal-custom" id="addProjectModal" data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="addModalLoader">
@@ -353,8 +354,8 @@
     </div>
 
     <!-- Edit Project Modal -->
-    <div class="modal fade modal-custom" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-        aria-labelledby="editProjectModalLabel" aria-hidden="true"
+    <div class="modal fade modal-custom" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true"
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
@@ -488,46 +489,128 @@
     </div>
 
     <!-- View Project Detail Modal -->
-    <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-            <div class="modal-content modal-content-custom" style="box-shadow: none;">
-                <div class="modal-body modal-body-custom">
-                    <button type="button" class="btn-close float-end" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                    <div class="project-detail-modal">
-                        <div class="project-photo-title-author">
-                            <img id="projectDetailImage" src="" alt="Project Image" class="project-photo"
-                                style="border-radius: 8px;">
-                            <h2 class="project-title" id="projectDetailTitle" style="text-align: justify;"></h2>
-                            <p class="project-description" id="projectDetailDescription"></p>
+    {{-- <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:640px;">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-body p-4">
 
+                    <!-- Tombol close di kanan atas -->
+                    <div class="d-flex justify-content-end mb-2">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+
+                    <!-- Header: avatar + title + more_vert -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center">
+                            <img id="projectDetailImage" src="" class="rounded-circle me-2"
+                                style="width:34px;height:34px;object-fit:cover;"
+                                onerror="this.src='/asset/img/avatar.png'">
+                            <h6 class="mb-0" style="font-size:14px; font-weight:600;" id="projectDetailTitle"></h6>
                         </div>
-                        <div class="project-detail-columns">
-                            <div class="project-detail-left">
-                                <p><strong>Department:</strong> <span id="projectDetailDepartment"></span></p>
-                                <p><strong>Division:</strong> <span id="projectDetailDivision"></span></p>
-                                <p><strong>Author:</strong> <span id="projectDetailAuthor"></span></p>
-                                <p><strong>Co-Authors:</strong> <span id="projectDetailCoAuthors"></span></p>
-                                <p><strong>Contributors:</strong> <span id="projectDetailContributors"></span></p>
-                            </div>
-                            <div class="project-detail-right">
-                                <p><strong>Reference URLs:</strong> <span id="projectDetailReferenceUrls"></span></p>
-                                <p><strong>Reference File:</strong> <a href="#" id="projectDetailReferenceFile"
-                                        download>Download</a></p>
-                                <p><strong>Start Date:</strong> <span id="projectDetailStartDate"></span></p>
-                                <p><strong>Due Date:</strong> <span id="projectDetailDueDate"></span></p>
+                        <div class="dropdown-icon-container-detail">
+                            <button
+                                class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon dropdown-icon-detail"
+                                style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
+                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;"
+                                    tabindex="0">more_vert</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-action dropdown-action-custom d-none">
+                                <div class="dropdown-item">Edit</div>
+                                <div class="dropdown-item text-danger delete-project">Delete</div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Description -->
+                    <p id="projectDetailDescription" class="mb-2 small text-muted"
+                        style="font-size:12px; line-height:1.4;"></p>
+
+                    <!-- Collaborators -->
+                    <div class="collaborators-image d-flex align-items-center mb-2" id="projectDetailCollaborators">
+                    </div>
+
+                    <!-- Feedback Snippet (hidden by default, muncul kalau ada data) -->
+                    <div class="latest-feedback-snippet d-none align-items-center me-1"
+                        id="projectDetailFeedbackSnippet" style="cursor:pointer; max-width: 160px;">
+                        <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar"
+                            width="20" height="20" style="object-fit:cover;">
+                        <span class="latest-feedback-text text-truncate"
+                            style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                    </div>
+
+                    <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
+
+                    <!-- Footer (Collaborators + icons) -->
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="collaborators-image d-flex align-items-center"
+                            id="projectDetailCollaboratorsFooter"></div>
+                        <div class="d-flex align-items-center">
+                            <button
+                                class="btn btn-sm p-0 border-0 bg-transparent me-2 d-flex align-items-center position-relative"
+                                title="Comment" id="projectDetailCommentBtn">
+                                <span class="material-symbols-outlined"
+                                    style="font-size:16px; color:#828282;">mode_comment</span>
+                                <span class="project-feedback-count ms-1" id="projectDetailCommentCount"
+                                    style="font-size:12px; color:#454545;"></span>
+                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none"
+                                    id="projectDetailUnreadBadge"></span>
+                            </button>
+                            <button class="btn btn-sm p-0 border-0 bg-transparent d-flex align-items-center"
+                                title="Attach File" id="projectDetailAttachBtn">
+                                <span class="material-symbols-outlined"
+                                    style="font-size:16px; color:#828282;">attach_file</span>
+                                <span class="project-file-count ms-1" id="projectDetailFileCount"
+                                    style="font-size:12px; color:#454545;"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <span class="me-3">
+                                <span>Department:</span> <span id="projectDetailDepartment"></span>
+                            </span>
+                            <span>
+                                <span>Division:</span> <span id="projectDetailDivision"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-dismiss="modal">Close</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div> --}}
+
+    <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:640px;">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-body p-4 position-relative mb-3">
+
+                    <!-- Tombol close -->
+                    <div class="d-flex justify-content-end mb-3">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+
+                    <!-- Container detail (JS inject) -->
+                    <div id="projectDetailContent" class="mb-3"></div>
+
                 </div>
             </div>
         </div>
     </div>
 
+
     <!-- Project Reference Files Modal (exactly like Task modal) -->
-    <div class="modal fade modal-custom" id="projectFilesModal" tabindex="-1" aria-labelledby="projectFilesModalLabel"
-        aria-hidden="true">
+    <div class="modal fade modal-custom" id="projectFilesModal" tabindex="-1"
+        aria-labelledby="projectFilesModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">

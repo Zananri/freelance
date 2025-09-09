@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
     }
 
-    
+
     // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.
     function renderCollaborators(project) {
         try {
@@ -374,7 +374,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <h6 class="mb-0" style="font-size:14px; font-weight:600;">${project.title}</h6>
                                         </div>
                                         <div class="dropdown-icon-container">
-                                            <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
+                                            <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon dropdown-icon-custom"
                                                     style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
                                             </button>
@@ -520,11 +520,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 e.preventDefault();
                                 e.stopPropagation();
 
-                                const card = e.target.closest(".col-md-4");
-                                if (!card) {
-                                    showFloatingAlert("Project card not found.", 'warning', 3000);
-                                    return;
-                                }
+                                // const card = e.target.closest(".col-md-4");
+                                // if (!card) {
+                                //     showFloatingAlert("Project card not found.", 'warning', 3000);
+                                //     return;
+                                // }
 
                                 const projectId =
                                     card.getAttribute("data-project-id");
@@ -3128,11 +3128,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             e.preventDefault();
                             e.stopPropagation();
 
-                            const card = target.closest(".col-md-4");
-                            if (!card) {
-                                alert("Project card not found.");
-                                return;
-                            }
+                            // const card = target.closest(".col-md-4");
+                            // if (!card) {
+                            //     alert("Project card not found.");
+                            //     return;
+                            // }
 
                             const projectId =
                                 card.getAttribute("data-project-id");
@@ -3171,11 +3171,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             e.preventDefault();
                             e.stopPropagation();
 
-                            const card = target.closest(".col-md-4");
-                            if (!card) {
-                                alert("Project card not found.");
-                                return;
-                            }
+                            // const card = target.closest(".col-md-4");
+                            // if (!card) {
+                            //     alert("Project card not found.");
+                            //     return;
+                            // }
 
                             const projectId =
                                 card.getAttribute("data-project-id");
@@ -3335,92 +3335,129 @@ document.addEventListener("DOMContentLoaded", function () {
                             });
                     });
 
-                    // Extracted function to fetch and show Project Detail modal (reused by timeline bar clicks)
-                    let projectDetailModal = bootstrap.Modal.getOrCreateInstance(
-                        document.getElementById("projectDetailModal")
-                    );
-
                     function fetchAndShowProjectDetail(projectId) {
                         $.ajax({
                             url: appUrl + "/project/" + projectId,
                             type: "GET",
                             dataType: "json",
                             success: function (response) {
-                                const data = response.data || {};
+                                const project = response.data || {};
                                 const baseFileUrl = appUrl + "/file/project/";
+                                const pid = project.id || projectId;
 
-                                // Populate modal fields
-                                $("#projectDetailImage").attr(
-                                    "src",
-                                    data.image
-                                        ? baseFileUrl + data.image
-                                        : appUrl + "/asset/img/background/add-image.png"
-                                ).css("border-radius", "8px");
+                                const imageUrl = project.image
+                                    ? baseFileUrl + project.image
+                                    : null;
 
-                                $("#projectDetailTitle").text(data.title || "");
-                                $("#projectDetailAuthor").text(data.author ? data.author.name : "Unknown");
-                                $("#projectDetailDepartment").text(data.department || "");
-                                $("#projectDetailDivision").text(data.division || "");
-                                $("#projectDetailDescription").text(data.description || "");
+                                // Build isi modal
+                                const detailHtml = `
+                                    <div class="d-flex justify-content-between align-items-center mb-3 mt-1">
+                                        <div class="d-flex align-items-center">
+                                            ${
+                                                imageUrl
+                                                    ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:44px;height:44px;object-fit:cover;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
+                                                    : (function(){
+                                                        const init = getInitials(project.title || "N/A");
+                                                        const color = getInitialsColor(project.title || "N/A");
+                                                        return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                            style="width:44px;height:44px;background:${color};color:#fff;font-size:17px;font-weight:600;">${init}</div>`;
+                                                    })()
+                                            }
+                                            <h5 class="mb-0 fw-semibold" style="font-size:17px;">${project.title || "Unknown Project"}</h5>
+                                        </div>
+                                        <div class="dropdown-icon-container-detail">
+                                            <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
+                                                style="background:#E8E9F2; border-radius:50%; width:34px; height:34px;">
+                                                <span class="material-symbols-outlined" style="font-size:18px; color:#828282;">more_vert</span>
+                                            </button>
+                                            <div class="dropdown-menu dropdown-action d-none">
+                                                <div class="dropdown-item">Edit</div>
+                                                <div class="dropdown-item text-danger delete-project">Delete</div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                // Render multiple reference URLs (match Task behavior)
-                                (function(){
-                                    const wrap = document.getElementById('projectDetailReferenceUrls');
-                                    if (!wrap) return;
-                                    wrap.innerHTML = '';
-                                    let urls = [];
-                                    if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
-                                    else if (typeof data.reference_urls === 'string') {
-                                        try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                    <!-- Description -->
+                                    ${
+                                        project.description
+                                            ? `<p class="mb-2 small text-muted" style="font-size:15px; line-height:1.5;">${project.description}</p>`
+                                            : ""
                                     }
-                                    if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
-                                    if (urls.length > 0) {
-                                        urls.forEach((u, i) => {
-                                            const a = document.createElement('a');
-                                            a.href = u; a.target = '_blank'; a.rel = 'noopener';
-                                            a.textContent = `Link ${i+1}`;
-                                            a.className = 'me-2';
-                                            wrap.appendChild(a);
+
+                                    <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
+
+                                    <!-- Footer (collaborators + icons) -->
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div class="collaborators-image d-flex align-items-center">
+                                            ${renderCollaborators(project)}
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-3 d-flex align-items-center position-relative comment-btn"
+                                                title="Comment" data-project-id="${pid}">
+                                                <span class="material-symbols-outlined" style="font-size:20px; color:#828282;">mode_comment</span>
+                                                <span class="project-feedback-count ms-1" style="font-size:14px; color:#454545;">${project.feedback_comments_count || ""}</span>
+                                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none"></span>
+                                            </button>
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent d-flex align-items-center attach-btn"
+                                                title="Attach File" data-project-id="${pid}">
+                                                <span class="material-symbols-outlined" style="font-size:20px; color:#828282;">attach_file</span>
+                                                <span class="project-file-count ms-1" style="font-size:14px; color:#454545;">${project.reference_files_count || ""}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Extra info sejajar -->
+                                    <div class="d-flex justify-content-start align-items-center mt-3 small">
+                                        <span class="me-4" style="font-size:14px;"><strong>Department:</strong> ${project.department || "-"}</span>
+                                        <span style="font-size:14px;"><strong>Division:</strong> ${project.division || "-"}</span>
+                                    </div>
+                                `;
+
+                                // Inject ke modal
+                                $("#projectDetailContent").html(detailHtml);
+
+                                // Bind ulang dropdown after inject
+                                document.querySelectorAll("#projectDetailContent .dropdown-icon").forEach((icon) => {
+                                    icon.addEventListener("click", function (e) {
+                                        e.stopPropagation();
+                                        const dropdownMenu = this.nextElementSibling;
+                                        const isVisible = !dropdownMenu.classList.contains("d-none");
+                                        document.querySelectorAll("#projectDetailContent .dropdown-menu").forEach((menu) => {
+                                            menu.classList.add("d-none");
                                         });
-                                    } else {
-                                        wrap.textContent = '-';
-                                    }
-                                })();
+                                        if (!isVisible) {
+                                            dropdownMenu.classList.remove("d-none");
+                                        }
+                                    });
+                                });
 
-                                if (data.reference_file) {
-                                    $("#projectDetailReferenceFile")
-                                        .attr("href", baseFileUrl + data.reference_file)
-                                        .show();
-                                } else {
-                                    $("#projectDetailReferenceFile").hide();
-                                }
+                                // Bind comment button
+                                document.querySelectorAll("#projectDetailContent .comment-btn").forEach((btn) => {
+                                    btn.addEventListener("click", function () {
+                                        $("#projectDetailModal").modal("hide");
+                                        loadFeedbackData(projectId);
+                                        const projectFeedbackModal = new bootstrap.Modal(
+                                            projectFeedbackModalEl
+                                        );
+                                        projectFeedbackModal.show()
+                                    });
+                                });
 
-                                function formatDate(dateStr) {
-                                    if (!dateStr) return "";
-                                    const options = { year: "numeric", month: "long", day: "numeric" };
-                                    return new Date(dateStr).toLocaleDateString(undefined, options);
-                                }
+                                // Bind attach button
+                                document.querySelectorAll("#projectDetailContent .attach-btn").forEach((btn) => {
+                                    btn.addEventListener("click", function () {
+                                        $("#projectDetailModal").modal("hide");
+                                        openProjectFiles(pid);
+                                        $("#projectFilesModal").modal("show");
+                                    });
+                                });
 
-                                $("#projectDetailStartDate").text(formatDate(data.start_date));
-                                $("#projectDetailDueDate").text(formatDate(data.due_date));
-
-                                $("#projectDetailCoAuthors").text(
-                                    data.co_authors?.length
-                                        ? data.co_authors.map((ca) => ca.name).join(", ")
-                                        : "None"
-                                );
-
-                                $("#projectDetailContributors").text(
-                                    data.contributors?.length
-                                        ? data.contributors.map((c) => c.name).join(", ")
-                                        : "None"
-                                );
-
-                                projectDetailModal.show();
+                                // Show modal
+                                $("#projectDetailModal").modal("show");
                             },
                             error: function () {
                                 alert("Failed to load project details.");
-                            },
+                            }
                         });
                     }
 
