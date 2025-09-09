@@ -269,6 +269,7 @@ $(document).ready(function() {
             return chain;
         });
     }
+    
 
     function showBulkAcceptModal(opts) {
         const { showTasks, showProjects, onTasks, onProjects, onAll } = opts || {};

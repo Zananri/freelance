@@ -18,6 +18,17 @@ use Illuminate\Support\Facades\DB;
 class ProjectController extends Controller
 {
     /**
+     * Resolve universal avatar for an employee (profile_picture > photo > user.photo > default)
+     */
+    private function resolveEmployeeAvatar($employee)
+    {
+        if (!$employee) return asset('asset/img/default-profile.png');
+        $raw = $employee->profile_picture ?: ($employee->photo ?: ($employee->user->photo ?? null));
+        if (!$raw) return asset('asset/img/default-profile.png');
+        if (preg_match('/^(https?:)?\/\//', $raw)) return $raw; // already absolute URL
+        return asset(ltrim($raw, '/'));
+    }
+    /**
      * Accept project assignment for the authenticated user.
      */
     public function acceptProject($id)
@@ -148,28 +159,17 @@ class ProjectController extends Controller
                 $employees = $employees->where('id', '!=', $excludeEmployeeId);
             }
 
-            $employees = $employees->orderBy('name')->get(['id', 'name', 'photo']);
+            $employees = $employees->orderBy('name')->get(['id', 'name', 'photo', 'profile_picture']);
 
-            // Map the employees to include proper photo URL
+            // Map to unified avatar fields (user_photo + profile_picture + profile_picture_url)
             $mappedEmployees = $employees->map(function ($emp) {
-                $rawPhoto = $emp->photo;
-                $photoUrl = asset('asset/img/profile_picture/default.png');
-                if ($rawPhoto) {
-                    $trimmed = ltrim($rawPhoto, '/');
-                    if (Str::startsWith($rawPhoto, ['http://','https://'])) {
-                        $photoUrl = $rawPhoto;
-                    } elseif (Str::startsWith($trimmed, ['asset/','file/','storage/','profile_picture/'])) {
-                        $photoUrl = asset($trimmed);
-                    } elseif (file_exists(public_path($trimmed))) {
-                        $photoUrl = asset($trimmed);
-                    } elseif (file_exists(storage_path('app/public/' . $trimmed))) {
-                        $photoUrl = asset('storage/' . $trimmed);
-                    }
-                }
+                $avatar = $this->resolveEmployeeAvatar($emp);
                 return [
                     'id' => $emp->id,
                     'name' => $emp->name,
-                    'user_photo' => $photoUrl,
+                    'user_photo' => $avatar, // backward compatibility
+                    'profile_picture' => $avatar,
+                    'profile_picture_url' => $avatar,
                 ];
             });
 
@@ -399,44 +399,17 @@ class ProjectController extends Controller
     {
         $projectAssignments = $project->projectAssignments->map(function ($assignment) {
             $employee = $assignment->employee;
-            $userPhoto = null;
-
-            if ($employee) {
-                $rawPhoto = $employee->user->photo ?? $employee->photo ?? null;
-                if ($rawPhoto) {
-                    $trimmed = ltrim($rawPhoto, '/');
-                    // Jika sudah URL penuh
-                    if (Str::startsWith($rawPhoto, ['http://', 'https://'])) {
-                        $userPhoto = $rawPhoto;
-                    }
-                    // Jika berada di folder publik langsung (asset/, file/, storage/)
-                    elseif (Str::startsWith($trimmed, ['asset/', 'file/', 'storage/'])) {
-                        $userPhoto = asset($trimmed);
-                    }
-                    // Jika file ada di public root
-                    elseif (file_exists(public_path($trimmed))) {
-                        $userPhoto = asset($trimmed);
-                    }
-                    // Jika file ada di storage/app/public
-                    elseif (file_exists(storage_path('app/public/' . $trimmed))) {
-                        $userPhoto = asset('storage/' . $trimmed);
-                    } else {
-                        // Fallback default avatar
-                        $userPhoto = asset('asset/img/profile_picture/default.png');
-                    }
-                } else {
-                    $userPhoto = asset('asset/img/profile_picture/default.png');
-                }
-            }
-
+            $avatar = $this->resolveEmployeeAvatar($employee);
             return [
                 'id' => $assignment->id,
                 'role' => $assignment->role,
                 'employee_id' => $assignment->employee_id,
-                'employee_name' => $employee ? $employee->name : null,
+                'employee_name' => $employee?->name,
                 'project_id' => $assignment->project_id,
                 'project_title' => $assignment->project?->title,
-                'user_photo' => $userPhoto,
+                'user_photo' => $avatar, // backward compatibility
+                'profile_picture' => $avatar,
+                'profile_picture_url' => $avatar,
             ];
         });
 
@@ -536,34 +509,15 @@ class ProjectController extends Controller
             $projectsTransformed = $projects->map(function ($project) {
                 $projectAssignments = $project->projectAssignments->map(function ($a) {
                     $employee = $a->employee;
-                    $userPhoto = null;
-
-                    if ($employee) {
-                        $rawPhoto = $employee->user->photo ?? $employee->photo ?? null;
-                        if ($rawPhoto) {
-                            $trimmed = ltrim($rawPhoto, '/');
-                            if (Str::startsWith($rawPhoto, ['http://', 'https://'])) {
-                                $userPhoto = $rawPhoto;
-                            } elseif (Str::startsWith($trimmed, ['asset/', 'file/', 'storage/'])) {
-                                $userPhoto = asset($trimmed);
-                            } elseif (file_exists(public_path($trimmed))) {
-                                $userPhoto = asset($trimmed);
-                            } elseif (file_exists(storage_path('app/public/' . $trimmed))) {
-                                $userPhoto = asset('storage/' . $trimmed);
-                            } else {
-                                $userPhoto = asset('asset/img/profile_picture/default.png');
-                            }
-                        } else {
-                            $userPhoto = asset('asset/img/profile_picture/default.png');
-                        }
-                    }
-
+                    $avatar = $this->resolveEmployeeAvatar($employee);
                     return [
                         'id' => $a->id,
                         'role' => $a->role,
                         'employee_id' => $a->employee_id,
                         'employee_name' => $employee?->name,
-                        'user_photo' => $userPhoto,
+                        'user_photo' => $avatar,
+                        'profile_picture' => $avatar,
+                        'profile_picture_url' => $avatar,
                     ];
                 });
 
@@ -838,12 +792,22 @@ class ProjectController extends Controller
             $contributors = [];
 
             foreach ($project->projectAssignments as $assignment) {
-                if ($assignment->role === 'author' && $assignment->employee) {
-                    $author = $assignment->employee;
-                } elseif ($assignment->role === 'co_author' && $assignment->employee) {
-                    $coAuthors[] = $assignment->employee;
-                } elseif ($assignment->role === 'contributor' && $assignment->employee) {
-                    $contributors[] = $assignment->employee;
+                $emp = $assignment->employee;
+                if (!$emp) continue;
+                $avatar = $this->resolveEmployeeAvatar($emp);
+                $wrapped = [
+                    'id' => $emp->id,
+                    'name' => $emp->name,
+                    'user_photo' => $avatar,
+                    'profile_picture' => $avatar,
+                    'profile_picture_url' => $avatar,
+                ];
+                if ($assignment->role === 'author') {
+                    $author = $wrapped;
+                } elseif ($assignment->role === 'co_author') {
+                    $coAuthors[] = $wrapped;
+                } elseif ($assignment->role === 'contributor') {
+                    $contributors[] = $wrapped;
                 }
             }
 
@@ -872,13 +836,9 @@ class ProjectController extends Controller
                 'reference_files' => $files,
                 'start_date' => $project->start_date,
                 'due_date' => $project->due_date,
-                'author' => $author ? ['id' => $author->id, 'name' => $author->name] : null,
-                'co_authors' => array_map(function ($emp) {
-                    return ['id' => $emp->id, 'name' => $emp->name];
-                }, $coAuthors),
-                'contributors' => array_map(function ($emp) {
-                    return ['id' => $emp->id, 'name' => $emp->name];
-                }, $contributors),
+                'author' => $author,
+                'co_authors' => $coAuthors,
+                'contributors' => $contributors,
             ];
 
             return response()->json([
@@ -908,25 +868,19 @@ class ProjectController extends Controller
 
         foreach ($project->projectAssignments as $assignment) {
             $employee = $assignment->employee;
-            if (!$employee)
-                continue;
-            $userPhoto = null;
-            // Ambil dari relasi user
-            if ($employee->user && $employee->user->photo) {
-                $userPhoto = $employee->user->photo;
-            }
+            if (!$employee) continue;
+            $avatar = $this->resolveEmployeeAvatar($employee);
+            $entry = [
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'user_photo' => $avatar,
+                'profile_picture' => $avatar,
+                'profile_picture_url' => $avatar,
+            ];
             if ($assignment->role === 'co_author') {
-                $coAuthors[] = [
-                    'id' => $employee->id,
-                    'name' => $employee->name,
-                    'user_photo' => $userPhoto,
-                ];
+                $coAuthors[] = $entry;
             } elseif ($assignment->role === 'contributor') {
-                $contributors[] = [
-                    'id' => $employee->id,
-                    'name' => $employee->name,
-                    'user_photo' => $userPhoto,
-                ];
+                $contributors[] = $entry;
             }
         }
 
@@ -943,8 +897,8 @@ class ProjectController extends Controller
         $response['reference_file'] = $files;
     // Ensure reference_urls present and normalized
     $response['reference_urls'] = $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []);
-        $response['co_authors'] = $coAuthors;
-        $response['contributors'] = $contributors;
+    $response['co_authors'] = $coAuthors;
+    $response['contributors'] = $contributors;
 
         return response()->json($response);
     }
@@ -1275,26 +1229,33 @@ class ProjectController extends Controller
                         return array_map(function($f){ return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
                     })(),
                     'created_at' => $fb->created_at,
-                    'employee' => $fb->employee ? [
-                        'id' => $fb->employee->id,
-                        'name' => $fb->employee->name,
-                        'photo' => ($fb->employee->user && $fb->employee->user->photo)
-                            ? asset($fb->employee->user->photo)
-                            : asset('asset/img/profile_picture/default.png'),
-                    ] : null,
+                    'employee' => $fb->employee ? (function(){})() : null, // placeholder replaced below
                 ];
+                if ($fb->employee) {
+                    $e = $fb->employee;
+                    $avatar = $this->resolveEmployeeAvatar($e);
+                    $item['employee'] = [
+                        'id' => $e->id,
+                        'name' => $e->name,
+                        'photo' => $avatar,
+                        'user_photo' => $avatar,
+                        'profile_picture' => $avatar,
+                        'profile_picture_url' => $avatar,
+                    ];
+                }
 
-        $item['replies'] = $fb->replies->map(function ($r) {
+        $item['replies'] = $fb->replies->map(function ($reply) {
+                    $avatar = $this->resolveEmployeeAvatar($reply->employee);
                     return [
-                        'id' => $r->id,
-                        'parent_id' => $r->parent_id,
-                        'feedback_comment' => $r->feedback_comment,
-                        'image' => $r->image ? asset('file/project/' . $r->image) : null,
-                        'reference_url' => $r->reference_url,
-            'reference_urls' => $r->reference_urls ?: ($r->reference_url ? [$r->reference_url] : []),
-                        'reference_file' => $r->reference_file ? asset('file/project/' . $r->reference_file) : null,
-                        'reference_files' => (function() use ($r) {
-                            $arr = $r->reference_files;
+                        'id' => $reply->id,
+                        'parent_id' => $reply->parent_id,
+                        'feedback_comment' => $reply->feedback_comment,
+                        'image' => $reply->image ? asset('file/project/' . $reply->image) : null,
+                        'reference_url' => $reply->reference_url,
+                        'reference_urls' => $reply->reference_urls ?: ($reply->reference_url ? [$reply->reference_url] : []),
+                        'reference_file' => $reply->reference_file ? asset('file/project/' . $reply->reference_file) : null,
+                        'reference_files' => (function() use ($reply) {
+                            $arr = $reply->reference_files;
                             if (is_string($arr) && $arr !== '') {
                                 $dec = json_decode($arr, true);
                                 if (is_array($dec)) $arr = $dec; else $arr = [$arr];
@@ -1302,13 +1263,14 @@ class ProjectController extends Controller
                             if (!is_array($arr)) $arr = [];
                             return array_map(function($f){ return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
                         })(),
-                        'created_at' => $r->created_at,
-                        'employee' => $r->employee ? [
-                            'id' => $r->employee->id,
-                            'name' => $r->employee->name,
-                            'photo' => ($r->employee->user && $r->employee->user->photo)
-                                ? asset($r->employee->user->photo)
-                                : asset('asset/img/profile_picture/default.png'),
+                        'created_at' => $reply->created_at,
+                        'employee' => $reply->employee ? [
+                            'id' => $reply->employee->id,
+                            'name' => $reply->employee->name,
+                            'photo' => $avatar,
+                            'user_photo' => $avatar,
+                            'profile_picture' => $avatar,
+                            'profile_picture_url' => $avatar,
                         ] : null,
                     ];
                 });
@@ -1633,14 +1595,20 @@ class ProjectController extends Controller
                 'parent_id' => $latest->parent_id,
                 'feedback_comment' => $latest->feedback_comment,
                 'created_at' => $latest->created_at,
-                'employee' => $latest->employee ? [
-                    'id' => $latest->employee->id,
-                    'name' => $latest->employee->name,
-                    'photo' => ($latest->employee->user && $latest->employee->user->photo)
-                        ? asset($latest->employee->user->photo)
-                        : asset('asset/img/profile_picture/default.png'),
-                ] : null,
+                'employee' => null,
             ];
+            if ($latest->employee) {
+                $e = $latest->employee;
+                $avatar = $this->resolveEmployeeAvatar($e);
+                $payload['employee'] = [
+                    'id' => $e->id,
+                    'name' => $e->name,
+                    'photo' => $avatar,
+                    'user_photo' => $avatar,
+                    'profile_picture' => $avatar,
+                    'profile_picture_url' => $avatar,
+                ];
+            }
 
             return response()->json([
                 'code' => 200,
