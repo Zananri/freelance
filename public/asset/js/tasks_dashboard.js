@@ -95,7 +95,7 @@ function getTaskToday() {
                     const size = idx === 0 ? 22 : 20;
                     const overlap = idx > 0 ? '-10px' : '0';
                     const z = idx + 1;
-                    const safeUrl = av.url || '/asset/img/profile_picture/default.png';
+                    const safeUrl = av.url || '/asset/img/avatar.png';
                     const safeName = escapeHtml(av.name || '');
                     return `
                         <span class="avatar-overlap" style="position: relative; display:inline-block; margin-left:${overlap}; z-index:${z};">
@@ -278,7 +278,7 @@ function getTaskTomorrow() {
                     const size = idx === 0 ? 22 : 20;
                     const overlap = idx > 0 ? '-10px' : '0';
                     const z = idx + 1;
-                    const safeUrl = av.url || '/asset/img/profile_picture/default.png';
+                    const safeUrl = av.url || '/asset/img/avatar.png';
                     const safeName = escapeHtml(av.name || '');
                     return `
                         <span class="avatar-overlap" style="position: relative; display:inline-block; margin-left:${overlap}; z-index:${z};">
@@ -549,7 +549,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                 }
 
                 const name = fb.employee?.name || 'Unknown';
-                const photo = fb.employee?.photo || ((appUrl ? appUrl : '') + '/asset/img/profile_picture/default.png');
+                const photo = fb.employee?.photo || ((appUrl ? appUrl : '') + '/asset/img/avatar.png');
                 const imgHtml = fb.image ? `<img src="${fb.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : '';
                 const urlHtml = fb.reference_url ? `<a href="${fb.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : '';
                 const fileHtml = fb.reference_file ? `<a href="${fb.reference_file}" download class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_FILE</a>` : '';

@@ -102,7 +102,7 @@ class ShiftController extends Controller
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'email' => $employee->email,
-                'profile_picture' => $employee->profile_picture ?? '/asset/img/default-profile.png',
+                'profile_picture' => $employee->profile_picture ?? '/asset/img/avatar.png',
                 // expose base shift data for prefill in Shift page modal
                 'shift_id' => $employee->base_shift_id,
                 'shift_title' => $employee->base_title,

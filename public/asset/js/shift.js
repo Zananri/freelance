@@ -322,7 +322,7 @@ function createEmployeeCell(employee) {
     td.classList.add("sticky-col");
 
     // Use universal avatar (profile_picture) if available
-    const profile = employee.profile_picture || employee.profile_picture_url || "/asset/img/default-profile.png";
+    const profile = employee.profile_picture || employee.profile_picture_url || "/asset/img/avatar.png";
     // Try to read any available base shift info on employee, otherwise fallback to empty strings
     const baseShift = employee.shift || null;
     const baseTitle = (baseShift && baseShift.title) || employee.shift_title || "";
@@ -402,7 +402,7 @@ function createShiftCell(employee, shift, dateKey) {
                         data-employee-name="${employee.name}"
                         data-employee-picture="${
                             employee.profile_picture ||
-                            "/asset/img/default-profile.png"
+                            "/asset/img/avatar.png"
                         }"
                         data-date="${dateKey}"
                         data-start="${shift?.time_start || ""}"

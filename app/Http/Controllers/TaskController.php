@@ -22,11 +22,19 @@ class TaskController extends Controller
      */
     private function resolveEmployeeAvatar($employee)
     {
-        if (!$employee) return asset('asset/img/default-profile.png');
+        if (!$employee) return asset('asset/img/avatar.png');
+
         $raw = $employee->profile_picture ?: ($employee->photo ?: ($employee->user->photo ?? null));
-        if (!$raw) return asset('asset/img/default-profile.png');
+        if (!$raw) return asset('asset/img/avatar.png');
+
         if (preg_match('/^(https?:)?\/\//', $raw)) return $raw; // already absolute
-        return asset(ltrim($raw, '/'));
+
+        $relative = ltrim($raw, '/');
+        $publicPath = public_path($relative);
+        if (!is_file($publicPath)) {
+            return asset('asset/img/avatar.png');
+        }
+        return asset($relative);
     }
     /**
      * Display a listing of the resource.
@@ -408,7 +416,7 @@ class TaskController extends Controller
             if ($pic && $pic->employee) {
                 $emp = $pic->employee;
                 $raw = $emp->profile_picture ?: ($emp->photo ?: ($emp->user->photo ?? null));
-                $resolved = $raw ? (preg_match('/^(https?:)?\/\//', $raw) ? $raw : asset($raw)) : asset('asset/img/default-profile.png');
+                $resolved = $raw ? (preg_match('/^(https?:)?\/\//', $raw) ? $raw : asset($raw)) : asset('asset/img/avatar.png');
                 $picData = [
                     'id' => $emp->id,
                     'name' => $emp->name,
@@ -421,7 +429,7 @@ class TaskController extends Controller
             $executorsData = $executors->map(function ($executor) {
                 $emp = $executor->employee;
                 $raw = $emp->profile_picture ?: ($emp->photo ?: ($emp->user->photo ?? null));
-                $resolved = $raw ? (preg_match('/^(https?:)?\/\//', $raw) ? $raw : asset($raw)) : asset('asset/img/default-profile.png');
+                $resolved = $raw ? (preg_match('/^(https?:)?\/\//', $raw) ? $raw : asset($raw)) : asset('asset/img/avatar.png');
                 return [
                     'id' => $emp->id,
                     'name' => $emp->name,
@@ -1017,8 +1025,8 @@ class TaskController extends Controller
                 ] : [
                     'id' => null,
                     'name' => 'None',
-                    'user_photo' => asset('asset/img/default-profile.png'),
-                    'profile_picture' => asset('asset/img/default-profile.png'),
+                    'user_photo' => asset('asset/img/avatar.png'),
+                    'profile_picture' => asset('asset/img/avatar.png'),
                 ],
 
                 // Executors dengan default
