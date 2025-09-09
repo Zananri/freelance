@@ -1,7 +1,7 @@
 const appUrl = ($('meta[name=app-url]').attr("content") || '').replace(/\/$/, '');
 
 function buildTeamAvatar(raw){
-    if(!raw) return appUrl + '/asset/img/default-profile.png';
+    if(!raw) return appUrl + '/asset/img/avatar.png';
     try {
         raw = String(raw).trim();
         const trimmed = raw.replace(/^\/+/, '');
@@ -10,7 +10,7 @@ function buildTeamAvatar(raw){
         if(raw.startsWith('/')) return appUrl + raw;
         if(raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
         return appUrl + '/file/profile_picture/' + raw;
-    } catch(_) { return appUrl + '/asset/img/default-profile.png'; }
+    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
 }
 
 // Live update when profile picture changes

@@ -11,17 +11,34 @@ $(document).on('click','.btn-edit-role',function(){
     modalEdit.show();
 });
 
+function resolveAvatar(raw){
+    if(!raw) return null;
+    if(/^https?:\/\//i.test(raw)) return raw; // already absolute
+    return appUrl + '/' + raw.replace(/^\//,'');
+}
+
+function pickAvatar(row){
+    return row.profile_picture || row.photo || row.user_photo || null;
+}
+
+function buildAvatarUrl(row){
+    const chosen = pickAvatar(row);
+    const url = resolveAvatar(chosen);
+        return url || (appUrl + '/asset/img/avatar.png');
+}
+
 function setUserModalData(employeeId){
-    const dataRow = ARR_DATA.find(item => item.id == employeeId);
+        const dataRow = ARR_DATA.find(item => item.id == employeeId);
+        if(!dataRow) return;
 
-    $('#modalEdit [name="employee_id"]').val(dataRow.id);
-    $('#modalEdit [name="user_id"]').val(dataRow.user_id);
-    $('#modalEdit [name="user_role"]').val(dataRow.user_role);
-    $('#modalEdit [name="user_type"]').val(dataRow.user_type);
+        $('#modalEdit [name="employee_id"]').val(dataRow.id);
+        $('#modalEdit [name="user_id"]').val(dataRow.user_id);
+        $('#modalEdit [name="user_role"]').val(dataRow.user_role);
+        $('#modalEdit [name="user_type"]').val(dataRow.user_type);
 
-    $('#modalEdit .employee-name').text(dataRow.name);
-    $('#modalEdit .employee-photo').attr('src',appUrl+'/'+dataRow.photo);
-    
+        $('#modalEdit .employee-name').text(dataRow.name);
+        const avatarUrl = buildAvatarUrl(dataRow) + '?t=' + Date.now();
+        $('#modalEdit .employee-photo').attr('src', avatarUrl);
 }
 
 $(document).change('.search-query',function(){
@@ -90,13 +107,13 @@ function showAllData()
 showAllData();
 
 function htmlDataRow(dataRow){
-
+  const avatar = buildAvatarUrl(dataRow);
   let htmlRow = `
     <tr data-id="${dataRow.id}" data-user-id="${dataRow.user_id}" class="row-item">
         <td>
             <div>
                 <div class="d-flex align-items-center">
-                    <div class="employee-image" style="background-image:url('${appUrl}/${dataRow.photo}');">
+                    <div class="employee-image" style="background-image:url('${avatar}?t=${Date.now()}');">
                     </div>
                     <div class="employee-name">
                         ${dataRow.name}
@@ -115,7 +132,6 @@ function htmlDataRow(dataRow){
         </td>
     </tr>
   `;
-
   return htmlRow;
 }
 

@@ -23,12 +23,21 @@
                             if ($employee) {
                                 $attAvatar = $employee->profile_picture ?: ($employee->photo ?? null);
                             }
-                            if ($attAvatar && !preg_match('/^(https?:)?\/\//i', $attAvatar)) {
-                                $attAvatar = asset($attAvatar);
+                            if ($attAvatar) {
+                                if (preg_match('/^(https?:)?\/\//i', $attAvatar)) {
+                                    // absolute already
+                                } else {
+                                    $normalized = ltrim($attAvatar, '/');
+                                    if (!file_exists(public_path($normalized))) {
+                                        $attAvatar = asset('asset/img/avatar.png');
+                                    } else {
+                                        $attAvatar = asset($normalized);
+                                    }
+                                }
                             }
-                            if (!$attAvatar) { $attAvatar = asset('asset/img/default-profile.png'); }
+                            if (!$attAvatar) { $attAvatar = asset('asset/img/avatar.png'); }
                         @endphp
-                        <img src="{{ $attAvatar }}" alt="User Profile" class="profile-image" data-global-avatar data-default="{{ asset('asset/img/default-profile.png') }}">
+                        <img src="{{ $attAvatar }}" alt="User Profile" class="profile-image" data-global-avatar="" data-default="{{ asset('asset/img/avatar.png') }}" onerror="this.onerror=null;this.src='{{ asset('asset/img/avatar.png') }}';">
                     </div>
                     <div class="user-info mt-2">
                         <h3 class="user-name">{{ $employee ? $employee->name : 'User Name' }}</h3>

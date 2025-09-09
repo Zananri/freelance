@@ -169,7 +169,7 @@ document.addEventListener("DOMContentLoaded", function () {
         employees.forEach((employee) => {
             // Tabel employee menampilkan avatar universal (profile_picture) agar edit halaman employee (photo) hanya mempengaruhi modal detail.
             let profilePicture = employee.profile_picture_url || employee.profile_picture || null;
-            if (!profilePicture) profilePicture = `${appUrl}/asset/img/default-profile.png`;
+            if (!profilePicture) profilePicture = `${appUrl}/asset/img/avatar.png`;
             if (!/^https?:\/\//i.test(profilePicture) && !profilePicture.startsWith(appUrl)) {
                 profilePicture = `${appUrl}/${profilePicture.replace(/^\//,'')}`;
             }
@@ -241,7 +241,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (employee) {
                 // Populate modal fields
               let photoUrl = employee.profile_picture_url || employee.profile_picture || null;
-              if (!photoUrl) photoUrl = `${appUrl}/asset/img/default-profile.png`;
+              if (!photoUrl) photoUrl = `${appUrl}/asset/img/avatar.png`;
               if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
                   photoUrl = `${appUrl}/${photoUrl.replace(/^\//,'')}`;
               }
@@ -390,7 +390,7 @@ $(document).on("click", ".btn-detail", function () {
                 // Use updated photo if available, else use employee.photo
             // Detail modal harus menggunakan foto internal (employee.photo) saja agar perubahan dari halaman profile (profile_picture) tidak mempengaruhi.
             let photoUrl = updatedPhoto || employee.photo || null;
-            if (!photoUrl) photoUrl = `${appUrl}/asset/img/default-profile.png`;
+            if (!photoUrl) photoUrl = `${appUrl}/asset/img/avatar.png`;
             if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
                 photoUrl = `${appUrl}/${photoUrl.replace(/^\//,'')}`;
             }

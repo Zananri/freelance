@@ -45,10 +45,10 @@
                                                 @php
                                                     $empAvatar = $rowEmmployee->profile_picture
                                                         ?: ($rowEmmployee->photo ?: ($rowEmmployee->user_photo ?? null));
-                                                    if(!$empAvatar) { $empAvatar = asset('asset/img/default-profile.png'); }
+                                                    if(!$empAvatar) { $empAvatar = asset('asset/img/avatar.png'); }
                                                     elseif(!preg_match('/^(https?:)?\/\//',$empAvatar)) { $empAvatar = asset(ltrim($empAvatar,'/')); }
                                                 @endphp
-                                                <img class="employee-photo rounded-circle" src="{{ $empAvatar }}" alt="{{ $rowEmmployee->name }}" data-global-avatar data-default="{{ asset('asset/img/default-profile.png') }}">
+                                                <img class="employee-photo rounded-circle" src="{{ $empAvatar }}" alt="{{ $rowEmmployee->name }}" data-global-avatar data-default="{{ asset('asset/img/avatar.png') }}">
                                             </div>
                                             <div class="w-100">
                                                 <h4 class="employee-name">{{ $rowEmmployee->name }}</h4>
