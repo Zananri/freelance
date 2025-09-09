@@ -1210,8 +1210,11 @@ class TaskController extends Controller
                 // Get existing executors
                 $existingExecutors = TaskAssignment::where('task_id', $task->id)
                     ->where('role', 'EXECUTOR')
-                    ->get()
-                    ->keyBy('employee_id');
+                    ->pluck('employee_id')
+                    ->toArray();
+
+                // Determine which executors are newly added
+                $addedExecutors = array_diff($newExecutorIds, $existingExecutors);
 
                 // Remove executors not in new list
                 TaskAssignment::where('task_id', $task->id)
@@ -1221,29 +1224,34 @@ class TaskController extends Controller
 
                 // Add new executors
                 foreach ($newExecutorIds as $executorId) {
-                    if ($executorId == $employee->id || isset($existingExecutors[$executorId])) {
+                    if ($executorId == $employee->id) {
                         continue;
                     }
 
-                    TaskAssignment::create([
-                        'task_id' => $task->id,
-                        'employee_id' => $executorId,
-                        'role' => 'EXECUTOR',
-                        'is_receive' => false,
-                        'date_receive' => null,
-                    ]);
+                    // Only create assignment if not already exists
+                    if (!in_array($executorId, $existingExecutors)) {
+                        TaskAssignment::create([
+                            'task_id' => $task->id,
+                            'employee_id' => $executorId,
+                            'role' => 'EXECUTOR',
+                            'is_receive' => false,
+                            'date_receive' => null,
+                        ]);
+                    }
 
-                    // Send notification
-                    $executor = Employee::find($executorId);
-                    if ($executor) {
-                        NotificationController::createUserNotification(
-                            $executorId,
-                            'task_assignment',
-                            'You have been assigned as executor for task: ' . $task->title,
-                            'You have been assigned as executor for task: ' . $task->title,
-                            $employee->id,
-                            $task->id
-                        );
+                    // Send notification only for newly added executors
+                    if (in_array($executorId, $addedExecutors)) {
+                        $executor = Employee::find($executorId);
+                        if ($executor) {
+                            NotificationController::createUserNotification(
+                                $executorId,
+                                'task_assignment',
+                                'You have been assigned as executor for task: ' . $task->title,
+                                'You have been assigned as executor for task: ' . $task->title,
+                                $employee->id,
+                                $task->id
+                            );
+                        }
                     }
                 }
             }
