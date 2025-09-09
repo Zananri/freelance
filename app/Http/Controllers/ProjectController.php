@@ -465,6 +465,7 @@ class ProjectController extends Controller
             $user = auth()->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
             $filter = $request->input('filter', null);
+            $includeUnaccepted = $request->input('include_unaccepted', false);
             $taskScope = strtolower($request->input('task_scope', 'project'));
             $taskScope = in_array($taskScope, ['project', 'me', 'all']) ? $taskScope : 'project';
 
@@ -485,9 +486,18 @@ class ProjectController extends Controller
             $query = Project::where('status', '!=', 'DELETED');
 
             if ($taskScope !== 'all') {
-                $query->whereHas('projectAssignments', function ($q) use ($employeeId) {
+                // Only include projects where current employee is assigned.
+                // Authors should always see their projects (even if is_receive not set).
+                // Co-authors and contributors should only see projects they've accepted (is_receive = true)
+                $query->whereHas('projectAssignments', function ($q) use ($employeeId, $includeUnaccepted) {
                     $q->where('employee_id', $employeeId)
                         ->whereIn('role', ['author', 'co_author', 'contributor']);
+                    if (!$includeUnaccepted) {
+                        $q->where(function ($sub) {
+                            $sub->where('role', 'author')
+                                ->orWhere('is_receive', true);
+                        });
+                    }
                 });
             }
 
