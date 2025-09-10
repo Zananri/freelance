@@ -1075,6 +1075,10 @@
     color: #333;
 }
 
+.feedback-reply {
+    background-color: transparent !important;
+}
+
 #addFeedbackButton {
     background-color: #444;
     color: white;
