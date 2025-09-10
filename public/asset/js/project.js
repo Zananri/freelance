@@ -942,111 +942,109 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
 
                     // Handle edit project form submission
-                    $("#editProjectForm").on("submit", function (e) {
-                        e.preventDefault();
+let isSubmitting = false;
 
-                        const projectId = $("#edit_project_id").val();
-                        if (!projectId) {
-                            showFloatingAlert("Project ID is missing.", 'warning', 3000);
-                            return;
-                        }
+$("#editProjectForm").off("submit").on("submit", function (e) {
+    e.preventDefault();
 
-                        const formData = new FormData(this);
-                        // Map first non-empty reference_urls[] to single reference_url (backend expects this)
-                        try {
-                            const urlInputs = this.querySelectorAll('input[name="reference_urls[]"]');
-                            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
-                            if (urls.length) formData.set('reference_url', urls[0]);
-                            else formData.set('reference_url', '');
-                        } catch(_) {}
+    if (isSubmitting) return; // ⛔ cegah submit dobel
+    isSubmitting = true;
 
-                        // Add _method to FormData for Laravel PUT request
-                        formData.append("_method", "PUT");
+    const projectId = $("#edit_project_id").val();
+    if (!projectId) {
+        showFloatingAlert("Project ID is missing.", 'warning', 3000);
+        isSubmitting = false;
+        return;
+    }
 
-                        // Append co_author and contributors JSON strings from hidden inputs
-                        formData.set("co_author", $("#edit_co_author").val());
-                        formData.set(
-                            "contributors",
-                            $("#edit_contributors").val()
-                        );
+    const formData = new FormData(this);
 
-                        // Append newly selected reference files (if any) to FormData as reference_file[]
-                        if (window.editProjectSelectedFiles && window.editProjectSelectedFiles.length) {
-                            window.editProjectSelectedFiles.forEach(function (f) {
-                                try {
-                                    formData.append('reference_file[]', f);
-                                } catch (e) {
-                                    // some browsers may not allow appending File-like objects from other contexts; ignore
-                                    console.warn('Failed to append new reference file to FormData', e);
-                                }
-                            });
-                        }
+    // Map first non-empty reference_urls[] to single reference_url (backend expects this)
+    try {
+        const urlInputs = this.querySelectorAll('input[name="reference_urls[]"]');
+        const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
+        if (urls.length) formData.set('reference_url', urls[0]);
+        else formData.set('reference_url', '');
+    } catch(_) {}
 
-                        // Show loading overlay and disable submit button
-                        $("#editModalLoader").removeClass("d-none");
-                        const submitBtn = $(
-                            '#editProjectForm button[type="submit"]'
-                        );
-                        submitBtn.prop("disabled", true);
+    // Add _method to FormData for Laravel PUT request
+    formData.append("_method", "PUT");
 
-                        $.ajax({
-                            url: appUrl + "/project/" + projectId,
-                            type: "POST", // Laravel expects POST with _method=PUT for PUT requests
-                            data: formData,
-                            contentType: false,
-                            processData: false,
-                            headers: {
-                                "X-CSRF-TOKEN": $(
-                                    'meta[name="csrf-token"]'
-                                ).attr("content"),
-                            },
-                            success: function (response) {
-                                // Show success alert
-                                showFloatingAlert(
-                                    response.message ||
-                                        "Project updated successfully!",
-                                    "success",
-                                    1500
-                                );
+    // ✅ Filter unique IDs untuk co-authors & contributors
+    let coAuthors = JSON.parse($("#edit_co_author").val() || "[]");
+    let contributors = JSON.parse($("#edit_contributors").val() || "[]");
 
-                                // Close modal after short delay
-                                setTimeout(() => {
-                                    var editProjectModalEl =
-                                        document.getElementById(
-                                            "editProjectModal"
-                                        );
-                                    var editProjectModal =
-                                        bootstrap.Modal.getInstance(
-                                            editProjectModalEl
-                                        );
-                                    if (editProjectModal)
-                                        editProjectModal.hide();
+    coAuthors = [...new Set(coAuthors)];
+    contributors = [...new Set(contributors)];
 
-                                    // Refresh project data without page reload
-                                    loadProjectCardData();
-                                }, 800);
-                            },
-                            error: function (xhr) {
-                                if (xhr.status === 422) {
-                                    let errors = xhr.responseJSON.errors;
-                                    var listHtml = '<ul style="margin:0; padding-left:18px;">';
-                                    $.each(errors, function (key, value) {
-                                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
-                                        else { listHtml += '<li>'+value+'</li>'; }
-                                    });
-                                    listHtml += '</ul>';
-                                    showFloatingAlert(listHtml, 'warning', 5000);
-                                } else {
-                                    showFloatingAlert("Failed to update project.", 'warning', 3500);
-                                }
-                            },
-                            complete: function () {
-                                // Hide loading overlay and enable submit button
-                                $("#editModalLoader").addClass("d-none");
-                                submitBtn.prop("disabled", false);
-                            },
-                        });
-                    });
+    formData.set("co_author", JSON.stringify(coAuthors));
+    formData.set("contributors", JSON.stringify(contributors));
+
+    // Append newly selected reference files (if any) to FormData as reference_file[]
+    if (window.editProjectSelectedFiles && window.editProjectSelectedFiles.length) {
+        window.editProjectSelectedFiles.forEach(function (f) {
+            try {
+                formData.append('reference_file[]', f);
+            } catch (e) {
+                console.warn('Failed to append new reference file to FormData', e);
+            }
+        });
+    }
+
+    // Show loading overlay and disable submit button
+    $("#editModalLoader").removeClass("d-none");
+    const submitBtn = $('#editProjectForm button[type="submit"]');
+    submitBtn.prop("disabled", true);
+
+    $.ajax({
+        url: appUrl + "/project/" + projectId,
+        type: "POST", // Laravel expects POST with _method=PUT for PUT requests
+        data: formData,
+        contentType: false,
+        processData: false,
+        headers: {
+            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+        },
+        success: function (response) {
+            showFloatingAlert(
+                response.message || "Project updated successfully!",
+                "success",
+                1500
+            );
+
+            // Close modal after short delay
+            setTimeout(() => {
+                var editProjectModalEl = document.getElementById("editProjectModal");
+                var editProjectModal = bootstrap.Modal.getInstance(editProjectModalEl);
+                if (editProjectModal) editProjectModal.hide();
+                loadProjectCardData(); // refresh project cards
+            }, 800);
+        },
+        error: function (xhr) {
+            if (xhr.status === 422) {
+                let errors = xhr.responseJSON.errors;
+                var listHtml = '<ul style="margin:0; padding-left:18px;">';
+                $.each(errors, function (key, value) {
+                    if (Array.isArray(value)) { 
+                        value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); 
+                    } else { 
+                        listHtml += '<li>'+value+'</li>'; 
+                    }
+                });
+                listHtml += '</ul>';
+                showFloatingAlert(listHtml, 'warning', 5000);
+            } else {
+                showFloatingAlert("Failed to update project.", 'warning', 3500);
+            }
+        },
+        complete: function () {
+            $("#editModalLoader").addClass("d-none");
+            submitBtn.prop("disabled", false);
+            isSubmitting = false; // reset flag biar bisa submit lagi
+        },
+    });
+});
+
 
                     // Image preview and clear button logic for edit image input
                     setupImageInput(

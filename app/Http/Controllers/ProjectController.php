@@ -944,258 +944,251 @@ class ProjectController extends Controller
      * Update the specified project in storage.
      */
     public function update(Request $request, string $id)
-    {
-        DB::beginTransaction();
-        try {
-            $project = Project::findOrFail($id);
+{
+    DB::beginTransaction();
+    try {
+        $project = Project::findOrFail($id);
 
-            if ($request->has('co_author') && is_string($request->co_author)) {
-                $request->merge(['co_author' => json_decode($request->co_author, true)]);
-            }
-            if ($request->has('contributors') && is_string($request->contributors)) {
-                $request->merge(['contributors' => json_decode($request->contributors, true)]);
-            }
-
-            $request->validate([
-                'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'department' => 'required|exists:departments,id',
-                'division' => 'required|exists:divisions,id',
-                'status' => 'string|max:50',
-                'reference_url' => 'nullable|url',
-                'reference_urls' => 'nullable|array',
-                'reference_urls.*' => 'nullable|url',
-                'start_date' => 'required|date',
-                'due_date' => 'required|date|after_or_equal:start_date',
-                'part_of_project' => 'nullable|exists:projects,id',
-                'complete_date' => 'nullable|date',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-                // Allow multiple reference files via both keys; use Task's whitelist and 5MB limit
-                'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
-                'reference_file' => 'nullable|array',
-                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
-                'co_author' => 'nullable|array',
-                'co_author.*' => 'nullable|exists:employees,id',
-                'contributors' => 'nullable|array',
-                'contributors.*' => 'nullable|exists:employees,id',
-            ]);
-
-            // Get existing co-authors and contributors before update
-            $existingCoAuthors = ProjectAssignment::where('project_id', $project->id)
-                ->where('role', 'co_author')
-                ->pluck('employee_id')
-                ->toArray();
-            
-            $existingContributors = ProjectAssignment::where('project_id', $project->id)
-                ->where('role', 'contributor')
-                ->pluck('employee_id')
-                ->toArray();
-
-            $project->title = $request->title;
-            $project->description = $request->description;
-            $project->department_id = $request->department;
-            $project->division_id = $request->division;
-            $project->status = $request->status ?? 'ACTIVE';
-            // Normalize reference URLs on update
-            $refUrls = [];
-            if ($request->has('reference_urls')) {
-                $incoming = $request->input('reference_urls', []);
-                if (is_array($incoming)) {
-                    $refUrls = array_values(array_filter($incoming));
-                }
-                $project->reference_urls = $refUrls; // even if empty, set to clear
-                $project->reference_url = count($refUrls) > 0 ? $refUrls[0] : null; // mirror
-            } elseif (!empty($request->reference_url)) {
-                $refUrls = [$request->reference_url];
-                $project->reference_urls = $refUrls;
-                $project->reference_url = $request->reference_url;
-            }
-            $project->start_date = $request->start_date;
-            $project->due_date = $request->due_date;
-            $project->part_of_project = $request->part_of_project;
-            $project->complete_date = $request->complete_date;
-            $project->updated_by = auth()->user() ? auth()->user()->id : null;
-
-            // Handle image upload
-            if ($request->hasFile('image')) {
-                // Delete old image if exists
-                if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
-                    unlink(public_path('file/project/' . $project->image));
-                }
-                $image = $request->file('image');
-                $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
-                $image->move(public_path('file/project'), $imageName);
-                $project->image = $imageName;
-            }
-
-            // Handle reference file uploads on update and deletion of removed files
-            // existing_reference_files should be a JSON array (filenames to keep)
-            $existing = [];
-            if ($request->has('existing_reference_files')) {
-                $existing = json_decode($request->existing_reference_files, true) ?: [];
-            }
-
-            $existing = is_array($existing) ? $existing : [];
-
-            // Current files stored on model (prefer JSON column)
-            $currentFiles = $project->reference_files ?? $project->reference_file ?? [];
-            if (!is_array($currentFiles) && $currentFiles) {
-                $currentFiles = [$currentFiles];
-            }
-
-            // Remove files that are present in currentFiles but not in existing
-            $toDelete = array_diff($currentFiles, $existing);
-            foreach ($toDelete as $del) {
-                $path = public_path('file/project/' . $del);
-                if ($del && file_exists($path)) {
-                    @unlink($path);
-                }
-            }
-
-            // Start with preserved files
-            $finalFiles = $existing;
-
-            // Handle newly uploaded files from both keys
-            $incomingFiles = [];
-            if ($request->hasFile('reference_files')) {
-                $rf = $request->file('reference_files');
-                $incomingFiles = array_merge($incomingFiles, is_array($rf) ? $rf : [$rf]);
-            }
-            if ($request->hasFile('reference_file')) {
-                $rfLegacy = $request->file('reference_file');
-                $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
-            }
-            foreach ($incomingFiles as $idx => $file) {
-                if (!$file) continue;
-                $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('file/project'), $fileName);
-                $finalFiles[] = $fileName;
-            }
-
-            // Set final files (empty array allowed) -> primary JSON column
-            $project->reference_files = $finalFiles;
-
-            $project->save();
-
-            // Update project_assignments for author
-            if (auth()->check()) {
-                $employee = auth()->user()->employee;
-                if ($employee) {
-                    ProjectAssignment::updateOrCreate(
-                        ['project_id' => $project->id, 'employee_id' => $employee->id],
-                        ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
-                    );
-                } else {
-                    throw new \Exception('Authenticated user has no employee relation');
-                }
-            } else {
-                throw new \Exception('User not authenticated');
-            }
-
-            // Handle co-author changes
-            $newCoAuthors = $request->co_author && is_array($request->co_author) ? $request->co_author : [];
-            $addedCoAuthors = array_diff($newCoAuthors, $existingCoAuthors);
-
-            // Remove existing co_author assignments
-            ProjectAssignment::where('project_id', $project->id)
-                ->where('role', 'co_author')
-                ->delete();
-
-            // Insert new co_author assignments and create notifications only for new co-authors
-            // Insert co_author assignments and create notifications
-            if ($request->co_author && is_array($request->co_author)) {
-                $coAuthorAssignments = [];
-                foreach ($request->co_author as $employeeId) {
-                    if (!Employee::where('id', $employeeId)->exists()) {
-                        throw new \Exception("Co-author employee ID {$employeeId} does not exist");
-                    }
-
-                    $coAuthorAssignments[] = [
-                        'project_id' => $project->id,
-                        'employee_id' => $employeeId,
-                        'role' => 'co_author',
-                        'is_receive' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-
-                    // Create notification for co-author
-                    $authorEmployee = auth()->user()->employee;
-                    Notification::create([
-                        'employee_id' => $employeeId,
-                        'type' => 'new job',
-                        'title' => 'You have been assigned as co-author for project: ' . $project->title,
-                        'message' => 'You have been assigned as co-author for project: ' . $project->title,
-                        'sent_at' => now(),
-                        'created_by' => $authorEmployee ? $authorEmployee->id : null,
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]);
-                }
-                ProjectAssignment::insert($coAuthorAssignments);
-            }
-
-            // Handle contributor changes
-            $newContributors = $request->contributors && is_array($request->contributors) ? $request->contributors : [];
-            $addedContributors = array_diff($newContributors, $existingContributors);
-
-            // Remove existing contributor assignments
-            ProjectAssignment::where('project_id', $project->id)
-                ->where('role', 'contributor')
-                ->delete();
-
-             // Insert contributor assignments and create notifications
-            if ($request->contributors && is_array($request->contributors)) {
-                $contributorAssignments = [];
-                foreach ($request->contributors as $employeeId) {
-                    if (!Employee::where('id', $employeeId)->exists()) {
-                        throw new \Exception("Contributor employee ID {$employeeId} does not exist");
-                    }
-
-                    $contributorAssignments[] = [
-                        'project_id' => $project->id,
-                        'employee_id' => $employeeId,
-                        'role' => 'contributor',
-                        'is_receive' => true,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-
-                    // Create notification for contributor
-                    $authorEmployee = auth()->user()->employee;
-                    Notification::create([
-                        'employee_id' => $employeeId,
-                        'type' => 'new job',
-                        'title' => 'You have been assigned as contributor for project: ' . $project->title,
-                        'message' => 'You have been assigned as contributor for project: ' . $project->title,
-                        'sent_at' => now(),
-                        'created_by' => $authorEmployee ? $authorEmployee->id : null,
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]);
-                }
-                ProjectAssignment::insert($contributorAssignments);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'message' => 'Project updated successfully',
-                'project' => $project
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'code' => $e->getCode() ?: 500,
-                'status' => "error",
-                'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+        if ($request->has('co_author') && is_string($request->co_author)) {
+            $request->merge(['co_author' => json_decode($request->co_author, true)]);
         }
+        if ($request->has('contributors') && is_string($request->contributors)) {
+            $request->merge(['contributors' => json_decode($request->contributors, true)]);
+        }
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'department' => 'required|exists:departments,id',
+            'division' => 'required|exists:divisions,id',
+            'status' => 'string|max:50',
+            'reference_url' => 'nullable|url',
+            'reference_urls' => 'nullable|array',
+            'reference_urls.*' => 'nullable|url',
+            'start_date' => 'required|date',
+            'due_date' => 'required|date|after_or_equal:start_date',
+            'part_of_project' => 'nullable|exists:projects,id',
+            'complete_date' => 'nullable|date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+            'reference_files' => 'nullable|array',
+            'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+            'reference_file' => 'nullable|array',
+            'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+            'co_author' => 'nullable|array',
+            'co_author.*' => 'nullable|exists:employees,id',
+            'contributors' => 'nullable|array',
+            'contributors.*' => 'nullable|exists:employees,id',
+        ]);
+
+        // Get existing co-authors and contributors
+        $existingCoAuthors = ProjectAssignment::where('project_id', $project->id)
+            ->where('role', 'co_author')
+            ->pluck('employee_id')
+            ->toArray();
+
+        $existingContributors = ProjectAssignment::where('project_id', $project->id)
+            ->where('role', 'contributor')
+            ->pluck('employee_id')
+            ->toArray();
+
+        // Update project fields
+        $project->title = $request->title;
+        $project->description = $request->description;
+        $project->department_id = $request->department;
+        $project->division_id = $request->division;
+        $project->status = $request->status ?? 'ACTIVE';
+
+        // Normalize reference URLs
+        $refUrls = [];
+        if ($request->has('reference_urls')) {
+            $incoming = $request->input('reference_urls', []);
+            if (is_array($incoming)) {
+                $refUrls = array_values(array_filter($incoming));
+            }
+            $project->reference_urls = $refUrls;
+            $project->reference_url = count($refUrls) > 0 ? $refUrls[0] : null;
+        } elseif (!empty($request->reference_url)) {
+            $refUrls = [$request->reference_url];
+            $project->reference_urls = $refUrls;
+            $project->reference_url = $request->reference_url;
+        }
+
+        $project->start_date = $request->start_date;
+        $project->due_date = $request->due_date;
+        $project->part_of_project = $request->part_of_project;
+        $project->complete_date = $request->complete_date;
+        $project->updated_by = auth()->user() ? auth()->user()->id : null;
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
+                unlink(public_path('file/project/' . $project->image));
+            }
+            $image = $request->file('image');
+            $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('file/project'), $imageName);
+            $project->image = $imageName;
+        }
+
+        // Handle reference file uploads & deletions
+        $existing = [];
+        if ($request->has('existing_reference_files')) {
+            $existing = json_decode($request->existing_reference_files, true) ?: [];
+        }
+        $existing = is_array($existing) ? $existing : [];
+
+        $currentFiles = $project->reference_files ?? $project->reference_file ?? [];
+        if (!is_array($currentFiles) && $currentFiles) {
+            $currentFiles = [$currentFiles];
+        }
+
+        $toDelete = array_diff($currentFiles, $existing);
+        foreach ($toDelete as $del) {
+            $path = public_path('file/project/' . $del);
+            if ($del && file_exists($path)) {
+                @unlink($path);
+            }
+        }
+
+        $finalFiles = $existing;
+
+        $incomingFiles = [];
+        if ($request->hasFile('reference_files')) {
+            $rf = $request->file('reference_files');
+            $incomingFiles = array_merge($incomingFiles, is_array($rf) ? $rf : [$rf]);
+        }
+        if ($request->hasFile('reference_file')) {
+            $rfLegacy = $request->file('reference_file');
+            $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
+        }
+        foreach ($incomingFiles as $idx => $file) {
+            if (!$file) continue;
+            $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+            $file->move(public_path('file/project'), $fileName);
+            $finalFiles[] = $fileName;
+        }
+
+        $project->reference_files = $finalFiles;
+        $project->save();
+
+        // Update project_assignments for author
+        if (auth()->check()) {
+            $employee = auth()->user()->employee;
+            if ($employee) {
+                ProjectAssignment::updateOrCreate(
+                    ['project_id' => $project->id, 'employee_id' => $employee->id],
+                    ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
+                );
+            } else {
+                throw new \Exception('Authenticated user has no employee relation');
+            }
+        } else {
+            throw new \Exception('User not authenticated');
+        }
+
+        // Handle co-author assignments
+        $newCoAuthors = $request->co_author && is_array($request->co_author)
+            ? array_unique($request->co_author)
+            : [];
+        $addedCoAuthors = array_diff($newCoAuthors, $existingCoAuthors);
+
+        ProjectAssignment::where('project_id', $project->id)
+            ->where('role', 'co_author')
+            ->delete();
+
+        if ($newCoAuthors) {
+            $coAuthorAssignments = [];
+            foreach ($newCoAuthors as $employeeId) {
+                if (!Employee::where('id', $employeeId)->exists()) {
+                    throw new \Exception("Co-author employee ID {$employeeId} does not exist");
+                }
+                $coAuthorAssignments[] = [
+                    'project_id' => $project->id,
+                    'employee_id' => $employeeId,
+                    'role' => 'co_author',
+                    'is_receive' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            ProjectAssignment::insert($coAuthorAssignments);
+        }
+
+        // Handle contributor assignments
+        $newContributors = $request->contributors && is_array($request->contributors)
+            ? array_unique($request->contributors)
+            : [];
+        $addedContributors = array_diff($newContributors, $existingContributors);
+
+        ProjectAssignment::where('project_id', $project->id)
+            ->where('role', 'contributor')
+            ->delete();
+
+        if ($newContributors) {
+            $contributorAssignments = [];
+            foreach ($newContributors as $employeeId) {
+                if (!Employee::where('id', $employeeId)->exists()) {
+                    throw new \Exception("Contributor employee ID {$employeeId} does not exist");
+                }
+                $contributorAssignments[] = [
+                    'project_id' => $project->id,
+                    'employee_id' => $employeeId,
+                    'role' => 'contributor',
+                    'is_receive' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+            ProjectAssignment::insert($contributorAssignments);
+        }
+
+        // 🔔 Gabungkan notifikasi co-author & contributor
+        $notifyEmployees = array_merge($addedCoAuthors, $addedContributors);
+        $uniqueNotifyEmployees = array_unique($notifyEmployees);
+
+        if ($uniqueNotifyEmployees) {
+            $authorEmployee = auth()->user()->employee;
+            foreach ($uniqueNotifyEmployees as $employeeId) {
+                $exists = Notification::where('employee_id', $employeeId)
+                    ->where('type', 'new job')
+                    ->where('title', 'LIKE', '%project: ' . $project->title)
+                    ->where('is_read', false)
+                    ->exists();
+
+                if (!$exists) {
+                    Notification::create([
+                        'employee_id' => $employeeId,
+                        'type' => 'new job',
+                        'title' => 'You have been assigned to project: ' . $project->title,
+                        'message' => 'You have been assigned to project: ' . $project->title,
+                        'sent_at' => now(),
+                        'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]);
+                }
+            }
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'message' => 'Project updated successfully',
+            'project' => $project
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'code' => $e->getCode() ?: 500,
+            'status' => "error",
+            'message' => $e->getMessage()
+        ], $e->getCode() ?: 500);
     }
+}
+
 
     /**
      * Remove the specified project from storage.
