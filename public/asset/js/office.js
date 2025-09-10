@@ -139,6 +139,9 @@ $(document).ready(function() {
 
     // Cache for latest fetched notifications with acceptance status
     let __notificationsCache = [];
+    
+    // Track user interaction with notification dropdown
+    let __dropdownWasOpenedByUser = false;
 
     function fetchNotifications() {
         console.log('Fetching notifications...');
@@ -620,6 +623,7 @@ $(document).ready(function() {
         if (dropdown.is(':visible')) {
             fetchNotifications();
             dropdownClosed = false;
+            __dropdownWasOpenedByUser = true; // Mark that user explicitly opened the dropdown
         } else {
             // When dropdown is hidden via toggle, also reset Select all checkbox
             dropdownClosed = true;
@@ -635,20 +639,26 @@ $(document).ready(function() {
         const selectAll = $('#notificationSelectAll');
         if (selectAll.length) selectAll.prop('checked', false);
 
-        // Auto-mark all project notifications as read when dropdown closes
-        const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
-        $.ajax({
-            url: `${appUrl}/notifications/mark-project-read`,
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        }).always(function() {
-            // Refresh badge and list (safe even if dropdown is hidden)
-            fetchNotificationCount();
-            // Refresh cache for next open
-            fetchNotifications();
-        });
+        // ONLY mark project notifications as read if user explicitly opened the dropdown
+        // This ensures notifications are only marked as read when user intentionally closes the dropdown
+        if (__dropdownWasOpenedByUser) {
+            const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+            $.ajax({
+                url: `${appUrl}/notifications/mark-project-read`,
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            }).always(function() {
+                // Refresh badge and list (safe even if dropdown is hidden)
+                fetchNotificationCount();
+                // Refresh cache for next open
+                fetchNotifications();
+            });
+        }
+        
+        // Reset the flag after closing
+        __dropdownWasOpenedByUser = false;
     }
 
     // Notification dropdown event handlers
@@ -690,8 +700,11 @@ $(document).ready(function() {
         } else {
             // Check if this is a project notification
             if (notificationTitle.includes('project')) {
-                // Redirect to project page without marking as read
-                window.location.href = `${appUrl}/project`;
+                // For project notifications, mark as read when clicked and redirect
+                markNotificationAsRead(notificationId, function() {
+                    // Redirect to project page
+                    window.location.href = `${appUrl}/project`;
+                });
             } else {
                 // Redirect to task page for other notifications without marking as read
                 window.location.href = `${appUrl}/task`;
