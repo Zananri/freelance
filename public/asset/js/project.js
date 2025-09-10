@@ -4086,30 +4086,30 @@ function updatePagination(pagination) {
     });
 }
 
-function initProjectFilter() {
-    const searchInput = document.getElementById("search_filter");
-    if (!searchInput) return;
+// function initProjectFilter() {
+//     const searchInput = document.getElementById("search_filter");
+//     if (!searchInput) return;
 
-    searchInput.addEventListener("keyup", function () {
-        const query = this.value.toLowerCase().trim();
+//     searchInput.addEventListener("keyup", function () {
+//         const query = this.value.toLowerCase().trim();
 
-        const cards = document.querySelectorAll("#all-cards-container .card");
+//         const cards = document.querySelectorAll("#all-cards-container .card");
 
-        cards.forEach(card => {
-            const text = card.innerText.toLowerCase();
-            if (text.includes(query)) {
-                card.style.display = "";
-            } else {
-                card.style.display = "none";
-            }
-        });
-    });
-}
+//         cards.forEach(card => {
+//             const text = card.innerText.toLowerCase();
+//             if (text.includes(query)) {
+//                 card.style.display = "";
+//             } else {
+//                 card.style.display = "none";
+//             }
+//         });
+//     });
+// }
 
-// init pas ready
-$(document).ready(function () {
-    initProjectFilter();
-});
+// // init pas ready
+// $(document).ready(function () {
+//     initProjectFilter();
+// });
 
 // ===== Unread badge and latest feedback snippet for Project (parity with Task) =====
 // Helpers to show/hide unread badge
