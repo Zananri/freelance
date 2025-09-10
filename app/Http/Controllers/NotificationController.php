@@ -311,6 +311,45 @@ class NotificationController extends Controller
     }
 
     /**
+     * Mark all project notifications as read for the current user
+     */
+    public function markProjectNotificationsRead()
+    {
+        DB::beginTransaction();
+        try {
+            $user = Auth::user();
+            
+            if (!$user || !$user->employee) {
+                throw new \Exception('Unauthorized', 401);
+            }
+
+            $employeeId = $user->employee->id;
+
+            Notification::where('employee_id', $employeeId)
+                ->where('is_read', false)
+                ->where('type', 'new job')
+                ->where('title', 'like', '%project%')
+                ->update(['is_read' => true]);
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Project notifications marked as read'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    /**
      * Delete a notification for the current authenticated user
      */
     public function deleteNotification($id)
