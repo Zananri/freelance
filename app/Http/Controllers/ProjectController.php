@@ -734,6 +734,7 @@ class ProjectController extends Controller
                         'project_id' => $project->id,
                         'employee_id' => $employeeId,
                         'role' => 'co_author',
+                        'is_receive' => true,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
@@ -766,6 +767,7 @@ class ProjectController extends Controller
                         'project_id' => $project->id,
                         'employee_id' => $employeeId,
                         'role' => 'contributor',
+                        'is_receive' => true,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
@@ -1112,6 +1114,7 @@ class ProjectController extends Controller
                         'project_id' => $project->id,
                         'employee_id' => $employeeId,
                         'role' => 'co_author',
+                        'is_receive' => true,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
@@ -1155,6 +1158,7 @@ class ProjectController extends Controller
                         'project_id' => $project->id,
                         'employee_id' => $employeeId,
                         'role' => 'contributor',
+                        'is_receive' => true,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];
