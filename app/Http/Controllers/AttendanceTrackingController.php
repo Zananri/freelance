@@ -7,6 +7,7 @@ use Carbon\Carbon;
 
 use App\Models\User;
 use App\Models\Attendance;
+use App\Models\AttendanceTracking;
 use App\Models\Employee;
 
 
@@ -58,5 +59,61 @@ class AttendanceTrackingController extends Controller
                 'message' => 'Get attendance tracking data successfully'
         ]);
 
+    }
+    
+    public function getAttendanceDetail(Request $request){
+
+        try{
+            
+            $employeeId = 0;
+            $dateAttendance = Carbon::now()->toDateString();
+
+            if(isset($request->EMPLOYEE_ID)){
+                $employeeId = $request->EMPLOYEE_ID;
+            }
+
+            if(isset($request->DATE_ATTENDANCE)){
+                $dateAttendance = Carbon::parse($request->DATE_ATTENDANCE)->toDateString();
+            }
+
+            $attendance = Attendance::where('employee_id', $employeeId)
+                ->where('date_attendance', $dateAttendance)
+            ->first();
+ 
+            if(!$attendance){
+                throw new \Exception('Attendance not found');
+            }
+
+            $employee = Employee::where('id', $employeeId)->first();
+
+            if(!$employee){
+                throw new \Exception('Employee not found');
+            }
+
+            $attendanceTracking = AttendanceTracking::where('attendance_id', $attendance->id)
+            ->get();
+            
+
+            return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => [
+                        'employee'  => $employee,
+                        'attendance' => $attendance,
+                        'attendance_tracking' => $attendanceTracking
+                    ],
+                    'message' => 'Succeess get attendance detail'
+            ]);
+
+        }catch (\Exception $e){
+
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+
+        }
     }
 }

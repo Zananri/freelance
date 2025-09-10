@@ -375,6 +375,7 @@ class AttendanceController extends Controller
                 throw new \Exception('Employee not found');
             }
 
+
             $shiftId = $employee->shift_id;
             $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
                     ->where('date_shift', $today)
@@ -437,12 +438,15 @@ class AttendanceController extends Controller
             $attendanceExist = Attendance::where('employee_id',$employee->id)->where('date_attendance',$now->toDateString())->first();
             $attendanceId = 0;
 
+            
             if($attendanceExist){
                 $attendanceId = $attendanceExist->id;
                 $attendanceExist->update([
                     'time_in' => $now->format('H:i'),
                     'status'    => $statusAttendance,
                     'time_late' => $timeLate,
+                    'shift_time_start' => $shifTimeStart->format('H:i'),
+                    'shift_time_end' => $shifTimeEnd->format('H:i'),
                     'updated_by' => $userId
                 ]);
             }else{
@@ -452,6 +456,8 @@ class AttendanceController extends Controller
                     'date_attendance' => $now->toDateString(),
                     'time_in' => $now->format('H:i'),
                     'type_attendance' => 'check_in',
+                    'shift_time_start' => $shifTimeStart->format('H:i'),
+                    'shift_time_end' => $shifTimeEnd->format('H:i'),
                     'note' => null,
                     'status' => $statusAttendance,
                     'image' => $imageArray,
@@ -620,6 +626,7 @@ class AttendanceController extends Controller
  
 
             $attendanceId = 0;
+            
 
             if($attendance){
                 
@@ -645,9 +652,28 @@ class AttendanceController extends Controller
                 ]);
 
                 $attendanceId = $attendanceNew->id;
-
                 
             }
+            
+            $totalWorkDuration = null;
+
+            $attendanceTrackingCheckIn = AttendanceTracking::where('attendance_id', $attendanceId)
+                ->where('type', 'check_in')
+            ->first();
+
+            
+            if($attendanceTrackingCheckIn){
+                
+                $checkInTime = Carbon::parse($attendanceTrackingCheckIn->date_time);
+
+                $totalWorkDuration = $checkInTime->diff(Carbon::now())->format('%H:%I');
+
+                Attendance::where('employee_id', $employee->id)->where('date_attendance', $dateAttendance)
+                ->update([
+                    'total_work_duration' => $totalWorkDuration
+                ]);
+            }
+
             
             $attendanceTracking = AttendanceTracking::where('attendance_id', $attendanceId)
                 ->where('type', 'check_out')

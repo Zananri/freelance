@@ -254,6 +254,7 @@ Route::middleware('auth', 'management')->group(function () {
 
     Route::get('/attendance_tracking', [AttendanceTrackingController::class, 'showAttendanceTrackingPage'])->name('attendance_tracking');
     Route::get('/attendance_tracking/get-attendance-tracking-data', [AttendanceTrackingController::class, 'getAttendanceTrackingData'])->name('attendance_tracking.getAttendanceTrackingData');
+    Route::get('/attendance_tracking/get-attendance-detail', [AttendanceTrackingController::class, 'getAttendanceDetail'])->name('attendance_tracking.getAttendanceDetail');
     
     Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
     Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
