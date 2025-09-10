@@ -1057,7 +1057,6 @@ class TaskController extends Controller
         }
     }
 
-
     public function edit(string $id)
     {
         $task = Task::with([
@@ -1334,7 +1333,7 @@ class TaskController extends Controller
             $task = Task::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'status' => 'required|in:new request,in progress,completed,rejected,new_request,in_progress',
+                'status' => 'required|in:new request,in progress,completed,rejected,new_request,in_progress,back_to_request',
             ]);
 
             if ($validator->fails()) {
@@ -1353,6 +1352,7 @@ class TaskController extends Controller
                 'rejected' => 'rejected',
                 'new_request' => 'new_request',
                 'in_progress' => 'in_progress',
+                'back_to_request' => 'new_request',
             ];
 
             $dbStatus = $statusMap[$request->status] ?? $request->status;
@@ -2141,17 +2141,60 @@ class TaskController extends Controller
                 throw new \Exception('Unauthorized', 401);
             }
 
-            $assignment = TaskAssignment::where('task_id', $taskId)
-                ->where('employee_id', $user->employee->id)
-                ->where('role', 'EXECUTOR')
-                ->first();
+            // Cast IDs to integers to avoid type mismatch issues
+            $taskId = (int) $taskId;
+            $employeeId = (int) $user->employee->id;
 
-            if (!$assignment) {
-                throw new \Exception('Task assignment not found', 404);
+            // Load the task to check PIC
+            $task = Task::find($taskId);
+            if (!$task) {
+                throw new \Exception('Task not found', 404);
             }
 
-            // Remove the assignment to represent rejection
-            $assignment->delete();
+            // Check if task is already rejected
+            if ($task->status === 'rejected') {
+                throw new \Exception('Task is already rejected', 400);
+            }
+
+            // Check if user is PIC (check both task.pic_id and assignment role)
+            $isPic = ($task->pic_id === $employeeId);
+
+            // Also check if user has PIC assignment for this task
+            $picAssignment = TaskAssignment::where('task_id', $taskId)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->first();
+
+            if ($picAssignment) {
+                $isPic = true;
+            }
+
+            // Find assignment for user and task (only needed for non-PIC users)
+            $assignment = null;
+            if (!$isPic) {
+                $assignment = TaskAssignment::where('task_id', $taskId)
+                    ->where('employee_id', $employeeId)
+                    ->first();
+            }
+
+            // Handle rejection based on role
+            if ($isPic) {
+                // PIC rejecting the task - update task status to rejected
+                $task->status = 'rejected';
+                $task->save();
+
+                // Delete all assignments for this task since it's rejected
+                TaskAssignment::where('task_id', $taskId)->delete();
+            } elseif ($assignment && $assignment->role === 'EXECUTOR') {
+                // Executor cannot reject tasks - throw error
+                throw new \Exception('Executors cannot reject tasks', 403);
+            } elseif ($assignment) {
+                // Other roles can reject by deleting their assignment
+                $assignment->delete();
+            } else {
+                // If no assignment found, throw error instead of allowing multiple rejects
+                throw new \Exception('No assignment found to reject', 400);
+            }
 
             DB::commit();
 

@@ -43,6 +43,51 @@ $(document).ready(function() {
         });
     })();
 
+    // === Notification Helper Functions ===
+    
+    // Helper function to check if notification should show "Read" label
+    function shouldShowReadLabel(notificationId) {
+        const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+        
+        // Check if red dot (unread indicator) is still visible
+        // Periksa apakah notification-unread-dot masih ada
+        const hasRedDot = notificationElement.find('.notification-unread-dot').length > 0;
+        
+        // Check badge count and visibility
+        const badge = $('#notificationBadge');
+        const badgeCount = parseInt(badge.text()) || 0;
+        const isBadgeHidden = badge.is(':hidden') || badge.css('display') === 'none';
+        
+        // PENTING: Label "Read" HANYA muncul jika:
+        // 1. notification-unread-dot sudah hilang DAN
+        // 2. badge count sudah 0 ATAU badge sudah disembunyikan
+        // Jangan tampilkan "Read" jika notification-unread-dot masih ada atau badge count masih > 0
+        return !hasRedDot && (badgeCount === 0 || isBadgeHidden);
+    }
+    
+    // Helper function to update notification read status with conditional "Read" label
+    function updateNotificationReadStatus(notificationId) {
+        const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+        
+        // Always create "Read" label with hidden attribute first
+        notificationElement.find('.notification-actions').html('<div class="notification-read-label" hidden="">Read</div>');
+        
+        // Always remove the red dot first
+        notificationElement.find('.notification-unread-dot').remove();
+        
+        // Wait a moment to ensure DOM is updated, then check if we should show the "Read" label
+        setTimeout(function() {
+            // Check if red dot is really gone
+            const stillHasRedDot = notificationElement.find('.notification-unread-dot').length > 0;
+            
+            if (!stillHasRedDot) {
+                // Remove hidden attribute to show "Read" label only when red dot is gone
+                notificationElement.find('.notification-read-label').removeAttr('hidden');
+            }
+            // If red dot still exists, "Read" label stays hidden
+        }, 200); // Short delay to ensure red dot removal is processed
+    }
+
      function toggleSidebar() {
         $('body').toggleClass('hide-sidebar');
 
@@ -94,6 +139,9 @@ $(document).ready(function() {
 
     // Cache for latest fetched notifications with acceptance status
     let __notificationsCache = [];
+    
+    // Track user interaction with notification dropdown
+    let __dropdownWasOpenedByUser = false;
 
     function fetchNotifications() {
         console.log('Fetching notifications...');
@@ -170,7 +218,13 @@ $(document).ready(function() {
                     `;
                 } else {
                     // Show "Read" label for accepted/read notifications
-                    actionElement = '<div class="notification-read-label">Read</div>';
+                    // For project notifications, use hidden attribute if notification still has unread indicator
+                    if (isProjectAssignment) {
+                        actionElement = '<div class="notification-read-label" hidden="">Read</div>';
+                    } else {
+                        // For non-project notifications, use normal display
+                        actionElement = '<div class="notification-read-label">Read</div>';
+                    }
                 }
 
                 // Add unread indicator dot for unread notifications
@@ -197,6 +251,25 @@ $(document).ready(function() {
                 `;
             });
             notificationList.html(html);
+            
+            // After rendering notifications, check and update "Read" label visibility for project notifications
+            setTimeout(function() {
+                $('.notification-item').each(function() {
+                    const notificationElement = $(this);
+                    const notificationTitle = notificationElement.find('.notification-title').text().toLowerCase();
+                    
+                    // Only process project notifications
+                    if (notificationTitle.includes('project')) {
+                        const hasRedDot = notificationElement.find('.notification-unread-dot').length > 0;
+                        const readLabel = notificationElement.find('.notification-read-label');
+                        
+                        if (!hasRedDot && readLabel.length > 0) {
+                            // Remove hidden attribute to show "Read" label when red dot is gone
+                            readLabel.removeAttr('hidden');
+                        }
+                    }
+                });
+            }, 100); // Small delay to ensure DOM is fully rendered
         });
             },
             error: function(xhr, status, error) {
@@ -227,23 +300,8 @@ $(document).ready(function() {
         }, []);
     }
     function extractProjectAssignments(list) {
-        return (list || []).reduce((acc, n) => {
-            try {
-                // Consider as project assignment only if:
-                // - type matches project type
-                // - project_id has been resolved by checkProjectAcceptanceStatus
-                // - explicitly marked as not accepted
-                // - still unread (avoid counting old already-handled items)
-                const isProjType = (n.type === 'new job') && String(n.title || '').toLowerCase().includes('project');
-                const hasProjectId = !!n.project_id; // set in checkProjectAcceptanceStatus when project found
-                const isUnread = !n.is_read;
-                const hasExplicitUnaccepted = (typeof n.is_accepted !== 'undefined') && (n.is_accepted === false);
-                if (isProjType && hasProjectId && isUnread && hasExplicitUnaccepted) {
-                    acc.push({ projectTitle: n.message?.match(/project: (.+)$/)?.[1] || '', notificationId: n.id, projectId: n.project_id });
-                }
-            } catch(_) {}
-            return acc;
-        }, []);
+        // Disable bulk-accept for projects: never return items
+        return [];
     }
 
     // Fetch all projects once and build a map: title -> id
@@ -565,6 +623,7 @@ $(document).ready(function() {
         if (dropdown.is(':visible')) {
             fetchNotifications();
             dropdownClosed = false;
+            __dropdownWasOpenedByUser = true; // Mark that user explicitly opened the dropdown
         } else {
             // When dropdown is hidden via toggle, also reset Select all checkbox
             dropdownClosed = true;
@@ -579,6 +638,27 @@ $(document).ready(function() {
         // Reset Select all checkbox when dropdown closes
         const selectAll = $('#notificationSelectAll');
         if (selectAll.length) selectAll.prop('checked', false);
+
+        // ONLY mark project notifications as read if user explicitly opened the dropdown
+        // This ensures notifications are only marked as read when user intentionally closes the dropdown
+        if (__dropdownWasOpenedByUser) {
+            const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+            $.ajax({
+                url: `${appUrl}/notifications/mark-project-read`,
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            }).always(function() {
+                // Refresh badge and list (safe even if dropdown is hidden)
+                fetchNotificationCount();
+                // Refresh cache for next open
+                fetchNotifications();
+            });
+        }
+        
+        // Reset the flag after closing
+        __dropdownWasOpenedByUser = false;
     }
 
     // Notification dropdown event handlers
@@ -620,8 +700,11 @@ $(document).ready(function() {
         } else {
             // Check if this is a project notification
             if (notificationTitle.includes('project')) {
-                // Redirect to project page without marking as read
-                window.location.href = `${appUrl}/project`;
+                // For project notifications, mark as read when clicked and redirect
+                markNotificationAsRead(notificationId, function() {
+                    // Redirect to project page
+                    window.location.href = `${appUrl}/project`;
+                });
             } else {
                 // Redirect to task page for other notifications without marking as read
                 window.location.href = `${appUrl}/task`;
@@ -736,13 +819,14 @@ $(document).ready(function() {
                             },
                             success: function() {
                                 console.log('Notification marked as read successfully');
-                                // Update the notification UI to show it as read
-                                const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                                notificationElement.find('.notification-unread-dot').remove();
-                                notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
-
-                                // Update notification count
+                                
+                                // Update notification count first
                                 fetchNotificationCount();
+                                
+                                // Then update the notification UI with conditional "Read" label
+                                setTimeout(function() {
+                                    updateNotificationReadStatus(notificationId);
+                                }, 200); // Delay to ensure badge count is updated first
 
                                 // Optional navigation: only if API requests reload or user is already on project page
                                 const onProjectPage = (window.location.pathname || '').includes('/project');
@@ -758,13 +842,13 @@ $(document).ready(function() {
                             },
                             error: function() {
                                 console.error('Failed to mark notification as read');
+                                
                                 // Still update the UI and count even if marking as read fails
-                                const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                                notificationElement.find('.notification-unread-dot').remove();
-                                notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
-
-                                // Update notification count
                                 fetchNotificationCount();
+                                
+                                setTimeout(function() {
+                                    updateNotificationReadStatus(notificationId);
+                                }, 200);
 
                                 // Optional navigation: only if user is already on project page
                                 const onProjectPage2 = (window.location.pathname || '').includes('/project');
@@ -828,13 +912,23 @@ $(document).ready(function() {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             success: function() {
-                // Update notification UI to show as read
-                const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                notificationElement.find('.notification-unread-dot').remove();
-                notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
-
-                // Update notification count
+                // Update notification count first
                 fetchNotificationCount();
+                
+                // Then update the notification UI with conditional "Read" label for project notifications only
+                setTimeout(function() {
+                    const notificationElement = $(`[data-notification-id="${notificationId}"]`);
+                    const notificationTitle = notificationElement.find('.notification-title').text().toLowerCase();
+                    
+                    // Only apply conditional logic for project notifications
+                    if (notificationTitle.includes('project')) {
+                        updateNotificationReadStatus(notificationId);
+                    } else {
+                        // For non-project notifications (like tasks), use original logic
+                        notificationElement.find('.notification-unread-dot').remove();
+                        notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
+                    }
+                }, 200); // Delay to ensure badge count is updated first
 
                 // Execute callback if provided
                 if (typeof callback === 'function') {
@@ -1154,4 +1248,5 @@ function hideAlertMsg(){
 $(document).on('click','.btn-close-alert-messages',function(){
     hideAlertMsg();
 });
+
 

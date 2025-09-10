@@ -152,7 +152,7 @@
         }
         return colors[Math.abs(hash) % colors.length];
     }
- 
+
     // Show Accept confirmation modal (task page, no notification context)
     function showAcceptInviteModal(taskId) {
         // Fetch task to display context
@@ -169,10 +169,10 @@
                 let img = "";
                 if (t.image) {
                     // Kalau ada gambar
-                    img = `<img src="${appUrl}/file/task/${t.image}" 
-                                    alt="Task Image" 
-                                    class="rounded-circle" 
-                                    style="width:34px; height:34px; object-fit:cover;" 
+                    img = `<img src="${appUrl}/file/task/${t.image}"
+                                    alt="Task Image"
+                                    class="rounded-circle"
+                                    style="width:34px; height:34px; object-fit:cover;"
                                     onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
                 } else {
                     const initials = getTaskInitials(t.title);
@@ -270,7 +270,6 @@
         });
     }
 
-
     // Show Reject confirmation modal (task page)
     function showRejectInviteModal(taskId) {
         $.ajax({
@@ -286,10 +285,10 @@
                 let img = "";
                 if (t.image) {
                     // Kalau ada gambar
-                    img = `<img src="${appUrl}/file/task/${t.image}" 
-                                    alt="Task Image" 
-                                    class="rounded-circle" 
-                                    style="width:34px; height:34px; object-fit:cover;" 
+                    img = `<img src="${appUrl}/file/task/${t.image}"
+                                    alt="Task Image"
+                                    class="rounded-circle"
+                                    style="width:34px; height:34px; object-fit:cover;"
                                     onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
                 } else {
                     const initials = getTaskInitials(t.title);
@@ -1487,14 +1486,7 @@ document.addEventListener("click", function (e) {
 
     // Function to create task card HTML
     function createTaskCard(task) {
-    const userId = window.CurrentUserId;
-
-    const isExecutor = (task.executors || []).some(ex => ex.id === userId);
-    const isPic = task.pic && task.pic.id === userId;
-
-    if (task.status === "rejected" && isExecutor && !isPic) {
-        return "";
-    }
+        const userId = window.CurrentUserId;
 
         const placeholderProjectImg = `${appUrl}/asset/img/avatar.png`;
 
@@ -1682,7 +1674,7 @@ document.addEventListener("click", function (e) {
                         return avatarHtml;
                     })()}
                     <div class="d-flex flex-column">
-                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${task.project_title || '-'}</small>` : ''}
+                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: </small>` : ''}
                         <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
                     </div>
                 </div>
@@ -1902,13 +1894,12 @@ function renderSingleSection(status, sectionData, append = false) {
         const executorIds = (task.executors || []).map(e => String(e.id));
         const uid = String(currentUserId || "");
 
-        const isPic = picId && uid && picId === uid;
-        const isExecutor = executorIds.includes(uid);
+        const isPic = picId && uid && picId === uid
+        const isExecutor = executorIds.some(id => id === uid);
 
-        // Revisi: tampilkan task rejected untuk PIC maupun Executor agar konsisten dengan dashboard "My Task"
         if (isRejected) {
-            if (isPic || isExecutor) return true; // sebelumnya PIC disembunyikan
-            return false; // user lain tetap tidak melihat
+            if (isPic || isExecutor) return true;
+            return false;
         }
 
         return true;
@@ -2264,8 +2255,8 @@ $(document).on("keyup", "#search_filter", function () {
                             </div>
                             <div class="modal-body"><p class="mb-0">Accept ${count} selected task${count>1?'s':''}?</p></div>
                             <div class="modal-footer d-flex justify-content-center" style="gap:8px;">
-                                <button type="button" class="btn btn-close-reply" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-submit-black" id="confirmBulkAcceptBtn">Accept</button>
+                            <button type="button" class="btn btn-close-reply" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-submit-black" id="confirmBulkAcceptBtn">Accept</button>
                             </div>
                         </div>
                     </div>
@@ -2652,291 +2643,177 @@ $(document).on("keyup", "#search_filter", function () {
         }
     }
 
-    // Function to handle task progress (new request -> in progress)
-    function handleTaskProgress(taskId, taskCard) {
-        showStatusModal(taskId, taskCard, 'in_progress', 'Progress', 'In Progress', 'Task is being worked on');
-    }
-
-    // Function to handle task complete (in progress -> completed)
-    function handleTaskComplete(taskId, taskCard) {
-        showStatusModal(taskId, taskCard, 'completed', 'Set to Complete', 'Completed', 'Task has been finished');
-    }
-
-    // Function to handle task reject (completed -> rejected)
-    function handleTaskReject(taskId, taskCard) {
-        showStatusModal(taskId, taskCard, 'rejected', 'Reject', 'Rejected', 'Task has been rejected');
-    }
-
-    // Function to handle task back to request (in progress -> new request)
-    function handleTaskBackToRequest(taskId, taskCard) {
-        showStatusModal(taskId, taskCard, 'new_request', 'Back to Request', 'New Request', 'Task is back to new request');
-    }
-
-   function showStatusModal(taskId, taskCard, newStatus, modalTitle, statusTitle, statusDescription) {
-    $.ajax({
-        url: appUrl + "/task/" + taskId,
-        type: "GET",
-        dataType: "json",
-        success: function (res) {
-            // Ambil dari data.data sesuai struktur Laravel
-            const taskData = res.data || {};
-            const taskTitle = taskData.title || 'Untitled Task';
-            const taskDescription = taskData.description || 'No description available';
-
-            // Potong description kalau terlalu panjang
-            const truncatedDescription = taskDescription.length > 20
-                ? taskDescription.substring(0, 20) + '...'
-                : taskDescription;
-
-            // Tentukan modal ID & confirm button ID
-            let modalId, confirmBtnId;
-            switch (newStatus) {
-                case 'in_progress':
-                    modalId = 'progressStatusModal';
-                    confirmBtnId = 'confirmProgressStatusBtn';
-                    break;
-                case 'completed':
-                    modalId = 'completeStatusModal';
-                    confirmBtnId = 'confirmCompleteStatusBtn';
-                    break;
-                case 'rejected':
-                    modalId = 'rejectStatusModal';
-                    confirmBtnId = 'confirmRejectStatusBtn';
-                    break;
-                default:
-                    modalId = 'progressStatusModal';
-                    confirmBtnId = 'confirmProgressStatusBtn';
-            }
-
-            // Set teks modal
-            const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
-            const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
-
-            if (statusTitleEl) statusTitleEl.textContent = taskTitle;
-            if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
-
-            // Tampilkan modal
-            const statusModal = new bootstrap.Modal(document.getElementById(modalId));
-            statusModal.show();
-
-            // Tombol konfirmasi
-            const confirmBtn = document.getElementById(confirmBtnId);
-            confirmBtn.onclick = function () {
-                updateTaskStatus(taskId, newStatus, taskCard);
-                statusModal.hide();
-            };
-        },
-        error: function () {
-            const fallbackTitle = 'Task #' + taskId;
-            const fallbackDescription = 'Task description not available';
-
-            const truncatedDescription = fallbackDescription.length > 20
-                ? fallbackDescription.substring(0, 20) + '...'
-                : fallbackDescription;
-
-            let modalId, confirmBtnId;
-            switch (newStatus) {
-                case 'in_progress':
-                    modalId = 'progressStatusModal';
-                    confirmBtnId = 'confirmProgressStatusBtn';
-                    break;
-                case 'completed':
-                    modalId = 'completeStatusModal';
-                    confirmBtnId = 'confirmCompleteStatusBtn';
-                    break;
-                case 'rejected':
-                    modalId = 'rejectStatusModal';
-                    confirmBtnId = 'confirmRejectStatusBtn';
-                    break;
-                default:
-                    modalId = 'progressStatusModal';
-                    confirmBtnId = 'confirmProgressStatusBtn';
-            }
-
-            const statusTitleEl = document.getElementById(modalId.replace('Modal', 'Title'));
-            const statusDescriptionEl = document.getElementById(modalId.replace('Modal', 'Description'));
-
-            if (statusTitleEl) statusTitleEl.textContent = fallbackTitle;
-            if (statusDescriptionEl) statusDescriptionEl.textContent = truncatedDescription;
-
-            const statusModal = new bootstrap.Modal(document.getElementById(modalId));
-            statusModal.show();
-
-            const confirmBtn = document.getElementById(confirmBtnId);
-            confirmBtn.onclick = function () {
-                updateTaskStatus(taskId, newStatus, taskCard);
-                statusModal.hide();
-            };
-        }
-    });
-
-    // Dynamic status change handling (progress, complete, reject, back) with instant UI refresh & alert
-    document.addEventListener('click', function(e){
-        const item = e.target.closest('.dropdown-item.progress-task, .dropdown-item.complete-task, .dropdown-item.reject-task, .dropdown-item.back-to-request');
-        if (!item) return;
-        e.preventDefault();
-        const card = item.closest('.custom-card');
-        if (!card) return;
-        const taskId = card.getAttribute('data-task-id');
-        if (!taskId) return;
-        let action = '';
-        if (item.classList.contains('progress-task')) action = 'progress';
-        else if (item.classList.contains('complete-task')) action = 'complete';
-        else if (item.classList.contains('reject-task')) action = 'reject';
-        else if (item.classList.contains('back-to-request')) action = 'back';
-        if (!action) return;
-        const urlMap = {
-            progress: appUrl + '/task/' + taskId + '/progress',
-            complete: appUrl + '/task/' + taskId + '/complete',
-            reject: appUrl + '/task/' + taskId + '/reject',
-            back: appUrl + '/task/' + taskId + '/back-to-request'
-        };
-        const targetUrl = urlMap[action];
-        if (!targetUrl) return;
-        const originalHtml = item.innerHTML;
-        item.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-        function immediateMove(newStatus){
-            if(!card) return;
-            card.setAttribute('data-task-status', newStatus);
-            // Remove existing REJECTED badge if any
-            card.querySelectorAll('.badge.bg-danger').forEach(b=>b.remove());
-            if(newStatus === 'rejected'){
-                // Add badge
-                const badge = document.createElement('span');
-                badge.className = 'badge bg-danger position-absolute';
-                badge.style.cssText = 'font-size:10px;font-weight:500;top:25%;right:18px;';
-                badge.textContent = 'REJECTED';
-                card.appendChild(badge);
-            }
-            // Determine destination column id
-            let destId = '';
-            if (newStatus === 'completed') destId = 'completed-tasks';
-            else if (newStatus === 'rejected' || newStatus === 'in_progress' || newStatus === 'in progress') destId = 'in-progress-tasks';
-            else if (newStatus === 'new_request' || newStatus === 'new request') destId = 'new-request-tasks';
-            if(destId){
-                const dest = document.getElementById(destId);
-                if (dest && !dest.contains(card)) {
-                    card.parentNode && card.parentNode.removeChild(card);
-                    dest.prepend(card); // show at top
-                }
-            }
-        }
-
-        fetch(targetUrl, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }
-        }).then(r => r.ok ? r.json() : r.json().then(Promise.reject))
-          .then(res => {
-              try { showFloatingAlert(res.message || 'Status updated', 'success', 1300); } catch(_) {}
-              // If response contains new status, apply immediate move
-              const newStatus = (res.data && (res.data.status || res.data.new_status)) || res.status || res.new_status || null;
-              if(newStatus) immediateMove(String(newStatus).toLowerCase());
-              // Refresh lists without full reload
-              fetchAndRenderTasks();
-          })
-          .catch(err => {
-              try { showFloatingAlert((err && (err.message||'Failed to update status')),'warning',2500); } catch(_) {}
-          })
-          .finally(()=>{ item.innerHTML = originalHtml; });
-    });
+function handleTaskProgress(taskId, taskCard) {
+    showStatusModal(taskId, "in_progress");
 }
+
+function handleTaskComplete(taskId, taskCard) {
+    showStatusModal(taskId, "completed");
+}
+
+function handleTaskReject(taskId, taskCard) {
+    showStatusModal(taskId, "reject");
+    console.log("Task ID:", taskId);
+}
+
+function handleTaskBackToRequest(taskId, taskCard) {
+    showStatusModal(taskId, "back_to_request");
+}
+
+    function showStatusModal(taskId, newStatus) {
+        newStatus = String(newStatus).toLowerCase();
+
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            method: "GET",
+            success: function(res) {
+                const t = (res && (res.data || res)) || {};
+                const title = t.title || "Task";
+                const project_title = (t.project && t.project.title) || "";
+                const desc = t.description || "";
+                const priority = t.priority || "";
+                const due_date = t.due_date || "";
+
+                let img = "";
+                if (t.image) {
+                    img = `<img src="${appUrl}/file/task/${t.image}" class="rounded-circle" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                } else {
+                    const initials = getTaskInitials(t.title);
+                    const bgColor = getRandomColorFromText(t.title);
+                    img = `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:34px;height:34px;background:${bgColor};color:#fff;font-size:13px;font-weight:600;">${initials}</div>`;
+                }
+
+                const labels = {
+                    in_progress: { action: "Move to In Progress", button: "Start Task", confirm: "Are you sure you want to move this task to In Progress?" },
+                    completed: { action: "Mark as Completed", button: "Complete Task", confirm: "Are you sure you want to mark this task as Completed?" },
+                    reject: { action: "Reject Task", button: "Reject", confirm: "Are you sure you want to reject this task?" },
+                    back_to_request: { action: "Move Back to Request", button: "Back to Request", confirm: "Are you sure you want to move this task back to Request?" },
+                    accept: { action: "Accept Task", button: "Accept", confirm: "Are you sure you want to accept this task?" },
+                    default: { action: "Update Status", button: "Confirm", confirm: "Are you sure you want to update this task?" }
+                };
+
+                const { action, button, confirm } = labels[newStatus] || labels.default;
+
+                const id = "statusConfirmModal";
+                const modalHtml = `
+                    <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-header border-0">
+                                    <h5 class="modal-title fs-5">${action}</h5>
+                                </div>
+                                <div class="modal-body modal-body-custom" style="max-height:60vh; overflow-y:auto;">
+                                    <div class="d-flex">
+                                        <div class="me-3">${img}</div>
+                                        <div style="min-width:0;">
+                                            ${project_title ? `<small class="text-muted" style="font-size:10px;">Part of Project: ${project_title}</small>` : ""}
+                                            <h6 style="font-size:16px;font-weight:600;margin:0;">${title}</h6>
+                                            <div style="margin-top:.25rem;font-size:14px;">${desc}</div>
+                                        </div>
+                                    </div>
+                                    <hr class="text-seperator rounded-md">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div style="font-size:10px;"><span style="color:#797E91;">Priority: </span><span style="color:${priority==="HIGH"?"red":"#4B4F5E"}">${priority}</span></div>
+                                        <div style="font-size:10px;"><span style="color:#797E91;">Deadline: </span><span style="color:#4B4F5E">${due_date}</span></div>
+                                    </div>
+                                    <div class="alert alert-warning py-2 px-3 mt-2 mb-0" style="font-size:12px;">${confirm}</div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmStatusBtn">${button}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.insertAdjacentHTML("beforeend", modalHtml);
+                const mEl = document.getElementById(id);
+                const modal = new bootstrap.Modal(mEl);
+                modal.show();
+
+                mEl.addEventListener("hidden.bs.modal", function onHide() {
+                    mEl.removeEventListener("hidden.bs.modal", onHide);
+                    mEl.remove();
+                });
+
+                mEl.querySelector("#confirmStatusBtn").addEventListener("click", function() {
+                    const btn = this;
+                    btn.disabled = true;
+                    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>${button}...`;
+
+                    updateTaskStatus(taskId, newStatus).then(() => {
+                        modal.hide();
+                    }).finally(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = button;
+                    });
+                });
+            },
+            error: function(xhr) {
+                showFloatingAlert("Task not found.", "danger");
+            }
+        });
+    }
 
     // Bulk operation control flags
     let bulkStatusOperationActive = false;
     let bulkStatusSuppressRefresh = false;
-    let bulkStatusPendingCount = 0; // number of AJAX calls enqueued (incremental)
-    let bulkStatusCompletedCount = 0; // number of completed calls
-    let bulkStatusExpectedCount = 0; // fixed expected count for current bulk
-    let bulkFinalStatusMessage = null; // aggregated message
-    let bulkFinalAlertShown = false; // guard to ensure single final alert
+    let bulkStatusPendingCount = 0;
+    let bulkStatusCompletedCount = 0;
+    let bulkStatusExpectedCount = 0;
+    let bulkFinalStatusMessage = null;
+    let bulkFinalAlertShown = false;
 
-    // Function to update task status via AJAX
-    function updateTaskStatus(taskId, newStatus, taskCard) {
-        if (bulkStatusOperationActive) bulkStatusPendingCount++;
+    // Universal update function
+    function updateTaskStatus(taskId, newStatus, taskCard = null) {
         return new Promise((resolve, reject) => {
+            let ajaxUrl = "";
+            let ajaxMethod = "POST";
+            let ajaxData = {
+                _token: document.querySelector('meta[name="csrf-token"]').content
+            };
+
+            switch(newStatus) {
+                case "accept":
+                    ajaxUrl = appUrl + "/task/" + taskId + "/accept";
+                    ajaxMethod = "POST";
+                    break;
+                case "reject":
+                    ajaxUrl = appUrl + "/task/" + taskId + "/reject";
+                    ajaxMethod = "POST";
+                    break;
+                case "back_to_request":
+                case "in_progress":
+                case "completed":
+                    ajaxUrl = appUrl + "/task/" + taskId + "/status";
+                    ajaxMethod = "PUT";
+                    ajaxData.status = newStatus;
+                    break;
+                default:
+                    ajaxUrl = appUrl + "/task/" + taskId + "/status";
+                    ajaxMethod = "PUT";
+                    ajaxData.status = newStatus;
+                    break;
+            }
+
             $.ajax({
-                url: appUrl + "/task/" + taskId + "/status",
-                type: "PUT",
-                headers: {
-                    "X-CSRF-TOKEN": document
-                        .querySelector('meta[name="csrf-token"]')
-                        .getAttribute("content"),
+                url: ajaxUrl,
+                method: ajaxMethod,
+                data: ajaxData,
+                headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content") },
+                success: function(res) {
+                    if (taskCard) taskCard.remove();
+                    fetchAndRenderTasks();
+                    showFloatingAlert(res.message || "Task status updated!", "success");
+                    resolve(res);
                 },
-                data: { status: newStatus },
-                success: function (response) {
-                    const oldStatus = (taskCard && taskCard.getAttribute('data-task-status')) || null;
-                    if (taskCard) {
-                        const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                            const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                            if (tooltipInstance) tooltipInstance.dispose();
-                        });
-                        taskCard.remove();
-                    }
-                    if (!bulkStatusSuppressRefresh) fetchAndRenderTasks();
-                    // Mobile dynamic refresh (avoid full reload): if mobile status selector present
-                    try {
-                        const mobileStatusSel = document.getElementById('taskStatusSelect');
-                        if (mobileStatusSel) {
-                            const currentMobileStatus = mobileStatusSel.value;
-                            const destStatus = String(newStatus);
-                            const sourceStatus = oldStatus ? String(oldStatus).toLowerCase() : null;
-                            const needsRefreshCurrent = (currentMobileStatus === destStatus) || (sourceStatus && currentMobileStatus === sourceStatus);
-                            // Always refresh destination bucket so moved card appears when user switches later
-                            const statusesToRefresh = new Set();
-                            if (sourceStatus) statusesToRefresh.add(sourceStatus);
-                            statusesToRefresh.add(destStatus);
-                            statusesToRefresh.forEach(st => {
-                                if (typeof mobileState !== 'undefined') {
-                                    const prevActive = (st === currentMobileStatus);
-                                    // Reset pagination for that status and fetch
-                                    mobileState.page = 1; mobileState.last = 1; mobileState.status = prevActive ? currentMobileStatus : st;
-                                }
-                                try { fetchMobileTasks(st, 1, false, { prefetch: true }); } catch(_) {}
-                            });
-                            // Restore selector value if we temporarily changed state.status in loop
-                            if (typeof mobileState !== 'undefined') mobileState.status = currentMobileStatus;
-                            if (needsRefreshCurrent) {
-                                // Ensure currently viewed list reflects new data (already fetched above) and scroll stays at top
-                                try { const list = document.getElementById('mobile-task-list'); if (list) list.scrollTop = 0; } catch(_) {}
-                            }
-                        }
-                    } catch(_) {}
-                    if (bulkStatusOperationActive) {
-                        bulkStatusCompletedCount++;
-                        if (!bulkFinalStatusMessage) bulkFinalStatusMessage = response.message || 'Task status updated successfully';
-                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
-                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
-                            bulkFinalAlertShown = true;
-                            fetchAndRenderTasks();
-                            showFloatingAlert(bulkFinalStatusMessage, 'success');
-                            bulkStatusPendingCount = 0;
-                            bulkStatusCompletedCount = 0;
-                            bulkStatusExpectedCount = 0;
-                            bulkFinalStatusMessage = null;
-                        }
-                    } else {
-                        showFloatingAlert(response.message || 'Task status updated successfully', 'success');
-                    }
-                    resolve();
-                },
-                error: function (xhr) {
-                    let errorMessage = "Failed to update task status.";
-                    if (xhr.responseJSON && xhr.responseJSON.message) errorMessage = xhr.responseJSON.message;
-                    if (xhr.responseJSON && xhr.responseJSON.errors) errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-                    showFloatingAlert(errorMessage, "danger");
-                    if (bulkStatusOperationActive) {
-                        bulkStatusCompletedCount++;
-                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
-                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
-                            bulkFinalAlertShown = true;
-                            if (!bulkFinalStatusMessage) bulkFinalStatusMessage = 'Bulk update finished (with some errors)';
-                            fetchAndRenderTasks();
-                        }
-                    }
-                    reject(errorMessage);
-                },
+                error: function(xhr) {
+                    let msg = "Failed to update task status.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                    showFloatingAlert(msg, "danger");
+                    reject(msg);
+                }
             });
         });
     }
@@ -3058,26 +2935,30 @@ $(document).on("keyup", "#search_filter", function () {
     });
 
     // Function to handle task feedback
-    function handleTaskFeedback(taskId) {
-        // Reset feedback submission state
-        feedbackSubmitted = false;
+    // function handleTaskFeedback(taskId) {
+    //     // Reset feedback submission state
+    //     feedbackSubmitted = false;
 
-        // Show the feedback modal
-        const feedbackModalEl = document.getElementById("taskFeedbackModal");
-        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+    //     // Show the feedback modal
+    //     const feedbackModalEl = document.getElementById("taskFeedbackModal");
+    //     const feedbackModal = new bootstrap.Modal(feedbackModalEl);
 
-        // Set task ID on modal
-        feedbackModalEl.dataset.taskId = taskId;
+    //     // Set task ID on modal
+    //     feedbackModalEl.dataset.taskId = taskId;
 
-        // Load feedback data (kosongan dulu)
-    loadTaskFeedbackData(taskId);
+    //     // Load feedback data (kosongan dulu)
+    // loadTaskFeedbackData(taskId);
 
-    // Hide unread badge and latest feedback snippet immediately upon opening
-    hideUnreadBadge(taskId);
-    hideLatestFeedbackSnippet(taskId);
+    // // Hide unread badge and latest feedback snippet immediately upon opening
+    // hideUnreadBadge(taskId);
+    // hideLatestFeedbackSnippet(taskId);
 
-        feedbackModal.show();
-    }
+    //     feedbackModal.show();
+
+    //     document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+    //         if (idx < arr.length - 1) el.remove();
+    //     });
+    // }
 
     // Unread feedback badge helpers
     function setUnreadBadge(taskId, count) {
@@ -3110,11 +2991,11 @@ $(document).on("keyup", "#search_filter", function () {
             taskIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
         });
     }
-function refreshAllUnreadBadges() {
-    const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
-        .map(card => card.getAttribute('data-task-id'));
-    fetchLatestFeedback(ids);
-}
+    function refreshAllUnreadBadges() {
+        const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
+            .map(card => card.getAttribute('data-task-id'));
+        fetchLatestFeedback(ids);
+    }
     // Track snippet fetch sequence per task to ignore stale responses
     const latestSnippetSeq = {};
 
@@ -3187,7 +3068,6 @@ function refreshAllUnreadBadges() {
             .map(card => card.getAttribute('data-task-id'));
         fetchLatestFeedback(ids);
     }
-
 
     // Fungsi untuk memuat data feedback
     function loadTaskFeedbackData(taskId) {
@@ -3908,6 +3788,13 @@ function refreshAllUnreadBadges() {
 
     // Function to handle task feedback
     function handleTaskFeedback(taskId) {
+        // Tutup modal detail kalau masih terbuka
+        const detailEl = document.getElementById("taskDetailModal");
+        if (detailEl) {
+            const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+            detailModal.hide();
+        }
+
         // Show the feedback modal
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
         const feedbackModal = new bootstrap.Modal(feedbackModalEl);
@@ -3915,27 +3802,26 @@ function refreshAllUnreadBadges() {
         // Set task ID on modal
         feedbackModalEl.dataset.taskId = taskId;
 
-        const modalTitle = feedbackModalEl.querySelector(
-            ".feedback-modal-title"
-        );
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
         const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
         const addFeedbackButton = document.getElementById("addFeedbackButton");
 
-        // Reset modal title and body to show existing feedback list (empty for now)
+        // Reset modal
         modalTitle.textContent = "Task Feedback";
         modalBody.innerHTML = "";
 
-        // Reset Add Feedback button text and remove previous event listeners
+        // Reset button
         addFeedbackButton.textContent = "Add Feedback";
         const newButton = addFeedbackButton.cloneNode(true);
         addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-        // Ensure any leftover reply close button is removed
+
+        // Hapus leftover close
         const leftoverClose = document.getElementById('replyCloseButton');
         if (leftoverClose && leftoverClose.parentNode) {
             leftoverClose.parentNode.removeChild(leftoverClose);
         }
 
-        // Add event listener for Add Feedback button to show add feedback form
+        // Listener baru
         newButton.addEventListener("click", function () {
             showAddFeedbackForm(taskId);
         });
@@ -4680,6 +4566,78 @@ function refreshAllUnreadBadges() {
         attachFileIconListenerBound = true;
     }
 
+    document.addEventListener("click", function(e) {
+        const deleteBtn = e.target.closest(".dropdown-item.delete-task");
+        if (deleteBtn) {
+            const card = deleteBtn.closest("[data-task-id]");
+            const taskId = card?.getAttribute("data-task-id");
+            if (!taskId) return;
+
+            const detailModalEl = document.getElementById("taskDetailModal");
+            if (detailModalEl) {
+                const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                if (detailModal) {
+                    detailModal.hide();
+                    return;
+                }
+            }
+
+            handleTaskDelete(taskId);
+        }
+
+        const editBtn = e.target.closest(".dropdown-item.edit-task");
+        if (editBtn) {
+            const card = editBtn.closest("[data-task-id]");
+            const taskId = card?.getAttribute("data-task-id");
+            if (!taskId) return;
+
+            const detailModalEl = document.getElementById("taskDetailModal");
+            if (detailModalEl) {
+                const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                if (detailModal) {
+                    detailModal.hide();
+                    return;
+                }
+            }
+
+            handleTaskEdit(taskId);
+        }
+
+        const feedbackBtn = e.target.closest(".task-icon.mode-comment");
+        if (feedbackBtn) {
+            const card = feedbackBtn.closest("[data-task-id]");
+            const taskId = card?.getAttribute("data-task-id");
+            if (!taskId) return;
+
+            const detailModalEl = document.getElementById("taskDetailModal");
+            if (detailModalEl) {
+                const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                if (detailModal) {
+                    detailModal.hide();
+                }
+            }
+
+            handleTaskFeedback(taskId);
+        }
+
+        const referenceFileBtn = e.target.closest(".task-icon.attach-file");
+        if (referenceFileBtn) {
+            const card = referenceFileBtn.closest("[data-task-id]");
+            const taskId = card?.getAttribute("data-task-id");
+            if (!taskId) return;
+
+            const detailModalEl = document.getElementById("taskDetailModal");
+            if (detailModalEl) {
+                const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                if (detailModal) {
+                    detailModal.hide();
+                }
+            }
+
+            addAttachFileIconListeners(taskId);
+        }
+    });
+
     // Function to handle task detail view
     function handleTaskDetail(taskId) {
         $.ajax({
@@ -4687,151 +4645,141 @@ function refreshAllUnreadBadges() {
             type: "GET",
             dataType: "json",
             success: function (res) {
-                // Accept both { status, data } and plain task objects
-                const data = res && (res.data || res);
-                if (!data || (typeof data !== 'object')) {
-                    try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
+                const task = res && (res.data || res);
+                if (!task || typeof task !== "object") {
+                    try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { alert("Failed to load task details."); }
                     return;
                 }
 
-                // Gambar task (normalize URL + fallback)
-                (function() {
-                    const imgEl = document.getElementById('taskDetailImage');
-                    if (!imgEl) return;
-
-                    const placeholder = appUrl + '/asset/img/background/add-image.png';
-                    let imgUrl = data.image || '';
-
-                    function getRandomColor() {
-                        const colors = ['#F44336', '#E91E63', '#9C27B0', '#3F51B5', '#2196F3', '#009688', '#FF9800', '#795548'];
-                        return colors[Math.floor(Math.random() * colors.length)];
+                let projectImg = null;
+                if (task.project_image) {
+                    const val = String(task.project_image).trim();
+                    if (val && val !== "null" && val !== "undefined") {
+                        if (val.startsWith("http")) projectImg = val;
+                        else projectImg = appUrl + (val.startsWith("/") ? val : "/file/project/" + val);
                     }
+                }
 
-                    function createInitialImage(initial) {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 200;
-                        canvas.height = 200;
-                        const ctx = canvas.getContext('2d');
+                const avatarTitle = task.title || task.project_title || "NA";
+                const useInitials = !projectImg;
+                const initials = useInitials ? getTaskInitials(task.title) : "";
+                const initialsColor = useInitials ? getRandomColorFromText(task.title) : "#6A5AE0";
 
-                        // Background random
-                        ctx.fillStyle = getRandomColor();
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                const avatarHtml = useInitials
+                    ? `<div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialsColor};">${initials}</div>`
+                    : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
 
-                        // Text inisial
-                        ctx.fillStyle = '#fff';
-                        ctx.font = '100px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(initial.toUpperCase(), canvas.width / 2, canvas.height / 2);
-
-                        return canvas.toDataURL();
+                const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
+                const allExecutors = [];
+                if (task.pic) {
+                    allExecutors.push({ ...task.pic, role: "PIC" });
+                }
+                (task.executors || []).forEach(ex => {
+                    if (ex && !allExecutors.some(e => e && e.id === ex.id)) {
+                        allExecutors.push({ ...ex, role: "Executor" });
                     }
+                });
 
-                    if (!imgUrl) {
-                        // Ambil inisial nama dari data.userName, kalo gaada pake "?"
-                        const initial = (data.title || '?')[0];
-                        imgEl.src = createInitialImage(initial);
-                    } else {
-                        const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
-                        const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
-                        const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
-
-                        if (!isAbsolute && !isFileTask && !isPublicPath) {
-                            imgUrl = appUrl + '/file/task/' + imgUrl;
-                        } else if (!isAbsolute && (isFileTask || isPublicPath)) {
-                            imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                const executorsHtml = allExecutors
+                    .map((executor, index) => {
+                        const overlapClass = index === 0 ? "" : "executor-image-overlap";
+                        const zIndexStyle = `style="z-index:${index+1};"`;
+                        const tooltipTitle = `${executor.name} (${executor.role})`;
+                        let imgSrc = executor.user_photo || executor.profile_picture || executor.photo || executor.image || "";
+                        imgSrc = String(imgSrc || "").trim();
+                        if (!imgSrc || imgSrc.toLowerCase() === "null" || imgSrc.toLowerCase() === "undefined") {
+                            imgSrc = fallbackAvatar;
                         }
+                        return `
+                        <div class="executor-container" style="position: relative; display: inline-block; margin-right:-8px;">
+                            <img src="${imgSrc}" alt="${executor.name}"
+                                class="pic-executor-image ${overlapClass}"
+                                data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                title="${tooltipTitle}" ${zIndexStyle}
+                                onerror="this.onerror=null;this.src='${fallbackAvatar}';">
+                        </div>`;
+                    })
+                    .join("");
 
-                        imgEl.onerror = function() {
-                            this.onerror = null;
-                            const initial = (data.title || '?')[0];
-                            this.src = createInitialImage(initial);
-                        };
-                        imgEl.src = imgUrl;
-                    }
-                })();
+                const showDelete = task.status === "new_request" ||
+                                task.status === "new request" ||
+                                task.status === "rejected";
 
-                // Judul & Deskripsi
-                $("#taskDetailTitle").text(data.title || "");
-                $("#taskDetailDescription").text(data.description || "");
-                // Point & Priority
-                $("#taskDetailPoint").text(data.point || 0);
-                $("#taskDetailPriority").text(data.priority || "Normal");
+                const html = `
+                <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex align-items-center">
+                            ${avatarHtml}
+                            <div class="d-flex flex-column">
+                                ${task.project?.id ? `<small class="text-muted" style="font-size:11px;">Part of Project: ${task.project.title || '-'}</small>` : ""}
+                                <h5 class="mb-0 task-title">${task.title || "Untitled Task"}</h5>
+                            </div>
+                        </div>
+                        <div class="dropdown-icon-container">
+                            <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
+                            <div class="dropdown-menu d-none">
+                                <div class="dropdown-item edit-task">Edit</div>
+                                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    ${task.description ? `<p style="font-size:14px;" class="mb-2">${task.description}</p>` : ""}
+                    <hr class="task-separator rounded-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div style="font-size:12px;">
+                            <span style="color:#797E91;">Priority: </span>
+                            <span style="color:${task.priority === "HIGH" ? "red" : "#4B4F5E"}">${task.priority || "-"}</span>
+                        </div>
+                        <div style="font-size:12px;">
+                            <span style="color:#797E91;">Deadline: </span>
+                            <span style="color:#4B4F5E;">${task.due_date || "-"}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                        <span class="text-muted">Department:</span>
+                        <span>${task.project?.department || "-"}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                        <span class="text-muted">Division:</span>
+                        <span>${task.project?.division || "-"}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="d-flex align-items-center pic-executor-container">
+                            ${executorsHtml || "No executors"}
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
+                                <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+                                ${task.feedback_comments_count > 0
+                                    ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>`
+                                    : ""}
+                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                            </div>
+                            <div class="btn-attach-file-wrapper d-flex align-items-center">
+                                <span class="material-symbols-outlined task-icon">attach_file</span>
+                                ${task.reference_files_count > 0
+                                    ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>`
+                                    : ""}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom mt-3">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>`;
 
-                // Department, Division, Project
-                $("#taskDetailDepartment").text(data.project?.department || "");
-                $("#taskDetailDivision").text(data.project?.division || "");
-                $("#taskDetailProject").text(data.project?.title || "");
+                const contentEl = document.getElementById("taskDetailContent");
+                if (contentEl) contentEl.innerHTML = html;
 
-                // PIC
-                $("#taskDetailPIC").text(data.pic?.name || "None");
-
-                // Executors
-                if (Array.isArray(data.executors) && data.executors.length > 0) {
-                    $("#taskDetailExecutors").text(data.executors.map(ex => ex.name).join(", "));
-                } else {
-                    $("#taskDetailExecutors").text("None");
-                }
-
-                // Reference URLs (list)
-                (function() {
-                    const el = document.getElementById('taskDetailReferenceUrls');
-                    if (!el) return;
-                    let urls = [];
-                    let ru = data.reference_urls;
-                    if (!Array.isArray(ru) && typeof ru === 'string') {
-                        try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
-                    }
-                    if (Array.isArray(ru) && ru.length > 0) {
-                        urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
-                    } else if (data.reference_url) {
-                        urls = [data.reference_url];
-                    }
-                    if (urls.length > 0) {
-                        el.innerHTML = urls.map((u, idx) => `<a href="${u}" target="_blank" class="d-inline-block me-2">Link ${idx+1}</a>`).join('');
-                    } else {
-                        el.textContent = 'None';
-                    }
-                })();
-
-                // Reference Files
-                if (Array.isArray(data.reference_files) && data.reference_files.length > 0) {
-                    const referenceFilesHtml = data.reference_files.map((fileName) => {
-                        return `<a href="${appUrl}/file/task_reference_files/${fileName}" target="_blank" class="d-block text-decoration-none mb-1">
-                            <span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span>
-                            ${fileName}
-                        </a>`;
-                    }).join("");
-                    $("#taskDetailReferenceFiles").html(referenceFilesHtml);
-                } else {
-                    $("#taskDetailReferenceFiles").text("No files");
-                }
-
-                // Format tanggal
-                const formatDate = (dateStr) => {
-                    if (!dateStr) return "";
-                    const options = { year: "numeric", month: "long", day: "numeric" };
-                    return new Date(dateStr).toLocaleDateString(undefined, options);
-                };
-                $("#taskDetailStartDate").text(formatDate(data.start_date));
-                $("#taskDetailDueDate").text(formatDate(data.due_date));
-
-                // Tampilkan modal di atas timeline modal; tag backdrop terakhir agar berada di atas
                 const detailEl = document.getElementById("taskDetailModal");
                 if (detailEl) {
-                    detailEl.addEventListener('shown.bs.modal', function onShown() {
-                        detailEl.removeEventListener('shown.bs.modal', onShown);
-                        const backs = document.querySelectorAll('.modal-backdrop');
-                        const last = backs[backs.length - 1];
-                        if (last) last.classList.add('backdrop-task-detail');
-                    });
                     const detailModal = new bootstrap.Modal(detailEl);
                     detailModal.show();
                 }
             },
             error: function () {
-                try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { try { alert("Failed to load task details."); } catch(e){} }
-            },
+                try { showFloatingAlert("Failed to load task details.", "danger", 3000); } catch(_) { alert("Failed to load task details."); }
+            }
         });
     }
 
@@ -4872,85 +4820,118 @@ function refreshAllUnreadBadges() {
 
     // Function to handle task delete
     function handleTaskDelete(taskId, taskCard) {
-        // Open delete confirmation modal
         const deleteModalEl = document.getElementById("deleteTaskModal");
         const deleteModal = new bootstrap.Modal(deleteModalEl);
 
-        // Store taskId on modal for use in delete
         deleteModalEl.dataset.taskId = taskId;
 
-        // Fetch task details to display image and title
         $.ajax({
             url: appUrl + "/task/" + taskId,
             type: "GET",
             dataType: "json",
-         success: function (data) {
-    const task = data.data; // ambil objek task di dalam response
+            success: function (data) {
+                const task = data.data;
 
-    const deleteTaskImage = document.getElementById("deleteTaskImage");
-    if (deleteTaskImage) {
-        // Build a safe image URL from possible shapes (filename, relative path, absolute URL)
-        let imgSrc = appUrl + "/asset/img/background/add-image.png"; // default fallback
-        const img = task.image || "";
-        if (img) {
-            if (typeof img === "string" && (img.startsWith("http://") || img.startsWith("https://"))) {
-                imgSrc = img; // absolute URL
-            } else if (typeof img === "string" && (img.startsWith("/file/task/") || img.startsWith("file/task/"))) {
-                imgSrc = img.startsWith("/") ? (appUrl + img) : (appUrl + "/" + img);
-            } else if (typeof img === "string") {
-                // assume plain filename stored in DB
-                imgSrc = appUrl + "/file/task/" + img;
+                let avatarHtml = "";
+                if (task.image) {
+                    let imgUrl = task.image;
+                    const isAbsolute = imgUrl.startsWith("http://") || imgUrl.startsWith("https://");
+                    const isFileTask = imgUrl.startsWith("/file/task/") || imgUrl.startsWith("file/task/");
+                    const isPublicPath = imgUrl.startsWith("/storage/") || imgUrl.startsWith("storage/");
+
+                    if (!isAbsolute && !isFileTask && !isPublicPath) {
+                        imgUrl = appUrl + "/file/task/" + imgUrl;
+                    } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                        imgUrl = imgUrl.startsWith("/") ? appUrl + imgUrl : appUrl + "/" + imgUrl;
+                    }
+
+                    avatarHtml = `<img src="${imgUrl}" alt="Task Image"
+                                    class="rounded-circle me-3"
+                                    style="width:34px;height:34px;object-fit:cover;"
+                                    onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getRandomColorFromText(task.title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getTaskInitials(task.title)}</div>')">`;
+                } else {
+                    const initials = getTaskInitials(task.title);
+                    const bgColor = getRandomColorFromText(task.title);
+                    avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                    style="width:34px;height:34px;background:${bgColor};color:#fff;
+                                            font-weight:600;font-size:11px;">
+                                    ${initials}
+                                </div>`;
+                }
+
+                const cardHtml = `
+                    <div class="custom-card rounded-4 position-relative p-3 border-0">
+                        <div class="d-flex align-items-center mb-2">
+                            ${avatarHtml}
+                            <div class="d-flex flex-column">
+                                ${task.project.id ?
+                                    `<p class="text-muted" style="line-height:1; font-size: 10px;">
+                                        Part of Project: ${task.project.title || '-'}
+                                    </p>`
+                                    : ''
+                                }
+                                <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title || 'Untitled Task'}</h5>
+                            </div>
+                        </div>
+                        <div class="task-description-container mb-2">
+                            <p class="task-description mb-0" style="font-size:14px;">${task.description || ''}</p>
+                        </div>
+                        <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div style="font-size: 10px; font-weight: 400;">
+                                <span style="color: #797E91;">Priority: </span>
+                                <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">
+                                    ${task.priority || '-'}
+                                </span>
+                            </div>
+                            <div style="font-size: 10px; font-weight: 400;">
+                                <span style="color: #797E91;">Deadline: </span>
+                                <span style="color:#4B4F5E">${task.due_date || '-'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const contentEl = deleteModalEl.querySelector(".modal-body");
+                contentEl.innerHTML = cardHtml;
+
+                deleteModal.show();
+
+                document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+                    if (idx < arr.length - 1) el.remove();
+                });
             }
-        }
-
-        deleteTaskImage.src = imgSrc;
-        // Fallback if the built URL 404s
-        deleteTaskImage.onerror = function () {
-            this.onerror = null;
-            this.src = appUrl + "/asset/img/background/add-image.png";
-        };
-    }
-
-    const deleteTaskTitle = document.getElementById("deleteTaskTitle");
-    if (deleteTaskTitle) {
-        deleteTaskTitle.textContent = task.title || "Untitled Task";
-    }
-
-    deleteModal.show();
-}
         });
 
         // Delete button click handler
-        const confirmDeleteBtn = document.getElementById(
-            "confirmDeleteTaskBtn"
-        );
+        const confirmDeleteBtn = document.getElementById("confirmDeleteTaskBtn");
         confirmDeleteBtn.onclick = function () {
             $.ajax({
                 url: appUrl + "/task/" + taskId,
                 type: "DELETE",
                 headers: {
-                    "X-CSRF-TOKEN": document
-                        .querySelector('meta[name="csrf-token"]')
-                        .getAttribute("content"),
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                 },
                 success: function (response) {
                     // Remove card from UI
                     taskCard.remove();
-
                     // Hide modal
                     deleteModal.hide();
-
                     // Unified success alert
-                    try { showFloatingAlert(response.message || "Task deleted successfully", "success", 1500); } catch(_) {}
+                    try {
+                        showFloatingAlert(response.message || "Task deleted successfully", "success", 1500);
+                    } catch (_) {}
                 },
                 error: function () {
-                    try { showFloatingAlert("Failed to delete task.", "danger", 3000); } catch(_) { try { alert("Failed to delete task."); } catch(e){} }
+                    try {
+                        showFloatingAlert("Failed to delete task.", "danger", 3000);
+                    } catch (_) {
+                        try { alert("Failed to delete task."); } catch(e) {}
+                    }
                 },
             });
         };
     }
-
-    // Array untuk menyimpan file yang sudah dipilih (moved to top)
 
     // Function untuk menampilkan file yang sudah dipilih (pilih preview yang sedang aktif/terlihat)
     function displaySelectedFiles() {
@@ -5241,6 +5222,10 @@ function refreshAllUnreadBadges() {
         // Open modal immediately to show loader
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
+
+        document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+            if (idx < arr.length - 1) el.remove();
+        });
 
     $.ajax({
             url: appUrl + "/task/" + taskId,

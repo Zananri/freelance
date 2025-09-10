@@ -153,6 +153,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
     Route::post('/notifications/task/{taskId}/mark-read', [NotificationController::class, 'markTaskAssignmentReadByTask'])->name('notifications.task.markRead');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
+    Route::post('/notifications/mark-project-read', [NotificationController::class, 'markProjectNotificationsRead'])->name('notifications.markProjectRead');
     Route::delete('/notifications/{id}', [NotificationController::class, 'deleteNotification'])->name('notifications.delete');
 
     Route::post('/project/{id}/accept', [ProjectController::class, 'acceptProject'])->name('project.accept');

@@ -306,15 +306,6 @@
     z-index: 1050;
 }
 
-.modal-title-custom {
-    font-weight: 300;
-    font-size: 28px;
-    position: absolute;
-    top: 24px;
-    left: 24px;
-    color: rgb(103, 111, 122);
-}
-
 #deleteProjectTitle {
     font-weight: 300 !important;
 }
@@ -1094,7 +1085,7 @@ p {
         display: none; /* dikontrol JS */
         gap: 6px;
     }
-    
+
     #mobileBulkControls .task-selectall-toggle {
         margin-right: 0;
         background: #ecedf5;
@@ -1438,8 +1429,8 @@ p {
 /* Delete modal image size (support both correct and typo class names) */
 .delete-image-confirm,
 .delete-image-confim {
-    width: 120px;
-    height: 120px;
+    width: 34px;
+    height: 34px;
     object-fit: cover;
     border-radius: 8px;
     margin-bottom: 1rem;

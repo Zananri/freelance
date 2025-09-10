@@ -4,7 +4,6 @@
     </x-slot>
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/task.css') }}">
-        <meta name="user-id" content="{{ auth()->id() }}">
     </x-slot>
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
         <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
@@ -409,32 +408,7 @@
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
-                    <button type="button" class="btn-close float-end" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                    <div class="task-detail-modal">
-                        <div class="task-photo-title-author">
-                            <img id="taskDetailImage" src="" alt="Task Image" class="task-photo">
-                            <h2 class="task-title" id="taskDetailTitle"></h2>
-                            <p class="task-description" id="taskDetailDescription"></p>
-                        </div>
-                        <div class="task-detail-columns">
-                            <div class="task-detail-left">
-                                <p><strong>Department:</strong> <span id="taskDetailDepartment"></span></p>
-                                <p><strong>Division:</strong> <span id="taskDetailDivision"></span></p>
-                                <p><strong>Project:</strong> <span id="taskDetailProject"></span></p>
-                                <p><strong>PIC:</strong> <span id="taskDetailPIC"></span></p>
-                                <p><strong>Executors:</strong> <span id="taskDetailExecutors"></span></p>
-                            </div>
-                            <div class="task-detail-right">
-                                <p><strong>Reference URLs:</strong> <span id="taskDetailReferenceUrls"></span></p>
-                                <p><strong>Reference Files:</strong> <span id="taskDetailReferenceFiles"></span></p>
-                                <p><strong>Point:</strong> <span id="taskDetailPoint"></span></p>
-                                <p><strong>Priority:</strong> <span id="taskDetailPriority"></span></p>
-                                <p><strong>Start Date:</strong> <span id="taskDetailStartDate"></span></p>
-                                <p><strong>Due Date:</strong> <span id="taskDetailDueDate"></span></p>
-                            </div>
-                        </div>
-                    </div>
+                    <div id="taskDetailContent"></div>
                 </div>
             </div>
         </div>
@@ -443,19 +417,18 @@
     <!-- Delete Task Confirmation Modal -->
     <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="deleteTaskModalLabel">Delete Task</h5>
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fs-5" id="deleteTaskModalLabel">Delete Task</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <img id="deleteTaskImage" src="" alt="Task Image" class="delete-image-confim">
-                    <p id="deleteTaskTitle" class="fw-bold fs-5 text-center mb-4"></p>
-                    <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-danger" id="confirmDeleteTaskBtn">Delete</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    </div>
+                <div class="modal-body modal-body-custom">
+                    <div id="deleteTaskContent"></div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteTaskBtn">Delete</button>
                 </div>
             </div>
         </div>
@@ -466,19 +439,16 @@
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
                 <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <h4 class="fw-bold text-center mb-2" id="progressStatusTitle">In Progress</h4>
-                    <p class="text-center mb-4 modal-description" id="progressStatusDescription">
+                    <h4 class="fw-bold fs-5 text-center mb-2" id="progressStatusTitle">In Progress</h4>
+                    <p class="mb-4 modal-description" id="progressStatusDescription">
                         Task is being worked on
                     </p>
-                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to go In Progress?</p>
-                    <div class="d-flex justify-content-center gap-3 w-100">
+                    <p class="fw-normal fs-5 text-center mb-4">Are you sure want to move this task?</p>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-submit-black"
                             id="confirmProgressStatusBtn">Confirm</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -498,11 +468,11 @@
                     <p class="text-center mb-4 modal-description" id="completeStatusDescription">
                         Task has been finished
                     </p>
-                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Complete?</p>
-                    <div class="d-flex justify-content-center gap-3 w-100">
+                    <p class="fw-bold text-center mb-4">Are you sure want to move the task to Complete?</p>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-submit-black"
                             id="confirmCompleteStatusBtn">Confirm</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -523,10 +493,10 @@
                         Task has been rejected
                     </p>
                     <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Reject?</p>
-                    <div class="d-flex justify-content-center gap-3 w-100">
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-submit-black"
                             id="confirmRejectStatusBtn">Confirm</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -539,7 +509,8 @@
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceFilesModalLabel">Reference Files</h5>
+                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceFilesModalLabel">Reference
+                        Files</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <hr>
@@ -558,8 +529,7 @@
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
             <div class="modal-content modal-content-custom">
-                <div
-                    class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
                     <h5 class="modal-title feedback-modal-title flex-grow-1 fs-5 fw-normal"
                         id="taskFeedbackModalLabel">Task Feedback</h5>
                     <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
