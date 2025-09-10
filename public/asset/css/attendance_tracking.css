@@ -259,7 +259,7 @@
     background-color: #F0F1F8;
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 1;
 }
 
 .table-attendance th:first-child{
@@ -280,10 +280,10 @@
 .table-attendance td:first-child {
     position: sticky;
     left: 0;
-    z-index: 9;
+    z-index: 2;
 }
 .table-attendance thead th:first-child {
-    z-index: 11;
+    z-index: 2;
 }
 
 .table-attendance td:first-child{
