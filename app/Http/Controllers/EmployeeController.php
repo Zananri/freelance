@@ -19,6 +19,16 @@ use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
+    /**
+     * Determine if a given stored path refers to the shared default avatar.
+     */
+    private function isDefaultAvatarPath(?string $path): bool
+    {
+        if (!$path) return false;
+        $norm = str_replace('\\', '/', trim($path));
+        $norm = ltrim($norm, '/');
+        return $norm === 'asset/img/avatar.png';
+    }
    
     public function showEmployeePage()
     {
@@ -314,8 +324,9 @@ class EmployeeController extends Controller
                 $profileDest = public_path('file/profile_picture');
                 if (!file_exists($profileDest)) mkdir($profileDest, 0777, true);
                 // Delete old profile_picture file if exists
-                if ($employee->profile_picture && file_exists(public_path($employee->profile_picture))) {
-                    @unlink(public_path($employee->profile_picture));
+                if ($employee->profile_picture && !$this->isDefaultAvatarPath($employee->profile_picture)) {
+                    $old = public_path(ltrim($employee->profile_picture, '/'));
+                    if (file_exists($old)) { @unlink($old); }
                 }
                 $pf->move($profileDest, $profileFilename);
                 $updateData['profile_picture'] = 'file/profile_picture/' . $profileFilename;
@@ -461,13 +472,23 @@ class EmployeeController extends Controller
 
     public function edit($id)
     {
-    $employee = Employee::find($id);
+        $employee = Employee::find($id);
         if (!$employee) {
             abort(404, 'Employee not found');
         }
         $departments = Department::all();
         $divisions = Division::all();
-        $jobs = Job::all();
+        
+        // Load jobs filtered by employee's current department and division
+        $jobs = Job::where('status', '!=', 'DELETED');
+        if ($employee->department_id) {
+            $jobs = $jobs->where('department_id', $employee->department_id);
+        }
+        if ($employee->division_id) {
+            $jobs = $jobs->where('division_id', $employee->division_id);
+        }
+        $jobs = $jobs->get();
+        
         // Order grades and offices with the same rules as in create()
         $grades = Grade::orderByRaw(
             "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
@@ -475,7 +496,8 @@ class EmployeeController extends Controller
         $offices = Office::orderByRaw(
             "FIELD(name, 'NSA Performance Petojo Barat 6 No. 4','Gudang SEHA')"
         )->orderBy('name')->get();
-    return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
+        
+        return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
     }
 
     /**

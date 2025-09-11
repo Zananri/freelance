@@ -13,6 +13,17 @@ use Log;
 
 class ProfileController extends Controller
 {
+    /**
+     * Check if a given stored path points to the shared default avatar.
+     * We treat both 'asset/img/avatar.png' and '/asset/img/avatar.png' as default.
+     */
+    private function isDefaultAvatarPath(?string $path): bool
+    {
+        if (!$path) return false;
+        $norm = str_replace('\\', '/', trim($path));
+        $norm = ltrim($norm, '/');
+        return $norm === 'asset/img/avatar.png';
+    }
 
     public function showprofilePage()
     {
@@ -202,8 +213,11 @@ class ProfileController extends Controller
         // Handle removal if requested
         if ($request->input('remove_profile_photo') === '1') {
             if ($employee && $employee->profile_picture) {
-                $oldPath = public_path($employee->profile_picture);
-                if (file_exists($oldPath)) { @unlink($oldPath); }
+                // Never delete the shared default avatar file
+                if (!$this->isDefaultAvatarPath($employee->profile_picture)) {
+                    $oldPath = public_path(ltrim($employee->profile_picture, '/'));
+                    if (file_exists($oldPath)) { @unlink($oldPath); }
+                }
                 $employee->profile_picture = null;
                 $employee->save();
             }
@@ -212,8 +226,11 @@ class ProfileController extends Controller
             if ($request->hasFile('profile_photo') && $employee) {
                 $file = $request->file('profile_photo');
                 if ($employee->profile_picture) {
-                    $oldPath = public_path($employee->profile_picture);
-                    if (file_exists($oldPath)) { @unlink($oldPath); }
+                    // Never delete the shared default avatar file
+                    if (!$this->isDefaultAvatarPath($employee->profile_picture)) {
+                        $oldPath = public_path(ltrim($employee->profile_picture, '/'));
+                        if (file_exists($oldPath)) { @unlink($oldPath); }
+                    }
                 }
                 $extension = $file->getClientOriginalExtension();
                 $filename = 'PROFILE_PICTURE_' . time() . '.' . $extension;
