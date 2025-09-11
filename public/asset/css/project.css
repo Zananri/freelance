@@ -414,6 +414,31 @@
     cursor: pointer;
 }
 
+/* In Project Detail modal, keep edit icon within the flex row (not absolute) and align it with title */
+#projectDetailModal .dropdown-icon-container {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    margin-right: -4px !important; /* push a bit further to the right */
+}
+
+#projectDetailModal .project-edit-icon {
+    margin-top: 10px !important; /* nudge down a bit to align with title baseline */
+}
+
+/* Top-right close button placement for Project Detail modal */
+#projectDetailModal .modal-content-custom .btn-close {
+    right: 18px !important;
+    top: 18px !important;
+    z-index: 10;
+}
+
+.task-separator {
+    border: none;
+    height: 3px;
+    background-color: #555;
+}
+
 #projectDetailModal .btn-attach-file-wrapper .feedback-comments-count,
 #projectDetailModal .btn-attach-file-wrapper .reference-files-count {
     font-size: 12px;

@@ -504,10 +504,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             ? appUrl + "/file/project/" + project.image
                             : null;
 
+                        const dataTitle = (project.title || '').replace(/"/g, '&quot;');
                         rowHtml += `
                             <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
-                            }">
+                            }" data-project-title="${dataTitle}">
                                 <div class="project-card p-4 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
 
                                     <!-- Header -->
@@ -515,7 +516,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div class="d-flex align-items-center">
                                             ${
                                                 imageUrl
-                                                    ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
+                                                    ? `<img src="${imageUrl}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
                                                     : (function () {
                                                           const init =
                                                               getInitials(
@@ -529,7 +530,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                             style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`;
                                                       })()
                                             }
-                                            <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
+                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${
                                                 project.title
                                             }</h6>
                                         </div>
@@ -5325,6 +5326,99 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
                     }
 
+                    // Helper: Set preview (image or initials) for Delete Project modal
+                    function setDeleteProjectModalPreview(title, imageUrl) {
+                        try {
+                            const modalBody = document.querySelector('#deleteProjectModal .modal-body');
+                            const imgEl = document.getElementById('deleteProjectImage');
+                            let initialsEl = document.getElementById('deleteProjectInitials');
+
+                            // Clean up any previous fallback blocks to avoid duplicates (e.g., lingering NA)
+                            if (modalBody) {
+                                modalBody.querySelectorAll('.delete-initials-fallback, .task-modal-initial-avatar').forEach(function(el){
+                                    try { el.remove(); } catch(_) {}
+                                });
+                            }
+                            // Ensure a fresh element is created next time
+                            initialsEl = null;
+
+                            function ensureInitialsEl() {
+                                if (!initialsEl) {
+                                    initialsEl = document.createElement('div');
+                                    initialsEl.id = 'deleteProjectInitials';
+                                    initialsEl.style.width = '150px';
+                                    initialsEl.style.height = '150px';
+                                    initialsEl.style.borderRadius = '8px';
+                                    initialsEl.style.display = 'flex';
+                                    initialsEl.style.alignItems = 'center';
+                                    initialsEl.style.justifyContent = 'center';
+                                    initialsEl.style.fontWeight = '700';
+                                    initialsEl.style.color = '#ffffff';
+                                    initialsEl.style.marginBottom = '1rem';
+                                    initialsEl.style.userSelect = 'none';
+                                    // Insert before the image to preserve layout
+                                    if (imgEl && imgEl.parentElement) {
+                                        imgEl.parentElement.insertBefore(initialsEl, imgEl);
+                                    } else if (modalBody) {
+                                        modalBody.insertBefore(initialsEl, modalBody.firstChild);
+                                    }
+                                }
+
+                                const t = (title || 'NA');
+                                const init = (typeof getInitials === 'function') ? getInitials(t) : (t.substring(0, 2).toUpperCase());
+                                const color = (typeof getInitialsColor === 'function') ? getInitialsColor(t) : '#6A5AE0';
+                                initialsEl.textContent = init;
+                                initialsEl.style.background = color;
+                                initialsEl.style.fontSize = '56px';
+                                initialsEl.style.letterSpacing = '1px';
+                                initialsEl.className = 'delete-initials-fallback';
+                                // Ensure content stays centered
+                                initialsEl.style.display = 'flex';
+                            }
+
+                            function hideInitialsEl() {
+                                if (initialsEl) { initialsEl.style.display = 'none'; }
+                            }
+
+                            // Always set the title first
+                            const titleEl = document.getElementById('deleteProjectTitle');
+                            if (titleEl) titleEl.textContent = title || '';
+
+                            // Reset image state deterministically
+                            if (imgEl) {
+                                imgEl.onerror = null;
+                                imgEl.onload = null;
+                                imgEl.removeAttribute('src');
+                                imgEl.style.display = 'none';
+                            }
+
+                            if (imageUrl) {
+                                ensureInitialsEl(); // show initials until image successfully loads
+                                if (imgEl) {
+                                    imgEl.style.display = '';
+                                    imgEl.onload = function () {
+                                        // Image loaded OK: hide initials
+                                        hideInitialsEl();
+                                    };
+                                    imgEl.onerror = function () {
+                                        // Image failed: keep initials visible
+                                        this.onerror = null;
+                                        this.onload = null;
+                                        this.removeAttribute('src');
+                                        this.style.display = 'none';
+                                        ensureInitialsEl();
+                                    };
+                                    // Set src at the end to trigger load/error
+                                    imgEl.src = imageUrl;
+                                }
+                            } else {
+                                ensureInitialsEl();
+                            }
+                        } catch (e) {
+                            console.error('setDeleteProjectModalPreview error:', e);
+                        }
+                    }
+
                     // Remove old confirm dialog and use modal instead
                     document
                         .querySelectorAll(".delete-project")
@@ -5349,26 +5443,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                     deleteModalEl
                                 );
 
-                                // Set project image and title in modal
-                                const projectImage = card.querySelector("img");
-                                const projectTitle =
-                                    card.querySelector(".title-project");
-
-                                const deleteProjectImage =
-                                    document.getElementById(
-                                        "deleteProjectImage"
-                                    );
-                                const deleteProjectTitle =
-                                    document.getElementById(
-                                        "deleteProjectTitle"
-                                    );
-
-                                deleteProjectImage.src = projectImage
-                                    ? projectImage.src
-                                    : "";
-                                deleteProjectTitle.textContent = projectTitle
-                                    ? projectTitle.textContent
-                                    : "";
+                                // Set project image (or initials) and title in modal
+                                const projectTitle = card.querySelector(".title-project") || card.closest('[data-project-title]')?.getAttribute('data-project-title') ? { textContent: card.closest('[data-project-title]').getAttribute('data-project-title') } : null;
+                                // Prefer the project header avatar image if present
+                                let projectHeaderImg = card.querySelector('img[data-role="project-avatar"]');
+                                if (!projectHeaderImg) {
+                                    projectHeaderImg = card.querySelector('.project-card .d-flex.justify-content-between.align-items-start .d-flex.align-items-center > img');
+                                }
+                                const imgUrl = projectHeaderImg ? projectHeaderImg.src : null;
+                                setDeleteProjectModalPreview(projectTitle ? projectTitle.textContent : '', imgUrl);
 
                                 // Store projectId and card element on modal for use in delete
                                 deleteModalEl.dataset.projectId = projectId;
@@ -5700,11 +5783,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                         const deleteModalEl = document.getElementById("deleteProjectModal");
                                         if (!deleteModalEl) { showFloatingAlert('Delete Project Modal not found', 'warning', 3000); return; }
                                         const deleteModal = new bootstrap.Modal(deleteModalEl);
-                                        // Populate image and title
-                                        const deleteProjectImage = document.getElementById("deleteProjectImage");
-                                        const deleteProjectTitle = document.getElementById("deleteProjectTitle");
-                                        if (deleteProjectImage) deleteProjectImage.src = imageUrl || '';
-                                        if (deleteProjectTitle) deleteProjectTitle.textContent = project.title || '';
+                                                // Populate image (or initials) and title
+                                                setDeleteProjectModalPreview(project.title || '', imageUrl || null);
                                         deleteModalEl.dataset.projectId = pid;
                                         deleteModal.show();
                                         // Confirm delete handler
@@ -7876,10 +7956,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     const newHeader = `
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <div class="d-flex align-items-center">
-                                                <img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;">
-                                                <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
-                                                    p.title || ""
-                                                }</h6>
+                                                ${p.image ? `<img src="${appUrl + "/file/project/" + p.image}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">` : (function(){ const init = getInitials(p.title || ""); const color = getInitialsColor(p.title || ""); return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\" style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`; })()}
+                                                <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${p.title || ""}</h6>
                                             </div>
                                             <div class="dropdown-icon-container">
                                                 <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
