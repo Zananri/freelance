@@ -925,15 +925,31 @@ p {
     background: transparent;
 }
 
+.timeline-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    overflow: hidden;
+}
+
+.timeline-modal {
+    background: rgb(240, 241, 248);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+}
+
 .timeline-wrapper {
-    /* Keep timeline area height consistent irrespective of rows */
-    max-height: 275px;
-    min-height: 275px;
-    overflow-y: auto;
-    overflow-x: auto;
-    position: relative;
     min-height: 40vh;
-    max-height: calc(100vh - 50px);
+    max-height: calc(100vh - 175px);
+    overflow-y: auto;
+    position: relative;
 }
 
 .timeline-table {
@@ -941,6 +957,7 @@ p {
     border-collapse: collapse;
     border: 1px solid #dae3ed;
     table-layout: fixed;
+    /* overflow-y: auto; */
 }
 
 .timeline-wrapper::-webkit-scrollbar {
@@ -1029,26 +1046,6 @@ p {
 }
 .timeline-bar.color4 {
     background: #ffe3e3;
-}
-
-.timeline-modal-overlay {
-    position: fixed;
-    inset: 0;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 3000;
-}
-
-.timeline-modal {
-    background: rgb(240, 241, 248);
-    border-radius: 12px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-height: 40vh;
-    max-height: calc(100vh - 50px);
 }
 
 /* Ensure Task Detail modal stacks above Timeline modal when both are open */
