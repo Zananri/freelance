@@ -696,8 +696,32 @@
     </div>
     <x-slot name="script_slot">
 
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="{{ asset('asset/js/project.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ asset('asset/js/project.js') }}"></script>  {{-- PENTING: project.js dulu --}}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    window.__projectUnread = {};
+    fetch("{{ route('project-feedbacks.unread-counts') }}")
+      .then(res => res.json())
+      .then(json => {
+          window.__projectUnread = (json && json.data) ? json.data : {};
+          if (typeof refreshAllProjectUnreadBadges === 'function') {
+              refreshAllProjectUnreadBadges();
+          } else {
+              console.warn('refreshAllProjectUnreadBadges belum terdefinisi');
+          }
+          if (typeof refreshAllProjectLatestFeedbackSnippets === 'function') {
+              refreshAllProjectLatestFeedbackSnippets();
+          }
+      })
+      .catch(err => {
+          console.error('Fetch unread counts error:', err);
+          window.__projectUnread = {};
+          try { refreshAllProjectUnreadBadges(); } catch(_) {}
+      });
+});
+</script>
+
 
         <script></script>
     </x-slot>

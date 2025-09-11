@@ -1537,40 +1537,61 @@ class ProjectController extends Controller
     /**
      * Get unread feedback count for a project for current employee.
      */
-    public function getUnreadFeedbackCount($projectId)
-    {
-        try {
-            $user = auth()->user();
-            $employeeId = $user?->employee?->id;
-            if (!$employeeId) {
-                return response()->json(['count' => 0]);
-            }
+    public function getAllUnreadCounts()
+{
+    try {
+        $user = auth()->user();
+        $employeeId = $user?->employee?->id;
+        if (!$employeeId) {
+            return response()->json(['success' => true, 'data' => (object)[]]);
+        }
 
-            $project = Project::find($projectId);
-            if (!$project || ($project->status ?? null) === 'DELETED')
-                return response()->json(['count' => 0]);
+        // Ambil semua project aktif + marker baca
+        $projects = Project::where(function($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'DELETED');
+            })
+            ->select('id', 'read_markers')
+            ->get();
 
-            // Strategy: store per-employee last_read_at in projects.read_markers (JSON)
+        $result = [];
+
+        foreach ($projects as $project) {
+            // Ambil marker last_read_at untuk employee ini
             $markers = [];
             if (!empty($project->read_markers)) {
                 $markers = is_array($project->read_markers)
                     ? $project->read_markers
                     : ((json_decode($project->read_markers, true)) ?: []);
             }
-            $lastReadAt = $markers[(string) $employeeId] ?? null;
+            $lastReadAt = $markers[(string)$employeeId] ?? null;
 
-            $query = ProjectFeedback::where('project_id', $projectId)
-                ->where('employee_id', '!=', $employeeId); // exclude own feedback
-            if ($lastReadAt) {
-                $query->where('created_at', '>', $lastReadAt);
+            // Hitung unread langsung pakai query builder
+            $count = ProjectFeedback::where('project_id', $project->id)
+                ->where('employee_id', '!=', $employeeId)
+                ->when($lastReadAt, function ($q) use ($lastReadAt) {
+                    $q->where('created_at', '>', $lastReadAt);
+                })
+                ->count();
+
+            if ($count > 0) {
+                $result[$project->id] = $count;
             }
-            $count = $query->count();
-
-            return response()->json(['count' => $count]);
-        } catch (\Exception $e) {
-            return response()->json(['count' => 0]);
         }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result
+        ]);
+
+    } catch (\Exception $e) {
+        // Kalau ada error → balikin kosong aja biar aman
+        return response()->json([
+            'success' => true,
+            'data' => (object)[]
+        ]);
     }
+}
+
 
     /**
      * Mark all feedbacks as read for current employee for a project by updating last_read_at marker.
@@ -1684,4 +1705,7 @@ class ProjectController extends Controller
             ], $e->getCode() ?: 500);
         }
     }
+
+
 }
+

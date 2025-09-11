@@ -444,14 +444,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                         </div>
                                         <div class="d-flex align-items-center">
                                             <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${project.id}" style="cursor:pointer; max-width: 160px;">
-                                                <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                                                <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                                 <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                                             </div>
-                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${project.id}">
-                                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-                                                <span class="project-feedback-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
-                                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${project.id}"></span>
-                                            </button>
+                              <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" 
+        title="Comment" data-project-id="${project.id}">
+    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
+    <span class="project-feedback-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
+    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" 
+          data-project-id="${project.id}"></span>
+</button>
+
                                             <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${project.id}">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
                                                 <span class="project-file-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
@@ -4113,35 +4116,17 @@ function updatePagination(pagination) {
 
 // ===== Unread badge and latest feedback snippet for Project (parity with Task) =====
 // Helpers to show/hide unread badge
-function setProjectUnreadBadge(projectId, count) {
+
+function hideProjectUnreadBadge(projectId) {
     try {
-        const card = document.querySelector(`.col-md-4[data-project-id="${projectId}"]`);
-        if (!card) return;
-        const badge = card.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
+        const badge = document.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
         if (!badge) return;
-        const n = parseInt(count, 10) || 0;
-        if (n > 0) badge.classList.remove('d-none');
-        else badge.classList.add('d-none');
+        badge.textContent = '';
+        badge.classList.add('d-none');
     } catch (_) {}
-}
-function hideProjectUnreadBadge(projectId) { setProjectUnreadBadge(projectId, 0); }
-function fetchUnreadForProject(projectId) {
-    return $.ajax({ url: appUrl + `/project/${projectId}/feedbacks/unread-count`, type: 'GET' })
-        .then((res) => {
-            const c = (res && (res.count ?? res.data?.count)) || 0;
-            setProjectUnreadBadge(projectId, c);
-        })
-        .catch(() => { /* noop */ });
-}
-function refreshAllProjectUnreadBadges() {
-    document.querySelectorAll('#all-cards-container .col-md-4[data-project-id]').forEach((col) => {
-        const pid = col.getAttribute('data-project-id');
-        fetchUnreadForProject(pid);
-    });
 }
 
 // Latest feedback snippet helpers
-const latestProjectSnippetSeq = {};
 function hideProjectLatestFeedbackSnippet(projectId) {
     try {
         const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
@@ -4150,31 +4135,22 @@ function hideProjectLatestFeedbackSnippet(projectId) {
             el.style.display = 'none';
             const textEl = el.querySelector('.latest-feedback-text');
             if (textEl) textEl.textContent = '';
+            const avatar = el.querySelector('.latest-feedback-avatar');
+            if (avatar) avatar.src = appUrl + '/asset/img/avatar.png';
         });
+    } catch (_) {}
+
+    // sembunyikan unread badge juga
+    try {
+        const badge = document.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
+        if (badge) {
+            badge.textContent = '';
+            badge.classList.add('d-none');
+        }
     } catch (_) {}
 }
 
-function setProjectLatestFeedbackSnippet(projectId, data) {
-    const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
-    if (!els || els.length === 0) return;
-    if (!data) { hideProjectLatestFeedbackSnippet(projectId); return; }
-    // Cache latest payload for deep-linking
-    try {
-        window.__projectLatest = window.__projectLatest || {};
-        window.__projectLatest[String(projectId)] = data;
-    } catch (_) {}
-    const photo = (data.employee && data.employee.photo) ? data.employee.photo : (appUrl + '/asset/img/avatar.png');
-    const raw = String(data.feedback_comment || '');
-    const truncated = raw.length > 10 ? (raw.slice(0, 10) + '...') : raw;
-    els.forEach((el) => {
-        const avatar = el.querySelector('.latest-feedback-avatar');
-        const textEl = el.querySelector('.latest-feedback-text');
-        if (avatar) avatar.src = photo;
-        if (textEl) textEl.textContent = truncated;
-        el.classList.remove('d-none');
-        el.style.removeProperty('display');
-    });
-}
+
 function fetchLatestFeedbackForProject(projectId) {
     const seq = (latestProjectSnippetSeq[projectId] = (latestProjectSnippetSeq[projectId] || 0) + 1);
     return $.ajax({ url: appUrl + `/project-feedbacks/${projectId}/latest`, type: 'GET', dataType: 'json' })
@@ -5377,7 +5353,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                                             <div class="collaborators-image d-flex align-items-center">${renderCollaborators(p)}</div>
                                             <div class="d-flex align-items-center">
                                                 <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${p.id}" style="cursor:pointer; max-width: 160px;">
-                                                    <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                                                    <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                                     <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                                                 </div>
                                                 <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${p.id}">
@@ -6487,3 +6463,111 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 });
+
+function hideProjectLatestFeedbackSnippet(projectId) {
+    try {
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+        if (!els) return;
+        els.forEach((el) => {
+            el.classList.add('d-none');
+            // clear avatar and text to avoid broken images/alt
+            const avatar = el.querySelector('.latest-feedback-avatar');
+            if (avatar) avatar.src = appUrl + '/asset/img/avatar.png';
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (textEl) textEl.textContent = '';
+        });
+    } catch (_) {}
+}
+
+function setProjectLatestFeedbackSnippet(projectId, data) {
+    try {
+        const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+        if (!els || els.length === 0) return;
+        if (!data) { hideProjectLatestFeedbackSnippet(projectId); return; }
+
+        // Cache latest payload for deep-linking
+        try {
+            window.__projectLatest = window.__projectLatest || {};
+            window.__projectLatest[String(projectId)] = data;
+        } catch (_) {}
+
+        const photo = (data.employee && data.employee.photo) ? (data.employee.photo) : (appUrl + '/asset/img/avatar.png');
+        const raw = String(data.feedback_comment || '');
+        const truncated = raw.length > 30 ? (raw.slice(0, 30) + '...') : raw;
+
+        els.forEach((el) => {
+            const avatar = el.querySelector('.latest-feedback-avatar');
+            const textEl = el.querySelector('.latest-feedback-text');
+            if (avatar) avatar.src = (photo && photo.startsWith('http')) ? photo : (appUrl + '/' + String(photo).replace(/^\//,'')) ;
+            if (textEl) textEl.textContent = truncated;
+            el.classList.remove('d-none');
+            el.style.removeProperty('display');
+        });
+    } catch (e) {
+        console.warn('setProjectLatestFeedbackSnippet error', e);
+    }
+}
+
+// small seq guard for concurrent requests
+window.latestProjectSnippetSeq = window.latestProjectSnippetSeq || {};
+function fetchLatestFeedbackForProject(projectId) {
+    const seq = (window.latestProjectSnippetSeq[projectId] = (window.latestProjectSnippetSeq[projectId] || 0) + 1);
+    return $.ajax({ url: appUrl + `/project-feedbacks/${projectId}/latest`, type: 'GET', dataType: 'json' })
+        .then((res) => {
+            if (window.latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
+            const data = res && (res.data || null);
+            setProjectLatestFeedbackSnippet(projectId, data);
+        })
+        .catch(() => {
+            if (window.latestProjectSnippetSeq[projectId] !== seq) return;
+            setProjectLatestFeedbackSnippet(projectId, null);
+        });
+}
+
+function refreshAllProjectLatestFeedbackSnippets() {
+    document.querySelectorAll('#all-cards-container .col-md-4[data-project-id]').forEach((col) => {
+        const pid = col.getAttribute('data-project-id');
+        fetchLatestFeedbackForProject(pid);
+    });
+}
+
+// === Global Unread Badge Refresher ===
+function refreshAllProjectUnreadBadges() {
+    try {
+        const unreadMap = window.__projectUnread || {};
+        document.querySelectorAll('.unread-badge[data-project-id]').forEach(function (badge) {
+            const pid = badge.getAttribute('data-project-id');
+            const count = unreadMap[pid] || 0;
+            setProjectUnreadBadge(pid, count);
+        });
+        // optional console trace
+        // console.log('All project badges updated successfully');
+    } catch (e) {
+        console.warn('refreshAllProjectUnreadBadges error', e);
+        // fallback: hide all
+        document.querySelectorAll('.unread-badge[data-project-id]').forEach(function (badge) {
+            badge.textContent = '';
+            badge.classList.add('d-none');
+        });
+    }
+}
+
+function setProjectUnreadBadge(projectId, count) {
+    try {
+        const badge = document.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
+        if (!badge) return;
+
+        if (count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('d-none');
+            badge.style.display = 'inline-block';
+        } else {
+            badge.textContent = '';
+            badge.classList.add('d-none');
+            badge.style.display = 'none';
+        }
+    } catch (e) {
+        console.warn('setProjectUnreadBadge error', e);
+    }
+}
+
