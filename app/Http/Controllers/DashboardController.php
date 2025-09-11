@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+
+use App\Models\Office;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
@@ -24,6 +26,8 @@ class DashboardController extends Controller
         // $yesterday = Carbon::parse('2025-09-06')->toDateString();
 
         $employee = Employee::with('division', 'department', 'job','grade','shift')->where('user_id', $user->id)->first();
+        
+        $office = Office::where('id',$employee->office)->first();
 
         $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
                 ->where('date_shift', $today)
@@ -141,7 +145,7 @@ class DashboardController extends Controller
         
 
 
-        return view('dashboard', compact('employee', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
+        return view('dashboard', compact('employee','office', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
     }
 
     // 'Present'

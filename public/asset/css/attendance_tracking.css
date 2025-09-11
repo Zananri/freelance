@@ -247,7 +247,9 @@
     font-size: 12px;
     color: #42484F;
     border-collapse: collapse;
+    z-index:0;
 }
+
 .table-attendance thead th {
     padding: 8px 16px;
     border: 1px solid #DAE3ED;
@@ -280,13 +282,14 @@
 .table-attendance td:first-child {
     position: sticky;
     left: 0;
-    z-index: 2;
 }
+
 .table-attendance thead th:first-child {
     z-index: 2;
 }
 
 .table-attendance td:first-child{
+    z-index:1;
     padding: 0;
     width: 210px;
 }

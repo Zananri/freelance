@@ -32,6 +32,7 @@
                             <div class="profile-image-container">
                                 
                                 <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                                <input type="hidden" name="employee_office" value="{{ $office->location }}">
                                
                                 @php
                                     $dashAvatar = $employee->profile_picture ?: ($employee->photo ?? null);

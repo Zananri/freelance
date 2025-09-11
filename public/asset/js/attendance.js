@@ -149,7 +149,18 @@ let MAP_CHECKIN_DETAIL = null;
 let MAP_CHECKIN_DETAIL_LOCATION = null;
 let MAP_CHECKIN_DETAIL_MARKER = null;
 
-const LOC_OFFICE = L.latLng(-6.164849, 106.809542); // NSA Petotjo
+const employeeOffice = $('[name="employee_office"]').val();
+
+//const LOC_OFFICE = L.latLng(-6.164849, 106.809542); // NSA Petotjo
+let locationLat = -6.164849;
+let locationLong = 106.809542;
+
+if(employeeOffice){
+    locationLat = employeeOffice.split(',')[0];
+    locationLong = employeeOffice.split(',')[1];
+}
+
+const LOC_OFFICE = L.latLng(locationLat, locationLong);
 
 $(document).ready(function(){
     initialiseMapsCheckIn();
@@ -694,7 +705,7 @@ $(document).on('click','.dropdown-month .month-item',function(){
 
 $(document).on('click','.calendar-day',function(){
     let dateCalendar = $(this).attr('data-calendar-date');
-    alert(dateCalendar);
+    //alert(dateCalendar);
 });
 
 
@@ -746,8 +757,6 @@ async function getAttendanceEmployeeByMonth(month,year)
                 const timeOut = formatTimeDisplay(attendance.time_out);
 
                 const dateAttendance = formatDateMedium(attendance.date_attendance);
-
-                console.log(dateAttendance);
 
                 $(`[data-calendar-date="${dateAttendance}"]`).attr('attendance',attendance.id);
                 $(`[data-calendar-date="${dateAttendance}"]`).attr('check-in',timeIn);

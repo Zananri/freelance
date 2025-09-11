@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
+use App\Models\Office;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
 use App\Models\Attendance;
@@ -74,6 +75,8 @@ class AttendanceController extends Controller
         // $yesterday = Carbon::parse('2025-09-06')->toDateString();
 
         $employee = Employee::with('division', 'department', 'job','grade','shift')->where('user_id', $user->id)->first();
+
+        $office = Office::where('id',$employee->office)->first();
 
         $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
                 ->where('date_shift', $today)
@@ -192,7 +195,7 @@ class AttendanceController extends Controller
         $timeStart = $timeStart->format('H : i');
         $timeEnd = $timeEnd->format('H : i');
         
-        return view('attendance.attendance', compact('employee', 'timeStart','timeEnd', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
+        return view('attendance.attendance', compact('employee','office', 'timeStart','timeEnd', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
     
     }
 

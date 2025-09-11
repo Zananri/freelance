@@ -10,6 +10,7 @@
     <div class="title-content">
         <h2 class="text-title-content">Attendance</h2>
         <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+        <input type="hidden" name="employee_office" value="{{$office->location}}">
                                
         @php
             $profilePicture = $employee->profile_picture;
