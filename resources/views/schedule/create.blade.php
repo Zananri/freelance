@@ -80,7 +80,7 @@
                             <div class="custom-form-employee">
                                 <label for="schedule_due_in_days" class="form-label">Due In (days)</label>
                                 <input type="number" min="0" id="schedule_due_in_days" name="due_in_days" class="form-control input-text" placeholder="e.g. 3">
-                                <div class="form-text">Tanggal due = Start From + jumlah hari.</div>
+                                <div class="form-text">Due date = Start date + Total days.</div>
                             </div>
                             <div class="custom-form-employee">
                                 <label for="schedule_title" class="form-label">Title</label>
