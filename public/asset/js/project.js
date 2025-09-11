@@ -3630,7 +3630,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 // Create edit wrapper with icon + text
                                                 const editReplyWrapper = document.createElement("span");
                                                 editReplyWrapper.className = "d-flex align-items-center";
-                                                editReplyWrapper.style.cssText = "cursor:pointer; color:rgb(85, 85, 85); font-size:14px;";
+                                                editReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
                                                 
                                                 // Recreate edit icon
                                                 const editReplyIcon = document.createElement("span");
@@ -3692,7 +3692,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             // Create reply wrapper with icon + text
                                             const replyReplyWrapper = document.createElement("span");
                                             replyReplyWrapper.className = "d-flex align-items-center";
-                                            replyReplyWrapper.style.cssText = "cursor:pointer; color:rgb(85, 85, 85); font-size:14px;";
+                                            replyReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
                                             
                                             // Add reply button for nested reply
                                             const replyToReplyIcon = document.createElement("span");
