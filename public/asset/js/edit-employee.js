@@ -37,33 +37,42 @@ function loadDepartments(selectedId) {
             console.log("Departments loaded:", data);
             let options = '<option value="" disabled>Select Department</option>';
             (data.data || []).forEach((dept) => {
-                options += `<option value="${dept.id}" ${
-                    dept.id == selectedId ? "selected" : ""
-                }>${dept.name_department || dept.name}</option>`;
+                const isSelected = selectedId && String(dept.id) === String(selectedId);
+                options += `<option value="${dept.id}" ${isSelected ? "selected" : ""}>${dept.name_department || dept.name}</option>`;
             });
             departmentSelect.innerHTML = options;
 
+            // Only preselect if selectedId is provided
             if (selectedId) {
-                // Use the data-current-dept attribute for division preselect
-                const currentDept = departmentSelect.getAttribute("data-current-dept") || selectedId;
-                loadDivisions(selectedId, divisionSelect.getAttribute("data-current") || null);
+                departmentSelect.value = String(selectedId);
+                console.log("Department preselected:", selectedId);
             }
         },
-        error: function () {
-            console.error("Failed to load departments.");
+        error: function (xhr, status, error) {
+            console.error("Failed to load departments. Status:", status, "Error:", error);
         }
     });
 }
 
 function loadDivisions(departmentId, selectedId) {
-    // Prepare UI while loading
+    console.log("Loading divisions for department:", departmentId, "with selected:", selectedId);
+    
+    if (!departmentId) {
+        divisionSelect.innerHTML = '<option value="" disabled selected>Select Department first</option>';
+        divisionSelect.disabled = true;
+        return;
+    }
+    
+    // Show loading state
     divisionSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
     divisionSelect.disabled = true;
+    
     // Reset jobs while reloading divisions
     if (jobSelect) {
         jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
         jobSelect.disabled = true;
     }
+    
     $.ajax({
         url: appUrl + "/division/index",
         method: "GET",
@@ -71,59 +80,98 @@ function loadDivisions(departmentId, selectedId) {
         dataType: "json",
         success: function (data) {
             console.log("Divisions loaded for department", departmentId, ":", data);
+            
+            // Always start with "Select Division" as the first option
             let options = '<option value="" disabled selected>Select Division</option>';
             (data.data || []).forEach((div) => {
-                options += `<option value="${div.id}" ${
-                    div.id == selectedId ? "selected" : ""
-                }>${div.name_division || div.name}</option>`;
+                const isSelected = selectedId && String(div.id) === String(selectedId);
+                options += `<option value="${div.id}" ${isSelected ? "selected" : ""}>${div.name_division || div.name}</option>`;
             });
+            
             divisionSelect.innerHTML = options;
             divisionSelect.disabled = false;
-
+            
+            // Only preselect if selectedId is provided (initialization only)
             if (selectedId) {
-                loadJobs(selectedId, jobSelect.getAttribute("data-current"), departmentId);
-            } else {
-                if (jobSelect) {
-                    jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
-                    jobSelect.disabled = true;
-                }
+                divisionSelect.value = String(selectedId);
+                console.log("Division preselected:", selectedId);
+                // Don't automatically load jobs here for manual changes
+            }
+            
+            // Reset jobs to unselected state
+            if (jobSelect) {
+                jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
+                jobSelect.disabled = true;
             }
         },
-        error: function () {
-            console.error("Failed to load divisions.");
+        error: function (xhr, status, error) {
+            console.error("Failed to load divisions. Status:", status, "Error:", error);
+            divisionSelect.innerHTML = '<option value="" disabled selected>Failed to load divisions</option>';
+            divisionSelect.disabled = true;
         }
     });
 }
 
 function loadJobs(divisionId, selectedId, departmentId) {
+    console.log("Loading jobs for division:", divisionId, "selectedId:", selectedId, "department:", departmentId);
+    
     if (!jobSelect) return;
+    
+    // Make sure we have division_id
+    if (!divisionId) {
+        jobSelect.innerHTML = '<option value="" disabled selected>Select Division first</option>';
+        jobSelect.disabled = true;
+        return;
+    }
+    
+    // Show loading state
     jobSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
     jobSelect.disabled = true;
+    
     $.ajax({
         url: appUrl + "/job/index",
         method: "GET",
-        // Pass department_id as well to ensure strict scoping and avoid mismatches
-        data: { division_id: divisionId, department_id: departmentId || departmentSelect.value || undefined },
+        data: { 
+            division_id: divisionId, 
+            department_id: departmentId || departmentSelect.value || undefined,
+            status: 'ACTIVE' // Only load active jobs
+        },
         dataType: "json",
         success: function (data) {
-            console.log("Jobs loaded for division", divisionId, ":", data);
+            console.log("Jobs loaded for division", divisionId, "with department", departmentId, ":", data);
             const jobs = data && Array.isArray(data.data) ? data.data : [];
+            console.log("Processed jobs array:", jobs);
+            console.log("Selected job ID:", selectedId);
+            
             if (!jobs.length) {
-                jobSelect.innerHTML = '<option value="" disabled selected>No jobs available</option>';
+                console.log("No jobs found for this division/department combination");
+                jobSelect.innerHTML = '<option value="" disabled selected>No jobs available for this division</option>';
                 jobSelect.disabled = true;
                 return;
             }
+            
+            // Always start with "Select Job" option
             let options = '<option value="" disabled selected>Select Job</option>';
             jobs.forEach((job) => {
-                options += `<option value="${job.id}" ${
-                    selectedId && String(job.id) === String(selectedId) ? "selected" : ""
-                }>${job.job_name || job.name}</option>`;
+                const isSelected = selectedId && String(job.id) === String(selectedId);
+                console.log(`Job: ${job.job_name || job.name} (ID: ${job.id}) - Selected: ${isSelected}`);
+                options += `<option value="${job.id}" ${isSelected ? "selected" : ""}>${job.job_name || job.name}</option>`;
             });
+            
             jobSelect.innerHTML = options;
-            jobSelect.disabled = false;
+            jobSelect.disabled = false; // Always enable if we have jobs
+            
+            // Only preselect if selectedId is provided (initialization only)
+            if (selectedId) {
+                jobSelect.value = String(selectedId);
+                console.log("Job preselected:", selectedId);
+            }
+            
+            console.log("Job select populated successfully, disabled:", jobSelect.disabled);
         },
-        error: function () {
-            console.error("Failed to load jobs.");
+        error: function (xhr, status, error) {
+            console.error("Failed to load jobs. Status:", status, "Error:", error);
+            console.error("Response:", xhr.responseText);
             jobSelect.innerHTML = '<option value="" disabled selected>Failed to load jobs</option>';
             jobSelect.disabled = true;
         }
@@ -136,9 +184,49 @@ function loadJobs(divisionId, selectedId, departmentId) {
     const currentDivisionId = divisionSelect.getAttribute("data-current") || null;
     const currentJobId = jobSelect.getAttribute("data-current") || null;
 
-    // Only load departments dynamically if we have a current department ID
+    console.log("Initializing employee edit form with:", {
+        departmentId: currentDepartmentId,
+        divisionId: currentDivisionId,
+        jobId: currentJobId
+    });
+
+    // Check if jobs are already populated in the HTML (from server-side)
+    const hasExistingJobs = jobSelect && jobSelect.options.length > 1; // More than just "Select Job" option
+    
+    console.log("Has existing jobs:", hasExistingJobs);
+    console.log("Current job options count:", jobSelect ? jobSelect.options.length : 0);
+    
+    // Always load departments for consistency
     if (currentDepartmentId) {
+        console.log("Loading departments for:", currentDepartmentId);
         loadDepartments(currentDepartmentId);
+    }
+    
+    // If we have existing job options from server and current job is selected, don't reload
+    if (hasExistingJobs && currentJobId) {
+        console.log("Jobs already populated from server with current job selected");
+        // Ensure the correct job is selected
+        if (jobSelect) {
+            jobSelect.value = currentJobId;
+            jobSelect.disabled = false;
+        }
+    } else {
+        // Need to load divisions and jobs dynamically
+        console.log("Loading divisions and jobs dynamically");
+        
+        if (currentDivisionId) {
+            setTimeout(() => {
+                loadDivisions(currentDepartmentId, currentDivisionId);
+                
+                if (currentJobId) {
+                    console.log("Will load jobs for division:", currentDivisionId, "with current job:", currentJobId);
+                    // Add delay to ensure division is loaded first
+                    setTimeout(() => {
+                        loadJobs(currentDivisionId, currentJobId, currentDepartmentId);
+                    }, 800);
+                }
+            }, 300);
+        }
     }
 
     // Load shifts for selection and preselect current
@@ -187,36 +275,59 @@ function loadJobs(divisionId, selectedId, departmentId) {
 
     departmentSelect.addEventListener("change", function () {
         const deptId = this.value;
+        console.log("Department changed to:", deptId);
+        
         if (deptId) {
-            // Clear current selections to avoid stale preselects
+            // Clear current selections and reset to empty state
             if (divisionSelect) {
+                divisionSelect.value = ""; // Clear selection
                 divisionSelect.setAttribute("data-current", "");
+                divisionSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
+                divisionSelect.disabled = true;
             }
             if (jobSelect) {
+                jobSelect.value = ""; // Clear selection
                 jobSelect.setAttribute("data-current", "");
                 jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
                 jobSelect.disabled = true;
             }
+            // Load divisions for the new department, but don't preselect any
             loadDivisions(deptId, null);
         } else {
-            divisionSelect.innerHTML = '<option value="" disabled selected>Select Division</option>';
-            divisionSelect.disabled = true;
-            jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
-            jobSelect.disabled = true;
+            // Reset both division and job when no department selected
+            if (divisionSelect) {
+                divisionSelect.innerHTML = '<option value="" disabled selected>Select Division</option>';
+                divisionSelect.disabled = true;
+                divisionSelect.value = "";
+            }
+            if (jobSelect) {
+                jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
+                jobSelect.disabled = true;
+                jobSelect.value = "";
+            }
         }
     });
 
     divisionSelect.addEventListener("change", function () {
         const divId = this.value;
-        if (divId) {
-            // When division changes, clear any stale job preselect
+        const deptId = departmentSelect ? departmentSelect.value : null;
+        
+        console.log("Division changed to:", divId, "for department:", deptId);
+        
+        if (divId && deptId) {
+            // When division changes manually, clear any stale job preselect
             if (jobSelect) {
                 jobSelect.setAttribute("data-current", "");
+                jobSelect.value = ""; // Clear current selection
             }
-            loadJobs(divId, null, departmentSelect ? departmentSelect.value : undefined);
+            loadJobs(divId, null, deptId);
         } else {
-            jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
-            jobSelect.disabled = true;
+            // Reset job selection when no division selected
+            if (jobSelect) {
+                jobSelect.innerHTML = '<option value="" disabled selected>Select Job</option>';
+                jobSelect.disabled = true;
+                jobSelect.value = "";
+            }
         }
     });
 
