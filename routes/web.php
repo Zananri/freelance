@@ -59,16 +59,9 @@ Route::middleware('auth')->group(function () {
 
 
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
-    Route::post('/profile/update', [ProfileController::class, 'updateProfile'])->name('profile.updateProfile');
-    Route::post('/profile/verify-current-password', [ProfileController::class, 'verifyCurrentPassword'])->name('profile.verifyCurrentPassword');
-    Route::get('/profile/index', [ProfileController::class, 'index'])->name('profile.index');
-    Route::get('/profile/create', [ProfileController::class, 'create'])->name('profile.create');
-    Route::get('/profile/{id}/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::get('/profile/{id}', [ProfileController::class, 'show'])->name('profile.show');
-    Route::post('/profile/store', [ProfileController::class, 'store'])->name('profile.store');
-    Route::put('/profile/{id}', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile/{id}', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
+    Route::post('/profile/edit-password', [ProfileController::class, 'editPassword'])->name('profile.editPassword');
+    Route::post('/profile/edit-photo-profile', [ProfileController::class, 'editPhotoProfile'])->name('profile.editPhotoProfile');
+    
 
    // === Project routes ===
 Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');

@@ -8,7 +8,7 @@
 
 // Fungsi untuk inisialisasi aplikasi
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('NSA Office Performance System - App.js loaded successfully');
+    //console.log('NSA Office Performance System - App.js loaded successfully');
     
     // Inisialisasi fungsi umum
     initCommonFunctions();
