@@ -406,7 +406,11 @@
     color: #555; /* same as task.css */
     font-size: 20px; /* same as task.css */
     line-height: 1;
+    cursor: pointer; /* make icons (e.g., mode_comment) clearly clickable */
 }
+
+/* Extra assurance: ensure the specific comment icon shows pointer */
+#projectDetailModal .task-icon.mode_comment { cursor: pointer; }
 
 /* Edit icon in Project Detail header */
 #projectDetailModal .project-edit-icon {
