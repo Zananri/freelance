@@ -19,6 +19,16 @@ use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
+    /**
+     * Determine if a given stored path refers to the shared default avatar.
+     */
+    private function isDefaultAvatarPath(?string $path): bool
+    {
+        if (!$path) return false;
+        $norm = str_replace('\\', '/', trim($path));
+        $norm = ltrim($norm, '/');
+        return $norm === 'asset/img/avatar.png';
+    }
    
     public function showEmployeePage()
     {
@@ -314,8 +324,9 @@ class EmployeeController extends Controller
                 $profileDest = public_path('file/profile_picture');
                 if (!file_exists($profileDest)) mkdir($profileDest, 0777, true);
                 // Delete old profile_picture file if exists
-                if ($employee->profile_picture && file_exists(public_path($employee->profile_picture))) {
-                    @unlink(public_path($employee->profile_picture));
+                if ($employee->profile_picture && !$this->isDefaultAvatarPath($employee->profile_picture)) {
+                    $old = public_path(ltrim($employee->profile_picture, '/'));
+                    if (file_exists($old)) { @unlink($old); }
                 }
                 $pf->move($profileDest, $profileFilename);
                 $updateData['profile_picture'] = 'file/profile_picture/' . $profileFilename;

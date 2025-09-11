@@ -21,14 +21,16 @@ class EmployeeUserSeeder extends Seeder
             ]
         );
 
-        Employee::updateOrCreate([
-                'user_id' => $user0->id, 'department_id' => 8, 'division_id' => 21, 'job_id' => 38, 'shift_id' => 1,
-                'profile_picture' => 'asset/img/avatar.png', 'employee_niks' => 'NSAID-001', 'name' => 'Admin', 
-                'email' => 'user@nsaperformance.id', 'email_work' => 'user@nsaperformance.id', 'phone' => '00000000000', 'status' => 'ACTIVE', 'address' => '',
-                'photo' => 'asset/img/avatar.png', 'ktp' => '', 'birth_date' => '1990-01-01', 'hire_date' => '2024-01-01',
-                'resign_date' => null, 'grade_id' => 1, 'office' => 1,
-                'created_by' => 1, 'updated_by' => 1,'deleted_by' => null,
-        ]);
+    Employee::updateOrCreate([
+        'user_id' => $user0->id, 'department_id' => 8, 'division_id' => 21, 'job_id' => 38, 'shift_id' => 1,
+        // Keep profile_picture null initially; UI will fall back to default avatar.png
+        'profile_picture' => null, 'employee_niks' => 'NSAID-001', 'name' => 'Admin', 
+        'email' => 'user@nsaperformance.id', 'email_work' => 'user@nsaperformance.id', 'phone' => '00000000000', 'status' => 'ACTIVE', 'address' => '',
+        // Keep legacy photo referencing default if desired, but it's safer to null it as well to avoid accidental deletions
+        'photo' => 'asset/img/avatar.png', 'ktp' => '', 'birth_date' => '1990-01-01', 'hire_date' => '2024-01-01',
+        'resign_date' => null, 'grade_id' => 1, 'office' => 1,
+        'created_by' => 1, 'updated_by' => 1,'deleted_by' => null,
+    ]);
 
 
     }

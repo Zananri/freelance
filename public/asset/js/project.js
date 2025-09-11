@@ -353,8 +353,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.
-    function renderCollaborators(project) {
+    // Optional sizeOverride lets caller control avatar size (default 30 for cards; use 40 for Project Detail modal)
+    function renderCollaborators(project, sizeOverride) {
         try {
+            const size = (function(s){ const n = Number(s); return Number.isFinite(n) && n > 0 ? n : 30; })(sizeOverride);
             const maxVisible = 3;
             let coll = [];
 
@@ -387,8 +389,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (coll.length === 0) {
                 // fallback: show default placeholder
                 return (
-                    resolvePhotoHtml(null, 30, 0) +
-                    resolvePhotoHtml(null, 30, -8)
+                    resolvePhotoHtml(null, size, 0) +
+                    resolvePhotoHtml(null, size, -8)
                 );
             }
 
@@ -396,7 +398,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const visible = coll.slice(0, maxVisible);
             visible.forEach((c, idx) => {
                 const margin = idx === 0 ? 0 : -8;
-                html += resolvePhotoHtml(c.emp, 30, margin, c.type);
+                html += resolvePhotoHtml(c.emp, size, margin, c.type);
             });
 
             const overflow = coll.length - maxVisible;
@@ -421,13 +423,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     })
                     .join(", ");
 
-                html += `<div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold" title="${hidden}" data-bs-toggle="tooltip" data-bs-placement="bottom" style="width:30px;height:30px;font-size:12px;margin-left:-8px;">+${overflow}</div>`;
+                const moreFont = size >= 38 ? 14 : 12;
+                html += `<div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold" title="${hidden}" data-bs-toggle="tooltip" data-bs-placement="bottom" style="width:${size}px;height:${size}px;font-size:${moreFont}px;margin-left:-8px;">+${overflow}</div>`;
             }
 
             return html;
         } catch (e) {
             console.error("renderCollaborators error", e);
-            return resolvePhotoHtml(null, 30, 0);
+            return resolvePhotoHtml(null, sizeOverride || 30, 0);
         }
     }
 
@@ -501,10 +504,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             ? appUrl + "/file/project/" + project.image
                             : null;
 
+                        const dataTitle = (project.title || '').replace(/"/g, '&quot;');
                         rowHtml += `
                             <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
-                            }">
+                            }" data-project-title="${dataTitle}">
                                 <div class="project-card p-4 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
 
                                     <!-- Header -->
@@ -512,7 +516,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div class="d-flex align-items-center">
                                             ${
                                                 imageUrl
-                                                    ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
+                                                    ? `<img src="${imageUrl}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
                                                     : (function () {
                                                           const init =
                                                               getInitials(
@@ -526,7 +530,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                             style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`;
                                                       })()
                                             }
-                                            <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
+                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${
                                                 project.title
                                             }</h6>
                                         </div>
@@ -5322,6 +5326,99 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
                     }
 
+                    // Helper: Set preview (image or initials) for Delete Project modal
+                    function setDeleteProjectModalPreview(title, imageUrl) {
+                        try {
+                            const modalBody = document.querySelector('#deleteProjectModal .modal-body');
+                            const imgEl = document.getElementById('deleteProjectImage');
+                            let initialsEl = document.getElementById('deleteProjectInitials');
+
+                            // Clean up any previous fallback blocks to avoid duplicates (e.g., lingering NA)
+                            if (modalBody) {
+                                modalBody.querySelectorAll('.delete-initials-fallback, .task-modal-initial-avatar').forEach(function(el){
+                                    try { el.remove(); } catch(_) {}
+                                });
+                            }
+                            // Ensure a fresh element is created next time
+                            initialsEl = null;
+
+                            function ensureInitialsEl() {
+                                if (!initialsEl) {
+                                    initialsEl = document.createElement('div');
+                                    initialsEl.id = 'deleteProjectInitials';
+                                    initialsEl.style.width = '150px';
+                                    initialsEl.style.height = '150px';
+                                    initialsEl.style.borderRadius = '8px';
+                                    initialsEl.style.display = 'flex';
+                                    initialsEl.style.alignItems = 'center';
+                                    initialsEl.style.justifyContent = 'center';
+                                    initialsEl.style.fontWeight = '700';
+                                    initialsEl.style.color = '#ffffff';
+                                    initialsEl.style.marginBottom = '1rem';
+                                    initialsEl.style.userSelect = 'none';
+                                    // Insert before the image to preserve layout
+                                    if (imgEl && imgEl.parentElement) {
+                                        imgEl.parentElement.insertBefore(initialsEl, imgEl);
+                                    } else if (modalBody) {
+                                        modalBody.insertBefore(initialsEl, modalBody.firstChild);
+                                    }
+                                }
+
+                                const t = (title || 'NA');
+                                const init = (typeof getInitials === 'function') ? getInitials(t) : (t.substring(0, 2).toUpperCase());
+                                const color = (typeof getInitialsColor === 'function') ? getInitialsColor(t) : '#6A5AE0';
+                                initialsEl.textContent = init;
+                                initialsEl.style.background = color;
+                                initialsEl.style.fontSize = '56px';
+                                initialsEl.style.letterSpacing = '1px';
+                                initialsEl.className = 'delete-initials-fallback';
+                                // Ensure content stays centered
+                                initialsEl.style.display = 'flex';
+                            }
+
+                            function hideInitialsEl() {
+                                if (initialsEl) { initialsEl.style.display = 'none'; }
+                            }
+
+                            // Always set the title first
+                            const titleEl = document.getElementById('deleteProjectTitle');
+                            if (titleEl) titleEl.textContent = title || '';
+
+                            // Reset image state deterministically
+                            if (imgEl) {
+                                imgEl.onerror = null;
+                                imgEl.onload = null;
+                                imgEl.removeAttribute('src');
+                                imgEl.style.display = 'none';
+                            }
+
+                            if (imageUrl) {
+                                ensureInitialsEl(); // show initials until image successfully loads
+                                if (imgEl) {
+                                    imgEl.style.display = '';
+                                    imgEl.onload = function () {
+                                        // Image loaded OK: hide initials
+                                        hideInitialsEl();
+                                    };
+                                    imgEl.onerror = function () {
+                                        // Image failed: keep initials visible
+                                        this.onerror = null;
+                                        this.onload = null;
+                                        this.removeAttribute('src');
+                                        this.style.display = 'none';
+                                        ensureInitialsEl();
+                                    };
+                                    // Set src at the end to trigger load/error
+                                    imgEl.src = imageUrl;
+                                }
+                            } else {
+                                ensureInitialsEl();
+                            }
+                        } catch (e) {
+                            console.error('setDeleteProjectModalPreview error:', e);
+                        }
+                    }
+
                     // Remove old confirm dialog and use modal instead
                     document
                         .querySelectorAll(".delete-project")
@@ -5346,26 +5443,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                     deleteModalEl
                                 );
 
-                                // Set project image and title in modal
-                                const projectImage = card.querySelector("img");
-                                const projectTitle =
-                                    card.querySelector(".title-project");
-
-                                const deleteProjectImage =
-                                    document.getElementById(
-                                        "deleteProjectImage"
-                                    );
-                                const deleteProjectTitle =
-                                    document.getElementById(
-                                        "deleteProjectTitle"
-                                    );
-
-                                deleteProjectImage.src = projectImage
-                                    ? projectImage.src
-                                    : "";
-                                deleteProjectTitle.textContent = projectTitle
-                                    ? projectTitle.textContent
-                                    : "";
+                                // Set project image (or initials) and title in modal
+                                const projectTitle = card.querySelector(".title-project") || card.closest('[data-project-title]')?.getAttribute('data-project-title') ? { textContent: card.closest('[data-project-title]').getAttribute('data-project-title') } : null;
+                                // Prefer the project header avatar image if present
+                                let projectHeaderImg = card.querySelector('img[data-role="project-avatar"]');
+                                if (!projectHeaderImg) {
+                                    projectHeaderImg = card.querySelector('.project-card .d-flex.justify-content-between.align-items-start .d-flex.align-items-center > img');
+                                }
+                                const imgUrl = projectHeaderImg ? projectHeaderImg.src : null;
+                                setDeleteProjectModalPreview(projectTitle ? projectTitle.textContent : '', imgUrl);
 
                                 // Store projectId and card element on modal for use in delete
                                 deleteModalEl.dataset.projectId = projectId;
@@ -5442,169 +5528,287 @@ document.addEventListener("DOMContentLoaded", function () {
                                     ? baseFileUrl + project.image
                                     : null;
 
-                                // Build isi modal
+                                // Build modal content to mirror Task Detail layout
+                                let avatarHtml = imageUrl
+                                    ? `<img src="${imageUrl}" class="rounded-circle me-3" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
+                                    : (function () {
+                                          const init = getInitials(project.title || "N/A");
+                                          const color = getInitialsColor(project.title || "N/A");
+                                          return `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;background:${color};color:#fff;font-weight:600;font-size:11px;">${init}</div>`;
+                                      })();
+
                                 const detailHtml = `
-                                    <div class="d-flex justify-content-between align-items-center mb-3 mt-1">
-                                        <div class="d-flex align-items-center">
-                                            ${
-                                                imageUrl
-                                                    ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:44px;height:44px;object-fit:cover;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
-                                                    : (function () {
-                                                          const init =
-                                                              getInitials(
-                                                                  project.title ||
-                                                                      "N/A"
-                                                              );
-                                                          const color =
-                                                              getInitialsColor(
-                                                                  project.title ||
-                                                                      "N/A"
-                                                              );
-                                                          return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                                            style="width:44px;height:44px;background:${color};color:#fff;font-size:17px;font-weight:600;">${init}</div>`;
-                                                      })()
-                                            }
-                                            <h5 class="mb-0 fw-semibold" style="font-size:17px;">${
-                                                project.title ||
-                                                "Unknown Project"
-                                            }</h5>
-                                        </div>
-                                        <div class="dropdown-icon-container-detail">
-                                            <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
-                                                style="background:#E8E9F2; border-radius:50%; width:34px; height:34px;">
-                                                <span class="material-symbols-outlined" style="font-size:18px; color:#828282;">more_vert</span>
-                                            </button>
-                                            <div class="dropdown-menu dropdown-action d-none">
-                                                <div class="dropdown-item">Edit</div>
-                                                <div class="dropdown-item text-danger delete-project">Delete</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Description -->
-                                    ${
-                                        project.description
-                                            ? `<p class="mb-2 small text-muted" style="font-size:15px; line-height:1.5;">${project.description}</p>`
-                                            : ""
-                                    }
-
-                                    <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
-
-                                    <!-- Footer (collaborators + icons) -->
-                                    <div class="d-flex justify-content-between align-items-center mt-2">
-                                        <div class="collaborators-image d-flex align-items-center">
-                                            ${renderCollaborators(project)}
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-3 d-flex align-items-center position-relative comment-btn"
-                                                title="Comment" data-project-id="${pid}">
-                                                <span class="material-symbols-outlined" style="font-size:20px; color:#828282;">mode_comment</span>
-                                                <span class="project-feedback-count ms-1" style="font-size:14px; color:#454545;">${
-                                                    project.feedback_comments_count ||
-                                                    ""
-                                                }</span>
-                                                <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
-                                            </button>
-                                            <button class="btn btn-sm p-0 border-0 bg-transparent d-flex align-items-center attach-btn"
-                                                title="Attach File" data-project-id="${pid}">
-                                                <span class="material-symbols-outlined" style="font-size:20px; color:#828282;">attach_file</span>
-                                                <span class="project-file-count ms-1" style="font-size:14px; color:#454545;">${
-                                                    project.reference_files_count ||
-                                                    ""
-                                                }</span>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Extra info sejajar -->
-                                    <div class="d-flex justify-content-start align-items-center mt-3 small">
-                                        <span class="me-4" style="font-size:14px;"><strong>Department:</strong> ${
-                                            project.department || "-"
-                                        }</span>
-                                        <span style="font-size:14px;"><strong>Division:</strong> ${
-                                            project.division || "-"
-                                        }</span>
-                                    </div>
-                                `;
+                <div class="custom-card-detail rounded-4 p-3 border-0" data-project-id="${pid}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex align-items-center">
+                            ${avatarHtml}
+                            <div class="d-flex flex-column">
+                                ${project.part_of_project_title ? `<small class=\"text-muted\" style=\"font-size:11px;\">${project.part_of_project_title}</small>` : ""}
+                                <h5 class="mb-0 task-title" style="font-size:16px; font-weight:600;">${project.title || "Unknown Project"}</h5>
+                            </div>
+                        </div>
+                        <div class="dropdown-icon-container">
+                            <span class="material-symbols-outlined dropdown-icon mt-2 mx-2 project-edit-icon" tabindex="0">edit</span>
+                        </div>
+                    </div>
+                    ${project.description ? `<p style=\"font-size:14px;\" class=\"mb-2\">${project.description}</p>` : ""}
+                    <hr class="task-separator rounded-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
+                        <div>
+                            <span style="color:#797E91;">Priority: </span>
+                            <span style="color:${(project.priority||'').toUpperCase()==='HIGH' ? 'red' : '#4B4F5E'}">${(project.priority || '-')}</span>
+                        </div>
+                        <div>
+                            <span style="color:#797E91;">Deadline: </span>
+                            <span style="color:#4B4F5E;">${project.due_date || "-"}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                        <span class="text-muted">Department:</span>
+                        <span>${project.department || "-"}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                        <span class="text-muted">Division:</span>
+                        <span>${project.division || "-"}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div class="d-flex align-items-center pic-executor-container">
+                            ${renderCollaborators(project, 40) || "No collaborators"}
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
+                                <span class="material-symbols-outlined task-icon mode_comment" data-project-id="${pid}">mode_comment</span>
+                                ${project.feedback_comments_count > 0 ? `<span class=\"feedback-comments-count ms-1\" style=\"color: #454545; font-size: 12px;\">${project.feedback_comments_count}</span>` : ""}
+                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${pid}"></span>
+                            </div>
+                            <div class="btn-attach-file-wrapper d-flex align-items-center">
+                                <span class="material-symbols-outlined task-icon">attach_file</span>
+                                ${project.reference_files_count > 0 ? `<span class=\"reference-files-count ms-1\" style=\"color: #454545; font-size: 12px;\">${project.reference_files_count}</span>` : ""}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom mt-3">
+                        <button type="button" class="btn btn-custom-close delete-project-btn" data-project-id="${pid}">Delete</button>
+                    </div>
+                </div>`;
 
                                 // Inject ke modal
                                 $("#projectDetailContent").html(detailHtml);
 
-                                // Bind ulang dropdown after inject
-                                document
-                                    .querySelectorAll(
-                                        "#projectDetailContent .dropdown-icon"
-                                    )
-                                    .forEach((icon) => {
-                                        icon.addEventListener(
-                                            "click",
-                                            function (e) {
-                                                e.stopPropagation();
-                                                const dropdownMenu =
-                                                    this.nextElementSibling;
-                                                const isVisible =
-                                                    !dropdownMenu.classList.contains(
-                                                        "d-none"
-                                                    );
-                                                document
-                                                    .querySelectorAll(
-                                                        "#projectDetailContent .dropdown-menu"
-                                                    )
-                                                    .forEach((menu) => {
-                                                        menu.classList.add(
-                                                            "d-none"
-                                                        );
-                                                    });
-                                                if (!isVisible) {
-                                                    dropdownMenu.classList.remove(
-                                                        "d-none"
-                                                    );
+                                // Bind Edit icon to open Edit Project modal
+                                (function bindEditIcon() {
+                                    const editBtn = document.querySelector('#projectDetailContent .project-edit-icon');
+                                    if (!editBtn) return;
+                                    editBtn.addEventListener('click', function () {
+                                        // Hide project detail modal first
+                                        try { $("#projectDetailModal").modal('hide'); } catch(_) {}
+                                        // Reuse edit flow: fetch project data and populate modal, then show
+                                        $.ajax({
+                                            url: appUrl + "/project/" + pid + "/edit",
+                                            type: "GET",
+                                            dataType: "json",
+                                            success: function (data) {
+                                                try {
+                                                    // Populate Edit form fields (same logic as dropdown Edit)
+                                                    $("#edit_project_id").val(data.id);
+                                                    $("#edit_title").val(data.title);
+                                                    $("#edit_description").val(data.description);
+
+                                                    // Prefill multiple reference URLs
+                                                    (function () {
+                                                        const container = document.getElementById("edit_project_reference_urls_container");
+                                                        if (!container) return;
+                                                        container.innerHTML = "";
+                                                        let urls = [];
+                                                        if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                                                        else if (typeof data.reference_urls === 'string') {
+                                                            try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                                        }
+                                                        if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+                                                        function makeRow(value, withAdd) {
+                                                            const row = document.createElement('div');
+                                                            row.className = 'd-flex gap-2 align-items-center';
+                                                            row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+                                                            container.appendChild(row);
+                                                            const inp = row.querySelector('input[type="url"]');
+                                                            if (inp && value) inp.value = value;
+                                                        }
+                                                        if (urls && urls.length) { urls.forEach(u => makeRow(u, false)); makeRow("", true); } else { makeRow("", true); }
+                                                    })();
+
+                                                    $("#edit_start_date").val(data.start_date);
+                                                    $("#edit_due_date").val(data.due_date);
+
+                                                    try {
+                                                        const currentProjectId = data.id || $("#edit_project_id").val();
+                                                        const currentProjectTitle = data.title || "";
+                                                        populatePartOfProjectSelects(currentProjectId, currentProjectTitle, data.part_of_project);
+                                                    } catch (_) {
+                                                        try { $("#edit_part_of_project").val(data.part_of_project); } catch(_) {}
+                                                    }
+
+                                                    // Load departments/divisions
+                                                    loadDepartments(function () {
+                                                        $("#edit_department").val(data.department_id).trigger("change");
+                                                        loadDivisions(data.department_id, function () {
+                                                            $("#edit_division").val(data.division_id);
+                                                            $("#edit_division").trigger("change");
+                                                        }, document.getElementById("edit_division"));
+                                                        $("#edit_department").trigger("change");
+                                                    }, document.getElementById("edit_department"));
+
+                                                    // Image preview
+                                                    if (data.image) {
+                                                        $("#editImageLabel").css("background-image", "url(" + appUrl + "/file/project/" + data.image + ")");
+                                                        $("#editImageLabel").addClass("has-image");
+                                                        $("#editImageLabel").css({ "background-size": "cover", opacity: "1" });
+                                                        $("#editImageClearBtn").removeClass("d-none");
+                                                    } else {
+                                                        $("#editImageLabel").css("background-image", "url('" + appUrl + "/asset/img/background/add-image.png')");
+                                                        $("#editImageLabel").removeClass("has-image");
+                                                        $("#editImageLabel").css("opacity", "0.5");
+                                                        $("#editImageClearBtn").addClass("d-none");
+                                                    }
+
+                                                    // Files (existing and new)
+                                                    $("#edit_reference_file").val("");
+                                                    var existingFiles = Array.isArray(data.reference_files) ? data.reference_files.slice() : Array.isArray(data.reference_file) ? data.reference_file.slice() : data.reference_file ? [data.reference_file] : [];
+                                                    var existingInput = document.getElementById("existing_reference_files_input");
+                                                    if (!existingInput) {
+                                                        existingInput = document.createElement("input");
+                                                        existingInput.type = "hidden"; existingInput.id = "existing_reference_files_input"; existingInput.name = "existing_reference_files";
+                                                        document.getElementById("editProjectForm").appendChild(existingInput);
+                                                    }
+                                                    existingInput.value = JSON.stringify(existingFiles);
+
+                                                    var previewEdit = document.getElementById("edit_reference_files_preview");
+                                                    var existingContainer = document.getElementById("existing_reference_files");
+                                                    if (previewEdit) previewEdit.innerHTML = ""; if (existingContainer) existingContainer.innerHTML = "";
+                                                    window.editProjectSelectedFiles = [];
+                                                    function renderExistingProjectFiles() {
+                                                        if (!existingContainer) return; existingContainer.innerHTML = "";
+                                                        if (existingFiles.length > 0) {
+                                                            var title = document.createElement("div"); title.className = "fw-bold mb-2"; title.textContent = "Current Files:"; existingContainer.appendChild(title);
+                                                            var fileList = document.createElement("div"); fileList.className = "existing-files-list w-100";
+                                                            existingFiles.forEach(function (fileName) {
+                                                                var fileItem = document.createElement("div"); fileItem.className = "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                                                var fileInfo = document.createElement("div"); fileInfo.className = "d-flex align-items-center flex-grow-1";
+                                                                var fileIcon = document.createElement("span"); fileIcon.className = "material-symbols-outlined me-2"; fileIcon.textContent = "description";
+                                                                var fileLink = document.createElement("a"); fileLink.href = appUrl + "/file/project/" + fileName; fileLink.textContent = fileName; fileLink.className = "text-decoration-none"; fileLink.target = "_blank";
+                                                                var removeBtn = document.createElement("button"); removeBtn.type = "button"; removeBtn.className = "btn btn-sm btn-outline-danger"; removeBtn.innerHTML = "&times;"; removeBtn.onclick = function () { existingFiles = existingFiles.filter(function (f) { return f !== fileName; }); existingInput.value = JSON.stringify(existingFiles); renderExistingProjectFiles(); };
+                                                                fileInfo.appendChild(fileIcon); fileInfo.appendChild(fileLink); fileItem.appendChild(fileInfo); fileItem.appendChild(removeBtn); fileList.appendChild(fileItem);
+                                                            });
+                                                            existingContainer.appendChild(fileList);
+                                                        }
+                                                    }
+                                                    function renderEditProjectSelectedFiles() {
+                                                        if (!previewEdit) return; previewEdit.innerHTML = "";
+                                                        if (window.editProjectSelectedFiles.length > 0) {
+                                                            var fileList = document.createElement("div"); fileList.className = "selected-files-list mt-2";
+                                                            window.editProjectSelectedFiles.forEach(function (file, index) {
+                                                                var fileItem = document.createElement("div"); fileItem.className = "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                                                var fileInfo = document.createElement("div"); fileInfo.className = "d-flex align-items-center flex-grow-1";
+                                                                var fileIcon = document.createElement("span"); fileIcon.className = "material-symbols-outlined me-2"; fileIcon.textContent = "description";
+                                                                var fileName = document.createElement("span"); fileName.textContent = file.name; fileName.className = "file-name";
+                                                                var fileSize = document.createElement("small"); fileSize.textContent = " (" + (file.size/1024/1024).toFixed(2) + " MB)"; fileSize.className = "text-muted ms-1";
+                                                                var removeBtn = document.createElement("button"); removeBtn.type = "button"; removeBtn.className = "btn btn-sm btn-outline-danger"; removeBtn.innerHTML = "&times;"; removeBtn.onclick = function () { window.editProjectSelectedFiles.splice(index, 1); renderEditProjectSelectedFiles(); };
+                                                                fileInfo.appendChild(fileIcon); fileInfo.appendChild(fileName); fileInfo.appendChild(fileSize);
+                                                                fileItem.appendChild(fileInfo); fileItem.appendChild(removeBtn); fileList.appendChild(fileItem);
+                                                            });
+                                                            previewEdit.appendChild(fileList);
+                                                        }
+                                                    }
+                                                    $("#edit_reference_file").off("change").on("change", function () { var files = Array.from(this.files || []); if (files.length > 0) { window.editProjectSelectedFiles = window.editProjectSelectedFiles.concat(files); renderEditProjectSelectedFiles(); this.value = ""; } });
+                                                    renderExistingProjectFiles(); renderEditProjectSelectedFiles();
+
+                                                    // Co-authors & contributors
+                                                    window.clearSelectedCoAuthorsEdit && window.clearSelectedCoAuthorsEdit();
+                                                    window.clearSelectedContributorsEdit && window.clearSelectedContributorsEdit();
+                                                    if (data.co_authors) {
+                                                        var coAuthors = data.co_authors.map(function (a) { return { id: a.id, name: a.name, user_photo: a.user_photo || null }; });
+                                                        window.setSelectedCoAuthorsEdit && window.setSelectedCoAuthorsEdit(coAuthors);
+                                                    }
+                                                    if (data.contributors) {
+                                                        var contributors = data.contributors.map(function (a) { return { id: a.id, name: a.name, user_photo: a.user_photo || null }; });
+                                                        window.setSelectedContributorsEdit && window.setSelectedContributorsEdit(contributors);
+                                                    }
+
+                                                    const editProjectModalEl = document.getElementById("editProjectModal");
+                                                    if (!editProjectModalEl) { showFloatingAlert("Edit Project Modal element not found", "warning", 3500); return; }
+                                                    const editProjectModal = bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(editProjectModalEl) : (bootstrap.Modal.getInstance(editProjectModalEl) || new bootstrap.Modal(editProjectModalEl));
+                                                    editProjectModal.show();
+                                                } catch (err) {
+                                                    console.error('Failed to open edit project modal from detail:', err);
+                                                    showFloatingAlert('Failed to open edit project modal', 'warning', 3500);
                                                 }
-                                            }
-                                        );
+                                            },
+                                        });
                                     });
+                                })();
 
-                                // Bind comment button
-                                document
-                                    .querySelectorAll(
-                                        "#projectDetailContent .comment-btn"
-                                    )
-                                    .forEach((btn) => {
-                                        btn.addEventListener(
-                                            "click",
-                                            function () {
-                                                $("#projectDetailModal").modal(
-                                                    "hide"
-                                                );
-                                                loadFeedbackData(projectId);
-                                                const projectFeedbackModal =
-                                                    new bootstrap.Modal(
-                                                        projectFeedbackModalEl
-                                                    );
-                                                projectFeedbackModal.show();
-                                            }
-                                        );
+                                // Bind comment icon (mode_comment) to open Project Feedback modal
+                                (function bindCommentIcon() {
+                                    const icon = document.querySelector('#projectDetailContent .task-icon.mode_comment');
+                                    if (!icon) return;
+                                    icon.addEventListener('click', function () {
+                                        try { $("#projectDetailModal").modal('hide'); } catch(_) {}
+                                        const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                                        if (projectFeedbackModalEl) projectFeedbackModalEl.setAttribute('data-project-id', String(pid));
+                                        try { loadFeedbackData(pid); } catch(_) {}
+                                        const m = new bootstrap.Modal(projectFeedbackModalEl);
+                                        m.show();
                                     });
+                                })();
 
-                                // Bind attach button
-                                document
-                                    .querySelectorAll(
-                                        "#projectDetailContent .attach-btn"
-                                    )
-                                    .forEach((btn) => {
-                                        btn.addEventListener(
-                                            "click",
-                                            function () {
-                                                $("#projectDetailModal").modal(
-                                                    "hide"
-                                                );
+                                // Bind attach icon to open Project Files modal
+                                (function bindAttachIcon() {
+                                    const attachWrapper = document.querySelectorAll('#projectDetailContent .btn-attach-file-wrapper .task-icon');
+                                    attachWrapper.forEach(function (el) {
+                                        if (el.textContent.trim() === 'attach_file') {
+                                            el.addEventListener('click', function () {
+                                                try { $("#projectDetailModal").modal('hide'); } catch(_) {}
                                                 openProjectFiles(pid);
-                                                $("#projectFilesModal").modal(
-                                                    "show"
-                                                );
-                                            }
-                                        );
+                                                $("#projectFilesModal").modal('show');
+                                            });
+                                        }
                                     });
+                                })();
+
+                                // Bind Delete button in footer to open Delete Project confirmation modal
+                                (function bindDeleteButton() {
+                                    const delBtn = document.querySelector('#projectDetailContent .delete-project-btn');
+                                    if (!delBtn) return;
+                                    delBtn.addEventListener('click', function () {
+                                        try { $("#projectDetailModal").modal('hide'); } catch(_) {}
+                                        const deleteModalEl = document.getElementById("deleteProjectModal");
+                                        if (!deleteModalEl) { showFloatingAlert('Delete Project Modal not found', 'warning', 3000); return; }
+                                        const deleteModal = new bootstrap.Modal(deleteModalEl);
+                                                // Populate image (or initials) and title
+                                                setDeleteProjectModalPreview(project.title || '', imageUrl || null);
+                                        deleteModalEl.dataset.projectId = pid;
+                                        deleteModal.show();
+                                        // Confirm delete handler
+                                        const confirmDeleteBtn = document.getElementById("confirmDeleteProjectBtn");
+                                        if (confirmDeleteBtn) {
+                                            confirmDeleteBtn.onclick = function () {
+                                                $.ajax({
+                                                    url: appUrl + "/project/" + pid,
+                                                    type: "DELETE",
+                                                    headers: { "X-CSRF-TOKEN": $("meta[name='csrf-token']").attr("content") },
+                                                    success: function (resp) {
+                                                        deleteModal.hide();
+                                                        try { loadProjectCardData(); } catch(_) {}
+                                                        showFloatingAlert(resp.message || 'Project deleted successfully', 'success', 2000);
+                                                    },
+                                                    error: function (xhr) {
+                                                        console.error('Delete error:', xhr);
+                                                        showFloatingAlert("Failed to delete project: " + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000);
+                                                    }
+                                                });
+                                            };
+                                        }
+                                    });
+                                })();
 
                                 // Show modal
                                 $("#projectDetailModal").modal("show");
@@ -7752,10 +7956,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     const newHeader = `
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <div class="d-flex align-items-center">
-                                                <img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;">
-                                                <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
-                                                    p.title || ""
-                                                }</h6>
+                                                ${p.image ? `<img src="${appUrl + "/file/project/" + p.image}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">` : (function(){ const init = getInitials(p.title || ""); const color = getInitialsColor(p.title || ""); return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\" style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`; })()}
+                                                <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${p.title || ""}</h6>
                                             </div>
                                             <div class="dropdown-icon-container">
                                                 <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"

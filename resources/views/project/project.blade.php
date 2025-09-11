@@ -589,19 +589,11 @@
     </div> --}}
 
     <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:640px;">
-            <div class="modal-content border-0 rounded-4 shadow-lg">
-                <div class="modal-body p-4 position-relative mb-3">
-
-                    <!-- Tombol close -->
-                    <div class="d-flex justify-content-end mb-3">
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-
-                    <!-- Container detail (JS inject) -->
-                    <div id="projectDetailContent" class="mb-3"></div>
-
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content modal-content-custom">
+                    <button type="button" class="btn-close btn-sm position-absolute end-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-body modal-body-custom position-relative">
+                    <div id="projectDetailContent"></div>
                 </div>
             </div>
         </div>
