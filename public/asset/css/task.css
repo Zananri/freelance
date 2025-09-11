@@ -9,22 +9,9 @@
 
 .task-container {
     max-height: 75vh;
-    max-width: 200vh;
+    min-width: 100%;
     overflow: hidden;
     padding-right: 8px;
-}
-
-.task-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.task-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.task-container::-webkit-scrollbar-thumb {
-    background-color: #cccccc;
-    border-radius: 4px;
 }
 
 .row.justify-content-start > .col-md-2 {
@@ -65,7 +52,7 @@
     border-radius: 20px;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    /* height: 100%; */
 }
 
 .new-request-container .task-list {
