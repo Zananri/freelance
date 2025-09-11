@@ -153,7 +153,7 @@
         return colors[Math.abs(hash) % colors.length];
     }
 
-    // Show Accept confirmation modal (task page, no notification context)
+// Show Accept confirmation modal (task page, no notification context)
     function showAcceptInviteModal(taskId) {
         // Fetch task to display context
         $.ajax({
@@ -1613,7 +1613,7 @@ document.addEventListener("click", function (e) {
             if (task.status === 'in_progress' || task.status === 'in progress' || task.status === 'rejected') {
                 iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
                     data-bs-toggle="tooltip"
-                    data-bs-placement="bottom"
+                    data-bs-placement="top"
                     data-task-id="${task.id}"
                     data-task-status="${task.status}"
                     title="Set to Complete"
@@ -1623,7 +1623,7 @@ document.addEventListener("click", function (e) {
             } else if (task.status === 'new_request' || task.status === 'new request') {
                 iconHtml = `<span class="material-symbols-outlined arrow-forward-icon mt-2 mx-3"
                     data-bs-toggle="tooltip"
-                    data-bs-placement="bottom"
+                    data-bs-placement="top"
                     data-task-id="${task.id}"
                     data-task-status="${task.status}"
                     title="Progress"
@@ -1674,7 +1674,7 @@ document.addEventListener("click", function (e) {
                         return avatarHtml;
                     })()}
                     <div class="d-flex flex-column">
-                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: </small>` : ''}
+                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${task.project_title} </small>` : ''}
                         <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
                     </div>
                 </div>
@@ -1853,7 +1853,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
     });
 }
 
-function renderTasks(data) {
+    function renderTasks(data) {
   renderSingleSection("new_request", data.new_request, false);
   renderSingleSection("in_progress", {
     ...data.in_progress,
@@ -2333,14 +2333,14 @@ $(document).on("keyup", "#search_filter", function () {
             }
 
             // multiple: show Progress modal with count
-            const modalId = 'progressStatusModal';
+            const modalId = 'statusConfirmModal';
             const statusModal = new bootstrap.Modal(document.getElementById(modalId));
-            const titleEl = document.getElementById('progressStatusTitle');
-            const descEl = document.getElementById('progressStatusDescription');
+            const titleEl = document.getElementById('statusModalTitle');
+            const descEl = document.getElementById('statusModalDescription');
             if (titleEl) titleEl.textContent = `${movableIds.length} selected`;
             if (descEl) descEl.textContent = 'Move selected tasks to In Progress?';
             statusModal.show();
-            const confirmBtn = document.getElementById('confirmProgressStatusBtn');
+            const confirmBtn = document.getElementById('statusModalConfirmBtn');
             const handler = function(){
                 // chain updates sequentially with bulk flags to suppress per-item alerts and refresh
                 bulkStatusOperationActive = true; bulkStatusSuppressRefresh = true;
@@ -2643,115 +2643,80 @@ $(document).on("keyup", "#search_filter", function () {
         }
     }
 
-function handleTaskProgress(taskId, taskCard) {
-    showStatusModal(taskId, "in_progress");
-}
+    function handleTaskProgress(taskId, taskCard) {
+        showStatusModal(taskId, taskCard, 'in_progress', 'Progress', 'In Progress', 'Task is being worked on');
+    }
 
-function handleTaskComplete(taskId, taskCard) {
-    showStatusModal(taskId, "completed");
-}
+    // Function to handle task complete (in progress -> completed)
+    function handleTaskComplete(taskId, taskCard) {
+        showStatusModal(taskId, taskCard, 'completed', 'Set to Complete', 'Completed', 'Task has been finished');
+    }
 
-function handleTaskReject(taskId, taskCard) {
-    showStatusModal(taskId, "reject");
-    console.log("Task ID:", taskId);
-}
+    // Function to handle task reject (completed -> rejected)
+    function handleTaskReject(taskId, taskCard) {
+        showStatusModal(taskId, taskCard, 'rejected', 'Reject', 'Rejected', 'Task has been rejected');
+    }
 
-function handleTaskBackToRequest(taskId, taskCard) {
-    showStatusModal(taskId, "back_to_request");
-}
+    // Function to handle task back to request (in progress -> new request)
+    function handleTaskBackToRequest(taskId, taskCard) {
+        showStatusModal(taskId, taskCard, 'new_request', 'Back to Request', 'New Request', 'Task is back to new request');
+    }
 
-    function showStatusModal(taskId, newStatus) {
-        newStatus = String(newStatus).toLowerCase();
-
+    function showStatusModal(taskId, taskCard, newStatus) {
         $.ajax({
             url: appUrl + "/task/" + taskId,
-            method: "GET",
-            success: function(res) {
-                const t = (res && (res.data || res)) || {};
-                const title = t.title || "Task";
-                const project_title = (t.project && t.project.title) || "";
-                const desc = t.description || "";
-                const priority = t.priority || "";
-                const due_date = t.due_date || "";
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const task = res.data || {};
+                const taskTitle = task.title || "Untitled Task";
+                const taskDescription = task.description || "No description available";
+                const taskProject = task.project.title || "No Project";
 
-                let img = "";
-                if (t.image) {
-                    img = `<img src="${appUrl}/file/task/${t.image}" class="rounded-circle" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
-                } else {
-                    const initials = getTaskInitials(t.title);
-                    const bgColor = getRandomColorFromText(t.title);
-                    img = `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:34px;height:34px;background:${bgColor};color:#fff;font-size:13px;font-weight:600;">${initials}</div>`;
+                // Avatar
+                let projectImg = null;
+                if (task.project_image) {
+                    const val = String(task.project_image).trim();
+                    if (val && val !== "null" && val !== "undefined") {
+                        projectImg = val.startsWith("http") ? val : `${appUrl}/file/project/${val}`;
+                    }
                 }
 
-                const labels = {
-                    in_progress: { action: "Move to In Progress", button: "Start Task", confirm: "Are you sure you want to move this task to In Progress?" },
-                    completed: { action: "Mark as Completed", button: "Complete Task", confirm: "Are you sure you want to mark this task as Completed?" },
-                    reject: { action: "Reject Task", button: "Reject", confirm: "Are you sure you want to reject this task?" },
-                    back_to_request: { action: "Move Back to Request", button: "Back to Request", confirm: "Are you sure you want to move this task back to Request?" },
-                    accept: { action: "Accept Task", button: "Accept", confirm: "Are you sure you want to accept this task?" },
-                    default: { action: "Update Status", button: "Confirm", confirm: "Are you sure you want to update this task?" }
+                const initials = !projectImg ? getTaskInitials(task.title) : "";
+                const initialsColor = !projectImg ? getRandomColorFromText(task.title) : "#6A5AE0";
+
+                const avatarHtml = projectImg
+                    ? `<img src="${projectImg}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
+                    : `<div class="d-flex align-items-center justify-content-center rounded-circle"
+                            style="width:34px;height:34px;font-size:12px;font-weight:600;color:#fff;background:${initialsColor};">
+                            ${initials}
+                    </div>`;
+
+                // Set modal content
+                document.getElementById("statusModalAvatar").innerHTML = avatarHtml;
+                document.getElementById("statusModalPartofProject").innerHTML = taskProject;
+                document.getElementById("statusModalTitle").textContent = taskTitle;
+                document.getElementById("statusModalDescription").textContent = taskDescription;
+
+                let confirmText = "Are you sure want to move this task?";
+                if (newStatus === "in_progress") confirmText = "Are you sure want to move the task to Progress?";
+                if (newStatus === "completed") confirmText = "Are you sure want to move the task to Completed?";
+                if (newStatus === "rejected") confirmText = "Are you sure want to Reject this task?";
+                document.getElementById("statusModalConfirmText").textContent = confirmText;
+
+                // Show modal
+                const modalEl = new bootstrap.Modal(document.getElementById("statusConfirmModal"));
+                modalEl.show();
+
+                // Confirm button
+                const confirmBtn = document.getElementById("statusModalConfirmBtn");
+                confirmBtn.onclick = function () {
+                    updateTaskStatus(taskId, newStatus, taskCard);
+                    modalEl.hide();
                 };
-
-                const { action, button, confirm } = labels[newStatus] || labels.default;
-
-                const id = "statusConfirmModal";
-                const modalHtml = `
-                    <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
-                            <div class="modal-content modal-content-custom">
-                                <div class="modal-header border-0">
-                                    <h5 class="modal-title fs-5">${action}</h5>
-                                </div>
-                                <div class="modal-body modal-body-custom" style="max-height:60vh; overflow-y:auto;">
-                                    <div class="d-flex">
-                                        <div class="me-3">${img}</div>
-                                        <div style="min-width:0;">
-                                            ${project_title ? `<small class="text-muted" style="font-size:10px;">Part of Project: ${project_title}</small>` : ""}
-                                            <h6 style="font-size:16px;font-weight:600;margin:0;">${title}</h6>
-                                            <div style="margin-top:.25rem;font-size:14px;">${desc}</div>
-                                        </div>
-                                    </div>
-                                    <hr class="text-seperator rounded-md">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <div style="font-size:10px;"><span style="color:#797E91;">Priority: </span><span style="color:${priority==="HIGH"?"red":"#4B4F5E"}">${priority}</span></div>
-                                        <div style="font-size:10px;"><span style="color:#797E91;">Deadline: </span><span style="color:#4B4F5E">${due_date}</span></div>
-                                    </div>
-                                    <div class="alert alert-warning py-2 px-3 mt-2 mb-0" style="font-size:12px;">${confirm}</div>
-                                </div>
-                                <div class="modal-footer modal-footer-custom">
-                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-submit-black" id="confirmStatusBtn">${button}</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                document.body.insertAdjacentHTML("beforeend", modalHtml);
-                const mEl = document.getElementById(id);
-                const modal = new bootstrap.Modal(mEl);
-                modal.show();
-
-                mEl.addEventListener("hidden.bs.modal", function onHide() {
-                    mEl.removeEventListener("hidden.bs.modal", onHide);
-                    mEl.remove();
-                });
-
-                mEl.querySelector("#confirmStatusBtn").addEventListener("click", function() {
-                    const btn = this;
-                    btn.disabled = true;
-                    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>${button}...`;
-
-                    updateTaskStatus(taskId, newStatus).then(() => {
-                        modal.hide();
-                    }).finally(() => {
-                        btn.disabled = false;
-                        btn.innerHTML = button;
-                    });
-                });
             },
-            error: function(xhr) {
-                showFloatingAlert("Task not found.", "danger");
+            error: function () {
+                alert("Failed to load task details.");
             }
         });
     }
@@ -2766,54 +2731,91 @@ function handleTaskBackToRequest(taskId, taskCard) {
     let bulkFinalAlertShown = false;
 
     // Universal update function
-    function updateTaskStatus(taskId, newStatus, taskCard = null) {
+    function updateTaskStatus(taskId, newStatus, taskCard) {
+        if (bulkStatusOperationActive) bulkStatusPendingCount++;
         return new Promise((resolve, reject) => {
-            let ajaxUrl = "";
-            let ajaxMethod = "POST";
-            let ajaxData = {
-                _token: document.querySelector('meta[name="csrf-token"]').content
-            };
-
-            switch(newStatus) {
-                case "accept":
-                    ajaxUrl = appUrl + "/task/" + taskId + "/accept";
-                    ajaxMethod = "POST";
-                    break;
-                case "reject":
-                    ajaxUrl = appUrl + "/task/" + taskId + "/reject";
-                    ajaxMethod = "POST";
-                    break;
-                case "back_to_request":
-                case "in_progress":
-                case "completed":
-                    ajaxUrl = appUrl + "/task/" + taskId + "/status";
-                    ajaxMethod = "PUT";
-                    ajaxData.status = newStatus;
-                    break;
-                default:
-                    ajaxUrl = appUrl + "/task/" + taskId + "/status";
-                    ajaxMethod = "PUT";
-                    ajaxData.status = newStatus;
-                    break;
-            }
-
             $.ajax({
-                url: ajaxUrl,
-                method: ajaxMethod,
-                data: ajaxData,
-                headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content") },
-                success: function(res) {
-                    if (taskCard) taskCard.remove();
-                    fetchAndRenderTasks();
-                    showFloatingAlert(res.message || "Task status updated!", "success");
-                    resolve(res);
+                url: appUrl + "/task/" + taskId + "/status",
+                type: "PUT",
+                headers: {
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute("content"),
                 },
-                error: function(xhr) {
-                    let msg = "Failed to update task status.";
-                    if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                    showFloatingAlert(msg, "danger");
-                    reject(msg);
-                }
+                data: { status: newStatus },
+                success: function (response) {
+                    const oldStatus = (taskCard && taskCard.getAttribute('data-task-status')) || null;
+                    if (taskCard) {
+                        const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                            const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                            if (tooltipInstance) tooltipInstance.dispose();
+                        });
+                        taskCard.remove();
+                    }
+                    if (!bulkStatusSuppressRefresh) fetchAndRenderTasks();
+                    // Mobile dynamic refresh (avoid full reload): if mobile status selector present
+                    try {
+                        const mobileStatusSel = document.getElementById('taskStatusSelect');
+                        if (mobileStatusSel) {
+                            const currentMobileStatus = mobileStatusSel.value;
+                            const destStatus = String(newStatus);
+                            const sourceStatus = oldStatus ? String(oldStatus).toLowerCase() : null;
+                            const needsRefreshCurrent = (currentMobileStatus === destStatus) || (sourceStatus && currentMobileStatus === sourceStatus);
+                            // Always refresh destination bucket so moved card appears when user switches later
+                            const statusesToRefresh = new Set();
+                            if (sourceStatus) statusesToRefresh.add(sourceStatus);
+                            statusesToRefresh.add(destStatus);
+                            statusesToRefresh.forEach(st => {
+                                if (typeof mobileState !== 'undefined') {
+                                    const prevActive = (st === currentMobileStatus);
+                                    // Reset pagination for that status and fetch
+                                    mobileState.page = 1; mobileState.last = 1; mobileState.status = prevActive ? currentMobileStatus : st;
+                                }
+                                try { fetchMobileTasks(st, 1, false, { prefetch: true }); } catch(_) {}
+                            });
+                            // Restore selector value if we temporarily changed state.status in loop
+                            if (typeof mobileState !== 'undefined') mobileState.status = currentMobileStatus;
+                            if (needsRefreshCurrent) {
+                                // Ensure currently viewed list reflects new data (already fetched above) and scroll stays at top
+                                try { const list = document.getElementById('mobile-task-list'); if (list) list.scrollTop = 0; } catch(_) {}
+                            }
+                        }
+                    } catch(_) {}
+                    if (bulkStatusOperationActive) {
+                        bulkStatusCompletedCount++;
+                        if (!bulkFinalStatusMessage) bulkFinalStatusMessage = response.message || 'Task status updated successfully';
+                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
+                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
+                            bulkFinalAlertShown = true;
+                            fetchAndRenderTasks();
+                            showFloatingAlert(bulkFinalStatusMessage, 'success');
+                            bulkStatusPendingCount = 0;
+                            bulkStatusCompletedCount = 0;
+                            bulkStatusExpectedCount = 0;
+                            bulkFinalStatusMessage = null;
+                        }
+                    } else {
+                        showFloatingAlert(response.message || 'Task status updated successfully', 'success');
+                    }
+                    resolve();
+                },
+                error: function (xhr) {
+                    let errorMessage = "Failed to update task status.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) errorMessage = xhr.responseJSON.message;
+                    if (xhr.responseJSON && xhr.responseJSON.errors) errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+                    showFloatingAlert(errorMessage, "danger");
+                    if (bulkStatusOperationActive) {
+                        bulkStatusCompletedCount++;
+                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
+                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
+                            bulkFinalAlertShown = true;
+                            if (!bulkFinalStatusMessage) bulkFinalStatusMessage = 'Bulk update finished (with some errors)';
+                            fetchAndRenderTasks();
+                        }
+                    }
+                    reject(errorMessage);
+                },
             });
         });
     }
@@ -2853,53 +2855,6 @@ function handleTaskBackToRequest(taskId, taskCard) {
             // Aggregator already refreshed & alerted; nothing more here.
         });
     });
-
-    // New function to update task status directly without confirmation modal
-    function updateTaskStatusDirect(taskId, newStatus) {
-        // Find the task card element
-        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-
-        $.ajax({
-            url: appUrl + "/task/" + taskId + "/status",
-            type: "PUT",
-            headers: {
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
-            },
-            data: {
-                status: newStatus,
-            },
-            success: function (response) {
-                // Dispose all Bootstrap tooltips inside the taskCard before removing it
-                if (taskCard) {
-                    const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                        const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                        if (tooltipInstance) {
-                            tooltipInstance.dispose();
-                        }
-                    });
-                }
-
-                // Refresh task cards to show updated status
-                fetchAndRenderTasks();
-
-                // Show success alert immediately
-                showFloatingAlert(response.message || "Task status updated successfully", "success");
-            },
-            error: function (xhr) {
-                let errorMessage = "Failed to update task status.";
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMessage = xhr.responseJSON.message;
-                }
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
-                }
-                showFloatingAlert(errorMessage, "danger", 3000);
-            },
-        });
-    }
 
     // Function to show alert using Settings/Project style (office.js -> showAlertMsg)
     function showFloatingAlert(message, type = "success", delayMs = 2500) {
@@ -3833,111 +3788,184 @@ function handleTaskBackToRequest(taskId, taskCard) {
 
     // Function to show add feedback form in the modal
     function showAddFeedbackForm(taskId) {
-        const feedbackModalEl = document.getElementById("taskFeedbackModal");
-        const modalTitle = feedbackModalEl.querySelector(
-            ".feedback-modal-title"
-        );
-        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+        const modalTitle = document.getElementById("taskFeedbackModalLabel");
+        const modalBody = document.getElementById("taskFeedbackList");
         const addFeedbackButton = document.getElementById("addFeedbackButton");
 
-        modalTitle.textContent = "Add Feedback";
+    modalTitle.textContent = "Add Feedback";
+        modalBody.innerHTML = "";
 
-        modalBody.innerHTML = `
-            <form id="addFeedbackForm" enctype="multipart/form-data">
-                <input type="hidden" name="task_id" value="${taskId}">
-                <input type="hidden" name="employee_id" value="${
-                    feedbackModalEl.dataset.employeeId || ""
-                }">
+        const form = document.createElement("form");
+        form.id = "addFeedbackForm";
+        form.enctype = "multipart/form-data";
 
-                <div class="mb-3 custom-input">
-                    <label class="form-label">Upload Image</label>
-                    <div class="image-upload-container">
-                        <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
-                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                            <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
-                            <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
-                        </label>
-                    </div>
-                </div>
+        const taskIdInput = document.createElement("input");
+        taskIdInput.type = "hidden";
+        taskIdInput.name = "task_id";
+        taskIdInput.value = taskId;
 
-                <div class="mb-3 custom-input">
-                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
-                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
-                </div>
+        const employeeIdInput = document.createElement("input");
+        employeeIdInput.type = "hidden";
+        employeeIdInput.name = "employee_id";
+        employeeIdInput.value =
+            document
+                .getElementById("taskFeedbackModal")
+                .getAttribute("data-employee-id") || "";
 
-                <div class="mb-3 custom-input">
-                    <label class="form-label">Reference URLs (Optional)</label>
-                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
-                        </div>
-                    </div>
-                </div>
+        form.appendChild(taskIdInput);
+        form.appendChild(employeeIdInput);
 
-                <div class="mb-3 custom-input">
-                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
-                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
-                    <div id="feedback_reference_files_preview"></div>
-                </div>
-            </form>
-        `;
+                // Image upload
+        const imageDiv = document.createElement("div");
+        imageDiv.className = "mb-3";
 
-        // Setup image preview and clear button logic
-        const imageInput = modalBody.querySelector("#feedback_image");
-        const imageLabel = modalBody.querySelector("#feedbackImageLabel");
-        const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
+        const imageLabelTitle = document.createElement("div");
+        imageLabelTitle.className = "title-label-image";
+        imageLabelTitle.textContent = "Upload Image";
+        imageDiv.appendChild(imageLabelTitle);
 
-        imageInput.addEventListener("change", function () {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    imageLabel.style.backgroundImage = `url('${e.target.result}')`;
-                    imageLabel.classList.add("has-image");
-                    imageLabel.style.backgroundSize = "cover";
-                    imageLabel.style.opacity = "1";
-                    imageClearBtn.classList.remove("d-none");
-                };
-                reader.readAsDataURL(this.files[0]);
+        const imageLabel = document.createElement("label");
+        imageLabel.className = "custom-image-upload position-relative";
+        imageLabel.style.backgroundPosition = "center center";
+        imageLabel.style.backgroundRepeat = "no-repeat";
+        imageLabel.style.backgroundSize = "50%";
+        imageLabel.style.backgroundImage =
+            "url('" + appUrl + "/asset/img/background/add-image.png')";
+        imageLabel.htmlFor = "feedback_image";
+
+        const imageInput = document.createElement("input");
+        imageInput.type = "file";
+        imageInput.className = "input-image";
+        imageInput.id = "feedback_image";
+        imageInput.name = "feedback_image";
+        imageInput.accept = "image/*";
+        imageInput.hidden = true;
+
+        const imageClearBtn = document.createElement("span");
+        imageClearBtn.className = "image-clear-btn d-none";
+        imageClearBtn.id = "feedbackImageClearBtn";
+        imageClearBtn.title = "Remove image";
+        imageClearBtn.textContent = "×";
+
+        imageLabel.appendChild(imageInput);
+        imageLabel.appendChild(imageClearBtn);
+        imageDiv.appendChild(imageLabel);
+
+        form.appendChild(imageDiv);
+
+        // Comment field
+        const commentDiv = document.createElement("div");
+        commentDiv.className = "mb-3 custom-input";
+
+        const commentLabel = document.createElement("label");
+        commentLabel.htmlFor = "feedback_comment";
+        commentLabel.className = "form-label label-custom";
+        commentLabel.textContent = "Comment";
+        commentDiv.appendChild(commentLabel);
+
+        const commentTextarea = document.createElement("textarea");
+        commentTextarea.className = "form-control input-text";
+        commentTextarea.id = "feedback_comment";
+        commentTextarea.name = "feedback_comment";
+        commentTextarea.rows = 3;
+        commentTextarea.required = true;
+        commentDiv.appendChild(commentTextarea);
+
+        form.appendChild(commentDiv);
+
+        // Reference URL
+        const refUrlDiv = document.createElement("div");
+        refUrlDiv.className = "mb-3 custom-input";
+
+        const refUrlLabel = document.createElement("label");
+        refUrlLabel.htmlFor = "reference_url";
+        refUrlLabel.className = "form-label label-custom";
+        refUrlLabel.textContent = "Reference URL";
+        refUrlDiv.appendChild(refUrlLabel);
+
+        const refUrlInput = document.createElement("input");
+        refUrlInput.type = "text";
+        refUrlInput.className = "form-control input-text";
+        refUrlInput.id = "reference_url";
+        refUrlInput.name = "reference_url";
+        refUrlDiv.appendChild(refUrlInput);
+
+        form.appendChild(refUrlDiv);
+
+    // Reference Files
+        const refFileDiv = document.createElement("div");
+        refFileDiv.className = "mb-3 custom-input";
+
+        const refFileLabel = document.createElement("label");
+    refFileLabel.htmlFor = "reference_files";
+        refFileLabel.className = "form-label label-custom";
+    refFileLabel.textContent = "Reference Files";
+        refFileDiv.appendChild(refFileLabel);
+
+        const refFileInput = document.createElement("input");
+        refFileInput.type = "file";
+        refFileInput.className = "form-control input-text";
+    refFileInput.id = "reference_files";
+    refFileInput.name = "reference_files[]";
+    refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+    refFileInput.multiple = true;
+        refFileDiv.appendChild(refFileInput);
+
+        form.appendChild(refFileDiv);
+
+        // Footer buttons wrapper (Close + Submit) mirip project feedback modal
+        const buttonsWrapper = document.createElement('div');
+        buttonsWrapper.id = 'taskFeedbackFormButtonsWrapper';
+        buttonsWrapper.className = 'modal-footer modal-footer-custom';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-custom-close';
+        closeBtn.textContent = 'Close';
+        closeBtn.addEventListener('click', function(){
+            // Kembali ke list feedback
+            loadTaskFeedbackData(taskId);
+            const addBtnRef = document.getElementById('addFeedbackButton');
+            if (addBtnRef) {
+                addBtnRef.textContent = 'Add Feedback';
+                const cloned = addBtnRef.cloneNode(true);
+                addBtnRef.parentNode.replaceChild(cloned, addBtnRef);
+                cloned.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
             }
         });
 
-        imageClearBtn.addEventListener("click", function (e) {
+        // Kita gunakan tombol existing addFeedbackButton sebagai Submit; pindahkan ke wrapper
+        if (addFeedbackButton && addFeedbackButton.parentElement) {
+            addFeedbackButton.textContent = 'Submit';
+            // Remove existing handlers dengan clone sebelumnya nanti
+        }
+
+        buttonsWrapper.appendChild(closeBtn);
+        // Temporarily append placeholder for submit; actual click bound di bawah
+        buttonsWrapper.appendChild(addFeedbackButton);
+
+        form.appendChild(buttonsWrapper);
+        modalBody.appendChild(form);
+
+        // Setup image preview
+        setupImageInput(imageInput, imageLabel, imageClearBtn);
+
+        // Form submission handler
+        form.addEventListener("submit", function (e) {
             e.preventDefault();
-            imageInput.value = "";
-            imageLabel.style.backgroundImage =
-                "url('" + appUrl + "/asset/img/background/add-image.png')";
-            imageLabel.style.backgroundPosition = "center center";
-            imageLabel.style.backgroundRepeat = "no-repeat";
-            imageLabel.style.backgroundSize = "50%";
-            imageLabel.classList.remove("has-image");
-            imageLabel.style.opacity = "0.5";
-            imageClearBtn.classList.add("d-none");
+            submitTaskFeedbackForm(this, taskId);
         });
 
-        // Multi-file reference preview (same UX as Add Task)
-        try {
-            // reset global buffer for this form
-            selectedFiles = [];
-            const refInput = modalBody.querySelector('#reference_files');
-            if (refInput) {
-                refInput.addEventListener('change', function () {
-                    const files = Array.from(this.files || []);
-                    if (files.length) {
-                        selectedFiles = [...selectedFiles, ...files];
-                        if (typeof displaySelectedFiles === 'function') {
-                            displaySelectedFiles();
-                        }
-                    }
-                    // allow picking more batches
-                    this.value = '';
-                });
+    // Remove previous click handler by cloning
+    const newButton = addFeedbackButton.cloneNode(true);
+    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+    // Add submit handler
+    newButton.addEventListener("click", function (e) {
+            e.preventDefault();
+            const form = document.getElementById("addFeedbackForm");
+            if (form) {
+                submitTaskFeedbackForm(form, taskId);
             }
-        } catch (_) {}
-
-        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
-            const form = document.getElementById('addFeedbackForm');
-            if (form) submitFeedbackForm(form, taskId);
         });
     }
 
@@ -4877,18 +4905,6 @@ function handleTaskBackToRequest(taskId, taskCard) {
                             <p class="task-description mb-0" style="font-size:14px;">${task.description || ''}</p>
                         </div>
                         <hr class="task-separator rounded-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div style="font-size: 10px; font-weight: 400;">
-                                <span style="color: #797E91;">Priority: </span>
-                                <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">
-                                    ${task.priority || '-'}
-                                </span>
-                            </div>
-                            <div style="font-size: 10px; font-weight: 400;">
-                                <span style="color: #797E91;">Deadline: </span>
-                                <span style="color:#4B4F5E">${task.due_date || '-'}</span>
-                            </div>
-                        </div>
                     </div>
                 `;
 
@@ -5696,6 +5712,7 @@ function handleTaskBackToRequest(taskId, taskCard) {
     });
 
     function fetchMobileTasks(status, page = 1, append = false, opts = {}) {
+        mobileState.status = status;
         if (mobileState.loading) return;
         if (!append && opts.loadAll && status === 'in_progress' && page === 1) {
             mobileAutoFullLoad = true;
@@ -5709,7 +5726,6 @@ function handleTaskBackToRequest(taskId, taskCard) {
         );
 
         const params = { status, page };
-
         if (searchQueryMobile && searchQueryMobile.trim() !== "") {
             params.search = searchQueryMobile.trim();
         }
@@ -5717,7 +5733,7 @@ function handleTaskBackToRequest(taskId, taskCard) {
             params.project_id = currentTaskFilters.project;
         }
         if (currentTaskFilters?.status) {
-            params.status = currentTaskFilters.status;
+            params.filter_status = currentTaskFilters.status;
         }
 
         $.ajax({
@@ -5728,7 +5744,6 @@ function handleTaskBackToRequest(taskId, taskCard) {
             success: function (response) {
                 if (!response || response.code !== 200 || !response.data) return;
                 let data = response.data?.[status];
-                // Parity with desktop: merge rejected into in_progress bucket so they are visible
                 if (status === 'in_progress' && response.data?.rejected?.tasks) {
                     const rej = response.data.rejected.tasks;
                     if (Array.isArray(rej) && rej.length) {
@@ -5737,19 +5752,15 @@ function handleTaskBackToRequest(taskId, taskCard) {
                     }
                 }
                 mobileState.last = data?.pagination?.last_page || 1;
-
                 renderMobileTasks(status, data, append);
-                // Optional prefetch next page to smooth infinite scroll for non-new_request buckets
                 if (!append && opts.prefetch && mobileState.page === 1 && mobileState.last > 1 && status !== 'new_request') {
-                    // Prefetch page 2 silently
                     setTimeout(() => {
                         if (mobileState.status === status && mobileState.page === 1) {
-                            mobileState.page = 2; // advance
+                            mobileState.page = 2;
                             fetchMobileTasks(status, 2, true, { prefetch: false });
                         }
                     }, 80);
                 }
-                // After rendering, try auto-fill if content belum cukup untuk scroll
                 attemptAutoFillMobile(status);
                 if (mobileAutoFullLoad && status === 'in_progress') {
                     if (mobileState.page < mobileState.last) {
@@ -5775,58 +5786,52 @@ function handleTaskBackToRequest(taskId, taskCard) {
         });
     }
 
-    // Helper: auto load next page if list height belum cukup untuk scroll
-    function attemptAutoFillMobile(status){
+    function attemptAutoFillMobile(status) {
         try {
             const list = document.getElementById('mobile-task-list');
             if (!list) return;
-            // If all pages fetched or currently loading, skip
             if (mobileState.loading) return;
             if (mobileState.page >= mobileState.last) return;
-            // If content height not exceeding container (no scroll bar) fetch next page
             if (list.scrollHeight <= list.clientHeight + 4) {
                 mobileState.page++;
-                fetchMobileTasks(status, mobileState.page, true, { prefetch:false });
+                fetchMobileTasks(status, mobileState.page, true, { prefetch: false });
             }
-        } catch(_) { /* noop */ }
+        } catch(_) {}
     }
 
     function renderMobileTasks(status, data, append = false) {
-    const list = $("#mobile-task-list");
-    const container = $(".mobile-task-container");
+        const list = $("#mobile-task-list");
+        const container = $(".mobile-task-container");
 
-    // reset background
-    container.removeClass("bg-new bg-progress bg-completed");
-
-    if (status === "new_request") {
-        container.addClass("bg-new");
-    } else if (status === "in_progress") {
-        container.addClass("bg-progress");
-    } else if (status === "completed") {
-        container.addClass("bg-completed");
-    }
-
-    if (!append) list.empty();
-
-    if (!data || !data.tasks || data.tasks.length === 0) {
-        if (!append) {
-        list.append('<div class="text-center text-muted py-3">No tasks found</div>');
+        container.removeClass("bg-new bg-progress bg-completed");
+        if (status === "new_request") {
+            container.addClass("bg-new");
+        } else if (status === "in_progress") {
+            container.addClass("bg-progress");
+        } else if (status === "completed") {
+            container.addClass("bg-completed");
         }
-    } else {
-        data.tasks.forEach(task => list.append(createTaskCard(task)));
-    }
 
-    // Pastikan kontrol bulk tampil di luar card (pojok kanan atas container) hanya untuk status new_request
-    try {
-        const bulk = document.getElementById('mobileBulkControls');
-        if (bulk) {
-            if (status === 'new_request') {
-                bulk.style.display = 'inline-flex';
-            } else {
-                bulk.style.display = 'none';
+        if (!append) list.empty();
+
+        if (!data || !data.tasks || data.tasks.length === 0) {
+            if (!append) {
+                list.append('<div class="text-center text-muted py-3">No tasks found</div>');
             }
+        } else {
+            data.tasks.forEach(task => list.append(createTaskCard(task)));
         }
-    } catch(_) {}
+
+        try {
+            const bulk = document.getElementById('mobileBulkControls');
+            if (bulk) {
+                if (status === 'new_request') {
+                    bulk.style.display = 'inline-flex';
+                } else {
+                    bulk.style.display = 'none';
+                }
+            }
+        } catch(_) {}
     }
 
     function initMobileInfiniteScroll() {
@@ -5863,18 +5868,18 @@ function handleTaskBackToRequest(taskId, taskCard) {
     }
 
     $(document).ready(function () {
-    mobileState.page = 1;
-    mobileState.status = "new_request";
+        mobileState.page = 1;
+        mobileState.status = "new_request";
 
-    fetchMobileTasks(mobileState.status, 1, false, { loadAll: false });
-    initMobileInfiniteScroll();
+        fetchMobileTasks(mobileState.status, 1, false, { loadAll: false });
+        initMobileInfiniteScroll();
 
-    $("#taskStatusSelect").on("change", function () {
-        const st = $(this).val();
-        mobileState.status = st;
-        mobileState.page = 1; mobileState.last = 1; mobileAutoFullLoad = false;
-        fetchMobileTasks(st, 1, false, { loadAll: st === 'in_progress' });
-    });
+        $("#taskStatusSelect").on("change", function () {
+            const st = $(this).val();
+            mobileState.status = st;
+            mobileState.page = 1; mobileState.last = 1; mobileAutoFullLoad = false;
+            fetchMobileTasks(st, 1, false, { loadAll: st === 'in_progress' });
+        });
     });
 
     $(document).ready(function () {
@@ -5899,7 +5904,7 @@ function handleTaskBackToRequest(taskId, taskCard) {
             <span class="material-symbols-outlined">filter_list</span>
             </button>
         </div>
-        <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-3" style="display:none;">
+        <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-2" style="display:none;">
             <button type="button" id="taskNewBulkActionMobile" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
                 <span class="material-symbols-outlined">done_all</span>
             </button>
@@ -5933,7 +5938,7 @@ function handleTaskBackToRequest(taskId, taskCard) {
             <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
             </div>
         </div>
-    <div id="mobile-task-list" style="max-height: calc(100vh - 320px); overflow-y: auto;"></div>
+    <div id="mobile-task-list" style="max-height: calc(100vh - 120px); overflow-y: auto;"></div>
         </div>`;
 
     $("#task-cards-container").before(mobileCardHtml);
@@ -6178,7 +6183,7 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
         }
     }
 
-    document.getElementById("timelineModalTitle").textContent = `Timeline ${months[month]} ${year}`;
+    document.getElementById("timelineModalTitle").textContent = `${months[month]} ${year}`;
     }
 
     // Delegated click: when clicking a bar inside timeline, close timeline first, then show task detail;

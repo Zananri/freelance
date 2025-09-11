@@ -306,6 +306,15 @@
     z-index: 1050;
 }
 
+.modal-title-custom {
+    font-weight: 300;
+    font-size: 28px;
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: rgb(103, 111, 122);
+}
+
 #deleteProjectTitle {
     font-weight: 300 !important;
 }
@@ -934,6 +943,8 @@ p {
     overflow-y: auto;
     overflow-x: auto;
     position: relative;
+    min-height: 40vh;
+    max-height: calc(100vh - 50px);
 }
 
 .timeline-table {
@@ -1047,6 +1058,8 @@ p {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 40vh;
+    max-height: calc(100vh - 50px);
 }
 
 /* Ensure Task Detail modal stacks above Timeline modal when both are open */
@@ -1219,13 +1232,13 @@ p {
         margin-right: -20px;
     }
 
-    .task-mobile-progress {
+    .bg-progress {
         background: #edebdf5c;
         margin-left: -20px;
         margin-right: -20px;
     }
 
-    .task-mobile-completed {
+    .bg-completed {
         background: #baeed340;
         margin-left: -20px;
         margin-right: -20px;
@@ -1275,6 +1288,10 @@ p {
     #mobile-task-list::-webkit-scrollbar-thumb {
         background-color: #cccccc;
         border-radius: 4px;
+    }
+
+    .timeline-text {
+        display: none;
     }
 }
 
@@ -1429,8 +1446,8 @@ p {
 /* Delete modal image size (support both correct and typo class names) */
 .delete-image-confirm,
 .delete-image-confim {
-    width: 34px;
-    height: 34px;
+    width: 120px;
+    height: 120px;
     object-fit: cover;
     border-radius: 8px;
     margin-bottom: 1rem;

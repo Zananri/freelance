@@ -251,15 +251,19 @@
 
                 <!-- Header -->
                 <div class="modal-header d-flex justify-content-between align-items-center">
-                    <h5 class="modal-title fw-normal mb-0" id="timelineModalTitle">Timeline</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="timeline-text fw-normal fs-5">Timeline</span>
+                        <h5 class="modal-title fw-normal mb-0 fs-5" id="timelineModalTitle"></h5>
+                    </div>
+
                     <div class="d-flex align-items-center gap-2">
                         <button class="btn btn-sm" id="prevTimelineModal">
                             <span class="material-symbols-outlined">chevron_left</span>
                         </button>
-                        <button class="btn btn-sm me-3" id="nextTimelineModal">
+                        <button class="btn btn-sm" id="nextTimelineModal">
                             <span class="material-symbols-outlined">chevron_right</span>
                         </button>
-                        <button class="exit-fullscreen-btn" type="button" data-bs-dismiss="modal">
+                        <button class="btn btn-sm exit-fullscreen-btn" type="button" data-bs-dismiss="modal">
                             <span class="material-symbols-outlined">fullscreen_exit</span>
                         </button>
                     </div>
@@ -434,69 +438,35 @@
         </div>
     </div>
 
-    <!-- Back to Request Status Modal -->
-    <div class="modal fade" id="progressStatusModal" tabindex="-1" aria-labelledby="progressStatusModalLabel"
-        aria-hidden="true">
+    <div class="modal fade" id="statusConfirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
-                <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <h4 class="fw-bold fs-5 text-center mb-2" id="progressStatusTitle">In Progress</h4>
-                    <p class="mb-4 modal-description" id="progressStatusDescription">
-                        Task is being worked on
-                    </p>
-                    <p class="fw-normal fs-5 text-center mb-4">Are you sure want to move this task?</p>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-submit-black"
-                            id="confirmProgressStatusBtn">Confirm</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                <div class="modal-body modal-body-custom">
 
-    <!-- Complete Status Modal -->
-    <div class="modal fade" id="completeStatusModal" tabindex="-1" aria-labelledby="completeStatusModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <h4 class="fw-bold text-center mb-2" id="completeStatusTitle">Completed</h4>
-                    <p class="text-center mb-4 modal-description" id="completeStatusDescription">
-                        Task has been finished
-                    </p>
-                    <p class="fw-bold text-center mb-4">Are you sure want to move the task to Complete?</p>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-submit-black"
-                            id="confirmCompleteStatusBtn">Confirm</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                    <div class="d-flex align-items-start mb-3">
+                        <div id="statusModalAvatar" class="me-3">
 
-    <!-- Reject Status Modal -->
-    <div class="modal fade" id="rejectStatusModal" tabindex="-1" aria-labelledby="rejectStatusModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <h4 class="fw-bold text-center mb-2" id="rejectStatusTitle">Rejected</h4>
-                    <p class="text-center mb-4 modal-description" id="rejectStatusDescription">
-                        Task has been rejected
+                        </div>
+
+                        <div class="flex-grow-1">
+                            <small class="text-muted" style="font-size: 10px" id="statusModalPartofProject"></small>
+                            <h5 class="fw-bold" id="statusModalTitle">Task Title</h5>
+                            <p class="mb-0 text-muted" id="statusModalDescription" style="font-size:12px;">
+                                Task short description
+                            </p>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <p class="fw-normal fs-6 text-center mb-4" id="statusModalConfirmText">
+                        Are you sure want to move the task to progress?
                     </p>
-                    <p class="fw-bold fs-5 text-center mb-4">Are you sure want to Reject?</p>
+
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-submit-black"
-                            id="confirmRejectStatusBtn">Confirm</button>
+                            id="statusModalConfirmBtn">Confirm</button>
                     </div>
                 </div>
             </div>
@@ -539,9 +509,6 @@
                 <div class="modal-body feedback-modal-body" id="taskFeedbackList">
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">
-                        Cancel
-                    </button>
                     <button type="button" class="btn btn-submit-black" id="addFeedbackButton">
                         Add Feedback
                     </button>
