@@ -16,7 +16,11 @@ use Carbon\Carbon;
 // Internal helpers for immediate generation
 trait ScheduleImmediateGeneration
 {
-    private function maybeGenerateNow(\App\Models\Schedule $s): void
+    public function showSchedulePage() {
+        return view('schedule/schedule');
+    }
+
+    private function maybeGenerateNow(Schedule $s): void
     {
         $now = Carbon::now();
         $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
@@ -60,7 +64,7 @@ trait ScheduleImmediateGeneration
         $s->save();
     }
 
-    private function calcInitialRunAt(\App\Models\Schedule $s, Carbon $now): Carbon
+    private function calcInitialRunAt(Schedule $s, Carbon $now): Carbon
     {
         $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
         switch ($s->recurrence_type) {
@@ -79,7 +83,7 @@ trait ScheduleImmediateGeneration
         }
     }
 
-    private function calcNextRunAt(\App\Models\Schedule $s, Carbon $current): Carbon
+    private function calcNextRunAt(Schedule $s, Carbon $current): Carbon
     {
         $interval = max((int) $s->recurrence_interval, 1);
         $next = $current->copy();
@@ -106,7 +110,7 @@ trait ScheduleImmediateGeneration
         return Carbon::create($year, $month, $day, 0, 0, 0);
     }
 
-    private function createTaskFromScheduleNow(\App\Models\Schedule $s): \App\Models\Task
+    private function createTaskFromScheduleNow(Schedule $s): \App\Models\Task
     {
         // Copy image
         $taskImage = null;
