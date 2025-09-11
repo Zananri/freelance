@@ -198,10 +198,12 @@
                                         <div class="me-3">
                                         ${img}
                                         </div>
-                                        <div>
-                                            ${id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${project_title || '-'}</small>` : ''}
+                                        <div class="custom-card p-0 m-0 border-0">
+                                            ${id ? `<small class="text-muted" style="line-height:1; font-size: 10px;"> ${project_title || '-'}</small>` : ''}
                                             <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
-                                            <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
+                                            <div class="task-description-container">
+                                                <div class="task-description">${desc ? desc : ''}</div>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -312,10 +314,12 @@
                                         <div class="me-3">
                                         ${img}
                                         </div>
-                                        <div>
-                                            ${id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">Part of Project: ${project_title || '-'}</small>` : ''}
+                                        <div class="custom-card m-0 p-0 border-0">
+                                            ${id ? `<small class="text-muted" style="line-height:1; font-size: 10px;"> ${project_title || '-'}</small>` : ''}
                                             <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
-                                            <div style="margin-top:.25rem; font-size:14px;">${desc}</div>
+                                            <div class="task-description-container">
+                                                <p class="task-description" data-full-description="${desc}">${desc ? desc : ''}</p>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -4739,7 +4743,7 @@ $(document).on("keyup", "#search_filter", function () {
                         <div class="d-flex align-items-center">
                             ${avatarHtml}
                             <div class="d-flex flex-column">
-                                ${task.project?.id ? `<small class="text-muted" style="font-size:11px;">Part of Project: ${task.project.title || '-'}</small>` : ""}
+                                ${task.project?.id ? `<small class="text-muted" style="font-size:11px;"> ${task.project.title || '-'}</small>` : ""}
                                 <h5 class="mb-0 task-title">${task.title || "Untitled Task"}</h5>
                             </div>
                         </div>
@@ -4894,7 +4898,7 @@ $(document).on("keyup", "#search_filter", function () {
                             <div class="d-flex flex-column">
                                 ${task.project.id ?
                                     `<p class="text-muted" style="line-height:1; font-size: 10px;">
-                                        Part of Project: ${task.project.title || '-'}
+                                        ${task.project.title || '-'}
                                     </p>`
                                     : ''
                                 }

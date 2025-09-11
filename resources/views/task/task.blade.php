@@ -438,6 +438,7 @@
         </div>
     </div>
 
+    <!-- Confirmation Task Modal -->
     <div class="modal fade" id="statusConfirmModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
@@ -448,12 +449,14 @@
 
                         </div>
 
-                        <div class="flex-grow-1">
+                        <div class="custom-card p-0 m-0 border-0">
                             <small class="text-muted" style="font-size: 10px" id="statusModalPartofProject"></small>
                             <h5 class="fw-bold" id="statusModalTitle">Task Title</h5>
-                            <p class="mb-0 text-muted" id="statusModalDescription" style="font-size:12px;">
-                                Task short description
-                            </p>
+                            <div class="task-description-container">
+                                <p class="task-description" id="statusModalDescription">
+                                    Task short description
+                                </p>
+                            </div>
                         </div>
                     </div>
 

@@ -311,6 +311,7 @@
 .modal-body-custom {
     max-height: calc(80vh - 120px);
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 8px;
 }
 
@@ -692,6 +693,7 @@ p {
     height: auto;
     max-height: 75px;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .task-description-container::-webkit-scrollbar {
