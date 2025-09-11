@@ -64,22 +64,23 @@
 
                 <ul class="pagination mb-0">
                     <li class="page-item active">
-                        <a class="page-link" href="#" data-view="day">Daily</a>
+                        <a class="page-link" href="#" data-view="daily">Daily</a>
                     </li>
                     <li class="page-item ">
-                        <a class="page-link" href="#" data-view="week">Weekly</a>
+                        <a class="page-link" href="#" data-view="weekly">Weekly</a>
                     </li>
                     <li class="page-item ">
-                        <a class="page-link" href="#" data-view="month">Monthly</a>
+                        <a class="page-link" href="#" data-view="monthly">Monthly</a>
                     </li>
                 </ul>
             </div>
+            <div id="scheduleContainer" class="d-flex flex-wrap gap-3 mt-5"></div>
         </div>
     </div>
 
     <x-slot name="script_slot">
 
-        <script src="{{ asset('asset/js/schedule.js') }}"></script>
+        <script src="{{ asset('asset/js/schedule.js?v=' . time()) }}"></script>
 
         <script></script>
     </x-slot>

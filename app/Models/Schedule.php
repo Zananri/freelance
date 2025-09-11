@@ -60,5 +60,11 @@ class Schedule extends Model
 		'last_generated_at' => 'datetime',
 		'is_active' => 'boolean',
 	];
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
 }
 

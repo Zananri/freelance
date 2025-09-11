@@ -230,7 +230,7 @@ class ScheduleController extends Controller
     use ScheduleImmediateGeneration;
     public function index(Request $request)
     {
-        $schedules = Schedule::orderByDesc('created_at')->paginate(10);
+        $schedules = Schedule::with('project')->orderByDesc('created_at')->paginate(10);
         return response()->json([
             'code' => 200,
             'status' => 'success',
