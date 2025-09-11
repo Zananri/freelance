@@ -9117,18 +9117,32 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Clear all latest feedback snippets when search is cleared
+        // When search is cleared, restore feedback snippets that should be visible
         if (query.trim() === "") {
+            document
+                .querySelectorAll(".latest-feedback-snippet")
+                .forEach((snippet) => {
+                    const projectId = snippet.getAttribute("data-project-id");
+                    if (projectId) {
+                        // First try to restore from cache
+                        if (window.__projectLatest && window.__projectLatest[projectId]) {
+                            const data = window.__projectLatest[projectId];
+                            setProjectLatestFeedbackSnippet(projectId, data);
+                        } else {
+                            // If no cache available, fetch fresh data
+                            try {
+                                fetchLatestFeedbackForProject(projectId);
+                            } catch (_) {}
+                        }
+                    }
+                });
+        } else {
+            // Hide feedback snippets during search to avoid clutter
             document
                 .querySelectorAll(".latest-feedback-snippet")
                 .forEach((snippet) => {
                     snippet.classList.add("d-none");
                     snippet.style.display = "none";
-                    // Clear content to prevent any residual display
-                    const textEl = snippet.querySelector(
-                        ".latest-feedback-text"
-                    );
-                    if (textEl) textEl.textContent = "";
                 });
         }
     });
