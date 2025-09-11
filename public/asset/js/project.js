@@ -5749,15 +5749,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                 // Bind comment icon (mode_comment) to open Project Feedback modal
                                 (function bindCommentIcon() {
                                     const icon = document.querySelector('#projectDetailContent .task-icon.mode_comment');
-                                    if (!icon) return;
-                                    icon.addEventListener('click', function () {
+                                    const btn  = document.getElementById('projectDetailCommentBtn');
+                                    const handler = function (ev) {
+                                        ev && ev.preventDefault && ev.preventDefault();
+                                        ev && ev.stopPropagation && ev.stopPropagation();
                                         try { $("#projectDetailModal").modal('hide'); } catch(_) {}
                                         const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
-                                        if (projectFeedbackModalEl) projectFeedbackModalEl.setAttribute('data-project-id', String(pid));
+                                        if (projectFeedbackModalEl) {
+                                            projectFeedbackModalEl.setAttribute('data-project-id', String(pid));
+                                            projectFeedbackModalEl.setAttribute('data-return-to-detail', '1');
+                                            // When feedback modal closes, return to detail (one-time listener)
+                                            projectFeedbackModalEl.addEventListener('hidden.bs.modal', function onHidden() {
+                                                try {
+                                                    if (projectFeedbackModalEl.getAttribute('data-return-to-detail') === '1') {
+                                                        projectFeedbackModalEl.removeAttribute('data-return-to-detail');
+                                                        fetchAndShowProjectDetail(pid);
+                                                    }
+                                                } catch(_) {}
+                                            }, { once: true });
+                                        }
                                         try { loadFeedbackData(pid); } catch(_) {}
                                         const m = new bootstrap.Modal(projectFeedbackModalEl);
                                         m.show();
-                                    });
+                                    };
+                                    if (icon) icon.style.cursor = 'pointer', icon.addEventListener('click', handler);
+                                    if (btn)  btn.style.cursor = 'pointer',  btn.addEventListener('click', handler);
                                 })();
 
                                 // Bind attach icon to open Project Files modal
@@ -5765,10 +5781,23 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const attachWrapper = document.querySelectorAll('#projectDetailContent .btn-attach-file-wrapper .task-icon');
                                     attachWrapper.forEach(function (el) {
                                         if (el.textContent.trim() === 'attach_file') {
+                                            el.style.cursor = 'pointer';
                                             el.addEventListener('click', function () {
                                                 try { $("#projectDetailModal").modal('hide'); } catch(_) {}
-                                                openProjectFiles(pid);
-                                                $("#projectFilesModal").modal('show');
+                                                const filesModalEl = document.getElementById('projectFilesModal');
+                                                if (filesModalEl) {
+                                                    filesModalEl.setAttribute('data-return-to-detail', '1');
+                                                    // One-time listener to return to detail when files modal closes
+                                                    filesModalEl.addEventListener('hidden.bs.modal', function onHidden() {
+                                                        try {
+                                                            if (filesModalEl.getAttribute('data-return-to-detail') === '1') {
+                                                                filesModalEl.removeAttribute('data-return-to-detail');
+                                                                fetchAndShowProjectDetail(pid);
+                                                            }
+                                                        } catch(_) {}
+                                                    }, { once: true });
+                                                }
+                                                showProjectFiles(pid);
                                             });
                                         }
                                     });
