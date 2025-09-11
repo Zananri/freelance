@@ -2506,9 +2506,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                         feedback.employee_name ||
                                         "Unknown";
                                     nameRow.appendChild(nameStrong);
+                                    
+                                    // Store edit button data for later positioning
+                                    let editBtnInline = null;
                                     if (canEditTopInline) {
-                                        const editBtnInline =
-                                            document.createElement("span");
+                                        editBtnInline = document.createElement("span");
                                         editBtnInline.className =
                                             "material-symbols-outlined icon feedback-edit-trigger ms-2";
                                         editBtnInline.style.cssText =
@@ -2699,7 +2701,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 );
                                             }
                                         );
-                                        nameRow.appendChild(editBtnInline);
                                     }
 
                                     // Add creation date below employee name
@@ -2775,9 +2776,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                         "d-flex align-items-center";
                                     leftWrap.appendChild(img);
                                     leftWrap.appendChild(infoDiv);
-                                    // Prepare header container with space between for reply icon on right
+                                    // Prepare header container
                                     headerDiv.className =
-                                        "d-flex align-items-center mb-2 justify-content-between";
+                                        "d-flex align-items-center mb-2";
                                     headerDiv.appendChild(leftWrap);
 
                                     // Comment
@@ -2941,7 +2942,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         feedbackImage.src = imgSrc;
                                         feedbackImage.alt = "Feedback Image";
                                         feedbackImage.className =
-                                            "feedback-image me-2 mb-2";
+                                            "feedback-image me-2 mb-4";
                                         feedbackImage.style.maxWidth = "150px";
                                         feedbackImage.style.maxHeight = "150px";
                                         feedbackImage.style.borderRadius =
@@ -2958,17 +2959,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                         mediaDiv.appendChild(feedbackImage);
                                     }
 
-                                    // Right side: Reply icon exactly like Task (far right)
-                                    const headerRight =
-                                        document.createElement("div");
-                                    headerRight.className =
-                                        "d-flex align-items-center";
-                                    const replyBtn =
-                                        document.createElement("span");
+                                    // Store reply button for later positioning
+                                    const replyBtn = document.createElement("span");
                                     replyBtn.className =
                                         "material-symbols-outlined feedback-reply-trigger";
                                     replyBtn.style.cssText =
-                                        "cursor:pointer; font-size:18px; line-height:1; color:#555;";
+                                        "cursor:pointer; font-size:18px; line-height:1; color:rgb(85, 85, 85);";
                                     replyBtn.textContent = "reply";
                                     replyBtn.addEventListener(
                                         "click",
@@ -2979,13 +2975,116 @@ document.addEventListener("DOMContentLoaded", function () {
                                             );
                                         }
                                     );
-                                    headerRight.appendChild(replyBtn);
 
                                     // Append sections
                                     feedbackItem.appendChild(headerDiv);
-                                    headerDiv.appendChild(headerRight);
                                     feedbackItem.appendChild(commentDiv);
                                     feedbackItem.appendChild(mediaDiv);
+                                    
+                                    // Create actions container for edit and reply buttons
+                                    const actionsDiv = document.createElement("div");
+                                    actionsDiv.className = "feedback-actions mt-2 d-flex gap-3";
+                                    
+                                    // Add edit button if exists
+                                    if (editBtnInline) {
+                                        // Store the original event listener
+                                        const editClickHandler = editBtnInline.onclick || function() {};
+                                        
+                                        // Create edit button wrapper with icon + text
+                                        const editWrapper = document.createElement("span");
+                                        editWrapper.className = "d-flex align-items-center";
+                                        editWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                        
+                                        // Recreate edit icon
+                                        const editIcon = document.createElement("span");
+                                        editIcon.className = "material-symbols-outlined feedback-edit-trigger";
+                                        editIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
+                                        editIcon.textContent = "edit";
+                                        
+                                        const editText = document.createElement("span");
+                                        editText.textContent = "Edit";
+                                        
+                                        editWrapper.appendChild(editIcon);
+                                        editWrapper.appendChild(editText);
+                                        
+                                        // Add click handler to wrapper
+                                        editWrapper.addEventListener("click", function() {
+                                            const payload = {
+                                                id: feedback.id,
+                                                parent_id: null,
+                                                feedback_comment: feedback.feedback_comment || "",
+                                                reference_url: feedback.reference_url || "",
+                                                reference_urls: feedback.reference_urls || [],
+                                                reference_file_url: feedback.reference_file || "",
+                                                reference_files_urls: (function () {
+                                                    let files = [];
+                                                    let rf = feedback.reference_files;
+                                                    if (!Array.isArray(rf) && typeof rf === "string") {
+                                                        try {
+                                                            const arr = JSON.parse(rf);
+                                                            if (Array.isArray(arr)) rf = arr;
+                                                        } catch (_) {}
+                                                    }
+                                                    if (Array.isArray(rf) && rf.length) {
+                                                        files = rf.map(function (f) {
+                                                            if (!f) return null;
+                                                            const isAbs = typeof f === "string" && (f.startsWith("http://") || f.startsWith("https://"));
+                                                            const isPath = typeof f === "string" && (f.startsWith("/file/project/") || f.startsWith("file/project/"));
+                                                            if (!isAbs && !isPath) return appUrl + "/file/project/" + f;
+                                                            if (!isAbs && isPath) return f.startsWith("/") ? appUrl + f : appUrl + "/" + f;
+                                                            return f;
+                                                        }).filter(Boolean);
+                                                    } else if (feedback.reference_file) {
+                                                        let single = feedback.reference_file;
+                                                        const isAbs2 = typeof single === "string" && (single.startsWith("http://") || single.startsWith("https://"));
+                                                        const isPath2 = typeof single === "string" && (single.startsWith("/file/project/") || single.startsWith("file/project/"));
+                                                        if (!isAbs2 && !isPath2) single = appUrl + "/file/project/" + single;
+                                                        else if (!isAbs2 && isPath2) single = single.startsWith("/") ? appUrl + single : appUrl + "/" + single;
+                                                        files = [single];
+                                                    }
+                                                    return files;
+                                                })(),
+                                                image_url: (function () {
+                                                    const img = feedback.image || "";
+                                                    if (!img) return "";
+                                                    if (String(img).startsWith("http")) return img;
+                                                    if (String(img).startsWith("/")) return appUrl + img;
+                                                    return appUrl + "/file/project/" + img;
+                                                })(),
+                                            };
+                                            showEditFeedbackForm(projectId, payload, false);
+                                        });
+                                        
+                                        actionsDiv.appendChild(editWrapper);
+                                    }
+                                    
+                                    // Create reply button wrapper with icon + text
+                                    const replyWrapper = document.createElement("span");
+                                    replyWrapper.className = "d-flex align-items-center";
+                                    replyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                    
+                                    // Recreate reply icon
+                                    const replyIcon = document.createElement("span");
+                                    replyIcon.className = "material-symbols-outlined feedback-reply-trigger";
+                                    replyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
+                                    replyIcon.textContent = "reply";
+                                    
+                                    const replyText = document.createElement("span");
+                                    replyText.textContent = "Reply";
+                                    
+                                    replyWrapper.appendChild(replyIcon);
+                                    replyWrapper.appendChild(replyText);
+                                    
+                                    // Add click handler to wrapper
+                                    replyWrapper.addEventListener("click", function () {
+                                        showReplyFeedbackForm(projectId, feedback.id);
+                                    });
+                                    
+                                    // Add reply button
+                                    actionsDiv.appendChild(replyWrapper);
+                                    
+                                    // Insert actions after media (image/links/files) or comment if no media
+                                    feedbackItem.appendChild(actionsDiv);
 
                                     // Replies list
                                     if (
@@ -3105,15 +3204,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         : repEmp.id || 0
                                                 ) ===
                                                 String(currentEmployeeIdTop);
+                                            
+                                            // Store reply edit button for later positioning
+                                            let rEdit = null;
                                             if (canEditReply) {
-                                                const rEdit =
-                                                    document.createElement(
-                                                        "span"
-                                                    );
+                                                rEdit = document.createElement("span");
                                                 rEdit.className =
-                                                    "material-symbols-outlined icon ms-2";
+                                                    "material-symbols-outlined feedback-edit-trigger ms-2";
                                                 rEdit.style.cssText =
-                                                    "cursor:pointer; font-size:16px; line-height:1; color:#555;";
+                                                    "cursor:pointer; font-size:18px; line-height:1; color:rgb(85, 85, 85);";
                                                 rEdit.textContent = "edit";
                                                 rEdit.addEventListener(
                                                     "click",
@@ -3313,7 +3412,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         );
                                                     }
                                                 );
-                                                repNameRow.appendChild(rEdit);
                                             }
                                             repInfo.appendChild(repNameRow);
                                             const repTime =
@@ -3522,6 +3620,99 @@ document.addEventListener("DOMContentLoaded", function () {
                                             )
                                                 repDiv.appendChild(repMedia);
                                             if (rImg) repDiv.appendChild(rImg);
+                                            
+                                            // Create reply actions container for edit and reply buttons  
+                                            const replyActionsDiv = document.createElement("div");
+                                            replyActionsDiv.className = "reply-actions mt-2 d-flex gap-3";
+                                            
+                                            // Add edit button if exists
+                                            if (rEdit) {
+                                                // Create edit wrapper with icon + text
+                                                const editReplyWrapper = document.createElement("span");
+                                                editReplyWrapper.className = "d-flex align-items-center";
+                                                editReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                                
+                                                // Recreate edit icon
+                                                const editReplyIcon = document.createElement("span");
+                                                editReplyIcon.className = "material-symbols-outlined feedback-edit-trigger";
+                                                editReplyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
+                                                editReplyIcon.textContent = "edit";
+                                                
+                                                const editReplyText = document.createElement("span");
+                                                editReplyText.textContent = "Edit";
+                                                
+                                                editReplyWrapper.appendChild(editReplyIcon);
+                                                editReplyWrapper.appendChild(editReplyText);
+                                                
+                                                // Add click handler to wrapper
+                                                editReplyWrapper.addEventListener("click", function () {
+                                                    const payload = {
+                                                        id: rep.id,
+                                                        parent_id: feedback.id,
+                                                        feedback_comment: rep.feedback_comment || "",
+                                                        reference_url: rep.reference_url || "",
+                                                        reference_urls: rep.reference_urls || [],
+                                                        reference_file_url: rep.reference_file || "",
+                                                        reference_files_urls: (function () {
+                                                            let files = [];
+                                                            let rf = rep.reference_files;
+                                                            if (!Array.isArray(rf) && typeof rf === "string") {
+                                                                try {
+                                                                    const arr = JSON.parse(rf);
+                                                                    if (Array.isArray(arr)) rf = arr;
+                                                                } catch (_) {}
+                                                            }
+                                                            if (Array.isArray(rf) && rf.length) files = rf;
+                                                            else if (rep.reference_file) files = [rep.reference_file];
+                                                            return files.map(function (f) {
+                                                                if (!f) return null;
+                                                                let href = f;
+                                                                if (href && !(String(href).startsWith("http") || String(href).startsWith("/"))) {
+                                                                    href = appUrl + "/file/project/" + href;
+                                                                } else if (href && String(href).startsWith("/")) {
+                                                                    href = appUrl + href;
+                                                                }
+                                                                return href;
+                                                            }).filter(Boolean);
+                                                        })(),
+                                                        image_url: (function () {
+                                                            const img = rep.image || "";
+                                                            if (!img) return "";
+                                                            if (String(img).startsWith("http")) return img;
+                                                            if (String(img).startsWith("/")) return appUrl + img;
+                                                            return appUrl + "/file/project/" + img;
+                                                        })(),
+                                                    };
+                                                    showEditFeedbackForm(projectId, payload, true);
+                                                });
+                                                
+                                                replyActionsDiv.appendChild(editReplyWrapper);
+                                            }
+                                            
+                                            // Create reply wrapper with icon + text
+                                            const replyReplyWrapper = document.createElement("span");
+                                            replyReplyWrapper.className = "d-flex align-items-center";
+                                            replyReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                            
+                                            // Add reply button for nested reply
+                                            const replyToReplyIcon = document.createElement("span");
+                                            replyToReplyIcon.className = "material-symbols-outlined feedback-reply-trigger";
+                                            replyToReplyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
+                                            replyToReplyIcon.textContent = "reply";
+                                            
+                                            const replyReplyText = document.createElement("span");
+                                            replyReplyText.textContent = "Reply";
+                                            
+                                            replyReplyWrapper.appendChild(replyToReplyIcon);
+                                            replyReplyWrapper.appendChild(replyReplyText);
+                                            
+                                            replyReplyWrapper.addEventListener("click", function () {
+                                                showReplyFeedbackForm(projectId, feedback.id);
+                                            });
+                                            
+                                            replyActionsDiv.appendChild(replyReplyWrapper);
+                                            
+                                            repDiv.appendChild(replyActionsDiv);
                                             repliesContainer.appendChild(
                                                 repDiv
                                             );
@@ -8926,18 +9117,32 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Clear all latest feedback snippets when search is cleared
+        // When search is cleared, restore feedback snippets that should be visible
         if (query.trim() === "") {
+            document
+                .querySelectorAll(".latest-feedback-snippet")
+                .forEach((snippet) => {
+                    const projectId = snippet.getAttribute("data-project-id");
+                    if (projectId) {
+                        // First try to restore from cache
+                        if (window.__projectLatest && window.__projectLatest[projectId]) {
+                            const data = window.__projectLatest[projectId];
+                            setProjectLatestFeedbackSnippet(projectId, data);
+                        } else {
+                            // If no cache available, fetch fresh data
+                            try {
+                                fetchLatestFeedbackForProject(projectId);
+                            } catch (_) {}
+                        }
+                    }
+                });
+        } else {
+            // Hide feedback snippets during search to avoid clutter
             document
                 .querySelectorAll(".latest-feedback-snippet")
                 .forEach((snippet) => {
                     snippet.classList.add("d-none");
                     snippet.style.display = "none";
-                    // Clear content to prevent any residual display
-                    const textEl = snippet.querySelector(
-                        ".latest-feedback-text"
-                    );
-                    if (textEl) textEl.textContent = "";
                 });
         }
     });

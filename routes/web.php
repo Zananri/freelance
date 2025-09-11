@@ -153,8 +153,8 @@ Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignm
     // Schedules (basic endpoints for modal create & list)
     Route::get('/schedules/create', [ScheduleController::class, 'create'])->name('schedules.create');
     Route::post('/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
-    Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
-
+    Route::get('/schedules/index', [ScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('/schedules', [ScheduleController::class, 'showSchedulePage'])->name('schedules');
 
     Route::get('/teams', [TeamsController::class, 'showTeamsPage'])->name('teams');
     Route::get('/teams/get-teams-detail', [TeamsController::class, 'getTeamsDetail'])->name('teams.getTeamsDetail');
@@ -176,7 +176,7 @@ Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignm
 
     Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
     Route::get('/attendance/get-attendance-employee-by-month', [AttendanceController::class, 'getAttendanceEmployeeByMonth'])->name('attendance.getAttendanceEmployeeByMonth');
-    
+
     Route::get('/attendance/index', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
     Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
@@ -273,7 +273,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/attendance_tracking', [AttendanceTrackingController::class, 'showAttendanceTrackingPage'])->name('attendance_tracking');
     Route::get('/attendance_tracking/get-attendance-tracking-data', [AttendanceTrackingController::class, 'getAttendanceTrackingData'])->name('attendance_tracking.getAttendanceTrackingData');
     Route::get('/attendance_tracking/get-attendance-detail', [AttendanceTrackingController::class, 'getAttendanceDetail'])->name('attendance_tracking.getAttendanceDetail');
-    
+
     Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
     Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
     Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');

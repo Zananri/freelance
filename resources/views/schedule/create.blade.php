@@ -7,7 +7,7 @@
     <div class="title-content d-flex align-items-center gap-2 mb-3">
         <div class="nav-item d-inline-block">
             <div class="nav-icon-arrow">
-                <a href="{{ url('task') }}" class="text-decoration-none text-dark d-flex align-items-center">
+                <a href="{{ url('schedules') }}" class="text-decoration-none text-dark d-flex align-items-center">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </a>
             </div>
