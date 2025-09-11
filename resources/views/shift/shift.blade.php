@@ -345,7 +345,7 @@
                 </div>
 
                 <div class="modal-footer modal-footer-custom w-100">
-                    <button type="button" class="btn btn-dark submit-employee-btn w-100"
+                    <button type="button" class="btn btn-submit-black w-100"
                         id="saveEmployeeBtn">Update</button>
                 </div>
 

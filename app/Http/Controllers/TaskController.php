@@ -806,7 +806,7 @@ class TaskController extends Controller
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'priority' => 'required|in:HIGH,MEDIUM,LOW',
                 // Back-compat: accept either single reference_url or multiple reference_urls[]
                 'reference_url' => 'nullable|url|max:255',
@@ -814,7 +814,7 @@ class TaskController extends Controller
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
                 // Whitelist: images, PDF, Word, Excel, ZIP
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
@@ -1124,14 +1124,14 @@ class TaskController extends Controller
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'priority' => 'required|in:HIGH,MEDIUM,LOW',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
                 // Whitelist: images, PDF, Word, Excel, ZIP
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
             ]);
@@ -1404,15 +1404,15 @@ class TaskController extends Controller
                 // Allow missing employee_id and fallback to authenticated user's employee id
                 'employee_id' => 'nullable|exists:employees,id',
                 'feedback_comment' => 'required|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 // Accept alias coming from some legacy JS (feedback_image)
-                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 // Multiple files: whitelist same as task reference files
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
 
             ]);
 
@@ -1586,11 +1586,11 @@ class TaskController extends Controller
                 'reference_url' => 'nullable|url|max:255',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+                'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 // Multiple files: whitelist
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
             ]);
 
             if ($validator->fails()) {
@@ -2132,7 +2132,8 @@ class TaskController extends Controller
     /**
      * Reject task assignment for executor (remove assignment for current user)
      */
-    public function rejectTask(Request $request, $taskId)
+
+     public function rejectTask(Request $request, $taskId)
     {
         DB::beginTransaction();
         try {
@@ -2183,17 +2184,17 @@ class TaskController extends Controller
                 $task->status = 'rejected';
                 $task->save();
 
-                // Delete all assignments for this task since it's rejected
-                TaskAssignment::where('task_id', $taskId)->delete();
+                // Do NOT delete assignments for this task since it's rejected
+                // TaskAssignment::where('task_id', $taskId)->delete();
             } elseif ($assignment && $assignment->role === 'EXECUTOR') {
-                // Executor cannot reject tasks - throw error
-                throw new \Exception('Executors cannot reject tasks', 403);
+                // Executor rejecting - mark as not received instead of deleting
+                $assignment->update(['is_receive' => false]);
             } elseif ($assignment) {
                 // Other roles can reject by deleting their assignment
                 $assignment->delete();
             } else {
-                // If no assignment found, throw error instead of allowing multiple rejects
-                throw new \Exception('No assignment found to reject', 400);
+                // If no assignment found, allow multiple rejects without error
+                // Just commit and return success
             }
 
             DB::commit();
