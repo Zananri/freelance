@@ -62,51 +62,193 @@ class AttendanceController extends Controller
 
     public function showAttendancePage()
     {
-        $userId = Auth::id();
-        $employee = Employee::with('division')->where('user_id', $userId)->first();
+        
+        $user = auth()->user();
 
-        // Fetch today's attendance for the employee
+        $now = Carbon::now();
         $today = Carbon::today()->toDateString();
-    $attendance = null;
-    $timeIn = null;
-    $isLate = false;
-        $attendanceStatus = [
-            'check_in' => 'pending',
-            'check_out' => 'pending'
-        ];
+        $yesterday = Carbon::today()->subDays(1)->toDateString();
 
-    if ($employee) {
-            $attendance = Attendance::where('employee_id', $employee->id)
-                ->where('date_attendance', $today)
-                ->where('type_attendance', 'check_in')
-                ->first();
+        // $now = Carbon::parse('2025-09-07 01:15:00');
+        // $today = Carbon::parse('2025-09-07')->toDateString();
+        // $yesterday = Carbon::parse('2025-09-06')->toDateString();
 
-            // Determine attendance status based on today's records
-            if ($attendance) {
-                $attendanceStatus['check_in'] = 'completed';
-                
-                // Check if there's a corresponding check-out
-                $checkOut = Attendance::where('employee_id', $employee->id)
-                    ->where('date_attendance', $today)
-                    ->where('type_attendance', 'check_out')
+        $employee = Employee::with('division', 'department', 'job','grade','shift')->where('user_id', $user->id)->first();
+
+        $employeeShift = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+                ->where('date_shift', $today)
+        ->first();
+
+        $employeeShiftYesterday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+                ->where('date_shift', $yesterday)
+        ->first();
+
+        $attendance = Attendance::where('employee_id', $employee->id)
+            ->where('date_attendance', $today)
+        ->first();
+
+        
+        
+        $timeStart = Carbon::parse($employee->shift->time_start);
+        $timeEnd = Carbon::parse($employee->shift->time_end);
+        
+        
+        if($employeeShift){
+            $timeStart = Carbon::parse($employeeShift->shift->time_start);
+            $timeEnd = Carbon::parse($employeeShift->shift->time_end);
+        }
+
+        
+        $todayDate = Carbon::now()->format('D, j F Y'); 
+        $shiftTimeType = 'NORMAL';
+         
+        if($employeeShiftYesterday){
+
+            $timeStartYesterday = Carbon::parse($employeeShiftYesterday->shift->time_start);
+            $timeEndYesterday = Carbon::parse($employeeShiftYesterday->shift->time_end);
+
+            if($timeEndYesterday < $timeStartYesterday){
+                $shiftTimeType = 'OVERNIGHT';
+
+                //Jika belum lewat 2 jam waktu checkout
+                if($now->diffInHours(Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)) > -2){
+
+                    $timeStart = $timeStartYesterday;
+                    $timeEnd = $timeEndYesterday;
+                    
+                    $employeeShift = $employeeShiftYesterday;
+                    $attendance = Attendance::where('employee_id', $employee->id)
+                            ->where('date_attendance', $yesterday)
                     ->first();
-                
-                if ($checkOut) {
-                    $attendanceStatus['check_out'] = 'completed';
+
+                    $todayDate = Carbon::now()->subDays(1)->format('l, j F Y'); 
+
                 }
             }
 
-            // Ensure display uses HH:MM
-            $timeIn = $attendance && $attendance->time_in
-                ? Carbon::parse($attendance->time_in)->format('H:i')
-                : null;
-            // Lateness should reflect the shift at the time of check-in; rely on persisted time_late
-            $isLate = $attendance && !empty($attendance->time_late);
+           // dd($timeEndYesterday ,$now->diffInHours($timeEndYesterday),$attendance );
+
         }
 
-        return view('attendance.attendance', compact('employee', 'attendance', 'attendanceStatus', 'timeIn', 'isLate'));
+        $isLate = '';
+
+        $atendanceTrackingCheckin = '';
+        $atendanceTrackingCheckout = '';
+
+        
+
+        if($attendance){
+ 
+            $attendanceTimeIn = Carbon::parse($attendance->time_in);
+
+            if( $shiftTimeType == 'OVERNIGHT'){
+                $attendanceTimeIn = Carbon::parse( $today.' '.$attendance->time_in);
+            }
+
+
+            if($attendanceTimeIn > $timeStart){
+                $isLate = 'islate';
+            }
+
+            //dd($isLate,$attendanceTimeIn,$timeStart);
+
+            $atendanceTrackingCheckin = AttendanceTracking::where('attendance_id', $attendance->id)
+                ->where('type', 'check_in')
+            ->first();
+
+            $atendanceTrackingCheckout = AttendanceTracking::where('attendance_id', $attendance->id)
+                ->where('type', 'check_out')
+            ->first();
+
+        }
+
+        
+        
+        $timeIn = '';
+        $timeOut = '';
+
+        $totalWorkHour = '';
+
+
+        if($attendance){
+            
+            if($attendance->time_in){
+                $timeIn = Carbon::parse($attendance->time_in)->format('H:i');
+            }
+
+            if($attendance->time_out){
+                $timeOut = Carbon::parse($attendance->time_out)->format('H:i');
+            }
+            
+            if($attendance->time_in && $attendance->time_out){
+                $totalWorkHour = Carbon::parse($attendance->time_in)->diffInHours(Carbon::parse($attendance->time_out));
+            }
+        }
+
+        //dd($timeIn,$timeOut,$totalWorkHour);
+        //dd($timeStart->format('H:i'),$timeEnd->format('H:i'));
+        
+
+        $timeStart = $timeStart->format('H : i');
+        $timeEnd = $timeEnd->format('H : i');
+        
+        return view('attendance.attendance', compact('employee', 'timeStart','timeEnd', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
+    
     }
 
+    public function getAttendanceEmployeeByMonth(Request $request){
+
+        try{
+
+        
+            $userId = Auth::user()->id;
+
+            $month = '';
+            $year = '';
+
+            if(isset($request->MONTH)){
+                $month = $request->MONTH;
+            }
+
+            if(isset($request->YEAR)){
+                $year = $request->YEAR;
+            }
+
+            if(!$month || !$year){
+                throw new \Exception('Month and year is required');
+            }
+
+            $employee = Employee::with('division', 'department', 'job','grade','shift')->where('user_id',$userId)->first();
+
+            $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+            $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+
+            $attendance = Attendance::where('date_attendance','>=',$firstDayOfMonth)
+                ->where('date_attendance','<=',$lastDayOfMonth)
+                ->where('employee_id',$employee->id)
+                ->get();
+
+                //dd($month,$year, $firstDayOfMonth,$lastDayOfMonth,$attendance);
+            return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => $attendance,
+                    'message' => 'Get attendance tracking data successfully'
+            ]);
+
+        }catch (\Exception $e){
+
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+
+        }
+
+    }
+    
     public function index()
     {
         //

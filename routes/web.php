@@ -160,6 +160,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/project/{id}/accept-status', [ProjectController::class, 'checkAcceptStatus'])->name('project.accept-status');
 
     Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
+    Route::get('/attendance/get-attendance-employee-by-month', [AttendanceController::class, 'getAttendanceEmployeeByMonth'])->name('attendance.getAttendanceEmployeeByMonth');
+    
     Route::get('/attendance/index', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
     Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');

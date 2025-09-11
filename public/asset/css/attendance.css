@@ -1,863 +1,173 @@
-/* When both check-in and check-out are present */
-.attendance-wrapper {
-    display: flex;
-    gap: 20px;
-    align-items: stretch;
+.bg-card-1{
+    background-color: rgb(240, 241, 248);
 }
 
-.attendance-left-content,
-.attendance-right-content {
-    flex: 1;
-    min-height: 550px;
-    height: fit-content;
-    max-height: calc(100vh - 200px);
+
+
+
+.main-content{
+    padding-right: 0px;
+    padding-bottom: 0px;
 }
 
-.attendance-left-content {
-    max-width: 400px;
-}
-
-.attendance-right-content {
-    flex: 1;
-    min-width: 0;
-}
-
-/* Membuat calendar lebih besar */
-.attendance-right-content .calendar-container {
+.box-loader{
+    background-color: rgba(255, 255, 255,0.3);
+    position: absolute;
+    top:0px;
+    left: 0px;
     width: 100%;
-    max-width: none;
-    padding: 30px;
-    overflow: hidden;
-}
-
-.attendance-right-content .calendar-days {
-    gap: 8px;
-}
-
-.attendance-right-content .calendar-day {
-    font-size: 16px;
-    aspect-ratio: 2;
-    min-height: 40px;
-}
-
-.profile-section {
+    height: 100%;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    padding: 20px;
+    justify-content: center;
 }
 
-.calendar-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.loader{ 
+    display: none;
+    position: absolute;
+    top:0px;
+    left: 0px;
     width: 100%;
+    height: 100%;
 }
 
-/* Responsive untuk layar kecil */
-@media (max-width: 1200px) {
-    .attendance-wrapper {
-        flex-direction: column;
-    }
-
-    .attendance-left-content,
-    .attendance-right-content {
-        max-width: 100%;
-        width: 100%;
-    }
+.attendance-wrapper{
+    overflow: auto;
+    max-height: calc(100vh - 180px);
+    padding-right: 15px;
+    padding-bottom: 15px;
 }
 
-/* Styling khusus untuk label In dan Out di tampilan mobile */
-@media (max-width: 576px) {
-    .check-in-label,
-    .check-out-label {
-        font-size: 12px !important;
-        padding: 2px 6px !important;
-        border-radius: 4px !important;
-    }
 
-    .calendar-day.checked-in {
-        background: #007bff !important;
-        color: white !important;
-    }
-
-    .calendar-day.checked-out {
-        background: #6c757d !important;
-        color: white !important;
-    }
-
-    .calendar-day.checked-in.checked-out {
-        background: linear-gradient(
-            135deg,
-            #007bff 50%,
-            #6c757d 50%
-        ) !important;
-        color: white !important;
-    }
+.attendance-wrapper .text-body {
+    --bs-body-color-rgb : 50, 51, 63;
+    color: rgba(var(--bs-body-color-rgb),var(--bs-text-opacity))!important;
 }
 
-/* Styling untuk Yes/No buttons di modal check-in seperti button profile dan logout */
-.form-check-input[type="radio"] {
+.attendance-wrapper .text-secondary {
+    --bs-secondary-rgb: 120, 122, 137;
+    color: rgba(var(--bs-secondary-rgb),var(--bs-text-opacity))!important;
+}
+
+
+/* Make the entire scrollbar transparent */
+.main-content ::-webkit-scrollbar {
+  width: 7px; /* Adjust as needed */
+  height: 7px; /* Adjust as needed */
+  background-color: transparent;
+}
+
+/* Make the scrollbar track transparent */
+.main-content ::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+/* Make the scrollbar thumb transparent or semi-transparent */
+.main-content ::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 18, 40, 0.15); /* Semi-transparent black thumb */
+  border-radius: 5px; /* Optional: rounded corners for the thumb */
+}
+
+.card-content{
+    background-color: rgb(240, 241, 248);
+    border-radius: 20px;
+    padding: 0px;
+    padding-bottom: 25px;
+}
+
+.title-content{
+    margin-bottom: 30px;
+}
+
+.text-title-content{
+    font-size: 32px;
+    font-weight: 300;
+    color: #2A3542;
+    padding: 0px;
+    margin:0px;
+}
+
+.modal .box-loader,
+.modal .box-camera{
     display: none;
 }
-
-.form-check-label {
-    display: inline-block;
-    padding: 10px 24px;
-    border-radius: 8px;
+.modal .box-photo{
+    background-color: #f5f8fc;
+    transition: all 0.3s;   
+}
+.modal .box-photo:hover{
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    text-align: center;
-    min-width: 80px;
-    background-color: #e3e4ee;
-    color: #495057;
+    background-color: #e0eeff;
 }
 
-.form-check-input[type="radio"]:checked + .form-check-label {
-    background-color: #5770d5;
-    color: white;
-    border-color: #5770d5;
+.modal .btn-close-capture .material-symbols-outlined {
+    border: 0px;
+    padding: 6px 5px 0px 0px;
+    width: 35px;
+    height: 35px;
+    border-radius: 35px;
+    background-color: #0000006f;
+    color: #dcdcdc;
+    font-size: 24px;
+    margin-right: 20px;
+    margin-top: 25px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.form-check-label:hover {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
+.modal .btn-close-capture .material-symbols-outlined:hover{
+    background-color: #00000096;
+    color: #ffffff;
 }
 
-.form-check-input[type="radio"]:checked + .form-check-label:hover {
-    background-color: #4e6b94;
-    border-color: #4e6b94;
+.modal .btn-capture-photo {
+    padding: 11px 11px;
+    color: #d2d2d2;
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border-radius: 50px;
+    border: solid 2px #d2d2d2;
+    background-color: #00000054;
+    transition: all 0.2s;
+    margin-bottom: 30px;
+    cursor: pointer;
 }
 
-/* Container untuk Yes/No buttons */
-.work-outside-container {
-    display: flex;
-    gap: 15px;
-    align-items: center;
+.modal .btn-capture-photo:hover{
+    border:solid 2px #fff;
+    color: #fff;
+    background-color: #0000007e;
 }
 
-.work-outside-container .form-check {
-    margin: 0;
-    padding: 0;
-}
-
-/* Container untuk  dan time in */
-.date-time-container {
-    display: flex;
-    gap: 15px;
-    align-items: center; /* Change to center for better alignment */
-}
-
-.date-time-container .mb-3 {
-    flex: 1;
-    margin-bottom: 0 !important;
-}
-
-.date-time-display {
-    font-size: 14px;
-    color: #495057;
-    min-height: 45px;
-    display: flex;
-    align-items: center;
-}
-
-.shift-time-display {
-    font-size: 12px;
-    color: #6c757d;
-    font-weight: 500;
-    min-height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: -5px;
-}
-
-/* Spacing adjustments for modal time display container */
-.text-center .mb-1 {
-    margin-bottom: 0.25rem !important;
-}
-
-.text-center .shift-time-display {
-    margin-top: -20px;
-    color: #6c757d;
-}
-
-/* Responsive untuk mobile */
-@media (max-width: 576px) {
-    .work-outside-container {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .work-outside-container .form-check {
-        flex: 1;
-        margin-right: 10px;
-    }
-
-    .work-outside-container .form-check:last-child {
-        margin-right: 0;
-    }
-
-    .date-time-container {
-        flex-direction: row;
-        gap: 10px;
-    }
-
-    .date-time-display {
-        font-size: 13px;
-    }
-
-    .form-check-label {
-        width: 100%;
-        margin-bottom: 0;
-        padding: 10px 15px;
-        font-size: 14px;
-    }
-}
-.attendance-left {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.attendance-actions-left {
-    margin-top: 1.5rem;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-}
-
-.attendance-right {
-    width: 400px;
-    flex-shrink: 0;
+.modal .box-btn-submit,
+.modal .box-form{
+    padding-left: 35px;
+    padding-right: 35px;
 }
 
 .modal-header-custom {
     border: 0;
 }
 
+/* Attendance Modal Styles - Copied from attendance.css */
 .modal-title-custom {
     font-weight: 300;
     font-size: 28px;
     color: rgb(103, 111, 122);
 }
 
-/* User Profile Styles */
-.user-profile-card {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 30px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    text-align: center;
-    margin-bottom: 25px;
-}
-
-.profile-image-container {
-    position: relative;
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-.profile-image {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.digital-clock {
-    font-size: 22px;
-}
-
-.digital-date {
-    font-size: 12px;
-}
-
-.attendance-logs {
-    width: 100%;
-    margin-top: 1rem;
-}
-
-.attendance-logs h6 {
-    margin-bottom: 10px;
-}
-
-.attendance-logs .log-row {
-    width: 100%;
-}
-
-.attendance-logs p {
-    color: #757575;
-    font-size: 12px;
-}
-
-.user-info h3 {
-    font-size: 20px;
-    font-weight: 400;
-    color: #222;
-}
-
-.user-email {
-    font-size: 14px;
-    color: #555;
-    margin: 0 0 5px 0;
-}
-
-.user-division {
-    font-size: 14px;
-    font-weight: 500;
-    color: #555;
-    margin: 0;
-}
-
-/* Attendance Summary Styles */
-.attendance-summary {
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 25px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    margin-bottom: 25px;
-}
-
-.attendance-summary h4 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.summary-cards {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 15px;
-}
-
-.summary-card {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.card-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: white;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.card-info h5 {
-    font-size: 14px;
-    font-weight: 600;
-    color: #6c757d;
-    margin: 0 0 5px 0;
-}
-
-.card-info p {
-    font-size: 18px;
-    font-weight: 700;
-    color: #2c3e50;
-    margin: 0;
-}
-
-/* Attendance Actions */
-.attendance-actions {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin-top: 16px;
-}
-
-.btn {
-    padding: 12px 24px;
+/* Task modal visual parity (copied from task.css) */
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 24px;
+    background: #f7f7f8;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    justify-content: center;
 }
 
-.btn-custom-check {
-    background-color: #e3e4ee;
-    color: #444444;
-}
-
-.btn-custom-check:hover {
-    background-color: #e3e4ee;
-    color: #444444;
-}
-
-.btn-custom-check.active {
-    background-color: #454545;
-    color: #f3f3f3;
-}
-
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Right Section - Calendar Styles */
-.calendar-container {
-    background: #f0f1f8;
-    border-radius: 12px;
-    padding: 25px;
-    height: fit-content;
-}
-
-.calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-}
-
-.calendar-header h4 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
-}
-
-.calendar-header button {
-    background: none;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.calendar-header button:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    font-weight: 600;
-    color: #6c757d;
-    font-size: 12px;
-    margin-bottom: 10px;
-}
-
-.calendar-weekdays div {
-    padding: 10px 5px;
-}
-
-.calendar-days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
-}
-
-.calendar-day {
-    aspect-ratio: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.calendar-day:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-day.other-month {
-    color: #adb5bd;
-}
-
-.calendar-day.has-attendance::after {
-    content: "";
-    position: absolute;
-    bottom: 3px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-}
-
-.calendar-day.present::after {
-    background-color: #28a745;
-}
-
-.calendar-day.absent::after {
-    background-color: #dc3545;
-}
-
-.calendar-day.late::after {
-    background-color: #ffc107;
-}
-
-.calendar-day.leave::after {
-    background-color: #6f42c1;
-}
-
-/* Calendar Legend */
-.calendar-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    justify-content: center;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #6c757d;
-}
-
-.legend-color {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-}
-
-.legend-color.present {
-    background-color: #28a745;
-}
-
-.legend-color.absent {
-    background-color: #dc3545;
-}
-
-.legend-color.late {
-    background-color: #ffc107;
-}
-
-.legend-color.leave {
-    background-color: #6f42c1;
-}
-
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .attendance-container {
-        flex-direction: column;
-    }
-
-    .attendance-right {
-        width: 100%;
-        margin-top: 30px;
-    }
-
-    .calendar-container {
-        max-width: 500px;
-        margin: 0 auto;
-    }
-}
-
-@media (max-width: 768px) {
-    .body-content {
-        padding: 20px !important;
-    }
-
-    .user-profile-card {
-        padding: 20px;
-    }
-
-    .profile-image {
-        width: 80px;
-        height: 80px;
-    }
-
-    .btn {
-        width: 100%;
-    }
-
-    .attendance-right-content {
-        margin-bottom: 20px;
-    }
-
-    .attendance-right-content .calendar-day {
-        font-size: 14px;
-        aspect-ratio: 0.8;
-    }
-
-    .calendar-day {
-        aspect-ratio: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
-    }
-}
-
-/* Additional Styles */
-.mb-0 {
-    font-size: 20px;
-}
-
-.text-muted {
-    color: #6c757d !important;
-}
-
-.mt-4 {
-    margin-top: 1.5rem !important;
-}
-
-.scrollable-container {
-    max-height: calc(100vh - 200px);
-    overflow-y: auto;
-}
-
-.user-info {
-    font-weight: 300 !important;
-    position: relative;
-    text-align: center;
-}
-
-.user-info p {
-    font-size: 14px;
-    font-weight: 300 !important;
-    color: #666;
-    margin: 0;
-}
-
-/* Image Upload Styling for Attendance Modal */
-.image-upload-container {
-    position: relative;
-}
-
-.image-upload-label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 180px;
-    height: 250px;
-    border: 2px dashed #dee2e6;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: #f8f9fa;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: 50%;
-    opacity: 0.5;
-    margin-left: 15px;
-}
-
-.image-upload-label:hover {
-    border-color: #007bff;
-    background-color: #e3f2fd;
-    opacity: 0.8;
-}
-
-.image-upload-label.has-image {
-    background-image: none;
-    background-color: #f8f9fa;
-    border-style: solid;
-    opacity: 1;
-}
-
-.image-upload-icon {
-    margin-bottom: 8px;
-}
-
-.image-preview {
-    margin-top: 10px;
-    max-width: 180px;
-    max-height: 250px;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-}
-
-.image-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-#previewImg {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 180px;
-    height: 250px;
-    border: 2px dashed #dee2e6;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: #f8f9fa;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: 50%;
-    opacity: 1;
-}
-
-#clearImageBtn {
-    margin-top: 10px;
-}
-
-.image-clear-btn {
+.modal-body-custom {
     padding: 0;
-    position: absolute;
-    top: -20px;
-    right: 270px;
-    width: 25px;
-    height: 25px;
-    background-color: #dc3545;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 18px;
-    font-weight: bold;
-    border: none;
-    z-index: 10;
-    transition: all 0.3s ease;
-}
-
-.image-clear-btn:hover {
-    background-color: #c82333;
-    transform: scale(1.1);
-}
-
-#clearImageBtn,
-#retakeBtn {
-    margin-top: 10px;
-    margin-right: 5px;
-}
-
-/* Modal specific styles */
-.form-label {
-    margin-left: 15px;
-    font-weight: 400;
-    font-size: 14px;
-    color: #555;
-}
-
-/* Check-in styling - hanya berlaku jika TIDAK ada checked-out */
-.calendar-day.checked-in:not(.checked-out) {
-    position: relative;
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
-}
-
-/* Check-out styling - hanya berlaku jika TIDAK ada checked-in */
-.calendar-day.checked-out:not(.checked-in) {
-    position: relative;
-    background: linear-gradient(135deg, #6c757d 50%, transparent 50%);
-}
-
-/* When both check-in and check-out are present */
-.calendar-day.checked-in.checked-out {
-    position: relative;
-    background: linear-gradient(135deg, #007bff 50%, #6c757d 50%);
-    color: white;
-}
-
-/* Labels styling */
-.check-in-label {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
-}
-
-.check-out-label {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
-}
-
-/* Radio button styling */
-.form-check-input:checked {
-    background-color: #007bff;
-    border-color: #007bff;
-}
-
-/* Responsive adjustments */
-@media (max-width: 576px) {
-    .image-upload-label {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 180px;
-        height: 250px;
-        border: 2px dashed #dee2e6;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        background-color: #f8f9fa;
-        background-position: center center;
-        background-repeat: no-repeat;
-        background-size: 50%;
-        opacity: 0.5;
-    }
-    .image-upload-label:hover {
-        border-color: #007bff;
-        background-color: #e3f2fd;
-        opacity: 0.8;
-    }
-
-    .image-preview {
-        max-width: 150px;
-        max-height: 150px;
-    }
-
-    .check-in-label {
-        left: -1px !important;
-        font-size: 6px !important;
-    }
-
-    .check-out-label {
-        bottom: 0px !important;
-        right: -3px !important;
-        font-size: 6px !important;
-    }
 }
 
 .modal-footer-custom {
@@ -865,289 +175,280 @@
     justify-content: center;
 }
 
-/* Membuat button check in dan check out di modal lebih lebar */
-.modal-footer-custom .btn-submit-black,
-.modal-footer-custom #submitCheckOutBtn {
-    width: 100%;
-    max-width: 420px;
-    padding: 12px 30px;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-/* Untuk mobile, pastikan button tetap lebar */
-@media (max-width: 576px) {
-    .modal-footer-custom .btn-submit-black,
-    .modal-footer-custom #submitCheckOutBtn {
-        max-width: 100%;
-        width: 90%;
-        margin: 0 auto;
-    }
-}
-
-/* Center alignment for time in and date attendance in modal */
-.date-time-display {
-    text-align: center !important;
-    display: block !important;
-}
-
-#time_in {
-    font-size: 24px;
-    font-weight: bold;
-    text-align: center;
-}
-
-#date_attendance {
-    font-size: 14px;
-    color: #6c757d;
-    text-align: center;
-}
-
-/* Container untuk time dan date - center alignment */
-.text-center.mb-4 {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-
-/* Responsive center alignment for mobile */
-@media (max-width: 576px) {
-    #time_in {
-        font-size: 22px;
-    }
-
-    #date_attendance {
-        font-size: 16px;
-    }
-}
-
-/* Reduce spacing between modal title and time/date display */
-.modal-header-custom {
-    padding-bottom: 0.5rem !important;
-}
-
-.modal-body {
-    padding-top: 0.5rem !important;
-}
-
-.text-center.mb-4 {
-    margin-top: 0.25rem !important;
-    margin-bottom: 0.75rem !important;
-}
-
-#time_in {
-}
-
-/* Responsive styling untuk modal di perangkat mobile */
-@media (max-width: 576px) {
-    .modal-dialog {
-        max-width: 90vw !important;
-        margin: 1.75rem auto;
-        width: 100% !important;
-        height: auto !important;
-        max-height: 90vh !important;
-    }
-
-    .modal-content {
-        height: 100% !important;
-        overflow-y: auto !important;
-        border-radius: 12px !important;
-    }
-
-    .modal-body {
-        padding: 1rem !important;
-    }
-
-    .modal-header,
-    .modal-footer {
-        padding: 0.5rem 1rem !important;
-    }
-
-    .modal-title {
-        font-size: 1.25rem !important;
-    }
-
-    .btn {
-        font-size: 1rem !important;
-        padding: 10px 20px !important;
-    }
-
-    #previewImg {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 180px !important;
-        height: 250px !important;
-        border: 2px dashed #dee2e6;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        background-color: #f8f9fa;
-        background-position: center center;
-        background-repeat: no-repeat;
-        background-size: 50%;
-        opacity: 1;
-    }
-}
-
-#previewImgCheckout {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 180px;
-    height: 250px;
-    border: 2px dashed #dee2e6;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background-color: #f8f9fa;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: 50%;
-    opacity: 1;
-}
-
-#cameraWrapper {
-    padding: 1rem;
-    text-align: center;
-}
-
-#cameraVideo {
-    width: 100%;
-    height: auto;
-    max-height: 90vh;
-    object-fit: cover;
-}
-
-/* Match checkout camera sizing to check-in */
-#cameraWrapperCheckout {
-    padding: 1rem;
-    text-align: center;
-}
-
-#cameraVideoCheckout {
-    width: 100%;
-    height: auto;
-    max-height: 90vh;
-    object-fit: cover;
-}
-
-.modal-content.camera-active {
-    background-color: transparent;
-    border: none;
-}
-
-#workOutsideStatusText {
-    margin-left: 15px;
-}
-.date-time-display-checkout {
-    margin-left: 15px;
-    font-size: 14px;
-    color: #495057;
-}
-
-/* Center alignment for time in and date attendance in modal */
-.date-time-display {
-    text-align: center !important;
-    display: block !important;
-}
-
-#time_out {
-    font-size: 24px;
-    font-weight: bold;
-    text-align: center;
-}
-
-#date_attendance_checkout {
-    font-size: 14px;
-    color: #6c757d;
-    text-align: center;
-}
-
-/* Container untuk time dan date - center alignment */
-.text-center.mb-4 {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
-
-.btn-custom-check {
-    background-color: #e3e4ee;
-    color: #444444;
-}
-
-.btn-custom-check:hover {
-    background-color: #e3e4ee;
-    color: #444444;
-}
-
-.btn-custom-check.active {
-    background-color: #454545;
-    color: #f3f3f3;
-}
-
-.check-in-details {
-    background-color: transparent;
-    padding: 20px;
-    border-radius: 8px;
-}
-.detail-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-}
-.detail-row:last-child {
-    border-bottom: none;
-}
-.detail-value {
-    color: #555;
-    font-size: 14px;
-}
-
-.image-checkin {
-    margin-left: 20px;
-}
-
-.attendance-actions button {
-    display: flex;
-    padding: 16px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    justify-content: center;
-    max-width: 200px;
-}
-
-.check-out-details {
-    background-color: transparent;
-    padding: 20px;
-    border-radius: 8px;
-}
-
-.image-checkout {
-    margin-left: 20px;
-}
-
 .btn-close-custom {
+    border: 0px !important;
     background: #797E91;
     color: #F3F3F3;
+    font-weight: 300;
 }
 
-.btn-close-custom:hover {
-    background: #797E91;
-    color: #F3F3F3;
+.btn-close-custom:hover,
+.btn-close-custom:active,
+.btn-close-custom:focus {
+    border: 0px !important;
+    background: #6f7486 !important;
+    color: #ffffff !important;
+}
+
+.attendance-logs .logs-title {
+    font-weight: 400;
+    font-size: 16px;
+    color: #454545;
+}
+
+.attendance-log .label-check-in-out,
+.attendance-log .text-time-in,
+.attendance-log .text-time-out{
+    font-weight: 500;
+    font-size: 12px;
+    color: #757575;
+}
+
+.attendance-log .time-log:hover{
+    cursor: pointer;
+}
+
+.attendance-log .islate .text-time-in{
+    color: #C44141 !important;
+}
+
+
+
+.attendance-log .time-log:hover .text-time-in,
+.attendance-log .time-log:hover .text-time-out,
+.attendance-log .time-log:hover .material-symbols-outlined{
+    color: #262627;
+}
+
+.attendance-log .material-symbols-outlined{
+     font-variation-settings: 'wght' 600;  
+    margin-left: 10px;
+    font-size: 16px;
+    color: #9B9CAC;
+}
+
+
+.attendance-log .islate .text-time-in{
+    color: #C44141 !important;
+}
+
+
+
+
+
+.header-calendar{
+    padding: 15px 15px;
+}
+
+.dropdown-month .btn-dropdown-month{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #e9eef400;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+.dropdown-month .dropdown-toggle::after {
+    margin-left: 10px;
+    opacity: 0.9;
+}
+
+.dropdown-month .dropdown-item:active,
+.dropdown-month .dropdown-item:hover{
+    background-color: #E9EEF4;
+    color: #313642;
+    cursor: pointer;
+}
+
+
+.calendar-month,
+.calendar-year{
+    font-size: 16px;
+    color: #2A3542;
+    font-weight: 400;
+    margin-left: 10px;
+}
+
+.calendar-next-month,
+.calendar-prev-month{
+    font-size: 20px;
+    color: #474c59;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 10px 10px;
+}
+
+.calendar-next-month:hover,
+.calendar-prev-month:hover,
+.calendar-next-month:active,
+.calendar-prev-month:active,
+.dropdown-month .btn-dropdown-month:hover,
+.dropdown-month .btn-dropdown-month:active{
+    color: #313642 !important;
+    background-color: #E9EEF4 !important;
+}
+
+
+.table-calendar{
+    border-collapse: collapse;
+    width: 100%;
+    height: calc(100vh - 276px);
+    min-height: 400px;
+}
+
+
+.table-calendar thead th{
+    font-size: 12px;
+    font-weight: 400;
+    color: #747d87;
+    text-align: center;
+    max-height: 30px;
+    border:solid 1px #E4E7EE;
+    border-bottom: 0px;
+}
+
+@media (max-width: 567px) {
+    .table-calendar{
+        height: calc(100vw - 330px) !important;
+    }
+}
+
+
+
+.table-calendar tbody td{
+    position: relative;
+    
+    vertical-align: top;
+    border:solid 1px #E4E7EE;
+    transition: all 0.3s;
+    padding: 5px 5px;
+    width: calc(100% / 7);
+    transition: all 0.3s;
+}
+
+.table-calendar tbody td:not(.empty-cell):hover{
+    cursor: pointer;
+    background-color: #F5F6FC;
+}
+
+.table-calendar tbody tr:first-child td{
+    border-top: 0px;
+}
+
+.table-calendar tbody td .day{
+    text-align: center;
+    font-size: 12px;
+    color: #46515f;
+    font-weight: 600;
+    position: relative;
+}
+
+.table-calendar tbody td .box-event{
+    position: absolute;
+    padding: 2px 5px;
+    top: 25px;
+    left: 0px;
+    width: 100%;
+    height: calc(100% - 30px);
+    overflow-x: auto;
+    
+}
+
+/* Style the entire scrollbar */
+.table-calendar tbody ::-webkit-scrollbar {
+  width: 4px; /* Adjust width as needed */
+  background-color: transparent; /* Initially transparent */
+}
+
+/* Style the scrollbar thumb (draggable part) */
+.table-calendar tbody ::-webkit-scrollbar-thumb {
+  background-color: #46505b2c; /* Default thumb color */
+  border-radius: 4px;
+}
+
+/* Style the scrollbar track (background) */
+.table-calendar tbody ::-webkit-scrollbar-track {
+  background-color: transparent; /* Initially transparent */
+}
+
+/* Hide the scrollbar by default */
+.table-calendar tbody ::-webkit-scrollbar-thumb,
+.table-calendar tbody ::-webkit-scrollbar-track {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out; /* Smooth transition */
+}
+
+.table-calendar tbody td .box-event:hover ::-webkit-scrollbar-thumb,
+.table-calendar tbody td .box-event:hover ::-webkit-scrollbar-track {
+  opacity: 1;
+}
+
+
+.table-calendar tbody td .text-event{
+    font-size: 10px;
+    color: #46505B;
+    font-weight: 500;
+    background-color: #f2e2e4;
+    padding: 2px 8px;
+    margin-bottom: 5px;
+    border-radius: 15px;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1; /* Number of lines to show */
+    -webkit-box-orient: vertical;
+}
+
+.table-calendar tbody td.today .day{
+    color: #0c6cea;
+    position: relative;
+}
+
+
+.table-calendar{
+    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 20px;
+    overflow: hidden;
+}
+
+.table-calendar .bg-day{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+}
+
+.calendar-day.check-in .day {
+    color: #fff !important;
+}
+
+.calendar-day.check-in .bg-day {
+    background: linear-gradient(135deg, #3391f1 50%, transparent 50%);
+}
+
+.calendar-day.check-in:hover .bg-day {
+    background: linear-gradient(135deg, #0368cc 50%, transparent 50%);
+}
+
+.calendar-day.checked-out .bg-day {
+    background: linear-gradient(135deg, transparent 50%, #8d8d8d 50%);
+}
+
+.calendar-day.checked-out:hover .bg-day {
+    background: linear-gradient(135deg, transparent 50%, #5b5b5b 50%);
+}
+
+.calendar-day.check-in.check-out .bg-day{
+    background: linear-gradient(135deg, #3391f1 50%, #8d8d8d 50%);
+}
+
+.calendar-day.check-in.check-out .day{
+    color: #fff !important;
+}
+
+.calendar-day.check-in.check-out:hover .bg-day{
+    background: linear-gradient(135deg, #0368cc 50%, #5b5b5b 50%);
 }
