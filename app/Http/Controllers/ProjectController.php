@@ -25,8 +25,17 @@ class ProjectController extends Controller
         // No employee object at all
         if (!$employee) return asset('asset/img/avatar.png');
 
-        // Pick first non-empty source
-        $raw = $employee->profile_picture ?: ($employee->photo ?: ($employee->user->photo ?? null));
+        // Pick first non-empty source (guard against missing related user)
+        $userPhoto = null;
+        try {
+            // Avoid triggering errors if relation is missing
+            if (isset($employee->user) && $employee->user) {
+                $userPhoto = $employee->user->photo ?? null;
+            }
+        } catch (\Throwable $t) {
+            $userPhoto = null;
+        }
+        $raw = $employee->profile_picture ?: ($employee->photo ?: $userPhoto);
         if (!$raw) return asset('asset/img/avatar.png');
 
         // If already absolute (external or protocol-relative) just return
@@ -813,7 +822,16 @@ class ProjectController extends Controller
     public function show(string $id)
     {
         try {
-            $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
+            // Eager-load employee.user to safely resolve avatars and reduce N+1
+            $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])->find($id);
+
+            if (!$project) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Project not found'
+                ], 404);
+            }
 
             // If project was soft-deleted, pretend it doesn't exist for the frontend
             if (isset($project->status) && $project->status === 'DELETED') {
@@ -899,7 +917,8 @@ class ProjectController extends Controller
      */
     public function edit(string $id)
     {
-        $project = Project::with(['department', 'division', 'projectAssignments.employee'])->findOrFail($id);
+    // Eager-load employee.user to avoid null access when resolving avatars
+    $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])->findOrFail($id);
 
         $coAuthors = [];
         $contributors = [];

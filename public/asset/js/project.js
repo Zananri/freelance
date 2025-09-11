@@ -1,92 +1,135 @@
-var appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute("content") || '').replace(/\/$/, '');
-console.log('Project.js appUrl:', appUrl);
+var appUrl = (
+    document.querySelector('meta[name="app-url"]')?.getAttribute("content") ||
+    ""
+).replace(/\/$/, "");
+console.log("Project.js appUrl:", appUrl);
 
 // Global avatar cache-bust version (updated when profile picture changes)
 window.__avatarVersion = Date.now();
-function appendAvatarVersion(url){
+function appendAvatarVersion(url) {
     try {
-        if(!url) return url;
-        if(/\?(.*)(t|v)=/.test(url)) return url; // already has timestamp param
-        const sep = url.includes('?') ? '&' : '?';
-        return url + sep + 't=' + window.__avatarVersion;
-    } catch(_) { return url; }
+        if (!url) return url;
+        if (/\?(.*)(t|v)=/.test(url)) return url; // already has timestamp param
+        const sep = url.includes("?") ? "&" : "?";
+        return url + sep + "t=" + window.__avatarVersion;
+    } catch (_) {
+        return url;
+    }
 }
 
 // Global avatar builder (used by add/edit modals). Priority: profile_picture_url > profile_picture > user_photo (raw can be any).
-if (typeof window.buildAvatarUrl !== 'function') {
-    window.buildAvatarUrl = function(raw){
-    if(!raw) return appendAvatarVersion(appUrl + '/asset/img/avatar.png');
+if (typeof window.buildAvatarUrl !== "function") {
+    window.buildAvatarUrl = function (raw) {
+        if (!raw) return appendAvatarVersion(appUrl + "/asset/img/avatar.png");
         try {
             raw = String(raw).trim();
-            const trimmed = raw.replace(/^\/+/, '');
-            if(/^https?:\/\//i.test(raw)) return appendAvatarVersion(raw);
-            if(/^(file\/|asset\/|storage\/)/.test(trimmed)) return appendAvatarVersion(appUrl + '/' + trimmed);
-            if(raw.startsWith('/')) return appendAvatarVersion(appUrl + raw);
-            if(raw.indexOf('/') !== -1) return appendAvatarVersion(appUrl + '/' + trimmed);
-            return appendAvatarVersion(appUrl + '/file/profile_picture/' + raw);
-    } catch(_) { return appendAvatarVersion(appUrl + '/asset/img/avatar.png'); }
+            const trimmed = raw.replace(/^\/+/, "");
+            if (/^https?:\/\//i.test(raw)) return appendAvatarVersion(raw);
+            if (/^(file\/|asset\/|storage\/)/.test(trimmed))
+                return appendAvatarVersion(appUrl + "/" + trimmed);
+            if (raw.startsWith("/")) return appendAvatarVersion(appUrl + raw);
+            if (raw.indexOf("/") !== -1)
+                return appendAvatarVersion(appUrl + "/" + trimmed);
+            return appendAvatarVersion(appUrl + "/file/profile_picture/" + raw);
+        } catch (_) {
+            return appendAvatarVersion(appUrl + "/asset/img/avatar.png");
+        }
     };
 }
 
-window.addEventListener('profilePictureUpdated', function(){
+window.addEventListener("profilePictureUpdated", function () {
     window.__avatarVersion = Date.now();
     // Update any collaborator images in add/edit modals
-    document.querySelectorAll('#selected_co_authors img, #selected_contributors img, #edit_selected_co_authors img, #edit_selected_contributors img, #co_author_dropdown img, #contributor_dropdown img, #edit_co_author_dropdown img, #edit_contributor_dropdown img').forEach(function(img){
-        try { img.src = img.src.replace(/\?t=\d+$/, ''); img.src = appendAvatarVersion(img.src); } catch(_) {}
-    });
+    document
+        .querySelectorAll(
+            "#selected_co_authors img, #selected_contributors img, #edit_selected_co_authors img, #edit_selected_contributors img, #co_author_dropdown img, #contributor_dropdown img, #edit_co_author_dropdown img, #edit_contributor_dropdown img"
+        )
+        .forEach(function (img) {
+            try {
+                img.src = img.src.replace(/\?t=\d+$/, "");
+                img.src = appendAvatarVersion(img.src);
+            } catch (_) {}
+        });
     // Trigger re-fetch if modals are open
     try {
-        if(document.getElementById('addProjectModal')?.classList.contains('show')) {
-            if(typeof window.__refreshAddProjectEmployees === 'function') window.__refreshAddProjectEmployees();
+        if (
+            document
+                .getElementById("addProjectModal")
+                ?.classList.contains("show")
+        ) {
+            if (typeof window.__refreshAddProjectEmployees === "function")
+                window.__refreshAddProjectEmployees();
         }
-        if(document.getElementById('editProjectModal')?.classList.contains('show')) {
-            if(typeof window.__refreshEditProjectEmployees === 'function') window.__refreshEditProjectEmployees();
+        if (
+            document
+                .getElementById("editProjectModal")
+                ?.classList.contains("show")
+        ) {
+            if (typeof window.__refreshEditProjectEmployees === "function")
+                window.__refreshEditProjectEmployees();
         }
-    } catch(_) {}
+    } catch (_) {}
 });
 
 document.addEventListener("DOMContentLoaded", function () {
     const departmentSelect = document.getElementById("department");
     const divisionSelect = document.getElementById("division");
     const partOfProjectSelect = document.getElementById("part_of_project");
-    
+
     // Helper: populate part_of_project selects (add + edit). If currentProjectId is provided
     // ensure an option for it exists even if the fetched list does not contain it.
-    function populatePartOfProjectSelects(currentProjectId = null, currentProjectTitle = '', selectedPartOfProjectId = '') {
-        fetch(appUrl + '/project/index?task_scope=all')
-            .then(function(response) {
-                if (!response.ok) throw new Error('Failed to load projects');
+    function populatePartOfProjectSelects(
+        currentProjectId = null,
+        currentProjectTitle = "",
+        selectedPartOfProjectId = ""
+    ) {
+        fetch(appUrl + "/project/index?task_scope=all")
+            .then(function (response) {
+                if (!response.ok) throw new Error("Failed to load projects");
                 return response.json();
             })
-            .then(function(payload) {
-                const arr = Array.isArray(payload) ? payload : (Array.isArray(payload.data) ? payload.data : []);
+            .then(function (payload) {
+                const arr = Array.isArray(payload)
+                    ? payload
+                    : Array.isArray(payload.data)
+                    ? payload.data
+                    : [];
                 let options = '<option value="">Select Project</option>';
                 let foundCurrent = false;
-                arr.forEach(function(p) {
+                arr.forEach(function (p) {
                     if (!p) return;
                     const id = p.id;
-                    const title = p.title || p.name || ('Project ' + id);
-                    if (String(id) === String(currentProjectId)) foundCurrent = true;
+                    const title = p.title || p.name || "Project " + id;
+                    if (String(id) === String(currentProjectId))
+                        foundCurrent = true;
                     options += `<option value="${id}">${title}</option>`;
                 });
 
                 if (currentProjectId && !foundCurrent) {
-                    const safeTitle = currentProjectTitle || ('Project ' + currentProjectId);
+                    const safeTitle =
+                        currentProjectTitle || "Project " + currentProjectId;
                     options += `<option value="${currentProjectId}">${safeTitle}</option>`;
                 }
 
-                try { if (partOfProjectSelect) partOfProjectSelect.innerHTML = options; } catch(_) {}
                 try {
-                    const editSel = document.getElementById('edit_part_of_project');
+                    if (partOfProjectSelect)
+                        partOfProjectSelect.innerHTML = options;
+                } catch (_) {}
+                try {
+                    const editSel = document.getElementById(
+                        "edit_part_of_project"
+                    );
                     if (editSel) editSel.innerHTML = options;
-                } catch(_) {}
+                } catch (_) {}
 
                 if (selectedPartOfProjectId) {
-                    try { $('#edit_part_of_project').val(selectedPartOfProjectId); } catch(_) {}
+                    try {
+                        $("#edit_part_of_project").val(selectedPartOfProjectId);
+                    } catch (_) {}
                 }
             })
-            .catch(function(err){
-                console.warn('populatePartOfProjectSelects failed', err);
+            .catch(function (err) {
+                console.warn("populatePartOfProjectSelects failed", err);
             });
     }
     const imageInput = document.getElementById("image");
@@ -125,7 +168,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 fileName.className = "file-name";
 
                 const fileSize = document.createElement("small");
-                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(
+                    2
+                )} MB)`;
                 fileSize.className = "text-muted ms-1";
 
                 const removeBtn = document.createElement("button");
@@ -167,15 +212,18 @@ document.addEventListener("DOMContentLoaded", function () {
     setupProjectReferenceFilesInput();
 
     // Delegated handler: add/remove reference URL rows (match Task behavior)
-    document.addEventListener('click', function (e) {
-        const addBtn = e.target.closest('.add-ref-url');
+    document.addEventListener("click", function (e) {
+        const addBtn = e.target.closest(".add-ref-url");
         if (addBtn) {
             e.preventDefault();
-            const container = addBtn.closest('#feedback_reference_urls_container, #project_reference_urls_container, #edit_project_reference_urls_container');
+            const container = addBtn.closest(
+                "#feedback_reference_urls_container, #project_reference_urls_container, #edit_project_reference_urls_container"
+            );
             if (!container) return;
-            const row = document.createElement('div');
-            row.className = 'd-flex gap-2 align-items-center';
-            row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+            const row = document.createElement("div");
+            row.className = "d-flex gap-2 align-items-center";
+            row.innerHTML =
+                '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                 ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
             container.appendChild(row);
             const input = row.querySelector('input[type="url"]');
@@ -183,10 +231,10 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const removeBtn = e.target.closest('.remove-ref-url');
+        const removeBtn = e.target.closest(".remove-ref-url");
         if (removeBtn) {
             e.preventDefault();
-            const row = removeBtn.closest('.d-flex');
+            const row = removeBtn.closest(".d-flex");
             if (row && row.parentNode) {
                 row.parentNode.removeChild(row);
             }
@@ -194,46 +242,68 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Global avatar update listener: refresh collaborator images (simple approach: re-trigger any lightweight rerender if project list cached globally)
-    window.addEventListener('profilePictureUpdated', function(){
+    window.addEventListener("profilePictureUpdated", function () {
         try {
             // If we have a global projects array and a render function, invoke it.
-            if (window.currentProjects && Array.isArray(window.currentProjects) && typeof window.renderProjectCards === 'function') {
+            if (
+                window.currentProjects &&
+                Array.isArray(window.currentProjects) &&
+                typeof window.renderProjectCards === "function"
+            ) {
                 window.renderProjectCards(window.currentProjects, true); // pass true to indicate avatar-only refresh if supported
             } else {
                 // Fallback: update any img with data-author-current attribute
-                document.querySelectorAll('img[data-author-current="1"]').forEach(function(img){
-                    // Append cache buster
-                    img.src = img.src.replace(/\?t=\d+$/,'') + '?t=' + Date.now();
-                });
+                document
+                    .querySelectorAll('img[data-author-current="1"]')
+                    .forEach(function (img) {
+                        // Append cache buster
+                        img.src =
+                            img.src.replace(/\?t=\d+$/, "") +
+                            "?t=" +
+                            Date.now();
+                    });
             }
-        } catch(e) { console.warn('Project avatar refresh failed', e); }
+        } catch (e) {
+            console.warn("Project avatar refresh failed", e);
+        }
     });
 
     // Helper to format role labels to capitalized form (Author, Co-Author, Contributor)
     function formatRoleText(role) {
-        if (!role) return '';
+        if (!role) return "";
         try {
-            const r = String(role).trim().toLowerCase().replace(/[-\s]+/g, '_');
-            if (r === 'author') return 'Author';
-            if (r === 'co_author') return 'Co-Author';
-            if (r === 'contributor') return 'Contributor';
+            const r = String(role)
+                .trim()
+                .toLowerCase()
+                .replace(/[-\s]+/g, "_");
+            if (r === "author") return "Author";
+            if (r === "co_author") return "Co-Author";
+            if (r === "contributor") return "Contributor";
             // Fallback: Title Case each token
             return String(role)
                 .split(/[\s_-]+/)
-                .map((w) => w ? (w.charAt(0).toUpperCase() + w.slice(1)) : '')
-                .join(' ');
-        } catch(_) { return String(role); }
+                .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+                .join(" ");
+        } catch (_) {
+            return String(role);
+        }
     }
 
     // Helper to resolve employee photo URL and return img HTML string
-    function resolvePhotoHtml(emp, size = 30, marginLeft = 0, role = '') {
+    function resolvePhotoHtml(emp, size = 30, marginLeft = 0, role = "") {
         // Prioritize universal profile picture fields
-        let userPhoto = emp && (emp.profile_picture_url || emp.profile_picture || emp.user_photo || emp.user_photo_url || emp.user_photo_path);
+        let userPhoto =
+            emp &&
+            (emp.profile_picture_url ||
+                emp.profile_picture ||
+                emp.user_photo ||
+                emp.user_photo_url ||
+                emp.user_photo_path);
         let photoUrl = "";
         if (userPhoto) {
             try {
                 const raw = String(userPhoto).trim();
-                const trimmed = raw.replace(/^\/+/, '');
+                const trimmed = raw.replace(/^\/+/, "");
 
                 // 1. Sudah full URL
                 if (/^https?:\/\//i.test(raw)) {
@@ -241,45 +311,46 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 // 2. Path yang sudah mengarah ke folder publik kita: file/, asset/, storage/
                 else if (/^(file\/|asset\/|storage\/)/.test(trimmed)) {
-                    photoUrl = appUrl + '/' + trimmed;
+                    photoUrl = appUrl + "/" + trimmed;
                 }
                 // 3. Absolute path diawali '/'
-                else if (raw.startsWith('/')) {
+                else if (raw.startsWith("/")) {
                     photoUrl = appUrl + raw;
                 }
                 // 4. Memiliki slash (subfolder lain) -> sambung langsung
-                else if (raw.indexOf('/') !== -1) {
-                    photoUrl = appUrl + '/' + trimmed;
+                else if (raw.indexOf("/") !== -1) {
+                    photoUrl = appUrl + "/" + trimmed;
                 }
                 // 5. Hanya filename -> coba di file/profile_picture/ sebelum fallback
                 else {
-                    photoUrl = appUrl + '/file/profile_picture/' + raw;
+                    photoUrl = appUrl + "/file/profile_picture/" + raw;
                 }
                 // Jika ternyata menghasilkan /storage/asset (kasus lama) koreksi ke tanpa storage
-                photoUrl = photoUrl.replace(/\/storage\/asset\//, '/asset/');
+                photoUrl = photoUrl.replace(/\/storage\/asset\//, "/asset/");
             } catch (e) {
-                photoUrl = appUrl + '/asset/img/avatar.png';
+                photoUrl = appUrl + "/asset/img/avatar.png";
             }
         } else {
-            photoUrl = appUrl + '/asset/img/avatar.png';
+            photoUrl = appUrl + "/asset/img/avatar.png";
         }
 
-    // Prefer API fields in this order: explicit name, employee_name (from assignments),
-    // username/full_name, and nested employee.name when payload uses nested structure.
-    const name = (function(){
-        if (!emp) return 'Unknown';
-        const direct = emp.name || emp.employee_name || emp.username || emp.full_name;
-        if (direct) return direct;
-        const nested = (emp.employee && (emp.employee.name || emp.employee.full_name));
-        return nested || 'Unknown';
-    })();
-    const roleLabel = role ? formatRoleText(role) : '';
-    const roleText = roleLabel ? ` (${roleLabel})` : '';
-    const titleText = `${name}${roleText}`;
+        // Prefer API fields in this order: explicit name, employee_name (from assignments),
+        // username/full_name, and nested employee.name when payload uses nested structure.
+        const name = (function () {
+            if (!emp) return "Unknown";
+            const direct =
+                emp.name || emp.employee_name || emp.username || emp.full_name;
+            if (direct) return direct;
+            const nested =
+                emp.employee && (emp.employee.name || emp.employee.full_name);
+            return nested || "Unknown";
+        })();
+        const roleLabel = role ? formatRoleText(role) : "";
+        const roleText = roleLabel ? ` (${roleLabel})` : "";
+        const titleText = `${name}${roleText}`;
 
-    return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:'+marginLeft+'px;' : ''}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
+        return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? "margin-left:" + marginLeft + "px;" : ""}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
     }
-
 
     // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.
     function renderCollaborators(project) {
@@ -289,24 +360,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Author (put first)
             if (project.author) {
-                coll.push({ type: 'author', emp: project.author });
+                coll.push({ type: "author", emp: project.author });
             }
 
             // Co-authors
             if (project.co_authors && Array.isArray(project.co_authors)) {
-                project.co_authors.forEach((c) => coll.push({ type: 'co_author', emp: c }));
+                project.co_authors.forEach((c) =>
+                    coll.push({ type: "co_author", emp: c })
+                );
             }
 
             // Contributors (support legacy key 'executors' by treating them as contributors for display)
             if (project.executors && Array.isArray(project.executors)) {
-                project.executors.forEach((c) => coll.push({ type: 'contributor', emp: c }));
-            } else if (project.contributors && Array.isArray(project.contributors)) {
-                project.contributors.forEach((c) => coll.push({ type: 'contributor', emp: c }));
+                project.executors.forEach((c) =>
+                    coll.push({ type: "contributor", emp: c })
+                );
+            } else if (
+                project.contributors &&
+                Array.isArray(project.contributors)
+            ) {
+                project.contributors.forEach((c) =>
+                    coll.push({ type: "contributor", emp: c })
+                );
             }
 
             if (coll.length === 0) {
                 // fallback: show default placeholder
-                return resolvePhotoHtml(null, 30, 0) + resolvePhotoHtml(null, 30, -8);
+                return (
+                    resolvePhotoHtml(null, 30, 0) +
+                    resolvePhotoHtml(null, 30, -8)
+                );
             }
 
             let html = "";
@@ -318,20 +401,32 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const overflow = coll.length - maxVisible;
             if (overflow > 0) {
-                const hidden = coll.slice(maxVisible).map(h => {
-                    const n = (function(emp){
-                        if (!emp) return 'Unknown';
-                        return emp.name || emp.employee_name || emp.username || emp.full_name || (emp.employee && (emp.employee.name || emp.employee.full_name)) || 'Unknown';
-                    })(h.emp);
-                    return `${n} (${formatRoleText(h.type)})`;
-                }).join(', ');
+                const hidden = coll
+                    .slice(maxVisible)
+                    .map((h) => {
+                        const n = (function (emp) {
+                            if (!emp) return "Unknown";
+                            return (
+                                emp.name ||
+                                emp.employee_name ||
+                                emp.username ||
+                                emp.full_name ||
+                                (emp.employee &&
+                                    (emp.employee.name ||
+                                        emp.employee.full_name)) ||
+                                "Unknown"
+                            );
+                        })(h.emp);
+                        return `${n} (${formatRoleText(h.type)})`;
+                    })
+                    .join(", ");
 
                 html += `<div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold" title="${hidden}" data-bs-toggle="tooltip" data-bs-placement="bottom" style="width:30px;height:30px;font-size:12px;margin-left:-8px;">+${overflow}</div>`;
             }
 
             return html;
         } catch (e) {
-            console.error('renderCollaborators error', e);
+            console.error("renderCollaborators error", e);
             return resolvePhotoHtml(null, 30, 0);
         }
     }
@@ -340,24 +435,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Unified initials logic (match task.js style) + placeholder filtering
     function getInitials(title) {
-        const text = (title || '').trim();
-        if (!text) return 'NA';
+        const text = (title || "").trim();
+        if (!text) return "NA";
         const placeholder = /^(no project|no|none|null|n\/a|na)$/i;
-        if (placeholder.test(text)) return 'NA';
+        if (placeholder.test(text)) return "NA";
         const parts = text.split(/\s+/).filter(Boolean);
-        if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
-        return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
 
     // Deterministic background color based on title (avoid random color changing each reload)
     function getInitialsColor(title) {
         const colors = [
-            '#6A5AE0', '#FF8A3C', '#00A881', '#D4526E', '#3E8EDE',
-            '#546E7A', '#8E44AD', '#2E7D32', '#AD1457', '#EF6C00'
+            "#6A5AE0",
+            "#FF8A3C",
+            "#00A881",
+            "#D4526E",
+            "#3E8EDE",
+            "#546E7A",
+            "#8E44AD",
+            "#2E7D32",
+            "#AD1457",
+            "#EF6C00",
         ];
-        const key = (title || 'NA');
+        const key = title || "NA";
         let hash = 0;
-        for (let i=0;i<key.length;i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+        for (let i = 0; i < key.length; i++)
+            hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
         return colors[hash % colors.length];
     }
 
@@ -367,20 +471,23 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/project/get-all-projects",
             type: "GET",
             dataType: "json",
-            data: { filter: filter, task_scope: 'me', page: page },
-            beforeSend:function(){
-                $('.loader').fadeIn('fast');
+            data: { filter: filter, task_scope: "me", page: page },
+            beforeSend: function () {
+                $(".loader").fadeIn("fast");
             },
-            error:function(res){
-                $('.loader').fadeOut('fast');
+            error: function (res) {
+                $(".loader").fadeOut("fast");
             },
             success: function (data) {
-
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
 
                 // support API returning either array or { data: [...] }
-                const projects = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+                const projects = Array.isArray(data)
+                    ? data
+                    : Array.isArray(data.data)
+                    ? data.data
+                    : [];
 
                 // compute chart counts even if zero or empty
 
@@ -395,7 +502,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             : null;
 
                         rowHtml += `
-                            <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${project.id}">
+                            <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${
+                                project.id
+                            }">
                                 <div class="project-card p-4 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
 
                                     <!-- Header -->
@@ -404,14 +513,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ${
                                                 imageUrl
                                                     ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
-                                                    : (function(){
-                                                        const init = getInitials(project.title);
-                                                        const color = getInitialsColor(project.title);
-                                                        return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\"
+                                                    : (function () {
+                                                          const init =
+                                                              getInitials(
+                                                                  project.title
+                                                              );
+                                                          const color =
+                                                              getInitialsColor(
+                                                                  project.title
+                                                              );
+                                                          return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\"
                                                             style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`;
-                                                    })()
+                                                      })()
                                             }
-                                            <h6 class="mb-0" style="font-size:14px; font-weight:600;">${project.title}</h6>
+                                            <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
+                                                project.title
+                                            }</h6>
                                         </div>
                                         <div class="dropdown-icon-container">
                                             <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon dropdown-icon-custom"
@@ -429,11 +546,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                     </div>
 
                                     <!-- Description (render only if non-empty) -->
-                                    ${ (function(){
-                                            const d = (project.description||'').trim();
-                                            if(!d) return '';
-                                            return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
-                                        })() }
+                                    ${(function () {
+                                        const d = (
+                                            project.description || ""
+                                        ).trim();
+                                        if (!d) return "";
+                                        return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
+                                    })()}
 
                                     <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
 
@@ -443,21 +562,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ${renderCollaborators(project)}
                                         </div>
                                         <div class="d-flex align-items-center">
-                                            <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${project.id}" style="cursor:pointer; max-width: 160px;">
+                                            <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${
+                                                project.id
+                                            }" style="cursor:pointer; max-width: 160px;">
                                                 <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                                 <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                                             </div>
                               <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" 
         title="Comment" data-project-id="${project.id}">
     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-    <span class="project-feedback-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
-    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" 
-          data-project-id="${project.id}"></span>
+    <span class="project-feedback-count ms-1" data-project-id="${
+        project.id
+    }" style="font-size:12px; color:#454545;"></span>
+    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" 
+          data-project-id="${
+              project.id
+          }" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
 </button>
 
-                                            <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${project.id}">
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${
+                                                project.id
+                                            }">
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
-                                                <span class="project-file-count ms-1" data-project-id="${project.id}" style="font-size:12px; color:#454545;"></span>
+                                                <span class="project-file-count ms-1" data-project-id="${
+                                                    project.id
+                                                }" style="font-size:12px; color:#454545;"></span>
                                             </button>
                                         </div>
                                     </div>
@@ -472,16 +601,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     // Initialize Bootstrap tooltips for newly injected collaborator images and +N badges
                     try {
-                        const tooltipTriggerList = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+                        const tooltipTriggerList = container.querySelectorAll(
+                            '[data-bs-toggle="tooltip"]'
+                        );
                         tooltipTriggerList.forEach(function (el) {
                             // dispose existing (safe) then init bottom placement
                             try {
                                 if (el._tooltip) {
-                                    el._tooltip.dispose && el._tooltip.dispose();
+                                    el._tooltip.dispose &&
+                                        el._tooltip.dispose();
                                 }
                             } catch (e) {}
                             try {
-                                const tip = new bootstrap.Tooltip(el, { placement: 'bottom' });
+                                const tip = new bootstrap.Tooltip(el, {
+                                    placement: "bottom",
+                                });
                                 // store ref to allow future disposal
                                 el._tooltip = tip;
                             } catch (e) {
@@ -519,36 +653,69 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Bind latest-feedback-snippet clicks to open modal and mark read
                     try {
                         container
-                            .querySelectorAll('.latest-feedback-snippet[data-project-id]')
+                            .querySelectorAll(
+                                ".latest-feedback-snippet[data-project-id]"
+                            )
                             .forEach((el) => {
-                                el.addEventListener('click', function (ev) {
+                                el.addEventListener("click", function (ev) {
                                     ev.preventDefault();
                                     ev.stopPropagation();
-                                    const pid = this.getAttribute('data-project-id');
+                                    const pid =
+                                        this.getAttribute("data-project-id");
                                     // Hide indicators immediately and mark as read
                                     hideProjectUnreadBadge(pid);
                                     hideProjectLatestFeedbackSnippet(pid);
                                     // Set target to latest payload for deep-link
                                     try {
-                                        window.__projectLatestTarget = window.__projectLatestTarget || {};
-                                        const latest = (window.__projectLatest && window.__projectLatest[String(pid)]) || null;
-                                        if (latest) window.__projectLatestTarget[String(pid)] = latest;
+                                        window.__projectLatestTarget =
+                                            window.__projectLatestTarget || {};
+                                        const latest =
+                                            (window.__projectLatest &&
+                                                window.__projectLatest[
+                                                    String(pid)
+                                                ]) ||
+                                            null;
+                                        if (latest)
+                                            window.__projectLatestTarget[
+                                                String(pid)
+                                            ] = latest;
                                     } catch (_) {}
                                     markProjectFeedbacksRead(pid).always(() => {
-                                        const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                                        const projectFeedbackModalEl =
+                                            document.getElementById(
+                                                "projectFeedbackModal"
+                                            );
                                         if (!projectFeedbackModalEl) return;
-                                        projectFeedbackModalEl.setAttribute('data-project-id', pid);
-                                        try { loadFeedbackData(pid); } catch (_) {}
-                                        const m = new bootstrap.Modal(projectFeedbackModalEl);
+                                        projectFeedbackModalEl.setAttribute(
+                                            "data-project-id",
+                                            pid
+                                        );
+                                        try {
+                                            loadFeedbackData(pid);
+                                        } catch (_) {}
+                                        const m = new bootstrap.Modal(
+                                            projectFeedbackModalEl
+                                        );
                                         m.show();
                                     });
                                 });
                             });
-                    } catch (_) { /* noop */ }
+                    } catch (_) {
+                        /* noop */
+                    }
 
                     // After rendering, refresh unread badges and latest feedback snippets
-                    try { refreshAllProjectUnreadBadges(); } catch (_) {}
-                    try { refreshAllProjectLatestFeedbackSnippets(); } catch (_) {}
+                    try {
+                        refreshAllProjectUnreadBadges();
+                    } catch (_) {}
+                    // Only refresh feedback snippets if search is empty
+                    try {
+                        const searchInput =
+                            document.getElementById("search_filter");
+                        if (!searchInput || searchInput.value.trim() === "") {
+                            refreshAllProjectLatestFeedbackSnippets();
+                        }
+                    } catch (_) {}
 
                     // Event listener for "Edit" dropdown item click (bind once to avoid duplicates)
                     if (!window.__projectEditListenerBound) {
@@ -558,496 +725,829 @@ document.addEventListener("DOMContentLoaded", function () {
                                 e.target &&
                                 e.target.classList.contains("dropdown-item")
                             ) {
-                            const text = e.target.textContent.trim();
-                            if (text === "Edit") {
-                                e.preventDefault();
-                                e.stopPropagation();
+                                const text = e.target.textContent.trim();
+                                if (text === "Edit") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
 
-                                // Find the project card container from the clicked dropdown item
-                                const card = e.target.closest('.col-md-4');
-                                if (!card) {
-                                    showFloatingAlert('Project card not found.', 'warning', 3000);
-                                    return;
-                                }
-
-                                const projectId = card.getAttribute('data-project-id');
-                                if (!projectId) {
-                                    showFloatingAlert("Project ID not found.", 'warning', 3000);
-                                    return;
-                                }
-
-                                // Fetch project data for editing
-                                $.ajax({
-                                    url:
-                                        appUrl +
-                                        "/project/" +
-                                        projectId +
-                                        "/edit",
-                                    type: "GET",
-                                    dataType: "json",
-                                    success: function (data) {
-                                        // Populate edit modal form fields
-                                        $("#edit_project_id").val(data.id);
-                                        $("#edit_title").val(data.title);
-                                        $("#edit_description").val(
-                                            data.description
+                                    // Find the project card container from the clicked dropdown item
+                                    const card = e.target.closest(".col-md-4");
+                                    if (!card) {
+                                        showFloatingAlert(
+                                            "Project card not found.",
+                                            "warning",
+                                            3000
                                         );
-                                        // Prefill multiple reference URLs in Edit Project (match Task behavior)
-                                        (function(){
-                                            try {
-                                                const container = document.getElementById('edit_project_reference_urls_container');
-                                                if (!container) return;
-                                                container.innerHTML = '';
-                                                // Normalize URLs from API: reference_urls (array or JSON) or legacy reference_url (string)
-                                                let urls = [];
-                                                if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
-                                                else if (typeof data.reference_urls === 'string') {
-                                                    try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
-                                                }
-                                                if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+                                        return;
+                                    }
 
-                                                function makeRow(value, withAdd){
-                                                    const row = document.createElement('div');
-                                                    row.className = 'd-flex gap-2 align-items-center';
-                                                    row.innerHTML = (
-                                                        '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
-                                                        (withAdd
-                                                            ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>'
-                                                            : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>')
-                                                    );
-                                                    container.appendChild(row);
-                                                    const inp = row.querySelector('input[type="url"]');
-                                                    if (inp && value) inp.value = value;
-                                                }
-
-                                                if (urls && urls.length) {
-                                                    urls.forEach((u) => makeRow(u, false));
-                                                    makeRow('', true);
-                                                } else {
-                                                    makeRow('', true);
-                                                }
-                                            } catch(_) { /* noop */ }
-                                        })();
-                                        $("#edit_start_date").val(
-                                            data.start_date
+                                    const projectId =
+                                        card.getAttribute("data-project-id");
+                                    if (!projectId) {
+                                        showFloatingAlert(
+                                            "Project ID not found.",
+                                            "warning",
+                                            3000
                                         );
-                                        $("#edit_due_date").val(data.due_date);
-                                        // Populate part_of_project selects and ensure the current project appears
-                                        try {
-                                            const currentProjectId = data.id || $('#edit_project_id').val();
-                                            const currentProjectTitle = data.title || '';
-                                            populatePartOfProjectSelects(currentProjectId, currentProjectTitle, data.part_of_project);
-                                        } catch(_) {
-                                            try { $("#edit_part_of_project").val(data.part_of_project); } catch(_) {}
-                                        }
+                                        return;
+                                    }
 
-                                        // Load departments and set selected department
-                                        loadDepartments(function () {
-                                            $("#edit_department")
-                                                .val(data.department_id)
-                                                .trigger("change");
-
-                                            // After department is set, load divisions and set selected division
-                                            loadDivisions(
-                                                data.department_id,
-                                                function () {
-                                                    $("#edit_division").val(
-                                                        data.division_id
-                                                    );
-                                                    // Force refresh select display if needed
-                                                    $("#edit_division").trigger(
-                                                        "change"
-                                                    );
-                                                },
-                                                document.getElementById(
-                                                    "edit_division"
-                                                )
+                                    // Fetch project data for editing
+                                    $.ajax({
+                                        url:
+                                            appUrl +
+                                            "/project/" +
+                                            projectId +
+                                            "/edit",
+                                        type: "GET",
+                                        dataType: "json",
+                                        success: function (data) {
+                                            // Populate edit modal form fields
+                                            $("#edit_project_id").val(data.id);
+                                            $("#edit_title").val(data.title);
+                                            $("#edit_description").val(
+                                                data.description
                                             );
-                                            // Force refresh select display if needed
-                                            $("#edit_department").trigger(
-                                                "change"
-                                            );
-                                        }, document.getElementById(
-                                            "edit_department"
-                                        ));
-
-                                        // Reset image preview
-                                        if (data.image) {
-                                            $("#editImageLabel").css(
-                                                "background-image",
-                                                "url(" +
-                                                    appUrl +
-                                                    "/file/project/" +
-                                                    data.image +
-                                                    ")"
-                                            );
-                                            $("#editImageLabel").addClass(
-                                                "has-image"
-                                            );
-                                            $("#editImageLabel").css(
-                                                "background-size",
-                                                "cover"
-                                            );
-                                            $("#editImageLabel").css(
-                                                "opacity",
-                                                "1"
-                                            );
-                                            $("#editImageClearBtn").removeClass(
-                                                "d-none"
-                                            );
-                                        } else {
-                                            $("#editImageLabel").css(
-                                                "background-image",
-                                                "url('" +
-                                                    appUrl +
-                                                    "/asset/img/background/add-image.png')"
-                                            );
-                                            $("#editImageLabel").removeClass(
-                                                "has-image"
-                                            );
-                                            $("#editImageLabel").css(
-                                                "opacity",
-                                                "0.5"
-                                            );
-                                            $("#editImageClearBtn").addClass(
-                                                "d-none"
-                                            );
-                                        }
-
-                                        // Clear file input for reference file
-                                        $("#edit_reference_file").val("");
-
-                                        // --- Reference files preview / management for edit modal (match Task UI) ---
-                                        // Normalize existing files array from API (supports reference_files or reference_file)
-                                        var existingFiles = Array.isArray(data.reference_files)
-                                            ? data.reference_files.slice()
-                                            : (Array.isArray(data.reference_file) ? data.reference_file.slice() : (data.reference_file ? [data.reference_file] : []));
-
-                                        // Hidden input holds JSON of files to keep
-                                        var existingInput = document.getElementById('existing_reference_files_input');
-                                        if (!existingInput) {
-                                            existingInput = document.createElement('input');
-                                            existingInput.type = 'hidden';
-                                            existingInput.id = 'existing_reference_files_input';
-                                            existingInput.name = 'existing_reference_files';
-                                            document.getElementById('editProjectForm').appendChild(existingInput);
-                                        }
-                                        existingInput.value = JSON.stringify(existingFiles);
-
-                                        // Containers
-                                        var previewEdit = document.getElementById('edit_reference_files_preview');
-                                        var existingContainer = document.getElementById('existing_reference_files');
-                                        if (previewEdit) previewEdit.innerHTML = '';
-                                        if (existingContainer) existingContainer.innerHTML = '';
-
-                                        // Local state for newly selected files
-                                        window.editProjectSelectedFiles = [];
-
-                                        // Render existing files list (Task-style)
-                                        function renderExistingProjectFiles() {
-                                            if (!existingContainer) return;
-                                            existingContainer.innerHTML = '';
-                                            if (existingFiles.length > 0) {
-                                                var title = document.createElement('div');
-                                                title.className = 'fw-bold mb-2';
-                                                title.textContent = 'Current Files:';
-                                                existingContainer.appendChild(title);
-
-                                                var fileList = document.createElement('div');
-                                                fileList.className = 'existing-files-list w-100';
-
-                                                existingFiles.forEach(function (fileName, idx) {
-                                                    var fileItem = document.createElement('div');
-                                                    fileItem.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
-
-                                                    var fileInfo = document.createElement('div');
-                                                    fileInfo.className = 'd-flex align-items-center flex-grow-1';
-
-                                                    var fileIcon = document.createElement('span');
-                                                    fileIcon.className = 'material-symbols-outlined me-2';
-                                                    fileIcon.textContent = 'description';
-
-                                                    var fileLink = document.createElement('a');
-                                                    fileLink.href = appUrl + '/file/project/' + fileName;
-                                                    fileLink.textContent = fileName;
-                                                    fileLink.className = 'text-decoration-none';
-                                                    fileLink.target = '_blank';
-
-                                                    var removeBtn = document.createElement('button');
-                                                    removeBtn.type = 'button';
-                                                    removeBtn.className = 'btn btn-sm btn-outline-danger';
-                                                    removeBtn.innerHTML = '&times;';
-                                                    removeBtn.onclick = function () {
-                                                        // remove from list and re-render
-                                                        existingFiles = existingFiles.filter(function (f) { return f !== fileName; });
-                                                        existingInput.value = JSON.stringify(existingFiles);
-                                                        renderExistingProjectFiles();
-
-                                                        // update badge count on project card immediately (decrement)
+                                            // Prefill multiple reference URLs in Edit Project (match Task behavior)
+                                            (function () {
+                                                try {
+                                                    const container =
+                                                        document.getElementById(
+                                                            "edit_project_reference_urls_container"
+                                                        );
+                                                    if (!container) return;
+                                                    container.innerHTML = "";
+                                                    // Normalize URLs from API: reference_urls (array or JSON) or legacy reference_url (string)
+                                                    let urls = [];
+                                                    if (
+                                                        Array.isArray(
+                                                            data.reference_urls
+                                                        )
+                                                    )
+                                                        urls =
+                                                            data.reference_urls;
+                                                    else if (
+                                                        typeof data.reference_urls ===
+                                                        "string"
+                                                    ) {
                                                         try {
-                                                            var pid = data.id;
-                                                            var card = document.querySelector('[data-project-id="' + pid + '"]');
-                                                            if (card) {
-                                                                var fileBadge = card.querySelector('.project-file-count');
-                                                                if (fileBadge) {
-                                                                    var cur = parseInt(fileBadge.textContent || '0', 10) || 0;
-                                                                    fileBadge.textContent = Math.max(0, cur - 1);
-                                                                }
-                                                            }
-                                                        } catch (e) {}
-                                                    };
+                                                            const arr =
+                                                                JSON.parse(
+                                                                    data.reference_urls
+                                                                );
+                                                            if (
+                                                                Array.isArray(
+                                                                    arr
+                                                                )
+                                                            )
+                                                                urls = arr;
+                                                        } catch (_) {}
+                                                    }
+                                                    if (
+                                                        (!urls ||
+                                                            urls.length ===
+                                                                0) &&
+                                                        data.reference_url
+                                                    )
+                                                        urls = [
+                                                            data.reference_url,
+                                                        ];
 
-                                                    fileInfo.appendChild(fileIcon);
-                                                    fileInfo.appendChild(fileLink);
-                                                    fileItem.appendChild(fileInfo);
-                                                    fileItem.appendChild(removeBtn);
-                                                    fileList.appendChild(fileItem);
-                                                });
+                                                    function makeRow(
+                                                        value,
+                                                        withAdd
+                                                    ) {
+                                                        const row =
+                                                            document.createElement(
+                                                                "div"
+                                                            );
+                                                        row.className =
+                                                            "d-flex gap-2 align-items-center";
+                                                        row.innerHTML =
+                                                            '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                                                            (withAdd
+                                                                ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>'
+                                                                : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+                                                        container.appendChild(
+                                                            row
+                                                        );
+                                                        const inp =
+                                                            row.querySelector(
+                                                                'input[type="url"]'
+                                                            );
+                                                        if (inp && value)
+                                                            inp.value = value;
+                                                    }
 
-                                                existingContainer.appendChild(fileList);
-                                            }
-                                        }
-
-                                        // Render newly selected files (Task-style)
-                                        function renderEditProjectSelectedFiles() {
-                                            if (!previewEdit) return;
-                                            previewEdit.innerHTML = '';
-
-                                            if (window.editProjectSelectedFiles.length > 0) {
-                                                var fileList = document.createElement('div');
-                                                fileList.className = 'selected-files-list mt-2';
-
-                                                window.editProjectSelectedFiles.forEach(function (file, index) {
-                                                    var fileItem = document.createElement('div');
-                                                    fileItem.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
-
-                                                    var fileInfo = document.createElement('div');
-                                                    fileInfo.className = 'd-flex align-items-center flex-grow-1';
-
-                                                    var fileIcon = document.createElement('span');
-                                                    fileIcon.className = 'material-symbols-outlined me-2';
-                                                    fileIcon.textContent = 'description';
-
-                                                    var fileName = document.createElement('span');
-                                                    fileName.textContent = file.name;
-                                                    fileName.className = 'file-name';
-
-                                                    var fileSize = document.createElement('small');
-                                                    fileSize.textContent = ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
-                                                    fileSize.className = 'text-muted ms-1';
-
-                                                    var removeBtn = document.createElement('button');
-                                                    removeBtn.type = 'button';
-                                                    removeBtn.className = 'btn btn-sm btn-outline-danger';
-                                                    removeBtn.innerHTML = '&times;';
-                                                    removeBtn.onclick = function () {
-                                                        window.editProjectSelectedFiles.splice(index, 1);
-                                                        renderEditProjectSelectedFiles();
-                                                    };
-
-                                                    fileInfo.appendChild(fileIcon);
-                                                    fileInfo.appendChild(fileName);
-                                                    fileInfo.appendChild(fileSize);
-                                                    fileItem.appendChild(fileInfo);
-                                                    fileItem.appendChild(removeBtn);
-                                                    fileList.appendChild(fileItem);
-                                                });
-
-                                                previewEdit.appendChild(fileList);
-                                            }
-                                        }
-
-                                        // Bind change handler for selecting new files (Task-style behavior)
-                                        $("#edit_reference_file").off('change').on('change', function () {
-                                            var files = Array.from(this.files || []);
-                                            if (files.length > 0) {
-                                                window.editProjectSelectedFiles = window.editProjectSelectedFiles.concat(files);
-                                                renderEditProjectSelectedFiles();
-                                                this.value = '';
-                                            }
-                                        });
-
-                                        // Initial renders
-                                        renderExistingProjectFiles();
-                                        renderEditProjectSelectedFiles();
-
-                                        // Populate co-author and contributor inputs
-                                        // Clear previous selections
-                                        window.clearSelectedCoAuthorsEdit &&
-                                            window.clearSelectedCoAuthorsEdit();
-                                        window.clearSelectedContributorsEdit &&
-                                            window.clearSelectedContributorsEdit();
-
-                                        // Set co-authors
-                                        if (data.co_authors) {
-                                            var coAuthors = data.co_authors.map(
-                                                function (a) {
-                                                    return {
-                                                        id: a.id,
-                                                        name: a.name,
-                                                        user_photo:
-                                                            a.user_photo ||
-                                                            null,
-                                                    };
+                                                    if (urls && urls.length) {
+                                                        urls.forEach((u) =>
+                                                            makeRow(u, false)
+                                                        );
+                                                        makeRow("", true);
+                                                    } else {
+                                                        makeRow("", true);
+                                                    }
+                                                } catch (_) {
+                                                    /* noop */
                                                 }
+                                            })();
+                                            $("#edit_start_date").val(
+                                                data.start_date
                                             );
-                                            window.setSelectedCoAuthorsEdit &&
-                                                window.setSelectedCoAuthorsEdit(
-                                                    coAuthors
+                                            $("#edit_due_date").val(
+                                                data.due_date
+                                            );
+                                            // Populate part_of_project selects and ensure the current project appears
+                                            try {
+                                                const currentProjectId =
+                                                    data.id ||
+                                                    $("#edit_project_id").val();
+                                                const currentProjectTitle =
+                                                    data.title || "";
+                                                populatePartOfProjectSelects(
+                                                    currentProjectId,
+                                                    currentProjectTitle,
+                                                    data.part_of_project
                                                 );
-                                        }
+                                            } catch (_) {
+                                                try {
+                                                    $(
+                                                        "#edit_part_of_project"
+                                                    ).val(data.part_of_project);
+                                                } catch (_) {}
+                                            }
 
-                                        // Set contributors
-                                        if (data.contributors) {
-                                            var contributors =
-                                                data.contributors.map(function (
-                                                    a
+                                            // Load departments and set selected department
+                                            loadDepartments(function () {
+                                                $("#edit_department")
+                                                    .val(data.department_id)
+                                                    .trigger("change");
+
+                                                // After department is set, load divisions and set selected division
+                                                loadDivisions(
+                                                    data.department_id,
+                                                    function () {
+                                                        $("#edit_division").val(
+                                                            data.division_id
+                                                        );
+                                                        // Force refresh select display if needed
+                                                        $(
+                                                            "#edit_division"
+                                                        ).trigger("change");
+                                                    },
+                                                    document.getElementById(
+                                                        "edit_division"
+                                                    )
+                                                );
+                                                // Force refresh select display if needed
+                                                $("#edit_department").trigger(
+                                                    "change"
+                                                );
+                                            }, document.getElementById(
+                                                "edit_department"
+                                            ));
+
+                                            // Reset image preview
+                                            if (data.image) {
+                                                $("#editImageLabel").css(
+                                                    "background-image",
+                                                    "url(" +
+                                                        appUrl +
+                                                        "/file/project/" +
+                                                        data.image +
+                                                        ")"
+                                                );
+                                                $("#editImageLabel").addClass(
+                                                    "has-image"
+                                                );
+                                                $("#editImageLabel").css(
+                                                    "background-size",
+                                                    "cover"
+                                                );
+                                                $("#editImageLabel").css(
+                                                    "opacity",
+                                                    "1"
+                                                );
+                                                $(
+                                                    "#editImageClearBtn"
+                                                ).removeClass("d-none");
+                                            } else {
+                                                $("#editImageLabel").css(
+                                                    "background-image",
+                                                    "url('" +
+                                                        appUrl +
+                                                        "/asset/img/background/add-image.png')"
+                                                );
+                                                $(
+                                                    "#editImageLabel"
+                                                ).removeClass("has-image");
+                                                $("#editImageLabel").css(
+                                                    "opacity",
+                                                    "0.5"
+                                                );
+                                                $(
+                                                    "#editImageClearBtn"
+                                                ).addClass("d-none");
+                                            }
+
+                                            // Clear file input for reference file
+                                            $("#edit_reference_file").val("");
+
+                                            // --- Reference files preview / management for edit modal (match Task UI) ---
+                                            // Normalize existing files array from API (supports reference_files or reference_file)
+                                            var existingFiles = Array.isArray(
+                                                data.reference_files
+                                            )
+                                                ? data.reference_files.slice()
+                                                : Array.isArray(
+                                                      data.reference_file
+                                                  )
+                                                ? data.reference_file.slice()
+                                                : data.reference_file
+                                                ? [data.reference_file]
+                                                : [];
+
+                                            // Hidden input holds JSON of files to keep
+                                            var existingInput =
+                                                document.getElementById(
+                                                    "existing_reference_files_input"
+                                                );
+                                            if (!existingInput) {
+                                                existingInput =
+                                                    document.createElement(
+                                                        "input"
+                                                    );
+                                                existingInput.type = "hidden";
+                                                existingInput.id =
+                                                    "existing_reference_files_input";
+                                                existingInput.name =
+                                                    "existing_reference_files";
+                                                document
+                                                    .getElementById(
+                                                        "editProjectForm"
+                                                    )
+                                                    .appendChild(existingInput);
+                                            }
+                                            existingInput.value =
+                                                JSON.stringify(existingFiles);
+
+                                            // Containers
+                                            var previewEdit =
+                                                document.getElementById(
+                                                    "edit_reference_files_preview"
+                                                );
+                                            var existingContainer =
+                                                document.getElementById(
+                                                    "existing_reference_files"
+                                                );
+                                            if (previewEdit)
+                                                previewEdit.innerHTML = "";
+                                            if (existingContainer)
+                                                existingContainer.innerHTML =
+                                                    "";
+
+                                            // Local state for newly selected files
+                                            window.editProjectSelectedFiles =
+                                                [];
+
+                                            // Render existing files list (Task-style)
+                                            function renderExistingProjectFiles() {
+                                                if (!existingContainer) return;
+                                                existingContainer.innerHTML =
+                                                    "";
+                                                if (existingFiles.length > 0) {
+                                                    var title =
+                                                        document.createElement(
+                                                            "div"
+                                                        );
+                                                    title.className =
+                                                        "fw-bold mb-2";
+                                                    title.textContent =
+                                                        "Current Files:";
+                                                    existingContainer.appendChild(
+                                                        title
+                                                    );
+
+                                                    var fileList =
+                                                        document.createElement(
+                                                            "div"
+                                                        );
+                                                    fileList.className =
+                                                        "existing-files-list w-100";
+
+                                                    existingFiles.forEach(
+                                                        function (
+                                                            fileName,
+                                                            idx
+                                                        ) {
+                                                            var fileItem =
+                                                                document.createElement(
+                                                                    "div"
+                                                                );
+                                                            fileItem.className =
+                                                                "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+
+                                                            var fileInfo =
+                                                                document.createElement(
+                                                                    "div"
+                                                                );
+                                                            fileInfo.className =
+                                                                "d-flex align-items-center flex-grow-1";
+
+                                                            var fileIcon =
+                                                                document.createElement(
+                                                                    "span"
+                                                                );
+                                                            fileIcon.className =
+                                                                "material-symbols-outlined me-2";
+                                                            fileIcon.textContent =
+                                                                "description";
+
+                                                            var fileLink =
+                                                                document.createElement(
+                                                                    "a"
+                                                                );
+                                                            fileLink.href =
+                                                                appUrl +
+                                                                "/file/project/" +
+                                                                fileName;
+                                                            fileLink.textContent =
+                                                                fileName;
+                                                            fileLink.className =
+                                                                "text-decoration-none";
+                                                            fileLink.target =
+                                                                "_blank";
+
+                                                            var removeBtn =
+                                                                document.createElement(
+                                                                    "button"
+                                                                );
+                                                            removeBtn.type =
+                                                                "button";
+                                                            removeBtn.className =
+                                                                "btn btn-sm btn-outline-danger";
+                                                            removeBtn.innerHTML =
+                                                                "&times;";
+                                                            removeBtn.onclick =
+                                                                function () {
+                                                                    // remove from list and re-render
+                                                                    existingFiles =
+                                                                        existingFiles.filter(
+                                                                            function (
+                                                                                f
+                                                                            ) {
+                                                                                return (
+                                                                                    f !==
+                                                                                    fileName
+                                                                                );
+                                                                            }
+                                                                        );
+                                                                    existingInput.value =
+                                                                        JSON.stringify(
+                                                                            existingFiles
+                                                                        );
+                                                                    renderExistingProjectFiles();
+
+                                                                    // update badge count on project card immediately (decrement)
+                                                                    try {
+                                                                        var pid =
+                                                                            data.id;
+                                                                        var card =
+                                                                            document.querySelector(
+                                                                                '[data-project-id="' +
+                                                                                    pid +
+                                                                                    '"]'
+                                                                            );
+                                                                        if (
+                                                                            card
+                                                                        ) {
+                                                                            var fileBadge =
+                                                                                card.querySelector(
+                                                                                    ".project-file-count"
+                                                                                );
+                                                                            if (
+                                                                                fileBadge
+                                                                            ) {
+                                                                                var cur =
+                                                                                    parseInt(
+                                                                                        fileBadge.textContent ||
+                                                                                            "0",
+                                                                                        10
+                                                                                    ) ||
+                                                                                    0;
+                                                                                fileBadge.textContent =
+                                                                                    Math.max(
+                                                                                        0,
+                                                                                        cur -
+                                                                                            1
+                                                                                    );
+                                                                            }
+                                                                        }
+                                                                    } catch (e) {}
+                                                                };
+
+                                                            fileInfo.appendChild(
+                                                                fileIcon
+                                                            );
+                                                            fileInfo.appendChild(
+                                                                fileLink
+                                                            );
+                                                            fileItem.appendChild(
+                                                                fileInfo
+                                                            );
+                                                            fileItem.appendChild(
+                                                                removeBtn
+                                                            );
+                                                            fileList.appendChild(
+                                                                fileItem
+                                                            );
+                                                        }
+                                                    );
+
+                                                    existingContainer.appendChild(
+                                                        fileList
+                                                    );
+                                                }
+                                            }
+
+                                            // Render newly selected files (Task-style)
+                                            function renderEditProjectSelectedFiles() {
+                                                if (!previewEdit) return;
+                                                previewEdit.innerHTML = "";
+
+                                                if (
+                                                    window
+                                                        .editProjectSelectedFiles
+                                                        .length > 0
                                                 ) {
-                                                    return {
-                                                        id: a.id,
-                                                        name: a.name,
-                                                        user_photo:
-                                                            a.user_photo ||
-                                                            null,
-                                                    };
-                                                });
-                                            window.setSelectedContributorsEdit &&
-                                                window.setSelectedContributorsEdit(
-                                                    contributors
-                                                );
-                                        }
+                                                    var fileList =
+                                                        document.createElement(
+                                                            "div"
+                                                        );
+                                                    fileList.className =
+                                                        "selected-files-list mt-2";
 
-                                        // Show edit modal after data is set
-                                        const editProjectModalEl =
-                                            document.getElementById(
-                                                "editProjectModal"
-                                            );
-                                        if (!editProjectModalEl) {
-                                            console.error(
-                                                "Edit Project Modal element not found"
-                                            );
-                                            showFloatingAlert(
-                                                "Edit Project Modal element not found", 'warning', 3500
-                                            );
-                                            return;
-                                        }
-                                        const editProjectModal = (
-                                            (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
-                                                ? bootstrap.Modal.getOrCreateInstance(editProjectModalEl)
-                                                : (bootstrap.Modal.getInstance(editProjectModalEl) || new bootstrap.Modal(editProjectModalEl))
-                                        );
-                                        editProjectModal.show();
-                                    },
-                                });
+                                                    window.editProjectSelectedFiles.forEach(
+                                                        function (file, index) {
+                                                            var fileItem =
+                                                                document.createElement(
+                                                                    "div"
+                                                                );
+                                                            fileItem.className =
+                                                                "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+
+                                                            var fileInfo =
+                                                                document.createElement(
+                                                                    "div"
+                                                                );
+                                                            fileInfo.className =
+                                                                "d-flex align-items-center flex-grow-1";
+
+                                                            var fileIcon =
+                                                                document.createElement(
+                                                                    "span"
+                                                                );
+                                                            fileIcon.className =
+                                                                "material-symbols-outlined me-2";
+                                                            fileIcon.textContent =
+                                                                "description";
+
+                                                            var fileName =
+                                                                document.createElement(
+                                                                    "span"
+                                                                );
+                                                            fileName.textContent =
+                                                                file.name;
+                                                            fileName.className =
+                                                                "file-name";
+
+                                                            var fileSize =
+                                                                document.createElement(
+                                                                    "small"
+                                                                );
+                                                            fileSize.textContent =
+                                                                " (" +
+                                                                (
+                                                                    file.size /
+                                                                    1024 /
+                                                                    1024
+                                                                ).toFixed(2) +
+                                                                " MB)";
+                                                            fileSize.className =
+                                                                "text-muted ms-1";
+
+                                                            var removeBtn =
+                                                                document.createElement(
+                                                                    "button"
+                                                                );
+                                                            removeBtn.type =
+                                                                "button";
+                                                            removeBtn.className =
+                                                                "btn btn-sm btn-outline-danger";
+                                                            removeBtn.innerHTML =
+                                                                "&times;";
+                                                            removeBtn.onclick =
+                                                                function () {
+                                                                    window.editProjectSelectedFiles.splice(
+                                                                        index,
+                                                                        1
+                                                                    );
+                                                                    renderEditProjectSelectedFiles();
+                                                                };
+
+                                                            fileInfo.appendChild(
+                                                                fileIcon
+                                                            );
+                                                            fileInfo.appendChild(
+                                                                fileName
+                                                            );
+                                                            fileInfo.appendChild(
+                                                                fileSize
+                                                            );
+                                                            fileItem.appendChild(
+                                                                fileInfo
+                                                            );
+                                                            fileItem.appendChild(
+                                                                removeBtn
+                                                            );
+                                                            fileList.appendChild(
+                                                                fileItem
+                                                            );
+                                                        }
+                                                    );
+
+                                                    previewEdit.appendChild(
+                                                        fileList
+                                                    );
+                                                }
+                                            }
+
+                                            // Bind change handler for selecting new files (Task-style behavior)
+                                            $("#edit_reference_file")
+                                                .off("change")
+                                                .on("change", function () {
+                                                    var files = Array.from(
+                                                        this.files || []
+                                                    );
+                                                    if (files.length > 0) {
+                                                        window.editProjectSelectedFiles =
+                                                            window.editProjectSelectedFiles.concat(
+                                                                files
+                                                            );
+                                                        renderEditProjectSelectedFiles();
+                                                        this.value = "";
+                                                    }
+                                                });
+
+                                            // Initial renders
+                                            renderExistingProjectFiles();
+                                            renderEditProjectSelectedFiles();
+
+                                            // Populate co-author and contributor inputs
+                                            // Clear previous selections
+                                            window.clearSelectedCoAuthorsEdit &&
+                                                window.clearSelectedCoAuthorsEdit();
+                                            window.clearSelectedContributorsEdit &&
+                                                window.clearSelectedContributorsEdit();
+
+                                            // Set co-authors
+                                            if (data.co_authors) {
+                                                var coAuthors =
+                                                    data.co_authors.map(
+                                                        function (a) {
+                                                            return {
+                                                                id: a.id,
+                                                                name: a.name,
+                                                                user_photo:
+                                                                    a.user_photo ||
+                                                                    null,
+                                                            };
+                                                        }
+                                                    );
+                                                window.setSelectedCoAuthorsEdit &&
+                                                    window.setSelectedCoAuthorsEdit(
+                                                        coAuthors
+                                                    );
+                                            }
+
+                                            // Set contributors
+                                            if (data.contributors) {
+                                                var contributors =
+                                                    data.contributors.map(
+                                                        function (a) {
+                                                            return {
+                                                                id: a.id,
+                                                                name: a.name,
+                                                                user_photo:
+                                                                    a.user_photo ||
+                                                                    null,
+                                                            };
+                                                        }
+                                                    );
+                                                window.setSelectedContributorsEdit &&
+                                                    window.setSelectedContributorsEdit(
+                                                        contributors
+                                                    );
+                                            }
+
+                                            // Show edit modal after data is set
+                                            const editProjectModalEl =
+                                                document.getElementById(
+                                                    "editProjectModal"
+                                                );
+                                            if (!editProjectModalEl) {
+                                                console.error(
+                                                    "Edit Project Modal element not found"
+                                                );
+                                                showFloatingAlert(
+                                                    "Edit Project Modal element not found",
+                                                    "warning",
+                                                    3500
+                                                );
+                                                return;
+                                            }
+                                            const editProjectModal =
+                                                bootstrap &&
+                                                bootstrap.Modal &&
+                                                bootstrap.Modal
+                                                    .getOrCreateInstance
+                                                    ? bootstrap.Modal.getOrCreateInstance(
+                                                          editProjectModalEl
+                                                      )
+                                                    : bootstrap.Modal.getInstance(
+                                                          editProjectModalEl
+                                                      ) ||
+                                                      new bootstrap.Modal(
+                                                          editProjectModalEl
+                                                      );
+                                            editProjectModal.show();
+                                        },
+                                    });
+                                }
                             }
-                        }
                         });
                     }
 
                     // Handle edit project form submission
-let isSubmitting = false;
+                    let isSubmitting = false;
 
-$("#editProjectForm").off("submit").on("submit", function (e) {
-    e.preventDefault();
+                    $("#editProjectForm")
+                        .off("submit")
+                        .on("submit", function (e) {
+                            e.preventDefault();
 
-    if (isSubmitting) return; // ⛔ cegah submit dobel
-    isSubmitting = true;
+                            if (isSubmitting) return; // ⛔ cegah submit dobel
+                            isSubmitting = true;
 
-    const projectId = $("#edit_project_id").val();
-    if (!projectId) {
-        showFloatingAlert("Project ID is missing.", 'warning', 3000);
-        isSubmitting = false;
-        return;
-    }
+                            const projectId = $("#edit_project_id").val();
+                            if (!projectId) {
+                                showFloatingAlert(
+                                    "Project ID is missing.",
+                                    "warning",
+                                    3000
+                                );
+                                isSubmitting = false;
+                                return;
+                            }
 
-    const formData = new FormData(this);
+                            const formData = new FormData(this);
 
-    // Map first non-empty reference_urls[] to single reference_url (backend expects this)
-    try {
-        const urlInputs = this.querySelectorAll('input[name="reference_urls[]"]');
-        const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
-        if (urls.length) formData.set('reference_url', urls[0]);
-        else formData.set('reference_url', '');
-    } catch(_) {}
+                            // Map first non-empty reference_urls[] to single reference_url (backend expects this)
+                            try {
+                                const urlInputs = this.querySelectorAll(
+                                    'input[name="reference_urls[]"]'
+                                );
+                                const urls = Array.from(urlInputs)
+                                    .map((i) => (i.value || "").trim())
+                                    .filter(Boolean);
+                                if (urls.length)
+                                    formData.set("reference_url", urls[0]);
+                                else formData.set("reference_url", "");
+                            } catch (_) {}
 
-    // Add _method to FormData for Laravel PUT request
-    formData.append("_method", "PUT");
+                            // Add _method to FormData for Laravel PUT request
+                            formData.append("_method", "PUT");
 
-    // ✅ Filter unique IDs untuk co-authors & contributors
-    let coAuthors = JSON.parse($("#edit_co_author").val() || "[]");
-    let contributors = JSON.parse($("#edit_contributors").val() || "[]");
+                            // ✅ Filter unique IDs untuk co-authors & contributors
+                            let coAuthors = JSON.parse(
+                                $("#edit_co_author").val() || "[]"
+                            );
+                            let contributors = JSON.parse(
+                                $("#edit_contributors").val() || "[]"
+                            );
 
-    coAuthors = [...new Set(coAuthors)];
-    contributors = [...new Set(contributors)];
+                            coAuthors = [...new Set(coAuthors)];
+                            contributors = [...new Set(contributors)];
 
-    formData.set("co_author", JSON.stringify(coAuthors));
-    formData.set("contributors", JSON.stringify(contributors));
+                            formData.set(
+                                "co_author",
+                                JSON.stringify(coAuthors)
+                            );
+                            formData.set(
+                                "contributors",
+                                JSON.stringify(contributors)
+                            );
 
-    // Append newly selected reference files (if any) to FormData as reference_file[]
-    if (window.editProjectSelectedFiles && window.editProjectSelectedFiles.length) {
-        window.editProjectSelectedFiles.forEach(function (f) {
-            try {
-                formData.append('reference_file[]', f);
-            } catch (e) {
-                console.warn('Failed to append new reference file to FormData', e);
-            }
-        });
-    }
+                            // Append newly selected reference files (if any) to FormData as reference_file[]
+                            if (
+                                window.editProjectSelectedFiles &&
+                                window.editProjectSelectedFiles.length
+                            ) {
+                                window.editProjectSelectedFiles.forEach(
+                                    function (f) {
+                                        try {
+                                            formData.append(
+                                                "reference_file[]",
+                                                f
+                                            );
+                                        } catch (e) {
+                                            console.warn(
+                                                "Failed to append new reference file to FormData",
+                                                e
+                                            );
+                                        }
+                                    }
+                                );
+                            }
 
-    // Show loading overlay and disable submit button
-    $("#editModalLoader").removeClass("d-none");
-    const submitBtn = $('#editProjectForm button[type="submit"]');
-    submitBtn.prop("disabled", true);
+                            // Show loading overlay and disable submit button
+                            $("#editModalLoader").removeClass("d-none");
+                            const submitBtn = $(
+                                '#editProjectForm button[type="submit"]'
+                            );
+                            submitBtn.prop("disabled", true);
 
-    $.ajax({
-        url: appUrl + "/project/" + projectId,
-        type: "POST", // Laravel expects POST with _method=PUT for PUT requests
-        data: formData,
-        contentType: false,
-        processData: false,
-        headers: {
-            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
-        },
-        success: function (response) {
-            showFloatingAlert(
-                response.message || "Project updated successfully!",
-                "success",
-                1500
-            );
+                            $.ajax({
+                                url: appUrl + "/project/" + projectId,
+                                type: "POST", // Laravel expects POST with _method=PUT for PUT requests
+                                data: formData,
+                                contentType: false,
+                                processData: false,
+                                headers: {
+                                    "X-CSRF-TOKEN": $(
+                                        'meta[name="csrf-token"]'
+                                    ).attr("content"),
+                                },
+                                success: function (response) {
+                                    showFloatingAlert(
+                                        response.message ||
+                                            "Project updated successfully!",
+                                        "success",
+                                        1500
+                                    );
 
-            // Close modal after short delay
-            setTimeout(() => {
-                var editProjectModalEl = document.getElementById("editProjectModal");
-                var editProjectModal = bootstrap.Modal.getInstance(editProjectModalEl);
-                if (editProjectModal) editProjectModal.hide();
-                loadProjectCardData(); // refresh project cards
-            }, 800);
-        },
-        error: function (xhr) {
-            if (xhr.status === 422) {
-                let errors = xhr.responseJSON.errors;
-                var listHtml = '<ul style="margin:0; padding-left:18px;">';
-                $.each(errors, function (key, value) {
-                    if (Array.isArray(value)) { 
-                        value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); 
-                    } else { 
-                        listHtml += '<li>'+value+'</li>'; 
-                    }
-                });
-                listHtml += '</ul>';
-                showFloatingAlert(listHtml, 'warning', 5000);
-            } else {
-                showFloatingAlert("Failed to update project.", 'warning', 3500);
-            }
-        },
-        complete: function () {
-            $("#editModalLoader").addClass("d-none");
-            submitBtn.prop("disabled", false);
-            isSubmitting = false; // reset flag biar bisa submit lagi
-        },
-    });
-});
-
+                                    // Close modal after short delay
+                                    setTimeout(() => {
+                                        var editProjectModalEl =
+                                            document.getElementById(
+                                                "editProjectModal"
+                                            );
+                                        var editProjectModal =
+                                            bootstrap.Modal.getInstance(
+                                                editProjectModalEl
+                                            );
+                                        if (editProjectModal)
+                                            editProjectModal.hide();
+                                        loadProjectCardData(); // refresh project cards
+                                    }, 800);
+                                },
+                                error: function (xhr) {
+                                    if (xhr.status === 422) {
+                                        let errors = xhr.responseJSON.errors;
+                                        var listHtml =
+                                            '<ul style="margin:0; padding-left:18px;">';
+                                        $.each(errors, function (key, value) {
+                                            if (Array.isArray(value)) {
+                                                value.forEach(function (msg) {
+                                                    listHtml +=
+                                                        "<li>" + msg + "</li>";
+                                                });
+                                            } else {
+                                                listHtml +=
+                                                    "<li>" + value + "</li>";
+                                            }
+                                        });
+                                        listHtml += "</ul>";
+                                        showFloatingAlert(
+                                            listHtml,
+                                            "warning",
+                                            5000
+                                        );
+                                    } else {
+                                        showFloatingAlert(
+                                            "Failed to update project.",
+                                            "warning",
+                                            3500
+                                        );
+                                    }
+                                },
+                                complete: function () {
+                                    $("#editModalLoader").addClass("d-none");
+                                    submitBtn.prop("disabled", false);
+                                    isSubmitting = false; // reset flag biar bisa submit lagi
+                                },
+                            });
+                        });
 
                     // Image preview and clear button logic for edit image input
                     setupImageInput(
@@ -1090,24 +1590,42 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             // Clear temporary reference files arrays and preview list (Task-style containers)
                             try {
                                 window.editProjectSelectedFiles = [];
-                                const previewEdit = document.getElementById('edit_reference_files_preview');
-                                if (previewEdit) previewEdit.innerHTML = '';
-                                const existingContainer = document.getElementById('existing_reference_files');
-                                if (existingContainer) existingContainer.innerHTML = '';
-                                const hiddenExisting = document.getElementById('existing_reference_files_input');
-                                if (hiddenExisting) hiddenExisting.value = '[]';
-                                $("#edit_reference_file").off('change');
+                                const previewEdit = document.getElementById(
+                                    "edit_reference_files_preview"
+                                );
+                                if (previewEdit) previewEdit.innerHTML = "";
+                                const existingContainer =
+                                    document.getElementById(
+                                        "existing_reference_files"
+                                    );
+                                if (existingContainer)
+                                    existingContainer.innerHTML = "";
+                                const hiddenExisting = document.getElementById(
+                                    "existing_reference_files_input"
+                                );
+                                if (hiddenExisting) hiddenExisting.value = "[]";
+                                $("#edit_reference_file").off("change");
                             } catch (e) {}
 
                             $("#editProjectAlert").addClass("d-none").hide();
 
                             // Safety: remove stray backdrops if no other modal is open
                             try {
-                                const anyOpen = document.querySelector('.modal.show');
+                                const anyOpen =
+                                    document.querySelector(".modal.show");
                                 if (!anyOpen) {
-                                    document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.parentNode && el.parentNode.removeChild(el); });
-                                    document.body.classList.remove('modal-open');
-                                    document.body.style.removeProperty('padding-right');
+                                    document
+                                        .querySelectorAll(".modal-backdrop")
+                                        .forEach(function (el) {
+                                            el.parentNode &&
+                                                el.parentNode.removeChild(el);
+                                        });
+                                    document.body.classList.remove(
+                                        "modal-open"
+                                    );
+                                    document.body.style.removeProperty(
+                                        "padding-right"
+                                    );
                                 }
                             } catch (_) {}
                         }
@@ -1146,8 +1664,13 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 },
                                 dataType: "json",
                                 success: function (data) {
-                                    employees = (data.data || []).map(function(e){
-                                        const candidate = e.profile_picture_url || e.profile_picture || e.user_photo;
+                                    employees = (data.data || []).map(function (
+                                        e
+                                    ) {
+                                        const candidate =
+                                            e.profile_picture_url ||
+                                            e.profile_picture ||
+                                            e.user_photo;
                                         e.user_photo = candidate;
                                         return e;
                                     });
@@ -1159,26 +1682,43 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 },
                             });
                         }
-                        window.__refreshEditProjectEmployees = function(){ fetchEmployees(document.getElementById('edit_co_author_input')?.value || ''); };
+                        window.__refreshEditProjectEmployees = function () {
+                            fetchEmployees(
+                                document.getElementById("edit_co_author_input")
+                                    ?.value || ""
+                            );
+                        };
 
-            function renderDropdown() {
+                        function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
                                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = isDropdownOpen ? "block" : "none";
+                                dropdown.style.display = isDropdownOpen
+                                    ? "block"
+                                    : "none";
                                 return;
                             }
 
                             // Exclude employees already selected as Contributors
                             function getContributorIds() {
                                 try {
-                                    const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                    const raw =
+                                        document.getElementById(
+                                            "edit_contributors"
+                                        )?.value || "[]";
                                     const arr = JSON.parse(raw);
-                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
-                                } catch(_) { return []; }
+                                    return Array.isArray(arr)
+                                        ? arr.map((v) => Number(v))
+                                        : [];
+                                } catch (_) {
+                                    return [];
+                                }
                             }
                             const contributorIds = getContributorIds();
-                            const availableEmployees = filteredEmployees.filter(emp => !contributorIds.includes(Number(emp.id)));
+                            const availableEmployees = filteredEmployees.filter(
+                                (emp) =>
+                                    !contributorIds.includes(Number(emp.id))
+                            );
 
                             const html = availableEmployees
                                 .map((emp) => {
@@ -1225,7 +1765,9 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 .join("");
 
                             dropdown.innerHTML = html;
-                            dropdown.style.display = isDropdownOpen ? "block" : "none";
+                            dropdown.style.display = isDropdownOpen
+                                ? "block"
+                                : "none";
 
                             dropdown
                                 .querySelectorAll(".co-author-checkbox")
@@ -1266,7 +1808,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                             renderSelected();
                                             updateHiddenInput();
                                             // Ensure contributors exclude any selected co-authors
-                                            try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
+                                            try {
+                                                window.syncContributorsWithCoAuthors &&
+                                                    window.syncContributorsWithCoAuthors();
+                                            } catch (_) {}
                                         }
                                     );
                                 });
@@ -1278,8 +1823,7 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 // Ganti semua logika pengambilan foto dengan:
                                 const photoUrl =
                                     emp.user_photo ||
-                                    appUrl +
-                                        "/asset/img/avatar.png";
+                                    appUrl + "/asset/img/avatar.png";
                                 const badge = document.createElement("span");
                                 badge.className =
                                     "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
@@ -1310,7 +1854,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     updateHiddenInput();
                                     renderDropdown();
                                     // Ensure contributors exclude any selected co-authors
-                                    try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
+                                    try {
+                                        window.syncContributorsWithCoAuthors &&
+                                            window.syncContributorsWithCoAuthors();
+                                    } catch (_) {}
                                 });
 
                                 badge.appendChild(img);
@@ -1370,17 +1917,19 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
 
                         // Helper: build unified avatar URL (profile_picture_url > profile_picture > user_photo)
                         function buildAvatarUrl(raw) {
-                            if (!raw) return appUrl + '/asset/img/avatar.png';
+                            if (!raw) return appUrl + "/asset/img/avatar.png";
                             try {
                                 raw = String(raw).trim();
-                                const trimmed = raw.replace(/^\/+/, '');
+                                const trimmed = raw.replace(/^\/+/, "");
                                 if (/^https?:\/\//i.test(raw)) return raw;
-                                if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
-                                if (raw.startsWith('/')) return appUrl + raw;
-                                if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
-                                return appUrl + '/file/profile_picture/' + raw;
-                            } catch(_) {
-                                return appUrl + '/asset/img/avatar.png';
+                                if (/^(file\/|asset\/|storage\/)/.test(trimmed))
+                                    return appUrl + "/" + trimmed;
+                                if (raw.startsWith("/")) return appUrl + raw;
+                                if (raw.indexOf("/") !== -1)
+                                    return appUrl + "/" + trimmed;
+                                return appUrl + "/file/profile_picture/" + raw;
+                            } catch (_) {
+                                return appUrl + "/asset/img/avatar.png";
                             }
                         }
 
@@ -1388,39 +1937,62 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             // Filter out anyone already selected as contributor
                             let contribIds = [];
                             try {
-                                const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                const raw =
+                                    document.getElementById("edit_contributors")
+                                        ?.value || "[]";
                                 const arr = JSON.parse(raw);
-                                contribIds = Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
-                            } catch(_) { contribIds = []; }
+                                contribIds = Array.isArray(arr)
+                                    ? arr.map((v) => Number(v))
+                                    : [];
+                            } catch (_) {
+                                contribIds = [];
+                            }
 
                             selectedEmployees = coAuthors
-                                .filter(ca => !contribIds.includes(Number(ca.id)))
+                                .filter(
+                                    (ca) => !contribIds.includes(Number(ca.id))
+                                )
                                 .map((ca) => {
-                                    const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
+                                    const candidate =
+                                        ca.profile_picture_url ||
+                                        ca.profile_picture ||
+                                        ca.user_photo;
                                     return {
                                         id: ca.id,
                                         name: ca.name,
-                                        user_photo: buildAvatarUrl(candidate)
+                                        user_photo: buildAvatarUrl(candidate),
                                     };
                                 });
                             renderSelected();
                             updateHiddenInput();
                             // After programmatically setting co-authors, sync contributors and refresh dropdown
-                            try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch(_) {}
+                            try {
+                                window.syncContributorsWithCoAuthors &&
+                                    window.syncContributorsWithCoAuthors();
+                            } catch (_) {}
                             renderDropdown();
                         };
 
                         // Expose sync function to be called when contributors change
                         window.syncCoAuthorsWithContributors = function () {
-                            const contributorIds = (function(){
+                            const contributorIds = (function () {
                                 try {
-                                    const raw = document.getElementById('edit_contributors')?.value || '[]';
+                                    const raw =
+                                        document.getElementById(
+                                            "edit_contributors"
+                                        )?.value || "[]";
                                     const arr = JSON.parse(raw);
-                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
-                                } catch(_) { return []; }
+                                    return Array.isArray(arr)
+                                        ? arr.map((v) => Number(v))
+                                        : [];
+                                } catch (_) {
+                                    return [];
+                                }
                             })();
                             const before = selectedEmployees.length;
-                            selectedEmployees = selectedEmployees.filter(se => !contributorIds.includes(Number(se.id)));
+                            selectedEmployees = selectedEmployees.filter(
+                                (se) => !contributorIds.includes(Number(se.id))
+                            );
                             if (selectedEmployees.length !== before) {
                                 renderSelected();
                                 updateHiddenInput();
@@ -1461,8 +2033,13 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 },
                                 dataType: "json",
                                 success: function (data) {
-                                    employees = (data.data || []).map(function(e){
-                                        const candidate = e.profile_picture_url || e.profile_picture || e.user_photo;
+                                    employees = (data.data || []).map(function (
+                                        e
+                                    ) {
+                                        const candidate =
+                                            e.profile_picture_url ||
+                                            e.profile_picture ||
+                                            e.user_photo;
                                         e.user_photo = candidate;
                                         return e;
                                     });
@@ -1474,31 +2051,48 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 },
                             });
                         }
-                        window.__refreshEditProjectEmployees = (function(orig){
-                            return function(){
-                                if(typeof orig==='function') orig();
-                                fetchEmployees(document.getElementById('edit_contributor_input')?.value || '');
+                        window.__refreshEditProjectEmployees = (function (
+                            orig
+                        ) {
+                            return function () {
+                                if (typeof orig === "function") orig();
+                                fetchEmployees(
+                                    document.getElementById(
+                                        "edit_contributor_input"
+                                    )?.value || ""
+                                );
                             };
                         })(window.__refreshEditProjectEmployees);
 
-            function renderDropdown() {
+                        function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
                                     '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = isDropdownOpen ? "block" : "none";
+                                dropdown.style.display = isDropdownOpen
+                                    ? "block"
+                                    : "none";
                                 return;
                             }
 
                             // Exclude employees already selected as co-authors
                             function getCoAuthorIds() {
                                 try {
-                                    const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                    const raw =
+                                        document.getElementById(
+                                            "edit_co_author"
+                                        )?.value || "[]";
                                     const arr = JSON.parse(raw);
-                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
-                                } catch(_) { return []; }
+                                    return Array.isArray(arr)
+                                        ? arr.map((v) => Number(v))
+                                        : [];
+                                } catch (_) {
+                                    return [];
+                                }
                             }
                             const coAuthorIds = getCoAuthorIds();
-                            const availableEmployees = filteredEmployees.filter(emp => !coAuthorIds.includes(Number(emp.id)));
+                            const availableEmployees = filteredEmployees.filter(
+                                (emp) => !coAuthorIds.includes(Number(emp.id))
+                            );
 
                             const html = availableEmployees
                                 .map((emp) => {
@@ -1545,7 +2139,9 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 .join("");
 
                             dropdown.innerHTML = html;
-                            dropdown.style.display = isDropdownOpen ? "block" : "none";
+                            dropdown.style.display = isDropdownOpen
+                                ? "block"
+                                : "none";
 
                             dropdown
                                 .querySelectorAll(".contributor-checkbox")
@@ -1587,7 +2183,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                             updateHiddenInput();
                                             renderDropdown(); // refresh dropdown setelah perubahan
                                             // Ensure co-authors exclude any selected contributors
-                                            try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
+                                            try {
+                                                window.syncCoAuthorsWithContributors &&
+                                                    window.syncCoAuthorsWithContributors();
+                                            } catch (_) {}
                                         }
                                     );
                                 });
@@ -1599,8 +2198,7 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 // Ganti semua logika pengambilan foto dengan:
                                 const photoUrl =
                                     emp.user_photo ||
-                                    appUrl +
-                                        "/asset/img/avatar.png";
+                                    appUrl + "/asset/img/avatar.png";
                                 const badge = document.createElement("span");
                                 badge.className =
                                     "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
@@ -1631,7 +2229,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     updateHiddenInput();
                                     renderDropdown();
                                     // After removing a contributor, refresh co-author dropdown availability
-                                    try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
+                                    try {
+                                        window.syncCoAuthorsWithContributors &&
+                                            window.syncCoAuthorsWithContributors();
+                                    } catch (_) {}
                                 });
 
                                 badge.appendChild(img);
@@ -1695,38 +2296,59 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             // Filter out anyone already selected as co-author
                             let coIds = [];
                             try {
-                                const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                const raw =
+                                    document.getElementById("edit_co_author")
+                                        ?.value || "[]";
                                 const arr = JSON.parse(raw);
-                                coIds = Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
-                            } catch(_) { coIds = []; }
+                                coIds = Array.isArray(arr)
+                                    ? arr.map((v) => Number(v))
+                                    : [];
+                            } catch (_) {
+                                coIds = [];
+                            }
 
                             selectedEmployees = contributors
                                 .filter((c) => !coIds.includes(Number(c.id)))
                                 .map((ca) => {
-                                    const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
+                                    const candidate =
+                                        ca.profile_picture_url ||
+                                        ca.profile_picture ||
+                                        ca.user_photo;
                                     return {
                                         id: ca.id,
                                         name: ca.name,
-                                        user_photo: buildAvatarUrl(candidate)
+                                        user_photo: buildAvatarUrl(candidate),
                                     };
                                 });
                             renderSelected();
                             updateHiddenInput();
                             // After programmatically setting contributors, sync co-authors
-                            try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch(_) {}
+                            try {
+                                window.syncCoAuthorsWithContributors &&
+                                    window.syncCoAuthorsWithContributors();
+                            } catch (_) {}
                         };
 
                         // Expose sync function to be called when co-authors change
                         window.syncContributorsWithCoAuthors = function () {
-                            const coAuthorIds = (function(){
+                            const coAuthorIds = (function () {
                                 try {
-                                    const raw = document.getElementById('edit_co_author')?.value || '[]';
+                                    const raw =
+                                        document.getElementById(
+                                            "edit_co_author"
+                                        )?.value || "[]";
                                     const arr = JSON.parse(raw);
-                                    return Array.isArray(arr) ? arr.map((v)=>Number(v)) : [];
-                                } catch(_) { return []; }
+                                    return Array.isArray(arr)
+                                        ? arr.map((v) => Number(v))
+                                        : [];
+                                } catch (_) {
+                                    return [];
+                                }
                             })();
                             const before = selectedEmployees.length;
-                            selectedEmployees = selectedEmployees.filter(se => !coAuthorIds.includes(Number(se.id)));
+                            selectedEmployees = selectedEmployees.filter(
+                                (se) => !coAuthorIds.includes(Number(se.id))
+                            );
                             if (selectedEmployees.length !== before) {
                                 renderSelected();
                                 updateHiddenInput();
@@ -1772,12 +2394,19 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 modalBody.innerHTML = ""; // Clear loading spinner
 
                                 // Update feedback badge count on project card
-                                const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                                const card = document.querySelector(
+                                    `[data-project-id="${projectId}"]`
+                                );
                                 if (card) {
-                                    const feedbackBadge = card.querySelector('.project-feedback-count');
+                                    const feedbackBadge = card.querySelector(
+                                        ".project-feedback-count"
+                                    );
                                     if (feedbackBadge) {
-                                        const feedbackCount = (data.data && data.data.length) || 0;
-                                        feedbackBadge.textContent = feedbackCount;
+                                        const feedbackCount =
+                                            (data.data && data.data.length) ||
+                                            0;
+                                        feedbackBadge.textContent =
+                                            feedbackCount;
                                     }
                                 }
 
@@ -1794,7 +2423,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     feedbackItem.className =
                                         "feedback-item mb-3 p-3 border-bottom";
                                     if (feedback && feedback.id != null) {
-                                        feedbackItem.setAttribute('data-feedback-id', String(feedback.id));
+                                        feedbackItem.setAttribute(
+                                            "data-feedback-id",
+                                            String(feedback.id)
+                                        );
                                     }
 
                                     // Header with employee info
@@ -1807,15 +2439,32 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     // Prefer employee object if present, fallback to legacy employee_photo
                                     (function () {
                                         const emp = feedback.employee || {};
-                                        const raw = emp.user_photo || emp.profile_picture || emp.photo || feedback.employee_photo || "";
+                                        const raw =
+                                            emp.user_photo ||
+                                            emp.profile_picture ||
+                                            emp.photo ||
+                                            feedback.employee_photo ||
+                                            "";
                                         let url = "";
-                                        if (typeof raw === 'string' && raw.length > 0) {
-                                            if (raw.startsWith('http')) url = raw;
-                                            else if (raw.startsWith('/')) url = appUrl + raw;
-                                            else if (raw.indexOf('/') !== -1) url = appUrl + '/' + raw;
-                                            else url = appUrl + '/file/profile_picture/' + raw;
+                                        if (
+                                            typeof raw === "string" &&
+                                            raw.length > 0
+                                        ) {
+                                            if (raw.startsWith("http"))
+                                                url = raw;
+                                            else if (raw.startsWith("/"))
+                                                url = appUrl + raw;
+                                            else if (raw.indexOf("/") !== -1)
+                                                url = appUrl + "/" + raw;
+                                            else
+                                                url =
+                                                    appUrl +
+                                                    "/file/profile_picture/" +
+                                                    raw;
                                         } else {
-                                            url = appUrl + '/asset/img/avatar.png';
+                                            url =
+                                                appUrl +
+                                                "/asset/img/avatar.png";
                                         }
                                         img.src = url;
                                     })();
@@ -1825,65 +2474,231 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     img.style.width = "40px";
                                     img.style.height = "40px";
 
-                                    const infoDiv = document.createElement("div");
+                                    const infoDiv =
+                                        document.createElement("div");
                                     // Determine author/edit permissions early (used for placing edit icon next to name like Task)
-                                    const currentEmployeeIdTop = parseInt(projectFeedbackModalEl.getAttribute("data-employee-id") || "0", 10) || 0;
-                                    const authorIdTop = (feedback.employee_id != null) ? feedback.employee_id : ((feedback.employee && feedback.employee.id) || 0);
-                                    const canEditTopInline = String(authorIdTop) === String(currentEmployeeIdTop);
+                                    const currentEmployeeIdTop =
+                                        parseInt(
+                                            projectFeedbackModalEl.getAttribute(
+                                                "data-employee-id"
+                                            ) || "0",
+                                            10
+                                        ) || 0;
+                                    const authorIdTop =
+                                        feedback.employee_id != null
+                                            ? feedback.employee_id
+                                            : (feedback.employee &&
+                                                  feedback.employee.id) ||
+                                              0;
+                                    const canEditTopInline =
+                                        String(authorIdTop) ===
+                                        String(currentEmployeeIdTop);
                                     // Name row with edit icon inline (exactly like Task)
-                                    const nameRow = document.createElement('div');
-                                    nameRow.className = 'd-flex align-items-center';
-                                    const nameStrong = document.createElement('strong');
-                                    nameStrong.textContent = (feedback.employee && feedback.employee.name) || feedback.employee_name || 'Unknown';
+                                    const nameRow =
+                                        document.createElement("div");
+                                    nameRow.className =
+                                        "d-flex align-items-center";
+                                    const nameStrong =
+                                        document.createElement("strong");
+                                    nameStrong.textContent =
+                                        (feedback.employee &&
+                                            feedback.employee.name) ||
+                                        feedback.employee_name ||
+                                        "Unknown";
                                     nameRow.appendChild(nameStrong);
                                     if (canEditTopInline) {
-                                        const editBtnInline = document.createElement('span');
-                                        editBtnInline.className = 'material-symbols-outlined icon feedback-edit-trigger ms-2';
-                                        editBtnInline.style.cssText = 'cursor:pointer; font-size:18px; line-height:1; color:#555;';
-                                        editBtnInline.textContent = 'edit';
-                                        editBtnInline.addEventListener('click', function(){
-                                            const payload = {
-                                                id: feedback.id,
-                                                parent_id: null,
-                                                feedback_comment: feedback.feedback_comment || '',
-                                                reference_url: feedback.reference_url || '',
-                                                reference_urls: feedback.reference_urls || [],
-                                                reference_file_url: feedback.reference_file || '',
-                                                reference_files_urls: (function(){
-                                                    let files = [];
-                                                    let rf = feedback.reference_files;
-                                                    if (!Array.isArray(rf) && typeof rf === 'string') {
-                                                        try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
-                                                    }
-                                                    if (Array.isArray(rf) && rf.length) {
-                                                        files = rf.map(function(f){
-                                                            if (!f) return null;
-                                                            const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
-                                                            const isPath = typeof f === 'string' && (f.startsWith('/file/project/') || f.startsWith('file/project/'));
-                                                            if (!isAbs && !isPath) return appUrl + '/file/project/' + f;
-                                                            if (!isAbs && isPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
-                                                            return f;
-                                                        }).filter(Boolean);
-                                                    } else if (feedback.reference_file) {
-                                                        let single = feedback.reference_file;
-                                                        const isAbs2 = typeof single === 'string' && (single.startsWith('http://') || single.startsWith('https://'));
-                                                        const isPath2 = typeof single === 'string' && (single.startsWith('/file/project/') || single.startsWith('file/project/'));
-                                                        if (!isAbs2 && !isPath2) single = appUrl + '/file/project/' + single;
-                                                        else if (!isAbs2 && isPath2) single = single.startsWith('/') ? (appUrl + single) : (appUrl + '/' + single);
-                                                        files = [single];
-                                                    }
-                                                    return files;
-                                                })(),
-                                                image_url: (function(){
-                                                    const img = feedback.image || '';
-                                                    if (!img) return '';
-                                                    if (String(img).startsWith('http')) return img;
-                                                    if (String(img).startsWith('/')) return appUrl + img;
-                                                    return appUrl + '/file/project/' + img;
-                                                })(),
-                                            };
-                                            showEditFeedbackForm(projectId, payload, false);
-                                        });
+                                        const editBtnInline =
+                                            document.createElement("span");
+                                        editBtnInline.className =
+                                            "material-symbols-outlined icon feedback-edit-trigger ms-2";
+                                        editBtnInline.style.cssText =
+                                            "cursor:pointer; font-size:18px; line-height:1; color:#555;";
+                                        editBtnInline.textContent = "edit";
+                                        editBtnInline.addEventListener(
+                                            "click",
+                                            function () {
+                                                const payload = {
+                                                    id: feedback.id,
+                                                    parent_id: null,
+                                                    feedback_comment:
+                                                        feedback.feedback_comment ||
+                                                        "",
+                                                    reference_url:
+                                                        feedback.reference_url ||
+                                                        "",
+                                                    reference_urls:
+                                                        feedback.reference_urls ||
+                                                        [],
+                                                    reference_file_url:
+                                                        feedback.reference_file ||
+                                                        "",
+                                                    reference_files_urls:
+                                                        (function () {
+                                                            let files = [];
+                                                            let rf =
+                                                                feedback.reference_files;
+                                                            if (
+                                                                !Array.isArray(
+                                                                    rf
+                                                                ) &&
+                                                                typeof rf ===
+                                                                    "string"
+                                                            ) {
+                                                                try {
+                                                                    const arr =
+                                                                        JSON.parse(
+                                                                            rf
+                                                                        );
+                                                                    if (
+                                                                        Array.isArray(
+                                                                            arr
+                                                                        )
+                                                                    )
+                                                                        rf =
+                                                                            arr;
+                                                                } catch (_) {}
+                                                            }
+                                                            if (
+                                                                Array.isArray(
+                                                                    rf
+                                                                ) &&
+                                                                rf.length
+                                                            ) {
+                                                                files = rf
+                                                                    .map(
+                                                                        function (
+                                                                            f
+                                                                        ) {
+                                                                            if (
+                                                                                !f
+                                                                            )
+                                                                                return null;
+                                                                            const isAbs =
+                                                                                typeof f ===
+                                                                                    "string" &&
+                                                                                (f.startsWith(
+                                                                                    "http://"
+                                                                                ) ||
+                                                                                    f.startsWith(
+                                                                                        "https://"
+                                                                                    ));
+                                                                            const isPath =
+                                                                                typeof f ===
+                                                                                    "string" &&
+                                                                                (f.startsWith(
+                                                                                    "/file/project/"
+                                                                                ) ||
+                                                                                    f.startsWith(
+                                                                                        "file/project/"
+                                                                                    ));
+                                                                            if (
+                                                                                !isAbs &&
+                                                                                !isPath
+                                                                            )
+                                                                                return (
+                                                                                    appUrl +
+                                                                                    "/file/project/" +
+                                                                                    f
+                                                                                );
+                                                                            if (
+                                                                                !isAbs &&
+                                                                                isPath
+                                                                            )
+                                                                                return f.startsWith(
+                                                                                    "/"
+                                                                                )
+                                                                                    ? appUrl +
+                                                                                          f
+                                                                                    : appUrl +
+                                                                                          "/" +
+                                                                                          f;
+                                                                            return f;
+                                                                        }
+                                                                    )
+                                                                    .filter(
+                                                                        Boolean
+                                                                    );
+                                                            } else if (
+                                                                feedback.reference_file
+                                                            ) {
+                                                                let single =
+                                                                    feedback.reference_file;
+                                                                const isAbs2 =
+                                                                    typeof single ===
+                                                                        "string" &&
+                                                                    (single.startsWith(
+                                                                        "http://"
+                                                                    ) ||
+                                                                        single.startsWith(
+                                                                            "https://"
+                                                                        ));
+                                                                const isPath2 =
+                                                                    typeof single ===
+                                                                        "string" &&
+                                                                    (single.startsWith(
+                                                                        "/file/project/"
+                                                                    ) ||
+                                                                        single.startsWith(
+                                                                            "file/project/"
+                                                                        ));
+                                                                if (
+                                                                    !isAbs2 &&
+                                                                    !isPath2
+                                                                )
+                                                                    single =
+                                                                        appUrl +
+                                                                        "/file/project/" +
+                                                                        single;
+                                                                else if (
+                                                                    !isAbs2 &&
+                                                                    isPath2
+                                                                )
+                                                                    single =
+                                                                        single.startsWith(
+                                                                            "/"
+                                                                        )
+                                                                            ? appUrl +
+                                                                              single
+                                                                            : appUrl +
+                                                                              "/" +
+                                                                              single;
+                                                                files = [
+                                                                    single,
+                                                                ];
+                                                            }
+                                                            return files;
+                                                        })(),
+                                                    image_url: (function () {
+                                                        const img =
+                                                            feedback.image ||
+                                                            "";
+                                                        if (!img) return "";
+                                                        if (
+                                                            String(
+                                                                img
+                                                            ).startsWith("http")
+                                                        )
+                                                            return img;
+                                                        if (
+                                                            String(
+                                                                img
+                                                            ).startsWith("/")
+                                                        )
+                                                            return appUrl + img;
+                                                        return (
+                                                            appUrl +
+                                                            "/file/project/" +
+                                                            img
+                                                        );
+                                                    })(),
+                                                };
+                                                showEditFeedbackForm(
+                                                    projectId,
+                                                    payload,
+                                                    false
+                                                );
+                                            }
+                                        );
                                         nameRow.appendChild(editBtnInline);
                                     }
 
@@ -1954,12 +2769,15 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     infoDiv.appendChild(dateDiv);
                                     infoDiv.appendChild(roleDiv);
                                     // Wrap left side like Task: avatar + (name/date)
-                                    const leftWrap = document.createElement('div');
-                                    leftWrap.className = 'd-flex align-items-center';
+                                    const leftWrap =
+                                        document.createElement("div");
+                                    leftWrap.className =
+                                        "d-flex align-items-center";
                                     leftWrap.appendChild(img);
                                     leftWrap.appendChild(infoDiv);
                                     // Prepare header container with space between for reply icon on right
-                                    headerDiv.className = 'd-flex align-items-center mb-2 justify-content-between';
+                                    headerDiv.className =
+                                        "d-flex align-items-center mb-2 justify-content-between";
                                     headerDiv.appendChild(leftWrap);
 
                                     // Comment
@@ -1976,8 +2794,13 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     mediaDiv.className = "feedback-media mt-2";
 
                                     if (
-                                        feedback.reference_url || feedback.reference_urls ||
-                                        feedback.reference_file || (Array.isArray(feedback.reference_files) && feedback.reference_files.length > 0)
+                                        feedback.reference_url ||
+                                        feedback.reference_urls ||
+                                        feedback.reference_file ||
+                                        (Array.isArray(
+                                            feedback.reference_files
+                                        ) &&
+                                            feedback.reference_files.length > 0)
                                     ) {
                                         const refContainer =
                                             document.createElement("div");
@@ -1985,42 +2808,105 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                             "feedback-reference-container";
 
                                         // Render one or multiple reference URLs
-                                        (function(){
+                                        (function () {
                                             let urls = [];
-                                            if (Array.isArray(feedback.reference_urls)) urls = feedback.reference_urls;
-                                            else if (feedback.reference_urls && typeof feedback.reference_urls === 'string') {
-                                                try { const arr = JSON.parse(feedback.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                            if (
+                                                Array.isArray(
+                                                    feedback.reference_urls
+                                                )
+                                            )
+                                                urls = feedback.reference_urls;
+                                            else if (
+                                                feedback.reference_urls &&
+                                                typeof feedback.reference_urls ===
+                                                    "string"
+                                            ) {
+                                                try {
+                                                    const arr = JSON.parse(
+                                                        feedback.reference_urls
+                                                    );
+                                                    if (Array.isArray(arr))
+                                                        urls = arr;
+                                                } catch (_) {}
                                             }
-                                            if ((!urls || urls.length === 0) && feedback.reference_url) urls = [feedback.reference_url];
+                                            if (
+                                                (!urls || urls.length === 0) &&
+                                                feedback.reference_url
+                                            )
+                                                urls = [feedback.reference_url];
                                             urls.forEach((u, idx) => {
-                                                const a = document.createElement('a');
-                                                a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
-                                                a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                const a =
+                                                    document.createElement("a");
+                                                a.href = u;
+                                                a.target = "_blank";
+                                                a.className =
+                                                    "feedback-reference-url me-2";
+                                                a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${
+                                                    idx + 1
+                                                }`;
                                                 refContainer.appendChild(a);
                                             });
                                         })();
 
                                         // Render multiple reference files
-                                        (function(){
+                                        (function () {
                                             let files = [];
                                             let rf = feedback.reference_files;
-                                            if (!Array.isArray(rf) && typeof rf === 'string') {
-                                                try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                            if (
+                                                !Array.isArray(rf) &&
+                                                typeof rf === "string"
+                                            ) {
+                                                try {
+                                                    const arr = JSON.parse(rf);
+                                                    if (Array.isArray(arr))
+                                                        rf = arr;
+                                                } catch (_) {}
                                             }
-                                            if (Array.isArray(rf) && rf.length) files = rf; else if (feedback.reference_file) files = [feedback.reference_file];
-                                            (files || []).forEach(function(file, idx){
+                                            if (Array.isArray(rf) && rf.length)
+                                                files = rf;
+                                            else if (feedback.reference_file)
+                                                files = [
+                                                    feedback.reference_file,
+                                                ];
+                                            (files || []).forEach(function (
+                                                file,
+                                                idx
+                                            ) {
                                                 if (!file) return;
                                                 let fileHref = file;
-                                                if (fileHref && !(String(fileHref).startsWith('http') || String(fileHref).startsWith('/'))) {
-                                                    fileHref = appUrl + '/file/project/' + fileHref;
-                                                } else if (fileHref && String(fileHref).startsWith('/')) {
-                                                    fileHref = appUrl + fileHref;
+                                                if (
+                                                    fileHref &&
+                                                    !(
+                                                        String(
+                                                            fileHref
+                                                        ).startsWith("http") ||
+                                                        String(
+                                                            fileHref
+                                                        ).startsWith("/")
+                                                    )
+                                                ) {
+                                                    fileHref =
+                                                        appUrl +
+                                                        "/file/project/" +
+                                                        fileHref;
+                                                } else if (
+                                                    fileHref &&
+                                                    String(fileHref).startsWith(
+                                                        "/"
+                                                    )
+                                                ) {
+                                                    fileHref =
+                                                        appUrl + fileHref;
                                                 }
-                                                const a = document.createElement('a');
+                                                const a =
+                                                    document.createElement("a");
                                                 a.href = fileHref;
-                                                a.download = '';
-                                                a.className = 'feedback-reference-file ms-2';
-                                                a.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}`;
+                                                a.download = "";
+                                                a.className =
+                                                    "feedback-reference-file ms-2";
+                                                a.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${
+                                                    idx + 1
+                                                }`;
                                                 refContainer.appendChild(a);
                                             });
                                         })();
@@ -2035,7 +2921,12 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                         let imgSrc = feedback.image;
                                         if (
                                             imgSrc &&
-                                            !(String(imgSrc).startsWith("http") || String(imgSrc).startsWith("/"))
+                                            !(
+                                                String(imgSrc).startsWith(
+                                                    "http"
+                                                ) ||
+                                                String(imgSrc).startsWith("/")
+                                            )
                                         ) {
                                             imgSrc =
                                                 appUrl +
@@ -2068,15 +2959,26 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     }
 
                                     // Right side: Reply icon exactly like Task (far right)
-                                    const headerRight = document.createElement("div");
-                                    headerRight.className = "d-flex align-items-center";
-                                    const replyBtn = document.createElement("span");
-                                    replyBtn.className = "material-symbols-outlined feedback-reply-trigger";
-                                    replyBtn.style.cssText = "cursor:pointer; font-size:18px; line-height:1; color:#555;";
+                                    const headerRight =
+                                        document.createElement("div");
+                                    headerRight.className =
+                                        "d-flex align-items-center";
+                                    const replyBtn =
+                                        document.createElement("span");
+                                    replyBtn.className =
+                                        "material-symbols-outlined feedback-reply-trigger";
+                                    replyBtn.style.cssText =
+                                        "cursor:pointer; font-size:18px; line-height:1; color:#555;";
                                     replyBtn.textContent = "reply";
-                                    replyBtn.addEventListener("click", function () {
-                                        showReplyFeedbackForm(projectId, feedback.id);
-                                    });
+                                    replyBtn.addEventListener(
+                                        "click",
+                                        function () {
+                                            showReplyFeedbackForm(
+                                                projectId,
+                                                feedback.id
+                                            );
+                                        }
+                                    );
                                     headerRight.appendChild(replyBtn);
 
                                     // Append sections
@@ -2086,205 +2988,575 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     feedbackItem.appendChild(mediaDiv);
 
                                     // Replies list
-                                    if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
-                                        const repliesCount = feedback.replies.length;
-                                        const repliesWrap = document.createElement("div");
-                                        repliesWrap.className = "view-replies-wrap feedback-replies-wrap mt-1";
-                                        const toggleBtn = document.createElement("button");
+                                    if (
+                                        Array.isArray(feedback.replies) &&
+                                        feedback.replies.length > 0
+                                    ) {
+                                        const repliesCount =
+                                            feedback.replies.length;
+                                        const repliesWrap =
+                                            document.createElement("div");
+                                        repliesWrap.className =
+                                            "view-replies-wrap feedback-replies-wrap mt-1";
+                                        const toggleBtn =
+                                            document.createElement("button");
                                         toggleBtn.type = "button";
-                                        toggleBtn.className = "btn btn-link p-0 view-replies-toggle feedback-toggle-replies";
-                                        toggleBtn.style.cssText = "font-size: 13px; color:#555; text-decoration: none;";
+                                        toggleBtn.className =
+                                            "btn btn-link p-0 view-replies-toggle feedback-toggle-replies";
+                                        toggleBtn.style.cssText =
+                                            "font-size: 13px; color:#555; text-decoration: none;";
                                         toggleBtn.textContent = `View all replies (${repliesCount})`;
-                                        const repliesContainer = document.createElement("div");
-                                        repliesContainer.className = "feedback-replies d-none";
+                                        const repliesContainer =
+                                            document.createElement("div");
+                                        repliesContainer.className =
+                                            "feedback-replies d-none";
 
                                         feedback.replies.forEach((rep) => {
                                             const repEmp = rep.employee || {};
-                                            const repDiv = document.createElement("div");
-                                            repDiv.className = "feedback-reply ms-4 mt-2 p-2 rounded";
+                                            const repDiv =
+                                                document.createElement("div");
+                                            repDiv.className =
+                                                "feedback-reply ms-4 mt-2 p-2 rounded";
                                             if (rep && rep.id != null) {
-                                                repDiv.setAttribute('data-reply-id', String(rep.id));
-                                                if (feedback && feedback.id != null) {
-                                                    repDiv.setAttribute('data-parent-id', String(feedback.id));
+                                                repDiv.setAttribute(
+                                                    "data-reply-id",
+                                                    String(rep.id)
+                                                );
+                                                if (
+                                                    feedback &&
+                                                    feedback.id != null
+                                                ) {
+                                                    repDiv.setAttribute(
+                                                        "data-parent-id",
+                                                        String(feedback.id)
+                                                    );
                                                 }
                                             }
                                             repDiv.style.background = "#fafafa";
 
-                                            const repHeader = document.createElement("div");
-                                            repHeader.className = "d-flex align-items-center mb-1";
-                                            const repImg = document.createElement("img");
-                                            (function(){
-                                                const raw = repEmp.user_photo || repEmp.profile_picture || repEmp.photo || "";
-                                                let url = appUrl + '/asset/img/avatar.png';
+                                            const repHeader =
+                                                document.createElement("div");
+                                            repHeader.className =
+                                                "d-flex align-items-center mb-1";
+                                            const repImg =
+                                                document.createElement("img");
+                                            (function () {
+                                                const raw =
+                                                    repEmp.user_photo ||
+                                                    repEmp.profile_picture ||
+                                                    repEmp.photo ||
+                                                    "";
+                                                let url =
+                                                    appUrl +
+                                                    "/asset/img/avatar.png";
                                                 if (raw) {
-                                                    if (String(raw).startsWith('http')) url = raw;
-                                                    else if (String(raw).startsWith('/')) url = appUrl + raw;
-                                                    else if (String(raw).indexOf('/') !== -1) url = appUrl + '/' + raw;
-                                                    else url = appUrl + '/file/profile_picture/' + raw;
+                                                    if (
+                                                        String(raw).startsWith(
+                                                            "http"
+                                                        )
+                                                    )
+                                                        url = raw;
+                                                    else if (
+                                                        String(raw).startsWith(
+                                                            "/"
+                                                        )
+                                                    )
+                                                        url = appUrl + raw;
+                                                    else if (
+                                                        String(raw).indexOf(
+                                                            "/"
+                                                        ) !== -1
+                                                    )
+                                                        url =
+                                                            appUrl + "/" + raw;
+                                                    else
+                                                        url =
+                                                            appUrl +
+                                                            "/file/profile_picture/" +
+                                                            raw;
                                                 }
                                                 repImg.src = url;
                                             })();
-                                            repImg.alt = repEmp.name || 'Employee';
-                                            repImg.className = 'rounded-circle me-2';
-                                            repImg.style.width = '24px';
-                                            repImg.style.height = '24px';
-                                            repImg.style.objectFit = 'cover';
-                                            const repInfo = document.createElement('div');
-                                            const repNameRow = document.createElement('div');
-                                            repNameRow.className = 'd-flex align-items-center';
-                                            const repName = document.createElement('strong');
-                                            repName.style.fontSize = '13px';
-                                            repName.textContent = repEmp.name || 'Unknown';
+                                            repImg.alt =
+                                                repEmp.name || "Employee";
+                                            repImg.className =
+                                                "rounded-circle me-2";
+                                            repImg.style.width = "24px";
+                                            repImg.style.height = "24px";
+                                            repImg.style.objectFit = "cover";
+                                            const repInfo =
+                                                document.createElement("div");
+                                            const repNameRow =
+                                                document.createElement("div");
+                                            repNameRow.className =
+                                                "d-flex align-items-center";
+                                            const repName =
+                                                document.createElement(
+                                                    "strong"
+                                                );
+                                            repName.style.fontSize = "13px";
+                                            repName.textContent =
+                                                repEmp.name || "Unknown";
                                             repNameRow.appendChild(repName);
-                                            const canEditReply = String((rep.employee_id != null ? rep.employee_id : (repEmp.id || 0))) === String(currentEmployeeIdTop);
+                                            const canEditReply =
+                                                String(
+                                                    rep.employee_id != null
+                                                        ? rep.employee_id
+                                                        : repEmp.id || 0
+                                                ) ===
+                                                String(currentEmployeeIdTop);
                                             if (canEditReply) {
-                                                const rEdit = document.createElement('span');
-                                                rEdit.className = 'material-symbols-outlined icon ms-2';
-                                                rEdit.style.cssText = 'cursor:pointer; font-size:16px; line-height:1; color:#555;';
-                                                rEdit.textContent = 'edit';
-                                                rEdit.addEventListener('click', function(){
-                                                    const payload = {
-                                                        id: rep.id,
-                                                        parent_id: feedback.id,
-                                                        feedback_comment: rep.feedback_comment || '',
-                                                        reference_url: rep.reference_url || '',
-                                                        reference_urls: rep.reference_urls || [],
-                                                        reference_file_url: rep.reference_file || '',
-                                                        reference_files_urls: (function(){
-                                                            let files = [];
-                                                            let rf = rep.reference_files;
-                                                            if (!Array.isArray(rf) && typeof rf === 'string') {
-                                                                try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
-                                                            }
-                                                            if (Array.isArray(rf) && rf.length) {
-                                                                files = rf.map(function(f){
-                                                                    if (!f) return null;
-                                                                    const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
-                                                                    const isPath = typeof f === 'string' && (f.startsWith('/file/project/') || f.startsWith('file/project/'));
-                                                                    if (!isAbs && !isPath) return appUrl + '/file/project/' + f;
-                                                                    if (!isAbs && isPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
-                                                                    return f;
-                                                                }).filter(Boolean);
-                                                            } else if (rep.reference_file) {
-                                                                let single = rep.reference_file;
-                                                                const isAbs2 = typeof single === 'string' && (single.startsWith('http://') || single.startsWith('https://'));
-                                                                const isPath2 = typeof single === 'string' && (single.startsWith('/file/project/') || single.startsWith('file/project/'));
-                                                                if (!isAbs2 && !isPath2) single = appUrl + '/file/project/' + single;
-                                                                else if (!isAbs2 && isPath2) single = single.startsWith('/') ? (appUrl + single) : (appUrl + '/' + single);
-                                                                files = [single];
-                                                            }
-                                                            return files;
-                                                        })(),
-                                                        image_url: (function(){
-                                                            const img = rep.image || '';
-                                                            if (!img) return '';
-                                                            if (String(img).startsWith('http')) return img;
-                                                            if (String(img).startsWith('/')) return appUrl + img;
-                                                            return appUrl + '/file/project/' + img;
-                                                        })(),
-                                                    };
-                                                    showEditFeedbackForm(projectId, payload, true);
-                                                });
+                                                const rEdit =
+                                                    document.createElement(
+                                                        "span"
+                                                    );
+                                                rEdit.className =
+                                                    "material-symbols-outlined icon ms-2";
+                                                rEdit.style.cssText =
+                                                    "cursor:pointer; font-size:16px; line-height:1; color:#555;";
+                                                rEdit.textContent = "edit";
+                                                rEdit.addEventListener(
+                                                    "click",
+                                                    function () {
+                                                        const payload = {
+                                                            id: rep.id,
+                                                            parent_id:
+                                                                feedback.id,
+                                                            feedback_comment:
+                                                                rep.feedback_comment ||
+                                                                "",
+                                                            reference_url:
+                                                                rep.reference_url ||
+                                                                "",
+                                                            reference_urls:
+                                                                rep.reference_urls ||
+                                                                [],
+                                                            reference_file_url:
+                                                                rep.reference_file ||
+                                                                "",
+                                                            reference_files_urls:
+                                                                (function () {
+                                                                    let files =
+                                                                        [];
+                                                                    let rf =
+                                                                        rep.reference_files;
+                                                                    if (
+                                                                        !Array.isArray(
+                                                                            rf
+                                                                        ) &&
+                                                                        typeof rf ===
+                                                                            "string"
+                                                                    ) {
+                                                                        try {
+                                                                            const arr =
+                                                                                JSON.parse(
+                                                                                    rf
+                                                                                );
+                                                                            if (
+                                                                                Array.isArray(
+                                                                                    arr
+                                                                                )
+                                                                            )
+                                                                                rf =
+                                                                                    arr;
+                                                                        } catch (_) {}
+                                                                    }
+                                                                    if (
+                                                                        Array.isArray(
+                                                                            rf
+                                                                        ) &&
+                                                                        rf.length
+                                                                    ) {
+                                                                        files =
+                                                                            rf
+                                                                                .map(
+                                                                                    function (
+                                                                                        f
+                                                                                    ) {
+                                                                                        if (
+                                                                                            !f
+                                                                                        )
+                                                                                            return null;
+                                                                                        const isAbs =
+                                                                                            typeof f ===
+                                                                                                "string" &&
+                                                                                            (f.startsWith(
+                                                                                                "http://"
+                                                                                            ) ||
+                                                                                                f.startsWith(
+                                                                                                    "https://"
+                                                                                                ));
+                                                                                        const isPath =
+                                                                                            typeof f ===
+                                                                                                "string" &&
+                                                                                            (f.startsWith(
+                                                                                                "/file/project/"
+                                                                                            ) ||
+                                                                                                f.startsWith(
+                                                                                                    "file/project/"
+                                                                                                ));
+                                                                                        if (
+                                                                                            !isAbs &&
+                                                                                            !isPath
+                                                                                        )
+                                                                                            return (
+                                                                                                appUrl +
+                                                                                                "/file/project/" +
+                                                                                                f
+                                                                                            );
+                                                                                        if (
+                                                                                            !isAbs &&
+                                                                                            isPath
+                                                                                        )
+                                                                                            return f.startsWith(
+                                                                                                "/"
+                                                                                            )
+                                                                                                ? appUrl +
+                                                                                                      f
+                                                                                                : appUrl +
+                                                                                                      "/" +
+                                                                                                      f;
+                                                                                        return f;
+                                                                                    }
+                                                                                )
+                                                                                .filter(
+                                                                                    Boolean
+                                                                                );
+                                                                    } else if (
+                                                                        rep.reference_file
+                                                                    ) {
+                                                                        let single =
+                                                                            rep.reference_file;
+                                                                        const isAbs2 =
+                                                                            typeof single ===
+                                                                                "string" &&
+                                                                            (single.startsWith(
+                                                                                "http://"
+                                                                            ) ||
+                                                                                single.startsWith(
+                                                                                    "https://"
+                                                                                ));
+                                                                        const isPath2 =
+                                                                            typeof single ===
+                                                                                "string" &&
+                                                                            (single.startsWith(
+                                                                                "/file/project/"
+                                                                            ) ||
+                                                                                single.startsWith(
+                                                                                    "file/project/"
+                                                                                ));
+                                                                        if (
+                                                                            !isAbs2 &&
+                                                                            !isPath2
+                                                                        )
+                                                                            single =
+                                                                                appUrl +
+                                                                                "/file/project/" +
+                                                                                single;
+                                                                        else if (
+                                                                            !isAbs2 &&
+                                                                            isPath2
+                                                                        )
+                                                                            single =
+                                                                                single.startsWith(
+                                                                                    "/"
+                                                                                )
+                                                                                    ? appUrl +
+                                                                                      single
+                                                                                    : appUrl +
+                                                                                      "/" +
+                                                                                      single;
+                                                                        files =
+                                                                            [
+                                                                                single,
+                                                                            ];
+                                                                    }
+                                                                    return files;
+                                                                })(),
+                                                            image_url:
+                                                                (function () {
+                                                                    const img =
+                                                                        rep.image ||
+                                                                        "";
+                                                                    if (!img)
+                                                                        return "";
+                                                                    if (
+                                                                        String(
+                                                                            img
+                                                                        ).startsWith(
+                                                                            "http"
+                                                                        )
+                                                                    )
+                                                                        return img;
+                                                                    if (
+                                                                        String(
+                                                                            img
+                                                                        ).startsWith(
+                                                                            "/"
+                                                                        )
+                                                                    )
+                                                                        return (
+                                                                            appUrl +
+                                                                            img
+                                                                        );
+                                                                    return (
+                                                                        appUrl +
+                                                                        "/file/project/" +
+                                                                        img
+                                                                    );
+                                                                })(),
+                                                        };
+                                                        showEditFeedbackForm(
+                                                            projectId,
+                                                            payload,
+                                                            true
+                                                        );
+                                                    }
+                                                );
                                                 repNameRow.appendChild(rEdit);
                                             }
                                             repInfo.appendChild(repNameRow);
-                                            const repTime = document.createElement('small');
-                                            repTime.className = 'text-muted d-block';
-                                            repTime.style.fontSize = '11px';
+                                            const repTime =
+                                                document.createElement("small");
+                                            repTime.className =
+                                                "text-muted d-block";
+                                            repTime.style.fontSize = "11px";
                                             if (rep.created_at) {
-                                                const d = new Date(rep.created_at);
-                                                repTime.textContent = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                                                const d = new Date(
+                                                    rep.created_at
+                                                );
+                                                repTime.textContent =
+                                                    d.toLocaleTimeString(
+                                                        undefined,
+                                                        {
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                        }
+                                                    );
                                             }
                                             repInfo.appendChild(repTime);
                                             repHeader.appendChild(repImg);
                                             repHeader.appendChild(repInfo);
 
-                                            const repComment = document.createElement('p');
-                                            repComment.className = 'mb-1';
-                                            repComment.style.fontSize = '13px';
-                                            repComment.textContent = rep.feedback_comment || '';
+                                            const repComment =
+                                                document.createElement("p");
+                                            repComment.className = "mb-1";
+                                            repComment.style.fontSize = "13px";
+                                            repComment.textContent =
+                                                rep.feedback_comment || "";
 
-                                            const repMedia = document.createElement('div');
-                                            repMedia.className = 'feedback-reference-container mb-1';
+                                            const repMedia =
+                                                document.createElement("div");
+                                            repMedia.className =
+                                                "feedback-reference-container mb-1";
                                             // Render one or multiple reference URLs in reply
-                                            (function(){
+                                            (function () {
                                                 let urls = [];
-                                                if (Array.isArray(rep.reference_urls)) urls = rep.reference_urls;
-                                                else if (rep.reference_urls && typeof rep.reference_urls === 'string') {
-                                                    try { const arr = JSON.parse(rep.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                                                if (
+                                                    Array.isArray(
+                                                        rep.reference_urls
+                                                    )
+                                                )
+                                                    urls = rep.reference_urls;
+                                                else if (
+                                                    rep.reference_urls &&
+                                                    typeof rep.reference_urls ===
+                                                        "string"
+                                                ) {
+                                                    try {
+                                                        const arr = JSON.parse(
+                                                            rep.reference_urls
+                                                        );
+                                                        if (Array.isArray(arr))
+                                                            urls = arr;
+                                                    } catch (_) {}
                                                 }
-                                                if ((!urls || urls.length === 0) && rep.reference_url) urls = [rep.reference_url];
+                                                if (
+                                                    (!urls ||
+                                                        urls.length === 0) &&
+                                                    rep.reference_url
+                                                )
+                                                    urls = [rep.reference_url];
                                                 urls.forEach((u, idx) => {
-                                                    const a = document.createElement('a');
-                                                    a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
-                                                    a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                    const a =
+                                                        document.createElement(
+                                                            "a"
+                                                        );
+                                                    a.href = u;
+                                                    a.target = "_blank";
+                                                    a.className =
+                                                        "feedback-reference-url me-2";
+                                                    a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${
+                                                        idx + 1
+                                                    }`;
                                                     repMedia.appendChild(a);
                                                 });
                                             })();
-                                            (function(){
+                                            (function () {
                                                 let files = [];
                                                 let rf = rep.reference_files;
-                                                if (!Array.isArray(rf) && typeof rf === 'string') {
-                                                    try { const arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch(_) {}
+                                                if (
+                                                    !Array.isArray(rf) &&
+                                                    typeof rf === "string"
+                                                ) {
+                                                    try {
+                                                        const arr =
+                                                            JSON.parse(rf);
+                                                        if (Array.isArray(arr))
+                                                            rf = arr;
+                                                    } catch (_) {}
                                                 }
-                                                if (Array.isArray(rf) && rf.length) files = rf; else if (rep.reference_file) files = [rep.reference_file];
-                                                (files || []).forEach(function(file, idx){
+                                                if (
+                                                    Array.isArray(rf) &&
+                                                    rf.length
+                                                )
+                                                    files = rf;
+                                                else if (rep.reference_file)
+                                                    files = [
+                                                        rep.reference_file,
+                                                    ];
+                                                (files || []).forEach(function (
+                                                    file,
+                                                    idx
+                                                ) {
                                                     if (!file) return;
                                                     let href = file;
-                                                    if (href && !(String(href).startsWith('http') || String(href).startsWith('/'))) {
-                                                        href = appUrl + '/file/project/' + href;
-                                                    } else if (href && String(href).startsWith('/')) {
+                                                    if (
+                                                        href &&
+                                                        !(
+                                                            String(
+                                                                href
+                                                            ).startsWith(
+                                                                "http"
+                                                            ) ||
+                                                            String(
+                                                                href
+                                                            ).startsWith("/")
+                                                        )
+                                                    ) {
+                                                        href =
+                                                            appUrl +
+                                                            "/file/project/" +
+                                                            href;
+                                                    } else if (
+                                                        href &&
+                                                        String(href).startsWith(
+                                                            "/"
+                                                        )
+                                                    ) {
                                                         href = appUrl + href;
                                                     }
-                                                    const a2 = document.createElement('a');
+                                                    const a2 =
+                                                        document.createElement(
+                                                            "a"
+                                                        );
                                                     a2.href = href;
-                                                    a2.download = '';
-                                                    a2.className = 'feedback-reference-file ms-2';
-                                                    a2.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}`;
+                                                    a2.download = "";
+                                                    a2.className =
+                                                        "feedback-reference-file ms-2";
+                                                    a2.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${
+                                                        idx + 1
+                                                    }`;
                                                     repMedia.appendChild(a2);
                                                 });
                                             })();
                                             // Prepare reply image element but append later (below comment and references) like Task
                                             let rImg = null;
                                             if (rep.image) {
-                                                rImg = document.createElement('img');
+                                                rImg =
+                                                    document.createElement(
+                                                        "img"
+                                                    );
                                                 let rsrc = rep.image;
-                                                if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) {
-                                                    rsrc = appUrl + '/file/project/' + rsrc;
-                                                } else if (rsrc && String(rsrc).startsWith('/')) {
+                                                if (
+                                                    rsrc &&
+                                                    !(
+                                                        String(rsrc).startsWith(
+                                                            "http"
+                                                        ) ||
+                                                        String(rsrc).startsWith(
+                                                            "/"
+                                                        )
+                                                    )
+                                                ) {
+                                                    rsrc =
+                                                        appUrl +
+                                                        "/file/project/" +
+                                                        rsrc;
+                                                } else if (
+                                                    rsrc &&
+                                                    String(rsrc).startsWith("/")
+                                                ) {
                                                     rsrc = appUrl + rsrc;
                                                 }
                                                 rImg.src = rsrc;
-                                                rImg.className = 'img-fluid rounded reply-image mt-1';
-                                                rImg.style.width = '70px';
-                                                rImg.style.borderRadius = '8px';
-                                                rImg.style.cursor = 'pointer';
-                                                rImg.addEventListener('click', () => window.open(rImg.src, '_blank'));
+                                                rImg.className =
+                                                    "img-fluid rounded reply-image mt-1";
+                                                rImg.style.width = "70px";
+                                                rImg.style.borderRadius = "8px";
+                                                rImg.style.cursor = "pointer";
+                                                rImg.addEventListener(
+                                                    "click",
+                                                    () =>
+                                                        window.open(
+                                                            rImg.src,
+                                                            "_blank"
+                                                        )
+                                                );
                                             }
 
                                             repDiv.appendChild(repHeader);
                                             repDiv.appendChild(repComment);
-                                            if ((rep.reference_url || (Array.isArray(rep.reference_urls) && rep.reference_urls.length) || rep.reference_file || (Array.isArray(rep.reference_files) && rep.reference_files.length))) repDiv.appendChild(repMedia);
+                                            if (
+                                                rep.reference_url ||
+                                                (Array.isArray(
+                                                    rep.reference_urls
+                                                ) &&
+                                                    rep.reference_urls
+                                                        .length) ||
+                                                rep.reference_file ||
+                                                (Array.isArray(
+                                                    rep.reference_files
+                                                ) &&
+                                                    rep.reference_files.length)
+                                            )
+                                                repDiv.appendChild(repMedia);
                                             if (rImg) repDiv.appendChild(rImg);
-                                            repliesContainer.appendChild(repDiv);
+                                            repliesContainer.appendChild(
+                                                repDiv
+                                            );
                                         });
 
                                         repliesWrap.appendChild(toggleBtn);
-                                        repliesWrap.appendChild(repliesContainer);
+                                        repliesWrap.appendChild(
+                                            repliesContainer
+                                        );
                                         feedbackItem.appendChild(repliesWrap);
 
-                                        toggleBtn.addEventListener('click', function () {
-                                            const hidden = repliesContainer.classList.contains('d-none');
-                                            if (hidden) {
-            repliesContainer.classList.remove('d-none');
-            this.textContent = 'Hide replies';
-                                            } else {
-            repliesContainer.classList.add('d-none');
-            this.textContent = `View all replies (${repliesCount})`;
+                                        toggleBtn.addEventListener(
+                                            "click",
+                                            function () {
+                                                const hidden =
+                                                    repliesContainer.classList.contains(
+                                                        "d-none"
+                                                    );
+                                                if (hidden) {
+                                                    repliesContainer.classList.remove(
+                                                        "d-none"
+                                                    );
+                                                    this.textContent =
+                                                        "Hide replies";
+                                                } else {
+                                                    repliesContainer.classList.add(
+                                                        "d-none"
+                                                    );
+                                                    this.textContent = `View all replies (${repliesCount})`;
+                                                }
+                                                this.style.textDecoration =
+                                                    "none";
+                                                this.style.color = "#555";
                                             }
-                                            this.style.textDecoration = 'none';
-                                            this.style.color = '#555';
-                                        });
+                                        );
                                     }
 
                                     modalBody.appendChild(feedbackItem);
@@ -2293,46 +3565,111 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 // After render: auto-scroll to target reply/feedback (if any)
                                 try {
                                     const pidKey = String(projectId);
-                                    const target = (window.__projectLatestTarget && window.__projectLatestTarget[pidKey]) || null;
+                                    const target =
+                                        (window.__projectLatestTarget &&
+                                            window.__projectLatestTarget[
+                                                pidKey
+                                            ]) ||
+                                        null;
                                     if (target) {
                                         // consume it so it won't trigger next time
-                                        delete window.__projectLatestTarget[pidKey];
-                                        const isReply = target.parent_id != null && target.parent_id !== '';
+                                        delete window.__projectLatestTarget[
+                                            pidKey
+                                        ];
+                                        const isReply =
+                                            target.parent_id != null &&
+                                            target.parent_id !== "";
                                         if (isReply) {
-                                            const parentEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.parent_id}"]`);
+                                            const parentEl =
+                                                modalBody.querySelector(
+                                                    `.feedback-item[data-feedback-id="${target.parent_id}"]`
+                                                );
                                             if (parentEl) {
-                                                const container = parentEl.querySelector('.feedback-replies');
-                                                const toggle = parentEl.querySelector('.feedback-toggle-replies');
-                                                if (container && container.classList.contains('d-none')) {
-                                                    if (toggle) { try { toggle.click(); } catch(_) { container.classList.remove('d-none'); } }
-                                                    else { container.classList.remove('d-none'); }
+                                                const container =
+                                                    parentEl.querySelector(
+                                                        ".feedback-replies"
+                                                    );
+                                                const toggle =
+                                                    parentEl.querySelector(
+                                                        ".feedback-toggle-replies"
+                                                    );
+                                                if (
+                                                    container &&
+                                                    container.classList.contains(
+                                                        "d-none"
+                                                    )
+                                                ) {
+                                                    if (toggle) {
+                                                        try {
+                                                            toggle.click();
+                                                        } catch (_) {
+                                                            container.classList.remove(
+                                                                "d-none"
+                                                            );
+                                                        }
+                                                    } else {
+                                                        container.classList.remove(
+                                                            "d-none"
+                                                        );
+                                                    }
                                                 }
-                                                const replyEl = parentEl.querySelector(`.feedback-reply[data-reply-id="${target.id}"]`);
+                                                const replyEl =
+                                                    parentEl.querySelector(
+                                                        `.feedback-reply[data-reply-id="${target.id}"]`
+                                                    );
                                                 if (replyEl) {
-                                                    replyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                    const oldBg = replyEl.style.backgroundColor;
-                                                    replyEl.style.transition = 'background-color 0.6s ease';
-                                                    replyEl.style.backgroundColor = '#fff9c4';
-                                                    setTimeout(() => { replyEl.style.backgroundColor = oldBg || ''; }, 1200);
+                                                    replyEl.scrollIntoView({
+                                                        behavior: "smooth",
+                                                        block: "center",
+                                                    });
+                                                    const oldBg =
+                                                        replyEl.style
+                                                            .backgroundColor;
+                                                    replyEl.style.transition =
+                                                        "background-color 0.6s ease";
+                                                    replyEl.style.backgroundColor =
+                                                        "#fff9c4";
+                                                    setTimeout(() => {
+                                                        replyEl.style.backgroundColor =
+                                                            oldBg || "";
+                                                    }, 1200);
                                                 }
                                             }
                                         } else {
-                                            const topEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.id}"]`);
+                                            const topEl =
+                                                modalBody.querySelector(
+                                                    `.feedback-item[data-feedback-id="${target.id}"]`
+                                                );
                                             if (topEl) {
-                                                topEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                const oldBg = topEl.style.backgroundColor;
-                                                topEl.style.transition = 'background-color 0.6s ease';
-                                                topEl.style.backgroundColor = '#fff9c4';
-                                                setTimeout(() => { topEl.style.backgroundColor = oldBg || ''; }, 1200);
+                                                topEl.scrollIntoView({
+                                                    behavior: "smooth",
+                                                    block: "center",
+                                                });
+                                                const oldBg =
+                                                    topEl.style.backgroundColor;
+                                                topEl.style.transition =
+                                                    "background-color 0.6s ease";
+                                                topEl.style.backgroundColor =
+                                                    "#fff9c4";
+                                                setTimeout(() => {
+                                                    topEl.style.backgroundColor =
+                                                        oldBg || "";
+                                                }, 1200);
                                             }
                                         }
                                     }
-                                } catch (_) { /* noop */ }
+                                } catch (_) {
+                                    /* noop */
+                                }
                             })
                             .catch((error) => {
                                 modalBody.innerHTML =
                                     '<div class="text-center text-muted">Failed to load feedback data.</div>';
-                                showFloatingAlert("Error loading feedback data. Please try again.", 'warning', 3500);
+                                showFloatingAlert(
+                                    "Error loading feedback data. Please try again.",
+                                    "warning",
+                                    3500
+                                );
                                 console.error(
                                     "Error fetching feedback data:",
                                     error
@@ -2348,7 +3685,9 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             <form id="addFeedbackForm" enctype="multipart/form-data">
                                 <input type="hidden" name="project_id" value="${projectId}">
                                 <input type="hidden" name="employee_id" value="${
-                                    projectFeedbackModalEl.getAttribute("data-employee-id") || ""
+                                    projectFeedbackModalEl.getAttribute(
+                                        "data-employee-id"
+                                    ) || ""
                                 }">
                                 <input type="hidden" name="parent_id" value="">
                                     <div class="mb-3">
@@ -2426,45 +3765,87 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         });
 
                         // Setup multi-file preview for Add Feedback reference files
-                        (function(){
+                        (function () {
                             try {
                                 window.addFeedbackSelectedFiles = [];
-                                const input = modalBody.querySelector('#feedback_reference_files');
-                                const preview = modalBody.querySelector('#feedback_reference_files_preview');
+                                const input = modalBody.querySelector(
+                                    "#feedback_reference_files"
+                                );
+                                const preview = modalBody.querySelector(
+                                    "#feedback_reference_files_preview"
+                                );
                                 if (!input || !preview) return;
                                 function render() {
-                                    preview.innerHTML = '';
-                                    if (!window.addFeedbackSelectedFiles.length) return;
-                                    const list = document.createElement('div');
-                                    list.className = 'selected-files-list mt-2';
-                                    window.addFeedbackSelectedFiles.forEach(function(file, idx){
-                                        const item = document.createElement('div');
-                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
-                                        const info = document.createElement('div');
-                                        info.className = 'd-flex align-items-center flex-grow-1';
-                                        const icon = document.createElement('span');
-                                        icon.className = 'material-symbols-outlined me-2';
-                                        icon.textContent = 'description';
-                                        const name = document.createElement('span');
-                                        name.textContent = file.name;
-                                        name.className = 'file-name';
-                                        const size = document.createElement('small');
-                                        size.className = 'text-muted ms-1';
-                                        size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
-                                        const rm = document.createElement('button');
-                                        rm.type = 'button'; rm.className = 'btn btn-sm btn-outline-danger'; rm.innerHTML = '&times;';
-                                        rm.onclick = function(){ window.addFeedbackSelectedFiles.splice(idx,1); render(); };
-                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size);
-                                        item.appendChild(info); item.appendChild(rm); list.appendChild(item);
-                                    });
+                                    preview.innerHTML = "";
+                                    if (!window.addFeedbackSelectedFiles.length)
+                                        return;
+                                    const list = document.createElement("div");
+                                    list.className = "selected-files-list mt-2";
+                                    window.addFeedbackSelectedFiles.forEach(
+                                        function (file, idx) {
+                                            const item =
+                                                document.createElement("div");
+                                            item.className =
+                                                "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                            const info =
+                                                document.createElement("div");
+                                            info.className =
+                                                "d-flex align-items-center flex-grow-1";
+                                            const icon =
+                                                document.createElement("span");
+                                            icon.className =
+                                                "material-symbols-outlined me-2";
+                                            icon.textContent = "description";
+                                            const name =
+                                                document.createElement("span");
+                                            name.textContent = file.name;
+                                            name.className = "file-name";
+                                            const size =
+                                                document.createElement("small");
+                                            size.className = "text-muted ms-1";
+                                            size.textContent =
+                                                " (" +
+                                                (
+                                                    file.size /
+                                                    1024 /
+                                                    1024
+                                                ).toFixed(2) +
+                                                " MB)";
+                                            const rm =
+                                                document.createElement(
+                                                    "button"
+                                                );
+                                            rm.type = "button";
+                                            rm.className =
+                                                "btn btn-sm btn-outline-danger";
+                                            rm.innerHTML = "&times;";
+                                            rm.onclick = function () {
+                                                window.addFeedbackSelectedFiles.splice(
+                                                    idx,
+                                                    1
+                                                );
+                                                render();
+                                            };
+                                            info.appendChild(icon);
+                                            info.appendChild(name);
+                                            info.appendChild(size);
+                                            item.appendChild(info);
+                                            item.appendChild(rm);
+                                            list.appendChild(item);
+                                        }
+                                    );
                                     preview.appendChild(list);
                                 }
-                                input.addEventListener('change', function(){
+                                input.addEventListener("change", function () {
                                     const files = Array.from(this.files || []);
-                                    window.addFeedbackSelectedFiles = window.addFeedbackSelectedFiles.concat(files);
-                                    render(); this.value = '';
+                                    window.addFeedbackSelectedFiles =
+                                        window.addFeedbackSelectedFiles.concat(
+                                            files
+                                        );
+                                    render();
+                                    this.value = "";
                                 });
-                            } catch(_) {}
+                            } catch (_) {}
                         })();
 
                         // Change Add Feedback button text to Submit
@@ -2486,46 +3867,58 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             }
                         });
                         // Arrange Close & Submit buttons side-by-side like Accept/Reject task buttons
-                        (function(){
+                        (function () {
                             try {
-                                const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
-                                if(!footer) return;
-                                const submitBtnRef = document.getElementById('addFeedbackButton');
-                                if(!submitBtnRef) return;
+                                const footer =
+                                    projectFeedbackModalEl.querySelector(
+                                        ".feedback-modal-footer"
+                                    );
+                                if (!footer) return;
+                                const submitBtnRef =
+                                    document.getElementById(
+                                        "addFeedbackButton"
+                                    );
+                                if (!submitBtnRef) return;
                                 // Remove full-width styling
-                                submitBtnRef.classList.remove('w-100');
-                                submitBtnRef.style.flex = '1 1 0';
-                                submitBtnRef.style.padding = '8px 12px';
-                                submitBtnRef.style.fontSize = '12px';
+                                submitBtnRef.classList.remove("w-100");
+                                submitBtnRef.style.flex = "1 1 0";
+                                submitBtnRef.style.padding = "8px 12px";
+                                submitBtnRef.style.fontSize = "12px";
 
                                 // Cleanup old wrapper if any
-                                const oldWrapper = footer.querySelector('#feedbackFormButtonsWrapper');
+                                const oldWrapper = footer.querySelector(
+                                    "#feedbackFormButtonsWrapper"
+                                );
                                 if (oldWrapper) oldWrapper.remove();
 
                                 // Create wrapper
-                                const wrap = document.createElement('div');
-                                wrap.id = 'feedbackFormButtonsWrapper';
-                                wrap.className = 'd-flex align-items-center w-100 justify-content-between gap-1';
+                                const wrap = document.createElement("div");
+                                wrap.id = "feedbackFormButtonsWrapper";
+                                wrap.className =
+                                    "d-flex align-items-center w-100 justify-content-between gap-1";
 
                                 // Create Close button
-                                const closeBtn = document.createElement('button');
-                                closeBtn.id = 'replyCloseButton';
-                                closeBtn.type = 'button';
-                                closeBtn.className = 'btn btn-close-reply';
-                                closeBtn.textContent = 'Close';
-                                closeBtn.style.flex = '1 1 0';
-                                closeBtn.style.padding = '8px 12px';
-                                closeBtn.style.fontSize = '12px';
-                                closeBtn.addEventListener('click', function(){
+                                const closeBtn =
+                                    document.createElement("button");
+                                closeBtn.id = "replyCloseButton";
+                                closeBtn.type = "button";
+                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.textContent = "Close";
+                                closeBtn.style.flex = "1 1 0";
+                                closeBtn.style.padding = "8px 12px";
+                                closeBtn.style.fontSize = "12px";
+                                closeBtn.addEventListener("click", function () {
                                     loadFeedbackData(projectId);
                                 });
 
                                 // Insert elements
                                 wrap.appendChild(closeBtn);
                                 wrap.appendChild(submitBtnRef);
-                                footer.innerHTML = ''; // clear footer then add wrapper
+                                footer.innerHTML = ""; // clear footer then add wrapper
                                 footer.appendChild(wrap);
-                            } catch(_) { /* noop */ }
+                            } catch (_) {
+                                /* noop */
+                            }
                         })();
                     }
 
@@ -2542,22 +3935,40 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         const formData = new FormData(form);
                         // Map first non-empty reference_urls[] to single reference_url for backend
                         try {
-                            const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
-                            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
-                            if (urls.length) formData.set('reference_url', urls[0]);
-                        } catch(_) {}
+                            const urlInputs = form.querySelectorAll(
+                                'input[name="reference_urls[]"]'
+                            );
+                            const urls = Array.from(urlInputs)
+                                .map((i) => (i.value || "").trim())
+                                .filter(Boolean);
+                            if (urls.length)
+                                formData.set("reference_url", urls[0]);
+                        } catch (_) {}
 
                         // Append selected reference files for add form
                         try {
-                            if (window.addFeedbackSelectedFiles && window.addFeedbackSelectedFiles.length) {
-                                window.addFeedbackSelectedFiles.forEach(f => formData.append('reference_files[]', f));
+                            if (
+                                window.addFeedbackSelectedFiles &&
+                                window.addFeedbackSelectedFiles.length
+                            ) {
+                                window.addFeedbackSelectedFiles.forEach((f) =>
+                                    formData.append("reference_files[]", f)
+                                );
                             } else {
-                                const rfInput = form.querySelector('#feedback_reference_files');
-                                if (rfInput && rfInput.files && rfInput.files.length) {
-                                    Array.from(rfInput.files).forEach(f => formData.append('reference_files[]', f));
+                                const rfInput = form.querySelector(
+                                    "#feedback_reference_files"
+                                );
+                                if (
+                                    rfInput &&
+                                    rfInput.files &&
+                                    rfInput.files.length
+                                ) {
+                                    Array.from(rfInput.files).forEach((f) =>
+                                        formData.append("reference_files[]", f)
+                                    );
                                 }
                             }
-                        } catch(_) {}
+                        } catch (_) {}
 
                         fetch(appUrl + "/project-feedbacks", {
                             method: "POST",
@@ -2579,18 +3990,27 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             .then((data) => {
                                 // Show success alert
                                 showFloatingAlert(
-                                    data.message || "Feedback submitted successfully!",
-                                    'success',
+                                    data.message ||
+                                        "Feedback submitted successfully!",
+                                    "success",
                                     1500
                                 );
 
                                 // Update feedback badge count immediately
-                                const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                                const card = document.querySelector(
+                                    `[data-project-id="${projectId}"]`
+                                );
                                 if (card) {
-                                    const feedbackBadge = card.querySelector('.project-feedback-count');
+                                    const feedbackBadge = card.querySelector(
+                                        ".project-feedback-count"
+                                    );
                                     if (feedbackBadge) {
-                                        const currentCount = parseInt(feedbackBadge.textContent) || 0;
-                                        feedbackBadge.textContent = currentCount + 1;
+                                        const currentCount =
+                                            parseInt(
+                                                feedbackBadge.textContent
+                                            ) || 0;
+                                        feedbackBadge.textContent =
+                                            currentCount + 1;
                                     }
                                 }
 
@@ -2602,14 +4022,25 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     form.reset();
 
                                     // Reset image preview
-                                    const imageLabel = form.querySelector('#feedbackImageLabel');
-                                    const imageClearBtn = form.querySelector('#feedbackImageClearBtn');
+                                    const imageLabel = form.querySelector(
+                                        "#feedbackImageLabel"
+                                    );
+                                    const imageClearBtn = form.querySelector(
+                                        "#feedbackImageClearBtn"
+                                    );
                                     if (imageLabel) {
-                                        imageLabel.style.backgroundImage = "url('" + appUrl + "/asset/img/background/add-image.png')";
-                                        imageLabel.style.backgroundPosition = "center center";
-                                        imageLabel.style.backgroundRepeat = "no-repeat";
+                                        imageLabel.style.backgroundImage =
+                                            "url('" +
+                                            appUrl +
+                                            "/asset/img/background/add-image.png')";
+                                        imageLabel.style.backgroundPosition =
+                                            "center center";
+                                        imageLabel.style.backgroundRepeat =
+                                            "no-repeat";
                                         imageLabel.style.backgroundSize = "50%";
-                                        imageLabel.classList.remove("has-image");
+                                        imageLabel.classList.remove(
+                                            "has-image"
+                                        );
                                         imageLabel.style.opacity = "0.5";
                                     }
                                     if (imageClearBtn) {
@@ -2628,7 +4059,11 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     errorMessage = error.message;
                                 }
 
-                                showFloatingAlert(errorMessage, 'warning', 4000);
+                                showFloatingAlert(
+                                    errorMessage,
+                                    "warning",
+                                    4000
+                                );
                             })
                             .finally(() => {
                                 // Reset tombol submit
@@ -2644,7 +4079,11 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         <form id="replyFeedbackForm" enctype="multipart/form-data">
                             <input type="hidden" name="project_id" value="${projectId}">
                             <input type="hidden" name="parent_id" value="${parentId}">
-                            <input type="hidden" name="employee_id" value="${projectFeedbackModalEl.getAttribute('data-employee-id') || ''}">
+                            <input type="hidden" name="employee_id" value="${
+                                projectFeedbackModalEl.getAttribute(
+                                    "data-employee-id"
+                                ) || ""
+                            }">
 
                             <div class="mb-3 input-custom">
                                 <label class="form-label">Upload Image</label>
@@ -2680,164 +4119,297 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         </form>`;
 
                         // Setup image preview and clear like Add Feedback
-                        (function() {
-                            const imageInput = modalBody.querySelector('#feedback_image');
-                            const imageLabel = modalBody.querySelector('#feedbackImageLabel');
-                            const imageClearBtn = modalBody.querySelector('#feedbackImageClearBtn');
-                            if (!imageInput || !imageLabel || !imageClearBtn) return;
-                            imageInput.addEventListener('change', function () {
+                        (function () {
+                            const imageInput =
+                                modalBody.querySelector("#feedback_image");
+                            const imageLabel = modalBody.querySelector(
+                                "#feedbackImageLabel"
+                            );
+                            const imageClearBtn = modalBody.querySelector(
+                                "#feedbackImageClearBtn"
+                            );
+                            if (!imageInput || !imageLabel || !imageClearBtn)
+                                return;
+                            imageInput.addEventListener("change", function () {
                                 if (this.files && this.files[0]) {
                                     const reader = new FileReader();
                                     reader.onload = function (e) {
                                         imageLabel.style.backgroundImage = `url('${e.target.result}')`;
-                                        imageLabel.classList.add('has-image');
-                                        imageLabel.style.backgroundSize = 'cover';
-                                        imageLabel.style.opacity = '1';
-                                        imageClearBtn.classList.remove('d-none');
+                                        imageLabel.classList.add("has-image");
+                                        imageLabel.style.backgroundSize =
+                                            "cover";
+                                        imageLabel.style.opacity = "1";
+                                        imageClearBtn.classList.remove(
+                                            "d-none"
+                                        );
                                     };
                                     reader.readAsDataURL(this.files[0]);
                                 }
                             });
-                            imageClearBtn.addEventListener('click', function (e) {
-                                e.preventDefault();
-                                imageInput.value = '';
-                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-                                imageLabel.style.backgroundPosition = 'center center';
-                                imageLabel.style.backgroundRepeat = 'no-repeat';
-                                imageLabel.style.backgroundSize = '50%';
-                                imageLabel.classList.remove('has-image');
-                                imageLabel.style.opacity = '0.5';
-                                imageClearBtn.classList.add('d-none');
-                            });
+                            imageClearBtn.addEventListener(
+                                "click",
+                                function (e) {
+                                    e.preventDefault();
+                                    imageInput.value = "";
+                                    imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                    imageLabel.style.backgroundPosition =
+                                        "center center";
+                                    imageLabel.style.backgroundRepeat =
+                                        "no-repeat";
+                                    imageLabel.style.backgroundSize = "50%";
+                                    imageLabel.classList.remove("has-image");
+                                    imageLabel.style.opacity = "0.5";
+                                    imageClearBtn.classList.add("d-none");
+                                }
+                            );
                         })();
 
                         // Setup multi-file preview for Reply reference files
-                        (function(){
+                        (function () {
                             try {
                                 window.replyFeedbackSelectedFiles = [];
-                                const input = modalBody.querySelector('#reply_reference_files');
-                                const preview = modalBody.querySelector('#reply_reference_files_preview');
+                                const input = modalBody.querySelector(
+                                    "#reply_reference_files"
+                                );
+                                const preview = modalBody.querySelector(
+                                    "#reply_reference_files_preview"
+                                );
                                 if (!input || !preview) return;
-                                function render(){
-                                    preview.innerHTML = '';
-                                    if (!window.replyFeedbackSelectedFiles.length) return;
-                                    const list = document.createElement('div');
-                                    list.className = 'selected-files-list mt-2';
-                                    window.replyFeedbackSelectedFiles.forEach(function(file, idx){
-                                        const item = document.createElement('div');
-                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
-                                        const info = document.createElement('div');
-                                        info.className = 'd-flex align-items-center flex-grow-1';
-                                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
-                                        const name = document.createElement('span'); name.className = 'file-name'; name.textContent = file.name;
-                                        const size = document.createElement('small'); size.className = 'text-muted ms-1'; size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
-                                        const rm = document.createElement('button'); rm.type='button'; rm.className='btn btn-sm btn-outline-danger'; rm.innerHTML='&times;'; rm.onclick=function(){ window.replyFeedbackSelectedFiles.splice(idx,1); render(); };
-                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
-                                    });
+                                function render() {
+                                    preview.innerHTML = "";
+                                    if (
+                                        !window.replyFeedbackSelectedFiles
+                                            .length
+                                    )
+                                        return;
+                                    const list = document.createElement("div");
+                                    list.className = "selected-files-list mt-2";
+                                    window.replyFeedbackSelectedFiles.forEach(
+                                        function (file, idx) {
+                                            const item =
+                                                document.createElement("div");
+                                            item.className =
+                                                "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                            const info =
+                                                document.createElement("div");
+                                            info.className =
+                                                "d-flex align-items-center flex-grow-1";
+                                            const icon =
+                                                document.createElement("span");
+                                            icon.className =
+                                                "material-symbols-outlined me-2";
+                                            icon.textContent = "description";
+                                            const name =
+                                                document.createElement("span");
+                                            name.className = "file-name";
+                                            name.textContent = file.name;
+                                            const size =
+                                                document.createElement("small");
+                                            size.className = "text-muted ms-1";
+                                            size.textContent =
+                                                " (" +
+                                                (
+                                                    file.size /
+                                                    1024 /
+                                                    1024
+                                                ).toFixed(2) +
+                                                " MB)";
+                                            const rm =
+                                                document.createElement(
+                                                    "button"
+                                                );
+                                            rm.type = "button";
+                                            rm.className =
+                                                "btn btn-sm btn-outline-danger";
+                                            rm.innerHTML = "&times;";
+                                            rm.onclick = function () {
+                                                window.replyFeedbackSelectedFiles.splice(
+                                                    idx,
+                                                    1
+                                                );
+                                                render();
+                                            };
+                                            info.appendChild(icon);
+                                            info.appendChild(name);
+                                            info.appendChild(size);
+                                            item.appendChild(info);
+                                            item.appendChild(rm);
+                                            list.appendChild(item);
+                                        }
+                                    );
                                     preview.appendChild(list);
                                 }
-                                input.addEventListener('change', function(){
+                                input.addEventListener("change", function () {
                                     const files = Array.from(this.files || []);
-                                    window.replyFeedbackSelectedFiles = window.replyFeedbackSelectedFiles.concat(files);
-                                    render(); this.value = '';
+                                    window.replyFeedbackSelectedFiles =
+                                        window.replyFeedbackSelectedFiles.concat(
+                                            files
+                                        );
+                                    render();
+                                    this.value = "";
                                 });
-                            } catch(_) {}
+                            } catch (_) {}
                         })();
 
-                        const addBtn = document.getElementById("addFeedbackButton");
+                        const addBtn =
+                            document.getElementById("addFeedbackButton");
                         if (addBtn) {
                             addBtn.textContent = "Submit";
                             const fresh = addBtn.cloneNode(true);
                             addBtn.parentNode.replaceChild(fresh, addBtn);
                             fresh.addEventListener("click", function (e) {
                                 e.preventDefault();
-                                const form = document.getElementById("replyFeedbackForm");
+                                const form =
+                                    document.getElementById(
+                                        "replyFeedbackForm"
+                                    );
                                 if (!form) return;
                                 const fd = new FormData(form);
                                 // Map first non-empty reference_urls[] to single reference_url for backend
                                 try {
-                                    const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
-                                    const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
-                                    if (urls.length) fd.set('reference_url', urls[0]);
-                                } catch(_) {}
+                                    const urlInputs = form.querySelectorAll(
+                                        'input[name="reference_urls[]"]'
+                                    );
+                                    const urls = Array.from(urlInputs)
+                                        .map((i) => (i.value || "").trim())
+                                        .filter(Boolean);
+                                    if (urls.length)
+                                        fd.set("reference_url", urls[0]);
+                                } catch (_) {}
                                 // Append selected reference files for reply form
                                 try {
-                                    if (window.replyFeedbackSelectedFiles && window.replyFeedbackSelectedFiles.length) {
-                                        window.replyFeedbackSelectedFiles.forEach(f => fd.append('reference_files[]', f));
+                                    if (
+                                        window.replyFeedbackSelectedFiles &&
+                                        window.replyFeedbackSelectedFiles.length
+                                    ) {
+                                        window.replyFeedbackSelectedFiles.forEach(
+                                            (f) =>
+                                                fd.append(
+                                                    "reference_files[]",
+                                                    f
+                                                )
+                                        );
                                     } else {
-                                        const rfInput = form.querySelector('#reply_reference_files');
-                                        if (rfInput && rfInput.files && rfInput.files.length) {
-                                            Array.from(rfInput.files).forEach(f => fd.append('reference_files[]', f));
+                                        const rfInput = form.querySelector(
+                                            "#reply_reference_files"
+                                        );
+                                        if (
+                                            rfInput &&
+                                            rfInput.files &&
+                                            rfInput.files.length
+                                        ) {
+                                            Array.from(rfInput.files).forEach(
+                                                (f) =>
+                                                    fd.append(
+                                                        "reference_files[]",
+                                                        f
+                                                    )
+                                            );
                                         }
                                     }
-                                } catch(_) {}
+                                } catch (_) {}
 
                                 fetch(appUrl + "/project-feedbacks", {
                                     method: "POST",
                                     headers: {
-                                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                        "X-CSRF-TOKEN": document
+                                            .querySelector(
+                                                'meta[name="csrf-token"]'
+                                            )
+                                            .getAttribute("content"),
                                     },
                                     body: fd,
                                 })
-                                    .then((r) => (r.ok ? r.json() : r.json().then(Promise.reject)))
+                                    .then((r) =>
+                                        r.ok
+                                            ? r.json()
+                                            : r.json().then(Promise.reject)
+                                    )
                                     .then((res) => {
-                                        showFloatingAlert(res.message || "Reply submitted", "success", 1500);
+                                        showFloatingAlert(
+                                            res.message || "Reply submitted",
+                                            "success",
+                                            1500
+                                        );
                                         loadFeedbackData(projectId);
                                     })
                                     .catch((err) => {
                                         const msg =
-                                            (err && (err.message || (err.errors && Object.values(err.errors).join("\n")))) ||
+                                            (err &&
+                                                (err.message ||
+                                                    (err.errors &&
+                                                        Object.values(
+                                                            err.errors
+                                                        ).join("\n")))) ||
                                             "Failed to submit reply";
                                         showFloatingAlert(msg, "warning", 3500);
                                     });
                             });
                         }
                         // Arrange Close & Submit buttons side-by-side
-                        (function(){
+                        (function () {
                             try {
-                                const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
-                                if(!footer) return;
-                                const submitBtnRef = document.getElementById('addFeedbackButton');
-                                if(!submitBtnRef) return;
-                                submitBtnRef.classList.remove('w-100');
-                                submitBtnRef.style.flex = '1 1 0';
-                                submitBtnRef.style.padding = '8px 12px';
-                                submitBtnRef.style.fontSize = '12px';
-                                const oldWrapper = footer.querySelector('#feedbackFormButtonsWrapper');
+                                const footer =
+                                    projectFeedbackModalEl.querySelector(
+                                        ".feedback-modal-footer"
+                                    );
+                                if (!footer) return;
+                                const submitBtnRef =
+                                    document.getElementById(
+                                        "addFeedbackButton"
+                                    );
+                                if (!submitBtnRef) return;
+                                submitBtnRef.classList.remove("w-100");
+                                submitBtnRef.style.flex = "1 1 0";
+                                submitBtnRef.style.padding = "8px 12px";
+                                submitBtnRef.style.fontSize = "12px";
+                                const oldWrapper = footer.querySelector(
+                                    "#feedbackFormButtonsWrapper"
+                                );
                                 if (oldWrapper) oldWrapper.remove();
-                                const wrap = document.createElement('div');
-                                wrap.id = 'feedbackFormButtonsWrapper';
-                                wrap.className = 'd-flex align-items-center w-100 justify-content-between gap-1';
-                                const closeBtn = document.createElement('button');
-                                closeBtn.id = 'replyCloseButton';
-                                closeBtn.type = 'button';
-                                closeBtn.className = 'btn btn-close-reply';
-                                closeBtn.textContent = 'Close';
-                                closeBtn.style.flex = '1 1 0';
-                                closeBtn.style.padding = '8px 12px';
-                                closeBtn.style.fontSize = '12px';
-                                closeBtn.addEventListener('click', function(){
+                                const wrap = document.createElement("div");
+                                wrap.id = "feedbackFormButtonsWrapper";
+                                wrap.className =
+                                    "d-flex align-items-center w-100 justify-content-between gap-1";
+                                const closeBtn =
+                                    document.createElement("button");
+                                closeBtn.id = "replyCloseButton";
+                                closeBtn.type = "button";
+                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.textContent = "Close";
+                                closeBtn.style.flex = "1 1 0";
+                                closeBtn.style.padding = "8px 12px";
+                                closeBtn.style.fontSize = "12px";
+                                closeBtn.addEventListener("click", function () {
                                     loadFeedbackData(projectId);
                                 });
                                 wrap.appendChild(closeBtn);
                                 wrap.appendChild(submitBtnRef);
-                                footer.innerHTML='';
+                                footer.innerHTML = "";
                                 footer.appendChild(wrap);
-                            } catch(_) { /* noop */ }
+                            } catch (_) {
+                                /* noop */
+                            }
                         })();
                     }
 
                     // Show edit form for feedback or reply (mirror Add Feedback UI)
                     function showEditFeedbackForm(projectId, data, isReply) {
-                        modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
-                        const existingImg = data.image_url || '';
+                        modalTitle.textContent = isReply
+                            ? "Edit Reply"
+                            : "Edit Feedback";
+                        const existingImg = data.image_url || "";
                         const bgStyle = existingImg
                             ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;`
                             : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
-                        const clearClass = existingImg ? '' : 'd-none';
+                        const clearClass = existingImg ? "" : "d-none";
                         modalBody.innerHTML = `
                         <form id="editFeedbackForm" enctype="multipart/form-data">
-                            ${data.parent_id ? `<input type="hidden" name="parent_id" value="${data.parent_id}">` : ''}
+                            ${
+                                data.parent_id
+                                    ? `<input type="hidden" name="parent_id" value="${data.parent_id}">`
+                                    : ""
+                            }
 
                             <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Upload Image</label>
@@ -2852,7 +4424,9 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
 
                             <div class="mb-3 input-custom">
                                 <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
-                                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
+                                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${
+                                    data.feedback_comment || ""
+                                }</textarea>
                             </div>
 
                             <div class="mb-3 input-custom">
@@ -2870,118 +4444,247 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         </form>`;
 
                         // Image preview/clear logic like Add
-                        (function() {
-                            const imageInput = modalBody.querySelector('#feedback_image');
-                            const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
-                            const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
-                            if (!imageInput || !imageLabel || !imageClearBtn) return;
-                            imageInput.addEventListener('change', function () {
+                        (function () {
+                            const imageInput =
+                                modalBody.querySelector("#feedback_image");
+                            const imageLabel = modalBody.querySelector(
+                                "#editFeedbackImageLabel"
+                            );
+                            const imageClearBtn = modalBody.querySelector(
+                                "#editFeedbackImageClearBtn"
+                            );
+                            if (!imageInput || !imageLabel || !imageClearBtn)
+                                return;
+                            imageInput.addEventListener("change", function () {
                                 if (this.files && this.files[0]) {
                                     const reader = new FileReader();
                                     reader.onload = function (e) {
                                         imageLabel.style.backgroundImage = `url('${e.target.result}')`;
-                                        imageLabel.classList.add('has-image');
-                                        imageLabel.style.backgroundSize = 'cover';
-                                        imageLabel.style.opacity = '1';
-                                        imageClearBtn.classList.remove('d-none');
+                                        imageLabel.classList.add("has-image");
+                                        imageLabel.style.backgroundSize =
+                                            "cover";
+                                        imageLabel.style.opacity = "1";
+                                        imageClearBtn.classList.remove(
+                                            "d-none"
+                                        );
                                     };
                                     reader.readAsDataURL(this.files[0]);
                                 }
                             });
-                            imageClearBtn.addEventListener('click', function (e) {
-                                e.preventDefault();
-                                imageInput.value = '';
-                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-                                imageLabel.style.backgroundPosition = 'center center';
-                                imageLabel.style.backgroundRepeat = 'no-repeat';
-                                imageLabel.style.backgroundSize = '50%';
-                                imageLabel.classList.remove('has-image');
-                                imageLabel.style.opacity = '0.5';
-                                imageClearBtn.classList.add('d-none');
-                            });
+                            imageClearBtn.addEventListener(
+                                "click",
+                                function (e) {
+                                    e.preventDefault();
+                                    imageInput.value = "";
+                                    imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                    imageLabel.style.backgroundPosition =
+                                        "center center";
+                                    imageLabel.style.backgroundRepeat =
+                                        "no-repeat";
+                                    imageLabel.style.backgroundSize = "50%";
+                                    imageLabel.classList.remove("has-image");
+                                    imageLabel.style.opacity = "0.5";
+                                    imageClearBtn.classList.add("d-none");
+                                }
+                            );
                         })();
 
                         // Setup multi-file preview for Edit Feedback reference files
-                        (function(){
+                        (function () {
                             try {
                                 window.editFeedbackSelectedFiles = [];
-                                const input = modalBody.querySelector('#edit_reference_files');
-                                const preview = modalBody.querySelector('#edit_feedback_reference_files_preview');
+                                const input = modalBody.querySelector(
+                                    "#edit_reference_files"
+                                );
+                                const preview = modalBody.querySelector(
+                                    "#edit_feedback_reference_files_preview"
+                                );
                                 if (!input || !preview) return;
-                                function render(){
-                                    preview.innerHTML='';
-                                    if (!window.editFeedbackSelectedFiles.length) return;
-                                    const list = document.createElement('div');
-                                    list.className = 'selected-files-list mt-2';
-                                    window.editFeedbackSelectedFiles.forEach(function(file, idx){
-                                        const item = document.createElement('div');
-                                        item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
-                                        const info = document.createElement('div'); info.className = 'd-flex align-items-center flex-grow-1';
-                                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
-                                        const name = document.createElement('span'); name.className = 'file-name'; name.textContent = file.name;
-                                        const size = document.createElement('small'); size.className = 'text-muted ms-1'; size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
-                                        const rm = document.createElement('button'); rm.type='button'; rm.className='btn btn-sm btn-outline-danger'; rm.innerHTML='&times;'; rm.onclick=function(){ window.editFeedbackSelectedFiles.splice(idx,1); render(); };
-                                        info.appendChild(icon); info.appendChild(name); info.appendChild(size); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
-                                    });
+                                function render() {
+                                    preview.innerHTML = "";
+                                    if (
+                                        !window.editFeedbackSelectedFiles.length
+                                    )
+                                        return;
+                                    const list = document.createElement("div");
+                                    list.className = "selected-files-list mt-2";
+                                    window.editFeedbackSelectedFiles.forEach(
+                                        function (file, idx) {
+                                            const item =
+                                                document.createElement("div");
+                                            item.className =
+                                                "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                            const info =
+                                                document.createElement("div");
+                                            info.className =
+                                                "d-flex align-items-center flex-grow-1";
+                                            const icon =
+                                                document.createElement("span");
+                                            icon.className =
+                                                "material-symbols-outlined me-2";
+                                            icon.textContent = "description";
+                                            const name =
+                                                document.createElement("span");
+                                            name.className = "file-name";
+                                            name.textContent = file.name;
+                                            const size =
+                                                document.createElement("small");
+                                            size.className = "text-muted ms-1";
+                                            size.textContent =
+                                                " (" +
+                                                (
+                                                    file.size /
+                                                    1024 /
+                                                    1024
+                                                ).toFixed(2) +
+                                                " MB)";
+                                            const rm =
+                                                document.createElement(
+                                                    "button"
+                                                );
+                                            rm.type = "button";
+                                            rm.className =
+                                                "btn btn-sm btn-outline-danger";
+                                            rm.innerHTML = "&times;";
+                                            rm.onclick = function () {
+                                                window.editFeedbackSelectedFiles.splice(
+                                                    idx,
+                                                    1
+                                                );
+                                                render();
+                                            };
+                                            info.appendChild(icon);
+                                            info.appendChild(name);
+                                            info.appendChild(size);
+                                            item.appendChild(info);
+                                            item.appendChild(rm);
+                                            list.appendChild(item);
+                                        }
+                                    );
                                     preview.appendChild(list);
                                 }
-                                input.addEventListener('change', function(){
+                                input.addEventListener("change", function () {
                                     const files = Array.from(this.files || []);
-                                    window.editFeedbackSelectedFiles = window.editFeedbackSelectedFiles.concat(files);
-                                    render(); this.value='';
+                                    window.editFeedbackSelectedFiles =
+                                        window.editFeedbackSelectedFiles.concat(
+                                            files
+                                        );
+                                    render();
+                                    this.value = "";
                                 });
-                            } catch(_) {}
+                            } catch (_) {}
                         })();
 
-                        const addBtn = document.getElementById("addFeedbackButton");
+                        const addBtn =
+                            document.getElementById("addFeedbackButton");
                         if (addBtn) {
                             addBtn.textContent = "Update";
                             const fresh = addBtn.cloneNode(true);
                             addBtn.parentNode.replaceChild(fresh, addBtn);
                             fresh.addEventListener("click", function (e) {
                                 e.preventDefault();
-                                const form = document.getElementById("editFeedbackForm");
+                                const form =
+                                    document.getElementById("editFeedbackForm");
                                 if (!form) return;
                                 const fd = new FormData(form);
                                 // Map first non-empty reference_urls[] to single reference_url for backend
                                 try {
-                                    const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
-                                    const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
-                                    if (urls.length) fd.set('reference_url', urls[0]);
-                                    else fd.set('reference_url', '');
-                                } catch(_) {}
+                                    const urlInputs = form.querySelectorAll(
+                                        'input[name="reference_urls[]"]'
+                                    );
+                                    const urls = Array.from(urlInputs)
+                                        .map((i) => (i.value || "").trim())
+                                        .filter(Boolean);
+                                    if (urls.length)
+                                        fd.set("reference_url", urls[0]);
+                                    else fd.set("reference_url", "");
+                                } catch (_) {}
                                 // Include existing files and new selected files for edit form
                                 try {
-                                    const existingHidden = form.querySelector('#existing_feedback_reference_files_input');
-                                    const existingList = form.querySelectorAll('#existing_feedback_reference_files .existing-file-item a');
+                                    const existingHidden = form.querySelector(
+                                        "#existing_feedback_reference_files_input"
+                                    );
+                                    const existingList = form.querySelectorAll(
+                                        "#existing_feedback_reference_files .existing-file-item a"
+                                    );
                                     let keep = [];
-                                    existingList.forEach(a => { const name = (a.textContent || '').trim(); if (name) keep.push(name); });
-                                    if (existingHidden) existingHidden.value = JSON.stringify(keep);
-                                } catch(_) {}
+                                    existingList.forEach((a) => {
+                                        const name = (
+                                            a.textContent || ""
+                                        ).trim();
+                                        if (name) keep.push(name);
+                                    });
+                                    if (existingHidden)
+                                        existingHidden.value =
+                                            JSON.stringify(keep);
+                                } catch (_) {}
                                 try {
-                                    if (window.editFeedbackSelectedFiles && window.editFeedbackSelectedFiles.length) {
-                                        window.editFeedbackSelectedFiles.forEach(f => fd.append('reference_files[]', f));
+                                    if (
+                                        window.editFeedbackSelectedFiles &&
+                                        window.editFeedbackSelectedFiles.length
+                                    ) {
+                                        window.editFeedbackSelectedFiles.forEach(
+                                            (f) =>
+                                                fd.append(
+                                                    "reference_files[]",
+                                                    f
+                                                )
+                                        );
                                     } else {
-                                        const rfInput = form.querySelector('#edit_reference_files');
-                                        if (rfInput && rfInput.files && rfInput.files.length) {
-                                            Array.from(rfInput.files).forEach(f => fd.append('reference_files[]', f));
+                                        const rfInput = form.querySelector(
+                                            "#edit_reference_files"
+                                        );
+                                        if (
+                                            rfInput &&
+                                            rfInput.files &&
+                                            rfInput.files.length
+                                        ) {
+                                            Array.from(rfInput.files).forEach(
+                                                (f) =>
+                                                    fd.append(
+                                                        "reference_files[]",
+                                                        f
+                                                    )
+                                            );
                                         }
                                     }
-                                } catch(_) {}
+                                } catch (_) {}
                                 fd.append("_method", "PUT");
-                                fetch(appUrl + `/project-feedbacks/${data.id}` , {
-                                    method: "POST",
-                                    headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                    body: fd,
-                                })
-                                    .then((r) => (r.ok ? r.json() : r.json().then(Promise.reject)))
+                                fetch(
+                                    appUrl + `/project-feedbacks/${data.id}`,
+                                    {
+                                        method: "POST",
+                                        headers: {
+                                            "X-CSRF-TOKEN": document
+                                                .querySelector(
+                                                    'meta[name="csrf-token"]'
+                                                )
+                                                .getAttribute("content"),
+                                        },
+                                        body: fd,
+                                    }
+                                )
+                                    .then((r) =>
+                                        r.ok
+                                            ? r.json()
+                                            : r.json().then(Promise.reject)
+                                    )
                                     .then((res) => {
-                                        showFloatingAlert(res.message || "Feedback updated", "success", 1500);
+                                        showFloatingAlert(
+                                            res.message || "Feedback updated",
+                                            "success",
+                                            1500
+                                        );
                                         loadFeedbackData(projectId);
                                     })
                                     .catch((err) => {
                                         const msg =
-                                            (err && (err.message || (err.errors && Object.values(err.errors).join("\n")))) ||
+                                            (err &&
+                                                (err.message ||
+                                                    (err.errors &&
+                                                        Object.values(
+                                                            err.errors
+                                                        ).join("\n")))) ||
                                             "Failed to update feedback";
                                         showFloatingAlert(msg, "warning", 3500);
                                     });
@@ -2989,35 +4692,54 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         }
 
                         // Prefill reference URLs container for edit form
-                        (function(){
-                            const container = document.getElementById('feedback_reference_urls_container');
+                        (function () {
+                            const container = document.getElementById(
+                                "feedback_reference_urls_container"
+                            );
                             if (!container) return;
-                            container.innerHTML = '';
+                            container.innerHTML = "";
                             let urls = [];
-                            if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
-                            else if (typeof data.reference_urls === 'string') {
-                                try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
+                            if (Array.isArray(data.reference_urls))
+                                urls = data.reference_urls;
+                            else if (typeof data.reference_urls === "string") {
+                                try {
+                                    const arr = JSON.parse(data.reference_urls);
+                                    if (Array.isArray(arr)) urls = arr;
+                                } catch (_) {}
                             }
-                            if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
-                            function addRow(value, withAdd){
-                                const row = document.createElement('div');
-                                row.className = 'd-flex gap-2 align-items-center';
-                                row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
-                                    (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
+                            if (
+                                (!urls || urls.length === 0) &&
+                                data.reference_url
+                            )
+                                urls = [data.reference_url];
+                            function addRow(value, withAdd) {
+                                const row = document.createElement("div");
+                                row.className =
+                                    "d-flex gap-2 align-items-center";
+                                row.innerHTML =
+                                    '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                                    (withAdd
+                                        ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>'
+                                        : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
                                 container.appendChild(row);
-                                const inp = row.querySelector('input[type="url"]');
+                                const inp =
+                                    row.querySelector('input[type="url"]');
                                 if (inp && value) inp.value = value;
                             }
                             // Place the ADD row first, then existing URL rows below it
-                            addRow('', true);
+                            addRow("", true);
                             (urls || []).forEach((u) => addRow(u, false));
                         })();
 
                         // Prefill existing reference files list for edit form and wire remove buttons
-                        (function(){
+                        (function () {
                             // Scope to modalBody to avoid clashing with project edit modal elements
-                            const container = modalBody.querySelector('#existing_feedback_reference_files');
-                            const hidden = modalBody.querySelector('#existing_feedback_reference_files_input');
+                            const container = modalBody.querySelector(
+                                "#existing_feedback_reference_files"
+                            );
+                            const hidden = modalBody.querySelector(
+                                "#existing_feedback_reference_files_input"
+                            );
                             if (!container || !hidden) return;
 
                             // Build files array from multiple possible shapes
@@ -3032,61 +4754,89 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 files = [data.reference_file];
                             }
 
-                            function toUrl(v){
-                                if (!v) return '';
+                            function toUrl(v) {
+                                if (!v) return "";
                                 const s = String(v);
-                                if (s.startsWith('http://') || s.startsWith('https://')) return s;
-                                if (s.startsWith('/')) return appUrl + s;
-                                return appUrl + '/file/project/' + s;
+                                if (
+                                    s.startsWith("http://") ||
+                                    s.startsWith("https://")
+                                )
+                                    return s;
+                                if (s.startsWith("/")) return appUrl + s;
+                                return appUrl + "/file/project/" + s;
                             }
-                            function toName(u){
-                                if (!u) return '';
+                            function toName(u) {
+                                if (!u) return "";
                                 const s = String(u);
-                                if (s.startsWith('http://') || s.startsWith('https://')) {
-                                    try { return new URL(s).pathname.split('/').pop(); } catch(_) { return s.split('/').pop(); }
+                                if (
+                                    s.startsWith("http://") ||
+                                    s.startsWith("https://")
+                                ) {
+                                    try {
+                                        return new URL(s).pathname
+                                            .split("/")
+                                            .pop();
+                                    } catch (_) {
+                                        return s.split("/").pop();
+                                    }
                                 }
-                                return s.split('/').pop();
+                                return s.split("/").pop();
                             }
 
-                            container.innerHTML = '';
+                            container.innerHTML = "";
                             if ((files || []).length > 0) {
-                                const title = document.createElement('div');
-                                title.className = 'fw-bold mb-2';
-                                title.textContent = 'Current Files:';
+                                const title = document.createElement("div");
+                                title.className = "fw-bold mb-2";
+                                title.textContent = "Current Files:";
                                 container.appendChild(title);
 
-                                const list = document.createElement('div');
-                                list.className = 'existing-files-list w-100';
+                                const list = document.createElement("div");
+                                list.className = "existing-files-list w-100";
 
-                                (files || []).forEach(function(f){
+                                (files || []).forEach(function (f) {
                                     const url = toUrl(f);
                                     const name = toName(f);
                                     if (!name) return;
 
-                                    const item = document.createElement('div');
-                                    item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                                    const item = document.createElement("div");
+                                    item.className =
+                                        "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
 
-                                    const info = document.createElement('div');
-                                    info.className = 'd-flex align-items-center flex-grow-1';
+                                    const info = document.createElement("div");
+                                    info.className =
+                                        "d-flex align-items-center flex-grow-1";
 
-                                    const icon = document.createElement('span');
-                                    icon.className = 'material-symbols-outlined me-2';
-                                    icon.textContent = 'description';
+                                    const icon = document.createElement("span");
+                                    icon.className =
+                                        "material-symbols-outlined me-2";
+                                    icon.textContent = "description";
 
-                                    const link = document.createElement('a');
-                                    link.href = url; link.textContent = name; link.className = 'text-decoration-none'; link.target = '_blank';
+                                    const link = document.createElement("a");
+                                    link.href = url;
+                                    link.textContent = name;
+                                    link.className = "text-decoration-none";
+                                    link.target = "_blank";
 
-                                    const removeBtn = document.createElement('button');
-                                    removeBtn.type = 'button';
-                                    removeBtn.className = 'btn btn-sm btn-outline-danger';
-                                    removeBtn.innerHTML = '&times;';
-                                    removeBtn.onclick = function(){
+                                    const removeBtn =
+                                        document.createElement("button");
+                                    removeBtn.type = "button";
+                                    removeBtn.className =
+                                        "btn btn-sm btn-outline-danger";
+                                    removeBtn.innerHTML = "&times;";
+                                    removeBtn.onclick = function () {
                                         item.remove();
                                         try {
-                                            const anchors = container.querySelectorAll('.existing-file-item a');
-                                            const next = Array.from(anchors).map(a => (a.textContent || '').trim()).filter(Boolean);
+                                            const anchors =
+                                                container.querySelectorAll(
+                                                    ".existing-file-item a"
+                                                );
+                                            const next = Array.from(anchors)
+                                                .map((a) =>
+                                                    (a.textContent || "").trim()
+                                                )
+                                                .filter(Boolean);
                                             hidden.value = JSON.stringify(next);
-                                        } catch(_) {}
+                                        } catch (_) {}
                                     };
 
                                     info.appendChild(icon);
@@ -3101,64 +4851,91 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
 
                             // Initialize hidden keep list with all names
                             try {
-                                const anchors = container.querySelectorAll('.existing-file-item a');
-                                const names = Array.from(anchors).map(a => (a.textContent || '').trim()).filter(Boolean);
+                                const anchors = container.querySelectorAll(
+                                    ".existing-file-item a"
+                                );
+                                const names = Array.from(anchors)
+                                    .map((a) => (a.textContent || "").trim())
+                                    .filter(Boolean);
                                 hidden.value = JSON.stringify(names);
-                            } catch(_) { hidden.value = '[]'; }
+                            } catch (_) {
+                                hidden.value = "[]";
+                            }
                         })();
 
                         // Arrange Close & Update buttons side-by-side
-                        (function(){
+                        (function () {
                             try {
-                                const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
-                                if(!footer) return;
-                                const submitBtnRef = document.getElementById('addFeedbackButton');
-                                if(!submitBtnRef) return;
-                                submitBtnRef.classList.remove('w-100');
-                                submitBtnRef.style.flex = '1 1 0';
-                                submitBtnRef.style.padding = '8px 12px';
-                                submitBtnRef.style.fontSize = '12px';
-                                const oldWrapper = footer.querySelector('#feedbackFormButtonsWrapper');
+                                const footer =
+                                    projectFeedbackModalEl.querySelector(
+                                        ".feedback-modal-footer"
+                                    );
+                                if (!footer) return;
+                                const submitBtnRef =
+                                    document.getElementById(
+                                        "addFeedbackButton"
+                                    );
+                                if (!submitBtnRef) return;
+                                submitBtnRef.classList.remove("w-100");
+                                submitBtnRef.style.flex = "1 1 0";
+                                submitBtnRef.style.padding = "8px 12px";
+                                submitBtnRef.style.fontSize = "12px";
+                                const oldWrapper = footer.querySelector(
+                                    "#feedbackFormButtonsWrapper"
+                                );
                                 if (oldWrapper) oldWrapper.remove();
-                                const wrap = document.createElement('div');
-                                wrap.id = 'feedbackFormButtonsWrapper';
-                                wrap.className = 'd-flex align-items-center w-100 justify-content-between gap-1';
-                                const closeBtn = document.createElement('button');
-                                closeBtn.id = 'replyCloseButton';
-                                closeBtn.type = 'button';
-                                closeBtn.className = 'btn btn-close-reply';
-                                closeBtn.textContent = 'Close';
-                                closeBtn.style.flex = '1 1 0';
-                                closeBtn.style.padding = '8px 12px';
-                                closeBtn.style.fontSize = '12px';
-                                closeBtn.addEventListener('click', function(){
+                                const wrap = document.createElement("div");
+                                wrap.id = "feedbackFormButtonsWrapper";
+                                wrap.className =
+                                    "d-flex align-items-center w-100 justify-content-between gap-1";
+                                const closeBtn =
+                                    document.createElement("button");
+                                closeBtn.id = "replyCloseButton";
+                                closeBtn.type = "button";
+                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.textContent = "Close";
+                                closeBtn.style.flex = "1 1 0";
+                                closeBtn.style.padding = "8px 12px";
+                                closeBtn.style.fontSize = "12px";
+                                closeBtn.addEventListener("click", function () {
                                     loadFeedbackData(projectId);
                                 });
                                 wrap.appendChild(closeBtn);
                                 wrap.appendChild(submitBtnRef);
-                                footer.innerHTML='';
+                                footer.innerHTML = "";
                                 footer.appendChild(wrap);
-                            } catch(_) { /* noop */ }
+                            } catch (_) {
+                                /* noop */
+                            }
                         })();
                     }
 
                     // Modal hidden event to reset modal title and clear modal body
                     // Also customize backdrop brightness specifically for this modal
                     projectFeedbackModalEl.addEventListener(
-                        'show.bs.modal',
-                        function() {
+                        "show.bs.modal",
+                        function () {
                             try {
                                 // Mark body so CSS scope applies only while this modal open
-                                document.body.classList.add('feedback-modal-open');
+                                document.body.classList.add(
+                                    "feedback-modal-open"
+                                );
                                 // Inject style once
-                                if (!document.getElementById('feedbackBackdropStyle')) {
-                                    const style = document.createElement('style');
-                                    style.id = 'feedbackBackdropStyle';
+                                if (
+                                    !document.getElementById(
+                                        "feedbackBackdropStyle"
+                                    )
+                                ) {
+                                    const style =
+                                        document.createElement("style");
+                                    style.id = "feedbackBackdropStyle";
                                     // Reduce darkness of backdrop only while feedback modal open
                                     style.textContent = `.feedback-modal-open .modal-backdrop.show {opacity:0.18 !important;}`;
                                     document.head.appendChild(style);
                                 }
-                            } catch(_) { /* noop */ }
+                            } catch (_) {
+                                /* noop */
+                            }
                         }
                     );
                     projectFeedbackModalEl.addEventListener(
@@ -3166,7 +4943,13 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         function () {
                             modalTitle.textContent = "Feedback";
                             modalBody.innerHTML = "";
-                            try { document.body.classList.remove('feedback-modal-open'); } catch(_) { /* noop */ }
+                            try {
+                                document.body.classList.remove(
+                                    "feedback-modal-open"
+                                );
+                            } catch (_) {
+                                /* noop */
+                            }
 
                             // Remove any leftover modal backdrop elements to fix background remaining dark issue
                             const backdrops =
@@ -3189,19 +4972,45 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         function resolveProjectId(el) {
                             if (!el) return null;
                             // 1. Direct ancestor card .col-md-4
-                            const cardEl = el.closest && el.closest('.col-md-4[data-project-id]');
-                            if (cardEl && cardEl.getAttribute('data-project-id')) return cardEl.getAttribute('data-project-id');
+                            const cardEl =
+                                el.closest &&
+                                el.closest(".col-md-4[data-project-id]");
+                            if (
+                                cardEl &&
+                                cardEl.getAttribute("data-project-id")
+                            )
+                                return cardEl.getAttribute("data-project-id");
                             // 2. Element itself data-project-id
-                            if (el.getAttribute && el.getAttribute('data-project-id')) return el.getAttribute('data-project-id');
+                            if (
+                                el.getAttribute &&
+                                el.getAttribute("data-project-id")
+                            )
+                                return el.getAttribute("data-project-id");
                             // 3. Any ancestor carrying data-project-id
-                            const anyAncestor = el.closest && el.closest('[data-project-id]');
-                            if (anyAncestor && anyAncestor.getAttribute('data-project-id')) return anyAncestor.getAttribute('data-project-id');
+                            const anyAncestor =
+                                el.closest && el.closest("[data-project-id]");
+                            if (
+                                anyAncestor &&
+                                anyAncestor.getAttribute("data-project-id")
+                            )
+                                return anyAncestor.getAttribute(
+                                    "data-project-id"
+                                );
                             // 4. Fallback: previously stored on modal (e.g., from detail view)
                             try {
-                                if (projectFeedbackModalEl && projectFeedbackModalEl.getAttribute('data-project-id')) {
-                                    return projectFeedbackModalEl.getAttribute('data-project-id');
+                                if (
+                                    projectFeedbackModalEl &&
+                                    projectFeedbackModalEl.getAttribute(
+                                        "data-project-id"
+                                    )
+                                ) {
+                                    return projectFeedbackModalEl.getAttribute(
+                                        "data-project-id"
+                                    );
                                 }
-                            } catch(_) { /* noop */ }
+                            } catch (_) {
+                                /* noop */
+                            }
                             return null;
                         }
 
@@ -3213,7 +5022,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             e.preventDefault();
                             e.stopPropagation();
                             const projectId = resolveProjectId(target);
-                            if (!projectId) { alert("Project ID not found."); return; }
+                            if (!projectId) {
+                                alert("Project ID not found.");
+                                return;
+                            }
 
                             projectFeedbackModalEl.setAttribute(
                                 "data-project-id",
@@ -3225,9 +5037,18 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             hideProjectLatestFeedbackSnippet(projectId);
                             // Set target to latest payload when opening from dropdown Feedback
                             try {
-                                window.__projectLatestTarget = window.__projectLatestTarget || {};
-                                const latest = (window.__projectLatest && window.__projectLatest[String(projectId)]) || null;
-                                if (latest) window.__projectLatestTarget[String(projectId)] = latest;
+                                window.__projectLatestTarget =
+                                    window.__projectLatestTarget || {};
+                                const latest =
+                                    (window.__projectLatest &&
+                                        window.__projectLatest[
+                                            String(projectId)
+                                        ]) ||
+                                    null;
+                                if (latest)
+                                    window.__projectLatestTarget[
+                                        String(projectId)
+                                    ] = latest;
                             } catch (_) {}
                             markProjectFeedbacksRead(projectId).always(() => {
                                 // continue to load data
@@ -3245,7 +5066,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             e.preventDefault();
                             e.stopPropagation();
                             const projectId = resolveProjectId(target);
-                            if (!projectId) { alert("Project ID not found."); return; }
+                            if (!projectId) {
+                                alert("Project ID not found.");
+                                return;
+                            }
 
                             projectFeedbackModalEl.setAttribute(
                                 "data-project-id",
@@ -3257,9 +5081,18 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             hideProjectLatestFeedbackSnippet(projectId);
                             // Set target to latest payload when opening from comment icon
                             try {
-                                window.__projectLatestTarget = window.__projectLatestTarget || {};
-                                const latest = (window.__projectLatest && window.__projectLatest[String(projectId)]) || null;
-                                if (latest) window.__projectLatestTarget[String(projectId)] = latest;
+                                window.__projectLatestTarget =
+                                    window.__projectLatestTarget || {};
+                                const latest =
+                                    (window.__projectLatest &&
+                                        window.__projectLatest[
+                                            String(projectId)
+                                        ]) ||
+                                    null;
+                                if (latest)
+                                    window.__projectLatestTarget[
+                                        String(projectId)
+                                    ] = latest;
                             } catch (_) {}
                             markProjectFeedbacksRead(projectId).always(() => {
                                 // continue to load data
@@ -3281,8 +5114,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                     // Mark project feedbacks as read helper
                     function markProjectFeedbacksRead(projectId) {
                         return $.ajax({
-                            url: appUrl + `/project/${projectId}/feedbacks/mark-read`,
-                            type: 'POST',
+                            url:
+                                appUrl +
+                                `/project/${projectId}/feedbacks/mark-read`,
+                            type: "POST",
                             headers: {
                                 "X-CSRF-TOKEN": document
                                     .querySelector('meta[name="csrf-token"]')
@@ -3291,7 +5126,8 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         }).always(() => {
                             hideProjectUnreadBadge(projectId);
                             hideProjectLatestFeedbackSnippet(projectId);
-                            latestProjectSnippetSeq[projectId] = (latestProjectSnippetSeq[projectId] || 0) + 1;
+                            latestProjectSnippetSeq[projectId] =
+                                (latestProjectSnippetSeq[projectId] || 0) + 1;
                         });
                     }
 
@@ -3370,8 +5206,9 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
 
                                             // Show success alert
                                             showFloatingAlert(
-                                                response.message || "Project deleted successfully",
-                                                'success',
+                                                response.message ||
+                                                    "Project deleted successfully",
+                                                "success",
                                                 2000
                                             );
                                         },
@@ -3379,8 +5216,10 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                             console.error("Delete error:", xhr);
                                             showFloatingAlert(
                                                 "Failed to delete project: " +
-                                                    (xhr.responseJSON?.message || "Unknown error"),
-                                                'warning',
+                                                    (xhr.responseJSON
+                                                        ?.message ||
+                                                        "Unknown error"),
+                                                "warning",
                                                 4000
                                             );
                                         },
@@ -3419,14 +5258,25 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                             ${
                                                 imageUrl
                                                     ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:44px;height:44px;object-fit:cover;" onerror="this.src='${appUrl}/asset/img/avatar.png'">`
-                                                    : (function(){
-                                                        const init = getInitials(project.title || "N/A");
-                                                        const color = getInitialsColor(project.title || "N/A");
-                                                        return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                    : (function () {
+                                                          const init =
+                                                              getInitials(
+                                                                  project.title ||
+                                                                      "N/A"
+                                                              );
+                                                          const color =
+                                                              getInitialsColor(
+                                                                  project.title ||
+                                                                      "N/A"
+                                                              );
+                                                          return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
                                                             style="width:44px;height:44px;background:${color};color:#fff;font-size:17px;font-weight:600;">${init}</div>`;
-                                                    })()
+                                                      })()
                                             }
-                                            <h5 class="mb-0 fw-semibold" style="font-size:17px;">${project.title || "Unknown Project"}</h5>
+                                            <h5 class="mb-0 fw-semibold" style="font-size:17px;">${
+                                                project.title ||
+                                                "Unknown Project"
+                                            }</h5>
                                         </div>
                                         <div class="dropdown-icon-container-detail">
                                             <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
@@ -3458,21 +5308,31 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                             <button class="btn btn-sm p-0 border-0 bg-transparent me-3 d-flex align-items-center position-relative comment-btn"
                                                 title="Comment" data-project-id="${pid}">
                                                 <span class="material-symbols-outlined" style="font-size:20px; color:#828282;">mode_comment</span>
-                                                <span class="project-feedback-count ms-1" style="font-size:14px; color:#454545;">${project.feedback_comments_count || ""}</span>
-                                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none"></span>
+                                                <span class="project-feedback-count ms-1" style="font-size:14px; color:#454545;">${
+                                                    project.feedback_comments_count ||
+                                                    ""
+                                                }</span>
+                                                <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
                                             </button>
                                             <button class="btn btn-sm p-0 border-0 bg-transparent d-flex align-items-center attach-btn"
                                                 title="Attach File" data-project-id="${pid}">
                                                 <span class="material-symbols-outlined" style="font-size:20px; color:#828282;">attach_file</span>
-                                                <span class="project-file-count ms-1" style="font-size:14px; color:#454545;">${project.reference_files_count || ""}</span>
+                                                <span class="project-file-count ms-1" style="font-size:14px; color:#454545;">${
+                                                    project.reference_files_count ||
+                                                    ""
+                                                }</span>
                                             </button>
                                         </div>
                                     </div>
 
                                     <!-- Extra info sejajar -->
                                     <div class="d-flex justify-content-start align-items-center mt-3 small">
-                                        <span class="me-4" style="font-size:14px;"><strong>Department:</strong> ${project.department || "-"}</span>
-                                        <span style="font-size:14px;"><strong>Division:</strong> ${project.division || "-"}</span>
+                                        <span class="me-4" style="font-size:14px;"><strong>Department:</strong> ${
+                                            project.department || "-"
+                                        }</span>
+                                        <span style="font-size:14px;"><strong>Division:</strong> ${
+                                            project.division || "-"
+                                        }</span>
                                     </div>
                                 `;
 
@@ -3480,50 +5340,89 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                 $("#projectDetailContent").html(detailHtml);
 
                                 // Bind ulang dropdown after inject
-                                document.querySelectorAll("#projectDetailContent .dropdown-icon").forEach((icon) => {
-                                    icon.addEventListener("click", function (e) {
-                                        e.stopPropagation();
-                                        const dropdownMenu = this.nextElementSibling;
-                                        const isVisible = !dropdownMenu.classList.contains("d-none");
-                                        document.querySelectorAll("#projectDetailContent .dropdown-menu").forEach((menu) => {
-                                            menu.classList.add("d-none");
-                                        });
-                                        if (!isVisible) {
-                                            dropdownMenu.classList.remove("d-none");
-                                        }
+                                document
+                                    .querySelectorAll(
+                                        "#projectDetailContent .dropdown-icon"
+                                    )
+                                    .forEach((icon) => {
+                                        icon.addEventListener(
+                                            "click",
+                                            function (e) {
+                                                e.stopPropagation();
+                                                const dropdownMenu =
+                                                    this.nextElementSibling;
+                                                const isVisible =
+                                                    !dropdownMenu.classList.contains(
+                                                        "d-none"
+                                                    );
+                                                document
+                                                    .querySelectorAll(
+                                                        "#projectDetailContent .dropdown-menu"
+                                                    )
+                                                    .forEach((menu) => {
+                                                        menu.classList.add(
+                                                            "d-none"
+                                                        );
+                                                    });
+                                                if (!isVisible) {
+                                                    dropdownMenu.classList.remove(
+                                                        "d-none"
+                                                    );
+                                                }
+                                            }
+                                        );
                                     });
-                                });
 
                                 // Bind comment button
-                                document.querySelectorAll("#projectDetailContent .comment-btn").forEach((btn) => {
-                                    btn.addEventListener("click", function () {
-                                        $("#projectDetailModal").modal("hide");
-                                        loadFeedbackData(projectId);
-                                        const projectFeedbackModal = new bootstrap.Modal(
-                                            projectFeedbackModalEl
+                                document
+                                    .querySelectorAll(
+                                        "#projectDetailContent .comment-btn"
+                                    )
+                                    .forEach((btn) => {
+                                        btn.addEventListener(
+                                            "click",
+                                            function () {
+                                                $("#projectDetailModal").modal(
+                                                    "hide"
+                                                );
+                                                loadFeedbackData(projectId);
+                                                const projectFeedbackModal =
+                                                    new bootstrap.Modal(
+                                                        projectFeedbackModalEl
+                                                    );
+                                                projectFeedbackModal.show();
+                                            }
                                         );
-                                        projectFeedbackModal.show()
                                     });
-                                });
 
                                 // Bind attach button
-                                document.querySelectorAll("#projectDetailContent .attach-btn").forEach((btn) => {
-                                    btn.addEventListener("click", function () {
-                                        $("#projectDetailModal").modal("hide");
-                                        openProjectFiles(pid);
-                                        $("#projectFilesModal").modal("show");
+                                document
+                                    .querySelectorAll(
+                                        "#projectDetailContent .attach-btn"
+                                    )
+                                    .forEach((btn) => {
+                                        btn.addEventListener(
+                                            "click",
+                                            function () {
+                                                $("#projectDetailModal").modal(
+                                                    "hide"
+                                                );
+                                                openProjectFiles(pid);
+                                                $("#projectFilesModal").modal(
+                                                    "show"
+                                                );
+                                            }
+                                        );
                                     });
-                                });
 
                                 // Show modal
                                 $("#projectDetailModal").modal("show");
                             },
                             error: function () {
                                 alert("Failed to load project details.");
-                            }
+                            },
                         });
                     }
-
 
                     // Event listener for "Detail", "Task", and "Feedback" dropdown item click
                     document.addEventListener("click", function (e) {
@@ -3534,7 +5433,8 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                             const text = e.target.textContent.trim();
                             const card = e.target.closest(".col-md-4");
                             if (!card) return;
-                            const projectId = card.getAttribute("data-project-id");
+                            const projectId =
+                                card.getAttribute("data-project-id");
                             if (!projectId) {
                                 alert("Project ID not found.");
                                 return;
@@ -3579,18 +5479,27 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                     // Click on timeline bar opens the same Project Detail modal
                     // If the click comes from the timeline modal, close the timeline first,
                     // then show Project Detail. After closing Project Detail, reopen the timeline modal.
-                    document.addEventListener('click', function (e) {
-                        const bar = e.target.closest('.timeline-bar[data-project-id]');
+                    document.addEventListener("click", function (e) {
+                        const bar = e.target.closest(
+                            ".timeline-bar[data-project-id]"
+                        );
                         if (!bar) return;
-                        const pid = bar.getAttribute('data-project-id');
+                        const pid = bar.getAttribute("data-project-id");
                         if (!pid) return;
 
                         // Detect if timeline modal is currently open
-                        const timelineModalEl = document.getElementById('timelineModal');
+                        const timelineModalEl =
+                            document.getElementById("timelineModal");
                         let shouldReopenTimeline = false;
-                        if (timelineModalEl && timelineModalEl.classList.contains('show')) {
+                        if (
+                            timelineModalEl &&
+                            timelineModalEl.classList.contains("show")
+                        ) {
                             try {
-                                const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                const tlInstance =
+                                    bootstrap.Modal.getInstance(
+                                        timelineModalEl
+                                    ) || new bootstrap.Modal(timelineModalEl);
                                 tlInstance.hide();
                                 shouldReopenTimeline = true;
                             } catch (_) {}
@@ -3598,18 +5507,35 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
 
                         // Set a one-time handler to reopen timeline after detail is closed (only when originated from timeline)
                         if (shouldReopenTimeline) {
-                            const detailEl = document.getElementById('projectDetailModal');
+                            const detailEl =
+                                document.getElementById("projectDetailModal");
                             if (detailEl) {
                                 const onDetailHidden = function () {
                                     try {
-                                        const tlInstance2 = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                        const tlInstance2 =
+                                            bootstrap.Modal.getInstance(
+                                                timelineModalEl
+                                            ) ||
+                                            new bootstrap.Modal(
+                                                timelineModalEl
+                                            );
                                         tlInstance2.show();
                                     } catch (_) {}
-                                    detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
+                                    detailEl.removeEventListener(
+                                        "hidden.bs.modal",
+                                        onDetailHidden
+                                    );
                                 };
                                 // Ensure no duplicate handler stacking
-                                detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
-                                detailEl.addEventListener('hidden.bs.modal', onDetailHidden, { once: true });
+                                detailEl.removeEventListener(
+                                    "hidden.bs.modal",
+                                    onDetailHidden
+                                );
+                                detailEl.addEventListener(
+                                    "hidden.bs.modal",
+                                    onDetailHidden,
+                                    { once: true }
+                                );
                             }
                         }
 
@@ -3660,10 +5586,13 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                     let taskModal;
                     // Function to load project tasks
                     function loadProjectTasks(projectId) {
-                        const taskModalEl = document.getElementById("taskModal");
-                        const taskModal = bootstrap.Modal.getOrCreateInstance(taskModalEl);
+                        const taskModalEl =
+                            document.getElementById("taskModal");
+                        const taskModal =
+                            bootstrap.Modal.getOrCreateInstance(taskModalEl);
 
-                        const taskListContainer = document.getElementById("taskListContainer");
+                        const taskListContainer =
+                            document.getElementById("taskListContainer");
                         taskListContainer.innerHTML = `
                             <div class="text-center py-4">
                                 <div class="spinner-border" role="status">
@@ -3683,98 +5612,225 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                     let html = "";
                                     // Ensure global fallback handler exists (once)
                                     if (!window.replaceTaskImageError) {
-                    window.replaceTaskImageError = function(imgEl, title) {
-                                            try {
-                                                if (!imgEl) return;
-                                                const txt = (title || '').trim();
-                                                let initials = 'NA';
-                                                if (typeof getInitials === 'function') {
-                                                    initials = getInitials(txt) || 'NA';
-                                                } else if (txt) {
-                                                    const parts = txt.split(/\s+/).filter(Boolean);
-                                                    initials = parts.length === 1
-                                                        ? parts[0].substring(0,2).toUpperCase()
-                                                        : (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-                                                }
-                                                let color = '#6A5AE0';
-                                                if (typeof getInitialsColor === 'function') {
-                                                    color = getInitialsColor(txt) || color;
-                                                }
-                                                const avatar = document.createElement('div');
-                        avatar.className = 'task-modal-initial-avatar me-3';
-                        avatar.style.cssText = 'width:100px;height:100px;flex:0 0 100px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:30px;color:#fff;border-radius:8px;background:' + color + ';';
-                                                avatar.textContent = initials;
-                                                imgEl.replaceWith(avatar);
-                                            } catch(_) {}
-                                        };
+                                        window.replaceTaskImageError =
+                                            function (imgEl, title) {
+                                                try {
+                                                    if (!imgEl) return;
+                                                    const txt = (
+                                                        title || ""
+                                                    ).trim();
+                                                    let initials = "NA";
+                                                    if (
+                                                        typeof getInitials ===
+                                                        "function"
+                                                    ) {
+                                                        initials =
+                                                            getInitials(txt) ||
+                                                            "NA";
+                                                    } else if (txt) {
+                                                        const parts = txt
+                                                            .split(/\s+/)
+                                                            .filter(Boolean);
+                                                        initials =
+                                                            parts.length === 1
+                                                                ? parts[0]
+                                                                      .substring(
+                                                                          0,
+                                                                          2
+                                                                      )
+                                                                      .toUpperCase()
+                                                                : (
+                                                                      parts[0].charAt(
+                                                                          0
+                                                                      ) +
+                                                                      parts[
+                                                                          parts.length -
+                                                                              1
+                                                                      ].charAt(
+                                                                          0
+                                                                      )
+                                                                  ).toUpperCase();
+                                                    }
+                                                    let color = "#6A5AE0";
+                                                    if (
+                                                        typeof getInitialsColor ===
+                                                        "function"
+                                                    ) {
+                                                        color =
+                                                            getInitialsColor(
+                                                                txt
+                                                            ) || color;
+                                                    }
+                                                    const avatar =
+                                                        document.createElement(
+                                                            "div"
+                                                        );
+                                                    avatar.className =
+                                                        "task-modal-initial-avatar me-3";
+                                                    avatar.style.cssText =
+                                                        "width:100px;height:100px;flex:0 0 100px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:30px;color:#fff;border-radius:8px;background:" +
+                                                        color +
+                                                        ";";
+                                                    avatar.textContent =
+                                                        initials;
+                                                    imgEl.replaceWith(avatar);
+                                                } catch (_) {}
+                                            };
                                     }
 
                                     response.data.forEach((task) => {
-                                        const hasImage = !!(task.image && String(task.image).trim());
-                                        const taskImage = hasImage ? (appUrl + "/file/task/" + task.image) : null;
-                                        const safeTitle = (task.title || '').replace(/['"\\]/g, function(m){ return '\\' + m; });
+                                        const hasImage = !!(
+                                            task.image &&
+                                            String(task.image).trim()
+                                        );
+                                        const taskImage = hasImage
+                                            ? appUrl +
+                                              "/file/task/" +
+                                              task.image
+                                            : null;
+                                        const safeTitle = (
+                                            task.title || ""
+                                        ).replace(/['"\\]/g, function (m) {
+                                            return "\\" + m;
+                                        });
                                         let imageBlockHtml;
                                         if (taskImage) {
                                             imageBlockHtml = `<img src="${taskImage}" alt="${safeTitle}" class="me-3" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;" onerror="window.replaceTaskImageError && window.replaceTaskImageError(this, '${safeTitle}')">`;
                                         } else {
                                             // Directly render initials avatar
-                                            let initials = 'NA';
-                                            if (typeof getInitials === 'function') { initials = getInitials(task.title || '') || 'NA'; }
-                                            else {
-                                                const txt = (task.title || '').trim();
+                                            let initials = "NA";
+                                            if (
+                                                typeof getInitials ===
+                                                "function"
+                                            ) {
+                                                initials =
+                                                    getInitials(
+                                                        task.title || ""
+                                                    ) || "NA";
+                                            } else {
+                                                const txt = (
+                                                    task.title || ""
+                                                ).trim();
                                                 if (txt) {
-                                                    const parts = txt.split(/\s+/).filter(Boolean);
-                                                    initials = parts.length === 1 ? parts[0].substring(0,2).toUpperCase() : (parts[0].charAt(0)+parts[parts.length-1].charAt(0)).toUpperCase();
+                                                    const parts = txt
+                                                        .split(/\s+/)
+                                                        .filter(Boolean);
+                                                    initials =
+                                                        parts.length === 1
+                                                            ? parts[0]
+                                                                  .substring(
+                                                                      0,
+                                                                      2
+                                                                  )
+                                                                  .toUpperCase()
+                                                            : (
+                                                                  parts[0].charAt(
+                                                                      0
+                                                                  ) +
+                                                                  parts[
+                                                                      parts.length -
+                                                                          1
+                                                                  ].charAt(0)
+                                                              ).toUpperCase();
                                                 }
                                             }
-                                            let color = '#6A5AE0';
-                                            if (typeof getInitialsColor === 'function') { color = getInitialsColor(task.title || '') || color; }
+                                            let color = "#6A5AE0";
+                                            if (
+                                                typeof getInitialsColor ===
+                                                "function"
+                                            ) {
+                                                color =
+                                                    getInitialsColor(
+                                                        task.title || ""
+                                                    ) || color;
+                                            }
                                             imageBlockHtml = `<div class=\"task-modal-initial-avatar me-3\" style=\"width:100px;height:100px;flex:0 0 100px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:30px;color:#fff;border-radius:8px;background:${color};\">${initials}</div>`;
                                         }
 
-                                        const createdDate = formatTaskDate(task.created_at);
+                                        const createdDate = formatTaskDate(
+                                            task.created_at
+                                        );
 
                                         function getImageUrl(userPhoto) {
                                             if (!userPhoto) {
-                                                return appUrl + "/asset/img/avatar.png";
+                                                return (
+                                                    appUrl +
+                                                    "/asset/img/avatar.png"
+                                                );
                                             }
                                             // Absolute URL
-                                            if (/^https?:\/\//i.test(userPhoto)) return userPhoto;
+                                            if (/^https?:\/\//i.test(userPhoto))
+                                                return userPhoto;
                                             // Already has leading slash, just append base appUrl
-                                            if (userPhoto.startsWith('/')) return appUrl + userPhoto;
+                                            if (userPhoto.startsWith("/"))
+                                                return appUrl + userPhoto;
                                             // If it's already a relative path with directories (e.g. file/photo/..., file/profile_picture/..., asset/img/...) don't re-prefix profile_picture
-                                            if (userPhoto.includes('/')) return appUrl + '/' + userPhoto.replace(/^\/+/, '');
+                                            if (userPhoto.includes("/"))
+                                                return (
+                                                    appUrl +
+                                                    "/" +
+                                                    userPhoto.replace(
+                                                        /^\/+/,
+                                                        ""
+                                                    )
+                                                );
                                             // Otherwise treat as bare filename that lives in profile_picture
-                                            return appUrl + '/file/profile_picture/' + userPhoto;
+                                            return (
+                                                appUrl +
+                                                "/file/profile_picture/" +
+                                                userPhoto
+                                            );
                                         }
 
                                         let allPeople = [];
                                         if (task.pic) {
                                             allPeople.push({
                                                 id: task.pic.id,
-                                                image: getImageUrl(task.pic.user_photo),
-                                                name: task.pic.name || "Unknown",
+                                                image: getImageUrl(
+                                                    task.pic.user_photo
+                                                ),
+                                                name:
+                                                    task.pic.name || "Unknown",
                                                 title: "PIC",
                                             });
                                         }
 
-                                        if (task.executors && task.executors.length > 0) {
-                                            task.executors.forEach((executor) => {
-                                                if (!allPeople.some((p) => p.id === executor.id)) {
-                                                    allPeople.push({
-                                                        id: executor.id,
-                                                        image: getImageUrl(executor.user_photo),
-                                                        name: executor.name || "Unknown",
-                                                        title: "Contributor",
-                                                    });
+                                        if (
+                                            task.executors &&
+                                            task.executors.length > 0
+                                        ) {
+                                            task.executors.forEach(
+                                                (executor) => {
+                                                    if (
+                                                        !allPeople.some(
+                                                            (p) =>
+                                                                p.id ===
+                                                                executor.id
+                                                        )
+                                                    ) {
+                                                        allPeople.push({
+                                                            id: executor.id,
+                                                            image: getImageUrl(
+                                                                executor.user_photo
+                                                            ),
+                                                            name:
+                                                                executor.name ||
+                                                                "Unknown",
+                                                            title: "Contributor",
+                                                        });
+                                                    }
                                                 }
-                                            });
+                                            );
                                         }
 
                                         const combinedImagesHtml = allPeople
                                             .map((person, index) => {
-                                                const overlapStyle = index === 0 ? "" : " margin-left: -8px;";
-                                                const zIndex = allPeople.length - index;
+                                                const overlapStyle =
+                                                    index === 0
+                                                        ? ""
+                                                        : " margin-left: -8px;";
+                                                const zIndex =
+                                                    allPeople.length - index;
                                                 return `
                                                     <img src="${person.image}"
                                                         alt="${person.name}"
@@ -3792,20 +5848,24 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                                         switch (task.status) {
                                             case "new_request":
                                             case "new request":
-                                                statusClass = "status-badge status-new-request";
+                                                statusClass =
+                                                    "status-badge status-new-request";
                                                 statusText = "New Request";
                                                 break;
                                             case "in_progress":
                                             case "in progress":
-                                                statusClass = "status-badge status-in-progress";
+                                                statusClass =
+                                                    "status-badge status-in-progress";
                                                 statusText = "In Progress";
                                                 break;
                                             case "completed":
-                                                statusClass = "status-badge status-completed";
+                                                statusClass =
+                                                    "status-badge status-completed";
                                                 statusText = "Completed";
                                                 break;
                                             case "rejected":
-                                                statusClass = "status-badge status-rejected";
+                                                statusClass =
+                                                    "status-badge status-rejected";
                                                 statusText = "Rejected";
                                                 break;
                                         }
@@ -3833,10 +5893,16 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
 
                                     // Init tooltip setelah DOM siap
                                     var tooltipTriggerList = [].slice.call(
-                                        taskListContainer.querySelectorAll('[data-bs-toggle="tooltip"]')
+                                        taskListContainer.querySelectorAll(
+                                            '[data-bs-toggle="tooltip"]'
+                                        )
                                     );
-                                    tooltipTriggerList.map(function (tooltipTriggerEl) {
-                                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                                    tooltipTriggerList.map(function (
+                                        tooltipTriggerEl
+                                    ) {
+                                        return new bootstrap.Tooltip(
+                                            tooltipTriggerEl
+                                        );
                                     });
                                 } else {
                                     taskListContainer.innerHTML =
@@ -3878,27 +5944,37 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         addFeedbackButton.textContent = "Add Feedback";
                         // Restore footer to single full-width button (remove wrapper / close button if present)
                         try {
-                            const footer = projectFeedbackModalEl.querySelector('.feedback-modal-footer');
+                            const footer = projectFeedbackModalEl.querySelector(
+                                ".feedback-modal-footer"
+                            );
                             if (footer) {
-                                const wrapper = footer.querySelector('#feedbackFormButtonsWrapper');
+                                const wrapper = footer.querySelector(
+                                    "#feedbackFormButtonsWrapper"
+                                );
                                 if (wrapper) {
-                                    const submitBtn = wrapper.querySelector('#addFeedbackButton');
+                                    const submitBtn =
+                                        wrapper.querySelector(
+                                            "#addFeedbackButton"
+                                        );
                                     if (submitBtn) {
-                                        submitBtn.style.flex = '';
-                                        submitBtn.style.padding = '';
-                                        submitBtn.style.fontSize = '';
-                                        submitBtn.classList.add('w-100');
-                                        footer.innerHTML = '';
+                                        submitBtn.style.flex = "";
+                                        submitBtn.style.padding = "";
+                                        submitBtn.style.fontSize = "";
+                                        submitBtn.classList.add("w-100");
+                                        footer.innerHTML = "";
                                         footer.appendChild(submitBtn);
                                     }
                                 } else {
                                     // Ensure w-100 if wrapper already gone
-                                    addFeedbackButton.classList.add('w-100');
+                                    addFeedbackButton.classList.add("w-100");
                                 }
-                                const closeBtn = footer.querySelector('#replyCloseButton');
+                                const closeBtn =
+                                    footer.querySelector("#replyCloseButton");
                                 if (closeBtn) closeBtn.remove();
                             }
-                        } catch(_) { /* noop */ }
+                        } catch (_) {
+                            /* noop */
+                        }
 
                         // Clone tombol untuk menghapus semua event listener sebelumnya
                         const newButton = addFeedbackButton.cloneNode(true);
@@ -3930,9 +6006,12 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                     // Update badge counts for all project cards after rendering - optimized for speed
                     setTimeout(() => {
                         // Batch update all badges in parallel for faster performance
-                        const updatePromises = projects.map(project => {
+                        const updatePromises = projects.map((project) => {
                             return new Promise((resolve) => {
-                                if (typeof window.updateProjectBadges === 'function') {
+                                if (
+                                    typeof window.updateProjectBadges ===
+                                    "function"
+                                ) {
                                     window.updateProjectBadges(project.id);
                                 }
                                 resolve();
@@ -3940,11 +6019,12 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                         });
 
                         Promise.all(updatePromises).then(() => {
-                            console.log('All project badges updated successfully');
+                            console.log(
+                                "All project badges updated successfully"
+                            );
                         });
                     }, 50); // Further reduced delay for instant update
-                }
-                else {
+                } else {
                     // No projects. If backend provides aggregated task chart_counts,
                     // we already updated the chart above. Only set zero state when chart_counts is missing.
                     try {
@@ -3956,8 +6036,7 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                     }
                 }
 
-                $('.loader').fadeOut('fast');
-
+                $(".loader").fadeOut("fast");
             },
             error: function () {
                 console.error("Failed to load project card data.");
@@ -3983,7 +6062,11 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                 if (typeof callback === "function") callback();
             },
             error: function () {
-                showFloatingAlert("Failed to load departments.", 'warning', 3500);
+                showFloatingAlert(
+                    "Failed to load departments.",
+                    "warning",
+                    3500
+                );
                 if (typeof callback === "function") callback();
             },
         });
@@ -4016,7 +6099,7 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
                 if (typeof callback === "function") callback();
             },
             error: function () {
-                showFloatingAlert("Failed to load divisions.", 'warning', 3500);
+                showFloatingAlert("Failed to load divisions.", "warning", 3500);
                 if (typeof callback === "function") callback();
             },
         });
@@ -4024,153 +6107,167 @@ $("#editProjectForm").off("submit").on("submit", function (e) {
 
     let allProjectsCache = [];
 
-function loadProjects(filter = null) {
-    $.ajax({
-        url: appUrl + "/project/index",
-        type: "GET",
-        dataType: "json",
-        data: { task_scope: 'me', filter: filter },
-        success: function (data) {
-            loadProjectCardData(filter, 1);
-        },
-        error: function () {
-            console.error("Failed to load project cards (index)");
-        }
-    });
-}
-
-function loadCardProjects(page = 1) {
-    $.ajax({
-        url: appUrl + "/project/get-all-projects",
-        type: "GET",
-        dataType: "json",
-        data: { task_scope: 'me', page: page },
-        success: function (data) {
-
-            loadProjectCardData(null, page);
-
-            updatePagination(data.pagination);
-        },
-        error: function () {
-            console.error("Failed to load project cards");
-        }
-    });
-}
-
-function updatePagination(pagination) {
-    if (!pagination) return;
-
-    const currentPage = parseInt(pagination.current_page, 10);
-    const perPage = parseInt(pagination.per_page, 10);
-    const total = parseInt(pagination.total, 10);
-    const lastPage = parseInt(pagination.last_page, 10);
-
-    if (total <= perPage) {
-        $("#project-pagination").addClass("d-none");
-    } else {
-        $("#project-pagination").removeClass("d-none");
-        $("#project-pagination").addClass("d-flex");
+    function loadProjects(filter = null) {
+        $.ajax({
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+            data: { task_scope: "me", filter: filter },
+            success: function (data) {
+                loadProjectCardData(filter, 1);
+            },
+            error: function () {
+                console.error("Failed to load project cards (index)");
+            },
+        });
     }
 
-    const from = (currentPage - 1) * perPage + 1;
-    let to = currentPage * perPage;
-    if (to > total) to = total;
+    function loadCardProjects(page = 1) {
+        $.ajax({
+            url: appUrl + "/project/get-all-projects",
+            type: "GET",
+            dataType: "json",
+            data: { task_scope: "me", page: page },
+            success: function (data) {
+                loadProjectCardData(null, page);
 
-    $("#paginationInfo").text(`${currentPage} OF ${lastPage}`);
-
-    $("#prevPageBtn").prop("disabled", currentPage <= 1).data("page", currentPage - 1);
-    $("#nextPageBtn").prop("disabled", currentPage >= lastPage).data("page", currentPage + 1);
-
-    $("#prevPageBtn, #nextPageBtn").off("click").on("click", function () {
-        const page = $(this).data("page");
-        if (page) {
-            loadCardProjects(page);
-        }
-    });
-}
-
-// function initProjectFilter() {
-//     const searchInput = document.getElementById("search_filter");
-//     if (!searchInput) return;
-
-//     searchInput.addEventListener("keyup", function () {
-//         const query = this.value.toLowerCase().trim();
-
-//         const cards = document.querySelectorAll("#all-cards-container .card");
-
-//         cards.forEach(card => {
-//             const text = card.innerText.toLowerCase();
-//             if (text.includes(query)) {
-//                 card.style.display = "";
-//             } else {
-//                 card.style.display = "none";
-//             }
-//         });
-//     });
-// }
-
-// // init pas ready
-// $(document).ready(function () {
-//     initProjectFilter();
-// });
-
-// ===== Unread badge and latest feedback snippet for Project (parity with Task) =====
-// Helpers to show/hide unread badge
-
-function hideProjectUnreadBadge(projectId) {
-    try {
-        const badge = document.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
-        if (!badge) return;
-        badge.textContent = '';
-        badge.classList.add('d-none');
-    } catch (_) {}
-}
-
-// Latest feedback snippet helpers
-function hideProjectLatestFeedbackSnippet(projectId) {
-    try {
-        const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
-        els.forEach((el) => {
-            el.classList.add('d-none');
-            el.style.display = 'none';
-            const textEl = el.querySelector('.latest-feedback-text');
-            if (textEl) textEl.textContent = '';
-            const avatar = el.querySelector('.latest-feedback-avatar');
-            if (avatar) avatar.src = appUrl + '/asset/img/avatar.png';
+                updatePagination(data.pagination);
+            },
+            error: function () {
+                console.error("Failed to load project cards");
+            },
         });
-    } catch (_) {}
+    }
 
-    // sembunyikan unread badge juga
-    try {
-        const badge = document.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
-        if (badge) {
-            badge.textContent = '';
-            badge.classList.add('d-none');
+    function updatePagination(pagination) {
+        if (!pagination) return;
+
+        const currentPage = parseInt(pagination.current_page, 10);
+        const perPage = parseInt(pagination.per_page, 10);
+        const total = parseInt(pagination.total, 10);
+        const lastPage = parseInt(pagination.last_page, 10);
+
+        if (total <= perPage) {
+            $("#project-pagination").addClass("d-none");
+        } else {
+            $("#project-pagination").removeClass("d-none");
+            $("#project-pagination").addClass("d-flex");
         }
-    } catch (_) {}
-}
 
+        const from = (currentPage - 1) * perPage + 1;
+        let to = currentPage * perPage;
+        if (to > total) to = total;
 
-function fetchLatestFeedbackForProject(projectId) {
-    const seq = (latestProjectSnippetSeq[projectId] = (latestProjectSnippetSeq[projectId] || 0) + 1);
-    return $.ajax({ url: appUrl + `/project-feedbacks/${projectId}/latest`, type: 'GET', dataType: 'json' })
-        .then((res) => {
-            if (latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
-            const data = res && (res.data || null);
-            setProjectLatestFeedbackSnippet(projectId, data);
+        $("#paginationInfo").text(`${currentPage} OF ${lastPage}`);
+
+        $("#prevPageBtn")
+            .prop("disabled", currentPage <= 1)
+            .data("page", currentPage - 1);
+        $("#nextPageBtn")
+            .prop("disabled", currentPage >= lastPage)
+            .data("page", currentPage + 1);
+
+        $("#prevPageBtn, #nextPageBtn")
+            .off("click")
+            .on("click", function () {
+                const page = $(this).data("page");
+                if (page) {
+                    loadCardProjects(page);
+                }
+            });
+    }
+
+    // function initProjectFilter() {
+    //     const searchInput = document.getElementById("search_filter");
+    //     if (!searchInput) return;
+
+    //     searchInput.addEventListener("keyup", function () {
+    //         const query = this.value.toLowerCase().trim();
+
+    //         const cards = document.querySelectorAll("#all-cards-container .card");
+
+    //         cards.forEach(card => {
+    //             const text = card.innerText.toLowerCase();
+    //             if (text.includes(query)) {
+    //                 card.style.display = "";
+    //             } else {
+    //                 card.style.display = "none";
+    //             }
+    //         });
+    //     });
+    // }
+
+    // // init pas ready
+    // $(document).ready(function () {
+    //     initProjectFilter();
+    // });
+
+    // ===== Unread badge and latest feedback snippet for Project (parity with Task) =====
+    // Helpers to show/hide unread badge
+
+    function hideProjectUnreadBadge(projectId) {
+        try {
+            const badge = document.querySelector(
+                `.unread-badge[data-project-id="${projectId}"]`
+            );
+            if (!badge) return;
+            badge.classList.add("d-none");
+        } catch (_) {}
+    }
+
+    // Latest feedback snippet helpers
+    function hideProjectLatestFeedbackSnippet(projectId) {
+        try {
+            const els = document.querySelectorAll(
+                `.latest-feedback-snippet[data-project-id="${projectId}"]`
+            );
+            els.forEach((el) => {
+                el.classList.add("d-none");
+                el.style.display = "none";
+                const textEl = el.querySelector(".latest-feedback-text");
+                if (textEl) textEl.textContent = "";
+                const avatar = el.querySelector(".latest-feedback-avatar");
+                if (avatar) avatar.src = appUrl + "/asset/img/avatar.png";
+            });
+        } catch (_) {}
+
+        // sembunyikan unread badge juga
+        try {
+            const badge = document.querySelector(
+                `.unread-badge[data-project-id="${projectId}"]`
+            );
+            if (badge) {
+                badge.classList.add("d-none");
+            }
+        } catch (_) {}
+    }
+
+    function fetchLatestFeedbackForProject(projectId) {
+        const seq = (latestProjectSnippetSeq[projectId] =
+            (latestProjectSnippetSeq[projectId] || 0) + 1);
+        return $.ajax({
+            url: appUrl + `/project-feedbacks/${projectId}/latest`,
+            type: "GET",
+            dataType: "json",
         })
-        .catch(() => {
-            if (latestProjectSnippetSeq[projectId] !== seq) return;
-            setProjectLatestFeedbackSnippet(projectId, null);
-        });
-}
-function refreshAllProjectLatestFeedbackSnippets() {
-    document.querySelectorAll('#all-cards-container .col-md-4[data-project-id]').forEach((col) => {
-        const pid = col.getAttribute('data-project-id');
-        fetchLatestFeedbackForProject(pid);
-    });
-}
-
+            .then((res) => {
+                if (latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
+                const data = res && (res.data || null);
+                setProjectLatestFeedbackSnippet(projectId, data);
+            })
+            .catch(() => {
+                if (latestProjectSnippetSeq[projectId] !== seq) return;
+                setProjectLatestFeedbackSnippet(projectId, null);
+            });
+    }
+    function refreshAllProjectLatestFeedbackSnippets() {
+        document
+            .querySelectorAll("#all-cards-container .col-md-4[data-project-id]")
+            .forEach((col) => {
+                const pid = col.getAttribute("data-project-id");
+                fetchLatestFeedbackForProject(pid);
+            });
+    }
 
     // New implementation for co-author input with checkbox multi-select and search
     function setupCoAuthorInput() {
@@ -4181,13 +6278,13 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("co_author");
 
-    let employees = [];
-    let filteredEmployees = [];
-    let selectedEmployees = [];
-    let isDropdownOpen = false;
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+        let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
-    function fetchEmployees(query = "") {
+        function fetchEmployees(query = "") {
             // Get current logged-in employee ID from modal data attribute
             const currentEmployeeId =
                 document
@@ -4200,9 +6297,12 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
                 success: function (data) {
-                    employees = (data.data || []).map(function(e){
+                    employees = (data.data || []).map(function (e) {
                         // Normalize unified avatar fields
-                        const candidate = e.profile_picture_url || e.profile_picture || e.user_photo;
+                        const candidate =
+                            e.profile_picture_url ||
+                            e.profile_picture ||
+                            e.user_photo;
                         e.user_photo = candidate; // maintain backwards key
                         return e;
                     });
@@ -4215,38 +6315,53 @@ function refreshAllProjectLatestFeedbackSnippets() {
             });
         }
         // Expose refresh function
-        window.__refreshAddProjectEmployees = function(){ fetchEmployees(document.getElementById('co_author_input')?.value || ''); };
+        window.__refreshAddProjectEmployees = function () {
+            fetchEmployees(
+                document.getElementById("co_author_input")?.value || ""
+            );
+        };
 
         // Render dropdown list with checkboxes
-    function renderDropdown() {
+        function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-        dropdown.style.display = isDropdownOpen ? "block" : "none";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
             const html = filteredEmployees
                 .map((emp) => {
-                    const isChecked = selectedEmployees.some((e) => e.id === emp.id);
-                    const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
-                    const photoUrl = (function(raw){
-                        if (!raw) return appUrl + '/asset/img/avatar.png';
+                    const isChecked = selectedEmployees.some(
+                        (e) => e.id === emp.id
+                    );
+                    const candidate =
+                        emp.profile_picture_url ||
+                        emp.profile_picture ||
+                        emp.user_photo;
+                    const photoUrl = (function (raw) {
+                        if (!raw) return appUrl + "/asset/img/avatar.png";
                         try {
                             raw = String(raw).trim();
-                            const trimmed = raw.replace(/^\/+/, '');
+                            const trimmed = raw.replace(/^\/+/, "");
                             if (/^https?:\/\//i.test(raw)) return raw;
-                            if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
-                            if (raw.startsWith('/')) return appUrl + raw;
-                            if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
-                            return appUrl + '/file/profile_picture/' + raw;
-                        } catch(_) { return appUrl + '/asset/img/avatar.png'; }
+                            if (/^(file\/|asset\/|storage\/)/.test(trimmed))
+                                return appUrl + "/" + trimmed;
+                            if (raw.startsWith("/")) return appUrl + raw;
+                            if (raw.indexOf("/") !== -1)
+                                return appUrl + "/" + trimmed;
+                            return appUrl + "/file/profile_picture/" + raw;
+                        } catch (_) {
+                            return appUrl + "/asset/img/avatar.png";
+                        }
                     })(candidate);
 
                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${appendAvatarVersion(photoUrl)}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <img src="${appendAvatarVersion(photoUrl)}" alt="${
+                        emp.name
+                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                     <span>${emp.name}</span>
                 </div>
                 <input type="checkbox" class="co-author-checkbox" data-id="${
@@ -4272,8 +6387,16 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
                         if (this.checked) {
                             if (!selectedEmployees.some((e) => e.id === id)) {
-                                const candidate = employeeObj ? (employeeObj.profile_picture_url || employeeObj.profile_picture || employeeObj.user_photo) : null;
-                                selectedEmployees.push({ id, name, user_photo: candidate });
+                                const candidate = employeeObj
+                                    ? employeeObj.profile_picture_url ||
+                                      employeeObj.profile_picture ||
+                                      employeeObj.user_photo
+                                    : null;
+                                selectedEmployees.push({
+                                    id,
+                                    name,
+                                    user_photo: candidate,
+                                });
                             }
                         } else {
                             selectedEmployees = selectedEmployees.filter(
@@ -4291,18 +6414,25 @@ function refreshAllProjectLatestFeedbackSnippets() {
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
-                const photoUrl = (function(raw){
-                    if (!raw) return appUrl + '/asset/img/avatar.png';
+                const candidate =
+                    emp.profile_picture_url ||
+                    emp.profile_picture ||
+                    emp.user_photo;
+                const photoUrl = (function (raw) {
+                    if (!raw) return appUrl + "/asset/img/avatar.png";
                     try {
                         raw = String(raw).trim();
-                        const trimmed = raw.replace(/^\/+/, '');
+                        const trimmed = raw.replace(/^\/+/, "");
                         if (/^https?:\/\//i.test(raw)) return raw;
-                        if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
-                        if (raw.startsWith('/')) return appUrl + raw;
-                        if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
-                        return appUrl + '/file/profile_picture/' + raw;
-                    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
+                        if (/^(file\/|asset\/|storage\/)/.test(trimmed))
+                            return appUrl + "/" + trimmed;
+                        if (raw.startsWith("/")) return appUrl + raw;
+                        if (raw.indexOf("/") !== -1)
+                            return appUrl + "/" + trimmed;
+                        return appUrl + "/file/profile_picture/" + raw;
+                    } catch (_) {
+                        return appUrl + "/asset/img/avatar.png";
+                    }
                 })(candidate);
 
                 const badge = document.createElement("span");
@@ -4401,13 +6531,13 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("contributors");
 
-    let employees = [];
-    let filteredEmployees = [];
-    let selectedEmployees = [];
-    let isDropdownOpen = false;
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+        let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
-    function fetchEmployees(query = "") {
+        function fetchEmployees(query = "") {
             // Get current logged-in employee ID from modal data attribute
             const currentEmployeeId =
                 document
@@ -4422,13 +6552,16 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 success: function (data) {
                     // Exclude employees already selected as co-authors
                     const coAuthorIds = window.selectedCoAuthorIds || [];
-                    employees = (data.data || []).filter(
-                        (emp) => !coAuthorIds.includes(emp.id)
-                    ).map(function(e){
-                        const candidate = e.profile_picture_url || e.profile_picture || e.user_photo;
-                        e.user_photo = candidate;
-                        return e;
-                    });
+                    employees = (data.data || [])
+                        .filter((emp) => !coAuthorIds.includes(emp.id))
+                        .map(function (e) {
+                            const candidate =
+                                e.profile_picture_url ||
+                                e.profile_picture ||
+                                e.user_photo;
+                            e.user_photo = candidate;
+                            return e;
+                        });
                     filteredEmployees = employees;
                     renderDropdown();
                 },
@@ -4437,44 +6570,57 @@ function refreshAllProjectLatestFeedbackSnippets() {
                 },
             });
         }
-        window.__refreshAddProjectEmployees = (function(orig){
+        window.__refreshAddProjectEmployees = (function (orig) {
             // Chain existing refresh if already defined
-            return function(){
-                if (typeof orig === 'function') orig();
-                fetchEmployees(document.getElementById('contributor_input')?.value || '');
+            return function () {
+                if (typeof orig === "function") orig();
+                fetchEmployees(
+                    document.getElementById("contributor_input")?.value || ""
+                );
             };
         })(window.__refreshAddProjectEmployees);
 
         // Render dropdown list with checkboxes
-    function renderDropdown() {
+        function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-        dropdown.style.display = isDropdownOpen ? "block" : "none";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
             const html = filteredEmployees
                 .map((emp) => {
-                    const isChecked = selectedEmployees.some((e) => e.id === emp.id);
-                    const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
-                    const photoUrl = (function(raw){
-                        if (!raw) return appUrl + '/asset/img/avatar.png';
+                    const isChecked = selectedEmployees.some(
+                        (e) => e.id === emp.id
+                    );
+                    const candidate =
+                        emp.profile_picture_url ||
+                        emp.profile_picture ||
+                        emp.user_photo;
+                    const photoUrl = (function (raw) {
+                        if (!raw) return appUrl + "/asset/img/avatar.png";
                         try {
                             raw = String(raw).trim();
-                            const trimmed = raw.replace(/^\/+/, '');
+                            const trimmed = raw.replace(/^\/+/, "");
                             if (/^https?:\/\//i.test(raw)) return raw;
-                            if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
-                            if (raw.startsWith('/')) return appUrl + raw;
-                            if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
-                            return appUrl + '/file/profile_picture/' + raw;
-                        } catch(_) { return appUrl + '/asset/img/avatar.png'; }
+                            if (/^(file\/|asset\/|storage\/)/.test(trimmed))
+                                return appUrl + "/" + trimmed;
+                            if (raw.startsWith("/")) return appUrl + raw;
+                            if (raw.indexOf("/") !== -1)
+                                return appUrl + "/" + trimmed;
+                            return appUrl + "/file/profile_picture/" + raw;
+                        } catch (_) {
+                            return appUrl + "/asset/img/avatar.png";
+                        }
                     })(candidate);
 
                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${appendAvatarVersion(photoUrl)}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <img src="${appendAvatarVersion(photoUrl)}" alt="${
+                        emp.name
+                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                     <span>${emp.name}</span>
                 </div>
                 <input type="checkbox" class="contributor-checkbox" data-id="${
@@ -4501,8 +6647,16 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
                         if (this.checked) {
                             if (!selectedEmployees.some((e) => e.id === id)) {
-                                const candidate = employeeObj ? (employeeObj.profile_picture_url || employeeObj.profile_picture || employeeObj.user_photo) : null;
-                                selectedEmployees.push({ id, name, user_photo: candidate });
+                                const candidate = employeeObj
+                                    ? employeeObj.profile_picture_url ||
+                                      employeeObj.profile_picture ||
+                                      employeeObj.user_photo
+                                    : null;
+                                selectedEmployees.push({
+                                    id,
+                                    name,
+                                    user_photo: candidate,
+                                });
                             }
                         } else {
                             selectedEmployees = selectedEmployees.filter(
@@ -4520,18 +6674,25 @@ function refreshAllProjectLatestFeedbackSnippets() {
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                const candidate = emp.profile_picture_url || emp.profile_picture || emp.user_photo;
-                const photoUrl = (function(raw){
-                    if (!raw) return appUrl + '/asset/img/avatar.png';
+                const candidate =
+                    emp.profile_picture_url ||
+                    emp.profile_picture ||
+                    emp.user_photo;
+                const photoUrl = (function (raw) {
+                    if (!raw) return appUrl + "/asset/img/avatar.png";
                     try {
                         raw = String(raw).trim();
-                        const trimmed = raw.replace(/^\/+/, '');
+                        const trimmed = raw.replace(/^\/+/, "");
                         if (/^https?:\/\//i.test(raw)) return raw;
-                        if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
-                        if (raw.startsWith('/')) return appUrl + raw;
-                        if (raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
-                        return appUrl + '/file/profile_picture/' + raw;
-                    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
+                        if (/^(file\/|asset\/|storage\/)/.test(trimmed))
+                            return appUrl + "/" + trimmed;
+                        if (raw.startsWith("/")) return appUrl + raw;
+                        if (raw.indexOf("/") !== -1)
+                            return appUrl + "/" + trimmed;
+                        return appUrl + "/file/profile_picture/" + raw;
+                    } catch (_) {
+                        return appUrl + "/asset/img/avatar.png";
+                    }
                 })(candidate);
 
                 const badge = document.createElement("span");
@@ -4699,26 +6860,39 @@ function refreshAllProjectLatestFeedbackSnippets() {
     }
 
     // Unified alert: use Settings-style white alert (from office.js)
-    function showFloatingAlert(message, type = 'success', delayMs = 2500) {
+    function showFloatingAlert(message, type = "success", delayMs = 2500) {
         try {
-            if (typeof window.showAlertMsg === 'function') {
-                window.showAlertMsg(message, 'light', delayMs);
+            if (typeof window.showAlertMsg === "function") {
+                window.showAlertMsg(message, "light", delayMs);
                 return;
             }
-            const box = document.querySelector('.box-alert-messages .box-message');
+            const box = document.querySelector(
+                ".box-alert-messages .box-message"
+            );
             if (box && box.parentElement) {
-                box.parentElement.style.display = 'block';
-                box.classList.remove('success','warning','error','light');
-                box.classList.add('light');
+                box.parentElement.style.display = "block";
+                box.classList.remove("success", "warning", "error", "light");
+                box.classList.add("light");
                 box.innerHTML = message;
                 setTimeout(() => {
-                    if (typeof window.hideAlertMsg === 'function') { window.hideAlertMsg(); }
-                    else { box.parentElement.style.display = 'none'; }
+                    if (typeof window.hideAlertMsg === "function") {
+                        window.hideAlertMsg();
+                    } else {
+                        box.parentElement.style.display = "none";
+                    }
                 }, delayMs);
                 return;
             }
-        } catch (e) { /* no-op */ }
-        try { alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message)); } catch(e) {}
+        } catch (e) {
+            /* no-op */
+        }
+        try {
+            alert(
+                typeof message === "string"
+                    ? message.replace(/<[^>]+>/g, "")
+                    : String(message)
+            );
+        } catch (e) {}
     }
 
     addProjectForm.addEventListener("submit", function (e) {
@@ -4739,15 +6913,19 @@ function refreshAllProjectLatestFeedbackSnippets() {
         const formData = new FormData(addProjectForm);
         // Map first non-empty reference_urls[] to single reference_url for backend compatibility
         try {
-            const urlInputs = addProjectForm.querySelectorAll('input[name="reference_urls[]"]');
-            const urls = Array.from(urlInputs).map(i => (i.value || '').trim()).filter(Boolean);
-            if (urls.length) formData.set('reference_url', urls[0]);
-        } catch(_) {}
+            const urlInputs = addProjectForm.querySelectorAll(
+                'input[name="reference_urls[]"]'
+            );
+            const urls = Array.from(urlInputs)
+                .map((i) => (i.value || "").trim())
+                .filter(Boolean);
+            if (urls.length) formData.set("reference_url", urls[0]);
+        } catch (_) {}
 
         // Append project selected reference files (if any)
         if (projectSelectedFiles && projectSelectedFiles.length) {
             projectSelectedFiles.forEach(function (f) {
-                formData.append('reference_file[]', f);
+                formData.append("reference_file[]", f);
             });
         }
 
@@ -4796,26 +6974,35 @@ function refreshAllProjectLatestFeedbackSnippets() {
                     status: xhr.status,
                     statusText: xhr.statusText,
                     responseText: xhr.responseText,
-                    error: error
+                    error: error,
                 });
 
                 if (xhr.status === 422) {
                     let errors = xhr.responseJSON?.errors || {};
                     var listHtml = '<ul style="margin:0; padding-left:18px;">';
                     $.each(errors, function (key, value) {
-                        if (Array.isArray(value)) { value.forEach(function(msg){ listHtml += '<li>'+msg+'</li>'; }); }
-                        else { listHtml += '<li>'+value+'</li>'; }
+                        if (Array.isArray(value)) {
+                            value.forEach(function (msg) {
+                                listHtml += "<li>" + msg + "</li>";
+                            });
+                        } else {
+                            listHtml += "<li>" + value + "</li>";
+                        }
                     });
-                    listHtml += '</ul>';
-                    showFloatingAlert(listHtml, 'warning', 5000);
+                    listHtml += "</ul>";
+                    showFloatingAlert(listHtml, "warning", 5000);
                 } else if (xhr.status === 500) {
                     let errorMsg = "Server error occurred.";
                     if (xhr.responseJSON?.message) {
                         errorMsg += " " + xhr.responseJSON.message;
                     }
-                    showFloatingAlert(errorMsg, 'warning', 5000);
+                    showFloatingAlert(errorMsg, "warning", 5000);
                 } else {
-                    showFloatingAlert("Failed to create project. Status: " + xhr.status, 'warning', 3500);
+                    showFloatingAlert(
+                        "Failed to create project. Status: " + xhr.status,
+                        "warning",
+                        3500
+                    );
                 }
             },
             complete: function () {
@@ -4836,7 +7023,9 @@ function refreshAllProjectLatestFeedbackSnippets() {
     loadCardProjects();
     loadDepartments();
     // Populate "Part of Project" selects for Add and Edit modals
-    try { populatePartOfProjectSelects(); } catch(_) {}
+    try {
+        populatePartOfProjectSelects();
+    } catch (_) {}
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
@@ -4865,10 +7054,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("co_author");
 
-    let employees = [];
-    let filteredEmployees = [];
-    let selectedEmployees = [];
-    let isDropdownOpen = false;
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+        let isDropdownOpen = false;
 
         function fetchEmployees(query = "") {
             const currentEmployeeId =
@@ -4896,11 +7085,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
             });
         }
 
-    function renderDropdown() {
+        function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-        dropdown.style.display = isDropdownOpen ? "block" : "none";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -4913,8 +7102,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                     // Perbaikan logika foto: aman untuk berbagai format
                     let photoUrl;
                     if (!emp.user_photo) {
-                        photoUrl =
-                            appUrl + "/asset/img/avatar.png";
+                        photoUrl = appUrl + "/asset/img/avatar.png";
                     } else if (emp.user_photo.startsWith("http")) {
                         photoUrl = emp.user_photo;
                     } else if (emp.user_photo.startsWith("/")) {
@@ -4992,8 +7180,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
             selectedEmployees.forEach((emp) => {
                 // Ganti semua logika pengambilan foto dengan:
                 const photoUrl =
-                    emp.user_photo ||
-                    appUrl + "/asset/img/avatar.png";
+                    emp.user_photo || appUrl + "/asset/img/avatar.png";
                 const badge = document.createElement("span");
                 badge.className =
                     "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
@@ -5092,7 +7279,9 @@ function refreshAllProjectLatestFeedbackSnippets() {
         window.removeCoAuthorsByIds = function (ids) {
             if (!Array.isArray(ids) || ids.length === 0) return;
             const before = selectedEmployees.length;
-            selectedEmployees = selectedEmployees.filter((e) => !ids.includes(e.id));
+            selectedEmployees = selectedEmployees.filter(
+                (e) => !ids.includes(e.id)
+            );
             if (selectedEmployees.length !== before) {
                 renderSelected();
                 updateHiddenInput();
@@ -5111,221 +7300,271 @@ function refreshAllProjectLatestFeedbackSnippets() {
     // Initialize contributor input
     // setupContributorInput(); // replaced by wrappedSetupContributorInput to support cross-exclusion and syncing
 
-                    // Attach click handler for attach_file buttons on project cards
-                    document.querySelectorAll('.project-attach-file').forEach(btn => {
-                        btn.addEventListener('click', function (e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const projectId = this.getAttribute('data-project-id');
-                            if (!projectId) return;
-                            showProjectFiles(projectId);
-                        });
+    // Attach click handler for attach_file buttons on project cards
+    document.querySelectorAll(".project-attach-file").forEach((btn) => {
+        btn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const projectId = this.getAttribute("data-project-id");
+            if (!projectId) return;
+            showProjectFiles(projectId);
+        });
+    });
+
+    // Also add delegated handler as fallback (catches dynamically added/changed elements)
+    document.addEventListener("click", function (e) {
+        const btn =
+            e.target.closest && e.target.closest(".project-attach-file");
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const projectId =
+            btn.getAttribute("data-project-id") || btn.dataset.projectId;
+        console.debug("project-attach-file clicked (delegated)", projectId);
+        if (projectId)
+            window.showProjectFiles && window.showProjectFiles(projectId);
+    });
+
+    // Expose global showProjectFiles so delegated handlers (or other scripts) can call it
+    window.showProjectFiles = function (projectId) {
+        const modalEl = document.getElementById("projectFilesModal");
+        const listEl = document.getElementById("projectReferenceFilesList");
+        if (!modalEl || !listEl) return;
+
+        // loading state
+        listEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+        fetch(appUrl + "/project/" + projectId)
+            .then((r) => {
+                if (!r.ok) throw new Error("Failed to fetch project");
+                return r.json();
+            })
+            .then((resp) => {
+                const data = resp.data || resp;
+                const files = Array.isArray(data.reference_files)
+                    ? data.reference_files
+                    : Array.isArray(data.reference_file)
+                    ? data.reference_file
+                    : data.reference_file
+                    ? [data.reference_file]
+                    : [];
+
+                listEl.innerHTML = "";
+
+                if (files && files.length > 0) {
+                    files.forEach((fileName) => {
+                        const link = document.createElement("a");
+                        link.href = appUrl + "/file/project/" + fileName;
+                        link.target = "_blank";
+                        link.className = "d-block text-decoration-none mb-1";
+                        link.innerHTML = `<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ${fileName}`;
+                        listEl.appendChild(link);
                     });
+                } else {
+                    listEl.textContent = "No reference files available.";
+                }
 
-                    // Also add delegated handler as fallback (catches dynamically added/changed elements)
-                    document.addEventListener('click', function (e) {
-                        const btn = e.target.closest && e.target.closest('.project-attach-file');
-                        if (!btn) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const projectId = btn.getAttribute('data-project-id') || btn.dataset.projectId;
-                        console.debug('project-attach-file clicked (delegated)', projectId);
-                        if (projectId) window.showProjectFiles && window.showProjectFiles(projectId);
-                    });
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            })
+            .catch((err) => {
+                showFloatingAlert(
+                    "Failed to load reference files.",
+                    "warning",
+                    3000
+                );
+                console.error("showProjectFiles error", err);
+                // Still show modal but without content
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            });
+    };
 
-                    // Expose global showProjectFiles so delegated handlers (or other scripts) can call it
-                    window.showProjectFiles = function(projectId) {
-                        const modalEl = document.getElementById('projectFilesModal');
-                        const listEl = document.getElementById('projectReferenceFilesList');
-                        if (!modalEl || !listEl) return;
+    // Populate feedback and file counts for each card
+    // Retry a few times if cards are not yet present (cards are loaded via AJAX)
+    (function populateCounts(retry = 0) {
+        const MAX_RETRIES = 12; // total ~12 * 250ms = 3s max wait
+        const RETRY_DELAY = 250;
 
-                        // loading state
-                        listEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+        const containerEl = document.getElementById("all-cards-container");
+        if (!containerEl) {
+            if (retry < MAX_RETRIES) {
+                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+            }
+            return; // give up
+        }
 
-                        fetch(appUrl + '/project/' + projectId)
-                            .then(r => { if (!r.ok) throw new Error('Failed to fetch project'); return r.json(); })
-                            .then(resp => {
-                                const data = resp.data || resp;
-                                const files = Array.isArray(data.reference_files) ? data.reference_files
-                                    : (Array.isArray(data.reference_file) ? data.reference_file
-                                    : (data.reference_file ? [data.reference_file] : []));
+        const cards = containerEl.querySelectorAll("[data-project-id]");
+        if (!cards || cards.length === 0) {
+            if (retry < MAX_RETRIES) {
+                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+            }
+            return;
+        }
 
-                                listEl.innerHTML = '';
+        cards.forEach((card) => {
+            const pid = card.getAttribute("data-project-id");
+            // find badges
+            const fbBadge = card.querySelector(".project-feedback-count");
+            const fileBadge = card.querySelector(".project-file-count");
 
-                                if (files && files.length > 0) {
-                                    files.forEach((fileName) => {
-                                        const link = document.createElement('a');
-                                        link.href = appUrl + '/file/project/' + fileName;
-                                        link.target = '_blank';
-                                        link.className = 'd-block text-decoration-none mb-1';
-                                        link.innerHTML = `<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ${fileName}`;
-                                        listEl.appendChild(link);
-                                    });
-                                } else {
-                                    listEl.textContent = 'No reference files available.';
-                                }
+            // request feedback count (robust parsing)
+            fetch(appUrl + "/project-feedbacks/" + pid)
+                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                .then((resp) => {
+                    let count = 0;
+                    // resp can be array, { data: [...] }, { total: n }, or single object
+                    if (Array.isArray(resp)) {
+                        count = resp.length;
+                    } else if (Array.isArray(resp.data)) {
+                        count = resp.data.length;
+                    } else if (typeof resp.total === "number") {
+                        count = resp.total;
+                    } else if (
+                        resp.meta &&
+                        typeof resp.meta.total === "number"
+                    ) {
+                        count = resp.meta.total;
+                    } else if (resp.data && typeof resp.data === "object") {
+                        // single item
+                        count = 1;
+                    }
+                    if (fbBadge) fbBadge.textContent = count;
+                })
+                .catch((err) => {
+                    if (fbBadge) fbBadge.textContent = "0";
+                });
 
-                                const modal = new bootstrap.Modal(modalEl);
-                                modal.show();
-                            })
-                            .catch(err => {
-                                showFloatingAlert('Failed to load reference files.', 'warning', 3000);
-                                console.error('showProjectFiles error', err);
-                                // Still show modal but without content
-                                const modal = new bootstrap.Modal(modalEl);
-                                modal.show();
-                            });
-                    };
+            // request project detail to read reference_file
+            fetch(appUrl + "/project/" + pid)
+                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                .then((resp) => {
+                    const data = resp.data || resp;
+                    let count = 0;
+                    if (data.reference_file) {
+                        if (Array.isArray(data.reference_file))
+                            count = data.reference_file.length;
+                        else if (
+                            typeof data.reference_file === "string" &&
+                            data.reference_file.trim() !== ""
+                        )
+                            count = 1;
+                    }
+                    if (fileBadge) fileBadge.textContent = count;
+                })
+                .catch((err) => {
+                    if (fileBadge) fileBadge.textContent = "0";
+                });
+        });
+    })(0);
 
-                    // Populate feedback and file counts for each card
-                    // Retry a few times if cards are not yet present (cards are loaded via AJAX)
-                    (function populateCounts(retry = 0) {
-                        const MAX_RETRIES = 12; // total ~12 * 250ms = 3s max wait
-                        const RETRY_DELAY = 250;
+    // Expose helper to update badges for a single project id (used after edit)
+    window.updateProjectBadges = function (pid, attempt = 0) {
+        try {
+            const containerEl = document.getElementById("all-cards-container");
+            if (!containerEl) return;
+            const card = containerEl.querySelector(
+                '[data-project-id="' + pid + '"]'
+            );
+            if (!card) {
+                // retry a few times until card is rendered
+                if (attempt < 5) {
+                    return setTimeout(
+                        () => window.updateProjectBadges(pid, attempt + 1),
+                        50
+                    );
+                }
+                return;
+            }
 
-                        const containerEl = document.getElementById('all-cards-container');
-                        if (!containerEl) {
-                            if (retry < MAX_RETRIES) {
-                                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
-                            }
-                            return; // give up
-                        }
+            const fbBadge = card.querySelector(".project-feedback-count");
+            const fileBadge = card.querySelector(".project-file-count");
 
-                        const cards = containerEl.querySelectorAll('[data-project-id]');
-                        if (!cards || cards.length === 0) {
-                            if (retry < MAX_RETRIES) {
-                                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
-                            }
-                            return;
-                        }
+            // Parallel fetch for faster loading
+            const feedbackPromise = fetch(appUrl + "/project-feedbacks/" + pid)
+                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                .then((resp) => {
+                    let count = 0;
+                    if (Array.isArray(resp)) count = resp.length;
+                    else if (Array.isArray(resp.data)) count = resp.data.length;
+                    else if (typeof resp.total === "number") count = resp.total;
+                    else if (resp.meta && typeof resp.meta.total === "number")
+                        count = resp.meta.total;
+                    else if (resp.data && typeof resp.data === "object")
+                        count = 1;
+                    if (fbBadge) fbBadge.textContent = count;
+                })
+                .catch(() => {
+                    if (fbBadge) fbBadge.textContent = "0";
+                });
 
-                        cards.forEach(card => {
-                            const pid = card.getAttribute('data-project-id');
-                            // find badges
-                            const fbBadge = card.querySelector('.project-feedback-count');
-                            const fileBadge = card.querySelector('.project-file-count');
+            const filePromise = fetch(appUrl + "/project/" + pid)
+                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                .then((resp) => {
+                    const data = resp.data || resp;
+                    let files = [];
+                    if (Array.isArray(data.reference_file))
+                        files = data.reference_file;
+                    else if (Array.isArray(data.reference_files))
+                        files = data.reference_files;
+                    else if (
+                        typeof data.reference_file === "string" &&
+                        data.reference_file.trim() !== ""
+                    )
+                        files = [data.reference_file];
+                    if (fileBadge) fileBadge.textContent = files.length;
+                })
+                .catch(() => {
+                    if (fileBadge) fileBadge.textContent = "0";
+                });
 
-                            // request feedback count (robust parsing)
-                            fetch(appUrl + '/project-feedbacks/' + pid)
-                                .then(r => r.ok ? r.json() : Promise.reject(r))
-                                .then(resp => {
-                                    let count = 0;
-                                    // resp can be array, { data: [...] }, { total: n }, or single object
-                                    if (Array.isArray(resp)) {
-                                        count = resp.length;
-                                    } else if (Array.isArray(resp.data)) {
-                                        count = resp.data.length;
-                                    } else if (typeof resp.total === 'number') {
-                                        count = resp.total;
-                                    } else if (resp.meta && typeof resp.meta.total === 'number') {
-                                        count = resp.meta.total;
-                                    } else if (resp.data && typeof resp.data === 'object') {
-                                        // single item
-                                        count = 1;
-                                    }
-                                    if (fbBadge) fbBadge.textContent = count;
-                                })
-                                .catch(err => {
-                                    if (fbBadge) fbBadge.textContent = '0';
-                                });
+            // Wait for both requests to complete
+            Promise.all([feedbackPromise, filePromise]).then(() => {
+                // Both badges updated
+            });
+        } catch (e) {}
+    };
 
-                            // request project detail to read reference_file
-                            fetch(appUrl + '/project/' + pid)
-                                .then(r => r.ok ? r.json() : Promise.reject(r))
-                                .then(resp => {
-                                    const data = resp.data || resp;
-                                    let count = 0;
-                                    if (data.reference_file) {
-                                        if (Array.isArray(data.reference_file)) count = data.reference_file.length;
-                                        else if (typeof data.reference_file === 'string' && data.reference_file.trim() !== '') count = 1;
-                                    }
-                                    if (fileBadge) fileBadge.textContent = count;
-                                })
-                                .catch(err => {
-                                    if (fileBadge) fileBadge.textContent = '0';
-                                });
-                        });
-                    })(0);
+    // Refresh only one project card in-place using fresh data
+    window.refreshSingleProjectCard = function (pid, attempt = 0) {
+        try {
+            const containerEl = document.getElementById("all-cards-container");
+            if (!containerEl) return;
+            const col = containerEl.querySelector(
+                '[data-project-id="' + pid + '"]'
+            );
+            if (!col) {
+                if (attempt < 10)
+                    return setTimeout(
+                        () => window.refreshSingleProjectCard(pid, attempt + 1),
+                        200
+                    );
+                return;
+            }
 
-                    // Expose helper to update badges for a single project id (used after edit)
-                    window.updateProjectBadges = function(pid, attempt = 0) {
-                        try {
-                            const containerEl = document.getElementById('all-cards-container');
-                            if (!containerEl) return;
-                            const card = containerEl.querySelector('[data-project-id="' + pid + '"]');
-                            if (!card) {
-                                // retry a few times until card is rendered
-                                if (attempt < 5) {
-                                    return setTimeout(() => window.updateProjectBadges(pid, attempt + 1), 50);
-                                }
-                                return;
-                            }
+            // Keep current badge counts while refreshing content to avoid flashing 0
+            const currentFb =
+                col.querySelector(".project-feedback-count")?.textContent || "";
+            const currentFiles =
+                col.querySelector(".project-file-count")?.textContent || "";
 
-                            const fbBadge = card.querySelector('.project-feedback-count');
-                            const fileBadge = card.querySelector('.project-file-count');
+            fetch(appUrl + "/project/" + pid)
+                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                .then((resp) => {
+                    const p = resp.data || resp;
 
-                            // Parallel fetch for faster loading
-                            const feedbackPromise = fetch(appUrl + '/project-feedbacks/' + pid)
-                                .then(r => r.ok ? r.json() : Promise.reject(r))
-                                .then(resp => {
-                                    let count = 0;
-                                    if (Array.isArray(resp)) count = resp.length;
-                                    else if (Array.isArray(resp.data)) count = resp.data.length;
-                                    else if (typeof resp.total === 'number') count = resp.total;
-                                    else if (resp.meta && typeof resp.meta.total === 'number') count = resp.meta.total;
-                                    else if (resp.data && typeof resp.data === 'object') count = 1;
-                                    if (fbBadge) fbBadge.textContent = count;
-                                })
-                                .catch(() => { if (fbBadge) fbBadge.textContent = '0'; });
+                    // Rebuild only the inner content of the card body with latest fields
+                    let imageUrl = p.image
+                        ? appUrl + "/file/project/" + p.image
+                        : appUrl + "/asset/img/background/add-image.png";
 
-                            const filePromise = fetch(appUrl + '/project/' + pid)
-                                .then(r => r.ok ? r.json() : Promise.reject(r))
-                                .then(resp => {
-                                    const data = resp.data || resp;
-                                    let files = [];
-                                    if (Array.isArray(data.reference_file)) files = data.reference_file;
-                                    else if (Array.isArray(data.reference_files)) files = data.reference_files;
-                                    else if (typeof data.reference_file === 'string' && data.reference_file.trim() !== '') files = [data.reference_file];
-                                    if (fileBadge) fileBadge.textContent = files.length;
-                                })
-                                .catch(() => { if (fileBadge) fileBadge.textContent = '0'; });
-
-                            // Wait for both requests to complete
-                            Promise.all([feedbackPromise, filePromise]).then(() => {
-                                // Both badges updated
-                            });
-                        } catch (e) {}
-                    };
-
-                    // Refresh only one project card in-place using fresh data
-                    window.refreshSingleProjectCard = function(pid, attempt = 0) {
-                        try {
-                            const containerEl = document.getElementById('all-cards-container');
-                            if (!containerEl) return;
-                            const col = containerEl.querySelector('[data-project-id="' + pid + '"]');
-                            if (!col) {
-                                if (attempt < 10) return setTimeout(() => window.refreshSingleProjectCard(pid, attempt + 1), 200);
-                                return;
-                            }
-
-                            // Keep current badge counts while refreshing content to avoid flashing 0
-                            const currentFb = col.querySelector('.project-feedback-count')?.textContent || '';
-                            const currentFiles = col.querySelector('.project-file-count')?.textContent || '';
-
-                            fetch(appUrl + '/project/' + pid)
-                                .then(r => r.ok ? r.json() : Promise.reject(r))
-                                .then(resp => {
-                                    const p = resp.data || resp;
-
-                                    // Rebuild only the inner content of the card body with latest fields
-                                    let imageUrl = p.image ? (appUrl + '/file/project/' + p.image)
-                                                           : (appUrl + '/asset/img/background/add-image.png');
-
-                                    const newHeader = `
+                    const newHeader = `
                                         <div class="d-flex justify-content-between align-items-start mb-2">
                                             <div class="d-flex align-items-center">
                                                 <img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;">
-                                                <h6 class="mb-0" style="font-size:14px; font-weight:600;">${p.title || ''}</h6>
+                                                <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
+                                                    p.title || ""
+                                                }</h6>
                                             </div>
                                             <div class="dropdown-icon-container">
                                                 <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
@@ -5342,103 +7581,165 @@ function refreshAllProjectLatestFeedbackSnippets() {
                                             </div>
                                         </div>`;
 
-                                    const newDesc = (function(){
-                                        const d = (p.description||'').trim();
-                                        if(!d) return '';
-                                        return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
-                                    })();
+                    const newDesc = (function () {
+                        const d = (p.description || "").trim();
+                        if (!d) return "";
+                        return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
+                    })();
 
-                                    const newFooter = `
+                    const newFooter = `
                                         <div class="d-flex justify-content-between align-items-center mt-2">
-                                            <div class="collaborators-image d-flex align-items-center">${renderCollaborators(p)}</div>
+                                            <div class="collaborators-image d-flex align-items-center">${renderCollaborators(
+                                                p
+                                            )}</div>
                                             <div class="d-flex align-items-center">
-                                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${p.id}" style="cursor:pointer; max-width: 160px;">
+                                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${
+                                                    p.id
+                                                }" style="cursor:pointer; max-width: 160px;">
                                                     <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                                     <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                                                 </div>
-                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${p.id}">
+                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${
+                                                    p.id
+                                                }">
                                                     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-                                                    <span class="project-feedback-count ms-1" data-project-id="${p.id}" style="font-size:12px; color:#454545;">${currentFb}</span>
-                                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${p.id}"></span>
+                                                    <span class="project-feedback-count ms-1" data-project-id="${
+                                                        p.id
+                                                    }" style="font-size:12px; color:#454545;">${currentFb}</span>
+                                                    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" data-project-id="${
+                                                        p.id
+                                                    }" style="background: red; border-radius: 50%; width: 8px; height: 8px;"></span>
                                                 </button>
-                                                <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${p.id}">
+                                                <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${
+                                                    p.id
+                                                }">
                                                     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
-                                                    <span class="project-file-count ms-1" data-project-id="${p.id}" style="font-size:12px; color:#454545;">${currentFiles}</span>
+                                                    <span class="project-file-count ms-1" data-project-id="${
+                                                        p.id
+                                                    }" style="font-size:12px; color:#454545;">${currentFiles}</span>
                                                 </button>
                                             </div>
                                         </div>`;
 
-                                    const cardEl = col.querySelector('.project-card');
-                                    if (cardEl) {
-                                        // Replace sections inside card
-                                        const oldDropdown = cardEl.querySelector('.dropdown-menu');
-                                    }
+                    const cardEl = col.querySelector(".project-card");
+                    if (cardEl) {
+                        // Replace sections inside card
+                        const oldDropdown =
+                            cardEl.querySelector(".dropdown-menu");
+                    }
 
-                                    // Re-bind dropdown and attach-file handlers and tooltips
-                                    try {
-                                        cardEl.querySelectorAll('.dropdown-icon').forEach(icon => {
-                                            icon.addEventListener('click', function (e) {
-                                                e.stopPropagation();
-                                                const dropdownMenu = this.nextElementSibling;
-                                                const isVisible = !dropdownMenu.classList.contains('d-none');
-                                                document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('d-none'));
-                                                if (!isVisible) dropdownMenu.classList.remove('d-none');
-                                            });
-                                        });
-                                        // Bind snippet click
-                                        cardEl.querySelectorAll('.latest-feedback-snippet[data-project-id]').forEach((el) => {
-                                            el.addEventListener('click', function (ev) {
-                                                ev.preventDefault();
-                                                ev.stopPropagation();
-                                                const pid = this.getAttribute('data-project-id');
-                                                hideProjectUnreadBadge(pid);
-                                                hideProjectLatestFeedbackSnippet(pid);
-                                                try {
-                                                    window.__projectLatestTarget = window.__projectLatestTarget || {};
-                                                    const latest = (window.__projectLatest && window.__projectLatest[String(pid)]) || null;
-                                                    if (latest) window.__projectLatestTarget[String(pid)] = latest;
-                                                } catch (_) {}
-                                                markProjectFeedbacksRead(pid).always(() => {
-                                                    const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
-                                                    if (!projectFeedbackModalEl) return;
-                                                    projectFeedbackModalEl.setAttribute('data-project-id', pid);
-                                                    try { loadFeedbackData(pid); } catch (_) {}
-                                                    const m = new bootstrap.Modal(projectFeedbackModalEl);
-                                                    m.show();
-                                                });
-                                            });
-                                        });
-                                        const tooltipTriggerList = cardEl.querySelectorAll('[data-bs-toggle="tooltip"]');
-                                        tooltipTriggerList.forEach(function (el) { try { new bootstrap.Tooltip(el, { placement: 'bottom' }); } catch (e) {} });
-                                    } catch (e) {}
-
-                                    // Finally, update badges with live values
-                                    if (typeof window.updateProjectBadges === 'function') {
-                                        window.updateProjectBadges(pid);
-                                    }
-                                    try { fetchUnreadForProject(pid); } catch (_) {}
-                                    try { fetchLatestFeedbackForProject(pid); } catch (_) {}
-                                })
-                                .catch(() => {
-                                    // As a fallback, update badges only
-                                    if (typeof window.updateProjectBadges === 'function') {
-                                        window.updateProjectBadges(pid);
-                                    }
+                    // Re-bind dropdown and attach-file handlers and tooltips
+                    try {
+                        cardEl
+                            .querySelectorAll(".dropdown-icon")
+                            .forEach((icon) => {
+                                icon.addEventListener("click", function (e) {
+                                    e.stopPropagation();
+                                    const dropdownMenu =
+                                        this.nextElementSibling;
+                                    const isVisible =
+                                        !dropdownMenu.classList.contains(
+                                            "d-none"
+                                        );
+                                    document
+                                        .querySelectorAll(".dropdown-menu")
+                                        .forEach((menu) =>
+                                            menu.classList.add("d-none")
+                                        );
+                                    if (!isVisible)
+                                        dropdownMenu.classList.remove("d-none");
                                 });
-                        } catch (e) {}
-                    };
+                            });
+                        // Bind snippet click
+                        cardEl
+                            .querySelectorAll(
+                                ".latest-feedback-snippet[data-project-id]"
+                            )
+                            .forEach((el) => {
+                                el.addEventListener("click", function (ev) {
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    const pid =
+                                        this.getAttribute("data-project-id");
+                                    hideProjectUnreadBadge(pid);
+                                    hideProjectLatestFeedbackSnippet(pid);
+                                    try {
+                                        window.__projectLatestTarget =
+                                            window.__projectLatestTarget || {};
+                                        const latest =
+                                            (window.__projectLatest &&
+                                                window.__projectLatest[
+                                                    String(pid)
+                                                ]) ||
+                                            null;
+                                        if (latest)
+                                            window.__projectLatestTarget[
+                                                String(pid)
+                                            ] = latest;
+                                    } catch (_) {}
+                                    markProjectFeedbacksRead(pid).always(() => {
+                                        const projectFeedbackModalEl =
+                                            document.getElementById(
+                                                "projectFeedbackModal"
+                                            );
+                                        if (!projectFeedbackModalEl) return;
+                                        projectFeedbackModalEl.setAttribute(
+                                            "data-project-id",
+                                            pid
+                                        );
+                                        try {
+                                            loadFeedbackData(pid);
+                                        } catch (_) {}
+                                        const m = new bootstrap.Modal(
+                                            projectFeedbackModalEl
+                                        );
+                                        m.show();
+                                    });
+                                });
+                            });
+                        const tooltipTriggerList = cardEl.querySelectorAll(
+                            '[data-bs-toggle="tooltip"]'
+                        );
+                        tooltipTriggerList.forEach(function (el) {
+                            try {
+                                new bootstrap.Tooltip(el, {
+                                    placement: "bottom",
+                                });
+                            } catch (e) {}
+                        });
+                    } catch (e) {}
+
+                    // Finally, update badges with live values
+                    if (typeof window.updateProjectBadges === "function") {
+                        window.updateProjectBadges(pid);
+                    }
+                    try {
+                        fetchUnreadForProject(pid);
+                    } catch (_) {}
+                    try {
+                        fetchLatestFeedbackForProject(pid);
+                    } catch (_) {}
+                })
+                .catch(() => {
+                    // As a fallback, update badges only
+                    if (typeof window.updateProjectBadges === "function") {
+                        window.updateProjectBadges(pid);
+                    }
+                });
+        } catch (e) {}
+    };
 
     // Function to refresh contributor dropdown when co-author selection changes
     window.refreshContributorDropdown = function () {
         const coAuthorIds = window.selectedCoAuthorIds || [];
         // Remove overlaps from current contributors without clearing all
-        if (typeof window.removeContributorsByIds === 'function') {
+        if (typeof window.removeContributorsByIds === "function") {
             window.removeContributorsByIds(coAuthorIds.map((n) => Number(n)));
         }
         // Rebuild contributor dropdown list applying new exclusions
-        if (typeof window.refreshContributorListOnly === 'function') {
+        if (typeof window.refreshContributorListOnly === "function") {
             window.refreshContributorListOnly();
-        } else if (typeof setupContributorInput === 'function') {
+        } else if (typeof setupContributorInput === "function") {
             // Fallback
             setupContributorInput();
         }
@@ -5456,10 +7757,10 @@ function refreshAllProjectLatestFeedbackSnippets() {
         );
         const hiddenInput = document.getElementById("contributors");
 
-    let employees = [];
-    let filteredEmployees = [];
-    let selectedEmployees = [];
-    let isDropdownOpen = false;
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+        let isDropdownOpen = false;
 
         // Fetch employees from API with optional search query
         function fetchEmployees(query = "") {
@@ -5490,11 +7791,11 @@ function refreshAllProjectLatestFeedbackSnippets() {
         }
 
         // Render dropdown list with checkboxes
-    function renderDropdown() {
+        function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
                     '<div class="dropdown-item disabled">No employees found</div>';
-        dropdown.style.display = isDropdownOpen ? "block" : "none";
+                dropdown.style.display = isDropdownOpen ? "block" : "none";
                 return;
             }
 
@@ -5507,8 +7808,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
                     // Penanganan URL foto secara aman
                     let photoUrl;
                     if (!emp.user_photo) {
-                        photoUrl =
-                            appUrl + "/asset/img/avatar.png";
+                        photoUrl = appUrl + "/asset/img/avatar.png";
                     } else if (emp.user_photo.startsWith("http")) {
                         photoUrl = emp.user_photo;
                     } else if (emp.user_photo.startsWith("/")) {
@@ -5587,8 +7887,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
                 const photoUrl =
-                    emp.user_photo ||
-                    appUrl + "/asset/img/avatar.png";
+                    emp.user_photo || appUrl + "/asset/img/avatar.png";
 
                 const badge = document.createElement("span");
                 badge.className =
@@ -5694,11 +7993,15 @@ function refreshAllProjectLatestFeedbackSnippets() {
         window.removeContributorsByIds = function (ids) {
             if (!Array.isArray(ids) || ids.length === 0) return;
             const before = selectedEmployees.length;
-            selectedEmployees = selectedEmployees.filter((e) => !ids.includes(e.id));
+            selectedEmployees = selectedEmployees.filter(
+                (e) => !ids.includes(e.id)
+            );
             if (selectedEmployees.length !== before) {
                 renderSelected();
                 updateHiddenInput();
-                window.selectedContributorIds = selectedEmployees.map((e) => e.id);
+                window.selectedContributorIds = selectedEmployees.map(
+                    (e) => e.id
+                );
             }
             renderDropdown();
         };
@@ -5714,13 +8017,13 @@ function refreshAllProjectLatestFeedbackSnippets() {
     window.refreshCoAuthorDropdown = function () {
         const contributorIds = window.selectedContributorIds || [];
         // Remove overlaps from current co-authors without clearing all
-        if (typeof window.removeCoAuthorsByIds === 'function') {
+        if (typeof window.removeCoAuthorsByIds === "function") {
             window.removeCoAuthorsByIds(contributorIds.map((n) => Number(n)));
         }
         // Rebuild co-author dropdown list applying new exclusions
-        if (typeof window.refreshCoAuthorListOnly === 'function') {
+        if (typeof window.refreshCoAuthorListOnly === "function") {
             window.refreshCoAuthorListOnly();
-        } else if (typeof wrappedSetupCoAuthorInput === 'function') {
+        } else if (typeof wrappedSetupCoAuthorInput === "function") {
             // Fallback
             wrappedSetupCoAuthorInput();
         }
@@ -5824,7 +8127,7 @@ function refreshAllProjectLatestFeedbackSnippets() {
 
         // Clear selected reference files and preview
         try {
-            if (typeof projectSelectedFiles !== 'undefined') {
+            if (typeof projectSelectedFiles !== "undefined") {
                 projectSelectedFiles = [];
             }
             const preview = document.getElementById("reference_files_preview");
@@ -5903,7 +8206,12 @@ document.addEventListener("DOMContentLoaded", function () {
             projectChartInstance.data.datasets[0].data = [1];
             projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
         } else {
-            projectChartInstance.data.labels = ["Not Started", "Complete", "On Progress", "Late"];
+            projectChartInstance.data.labels = [
+                "Not Started",
+                "Complete",
+                "On Progress",
+                "Late",
+            ];
             projectChartInstance.data.datasets[0].data = chartData;
             projectChartInstance.data.datasets[0].backgroundColor = [
                 "#E8E9F2",
@@ -5914,7 +8222,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         projectChartInstance.update();
 
-        const spans = document.querySelectorAll(".chart-labels .text-center span:first-child");
+        const spans = document.querySelectorAll(
+            ".chart-labels .text-center span:first-child"
+        );
         if (spans && spans.length >= 4) {
             spans[0].textContent = numberOfProjects;
             spans[1].textContent = completed;
@@ -5926,12 +8236,18 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadProjectAndTaskData() {
         // Step 1: ambil daftar project
         $.ajax({
-            url: appUrl + '/project/index',
-            type: 'GET',
-            dataType: 'json',
-            beforeSend: function(){ $('.loader').fadeIn('fast'); },
-            success: function(projectRes){
-                const projects = Array.isArray(projectRes) ? projectRes : (Array.isArray(projectRes.data) ? projectRes.data : []);
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+            beforeSend: function () {
+                $(".loader").fadeIn("fast");
+            },
+            success: function (projectRes) {
+                const projects = Array.isArray(projectRes)
+                    ? projectRes
+                    : Array.isArray(projectRes.data)
+                    ? projectRes.data
+                    : [];
 
                 // Selalu hitung ulang berbasis project & task sesuai aturan baru user.
                 // Aturan:
@@ -5944,39 +8260,50 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Step 2: ambil semua task (tanpa pagination) lalu kelompokkan per project.
                 $.ajax({
-                    url: appUrl + '/task/index/no-pagination',
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(taskRes){
+                    url: appUrl + "/task/index/no-pagination",
+                    type: "GET",
+                    dataType: "json",
+                    success: function (taskRes) {
                         const buckets = taskRes?.data || {};
                         // Build map project_id -> array of task objects dengan properti __status
                         const tasksByProject = {};
 
-                        function pushTasks(arr, statusName){
+                        function pushTasks(arr, statusName) {
                             if (!Array.isArray(arr)) return;
-                            arr.forEach(t => {
-                                const projId = t.project_id || t.projectId || (t.project && (t.project.id || t.project.project_id));
+                            arr.forEach((t) => {
+                                const projId =
+                                    t.project_id ||
+                                    t.projectId ||
+                                    (t.project &&
+                                        (t.project.id || t.project.project_id));
                                 if (!projId) return;
-                                if (!tasksByProject[projId]) tasksByProject[projId] = [];
-                                tasksByProject[projId].push(Object.assign({}, t, { __status: statusName }));
+                                if (!tasksByProject[projId])
+                                    tasksByProject[projId] = [];
+                                tasksByProject[projId].push(
+                                    Object.assign({}, t, {
+                                        __status: statusName,
+                                    })
+                                );
                             });
                         }
-                        pushTasks(buckets.not_started?.tasks, 'not_started');
-                        pushTasks(buckets.in_progress?.tasks, 'in_progress');
-                        pushTasks(buckets.completed?.tasks, 'completed');
-                        pushTasks(buckets.late?.tasks, 'late');
-                        pushTasks(buckets.rejected?.tasks, 'rejected');
+                        pushTasks(buckets.not_started?.tasks, "not_started");
+                        pushTasks(buckets.in_progress?.tasks, "in_progress");
+                        pushTasks(buckets.completed?.tasks, "completed");
+                        pushTasks(buckets.late?.tasks, "late");
+                        pushTasks(buckets.rejected?.tasks, "rejected");
                         // kemungkinan status tambahan (new_request) kalau ada
-                        pushTasks(buckets.new_request?.tasks, 'new_request');
+                        pushTasks(buckets.new_request?.tasks, "new_request");
 
                         // Helper parse due date (gunakan akhir hari agar tidak false overdue)
-                        function parseDue(dateStr){
+                        function parseDue(dateStr) {
                             if (!dateStr) return null;
                             const s = String(dateStr).trim();
                             const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                            if (m){
-                                const y = +m[1]; const mo = +m[2]-1; const d = +m[3];
-                                return new Date(y, mo, d, 23,59,59,999);
+                            if (m) {
+                                const y = +m[1];
+                                const mo = +m[2] - 1;
+                                const d = +m[3];
+                                return new Date(y, mo, d, 23, 59, 59, 999);
                             }
                             const dt = new Date(s);
                             if (!isNaN(dt.getTime())) return dt;
@@ -5990,58 +8317,100 @@ document.addEventListener("DOMContentLoaded", function () {
                         let countLate = 0;
                         let countNotStarted = 0;
 
-                        projects.forEach(p => {
+                        projects.forEach((p) => {
                             const pid = p.id || p.project_id;
                             const tasks = tasksByProject[pid] || [];
 
-                            if (!tasks.length){
+                            if (!tasks.length) {
                                 // Fallback gunakan aggregate task_counts jika tersedia agar tidak salah klasifikasi
-                                const tc = p.task_counts || p.taskCounts || null;
-                                if (tc && typeof tc.total === 'number' && tc.total > 0){
-                                    const total = Number(tc.total)||0;
-                                    const completedT = Number(tc.completed || tc.completed_tasks || 0);
-                                    const inProgT = Number(tc.in_progress || tc.in_progress_tasks || 0);
-                                    const rejectedT = Number(tc.rejected || tc.rejected_tasks || 0);
-                                    const lateT = Number(tc.late || tc.late_tasks || 0);
-                                    const inferredNotStarted = Math.max(0, total - (completedT + inProgT + rejectedT + lateT));
+                                const tc =
+                                    p.task_counts || p.taskCounts || null;
+                                if (
+                                    tc &&
+                                    typeof tc.total === "number" &&
+                                    tc.total > 0
+                                ) {
+                                    const total = Number(tc.total) || 0;
+                                    const completedT = Number(
+                                        tc.completed || tc.completed_tasks || 0
+                                    );
+                                    const inProgT = Number(
+                                        tc.in_progress ||
+                                            tc.in_progress_tasks ||
+                                            0
+                                    );
+                                    const rejectedT = Number(
+                                        tc.rejected || tc.rejected_tasks || 0
+                                    );
+                                    const lateT = Number(
+                                        tc.late || tc.late_tasks || 0
+                                    );
+                                    const inferredNotStarted = Math.max(
+                                        0,
+                                        total -
+                                            (completedT +
+                                                inProgT +
+                                                rejectedT +
+                                                lateT)
+                                    );
 
-                                    if (lateT > 0){
-                                        countLate++; return;
+                                    if (lateT > 0) {
+                                        countLate++;
+                                        return;
                                     }
-                                    if (completedT === total && total > 0){
-                                        countCompleted++; return;
+                                    if (completedT === total && total > 0) {
+                                        countCompleted++;
+                                        return;
                                     }
-                                    if (inProgT > 0 || (completedT>0 && (inferredNotStarted>0 || rejectedT>0))){
-                                        countOnProgress++; return;
+                                    if (
+                                        inProgT > 0 ||
+                                        (completedT > 0 &&
+                                            (inferredNotStarted > 0 ||
+                                                rejectedT > 0))
+                                    ) {
+                                        countOnProgress++;
+                                        return;
                                     }
                                     // else semua dianggap not started
-                                    countNotStarted++; return;
+                                    countNotStarted++;
+                                    return;
                                 } else {
-                                    countNotStarted++; return;
+                                    countNotStarted++;
+                                    return;
                                 }
                             }
 
-                            const hasLate = tasks.some(t => {
-                                if (t.__status === 'late') return true;
-                                const dueStr = t.due_date || t.due || t.deadline;
+                            const hasLate = tasks.some((t) => {
+                                if (t.__status === "late") return true;
+                                const dueStr =
+                                    t.due_date || t.due || t.deadline;
                                 const due = parseDue(dueStr);
                                 if (!due) return false;
                                 // overdue jika due < sekarang dan status bukan completed
-                                return (due.getTime() < now.getTime()) && t.__status !== 'completed';
+                                return (
+                                    due.getTime() < now.getTime() &&
+                                    t.__status !== "completed"
+                                );
                             });
-                            if (hasLate){
+                            if (hasLate) {
                                 countLate++;
                                 return;
                             }
 
-                            const allCompleted = tasks.length > 0 && tasks.every(t => t.__status === 'completed');
-                            if (allCompleted){
+                            const allCompleted =
+                                tasks.length > 0 &&
+                                tasks.every((t) => t.__status === "completed");
+                            if (allCompleted) {
                                 countCompleted++;
                                 return;
                             }
 
-                            const allNotStarted = tasks.every(t => (t.__status === 'not_started' || t.__status === 'new_request'));
-                            if (allNotStarted){
+                            const allNotStarted = tasks.every(
+                                (t) =>
+                                    t.__status === "not_started" ||
+                                    t.__status === "new_request"
+                            );
+                            if (allNotStarted) {
                                 countNotStarted++;
                                 return;
                             }
@@ -6055,31 +8424,31 @@ document.addEventListener("DOMContentLoaded", function () {
                             completed: countCompleted,
                             in_progress: countOnProgress, // dipakai slot "On Progress"
                             late: countLate,
-                            not_started: countNotStarted
+                            not_started: countNotStarted,
                         };
 
                         updateProjectChartFromData(projects, derivedCounts);
-                        $('.loader').fadeOut('fast');
+                        $(".loader").fadeOut("fast");
                     },
-                    error: function(err){
-                        console.error('task/index/no-pagination failed', err);
+                    error: function (err) {
+                        console.error("task/index/no-pagination failed", err);
                         // fallback minimal: semua dianggap not started
                         const fallbackCounts = {
                             total: projects.length,
                             completed: 0,
                             in_progress: 0,
                             late: 0,
-                            not_started: projects.length
+                            not_started: projects.length,
                         };
                         updateProjectChartFromData(projects, fallbackCounts);
-                        $('.loader').fadeOut('fast');
-                    }
+                        $(".loader").fadeOut("fast");
+                    },
                 });
             },
-            error: function(err){
-                console.error('project/index failed', err);
-                $('.loader').fadeOut('fast');
-            }
+            error: function (err) {
+                console.error("project/index failed", err);
+                $(".loader").fadeOut("fast");
+            },
         });
     }
     loadProjectAndTaskData();
@@ -6115,21 +8484,34 @@ function loadTimelineProjects(filter = null) {
         url: appUrl + "/project/index",
         type: "GET",
         dataType: "json",
-        data: { task_scope: 'me', filter: filter },
-        beforeSend:function(){
-            $('.loader').fadeIn('fast');
+        data: { task_scope: "me", filter: filter },
+        beforeSend: function () {
+            $(".loader").fadeIn("fast");
         },
         success: function (res) {
             const projects = Array.isArray(res)
                 ? res
-                : (Array.isArray(res.data) ? res.data : []);
+                : Array.isArray(res.data)
+                ? res.data
+                : [];
 
-            const completeProjects = projects.filter(p => (p.start_date || p.start) && (p.due_date || p.due));
-            const incompleteProjects = projects.filter(p => !(p.start_date || p.start) || !(p.due_date || p.due));
+            const completeProjects = projects.filter(
+                (p) => (p.start_date || p.start) && (p.due_date || p.due)
+            );
+            const incompleteProjects = projects.filter(
+                (p) => !(p.start_date || p.start) || !(p.due_date || p.due)
+            );
 
             try {
                 buildTimelineFromProjects(completeProjects);
-                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                renderTimeline(
+                    "#timelineHeader",
+                    "#timelineRows",
+                    "week",
+                    currentMonth,
+                    currentYear,
+                    currentWeek
+                );
                 updateModalTimeline();
             } catch (e) {
                 console.error("timeline build/render error", e);
@@ -6143,31 +8525,45 @@ function loadTimelineProjects(filter = null) {
                         dataType: "json",
                         success: function (resp) {
                             const data = resp.data || resp;
-                            p.start_date = p.start_date || data.start_date || data.start;
-                            p.due_date   = p.due_date   || data.due_date   || data.due;
+                            p.start_date =
+                                p.start_date || data.start_date || data.start;
+                            p.due_date =
+                                p.due_date || data.due_date || data.due;
 
                             try {
-                                const updatedProjects = completeProjects.concat(incompleteProjects);
+                                const updatedProjects =
+                                    completeProjects.concat(incompleteProjects);
                                 buildTimelineFromProjects(updatedProjects);
-                                renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+                                renderTimeline(
+                                    "#timelineHeader",
+                                    "#timelineRows",
+                                    "week",
+                                    currentMonth,
+                                    currentYear,
+                                    currentWeek
+                                );
                                 updateModalTimeline();
                             } catch (e) {
                                 console.error("timeline update error", e);
                             }
                         },
                         error: function (err) {
-                            console.warn("failed to fetch project detail for", p.id, err);
-                        }
+                            console.warn(
+                                "failed to fetch project detail for",
+                                p.id,
+                                err
+                            );
+                        },
                     });
                 });
             }
 
-            $('.loader').fadeOut('fast');
+            $(".loader").fadeOut("fast");
         },
         error: function () {
             console.error("Failed to load timeline projects");
-            $('.loader').fadeOut('fast');
-        }
+            $(".loader").fadeOut("fast");
+        },
     });
 }
 
@@ -6178,7 +8574,7 @@ function buildTimelineFromProjects(projects) {
     projects.forEach((p, idx) => {
         // parse dates as local (avoid timezone shifts from Date(string))
         function parseLocal(dateStr, fallback) {
-            const src = (dateStr || "" ).toString().trim();
+            const src = (dateStr || "").toString().trim();
             if (!src) {
                 if (fallback) return parseLocal(fallback);
                 return null;
@@ -6195,10 +8591,12 @@ function buildTimelineFromProjects(projects) {
         }
 
         let start = p.start_date ? parseLocal(p.start_date) : new Date();
-        let due = p.due_date ? parseLocal(p.due_date, p.start_date) : new Date(start);
+        let due = p.due_date
+            ? parseLocal(p.due_date, p.start_date)
+            : new Date(start);
         // normalize to day boundaries (start at 00:00:00, due at 23:59:59)
-        if (start) start.setHours(0,0,0,0);
-        if (due) due.setHours(23,59,59,999);
+        if (start) start.setHours(0, 0, 0, 0);
+        if (due) due.setHours(23, 59, 59, 999);
 
         timelineData.push({
             id: p.id,
@@ -6211,8 +8609,17 @@ function buildTimelineFromProjects(projects) {
 
     // debug: print timeline entries used for rendering
     try {
-        console.debug('timelineData built:', timelineData.map(t => ({ id: t.id, name: t.name, start: t.start_date && t.start_date.toISOString(), due: t.due_date && t.due_date.toISOString(), color: t.color })));
-    } catch(e) {}
+        console.debug(
+            "timelineData built:",
+            timelineData.map((t) => ({
+                id: t.id,
+                name: t.name,
+                start: t.start_date && t.start_date.toISOString(),
+                due: t.due_date && t.due_date.toISOString(),
+                color: t.color,
+            }))
+        );
+    } catch (e) {}
 }
 
 function renderTimeline(
@@ -6234,7 +8641,15 @@ function renderTimeline(
         headerLabels = [];
 
     if (mode === "week") {
-        headerLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        headerLabels = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ];
         totalCells = 7;
     } else {
         // month
@@ -6287,8 +8702,16 @@ function renderTimeline(
 
             // Helper: difference in days using UTC to avoid timezone/DST edges
             function diffDaysUTC(a, b) {
-                const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-                const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+                const utcA = Date.UTC(
+                    a.getFullYear(),
+                    a.getMonth(),
+                    a.getDate()
+                );
+                const utcB = Date.UTC(
+                    b.getFullYear(),
+                    b.getMonth(),
+                    b.getDate()
+                );
                 return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
             }
 
@@ -6297,23 +8720,50 @@ function renderTimeline(
             const rawEnd = diffDaysUTC(proj.due_date, weekStartDate);
             const projStartIdx = Math.max(0, rawStart);
             const projEndIdx = Math.min(6, rawEnd);
-            try { console.debug('weekStartDate', weekStartDate.toISOString(), 'proj', proj.name, 'start', proj.start_date && proj.start_date.toISOString(), 'due', proj.due_date && proj.due_date.toISOString(), 'rawStart', rawStart, 'rawEnd', rawEnd, 'projStartIdx', projStartIdx, 'projEndIdx', projEndIdx); } catch(e) {}
+            try {
+                console.debug(
+                    "weekStartDate",
+                    weekStartDate.toISOString(),
+                    "proj",
+                    proj.name,
+                    "start",
+                    proj.start_date && proj.start_date.toISOString(),
+                    "due",
+                    proj.due_date && proj.due_date.toISOString(),
+                    "rawStart",
+                    rawStart,
+                    "rawEnd",
+                    rawEnd,
+                    "projStartIdx",
+                    projStartIdx,
+                    "projEndIdx",
+                    projEndIdx
+                );
+            } catch (e) {}
 
             // If project overlaps this week, replace cells with a colspan bar in correct position
-            if (projEndIdx >= 0 && projStartIdx <= 6 && projStartIdx <= projEndIdx) {
+            if (
+                projEndIdx >= 0 &&
+                projStartIdx <= 6 &&
+                projStartIdx <= projEndIdx
+            ) {
                 // remove child nodes and rebuild with bar
                 while (tr.firstChild) tr.removeChild(tr.firstChild);
 
                 // empty before
-                for (let i = 0; i < projStartIdx; i++) tr.appendChild(document.createElement('td'));
+                for (let i = 0; i < projStartIdx; i++)
+                    tr.appendChild(document.createElement("td"));
 
-                const barTd = document.createElement('td');
+                const barTd = document.createElement("td");
                 barTd.colSpan = projEndIdx - projStartIdx + 1;
-                const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                const titleText = `${
+                    proj.name
+                } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
                 barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
 
-                for (let i = projEndIdx + 1; i < totalCells; i++) tr.appendChild(document.createElement('td'));
+                for (let i = projEndIdx + 1; i < totalCells; i++)
+                    tr.appendChild(document.createElement("td"));
             }
         } else {
             // month mode: cells are days 1..daysInMonth
@@ -6321,9 +8771,18 @@ function renderTimeline(
 
             // compute overlap between project and this month
             const monthStart = new Date(year, month, 1);
-            const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59, 999);
+            const monthEnd = new Date(
+                year,
+                month,
+                daysInMonth,
+                23,
+                59,
+                59,
+                999
+            );
 
-            const startDate = proj.start_date < monthStart ? monthStart : proj.start_date;
+            const startDate =
+                proj.start_date < monthStart ? monthStart : proj.start_date;
             const endDate = proj.due_date > monthEnd ? monthEnd : proj.due_date;
 
             if (endDate >= monthStart && startDate <= monthEnd) {
@@ -6331,18 +8790,23 @@ function renderTimeline(
                 const endIdx = endDate.getDate() - 1;
 
                 // empty before
-                for (let i = 0; i < startIdx; i++) tr.appendChild(document.createElement('td'));
+                for (let i = 0; i < startIdx; i++)
+                    tr.appendChild(document.createElement("td"));
 
-                const barTd = document.createElement('td');
+                const barTd = document.createElement("td");
                 barTd.colSpan = endIdx - startIdx + 1;
-                const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                const titleText = `${
+                    proj.name
+                } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
                 barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
 
-                for (let i = endIdx + 1; i < daysInMonth; i++) tr.appendChild(document.createElement('td'));
+                for (let i = endIdx + 1; i < daysInMonth; i++)
+                    tr.appendChild(document.createElement("td"));
             } else {
                 // no overlap -> empty row
-                for (let i = 0; i < daysInMonth; i++) tr.appendChild(document.createElement('td'));
+                for (let i = 0; i < daysInMonth; i++)
+                    tr.appendChild(document.createElement("td"));
             }
         }
 
@@ -6401,8 +8865,8 @@ const nextBtn = document.getElementById("nextTimelineModal");
 const timelineModal = document.getElementById("timelineModal");
 
 timelineModal.addEventListener("show.bs.modal", () => {
-    updateModalTimeline()
-})
+    updateModalTimeline();
+});
 
 function updateModalTimeline() {
     modalTitle.textContent = `Timeline ${months[currentMonth]} ${currentYear}`;
@@ -6461,29 +8925,51 @@ document.addEventListener("DOMContentLoaded", function () {
                 card.classList.add("d-none");
             }
         });
+
+        // Clear all latest feedback snippets when search is cleared
+        if (query.trim() === "") {
+            document
+                .querySelectorAll(".latest-feedback-snippet")
+                .forEach((snippet) => {
+                    snippet.classList.add("d-none");
+                    snippet.style.display = "none";
+                    // Clear content to prevent any residual display
+                    const textEl = snippet.querySelector(
+                        ".latest-feedback-text"
+                    );
+                    if (textEl) textEl.textContent = "";
+                });
+        }
     });
 });
 
 function hideProjectLatestFeedbackSnippet(projectId) {
     try {
-        const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+        const els = document.querySelectorAll(
+            `.latest-feedback-snippet[data-project-id="${projectId}"]`
+        );
         if (!els) return;
         els.forEach((el) => {
-            el.classList.add('d-none');
+            el.classList.add("d-none");
             // clear avatar and text to avoid broken images/alt
-            const avatar = el.querySelector('.latest-feedback-avatar');
-            if (avatar) avatar.src = appUrl + '/asset/img/avatar.png';
-            const textEl = el.querySelector('.latest-feedback-text');
-            if (textEl) textEl.textContent = '';
+            const avatar = el.querySelector(".latest-feedback-avatar");
+            if (avatar) avatar.src = appUrl + "/asset/img/avatar.png";
+            const textEl = el.querySelector(".latest-feedback-text");
+            if (textEl) textEl.textContent = "";
         });
     } catch (_) {}
 }
 
 function setProjectLatestFeedbackSnippet(projectId, data) {
     try {
-        const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+        const els = document.querySelectorAll(
+            `.latest-feedback-snippet[data-project-id="${projectId}"]`
+        );
         if (!els || els.length === 0) return;
-        if (!data) { hideProjectLatestFeedbackSnippet(projectId); return; }
+        if (!data) {
+            hideProjectLatestFeedbackSnippet(projectId);
+            return;
+        }
 
         // Cache latest payload for deep-linking
         try {
@@ -6491,28 +8977,73 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
             window.__projectLatest[String(projectId)] = data;
         } catch (_) {}
 
-        const photo = (data.employee && data.employee.photo) ? (data.employee.photo) : (appUrl + '/asset/img/avatar.png');
-        const raw = String(data.feedback_comment || '');
-        const truncated = raw.length > 30 ? (raw.slice(0, 30) + '...') : raw;
+        const photo =
+            data.employee && data.employee.photo
+                ? data.employee.photo
+                : appUrl + "/asset/img/avatar.png";
+        // sanitize feedback_comment: strip HTML tags so any embedded <img> or markup
+        // will be shown as text-free preview instead of raw HTML.
+        const raw = String(data.feedback_comment || "");
+        function stripTags(s) {
+            try {
+                return String(s).replace(/<[^>]*>/g, "");
+            } catch (e) {
+                return String(s);
+            }
+        }
+        const plain = stripTags(raw).trim();
+        let truncated = "";
+        if (plain.length > 0) {
+            truncated = plain.length > 30 ? plain.slice(0, 30) + "..." : plain;
+        } else {
+            // If there's no textual comment, show a small hint if there's an attachment/image
+            if (
+                data.image ||
+                data.reference_file ||
+                (Array.isArray(data.reference_files) &&
+                    data.reference_files.length)
+            ) {
+                truncated = "[attachment]";
+            } else {
+                truncated = "";
+            }
+        }
 
         els.forEach((el) => {
-            const avatar = el.querySelector('.latest-feedback-avatar');
-            const textEl = el.querySelector('.latest-feedback-text');
-            if (avatar) avatar.src = (photo && photo.startsWith('http')) ? photo : (appUrl + '/' + String(photo).replace(/^\//,'')) ;
+            const avatar = el.querySelector(".latest-feedback-avatar");
+            const textEl = el.querySelector(".latest-feedback-text");
+            if (avatar)
+                avatar.src =
+                    photo && photo.startsWith("http")
+                        ? photo
+                        : appUrl + "/" + String(photo).replace(/^\//, "");
             if (textEl) textEl.textContent = truncated;
-            el.classList.remove('d-none');
-            el.style.removeProperty('display');
+
+            // Only show snippet if there's actually meaningful content to display
+            if (truncated && truncated.trim() !== "") {
+                el.classList.remove("d-none");
+                el.style.removeProperty("display");
+            } else {
+                // Hide snippet if no meaningful content
+                el.classList.add("d-none");
+                el.style.display = "none";
+            }
         });
     } catch (e) {
-        console.warn('setProjectLatestFeedbackSnippet error', e);
+        console.warn("setProjectLatestFeedbackSnippet error", e);
     }
 }
 
 // small seq guard for concurrent requests
 window.latestProjectSnippetSeq = window.latestProjectSnippetSeq || {};
 function fetchLatestFeedbackForProject(projectId) {
-    const seq = (window.latestProjectSnippetSeq[projectId] = (window.latestProjectSnippetSeq[projectId] || 0) + 1);
-    return $.ajax({ url: appUrl + `/project-feedbacks/${projectId}/latest`, type: 'GET', dataType: 'json' })
+    const seq = (window.latestProjectSnippetSeq[projectId] =
+        (window.latestProjectSnippetSeq[projectId] || 0) + 1);
+    return $.ajax({
+        url: appUrl + `/project-feedbacks/${projectId}/latest`,
+        type: "GET",
+        dataType: "json",
+    })
         .then((res) => {
             if (window.latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
             const data = res && (res.data || null);
@@ -6524,50 +9055,45 @@ function fetchLatestFeedbackForProject(projectId) {
         });
 }
 
-function refreshAllProjectLatestFeedbackSnippets() {
-    document.querySelectorAll('#all-cards-container .col-md-4[data-project-id]').forEach((col) => {
-        const pid = col.getAttribute('data-project-id');
-        fetchLatestFeedbackForProject(pid);
-    });
-}
-
 // === Global Unread Badge Refresher ===
 function refreshAllProjectUnreadBadges() {
     try {
         const unreadMap = window.__projectUnread || {};
-        document.querySelectorAll('.unread-badge[data-project-id]').forEach(function (badge) {
-            const pid = badge.getAttribute('data-project-id');
-            const count = unreadMap[pid] || 0;
-            setProjectUnreadBadge(pid, count);
-        });
+        document
+            .querySelectorAll(".unread-badge[data-project-id]")
+            .forEach(function (badge) {
+                const pid = badge.getAttribute("data-project-id");
+                const count = unreadMap[pid] || 0;
+                setProjectUnreadBadge(pid, count);
+            });
         // optional console trace
         // console.log('All project badges updated successfully');
     } catch (e) {
-        console.warn('refreshAllProjectUnreadBadges error', e);
+        console.warn("refreshAllProjectUnreadBadges error", e);
         // fallback: hide all
-        document.querySelectorAll('.unread-badge[data-project-id]').forEach(function (badge) {
-            badge.textContent = '';
-            badge.classList.add('d-none');
-        });
+        document
+            .querySelectorAll(".unread-badge[data-project-id]")
+            .forEach(function (badge) {
+                badge.classList.add("d-none");
+            });
     }
 }
 
 function setProjectUnreadBadge(projectId, count) {
     try {
-        const badge = document.querySelector(`.unread-badge[data-project-id="${projectId}"]`);
+        const badge = document.querySelector(
+            `.unread-badge[data-project-id="${projectId}"]`
+        );
         if (!badge) return;
 
         if (count > 0) {
-            badge.textContent = count;
-            badge.classList.remove('d-none');
-            badge.style.display = 'inline-block';
+            badge.classList.remove("d-none");
+            badge.style.display = "inline-block";
         } else {
-            badge.textContent = '';
-            badge.classList.add('d-none');
-            badge.style.display = 'none';
+            badge.classList.add("d-none");
+            badge.style.display = "none";
         }
     } catch (e) {
-        console.warn('setProjectUnreadBadge error', e);
+        console.warn("setProjectUnreadBadge error", e);
     }
 }
-
