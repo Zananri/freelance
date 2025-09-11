@@ -195,9 +195,6 @@
                     <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
                             <div class="modal-content modal-content-custom">
-                                <div class="modal-header border-0">
-                                    <h5 class="modal-title fs-5">Accept Task</h5>
-                                </div>
                                 <div class="modal-body modal-body-custom">
                                     <div class="d-flex">
                                         <div class="me-3">

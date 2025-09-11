@@ -67,7 +67,7 @@
                 </div>
             </div>
 
-            <a href="{{ route('schedules.create') }}" class="btn btn-schedule-custom">Schedule</a>
+            <a href="{{ route('schedules') }}" class="btn btn-schedule-custom">Schedule</a>
             <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add <span
                     class="btn-text-add">Task</span></button>
         </div>
