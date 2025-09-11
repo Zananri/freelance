@@ -387,6 +387,39 @@
     padding: 1rem;
 }
 
+.custom-card-detail .card-body {
+    padding: 1rem;
+}
+
+.custom-card-detail {
+    background-color: rgb(240, 241, 248);
+    margin-right: 15px;
+    border: none;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+/* Match Task Detail icon size/color only inside Project Detail modal */
+#projectDetailModal .task-icon {
+    color: #555; /* same as task.css */
+    font-size: 20px; /* same as task.css */
+    line-height: 1;
+}
+
+/* Edit icon in Project Detail header */
+#projectDetailModal .project-edit-icon {
+    color: #555 !important;
+    cursor: pointer;
+}
+
+#projectDetailModal .btn-attach-file-wrapper .feedback-comments-count,
+#projectDetailModal .btn-attach-file-wrapper .reference-files-count {
+    font-size: 12px;
+    color: #454545;
+}
+
 .card-image img {
     border-radius: 8px;
     width: 100px;
@@ -623,9 +656,6 @@
 }
 .form-custom {
     margin-top: -12px;
-}
-.modal-body-custom {
-    padding: 0;
 }
 
 .label-custom {

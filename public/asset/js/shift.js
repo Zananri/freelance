@@ -376,6 +376,30 @@ function formatTimeWithSpaces(time) {
     return `${h.padStart(2, "0")} : ${m.padStart(2, "0")}`;
 }
 
+// Normalize any time string into HH:MM (24h) to satisfy backend validation (format H:i)
+function toHHMM(t) {
+    if (!t || typeof t !== "string") return "";
+    const s = t.trim();
+    // Accept forms like HH:MM, HH:MM:SS, HH : MM, H:MM
+    const parts = s.split(":").map((x) => x.trim());
+    if (parts.length >= 2) {
+        let h = parts[0] || "0";
+        let m = parts[1] || "0";
+        // Zero-pad
+        h = String(parseInt(h, 10)).padStart(2, "0");
+        m = String(parseInt(m, 10)).padStart(2, "0");
+        return `${h}:${m}`;
+    }
+    // Fallback: try regex to extract numbers
+    const mrx = s.match(/(\d{1,2}).?(\d{2})/);
+    if (mrx) {
+        const h = String(parseInt(mrx[1], 10)).padStart(2, "0");
+        const m = String(parseInt(mrx[2], 10)).padStart(2, "0");
+        return `${h}:${m}`;
+    }
+    return "";
+}
+
 function createShiftCell(employee, shift, dateKey) {
     const td = document.createElement("td");
     td.classList.add("shift-cell");
@@ -664,8 +688,9 @@ document.addEventListener("click", async (e) => {
         modalEl.querySelector("#editConfigShiftId").value = editBtn.dataset.shiftId || "";
         modalEl.querySelector("#editTitle").value = editBtn.dataset.title || "";
         modalEl.querySelector("#editDescription").value = editBtn.dataset.description || "";
-        modalEl.querySelector("#editTimeStart").value = editBtn.dataset.start || "";
-        modalEl.querySelector("#editTimeEnd").value = editBtn.dataset.end || "";
+    // Ensure inputs are in HH:MM (backend expects H:i)
+    modalEl.querySelector("#editTimeStart").value = toHHMM(editBtn.dataset.start || "");
+    modalEl.querySelector("#editTimeEnd").value = toHHMM(editBtn.dataset.end || "");
 
         modal.show();
     }
@@ -724,8 +749,8 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
     const shiftId = modalEl.querySelector("#editConfigShiftId").value;
     const title = modalEl.querySelector("#editTitle").value.trim();
     const description = modalEl.querySelector("#editDescription").value.trim();
-    const timeStart = modalEl.querySelector("#editTimeStart").value;
-    const timeEnd = modalEl.querySelector("#editTimeEnd").value;
+    const timeStart = toHHMM(modalEl.querySelector("#editTimeStart").value);
+    const timeEnd = toHHMM(modalEl.querySelector("#editTimeEnd").value);
 
     if (!title || !timeStart || !timeEnd) {
         showFloatingAlert("Please fill all required fields", "warning");
@@ -744,6 +769,31 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
             },
             body: JSON.stringify({ title, description, time_start: timeStart, time_end: timeEnd }),
         });
+
+        // Handle validation errors (e.g., 422) gracefully
+        if (!res.ok) {
+            let message = `Failed to update shift (${res.status})`;
+            try {
+                const ctype = res.headers.get("content-type") || "";
+                if (ctype.includes("application/json")) {
+                    const errJson = await res.json();
+                    // Laravel validation often returns { message, errors: {field: [msg]} }
+                    if (errJson && errJson.errors) {
+                        const firstKey = Object.keys(errJson.errors)[0];
+                        if (firstKey && Array.isArray(errJson.errors[firstKey])) {
+                            message = errJson.errors[firstKey][0] || message;
+                        }
+                    } else if (errJson && errJson.message) {
+                        message = errJson.message;
+                    }
+                } else {
+                    const txt = await res.text();
+                    if (txt) message = txt;
+                }
+            } catch (_) {}
+            showFloatingAlert(message, "danger");
+            return;
+        }
 
         const json = await res.json();
         if (!json.success) {
