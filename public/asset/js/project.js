@@ -4153,6 +4153,7 @@ function hideProjectLatestFeedbackSnippet(projectId) {
         });
     } catch (_) {}
 }
+
 function setProjectLatestFeedbackSnippet(projectId, data) {
     const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
     if (!els || els.length === 0) return;
