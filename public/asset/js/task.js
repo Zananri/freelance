@@ -42,15 +42,20 @@
     // Initialize Bootstrap tooltips within a DOM scope (default document)
     function initBootstrapTooltips(root = document) {
         try {
+            const isMobile = window.innerWidth <= 768;
+            const placement = isMobile ? "top" : "bottom";
+
             const nodes = [].slice.call(root.querySelectorAll('[data-bs-toggle="tooltip"]'));
             nodes.forEach((el) => {
                 const existing = bootstrap.Tooltip.getInstance(el);
                 if (existing) existing.dispose();
-                new bootstrap.Tooltip(el, { container: 'body' });
+                new bootstrap.Tooltip(el, {
+                    container: 'body',
+                    placement: placement
+                });
             });
         } catch (_) { /* noop */ }
     }
-    // Expose globally for use outside this block
     window.initBootstrapTooltips = initBootstrapTooltips;
 
     // Listen for global avatar update: refresh visible task cards (minimal: update any img[data-avatar-universal])
@@ -5836,6 +5841,8 @@ $(document).on("keyup", "#search_filter", function () {
                 }
             }
         } catch(_) {}
+
+        initBootstrapTooltips(list[0])
     }
 
     function initMobileInfiniteScroll() {
