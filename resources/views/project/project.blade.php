@@ -174,7 +174,7 @@
                             style="display: none;">
                             <div class="dropdown-filter-body">
                                 <div class="mb-3">
-                                    <label for="filterProjectStatus" class="form-label">Filter by Status</label>
+                                    <label for="filterProjectStatus" class="form-la`bel">Filter by Status</label>
                                     <select id="filterProjectStatus" class="form-select">
                                         <option value="">All Status</option>
                                         <option value="ongoing">Not Started</option>
