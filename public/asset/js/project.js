@@ -6046,6 +6046,16 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 tlInstance2.show();
                                                 detailEl.removeAttribute('data-reopen-timeline');
                                             }
+                                            
+                                            // Re-initialize filter dropdown to ensure it works after modal closes
+                                            setTimeout(() => {
+                                                try {
+                                                    setupFilterDropdown();
+                                                    setupGlobalFilterClickHandler();
+                                                } catch(e) {
+                                                    console.warn('Failed to re-initialize filter dropdown:', e);
+                                                }
+                                            }, 100);
                                         } catch(_) { /* noop */ }
                                     };
                                     detailEl.addEventListener('hidden.bs.modal', onDetailHidden);
@@ -7520,6 +7530,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
+    setupGlobalFilterClickHandler();
+    
+    // Setup project detail modal hidden event handler to re-initialize filter dropdown
+    const projectDetailModalEl = document.getElementById("projectDetailModal");
+    if (projectDetailModalEl) {
+        projectDetailModalEl.addEventListener("hidden.bs.modal", function() {
+            // Re-initialize filter dropdown to ensure it works after modal closes
+            setTimeout(() => {
+                try {
+                    setupFilterDropdown();
+                    setupGlobalFilterClickHandler();
+                } catch(e) {
+                    console.warn('Failed to re-initialize filter dropdown after project detail modal close:', e);
+                }
+            }, 100);
+        });
+    }
 
     // Add event listener to department select to load divisions on change
     departmentSelect.addEventListener("change", function () {
@@ -8518,7 +8545,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
-    // Setup filter dropdown functionality
+    // Setup filter dropdown functionality with improved event handling
     function setupFilterDropdown() {
         const openFilterBtn = document.getElementById("openProjectFilterBtn");
         const filterDropdown = document.getElementById("projectFilterDropdown");
@@ -8528,39 +8555,56 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!openFilterBtn || !filterDropdown) return;
 
-        // Toggle dropdown visibility
-        openFilterBtn.addEventListener("click", function (e) {
-            e.stopPropagation();
-            const isVisible = filterDropdown.style.display === "block";
-            filterDropdown.style.display = isVisible ? "none" : "block";
-        });
+        // Remove any existing event listeners to prevent duplicates
+        openFilterBtn.replaceWith(openFilterBtn.cloneNode(true));
+        const newOpenFilterBtn = document.getElementById("openProjectFilterBtn");
 
-        // Close dropdown when clicking outside
-        document.addEventListener("click", function (e) {
-            if (
-                !openFilterBtn.contains(e.target) &&
-                !filterDropdown.contains(e.target)
-            ) {
+        // Toggle dropdown visibility with improved event handling
+        newOpenFilterBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Close any other open dropdowns first
+            document.querySelectorAll('.dropdown-menu:not(#projectFilterDropdown)').forEach(menu => {
+                menu.classList.add('d-none');
+                menu.style.display = 'none';
+            });
+            
+            const isVisible = filterDropdown.style.display === "block" || !filterDropdown.classList.contains('d-none');
+            
+            if (isVisible) {
                 filterDropdown.style.display = "none";
+                filterDropdown.classList.add('d-none');
+            } else {
+                filterDropdown.style.display = "block";
+                filterDropdown.classList.remove('d-none');
             }
         });
 
         // Handle apply filter button
         if (applyFilterBtn) {
-            applyFilterBtn.addEventListener("click", function () {
+            // Remove existing listeners
+            applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
+            const newApplyFilterBtn = document.getElementById("applyProjectFilterBtn");
+            
+            newApplyFilterBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const selectedStatus = filterStatus ? filterStatus.value : "";
                 filterDropdown.style.display = "none";
+                filterDropdown.classList.add('d-none');
 
                 // Map UI filter values to backend filter parameters
                 let filterParam = null;
                 if (selectedStatus === "") {
-                    filterParam = null; // no filter
+                    filterParam = null;
                 } else if (selectedStatus === "ongoing") {
-                    filterParam = "not_started"; // map "Not Started" to backend filter
+                    filterParam = "not_started";
                 } else if (selectedStatus === "completed") {
-                    filterParam = "completed"; // map "Completed" to backend filter
+                    filterParam = "completed";
                 } else if (selectedStatus === "pending") {
-                    filterParam = "in_progress"; // map "In Progress" to backend filter
+                    filterParam = "in_progress";
                 }
 
                 // Reload project cards with filter parameter
@@ -8570,7 +8614,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Handle reset filter button
         if (resetFilterBtn) {
-            resetFilterBtn.addEventListener("click", function () {
+            // Remove existing listeners
+            resetFilterBtn.replaceWith(resetFilterBtn.cloneNode(true));
+            const newResetFilterBtn = document.getElementById("resetProjectFilterBtn");
+            
+            newResetFilterBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 // Reset the filter dropdown to default
                 if (filterStatus) {
                     filterStatus.value = "";
@@ -8578,11 +8629,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Close the dropdown
                 filterDropdown.style.display = "none";
+                filterDropdown.classList.add('d-none');
 
                 // Reload project cards without filter (show all)
                 loadProjectCardData(null);
-
-                // Provide visual feedback
             });
         }
 
@@ -8590,6 +8640,30 @@ document.addEventListener("DOMContentLoaded", function () {
         filterDropdown.addEventListener("click", function (e) {
             e.stopPropagation();
         });
+    }
+
+    // Global click handler to close filter dropdown when clicking outside
+    // Use event delegation to ensure it works even after DOM changes
+    function setupGlobalFilterClickHandler() {
+        // Remove any existing global click handler for filter
+        if (window.filterClickHandler) {
+            document.removeEventListener("click", window.filterClickHandler);
+        }
+        
+        window.filterClickHandler = function (e) {
+            const filterDropdown = document.getElementById("projectFilterDropdown");
+            const openFilterBtn = document.getElementById("openProjectFilterBtn");
+            
+            if (!filterDropdown || !openFilterBtn) return;
+            
+            // Check if click is outside both button and dropdown
+            if (!openFilterBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
+                filterDropdown.style.display = "none";
+                filterDropdown.classList.add('d-none');
+            }
+        };
+        
+        document.addEventListener("click", window.filterClickHandler);
     }
 
     // Clear form and reset image preview when modal is closed
