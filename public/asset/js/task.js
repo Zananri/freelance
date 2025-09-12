@@ -1907,6 +1907,8 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
   }, false);
   renderSingleSection("completed", data.completed, false);
     ensureRejectedCardsPlaced();
+    // Apply search filter after a full render
+    try { applyCurrentSearchFilter(); } catch(_) {}
 }
 
 function renderSingleSection(status, sectionData, append = false) {
@@ -1984,6 +1986,8 @@ function renderSingleSection(status, sectionData, append = false) {
   refreshAllLatestFeedbackSnippets();
     // Setelah tiap section dirender, pastikan rejected selalu di kolom In Progress
     if (!append) ensureRejectedCardsPlaced();
+    // Re-apply current search filter so new/updated cards respect it
+    try { applyCurrentSearchFilter(); } catch(_) {}
 }
 
 // Normalisasi posisi card rejected (fallback jika ada card nyasar / tidak tergabung)
@@ -2100,29 +2104,59 @@ $(document).ready(function () {
     });
 });
 
-let searchTimeout;
-$(document).on("keyup", "#search_filter", function () {
-    clearTimeout(searchTimeout);
-    const query = this.value.trim();
-
-    searchTimeout = setTimeout(() => {
-        ["new_request", "in_progress", "completed"].forEach(status => {
-            desktopState[status].page = 1;
-            fetchAndRenderTasks(status, 1, false, query);
+// Client-side, in-place filter for visible task cards (title + project title)
+function filterVisibleTasks(queryRaw) {
+    try {
+        const q = String(queryRaw || '').trim().toLowerCase();
+        const containers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks'];
+        containers.forEach(id => {
+            const c = document.getElementById(id);
+            if (!c) return;
+            const cards = c.querySelectorAll('.custom-card');
+            cards.forEach(card => {
+                const title = (card.querySelector('.task-title')?.textContent || '').toLowerCase();
+                // project title is rendered in a small.text-muted near title
+                const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
+                const match = !q || title.includes(q) || project.includes(q);
+                if (match) card.style.removeProperty('display');
+                else card.style.display = 'none';
+            });
         });
-    }, 300);
-});
+        // Optional: also filter mobile list if present
+        const mobileList = document.getElementById('mobile-task-list');
+        if (mobileList) {
+            mobileList.querySelectorAll('.custom-card').forEach(card => {
+                const title = (card.querySelector('.task-title')?.textContent || '').toLowerCase();
+                const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
+                const match = !q || title.includes(q) || project.includes(q);
+                if (match) card.style.removeProperty('display');
+                else card.style.display = 'none';
+            });
+        }
+    } catch(_) { /* noop */ }
+}
 
-    $(document).on("keyup", "#search_filter", function () {
-    const query = this.value.trim();
+// Re-apply active filter after any render
+function applyCurrentSearchFilter() {
+    try {
+        const input = document.getElementById('search_filter');
+        if (!input) return;
+        const q = input.value || '';
+        filterVisibleTasks(q);
+    } catch(_) { /* noop */ }
+}
 
-    if (allTasksCache) {
-        renderTasks(allTasksCache, query);
-
-        // refresh mobile biar clone ikut update
-        $("#taskStatusSelect").trigger("change");
-    }
+// Debounced input handler for search
+(function initTaskSearchFilter(){
+    let searchTimeout;
+    document.addEventListener('keyup', function(e){
+        const el = e.target;
+        if (!el || el.id !== 'search_filter') return;
+        clearTimeout(searchTimeout);
+        const query = el.value || '';
+        searchTimeout = setTimeout(() => { filterVisibleTasks(query); }, 150);
     });
+})();
 
     // init
     $(document).ready(function () {
@@ -3197,9 +3231,7 @@ $(document).on("keyup", "#search_filter", function () {
                                                 // Determine if current user is the author of the top-level feedback
                                                 const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
                                                 const canEditTop = String(topAuthorId) === String(currentEmployeeId);
-                                                const topEditIconHtml = canEditTop
-                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
-                                                    : '';
+                                                const topCanEdit = canEditTop; // keep flag for actions row
 
                                                 let repliesHtml = '';
                                                 if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
@@ -3262,9 +3294,7 @@ $(document).on("keyup", "#search_filter", function () {
                                                                 // Determine if current user can edit this reply
                                                                 const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
                                                                 const canEditReply = String(repAuthorId) === String(currentEmployeeId);
-                                                                const replyEditIconHtml = canEditReply
-                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
-                                                                    : '';
+                                                                const canEditRep = canEditReply; // used in actions row
 
                                                                 return `
                                                                     <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background: rgb(240, 241, 248);">
@@ -3273,7 +3303,6 @@ $(document).on("keyup", "#search_filter", function () {
                                                                             <div>
                                                                                 <div class="d-flex align-items-center">
                                                                                     <strong style="font-size: 13px;">${rep.employee.name}</strong>
-                                                                                    ${replyEditIconHtml}
                                                                                 </div>
                                                                                 <small class="text-muted d-block" style="font-size: 11px;">${rDate}</small>
                                                                             </div>
@@ -3290,6 +3319,10 @@ $(document).on("keyup", "#search_filter", function () {
                                                                                 : ''
                                                                         }
                                                                         ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+                                                                        <div class="reply-actions mt-2 d-flex gap-3">
+                                                                            ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                            <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                        </div>
                                                                     </div>
                                                                 `;
                                                         }).join('');
@@ -3304,19 +3337,17 @@ $(document).on("keyup", "#search_filter", function () {
 
                                                 feedbackHtml += `
                                                 <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
-                                                    <div class="d-flex align-items-center mb-2 justify-content-between">
+                                                    <div class="d-flex align-items-center mb-2">
                                                         <div class="d-flex align-items-center">
                                                             <img src="${feedback.employee.photo}" alt="${feedback.employee.name}"
                                                                 class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                                                             <div>
                                                                 <div class="d-flex align-items-center">
                                                                     <strong>${feedback.employee.name}</strong>
-                                                                    ${topEditIconHtml}
                                                                 </div>
                                                                 <small class="text-muted d-block">${formattedDate}</small>
                                                             </div>
                                                         </div>
-                                                        <span class="material-symbols-outlined feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">reply</span>
                                                     </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
                             ${
@@ -3334,6 +3365,10 @@ $(document).on("keyup", "#search_filter", function () {
                                     ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
                                     : ""
                             }
+                        <div class="feedback-actions mt-2 d-flex gap-3">
+                            ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                            <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                        </div>
                         ${repliesHtml}
                         </div>
                     `;
@@ -3474,9 +3509,8 @@ $(document).on("keyup", "#search_filter", function () {
     function showAddFeedbackForm(taskId) {
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
-        const addFeedbackButton = document.getElementById("addFeedbackButton");
 
-    modalTitle.textContent = "Add Feedback";
+        modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
 
         const form = document.createElement("form");
@@ -3597,39 +3631,7 @@ $(document).on("keyup", "#search_filter", function () {
 
         form.appendChild(refFileDiv);
 
-        // Footer buttons wrapper (Close + Submit) mirip project feedback modal
-        const buttonsWrapper = document.createElement('div');
-        buttonsWrapper.id = 'taskFeedbackFormButtonsWrapper';
-        buttonsWrapper.className = 'd-flex gap-2 mt-4';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'btn btn-close-reply flex-grow-1';
-        closeBtn.textContent = 'Close';
-        closeBtn.addEventListener('click', function(){
-            // Kembali ke list feedback
-            loadTaskFeedbackData(taskId);
-            const addBtnRef = document.getElementById('addFeedbackButton');
-            if (addBtnRef) {
-                addBtnRef.textContent = 'Add Feedback';
-                const cloned = addBtnRef.cloneNode(true);
-                addBtnRef.parentNode.replaceChild(cloned, addBtnRef);
-                cloned.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
-            }
-        });
-
-        // Kita gunakan tombol existing addFeedbackButton sebagai Submit; pindahkan ke wrapper
-        if (addFeedbackButton && addFeedbackButton.parentElement) {
-            addFeedbackButton.textContent = 'Submit';
-            // Remove existing handlers dengan clone sebelumnya nanti
-        }
-
-        buttonsWrapper.appendChild(closeBtn);
-        // Temporarily append placeholder for submit; actual click bound di bawah
-        buttonsWrapper.appendChild(addFeedbackButton);
-
-        form.appendChild(buttonsWrapper);
-        modalBody.appendChild(form);
+    modalBody.appendChild(form);
 
         // Setup image preview
         setupImageInput(imageInput, imageLabel, imageClearBtn);
@@ -3640,16 +3642,10 @@ $(document).on("keyup", "#search_filter", function () {
             submitTaskFeedbackForm(this, taskId);
         });
 
-    // Remove previous click handler by cloning
-    const newButton = addFeedbackButton.cloneNode(true);
-    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-    // Add submit handler
-    newButton.addEventListener("click", function (e) {
-            e.preventDefault();
-            const form = document.getElementById("addFeedbackForm");
-            if (form) {
-                submitTaskFeedbackForm(form, taskId);
-            }
+        // Use unified footer: Close + Submit
+        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
+            const form = document.getElementById('addFeedbackForm');
+            if (form) submitTaskFeedbackForm(form, taskId);
         });
     }
 
@@ -3733,14 +3729,33 @@ $(document).on("keyup", "#search_filter", function () {
                     const feedbackModalEl = document.getElementById("taskFeedbackModal");
                     const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
                     if (titleEl) titleEl.textContent = 'Task Feedback';
-                    const addBtnRef = document.getElementById('addFeedbackButton');
-                    if (addBtnRef) {
-                        addBtnRef.textContent = 'Add Feedback';
-                        const freshBtn = addBtnRef.cloneNode(true);
-                        addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                        freshBtn.disabled = false;
-                        freshBtn.removeAttribute('disabled');
-                        freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                    // Restore Add Feedback button in footer if missing
+                    let footer = feedbackModalEl.querySelector('.feedback-modal-footer')
+                                || feedbackModalEl.querySelector('.modal-footer')
+                                || feedbackModalEl.querySelector('.modal-footer-custom');
+                    if (!footer) {
+                        const maybeBtn = feedbackModalEl.querySelector('#addFeedbackButton');
+                        if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                    }
+            if (footer) {
+                        let addBtn = footer.querySelector('#addFeedbackButton');
+                        if (!addBtn) {
+                            addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                addBtn.className = 'btn btn-submit-black w-100';
+                            addBtn.id = 'addFeedbackButton';
+                            addBtn.textContent = 'Add Feedback';
+                            footer.innerHTML = '';
+                            footer.appendChild(addBtn);
+                        } else {
+                            addBtn.textContent = 'Add Feedback';
+                            const fresh = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(fresh, addBtn);
+                            addBtn = fresh;
+                        }
+                        addBtn.disabled = false;
+                        addBtn.removeAttribute('disabled');
+                        addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
                     // Remove reply close button if present
                     const closeBtn = document.getElementById('replyCloseButton');
@@ -3807,36 +3822,56 @@ $(document).on("keyup", "#search_filter", function () {
 
         // Show the feedback modal
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        if (!feedbackModalEl) {
+            console.warn('taskFeedbackModal element not found');
+            return;
+        }
         const feedbackModal = new bootstrap.Modal(feedbackModalEl);
 
         // Set task ID on modal
         feedbackModalEl.dataset.taskId = taskId;
 
-        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
-        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
-        const addFeedbackButton = document.getElementById("addFeedbackButton");
-
-        // Reset modal
-        modalTitle.textContent = "Task Feedback";
-        modalBody.innerHTML = "";
-
-        // Reset button
-        addFeedbackButton.textContent = "Add Feedback";
-        const newButton = addFeedbackButton.cloneNode(true);
-        addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-
-        // Hapus leftover close
-        const leftoverClose = document.getElementById('replyCloseButton');
-        if (leftoverClose && leftoverClose.parentNode) {
-            leftoverClose.parentNode.removeChild(leftoverClose);
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("taskFeedbackModalLabel");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("taskFeedbackList");
+        let addFeedbackButton = document.getElementById("addFeedbackButton");
+        // If the Add Feedback button was removed (e.g., moved into body then cleared), recreate it in footer
+        if (!addFeedbackButton) {
+            const footer = feedbackModalEl.querySelector('.modal-footer') || feedbackModalEl.querySelector('.modal-footer-custom');
+            if (footer) {
+                addFeedbackButton = document.createElement('button');
+                addFeedbackButton.type = 'button';
+                addFeedbackButton.className = 'btn btn-submit-black';
+                addFeedbackButton.id = 'addFeedbackButton';
+                addFeedbackButton.textContent = 'Add Feedback';
+                footer.appendChild(addFeedbackButton);
+            }
         }
 
-        // Listener baru
-        newButton.addEventListener("click", function () {
-            showAddFeedbackForm(taskId);
-        });
+        // Reset modal
+        if (modalTitle) modalTitle.textContent = "Task Feedback";
+        if (modalBody) modalBody.innerHTML = "";
 
-        loadTaskFeedbackData(taskId);
+        // Reset button
+        if (addFeedbackButton) {
+            addFeedbackButton.textContent = "Add Feedback";
+            const newButton = addFeedbackButton.cloneNode(true);
+            if (addFeedbackButton.parentNode) {
+                addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
+            }
+
+            // Hapus leftover close
+            const leftoverClose = document.getElementById('replyCloseButton');
+            if (leftoverClose && leftoverClose.parentNode) {
+                leftoverClose.parentNode.removeChild(leftoverClose);
+            }
+
+            // Listener baru
+            newButton.addEventListener("click", function () {
+                showAddFeedbackForm(taskId);
+            });
+        }
+
+        try { loadTaskFeedbackData(taskId); } catch(_) {}
 
         feedbackModal.show();
     }
@@ -3845,7 +3880,6 @@ $(document).on("keyup", "#search_filter", function () {
     function showAddFeedbackForm(taskId) {
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
-        const addFeedbackButton = document.getElementById("addFeedbackButton");
 
     modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
@@ -3968,38 +4002,7 @@ $(document).on("keyup", "#search_filter", function () {
 
         form.appendChild(refFileDiv);
 
-        // Footer buttons wrapper (Close + Submit) mirip project feedback modal
-        const buttonsWrapper = document.createElement('div');
-        buttonsWrapper.id = 'taskFeedbackFormButtonsWrapper';
-        buttonsWrapper.className = 'modal-footer modal-footer-custom';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'btn btn-custom-close';
-        closeBtn.textContent = 'Close';
-        closeBtn.addEventListener('click', function(){
-            // Kembali ke list feedback
-            loadTaskFeedbackData(taskId);
-            const addBtnRef = document.getElementById('addFeedbackButton');
-            if (addBtnRef) {
-                addBtnRef.textContent = 'Add Feedback';
-                const cloned = addBtnRef.cloneNode(true);
-                addBtnRef.parentNode.replaceChild(cloned, addBtnRef);
-                cloned.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
-            }
-        });
-
-        // Kita gunakan tombol existing addFeedbackButton sebagai Submit; pindahkan ke wrapper
-        if (addFeedbackButton && addFeedbackButton.parentElement) {
-            addFeedbackButton.textContent = 'Submit';
-            // Remove existing handlers dengan clone sebelumnya nanti
-        }
-
-        buttonsWrapper.appendChild(closeBtn);
-        // Temporarily append placeholder for submit; actual click bound di bawah
-        buttonsWrapper.appendChild(addFeedbackButton);
-
-        form.appendChild(buttonsWrapper);
+        // Render form into body
         modalBody.appendChild(form);
 
         // Setup image preview
@@ -4011,16 +4014,10 @@ $(document).on("keyup", "#search_filter", function () {
             submitTaskFeedbackForm(this, taskId);
         });
 
-    // Remove previous click handler by cloning
-    const newButton = addFeedbackButton.cloneNode(true);
-    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-    // Add submit handler
-    newButton.addEventListener("click", function (e) {
-            e.preventDefault();
-            const form = document.getElementById("addFeedbackForm");
-            if (form) {
-                submitTaskFeedbackForm(form, taskId);
-            }
+        // Use unified footer: Close + Submit
+        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
+            const form = document.getElementById('addFeedbackForm');
+            if (form) submitTaskFeedbackForm(form, taskId);
         });
     }
 
@@ -4326,7 +4323,14 @@ $(document).on("keyup", "#search_filter", function () {
     function setUnifiedTaskFeedbackFooter(taskId, submitLabel, onSubmit){
         const modal = document.getElementById('taskFeedbackModal');
         if (!modal) return;
-        const footer = modal.querySelector('.feedback-modal-footer');
+        // Be flexible: task modal footer may not have .feedback-modal-footer class
+        let footer = modal.querySelector('.feedback-modal-footer')
+                  || modal.querySelector('.modal-footer')
+                  || modal.querySelector('.modal-footer-custom');
+        if (!footer) {
+            const addBtn = modal.querySelector('#addFeedbackButton');
+            if (addBtn && addBtn.parentElement) footer = addBtn.parentElement;
+        }
         const titleEl = modal.querySelector('.feedback-modal-title');
         if (!footer) return;
         footer.innerHTML = '';
@@ -4341,7 +4345,7 @@ $(document).on("keyup", "#search_filter", function () {
             footer.innerHTML = '';
             const restore = document.createElement('button');
             restore.type = 'button';
-            restore.className = 'btn btn-submit-black';
+            restore.className = 'btn btn-submit-black w-100';
             restore.id = 'addFeedbackButton';
             restore.textContent = 'Add Feedback';
             restore.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
@@ -4395,15 +4399,36 @@ $(document).on("keyup", "#search_filter", function () {
                 // Return to list view
                 const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
                 if (titleEl) titleEl.textContent = 'Task Feedback';
-                const addBtnRef = document.getElementById('addFeedbackButton');
-                if (addBtnRef) {
-                    addBtnRef.textContent = 'Add Feedback';
-                    const freshBtn = addBtnRef.cloneNode(true);
-                    addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                    // Ensure the new button is enabled and clickable
-                    freshBtn.disabled = false;
-                    freshBtn.removeAttribute('disabled');
-                    freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                // Restore Add Feedback button in footer (replace Save/Close)
+                const feedbackModalEl = document.getElementById('taskFeedbackModal');
+                let footer = feedbackModalEl?.querySelector('.feedback-modal-footer')
+                          || feedbackModalEl?.querySelector('.modal-footer')
+                          || feedbackModalEl?.querySelector('.modal-footer-custom');
+                if (!footer) {
+                    const maybeBtn = feedbackModalEl?.querySelector('#addFeedbackButton');
+                    if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                }
+                if (footer) {
+                    let addBtn = footer.querySelector('#addFeedbackButton');
+                    // Always clear footer to remove Save/Close wrapper
+                    footer.innerHTML = '';
+                    if (!addBtn) {
+                        addBtn = document.createElement('button');
+                        addBtn.type = 'button';
+                        addBtn.className = 'btn btn-submit-black w-100';
+                        addBtn.id = 'addFeedbackButton';
+                        addBtn.textContent = 'Add Feedback';
+                        footer.appendChild(addBtn);
+                    } else {
+                        addBtn.textContent = 'Add Feedback';
+                        const fresh = addBtn.cloneNode(true);
+                        addBtn.parentNode.replaceChild(fresh, addBtn);
+                        addBtn = fresh;
+                        footer.appendChild(addBtn);
+                    }
+                    addBtn.disabled = false;
+                    addBtn.removeAttribute('disabled');
+                    addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                 }
                 loadTaskFeedbackData(taskId);
                 // Refresh snippets/badges best-effort
@@ -4476,15 +4501,36 @@ $(document).on("keyup", "#search_filter", function () {
                     const feedbackModalEl = document.getElementById("taskFeedbackModal");
                     const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
                     if (titleEl) titleEl.textContent = 'Task Feedback';
-                    const addBtnRef = document.getElementById('addFeedbackButton');
-                    if (addBtnRef) {
-                        addBtnRef.textContent = 'Add Feedback';
-                        const freshBtn = addBtnRef.cloneNode(true);
-                        addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                        // ensure the new button is enabled and clickable
-                        freshBtn.disabled = false;
-                        freshBtn.removeAttribute('disabled');
-                        freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                    // Restore Add Feedback button in footer (replace Submit/Close wrapper)
+                    let footer = feedbackModalEl?.querySelector('.feedback-modal-footer')
+                              || feedbackModalEl?.querySelector('.modal-footer')
+                              || feedbackModalEl?.querySelector('.modal-footer-custom');
+                    if (!footer) {
+                        const maybeBtn = feedbackModalEl?.querySelector('#addFeedbackButton');
+                        if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                    }
+                    if (footer) {
+                        // Clear any unified footer content
+                        footer.innerHTML = '';
+                        // Ensure Add Feedback button exists and is bound
+                        let addBtn = document.getElementById('addFeedbackButton');
+                        if (!addBtn) {
+                            addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                            addBtn.className = 'btn btn-submit-black w-100';
+                            addBtn.id = 'addFeedbackButton';
+                            addBtn.textContent = 'Add Feedback';
+                            footer.appendChild(addBtn);
+                        } else {
+                            addBtn.textContent = 'Add Feedback';
+                            const freshBtn = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(freshBtn, addBtn);
+                            addBtn = freshBtn;
+                            footer.appendChild(addBtn);
+                        }
+                        addBtn.disabled = false;
+                        addBtn.removeAttribute('disabled');
+                        addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
                     loadTaskFeedbackData(taskId);
                 } catch (e) { /* noop */ }
