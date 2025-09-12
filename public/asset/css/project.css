@@ -1101,9 +1101,14 @@
 
 .feedback-modal-dialog {
     max-width: 480px;
-    min-height: 600px; /* Ensure modal height is at least as tall as project view modal */
+    min-height: 600px; /* default tall height */
     display: flex;
     flex-direction: column;
+}
+
+/* Compact mode when no feedback: match Task behavior to avoid overly tall modal */
+.feedback-modal-dialog.compact {
+    min-height: auto !important;
 }
 
 .feedback-modal-content {
@@ -1151,6 +1156,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 100%; /* default: full-width */
 }
 
 #addFeedbackButton:hover {

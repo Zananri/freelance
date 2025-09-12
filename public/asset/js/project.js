@@ -2403,6 +2403,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     var feedbackModalCloseBtn =
                         projectFeedbackModalEl.querySelector(".btn-close");
 
+                    // Helper to resolve footer element across possible class names (match Task behavior)
+                    function getProjectFeedbackFooter() {
+                        try {
+                            return (
+                                projectFeedbackModalEl.querySelector('.feedback-modal-footer') ||
+                                projectFeedbackModalEl.querySelector('.modal-footer') ||
+                                projectFeedbackModalEl.querySelector('.modal-footer-custom')
+                            );
+                        } catch (_) {
+                            return null;
+                        }
+                    }
+
                     // Function to load feedback data with loading spinner
                     function loadFeedbackData(projectId) {
                         modalTitle.textContent = "Feedback";
@@ -2422,6 +2435,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             })
                             .then((data) => {
                                 modalBody.innerHTML = ""; // Clear loading spinner
+                                // Ensure dialog element is available for height toggling
+                                const dialogEl = projectFeedbackModalEl.closest('.modal-dialog');
 
                                 // Update feedback badge count on project card
                                 const card = document.querySelector(
@@ -2442,8 +2457,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 if (!data.data || data.data.length === 0) {
                                     modalBody.innerHTML =
-                                        "<p>No feedback available for this project.</p>";
+                                        '<p class="text-center text-muted">No feedback available for this project.</p>';
+                                    // Shrink modal height when empty
+                                    if (dialogEl) dialogEl.classList.add('compact');
                                     return;
+                                } else {
+                                    // Ensure default height when there is content
+                                    if (dialogEl) dialogEl.classList.remove('compact');
                                 }
 
                                 // Render feedback items
@@ -4090,21 +4110,16 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Arrange Close & Submit buttons side-by-side like Accept/Reject task buttons
                         (function () {
                             try {
-                                const footer =
-                                    projectFeedbackModalEl.querySelector(
-                                        ".feedback-modal-footer"
-                                    );
+                                const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
                                 const submitBtnRef =
                                     document.getElementById(
                                         "addFeedbackButton"
                                     );
                                 if (!submitBtnRef) return;
-                                // Remove full-width styling
+                                // Match Task: side-by-side with flex-grow-1
                                 submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.style.flex = "1 1 0";
-                                submitBtnRef.style.padding = "8px 12px";
-                                submitBtnRef.style.fontSize = "12px";
+                                submitBtnRef.classList.add("flex-grow-1");
 
                                 // Cleanup old wrapper if any
                                 const oldWrapper = footer.querySelector(
@@ -4115,20 +4130,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                 // Create wrapper
                                 const wrap = document.createElement("div");
                                 wrap.id = "feedbackFormButtonsWrapper";
-                                wrap.className =
-                                    "d-flex align-items-center w-100 justify-content-between gap-1";
+                                wrap.className = "d-flex gap-2 w-100";
 
                                 // Create Close button
                                 const closeBtn =
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.className = "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.style.flex = "1 1 0";
-                                closeBtn.style.padding = "8px 12px";
-                                closeBtn.style.fontSize = "12px";
                                 closeBtn.addEventListener("click", function () {
+                                    try {
+                                        // Restore footer to single Add Feedback button (like Task)
+                                        footer.innerHTML = "";
+                                        const restore = document.createElement("button");
+                                        restore.type = "button";
+                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.id = "addFeedbackButton";
+                                        restore.textContent = "Add Feedback";
+                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        footer.appendChild(restore);
+                                    } catch(_) {}
                                     loadFeedbackData(projectId);
                                 });
 
@@ -4570,10 +4592,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Arrange Close & Submit buttons side-by-side
                         (function () {
                             try {
-                                const footer =
-                                    projectFeedbackModalEl.querySelector(
-                                        ".feedback-modal-footer"
-                                    );
+                                const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
                                 const submitBtnRef =
                                     document.getElementById(
@@ -4581,27 +4600,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                     );
                                 if (!submitBtnRef) return;
                                 submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.style.flex = "1 1 0";
-                                submitBtnRef.style.padding = "8px 12px";
-                                submitBtnRef.style.fontSize = "12px";
+                                submitBtnRef.classList.add("flex-grow-1");
                                 const oldWrapper = footer.querySelector(
                                     "#feedbackFormButtonsWrapper"
                                 );
                                 if (oldWrapper) oldWrapper.remove();
                                 const wrap = document.createElement("div");
                                 wrap.id = "feedbackFormButtonsWrapper";
-                                wrap.className =
-                                    "d-flex align-items-center w-100 justify-content-between gap-1";
+                                wrap.className = "d-flex gap-2 w-100";
                                 const closeBtn =
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.className = "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.style.flex = "1 1 0";
-                                closeBtn.style.padding = "8px 12px";
-                                closeBtn.style.fontSize = "12px";
                                 closeBtn.addEventListener("click", function () {
+                                    try {
+                                        footer.innerHTML = "";
+                                        const restore = document.createElement("button");
+                                        restore.type = "button";
+                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.id = "addFeedbackButton";
+                                        restore.textContent = "Add Feedback";
+                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        footer.appendChild(restore);
+                                    } catch(_) {}
                                     loadFeedbackData(projectId);
                                 });
                                 wrap.appendChild(closeBtn);
@@ -5087,10 +5110,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Arrange Close & Update buttons side-by-side
                         (function () {
                             try {
-                                const footer =
-                                    projectFeedbackModalEl.querySelector(
-                                        ".feedback-modal-footer"
-                                    );
+                                const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
                                 const submitBtnRef =
                                     document.getElementById(
@@ -5098,27 +5118,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                     );
                                 if (!submitBtnRef) return;
                                 submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.style.flex = "1 1 0";
-                                submitBtnRef.style.padding = "8px 12px";
-                                submitBtnRef.style.fontSize = "12px";
+                                submitBtnRef.classList.add("flex-grow-1");
                                 const oldWrapper = footer.querySelector(
                                     "#feedbackFormButtonsWrapper"
                                 );
                                 if (oldWrapper) oldWrapper.remove();
                                 const wrap = document.createElement("div");
                                 wrap.id = "feedbackFormButtonsWrapper";
-                                wrap.className =
-                                    "d-flex align-items-center w-100 justify-content-between gap-1";
+                                wrap.className = "d-flex gap-2 w-100";
                                 const closeBtn =
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.className = "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.style.flex = "1 1 0";
-                                closeBtn.style.padding = "8px 12px";
-                                closeBtn.style.fontSize = "12px";
                                 closeBtn.addEventListener("click", function () {
+                                    try {
+                                        footer.innerHTML = "";
+                                        const restore = document.createElement("button");
+                                        restore.type = "button";
+                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.id = "addFeedbackButton";
+                                        restore.textContent = "Add Feedback";
+                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        footer.appendChild(restore);
+                                    } catch(_) {}
                                     loadFeedbackData(projectId);
                                 });
                                 wrap.appendChild(closeBtn);
