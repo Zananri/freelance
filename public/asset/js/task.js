@@ -3508,9 +3508,8 @@ function applyCurrentSearchFilter() {
     function showAddFeedbackForm(taskId) {
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
-        const addFeedbackButton = document.getElementById("addFeedbackButton");
 
-    modalTitle.textContent = "Add Feedback";
+        modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
 
         const form = document.createElement("form");
@@ -3631,39 +3630,7 @@ function applyCurrentSearchFilter() {
 
         form.appendChild(refFileDiv);
 
-        // Footer buttons wrapper (Close + Submit) mirip project feedback modal
-        const buttonsWrapper = document.createElement('div');
-        buttonsWrapper.id = 'taskFeedbackFormButtonsWrapper';
-        buttonsWrapper.className = 'd-flex gap-2 mt-4';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'btn btn-close-reply flex-grow-1';
-        closeBtn.textContent = 'Close';
-        closeBtn.addEventListener('click', function(){
-            // Kembali ke list feedback
-            loadTaskFeedbackData(taskId);
-            const addBtnRef = document.getElementById('addFeedbackButton');
-            if (addBtnRef) {
-                addBtnRef.textContent = 'Add Feedback';
-                const cloned = addBtnRef.cloneNode(true);
-                addBtnRef.parentNode.replaceChild(cloned, addBtnRef);
-                cloned.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
-            }
-        });
-
-        // Kita gunakan tombol existing addFeedbackButton sebagai Submit; pindahkan ke wrapper
-        if (addFeedbackButton && addFeedbackButton.parentElement) {
-            addFeedbackButton.textContent = 'Submit';
-            // Remove existing handlers dengan clone sebelumnya nanti
-        }
-
-        buttonsWrapper.appendChild(closeBtn);
-        // Temporarily append placeholder for submit; actual click bound di bawah
-        buttonsWrapper.appendChild(addFeedbackButton);
-
-        form.appendChild(buttonsWrapper);
-        modalBody.appendChild(form);
+    modalBody.appendChild(form);
 
         // Setup image preview
         setupImageInput(imageInput, imageLabel, imageClearBtn);
@@ -3674,16 +3641,10 @@ function applyCurrentSearchFilter() {
             submitTaskFeedbackForm(this, taskId);
         });
 
-    // Remove previous click handler by cloning
-    const newButton = addFeedbackButton.cloneNode(true);
-    addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-    // Add submit handler
-    newButton.addEventListener("click", function (e) {
-            e.preventDefault();
-            const form = document.getElementById("addFeedbackForm");
-            if (form) {
-                submitTaskFeedbackForm(form, taskId);
-            }
+        // Use unified footer: Close + Submit
+        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
+            const form = document.getElementById('addFeedbackForm');
+            if (form) submitTaskFeedbackForm(form, taskId);
         });
     }
 
@@ -3767,14 +3728,33 @@ function applyCurrentSearchFilter() {
                     const feedbackModalEl = document.getElementById("taskFeedbackModal");
                     const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
                     if (titleEl) titleEl.textContent = 'Task Feedback';
-                    const addBtnRef = document.getElementById('addFeedbackButton');
-                    if (addBtnRef) {
-                        addBtnRef.textContent = 'Add Feedback';
-                        const freshBtn = addBtnRef.cloneNode(true);
-                        addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                        freshBtn.disabled = false;
-                        freshBtn.removeAttribute('disabled');
-                        freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                    // Restore Add Feedback button in footer if missing
+                    let footer = feedbackModalEl.querySelector('.feedback-modal-footer')
+                                || feedbackModalEl.querySelector('.modal-footer')
+                                || feedbackModalEl.querySelector('.modal-footer-custom');
+                    if (!footer) {
+                        const maybeBtn = feedbackModalEl.querySelector('#addFeedbackButton');
+                        if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                    }
+            if (footer) {
+                        let addBtn = footer.querySelector('#addFeedbackButton');
+                        if (!addBtn) {
+                            addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                addBtn.className = 'btn btn-submit-black w-100';
+                            addBtn.id = 'addFeedbackButton';
+                            addBtn.textContent = 'Add Feedback';
+                            footer.innerHTML = '';
+                            footer.appendChild(addBtn);
+                        } else {
+                            addBtn.textContent = 'Add Feedback';
+                            const fresh = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(fresh, addBtn);
+                            addBtn = fresh;
+                        }
+                        addBtn.disabled = false;
+                        addBtn.removeAttribute('disabled');
+                        addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
                     // Remove reply close button if present
                     const closeBtn = document.getElementById('replyCloseButton');
@@ -4398,7 +4378,14 @@ function applyCurrentSearchFilter() {
     function setUnifiedTaskFeedbackFooter(taskId, submitLabel, onSubmit){
         const modal = document.getElementById('taskFeedbackModal');
         if (!modal) return;
-        const footer = modal.querySelector('.feedback-modal-footer');
+        // Be flexible: task modal footer may not have .feedback-modal-footer class
+        let footer = modal.querySelector('.feedback-modal-footer')
+                  || modal.querySelector('.modal-footer')
+                  || modal.querySelector('.modal-footer-custom');
+        if (!footer) {
+            const addBtn = modal.querySelector('#addFeedbackButton');
+            if (addBtn && addBtn.parentElement) footer = addBtn.parentElement;
+        }
         const titleEl = modal.querySelector('.feedback-modal-title');
         if (!footer) return;
         footer.innerHTML = '';
@@ -4413,7 +4400,7 @@ function applyCurrentSearchFilter() {
             footer.innerHTML = '';
             const restore = document.createElement('button');
             restore.type = 'button';
-            restore.className = 'btn btn-submit-black';
+            restore.className = 'btn btn-submit-black w-100';
             restore.id = 'addFeedbackButton';
             restore.textContent = 'Add Feedback';
             restore.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
