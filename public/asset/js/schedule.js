@@ -461,7 +461,7 @@ document.addEventListener("DOMContentLoaded", function () {
             $("#editImageClearBtn").removeClass("d-none");
         } else {
             $("#editScheduleImageLabel").removeClass("has-image");
-            $("#editScheduleImageLabel").css("opacity", "0.5");
+            $("#editScheduleImageLabel").css("opacity", "1");
             $("#editImageClearBtn").addClass("d-none");
         }
 
@@ -803,12 +803,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 const img = document.getElementById(
                     "edit_schedule_current_image_display"
                 );
-                if (img) {
+                const label = document.getElementById("editScheduleImageLabel");
+                if (img && label) {
                     // Show preview of the newly selected image
                     const reader = new FileReader();
                     reader.onload = function (e) {
                         img.src = e.target.result;
                         img.style.display = "block";
+                        label.style.backgroundImage = "none";
+                        label.classList.add("has-image");
                     };
                     reader.readAsDataURL(this.files[0]);
                 }
