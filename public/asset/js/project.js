@@ -5657,6 +5657,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const editBtn = document.querySelector('#projectDetailContent .project-edit-icon');
                                     if (!editBtn) return;
                                     editBtn.addEventListener('click', function () {
+                                        // Mark that a child modal (edit) is about to open so timeline won't be restored yet
+                                        try {
+                                            const detailModalEl = document.getElementById('projectDetailModal');
+                                            if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'edit');
+                                        } catch(_) { /* noop */ }
                                         // Hide project detail modal first
                                         try { $("#projectDetailModal").modal('hide'); } catch(_) {}
                                         // Reuse edit flow: fetch project data and populate modal, then show
@@ -5794,11 +5799,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     if (!editProjectModalEl) { showFloatingAlert("Edit Project Modal element not found", "warning", 3500); return; }
                                                     const editProjectModal = bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(editProjectModalEl) : (bootstrap.Modal.getInstance(editProjectModalEl) || new bootstrap.Modal(editProjectModalEl));
                                                     editProjectModal.show();
+                                                    // When Edit closes, return to Detail (and clear child-open flag)
+                                                    try {
+                                                        const onEditHidden = function () {
+                                                            const detailEl = document.getElementById('projectDetailModal');
+                                                            if (detailEl) {
+                                                                detailEl.removeAttribute('data-child-opened');
+                                                                // Prefer showing existing detail modal instance; fallback to refetch
+                                                                try { $("#projectDetailModal").modal('show'); }
+                                                                catch(_) { try { fetchAndShowProjectDetail(pid); } catch(__) {} }
+                                                            }
+                                                            editProjectModalEl.removeEventListener('hidden.bs.modal', onEditHidden);
+                                                        };
+                                                        editProjectModalEl.addEventListener('hidden.bs.modal', onEditHidden, { once: true });
+                                                    } catch(_) { /* noop */ }
                                                 } catch (err) {
                                                     console.error('Failed to open edit project modal from detail:', err);
                                                     showFloatingAlert('Failed to open edit project modal', 'warning', 3500);
                                                 }
                                             },
+                                            error: function () {
+                                                try {
+                                                    const detailEl = document.getElementById('projectDetailModal');
+                                                    if (detailEl) detailEl.removeAttribute('data-child-opened');
+                                                    $("#projectDetailModal").modal('show');
+                                                } catch(_) {}
+                                                showFloatingAlert('Failed to load edit form. Please try again.', 'warning', 3500);
+                                            }
                                         });
                                     });
                                 })();
@@ -5810,6 +5837,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const handler = function (ev) {
                                         ev && ev.preventDefault && ev.preventDefault();
                                         ev && ev.stopPropagation && ev.stopPropagation();
+                                        // Mark that a child modal (feedback) is about to open
+                                        try {
+                                            const detailModalEl = document.getElementById('projectDetailModal');
+                                            if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'feedback');
+                                        } catch(_) { /* noop */ }
                                         try { $("#projectDetailModal").modal('hide'); } catch(_) {}
                                         const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
                                         if (projectFeedbackModalEl) {
@@ -5820,6 +5852,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 try {
                                                     if (projectFeedbackModalEl.getAttribute('data-return-to-detail') === '1') {
                                                         projectFeedbackModalEl.removeAttribute('data-return-to-detail');
+                                                        const detailEl = document.getElementById('projectDetailModal');
+                                                        if (detailEl) detailEl.removeAttribute('data-child-opened');
                                                         fetchAndShowProjectDetail(pid);
                                                     }
                                                 } catch(_) {}
@@ -5840,6 +5874,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                         if (el.textContent.trim() === 'attach_file') {
                                             el.style.cursor = 'pointer';
                                             el.addEventListener('click', function () {
+                                                // Mark that a child modal (files) is about to open
+                                                try {
+                                                    const detailModalEl = document.getElementById('projectDetailModal');
+                                                    if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'files');
+                                                } catch(_) { /* noop */ }
                                                 try { $("#projectDetailModal").modal('hide'); } catch(_) {}
                                                 const filesModalEl = document.getElementById('projectFilesModal');
                                                 if (filesModalEl) {
@@ -5849,6 +5888,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         try {
                                                             if (filesModalEl.getAttribute('data-return-to-detail') === '1') {
                                                                 filesModalEl.removeAttribute('data-return-to-detail');
+                                                                const detailEl = document.getElementById('projectDetailModal');
+                                                                if (detailEl) detailEl.removeAttribute('data-child-opened');
                                                                 fetchAndShowProjectDetail(pid);
                                                             }
                                                         } catch(_) {}
@@ -5986,37 +6027,30 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch (_) {}
                         }
 
-                        // Set a one-time handler to reopen timeline after detail is closed (only when originated from timeline)
+                        // Mark to reopen timeline after detail is closed (only when originated from timeline)
                         if (shouldReopenTimeline) {
-                            const detailEl =
-                                document.getElementById("projectDetailModal");
+                            const detailEl = document.getElementById("projectDetailModal");
                             if (detailEl) {
-                                const onDetailHidden = function () {
-                                    try {
-                                        const tlInstance2 =
-                                            bootstrap.Modal.getInstance(
-                                                timelineModalEl
-                                            ) ||
-                                            new bootstrap.Modal(
-                                                timelineModalEl
-                                            );
-                                        tlInstance2.show();
-                                    } catch (_) {}
-                                    detailEl.removeEventListener(
-                                        "hidden.bs.modal",
-                                        onDetailHidden
-                                    );
-                                };
-                                // Ensure no duplicate handler stacking
-                                detailEl.removeEventListener(
-                                    "hidden.bs.modal",
-                                    onDetailHidden
-                                );
-                                detailEl.addEventListener(
-                                    "hidden.bs.modal",
-                                    onDetailHidden,
-                                    { once: true }
-                                );
+                                // Set a flag on detail so we remember to reopen timeline later
+                                detailEl.setAttribute('data-reopen-timeline', '1');
+                                // Attach a persistent hidden handler once; it will reopen timeline only when no child modal is opening
+                                if (!detailEl.getAttribute('data-timeline-handler-attached')) {
+                                    const onDetailHidden = function () {
+                                        try {
+                                            // If a child modal (edit/feedback/files) is opening, skip reopening timeline now
+                                            if (detailEl.getAttribute('data-child-opened')) {
+                                                return;
+                                            }
+                                            if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                                const tlInstance2 = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                                tlInstance2.show();
+                                                detailEl.removeAttribute('data-reopen-timeline');
+                                            }
+                                        } catch(_) { /* noop */ }
+                                    };
+                                    detailEl.addEventListener('hidden.bs.modal', onDetailHidden);
+                                    detailEl.setAttribute('data-timeline-handler-attached', '1');
+                                }
                             }
                         }
 
