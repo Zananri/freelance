@@ -2352,14 +2352,21 @@ $(document).on("keyup", "#search_filter", function () {
 
             if (movableIds.length === 1) {
                 const id = movableIds[0];
-                const modalId = 'progressStatusModal';
-                const statusModal = new bootstrap.Modal(document.getElementById(modalId));
-                const titleEl = document.getElementById('progressStatusTitle');
-                const descEl = document.getElementById('progressStatusDescription');
+                // Use existing status confirmation modal in the page
+                const modalId = 'statusConfirmModal';
+                const modalEl = document.getElementById(modalId);
+                const statusModal = new bootstrap.Modal(modalEl);
+                // Update modal texts to reflect single selection Progress action
+                const titleEl = document.getElementById('statusModalTitle');
+                const descEl = document.getElementById('statusModalDescription');
+                const confirmTextEl = document.getElementById('statusModalConfirmText');
                 if (titleEl) titleEl.textContent = '1 selected';
                 if (descEl) descEl.textContent = 'Move selected task to In Progress?';
+                if (confirmTextEl) confirmTextEl.textContent = 'Are you sure want to move the task to Progress?';
                 statusModal.show();
-                const confirmBtn = document.getElementById('confirmProgressStatusBtn');
+                const confirmBtn = document.getElementById('statusModalConfirmBtn');
+                // Clear any previous inline onclick set by other flows
+                if (confirmBtn) confirmBtn.onclick = null;
                 const singleHandler = function(){
                     confirmBtn.removeEventListener('click', singleHandler);
                     const card = document.querySelector(`#new-request-tasks .custom-card[data-task-id="${id}"]`);
