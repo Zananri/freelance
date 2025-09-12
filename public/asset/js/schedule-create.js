@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fd = new FormData(form);
         selectedFiles.forEach(f=> fd.append('reference_files[]', f));
         // Prefer due_in_days over due_date (no due_date field visible anyway)
-        fetch(appUrl + '/schedules', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: fd })
+        fetch(appUrl + '/schedules/create', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: fd })
             .then(r=> r.json().then(j=>({ok:r.ok, body:j})))
             .then(({ok, body})=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; if(!ok || body.code!==200){ const msg = (body && (body.message || 'Failed to create schedule')) || 'Failed.'; showScheduleAlert(msg,'danger'); return; } showScheduleAlert(body.message || 'Schedule created successfully','success'); form.reset(); selectedFiles=[]; displaySelectedFiles(); document.getElementById('scheduleImageLabel').style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`; window.location.href = appUrl + '/task'; })
             .catch(()=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; showScheduleAlert('Failed to create schedule','danger'); });

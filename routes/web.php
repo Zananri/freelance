@@ -61,42 +61,42 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'showprofilePage'])->name('profile');
     Route::post('/profile/edit-password', [ProfileController::class, 'editPassword'])->name('profile.editPassword');
     Route::post('/profile/edit-photo-profile', [ProfileController::class, 'editPhotoProfile'])->name('profile.editPhotoProfile');
-    
 
-   // === Project routes ===
-Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
-Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
-Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
-Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
-Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
-Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
-Route::get('/project/{id}', [ProjectController::class, 'show'])->name('project.show');
-Route::post('/project/store', [ProjectController::class, 'store'])->name('project.store');
 
-// === Project feedback routes ===
-Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
-Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
-Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
+    // === Project routes ===
+    Route::get('/project', [ProjectController::class, 'showProjectPage'])->name('project');
+    Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
+    Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
+    Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
+    Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
+    Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
+    Route::get('/project/{id}', [ProjectController::class, 'show'])->name('project.show');
+    Route::post('/project/store', [ProjectController::class, 'store'])->name('project.store');
 
-// 🔥 Global unread counts (semua project) — ganti prefix agar tidak tabrakan
-Route::get('/projects/feedbacks/unread-counts', [ProjectController::class, 'getAllUnreadCounts'])
-    ->name('project-feedbacks.unread-counts');
+    // === Project feedback routes ===
+    Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
+    Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
+    Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
 
-// Per project feedback endpoints
-Route::get('/project/{id}/feedbacks/unread-count', [ProjectController::class, 'getUnreadFeedbackCount'])
-    ->name('project-feedbacks.unread-count');
-Route::post('/project/{id}/feedbacks/mark-read', [ProjectController::class, 'markProjectFeedbacksRead'])
-    ->name('project-feedbacks.mark-read');
-Route::get('/project-feedbacks/{projectId}/latest', [ProjectController::class, 'getProjectLatestFeedback'])
-    ->name('project-feedbacks.latest');
+    // 🔥 Global unread counts (semua project) — ganti prefix agar tidak tabrakan
+    Route::get('/projects/feedbacks/unread-counts', [ProjectController::class, 'getAllUnreadCounts'])
+        ->name('project-feedbacks.unread-counts');
 
-// === Project update & delete ===
-Route::put('/project/{id}', [ProjectController::class, 'update'])->name('project.update');
-Route::delete('/project/{id}', [ProjectController::class, 'destroy'])->name('project.destroy');
+    // Per project feedback endpoints
+    Route::get('/project/{id}/feedbacks/unread-count', [ProjectController::class, 'getUnreadFeedbackCount'])
+        ->name('project-feedbacks.unread-count');
+    Route::post('/project/{id}/feedbacks/mark-read', [ProjectController::class, 'markProjectFeedbacksRead'])
+        ->name('project-feedbacks.mark-read');
+    Route::get('/project-feedbacks/{projectId}/latest', [ProjectController::class, 'getProjectLatestFeedback'])
+        ->name('project-feedbacks.latest');
 
-// === Other project routes ===
-Route::get('/project/index/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
-Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignments'])->name('project.assignments');
+    // === Project update & delete ===
+    Route::put('/project/{id}', [ProjectController::class, 'update'])->name('project.update');
+    Route::delete('/project/{id}', [ProjectController::class, 'destroy'])->name('project.destroy');
+
+    // === Other project routes ===
+    Route::get('/project/index/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
+    Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignments'])->name('project.assignments');
 
 
 
@@ -144,9 +144,12 @@ Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignm
     Route::get('/projects/{id}/tasks', [TaskController::class, 'getTasksByProject'])->name('project.tasks');
 
     // Schedules (basic endpoints for modal create & list)
-    Route::get('/schedules/create', [ScheduleController::class, 'create'])->name('schedules.create');
-    Route::post('/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
+    Route::post('/schedules/create', [ScheduleController::class, 'store'])->name('schedules.store');
     Route::get('/schedules/index', [ScheduleController::class, 'index'])->name('schedules.index');
+    Route::get('/schedules/{id}/edit', [ScheduleController::class, 'edit'])->name('schedules.edit');
+    Route::put('/schedules/{id}', [ScheduleController::class, 'update'])->name('schedules.update');
+    Route::delete('/schedules/{id}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
+    Route::get('/get-schedule-data/{id}', [ScheduleController::class, 'show'])->name('get-schedule-data.schedules');
     Route::get('/schedules', [ScheduleController::class, 'showSchedulePage'])->name('schedules');
 
     Route::get('/teams', [TeamsController::class, 'showTeamsPage'])->name('teams');

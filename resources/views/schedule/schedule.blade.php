@@ -4,6 +4,7 @@
     </x-slot>
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/schedule.css') }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/schedule-create.css') }}">
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -21,37 +22,32 @@
             <div class="search-input-container position-relative me-3">
                 <span class="material-symbols-outlined search-icon">search</span>
                 <input class="form-control custom-form-filter ps-5" type="text" name="search_filter"
-                    id="search_filter">
+                    autocomplete="off" id="search_filter">
             </div>
-            <button class="btn btn-icon-toggle btn-filter-custom me-3" type="button" data-label="Filter"
-                id="openProjectFilterBtn">
-                <span class="material-symbols-outlined icon">filter_list</span> <span
-                    class="btn-text-filter">Filter</span>
+            <button class="btn btn-icon-toggle btn-filter-custom me-3" type="button" id="openProjectFilterBtn"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="material-symbols-outlined icon">filter_list</span>
+                <span class="btn-text-filter">Filter</span>
             </button>
-            <a href="{{ route('schedules.create') }}" class="btn btn-icon-toggle btn-schedule-custom me-3"
-                type="button" data-label="Schedule" id="openProjectFilterBtn"> Add Schedule
-            </a>
-            <div class="d-flex justify-content-between title-filter-container d-none">
-                <div class="dropdown-center dropdown-filter-container">
-                    <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown" style="display: none;">
-                        <div class="dropdown-filter-body">
-                            <div class="mb-3">
-                                <label for="filterProjectStatus" class="form-label">Filter by</label>
-                                <select id="filterProjectStatus" class="form-select">
-                                    <option value="">All Status</option>
-                                    <option value="">Daily</option>
-                                    <option value="">Weekly</option>
-                                    <option value="">Monthly</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="dropdown-filter-footer">
-                            <button type="button" class="btn btn-submit-black"
-                                id="resetProjectFilterBtn">Reset</button>
-                            <button type="button" class="btn btn-submit-black"
-                                id="applyProjectFilterBtn">Filter</button>
-                        </div>
+            <button data-bs-target="#scheduleCreateModal" data-bs-toggle="modal"
+                class="btn btn-icon-toggle btn-schedule-custom"> Add Schedule
+            </button>
+            <div class="dropdown-menu dropdown-filter-menu p-3" aria-labelledby="openProjectFilterBtn">
+                <div class="dropdown-filter-body">
+                    <div class="mb-3">
+                        <label for="filterScheduleStatus" class="form-label label-custom">Filter by Status</label>
+                        <select id="filterScheduleStatus" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="new_request">New Request</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
                     </div>
+                </div>
+                <div class="dropdown-filter-footer">
+                    <button type="button" class="btn btn-submit-black" id="resetScheduleFilterBtn">Reset</button>
+                    <button type="button" class="btn btn-submit-black" id="applyScheduleFilterBtn">Apply</button>
                 </div>
             </div>
         </div>
@@ -74,13 +70,454 @@
                     </li>
                 </ul>
             </div>
-            <div id="scheduleContainer" class="d-flex flex-wrap gap-3 mt-5"></div>
+            <div id="scheduleContainer" class="row g-3 mt-3 schedule-container"></div>
+            <nav aria-label="...">
+                <ul class="pagination pagination-sm justify-content-center">
+                    <li class="page-item active">
+                        <a class="page-link" aria-current="page">1</a>
+                    </li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    {{-- Create Schedule modal --}}
+    <div class="modal fade" id="scheduleCreateModal" tabindex="-1" aria-labelledby="scheduleCreateModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-loading-overlay d-none" id="editTaskModalLoader">
+                    <div class="loader-spinner"></div>
+                </div>
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title" id="scheduleCreateModalLabel">Create Schedule</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="scheduleCreateForm" class="needs-validation" enctype="multipart/form-data" novalidate>
+                    <div class="modal-body modal-body-custom">
+                        <div class="d-flex flex-column gap-3">
+
+                            <input type="hidden" id="schedule_recurrence_start_date" name="recurrence_start_date"
+                                value="{{ now()->toDateString() }}">
+                            <input type="hidden" id="schedule_recurrence_end_date" name="recurrence_end_date"
+                                value="">
+
+                            <!-- Upload Image -->
+                            <div class="mb-3">
+                                <div class="title-label-image label-custom">Upload Image</div>
+                                <label for="schedule_image"
+                                    class="custom-image-upload-photo position-relative photo-upload"
+                                    id="scheduleImageLabel">
+                                    <input type="file" id="schedule_image" name="image" accept="image/*"
+                                        hidden>
+                                    <span class="image-clear-btn d-none" id="scheduleImageClearBtn">&times;</span>
+                                </label>
+                            </div>
+
+                            <!-- Recurrence Type -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_recurrence_type" class="form-label label-custom">Repeat</label>
+                                <select id="schedule_recurrence_type" name="recurrence_type"
+                                    class="form-select input-select" required>
+                                    <option value="" selected>Select Option Schedule</option>
+                                    <option value="daily">Every Day</option>
+                                    <option value="weekly">Every Week</option>
+                                    <option value="monthly">Every Month</option>
+                                </select>
+                                <div class="invalid-feedback">Please select recurrence type.</div>
+                            </div>
+
+                            <!-- Weekly options -->
+                            <div class="custom-form-employee d-none" id="schedule_weekly_opts">
+                                <label for="schedule_recurrence_day_of_week" class="form-label label-custom">Day of
+                                    Week</label>
+                                <select class="form-select input-select" id="schedule_recurrence_day_of_week"
+                                    name="recurrence_day_of_week">
+                                    <option value="0">Sunday</option>
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                </select>
+                            </div>
+
+                            <!-- Monthly options -->
+                            @php
+                                $now = now();
+                                $monthlyDisplay = $now->translatedFormat('l, j F Y');
+                            @endphp
+                            <div class="custom-form-employee d-none" id="schedule_monthly_opts">
+                                <label for="schedule_monthly_date" class="form-label label-custom">Start date</label>
+                                <input type="text" id="schedule_monthly_date" class="form-control input-text"
+                                    readonly value="{{ $monthlyDisplay }}"
+                                    data-initial-display="{{ $monthlyDisplay }}">
+                                <input type="hidden" id="schedule_recurrence_day_of_month"
+                                    name="recurrence_day_of_month" value="{{ $now->day }}">
+                            </div>
+
+                            <!-- Points -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_point" class="form-label label-custom">Point</label>
+                                <input type="number" id="schedule_point" name="point" value="1"
+                                    min="1" class="form-control input-text" required>
+                                <div class="invalid-feedback">Point required.</div>
+                            </div>
+
+                            <!-- Priority -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_priority" class="form-label label-custom">Priority</label>
+                                <select id="schedule_priority" name="priority" class="form-select input-select"
+                                    required>
+                                    <option value="">Select Priority</option>
+                                    <option value="HIGH">HIGH</option>
+                                    <option value="MEDIUM">MEDIUM</option>
+                                    <option value="LOW">LOW</option>
+                                </select>
+                                <div class="invalid-feedback">Priority required.</div>
+                            </div>
+
+                            <!-- Due in days -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_due_in_days" class="form-label label-custom">Due In
+                                    (days)</label>
+                                <input type="number" min="0" id="schedule_due_in_days" name="due_in_days"
+                                    class="form-control input-text" placeholder="e.g. 3">
+                                <div class="form-text">Due date = Start date + Total days.</div>
+                            </div>
+
+                            <!-- Title -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_title" class="form-label label-custom">Title</label>
+                                <input type="text" id="schedule_title" name="title"
+                                    class="form-control input-text" required>
+                                <div class="invalid-feedback">Title required.</div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_description" class="form-label label-custom">Description</label>
+                                <textarea id="schedule_description" name="description" rows="4" class="form-control input-text"></textarea>
+                            </div>
+
+                            <!-- Project -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_project_id" class="form-label label-custom">Project
+                                    (optional)</label>
+                                <select id="schedule_project_id" name="project_id" class="form-select input-select">
+                                    <option value="">No Project</option>
+                                </select>
+                            </div>
+
+                            <!-- Reference URLs -->
+                            <div class="custom-form-employee">
+                                <label class="form-label label-custom">Reference URLs</label>
+                                <div id="schedule_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <input type="url" class="form-control input-text" name="reference_urls[]"
+                                            placeholder="https://example.com">
+                                        <button type="button" class="btn btn-submit-black add-ref-url"
+                                            aria-label="Add URL">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reference Files -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_reference_files" class="form-label label-custom">Reference
+                                    Files</label>
+                                <input type="file" id="schedule_reference_files" name="reference_files[]"
+                                    class="form-control input-text" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    multiple>
+                                <div class="form-text">Multiple files supported.</div>
+                                <div id="schedule_reference_files_preview" class="mt-2"></div>
+                            </div>
+
+                            <!-- Executors -->
+                            <div class="custom-form-employee">
+                                <label for="schedule_executor_input" class="form-label label-custom">Executor</label>
+                                <input type="text" id="schedule_executor_input" class="form-control input-text"
+                                    placeholder="Search employees..." autocomplete="off">
+                                <div id="schedule_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
+                                <div id="schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
+                                <input type="hidden" id="schedule_executors" name="executor_ids" value="[]">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-submit-black">Create Schedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Detail Schedule modal --}}
+    <div class="modal fade" id="scheduleDetailModal" tabindex="-1" aria-labelledby="scheduleDetailModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-loading-overlay d-none" id="detailScheduleModalLoader">
+                    <div class="loader-spinner"></div>
+                </div>
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title" id="scheduleDetailModalLabel">Schedule Detail</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body modal-body-custom">
+                    <div class="d-flex flex-column gap-3">
+                        <!-- Schedule Card -->
+                        <div id="scheduleDetailCard" class="mb-4">
+                            <!-- Card content will be populated by JavaScript -->
+                        </div>
+
+                        <!-- Executors Section -->
+                        <div class="card p-3">
+                            <h6 class="mb-3">Executors</h6>
+                            <div id="scheduleDetailExecutors" class="d-flex flex-wrap gap-2">
+                                <!-- Executor details will be populated by JavaScript -->
+                            </div>
+                        </div>
+
+                        <!-- Departments and Divisions Section -->
+                        <div class="card p-3">
+                            <h6 class="mb-3">Departments and Divisions</h6>
+                            <div id="scheduleDetailDepartmentsDivisions" class="d-flex flex-wrap gap-2">
+                                <!-- Department and division details will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Edit Schedule modal --}}
+    <div class="modal fade" id="scheduleEditModal" tabindex="-1" aria-labelledby="scheduleEditModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-loading-overlay d-none" id="editScheduleModalLoader">
+                    <div class="loader-spinner"></div>
+                </div>
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title" id="scheduleEditModalLabel">Edit Schedule</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="scheduleEditForm" class="needs-validation" enctype="multipart/form-data" novalidate>
+                    <div class="modal-body modal-body-custom">
+                        @csrf
+                        <input type="hidden" name="_method" value="PUT">
+                        <input type="hidden" id="edit_schedule_id">
+                        <div class="d-flex flex-column gap-3">
+
+                            <input type="hidden" id="edit_schedule_recurrence_start_date"
+                                name="recurrence_start_date" value="{{ now()->toDateString() }}">
+                            <input type="hidden" id="edit_schedule_recurrence_end_date" name="recurrence_end_date"
+                                value="">
+
+                            <!-- Upload Image -->
+                            <div class="mb-3">
+                                <div class="title-label-image label-custom">Upload Image</div>
+                                <label for="edit_schedule_image"
+                                    class="custom-image-upload-photo position-relative photo-upload"
+                                    id="editScheduleImageLabel">
+                                    <input type="file" id="edit_schedule_image" name="image" accept="image/*"
+                                        hidden>
+                                    <span class="image-clear-btn d-none" id="editScheduleImageClearBtn">&times;</span>
+                                </label>
+                            </div>
+
+                            <!-- Recurrence Type -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_recurrence_type"
+                                    class="form-label label-custom">Repeat</label>
+                                <select id="edit_schedule_recurrence_type" name="recurrence_type"
+                                    class="form-select input-select" required>
+                                    <option value="" selected>Select Option Schedule</option>
+                                    <option value="daily">Every Day</option>
+                                    <option value="weekly">Every Week</option>
+                                    <option value="monthly">Every Month</option>
+                                </select>
+                                <div class="invalid-feedback">Please select recurrence type.</div>
+                            </div>
+
+                            <!-- Weekly options -->
+                            <div class="custom-form-employee d-none" id="edit_schedule_weekly_opts">
+                                <label for="edit_schedule_recurrence_day_of_week" class="form-label label-custom">Day
+                                    of
+                                    Week</label>
+                                <select class="form-select input-select" id="edit_schedule_recurrence_day_of_week"
+                                    name="recurrence_day_of_week">
+                                    <option value="0">Sunday</option>
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                </select>
+                            </div>
+
+                            <!-- Monthly options -->
+                            @php
+                                $now = now();
+                                $monthlyDisplay = $now->translatedFormat('l, j F Y');
+                            @endphp
+                            <div class="custom-form-employee d-none" id="edit_schedule_monthly_opts">
+                                <label for="edit_schedule_monthly_date" class="form-label label-custom">Start
+                                    date</label>
+                                <input type="text" id="edit_schedule_monthly_date" class="form-control input-text"
+                                    readonly value="{{ $monthlyDisplay }}"
+                                    data-initial-display="{{ $monthlyDisplay }}">
+                                <input type="hidden" id="edit_schedule_recurrence_day_of_month"
+                                    name="recurrence_day_of_month" value="{{ $now->day }}">
+                            </div>
+
+                            <!-- Points -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_point" class="form-label label-custom">Point</label>
+                                <input type="number" id="edit_schedule_point" name="point" value="1"
+                                    min="1" class="form-control input-text" required>
+                                <div class="invalid-feedback">Point required.</div>
+                            </div>
+
+                            <!-- Priority -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_priority" class="form-label label-custom">Priority</label>
+                                <select id="edit_schedule_priority" name="priority" class="form-select input-select"
+                                    required>
+                                    <option value="">Select Priority</option>
+                                    <option value="HIGH">HIGH</option>
+                                    <option value="MEDIUM">MEDIUM</option>
+                                    <option value="LOW">LOW</option>
+                                </select>
+                                <div class="invalid-feedback">Priority required.</div>
+                            </div>
+
+                            <!-- Due in days -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_due_in_days" class="form-label label-custom">Due In
+                                    (days)</label>
+                                <input type="number" min="0" id="edit_schedule_due_in_days"
+                                    name="due_in_days" class="form-control input-text" placeholder="e.g. 3">
+                                <div class="form-text">Due date = Start date + Total days.</div>
+                            </div>
+
+                            <!-- Title -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_title" class="form-label label-custom">Title</label>
+                                <input type="text" id="edit_schedule_title" name="title"
+                                    class="form-control input-text" required>
+                                <div class="invalid-feedback">Title required.</div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_description"
+                                    class="form-label label-custom">Description</label>
+                                <textarea id="edit_schedule_description" name="description" rows="4" class="form-control input-text"></textarea>
+                            </div>
+
+                            <!-- Project -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_project_id" class="form-label label-custom">Project
+                                    (optional)</label>
+                                <select id="edit_schedule_project_id" name="project_id"
+                                    class="form-select input-select">
+                                    <option value="">No Project</option>
+                                </select>
+                            </div>
+
+                            <!-- Reference URLs -->
+                            <div class="custom-form-employee">
+                                <label class="form-label label-custom">Reference URLs</label>
+                                <div id="edit_schedule_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <input type="url" class="form-control input-text" name="reference_urls[]"
+                                            placeholder="https://example.com">
+                                        <button type="button" class="btn btn-submit-black add-ref-url"
+                                            aria-label="Add URL">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reference Files -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_reference_files" class="form-label label-custom">Reference
+                                    Files</label>
+                                <input type="file" id="edit_schedule_reference_files" name="reference_files[]"
+                                    class="form-control input-text" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    multiple>
+                                <div class="form-text">Multiple files supported.</div>
+                                <div id="edit_schedule_reference_files_preview" class="mt-2"></div>
+                            </div>
+
+                            <!-- Executors -->
+                            <div class="custom-form-employee">
+                                <label for="edit_schedule_executor_input"
+                                    class="form-label label-custom">Executor</label>
+                                <input type="text" id="edit_schedule_executor_input"
+                                    class="form-control input-text" placeholder="Search employees..."
+                                    autocomplete="off">
+                                <div id="edit_schedule_executor_dropdown" class="dropdown-list mt-1 executor-list">
+                                </div>
+                                <div id="edit_schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
+                                <input type="hidden" id="edit_schedule_executors" name="executor_ids"
+                                    value="[]">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-submit-black">Edit Schedule</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h6 class="modal-title">Konfirmasi Hapus</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body modal-body-custom text-center">
+                    <p style="font-size: 14px; color: #555;">
+                        Are you sure want to delete <strong id="deleteScheduleTitle"></strong> schedule ?
+                    </p>
+                </div>
+
+                <div class="modal-footer modal-footer-custom d-flex justify-content-end">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Hapus</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <x-slot name="script_slot">
 
         <script src="{{ asset('asset/js/schedule.js?v=' . time()) }}"></script>
+        <script src="{{ asset('asset/js/schedule-create.js?v=' . time()) }}"></script>
 
         <script></script>
     </x-slot>

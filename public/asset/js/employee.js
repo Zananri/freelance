@@ -120,6 +120,8 @@ document.addEventListener("DOMContentLoaded", function () {
             data: { division_id: divisionId },
             success: function (response) {
                 const data = response.data || response;
+                console.log(data);
+
                 filterJobSelect.innerHTML =
                     '<option value="">Select Job</option>';
                 data.forEach((job) => {
@@ -252,7 +254,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 $(".delete-employee-photo").css({
                     "background-image": `url(${photoUrl})`,
                     "background-size": "cover",
-                    
+
                     "background-position": "center center",
                     "background-repeat": "no-repeat",
                     width: "100px",
