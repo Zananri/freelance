@@ -1239,6 +1239,32 @@
     justify-content: flex-end;
 }
 
+/* Feedback modal form buttons: ensure side-by-side layout and exact Task colors */
+#feedbackFormButtonsWrapper {
+    width: 100%;
+}
+#feedbackFormButtonsWrapper .btn {
+    width: auto !important; /* override .modal-footer-custom button width */
+}
+.feedback-modal-footer .btn-close-reply,
+.modal-footer-custom .btn-close-reply {
+    background-color: #e3e4ee !important;
+    color: #444444 !important;
+    border-radius: 8px !important; /* match Task */
+}
+.feedback-modal-footer .btn-close-reply:hover,
+.modal-footer-custom .btn-close-reply:hover {
+    background-color: #e3e4ee !important;
+    color: #444444 !important;
+    border-radius: 8px !important;
+}
+.feedback-modal-footer .btn-submit-black,
+.modal-footer-custom #feedbackFormButtonsWrapper .btn-submit-black {
+    background-color: #444444 !important;
+    color: #ffffff !important;
+    border-radius: 8px !important; /* match Task */
+}
+
 /* Dropdown list for co-author input */
 #co_author_dropdown {
     border: 1px solid #ccc;
