@@ -2422,6 +2422,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             })
                             .then((data) => {
                                 modalBody.innerHTML = ""; // Clear loading spinner
+                                // Ensure dialog element is available for height toggling
+                                const dialogEl = projectFeedbackModalEl.closest('.modal-dialog');
 
                                 // Update feedback badge count on project card
                                 const card = document.querySelector(
@@ -2443,7 +2445,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                 if (!data.data || data.data.length === 0) {
                                     modalBody.innerHTML =
                                         "<p>No feedback available for this project.</p>";
+                                    // Shrink modal height when empty
+                                    if (dialogEl) dialogEl.classList.add('compact');
                                     return;
+                                } else {
+                                    // Ensure default height when there is content
+                                    if (dialogEl) dialogEl.classList.remove('compact');
                                 }
 
                                 // Render feedback items

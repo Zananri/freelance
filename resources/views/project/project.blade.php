@@ -624,9 +624,9 @@
         aria-hidden="true" data-project-id="{{ $projectId ?? '' }}"
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
-            <div class="modal-content feedback-modal-content">
+            <div class="modal-content modal-content-custom">
                 <div
-                    class="modal-header feedback-modal-header d-flex align-items-center position-relative flex-nowrap">
+                    class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
                     <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate"
                         id="projectFeedbackModalLabel">Project Feedback</h5>
                     <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
@@ -635,8 +635,8 @@
 
                 <div class="modal-body feedback-modal-body" id="projectFeedbackList">
                 </div>
-                <div class="modal-footer feedback-modal-footer">
-                    <button type="button" class="btn btn-submit-black w-100" id="addFeedbackButton"
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
                         style="white-space: nowrap;">Add Feedback</button>
                 </div>
             </div>
