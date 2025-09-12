@@ -1907,6 +1907,8 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
   }, false);
   renderSingleSection("completed", data.completed, false);
     ensureRejectedCardsPlaced();
+    // Apply search filter after a full render
+    try { applyCurrentSearchFilter(); } catch(_) {}
 }
 
 function renderSingleSection(status, sectionData, append = false) {
@@ -1984,6 +1986,8 @@ function renderSingleSection(status, sectionData, append = false) {
   refreshAllLatestFeedbackSnippets();
     // Setelah tiap section dirender, pastikan rejected selalu di kolom In Progress
     if (!append) ensureRejectedCardsPlaced();
+    // Re-apply current search filter so new/updated cards respect it
+    try { applyCurrentSearchFilter(); } catch(_) {}
 }
 
 // Normalisasi posisi card rejected (fallback jika ada card nyasar / tidak tergabung)
@@ -2100,29 +2104,59 @@ $(document).ready(function () {
     });
 });
 
-let searchTimeout;
-$(document).on("keyup", "#search_filter", function () {
-    clearTimeout(searchTimeout);
-    const query = this.value.trim();
-
-    searchTimeout = setTimeout(() => {
-        ["new_request", "in_progress", "completed"].forEach(status => {
-            desktopState[status].page = 1;
-            fetchAndRenderTasks(status, 1, false, query);
+// Client-side, in-place filter for visible task cards (title + project title)
+function filterVisibleTasks(queryRaw) {
+    try {
+        const q = String(queryRaw || '').trim().toLowerCase();
+        const containers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks'];
+        containers.forEach(id => {
+            const c = document.getElementById(id);
+            if (!c) return;
+            const cards = c.querySelectorAll('.custom-card');
+            cards.forEach(card => {
+                const title = (card.querySelector('.task-title')?.textContent || '').toLowerCase();
+                // project title is rendered in a small.text-muted near title
+                const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
+                const match = !q || title.includes(q) || project.includes(q);
+                if (match) card.style.removeProperty('display');
+                else card.style.display = 'none';
+            });
         });
-    }, 300);
-});
+        // Optional: also filter mobile list if present
+        const mobileList = document.getElementById('mobile-task-list');
+        if (mobileList) {
+            mobileList.querySelectorAll('.custom-card').forEach(card => {
+                const title = (card.querySelector('.task-title')?.textContent || '').toLowerCase();
+                const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
+                const match = !q || title.includes(q) || project.includes(q);
+                if (match) card.style.removeProperty('display');
+                else card.style.display = 'none';
+            });
+        }
+    } catch(_) { /* noop */ }
+}
 
-    $(document).on("keyup", "#search_filter", function () {
-    const query = this.value.trim();
+// Re-apply active filter after any render
+function applyCurrentSearchFilter() {
+    try {
+        const input = document.getElementById('search_filter');
+        if (!input) return;
+        const q = input.value || '';
+        filterVisibleTasks(q);
+    } catch(_) { /* noop */ }
+}
 
-    if (allTasksCache) {
-        renderTasks(allTasksCache, query);
-
-        // refresh mobile biar clone ikut update
-        $("#taskStatusSelect").trigger("change");
-    }
+// Debounced input handler for search
+(function initTaskSearchFilter(){
+    let searchTimeout;
+    document.addEventListener('keyup', function(e){
+        const el = e.target;
+        if (!el || el.id !== 'search_filter') return;
+        clearTimeout(searchTimeout);
+        const query = el.value || '';
+        searchTimeout = setTimeout(() => { filterVisibleTasks(query); }, 150);
     });
+})();
 
     // init
     $(document).ready(function () {
