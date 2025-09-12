@@ -32,10 +32,10 @@
             <div class="col-md-4 mb-3">
                 <div class="employee-attendance rounded-4 bg-card-1 p-4">
 
-                    <div class="employee-name-shift mb-4">
+                    <div class="employee-name-shift mb-3">
                         <div class="d-flex align-items-center">
                             <div class="employee-photo">
-                                <div class="" style="width: 64px; height: 64px;">
+                                <div class="box-employee-photo" >
                                     <div class="ratio ratio-1x1">
                                         <img src="{{ $profilePicture }}" class="object-fit-cover w-100 h-100 rounded-circle" alt="">
                                     </div>
@@ -49,11 +49,7 @@
                                     <div class="employee-shift">
                                         <div class="d-flex justify-content-between align-items-top">
                                             <div class="date-and-shift fs-12 text-secondary">
-                                                <div class="mb-1">{{$todayDate}}</div>
                                                 <div>{{ $timeStart }} - {{ $timeEnd }}</div>
-                                            </div>
-                                            <div class="clock-digital fs-12 text-body">
-                                                <div id="clock" class="digital-clock">00 : 00 : 00</div>
                                             </div>
                                         </div>
                                     </div>
@@ -65,7 +61,15 @@
 
                     <div class="attendance-log">
                         <div class="attendance-log-title">
-                            <span class="fs-14 text-body">Attendance Log</span>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <span class="fs-14 text-body">Attendance Log</span>
+                                </div>
+                                <div>
+                                    <span class="fs-14 text-body">{{$todayDate}}</span>
+                                </div>
+                            </div>
+                            
                         </div>
                         <div class="attendance-log-detail">
                             <div class="row-checkin">

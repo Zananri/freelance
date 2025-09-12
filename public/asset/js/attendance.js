@@ -656,7 +656,7 @@ async function renderCalendar(year, month) {
         const today = new Date();
         const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
-        row.append(`<td class="calendar-day  ${isToday ? 'today' : ''}" data-calendar-date="${year}-${month+1}-${day}"><div class="bg-day"></div><div class="day">${day}</div></td>`);
+        row.append(`<td class="calendar-day  ${isToday ? 'today' : ''}" data-calendar-date="${year}-${month+1}-${day}"><div class="bg-day"><div class="day">${day}</div></div></td>`);
 
         day++;
     }
@@ -747,17 +747,15 @@ async function getAttendanceEmployeeByMonth(month,year)
             for (let i = 0; i < resData.length; i++) {
                 const attendance = resData[i];
 
-                const dateString = attendance.date_attendance;
-
-
-                const dateObject = new Date(dateString);
-                const dayOfMonth = dateObject.getDate();
-
+                const attendanceDateObject = new Date(attendance.date_attendance);
+                const attendanceDateEN = attendanceDateObject.toISOString().slice(0, 10);
+                
                 const timeIn = formatTimeDisplay(attendance.time_in);
                 const timeOut = formatTimeDisplay(attendance.time_out);
 
                 const dateAttendance = formatDateMedium(attendance.date_attendance);
 
+                $(`[data-calendar-date="${dateAttendance}"]`).attr('attendance_date',attendanceDateEN);
                 $(`[data-calendar-date="${dateAttendance}"]`).attr('attendance',attendance.id);
                 $(`[data-calendar-date="${dateAttendance}"]`).attr('check-in',timeIn);
                 $(`[data-calendar-date="${dateAttendance}"]`).attr('check-out',timeOut);
