@@ -2001,6 +2001,9 @@ class TaskController extends Controller
                     'pic' => $picData,
                     'executors' => $executorsData,
                     'status' => $task->status,
+                    'due_date' => $task->due_date,
+                    'due' => $task->due_date, // alias for compatibility
+                    'deadline' => $task->due_date, // alias for compatibility
                 ];
             });
 

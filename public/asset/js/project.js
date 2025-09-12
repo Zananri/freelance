@@ -518,6 +518,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load project card data and generate cards dynamically
     function loadProjectCardData(filter = null, page = 1) {
+        // DEBUG: Log filter parameter
+        if (filter) {
+            console.log('=== FILTER DEBUG ===');
+            console.log('Filter applied:', filter);
+        }
+        
         $.ajax({
             url: appUrl + "/project/get-all-projects",
             type: "GET",
@@ -530,6 +536,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 $(".loader").fadeOut("fast");
             },
             success: function (data) {
+                // DEBUG: Log filter results
+                if (filter) {
+                    console.log('Filter results count:', Array.isArray(data) ? data.length : (data.data ? data.data.length : 0));
+                    console.log('Filter results:', data);
+                }
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
 
@@ -2403,6 +2414,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     var feedbackModalCloseBtn =
                         projectFeedbackModalEl.querySelector(".btn-close");
 
+                    // Helper to resolve footer element across possible class names (match Task behavior)
+                    function getProjectFeedbackFooter() {
+                        try {
+                            return (
+                                projectFeedbackModalEl.querySelector('.feedback-modal-footer') ||
+                                projectFeedbackModalEl.querySelector('.modal-footer') ||
+                                projectFeedbackModalEl.querySelector('.modal-footer-custom')
+                            );
+                        } catch (_) {
+                            return null;
+                        }
+                    }
+
                     // Function to load feedback data with loading spinner
                     function loadFeedbackData(projectId) {
                         modalTitle.textContent = "Feedback";
@@ -2422,6 +2446,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             })
                             .then((data) => {
                                 modalBody.innerHTML = ""; // Clear loading spinner
+                                // Ensure dialog element is available for height toggling
+                                const dialogEl = projectFeedbackModalEl.closest('.modal-dialog');
 
                                 // Update feedback badge count on project card
                                 const card = document.querySelector(
@@ -2442,8 +2468,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 if (!data.data || data.data.length === 0) {
                                     modalBody.innerHTML =
-                                        "<p>No feedback available for this project.</p>";
+                                        '<p class="text-center text-muted">No feedback available for this project.</p>';
+                                    // Shrink modal height when empty
+                                    if (dialogEl) dialogEl.classList.add('compact');
                                     return;
+                                } else {
+                                    // Ensure default height when there is content
+                                    if (dialogEl) dialogEl.classList.remove('compact');
                                 }
 
                                 // Render feedback items
@@ -4090,21 +4121,16 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Arrange Close & Submit buttons side-by-side like Accept/Reject task buttons
                         (function () {
                             try {
-                                const footer =
-                                    projectFeedbackModalEl.querySelector(
-                                        ".feedback-modal-footer"
-                                    );
+                                const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
                                 const submitBtnRef =
                                     document.getElementById(
                                         "addFeedbackButton"
                                     );
                                 if (!submitBtnRef) return;
-                                // Remove full-width styling
+                                // Match Task: side-by-side with flex-grow-1
                                 submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.style.flex = "1 1 0";
-                                submitBtnRef.style.padding = "8px 12px";
-                                submitBtnRef.style.fontSize = "12px";
+                                submitBtnRef.classList.add("flex-grow-1");
 
                                 // Cleanup old wrapper if any
                                 const oldWrapper = footer.querySelector(
@@ -4115,20 +4141,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                 // Create wrapper
                                 const wrap = document.createElement("div");
                                 wrap.id = "feedbackFormButtonsWrapper";
-                                wrap.className =
-                                    "d-flex align-items-center w-100 justify-content-between gap-1";
+                                wrap.className = "d-flex gap-2 w-100";
 
                                 // Create Close button
                                 const closeBtn =
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.className = "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.style.flex = "1 1 0";
-                                closeBtn.style.padding = "8px 12px";
-                                closeBtn.style.fontSize = "12px";
                                 closeBtn.addEventListener("click", function () {
+                                    try {
+                                        // Restore footer to single Add Feedback button (like Task)
+                                        footer.innerHTML = "";
+                                        const restore = document.createElement("button");
+                                        restore.type = "button";
+                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.id = "addFeedbackButton";
+                                        restore.textContent = "Add Feedback";
+                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        footer.appendChild(restore);
+                                    } catch(_) {}
                                     loadFeedbackData(projectId);
                                 });
 
@@ -4570,10 +4603,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Arrange Close & Submit buttons side-by-side
                         (function () {
                             try {
-                                const footer =
-                                    projectFeedbackModalEl.querySelector(
-                                        ".feedback-modal-footer"
-                                    );
+                                const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
                                 const submitBtnRef =
                                     document.getElementById(
@@ -4581,27 +4611,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                     );
                                 if (!submitBtnRef) return;
                                 submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.style.flex = "1 1 0";
-                                submitBtnRef.style.padding = "8px 12px";
-                                submitBtnRef.style.fontSize = "12px";
+                                submitBtnRef.classList.add("flex-grow-1");
                                 const oldWrapper = footer.querySelector(
                                     "#feedbackFormButtonsWrapper"
                                 );
                                 if (oldWrapper) oldWrapper.remove();
                                 const wrap = document.createElement("div");
                                 wrap.id = "feedbackFormButtonsWrapper";
-                                wrap.className =
-                                    "d-flex align-items-center w-100 justify-content-between gap-1";
+                                wrap.className = "d-flex gap-2 w-100";
                                 const closeBtn =
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.className = "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.style.flex = "1 1 0";
-                                closeBtn.style.padding = "8px 12px";
-                                closeBtn.style.fontSize = "12px";
                                 closeBtn.addEventListener("click", function () {
+                                    try {
+                                        footer.innerHTML = "";
+                                        const restore = document.createElement("button");
+                                        restore.type = "button";
+                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.id = "addFeedbackButton";
+                                        restore.textContent = "Add Feedback";
+                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        footer.appendChild(restore);
+                                    } catch(_) {}
                                     loadFeedbackData(projectId);
                                 });
                                 wrap.appendChild(closeBtn);
@@ -5087,10 +5121,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Arrange Close & Update buttons side-by-side
                         (function () {
                             try {
-                                const footer =
-                                    projectFeedbackModalEl.querySelector(
-                                        ".feedback-modal-footer"
-                                    );
+                                const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
                                 const submitBtnRef =
                                     document.getElementById(
@@ -5098,27 +5129,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                     );
                                 if (!submitBtnRef) return;
                                 submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.style.flex = "1 1 0";
-                                submitBtnRef.style.padding = "8px 12px";
-                                submitBtnRef.style.fontSize = "12px";
+                                submitBtnRef.classList.add("flex-grow-1");
                                 const oldWrapper = footer.querySelector(
                                     "#feedbackFormButtonsWrapper"
                                 );
                                 if (oldWrapper) oldWrapper.remove();
                                 const wrap = document.createElement("div");
                                 wrap.id = "feedbackFormButtonsWrapper";
-                                wrap.className =
-                                    "d-flex align-items-center w-100 justify-content-between gap-1";
+                                wrap.className = "d-flex gap-2 w-100";
                                 const closeBtn =
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.className = "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.style.flex = "1 1 0";
-                                closeBtn.style.padding = "8px 12px";
-                                closeBtn.style.fontSize = "12px";
                                 closeBtn.addEventListener("click", function () {
+                                    try {
+                                        footer.innerHTML = "";
+                                        const restore = document.createElement("button");
+                                        restore.type = "button";
+                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.id = "addFeedbackButton";
+                                        restore.textContent = "Add Feedback";
+                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        footer.appendChild(restore);
+                                    } catch(_) {}
                                     loadFeedbackData(projectId);
                                 });
                                 wrap.appendChild(closeBtn);
@@ -5633,6 +5668,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const editBtn = document.querySelector('#projectDetailContent .project-edit-icon');
                                     if (!editBtn) return;
                                     editBtn.addEventListener('click', function () {
+                                        // Mark that a child modal (edit) is about to open so timeline won't be restored yet
+                                        try {
+                                            const detailModalEl = document.getElementById('projectDetailModal');
+                                            if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'edit');
+                                        } catch(_) { /* noop */ }
                                         // Hide project detail modal first
                                         try { $("#projectDetailModal").modal('hide'); } catch(_) {}
                                         // Reuse edit flow: fetch project data and populate modal, then show
@@ -5770,11 +5810,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     if (!editProjectModalEl) { showFloatingAlert("Edit Project Modal element not found", "warning", 3500); return; }
                                                     const editProjectModal = bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(editProjectModalEl) : (bootstrap.Modal.getInstance(editProjectModalEl) || new bootstrap.Modal(editProjectModalEl));
                                                     editProjectModal.show();
+                                                    // When Edit closes, return to Detail (and clear child-open flag)
+                                                    try {
+                                                        const onEditHidden = function () {
+                                                            const detailEl = document.getElementById('projectDetailModal');
+                                                            if (detailEl) {
+                                                                detailEl.removeAttribute('data-child-opened');
+                                                                // Prefer showing existing detail modal instance; fallback to refetch
+                                                                try { $("#projectDetailModal").modal('show'); }
+                                                                catch(_) { try { fetchAndShowProjectDetail(pid); } catch(__) {} }
+                                                            }
+                                                            editProjectModalEl.removeEventListener('hidden.bs.modal', onEditHidden);
+                                                        };
+                                                        editProjectModalEl.addEventListener('hidden.bs.modal', onEditHidden, { once: true });
+                                                    } catch(_) { /* noop */ }
                                                 } catch (err) {
                                                     console.error('Failed to open edit project modal from detail:', err);
                                                     showFloatingAlert('Failed to open edit project modal', 'warning', 3500);
                                                 }
                                             },
+                                            error: function () {
+                                                try {
+                                                    const detailEl = document.getElementById('projectDetailModal');
+                                                    if (detailEl) detailEl.removeAttribute('data-child-opened');
+                                                    $("#projectDetailModal").modal('show');
+                                                } catch(_) {}
+                                                showFloatingAlert('Failed to load edit form. Please try again.', 'warning', 3500);
+                                            }
                                         });
                                     });
                                 })();
@@ -5786,6 +5848,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const handler = function (ev) {
                                         ev && ev.preventDefault && ev.preventDefault();
                                         ev && ev.stopPropagation && ev.stopPropagation();
+                                        // Mark that a child modal (feedback) is about to open
+                                        try {
+                                            const detailModalEl = document.getElementById('projectDetailModal');
+                                            if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'feedback');
+                                        } catch(_) { /* noop */ }
                                         try { $("#projectDetailModal").modal('hide'); } catch(_) {}
                                         const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
                                         if (projectFeedbackModalEl) {
@@ -5796,6 +5863,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 try {
                                                     if (projectFeedbackModalEl.getAttribute('data-return-to-detail') === '1') {
                                                         projectFeedbackModalEl.removeAttribute('data-return-to-detail');
+                                                        const detailEl = document.getElementById('projectDetailModal');
+                                                        if (detailEl) detailEl.removeAttribute('data-child-opened');
                                                         fetchAndShowProjectDetail(pid);
                                                     }
                                                 } catch(_) {}
@@ -5816,6 +5885,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                         if (el.textContent.trim() === 'attach_file') {
                                             el.style.cursor = 'pointer';
                                             el.addEventListener('click', function () {
+                                                // Mark that a child modal (files) is about to open
+                                                try {
+                                                    const detailModalEl = document.getElementById('projectDetailModal');
+                                                    if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'files');
+                                                } catch(_) { /* noop */ }
                                                 try { $("#projectDetailModal").modal('hide'); } catch(_) {}
                                                 const filesModalEl = document.getElementById('projectFilesModal');
                                                 if (filesModalEl) {
@@ -5825,6 +5899,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         try {
                                                             if (filesModalEl.getAttribute('data-return-to-detail') === '1') {
                                                                 filesModalEl.removeAttribute('data-return-to-detail');
+                                                                const detailEl = document.getElementById('projectDetailModal');
+                                                                if (detailEl) detailEl.removeAttribute('data-child-opened');
                                                                 fetchAndShowProjectDetail(pid);
                                                             }
                                                         } catch(_) {}
@@ -5962,37 +6038,40 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch (_) {}
                         }
 
-                        // Set a one-time handler to reopen timeline after detail is closed (only when originated from timeline)
+                        // Mark to reopen timeline after detail is closed (only when originated from timeline)
                         if (shouldReopenTimeline) {
-                            const detailEl =
-                                document.getElementById("projectDetailModal");
+                            const detailEl = document.getElementById("projectDetailModal");
                             if (detailEl) {
-                                const onDetailHidden = function () {
-                                    try {
-                                        const tlInstance2 =
-                                            bootstrap.Modal.getInstance(
-                                                timelineModalEl
-                                            ) ||
-                                            new bootstrap.Modal(
-                                                timelineModalEl
-                                            );
-                                        tlInstance2.show();
-                                    } catch (_) {}
-                                    detailEl.removeEventListener(
-                                        "hidden.bs.modal",
-                                        onDetailHidden
-                                    );
-                                };
-                                // Ensure no duplicate handler stacking
-                                detailEl.removeEventListener(
-                                    "hidden.bs.modal",
-                                    onDetailHidden
-                                );
-                                detailEl.addEventListener(
-                                    "hidden.bs.modal",
-                                    onDetailHidden,
-                                    { once: true }
-                                );
+                                // Set a flag on detail so we remember to reopen timeline later
+                                detailEl.setAttribute('data-reopen-timeline', '1');
+                                // Attach a persistent hidden handler once; it will reopen timeline only when no child modal is opening
+                                if (!detailEl.getAttribute('data-timeline-handler-attached')) {
+                                    const onDetailHidden = function () {
+                                        try {
+                                            // If a child modal (edit/feedback/files) is opening, skip reopening timeline now
+                                            if (detailEl.getAttribute('data-child-opened')) {
+                                                return;
+                                            }
+                                            if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                                const tlInstance2 = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                                tlInstance2.show();
+                                                detailEl.removeAttribute('data-reopen-timeline');
+                                            }
+                                            
+                                            // Re-initialize filter dropdown to ensure it works after modal closes
+                                            setTimeout(() => {
+                                                try {
+                                                    setupFilterDropdown();
+                                                    setupGlobalFilterClickHandler();
+                                                } catch(e) {
+                                                    console.warn('Failed to re-initialize filter dropdown:', e);
+                                                }
+                                            }, 100);
+                                        } catch(_) { /* noop */ }
+                                    };
+                                    detailEl.addEventListener('hidden.bs.modal', onDetailHidden);
+                                    detailEl.setAttribute('data-timeline-handler-attached', '1');
+                                }
                             }
                         }
 
@@ -6384,60 +6463,48 @@ document.addEventListener("DOMContentLoaded", function () {
                     );
 
                     function resetAddFeedbackButton() {
-                        const addFeedbackButton =
-                            document.getElementById("addFeedbackButton");
-                        addFeedbackButton.textContent = "Add Feedback";
-                        // Restore footer to single full-width button (remove wrapper / close button if present)
-                        try {
-                            const footer = projectFeedbackModalEl.querySelector(
-                                ".feedback-modal-footer"
-                            );
-                            if (footer) {
-                                const wrapper = footer.querySelector(
-                                    "#feedbackFormButtonsWrapper"
+                        // Resolve footer consistently (like Task)
+                        const footer = (function(){
+                            try {
+                                return (
+                                    projectFeedbackModalEl.querySelector('.feedback-modal-footer') ||
+                                    projectFeedbackModalEl.querySelector('.modal-footer') ||
+                                    projectFeedbackModalEl.querySelector('.modal-footer-custom')
                                 );
-                                if (wrapper) {
-                                    const submitBtn =
-                                        wrapper.querySelector(
-                                            "#addFeedbackButton"
-                                        );
-                                    if (submitBtn) {
-                                        submitBtn.style.flex = "";
-                                        submitBtn.style.padding = "";
-                                        submitBtn.style.fontSize = "";
-                                        submitBtn.classList.add("w-100");
-                                        footer.innerHTML = "";
-                                        footer.appendChild(submitBtn);
-                                    }
-                                } else {
-                                    // Ensure w-100 if wrapper already gone
-                                    addFeedbackButton.classList.add("w-100");
+                            } catch(_) { return null; }
+                        })();
+
+                        if (footer) {
+                            try {
+                                // Clear footer completely and rebuild single Add Feedback button
+                                footer.innerHTML = "";
+                                const addBtn = document.createElement('button');
+                                addBtn.type = 'button';
+                                addBtn.className = 'btn btn-submit-black w-100';
+                                addBtn.id = 'addFeedbackButton';
+                                addBtn.textContent = 'Add Feedback';
+                                addBtn.addEventListener('click', function(){
+                                    const projectId = projectFeedbackModalEl.getAttribute('data-project-id');
+                                    if (projectId) showAddFeedbackForm(projectId);
+                                });
+                                footer.appendChild(addBtn);
+                            } catch(_) { /* noop */ }
+                        } else {
+                            // Fallback: just update existing button text
+                            try {
+                                const addFeedbackButton = document.getElementById('addFeedbackButton');
+                                if (addFeedbackButton) {
+                                    addFeedbackButton.textContent = 'Add Feedback';
+                                    addFeedbackButton.classList.add('w-100');
+                                    const fresh = addFeedbackButton.cloneNode(true);
+                                    addFeedbackButton.parentNode.replaceChild(fresh, addFeedbackButton);
+                                    fresh.addEventListener('click', function(){
+                                        const projectId = projectFeedbackModalEl.getAttribute('data-project-id');
+                                        if (projectId) showAddFeedbackForm(projectId);
+                                    });
                                 }
-                                const closeBtn =
-                                    footer.querySelector("#replyCloseButton");
-                                if (closeBtn) closeBtn.remove();
-                            }
-                        } catch (_) {
-                            /* noop */
+                            } catch(_) { /* noop */ }
                         }
-
-                        // Clone tombol untuk menghapus semua event listener sebelumnya
-                        const newButton = addFeedbackButton.cloneNode(true);
-                        addFeedbackButton.parentNode.replaceChild(
-                            newButton,
-                            addFeedbackButton
-                        );
-
-                        // Tambahkan event listener untuk menampilkan form
-                        newButton.addEventListener("click", function () {
-                            const projectId =
-                                projectFeedbackModalEl.getAttribute(
-                                    "data-project-id"
-                                );
-                            if (projectId) {
-                                showAddFeedbackForm(projectId);
-                            }
-                        });
                     }
 
                     // Inisialisasi event listener untuk tombol Add Feedback saat modal muncul
@@ -7474,6 +7541,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Setup filter dropdown functionality
     setupFilterDropdown();
+    setupGlobalFilterClickHandler();
+    
+    // Setup project detail modal hidden event handler to re-initialize filter dropdown
+    const projectDetailModalEl = document.getElementById("projectDetailModal");
+    if (projectDetailModalEl) {
+        projectDetailModalEl.addEventListener("hidden.bs.modal", function() {
+            // Re-initialize filter dropdown to ensure it works after modal closes
+            setTimeout(() => {
+                try {
+                    setupFilterDropdown();
+                    setupGlobalFilterClickHandler();
+                } catch(e) {
+                    console.warn('Failed to re-initialize filter dropdown after project detail modal close:', e);
+                }
+            }, 100);
+        });
+    }
 
     // Add event listener to department select to load divisions on change
     departmentSelect.addEventListener("change", function () {
@@ -8472,7 +8556,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
-    // Setup filter dropdown functionality
+    // Setup filter dropdown functionality with improved event handling
     function setupFilterDropdown() {
         const openFilterBtn = document.getElementById("openProjectFilterBtn");
         const filterDropdown = document.getElementById("projectFilterDropdown");
@@ -8482,39 +8566,56 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!openFilterBtn || !filterDropdown) return;
 
-        // Toggle dropdown visibility
-        openFilterBtn.addEventListener("click", function (e) {
-            e.stopPropagation();
-            const isVisible = filterDropdown.style.display === "block";
-            filterDropdown.style.display = isVisible ? "none" : "block";
-        });
+        // Remove any existing event listeners to prevent duplicates
+        openFilterBtn.replaceWith(openFilterBtn.cloneNode(true));
+        const newOpenFilterBtn = document.getElementById("openProjectFilterBtn");
 
-        // Close dropdown when clicking outside
-        document.addEventListener("click", function (e) {
-            if (
-                !openFilterBtn.contains(e.target) &&
-                !filterDropdown.contains(e.target)
-            ) {
+        // Toggle dropdown visibility with improved event handling
+        newOpenFilterBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Close any other open dropdowns first
+            document.querySelectorAll('.dropdown-menu:not(#projectFilterDropdown)').forEach(menu => {
+                menu.classList.add('d-none');
+                menu.style.display = 'none';
+            });
+            
+            const isVisible = filterDropdown.style.display === "block" || !filterDropdown.classList.contains('d-none');
+            
+            if (isVisible) {
                 filterDropdown.style.display = "none";
+                filterDropdown.classList.add('d-none');
+            } else {
+                filterDropdown.style.display = "block";
+                filterDropdown.classList.remove('d-none');
             }
         });
 
         // Handle apply filter button
         if (applyFilterBtn) {
-            applyFilterBtn.addEventListener("click", function () {
+            // Remove existing listeners
+            applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
+            const newApplyFilterBtn = document.getElementById("applyProjectFilterBtn");
+            
+            newApplyFilterBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const selectedStatus = filterStatus ? filterStatus.value : "";
                 filterDropdown.style.display = "none";
+                filterDropdown.classList.add('d-none');
 
                 // Map UI filter values to backend filter parameters
                 let filterParam = null;
                 if (selectedStatus === "") {
-                    filterParam = null; // no filter
+                    filterParam = null;
                 } else if (selectedStatus === "ongoing") {
-                    filterParam = "not_started"; // map "Not Started" to backend filter
+                    filterParam = "not_started";
                 } else if (selectedStatus === "completed") {
-                    filterParam = "completed"; // map "Completed" to backend filter
+                    filterParam = "completed";
                 } else if (selectedStatus === "pending") {
-                    filterParam = "in_progress"; // map "In Progress" to backend filter
+                    filterParam = "in_progress";
                 }
 
                 // Reload project cards with filter parameter
@@ -8524,7 +8625,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Handle reset filter button
         if (resetFilterBtn) {
-            resetFilterBtn.addEventListener("click", function () {
+            // Remove existing listeners
+            resetFilterBtn.replaceWith(resetFilterBtn.cloneNode(true));
+            const newResetFilterBtn = document.getElementById("resetProjectFilterBtn");
+            
+            newResetFilterBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 // Reset the filter dropdown to default
                 if (filterStatus) {
                     filterStatus.value = "";
@@ -8532,11 +8640,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Close the dropdown
                 filterDropdown.style.display = "none";
+                filterDropdown.classList.add('d-none');
 
                 // Reload project cards without filter (show all)
                 loadProjectCardData(null);
-
-                // Provide visual feedback
             });
         }
 
@@ -8544,6 +8651,30 @@ document.addEventListener("DOMContentLoaded", function () {
         filterDropdown.addEventListener("click", function (e) {
             e.stopPropagation();
         });
+    }
+
+    // Global click handler to close filter dropdown when clicking outside
+    // Use event delegation to ensure it works even after DOM changes
+    function setupGlobalFilterClickHandler() {
+        // Remove any existing global click handler for filter
+        if (window.filterClickHandler) {
+            document.removeEventListener("click", window.filterClickHandler);
+        }
+        
+        window.filterClickHandler = function (e) {
+            const filterDropdown = document.getElementById("projectFilterDropdown");
+            const openFilterBtn = document.getElementById("openProjectFilterBtn");
+            
+            if (!filterDropdown || !openFilterBtn) return;
+            
+            // Check if click is outside both button and dropdown
+            if (!openFilterBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
+                filterDropdown.style.display = "none";
+                filterDropdown.classList.add('d-none');
+            }
+        };
+        
+        document.addEventListener("click", window.filterClickHandler);
     }
 
     // Clear form and reset image preview when modal is closed
@@ -8636,15 +8767,15 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateProjectChartFromData(projects, chartCounts) {
         const numberOfProjects = Array.isArray(projects) ? projects.length : 0;
 
-        let completed = Number(chartCounts?.completed || 0);
-        let inProgressLabel = Number(chartCounts?.in_progress || 0);
-        let late = Number(chartCounts?.late || 0);
-        let notStartedChart = Number(chartCounts?.not_started || 0);
+        const completed = Number(chartCounts?.completed || 0);
+        const inProgress = Number(chartCounts?.in_progress || 0);
+        const late = Number(chartCounts?.late || 0);
+        const notStarted = Number(chartCounts?.not_started || 0);
 
-        const chartData = [notStartedChart, completed, inProgressLabel, late];
-        const totalTasks = chartData.reduce((a, b) => a + b, 0);
+        const chartData = [notStarted, completed, inProgress, late];
+        const total = chartData.reduce((a, b) => a + b, 0);
 
-        if (totalTasks === 0) {
+        if (total === 0) {
             projectChartInstance.data.labels = ["No Data"];
             projectChartInstance.data.datasets[0].data = [1];
             projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
@@ -8663,236 +8794,116 @@ document.addEventListener("DOMContentLoaded", function () {
                 "#ff6b6b",
             ];
         }
-        projectChartInstance.update();
+        try { projectChartInstance.update(); } catch (_) {}
 
         const spans = document.querySelectorAll(
             ".chart-labels .text-center span:first-child"
         );
         if (spans && spans.length >= 4) {
+            // Order under chart: Total, Complete, On Progress, Late
             spans[0].textContent = numberOfProjects;
             spans[1].textContent = completed;
-            spans[2].textContent = inProgressLabel;
+            spans[2].textContent = inProgress;
             spans[3].textContent = late;
         }
     }
 
     function loadProjectAndTaskData() {
-        // Step 1: ambil daftar project
-        $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            beforeSend: function () {
-                $(".loader").fadeIn("fast");
-            },
-            success: function (projectRes) {
-                const projects = Array.isArray(projectRes)
-                    ? projectRes
-                    : Array.isArray(projectRes.data)
-                    ? projectRes.data
-                    : [];
+        // Helper to normalize API payloads into arrays
+        function normalizeArray(res) {
+            if (!res) return [];
+            if (Array.isArray(res)) return res;
+            if (res.data && Array.isArray(res.data)) return res.data;
+            return [];
+        }
 
-                // Selalu hitung ulang berbasis project & task sesuai aturan baru user.
-                // Aturan:
-                //  - Complete  : semua task di project status completed.
-                //  - Late      : minimal 1 task overdue (due_date lewat & belum completed) ATAU dikategorikan late.
-                //                Late override kategori lain (walau ada task completed / in progress).
-                //  - On Progress: ada kombinasi status (tidak semua completed, tidak semua not_started) dan tidak Late.
-                //  - Not Started: project belum punya task ATAU semua task masih status not_started/new_request.
-                // Total = jumlah project.
+        $(".loader").fadeIn("fast");
 
-                // Step 2: ambil semua task (tanpa pagination) lalu kelompokkan per project.
-                $.ajax({
-                    url: appUrl + "/task/index/no-pagination",
-                    type: "GET",
-                    dataType: "json",
-                    success: function (taskRes) {
-                        const buckets = taskRes?.data || {};
-                        // Build map project_id -> array of task objects dengan properti __status
-                        const tasksByProject = {};
+        const totalReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json" });
+        const completedReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "completed" } });
+        const inProgressReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "in_progress" } });
+        const notStartedReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "not_started" } });
+        const tasksReq = $.ajax({ url: appUrl + "/task/index/no-pagination", type: "GET", dataType: "json" });
 
-                        function pushTasks(arr, statusName) {
-                            if (!Array.isArray(arr)) return;
-                            arr.forEach((t) => {
-                                const projId =
-                                    t.project_id ||
-                                    t.projectId ||
-                                    (t.project &&
-                                        (t.project.id || t.project.project_id));
-                                if (!projId) return;
-                                if (!tasksByProject[projId])
-                                    tasksByProject[projId] = [];
-                                tasksByProject[projId].push(
-                                    Object.assign({}, t, {
-                                        __status: statusName,
-                                    })
-                                );
-                            });
-                        }
-                        pushTasks(buckets.not_started?.tasks, "not_started");
-                        pushTasks(buckets.in_progress?.tasks, "in_progress");
-                        pushTasks(buckets.completed?.tasks, "completed");
-                        pushTasks(buckets.late?.tasks, "late");
-                        pushTasks(buckets.rejected?.tasks, "rejected");
-                        // kemungkinan status tambahan (new_request) kalau ada
-                        pushTasks(buckets.new_request?.tasks, "new_request");
+        $.when(totalReq, completedReq, inProgressReq, notStartedReq, tasksReq)
+            .done(function (totalRes, compRes, progRes, notRes, tRes) {
+                try {
+                    const projects = normalizeArray(totalRes[0]);
+                    const countCompleted = normalizeArray(compRes[0]).length;
+                    const countOnProgress = normalizeArray(progRes[0]).length;
+                    const countNotStarted = normalizeArray(notRes[0]).length;
 
-                        // Helper parse due date (gunakan akhir hari agar tidak false overdue)
-                        function parseDue(dateStr) {
-                            if (!dateStr) return null;
-                            const s = String(dateStr).trim();
-                            const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                            if (m) {
-                                const y = +m[1];
-                                const mo = +m[2] - 1;
-                                const d = +m[3];
-                                return new Date(y, mo, d, 23, 59, 59, 999);
-                            }
-                            const dt = new Date(s);
-                            if (!isNaN(dt.getTime())) return dt;
-                            return null;
-                        }
-
-                        const now = new Date();
-
-                        let countCompleted = 0;
-                        let countOnProgress = 0;
-                        let countLate = 0;
-                        let countNotStarted = 0;
-
-                        projects.forEach((p) => {
-                            const pid = p.id || p.project_id;
-                            const tasks = tasksByProject[pid] || [];
-
-                            if (!tasks.length) {
-                                // Fallback gunakan aggregate task_counts jika tersedia agar tidak salah klasifikasi
-                                const tc =
-                                    p.task_counts || p.taskCounts || null;
-                                if (
-                                    tc &&
-                                    typeof tc.total === "number" &&
-                                    tc.total > 0
-                                ) {
-                                    const total = Number(tc.total) || 0;
-                                    const completedT = Number(
-                                        tc.completed || tc.completed_tasks || 0
-                                    );
-                                    const inProgT = Number(
-                                        tc.in_progress ||
-                                            tc.in_progress_tasks ||
-                                            0
-                                    );
-                                    const rejectedT = Number(
-                                        tc.rejected || tc.rejected_tasks || 0
-                                    );
-                                    const lateT = Number(
-                                        tc.late || tc.late_tasks || 0
-                                    );
-                                    const inferredNotStarted = Math.max(
-                                        0,
-                                        total -
-                                            (completedT +
-                                                inProgT +
-                                                rejectedT +
-                                                lateT)
-                                    );
-
-                                    if (lateT > 0) {
-                                        countLate++;
-                                        return;
-                                    }
-                                    if (completedT === total && total > 0) {
-                                        countCompleted++;
-                                        return;
-                                    }
-                                    if (
-                                        inProgT > 0 ||
-                                        (completedT > 0 &&
-                                            (inferredNotStarted > 0 ||
-                                                rejectedT > 0))
-                                    ) {
-                                        countOnProgress++;
-                                        return;
-                                    }
-                                    // else semua dianggap not started
-                                    countNotStarted++;
-                                    return;
-                                } else {
-                                    countNotStarted++;
-                                    return;
-                                }
-                            }
-
-                            const hasLate = tasks.some((t) => {
-                                if (t.__status === "late") return true;
-                                const dueStr =
-                                    t.due_date || t.due || t.deadline;
-                                const due = parseDue(dueStr);
-                                if (!due) return false;
-                                // overdue jika due < sekarang dan status bukan completed
-                                return (
-                                    due.getTime() < now.getTime() &&
-                                    t.__status !== "completed"
-                                );
-                            });
-                            if (hasLate) {
-                                countLate++;
-                                return;
-                            }
-
-                            const allCompleted =
-                                tasks.length > 0 &&
-                                tasks.every((t) => t.__status === "completed");
-                            if (allCompleted) {
-                                countCompleted++;
-                                return;
-                            }
-
-                            const allNotStarted = tasks.every(
-                                (t) =>
-                                    t.__status === "not_started" ||
-                                    t.__status === "new_request"
-                            );
-                            if (allNotStarted) {
-                                countNotStarted++;
-                                return;
-                            }
-
-                            // sisanya -> On Progress
-                            countOnProgress++;
+                    // Compute LATE using dashboard logic from tasks
+                    const buckets = (tRes && tRes[0] && tRes[0].data) || {};
+                    const tasksByProject = {};
+                    function collect(list, statusName) {
+                        if (!Array.isArray(list)) return;
+                        list.forEach(function (t) {
+                            const pid = t.project_id || (t.project && (t.project.id || t.project.project_id));
+                            if (!pid) return;
+                            if (!tasksByProject[pid]) tasksByProject[pid] = [];
+                            tasksByProject[pid].push(Object.assign({}, t, { __status: statusName }));
                         });
+                    }
+                    collect(buckets.not_started?.tasks, "not_started");
+                    collect(buckets.in_progress?.tasks, "in_progress");
+                    collect(buckets.completed?.tasks, "completed");
+                    collect(buckets.late?.tasks, "late");
+                    collect(buckets.rejected?.tasks, "rejected");
+                    collect(buckets.new_request?.tasks, "new_request");
 
-                        const derivedCounts = {
-                            total: projects.length,
-                            completed: countCompleted,
-                            in_progress: countOnProgress, // dipakai slot "On Progress"
-                            late: countLate,
-                            not_started: countNotStarted,
-                        };
+                    function parseDue(dateStr) {
+                        if (!dateStr) return null;
+                        const s = String(dateStr).trim();
+                        const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                        if (m) return new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999);
+                        const d = new Date(s);
+                        return isNaN(d.getTime()) ? null : d;
+                    }
 
-                        updateProjectChartFromData(projects, derivedCounts);
-                        $(".loader").fadeOut("fast");
-                    },
-                    error: function (err) {
-                        console.error("task/index/no-pagination failed", err);
-                        // fallback minimal: semua dianggap not started
-                        const fallbackCounts = {
-                            total: projects.length,
-                            completed: 0,
-                            in_progress: 0,
-                            late: 0,
-                            not_started: projects.length,
-                        };
-                        updateProjectChartFromData(projects, fallbackCounts);
-                        $(".loader").fadeOut("fast");
-                    },
-                });
-            },
-            error: function (err) {
-                console.error("project/index failed", err);
-                $(".loader").fadeOut("fast");
-            },
-        });
+                    const now = new Date();
+                    let countLate = 0;
+                    projects.forEach(function (p) {
+                        const pid = p.id || p.project_id;
+                        const tasks = tasksByProject[pid] || [];
+                        if (!tasks.length) return; // no tasks -> not late
+                        const lateTasks = tasks.filter(function (t) {
+                            if (t.__status === "late") return true;
+                            const dueStr = t.due_date || t.due || t.deadline;
+                            const due = parseDue(dueStr);
+                            return !!(due && due.getTime() < now.getTime() && t.__status !== "completed");
+                        });
+                        if (lateTasks.length > 0) countLate++;
+                    });
+
+                    const derivedCounts = {
+                        total: projects.length,
+                        completed: countCompleted,
+                        in_progress: countOnProgress,
+                        late: countLate,
+                        not_started: countNotStarted,
+                    };
+                    updateProjectChartFromData(projects, derivedCounts);
+                } catch (e) {
+                    console.warn("Failed to derive project chart counts", e);
+                } finally {
+                    $(".loader").fadeOut("fast");
+                }
+            })
+            .fail(function () {
+                try {
+                    // As a fallback, try to at least load total projects to avoid empty chart
+                    $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json" })
+                        .done(function (res) {
+                            const projects = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : []);
+                            const derivedCounts = { total: projects.length, completed: 0, in_progress: 0, late: 0, not_started: projects.length };
+                            updateProjectChartFromData(projects, derivedCounts);
+                        })
+                        .always(function () { $(".loader").fadeOut("fast"); });
+                } catch (_) {
+                    $(".loader").fadeOut("fast");
+                }
+            });
     }
     loadProjectAndTaskData();
 });

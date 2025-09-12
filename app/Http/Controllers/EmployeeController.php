@@ -523,11 +523,24 @@ class EmployeeController extends Controller
                 ->orderBy('name')
                 ->get()
                 ->map(function ($employee) {
+                    // Safely resolve avatar from profile_picture > photo > user.photo
+                    $raw = $employee->profile_picture ?: ($employee->photo ?: ($employee->user?->photo ?? null));
+                    if ($raw) {
+                        // Normalize slashes to forward for URLs (Windows-safe)
+                        $raw = str_replace('\\', '/', $raw);
+                        $relative = ltrim($raw, '/');
+                        $avatar = preg_match('/^https?:\/\//i', $raw) ? $raw : asset($relative);
+                    } else {
+                        $avatar = asset('asset/img/avatar.png');
+                    }
+
                     return [
                         'id' => $employee->id,
                         'name' => $employee->name,
                         'email' => $employee->email,
-                        'user_photo' => $employee->user->photo ?? null,
+                        'user_photo' => $avatar,
+                        'profile_picture' => $avatar,
+                        'profile_picture_url' => $avatar,
                         'department' => $employee->department ? $employee->department->name_department : null,
                         'division' => $employee->division ? $employee->division->name_division : null,
                     ];
