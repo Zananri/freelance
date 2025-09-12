@@ -11,12 +11,15 @@ use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\Employee;
 use App\Models\Notification;
+use App\Models\Department;
+use App\Models\Division;
 use Carbon\Carbon;
 
 // Internal helpers for immediate generation
 trait ScheduleImmediateGeneration
 {
-    public function showSchedulePage() {
+    public function showSchedulePage()
+    {
         return view('schedule/schedule');
     }
 
@@ -37,11 +40,11 @@ trait ScheduleImmediateGeneration
         switch ($s->recurrence_type) {
             case 'weekly':
                 $dow = (int) ($s->recurrence_day_of_week ?? $today->dayOfWeek);
-                $dueToday = ((int)$today->dayOfWeek === $dow);
+                $dueToday = ((int) $today->dayOfWeek === $dow);
                 break;
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $today->day);
-                $dueToday = ((int)$today->day === $dom);
+                $dueToday = ((int) $today->day === $dom);
                 break;
             case 'daily':
             default:
@@ -71,7 +74,9 @@ trait ScheduleImmediateGeneration
             case 'weekly':
                 $dow = (int) ($s->recurrence_day_of_week ?? $start->dayOfWeek);
                 $c = $start->copy();
-                while ((int)$c->dayOfWeek !== $dow) { $c->addDay(); }
+                while ((int) $c->dayOfWeek !== $dow) {
+                    $c->addDay();
+                }
                 return $c;
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $start->day);
@@ -91,7 +96,9 @@ trait ScheduleImmediateGeneration
             case 'weekly':
                 $next->addWeeks($interval);
                 $dow = (int) ($s->recurrence_day_of_week ?? $next->dayOfWeek);
-                while ((int)$next->dayOfWeek !== $dow) { $next->addDay(); }
+                while ((int) $next->dayOfWeek !== $dow) {
+                    $next->addDay();
+                }
                 return $next->startOfDay();
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
@@ -110,7 +117,7 @@ trait ScheduleImmediateGeneration
         return Carbon::create($year, $month, $day, 0, 0, 0);
     }
 
-    private function createTaskFromScheduleNow(Schedule $s): \App\Models\Task
+    private function createTaskFromScheduleNow(Schedule $s): Task
     {
         // Copy image
         $taskImage = null;
@@ -194,7 +201,8 @@ trait ScheduleImmediateGeneration
         // Executors + notifications
         $executors = is_array($s->executor_ids) ? $s->executor_ids : [];
         foreach ($executors as $eid) {
-            if ($picEmployee && (int)$eid === (int)$picEmployee->id) continue;
+            if ($picEmployee && (int) $eid === (int) $picEmployee->id)
+                continue;
             TaskAssignment::create([
                 'task_id' => $task->id,
                 'employee_id' => $eid,
@@ -216,10 +224,11 @@ trait ScheduleImmediateGeneration
                     'created_by' => $picEmployee?->id,
                     'updated_by' => $picEmployee?->id,
                 ]);
-            } catch (\Throwable $e) { /* ignore */ }
+            } catch (\Throwable $e) { /* ignore */
+            }
         }
 
-    // Note: Do not notify PIC/creator; only executors receive assignment notifications
+        // Note: Do not notify PIC/creator; only executors receive assignment notifications
 
         return $task;
     }
@@ -238,10 +247,55 @@ class ScheduleController extends Controller
         ]);
     }
 
+    public function show(Request $request, $id)
+    {
+        try {
+            $schedule = Schedule::with([
+                'project.department',
+                'project.division'
+            ])->findOrFail($id);
+
+            $executors = [];
+            if (!empty($schedule->executor_ids)) {
+                $executors = Employee::whereIn('id', $schedule->executor_ids)
+                    ->with(['user'])
+                    ->get()
+                    ->map(function ($employee) {
+                        return [
+                            'id' => $employee->id,
+                            'name' => $employee->name,
+                            'nik' => $employee->nik,
+                        ];
+                    });
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Schedule details fetched successfully',
+                'data' => [
+                    'schedule' => $schedule,
+                    'executors' => $executors,
+                    'department' => $schedule->project && $schedule->project->department
+                        ? $schedule->project->department->name_department
+                        : null,
+                    'division' => $schedule->project && $schedule->project->division
+                        ? $schedule->project->division->name_division
+                        : null,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
     public function create(Request $request)
     {
-        // Provide any data needed by form (e.g. projects) via AJAX later; just serve view
-        return view('schedule.create');
+
     }
 
     public function store(Request $request)
@@ -253,27 +307,24 @@ class ScheduleController extends Controller
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240',
                 'priority' => 'required|in:HIGH,MEDIUM,LOW',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
-                // Default dates: start_date optional and ignored for all recurrence types; legacy due_date optional; new due_in_days optional
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'start_date' => 'nullable|date',
                 'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'due_in_days' => 'nullable|integer|min:0|max:3650',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
-                // Recurrence
                 'recurrence_type' => 'required|in:daily,weekly,monthly',
                 'recurrence_interval' => 'nullable|integer|min:1',
                 'recurrence_day_of_week' => 'required_if:recurrence_type,weekly|nullable|integer|min:0|max:6',
-                // Monthly date will default to day-of-month of Start From; no need to require client-side
                 'recurrence_day_of_month' => 'nullable|integer|min:1|max:31',
                 'recurrence_start_date' => 'nullable|date',
                 'recurrence_end_date' => 'nullable|date|after_or_equal:recurrence_start_date',
-                'executor_ids' => 'nullable', // JSON array of IDs as string
+                'executor_ids' => 'nullable',
             ]);
 
             if ($validator->fails()) {
@@ -315,24 +366,39 @@ class ScheduleController extends Controller
             }
             $data['reference_files'] = $refFiles;
 
-            // Created by
+            // Updated by
             if ($request->user()) {
-                $data['created_by'] = $request->user()->id;
+                $data['updated_by'] = $request->user()->id;
             }
 
-            // Normalize executor_ids (stringified JSON to array) and store into column
+            // Normalize executor_ids
             $execIds = $request->input('executor_ids');
             if (is_string($execIds)) {
                 $decoded = json_decode($execIds, true);
-                if (is_array($decoded)) $data['executor_ids'] = array_values($decoded);
+                if (is_array($decoded)) {
+                    $data['executor_ids'] = array_values($decoded);
+                }
+            }
+
+            // Default start_date ke today kalau kosong
+            if (empty($data['start_date'])) {
+                $data['start_date'] = Carbon::today()->toDateString();
+            }
+
+            // Hitung due_date dari start_date + due_in_days
+            if (!empty($data['due_in_days'])) {
+                try {
+                    $start = Carbon::parse($data['start_date'])->startOfDay();
+                    $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
+                } catch (\Throwable $e) {
+                    $data['due_date'] = null; // fallback
+                }
             }
 
             // Prepare recurrence defaults
-            // Default start date to today if not provided (schedule valid indefinitely)
             if (empty($data['recurrence_start_date'])) {
                 $data['recurrence_start_date'] = Carbon::today()->toDateString();
             }
-            // Interval fixed 1
             $data['recurrence_interval'] = 1;
             if (($data['recurrence_type'] ?? '') !== 'weekly') {
                 $data['recurrence_day_of_week'] = null;
@@ -340,44 +406,19 @@ class ScheduleController extends Controller
             if (($data['recurrence_type'] ?? '') !== 'monthly') {
                 $data['recurrence_day_of_month'] = null;
             } else {
-                // Monthly: derive day-of-month from provided value or from (now/today) if missing
                 try {
                     $base = Carbon::parse($data['recurrence_start_date']);
                     $data['recurrence_day_of_month'] = (int) ($data['recurrence_day_of_month'] ?: $base->day);
-                } catch(\Throwable $e) {
+                } catch (\Throwable $e) {
                     $dom = (int) ($data['recurrence_day_of_month'] ?: Carbon::today()->day);
                     $data['recurrence_day_of_month'] = max(1, min(31, $dom));
                 }
             }
-            // Ignore recurrence_end_date (leave null) to mean indefinitely active
             $data['recurrence_end_date'] = null;
-
-            // For all recurrence types, ignore default start_date (task start will be the render day)
-            $data['start_date'] = null;
-            // If using due_in_days, drop legacy due_date to avoid ambiguity
-            if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
-                $data['due_date'] = null;
-            } else {
-                // Back-compat: ensure daily due_date is not before Start From date
-                if (($data['recurrence_type'] ?? 'daily') === 'daily') {
-                    if (!empty($data['due_date']) && !empty($data['recurrence_start_date'])) {
-                        $recStart = \Carbon\Carbon::parse($data['recurrence_start_date'])->startOfDay();
-                        $dueBase = \Carbon\Carbon::parse($data['due_date'])->startOfDay();
-                        if ($dueBase->lt($recStart)) {
-                            return response()->json([
-                                'code' => 422,
-                                'status' => 'error',
-                                'message' => 'For daily schedules, due date cannot be before Start From date.',
-                                'errors' => ['due_date' => ['Due date must be on or after Start From']],
-                            ], 422);
-                        }
-                    }
-                }
-            }
 
             $schedule = Schedule::create($data);
 
-            // Immediately generate today's task if the schedule is due now
+            // Generate task langsung kalau emang due hari ini
             $this->maybeGenerateNow($schedule);
 
             DB::commit();
@@ -387,6 +428,211 @@ class ScheduleController extends Controller
                 'status' => 'success',
                 'message' => 'Schedule created successfully',
                 'data' => $schedule,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    public function edit($id)
+    {
+        try {
+            $schedule = Schedule::findOrFail($id);
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Schedule fetched successfully',
+                'data' => $schedule,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $schedule = Schedule::findOrFail($id);
+
+            $validator = \Validator::make($request->all(), [
+                'project_id' => 'nullable|exists:projects,id',
+                'point' => 'nullable|integer|min:1',
+                'title' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240',
+                'priority' => 'nullable|in:HIGH,MEDIUM,LOW',
+                'reference_url' => 'nullable|url|max:255',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url|max:255',
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                'start_date' => 'nullable|date',
+                'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
+                'due_in_days' => 'nullable|integer|min:0|max:3650',
+                'complete_date' => 'nullable|date|after_or_equal:start_date',
+                'recurrence_type' => 'nullable|in:daily,weekly,monthly',
+                'recurrence_interval' => 'nullable|integer|min:1',
+                'recurrence_day_of_week' => 'nullable|integer|min:0|max:6',
+                'recurrence_day_of_month' => 'nullable|integer|min:1|max:31',
+                'recurrence_start_date' => 'nullable|date',
+                'recurrence_end_date' => 'nullable|date|after_or_equal:recurrence_start_date',
+                'executor_ids' => 'nullable',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $data = $validator->validated();
+
+            // Set updated_by
+            if ($request->user()) {
+                $data['updated_by'] = $request->user()->id;
+            }
+
+            // Normalize reference URLs
+            $refUrls = [];
+            if (!empty($data['reference_urls']) && is_array($data['reference_urls'])) {
+                $refUrls = array_values(array_filter($data['reference_urls']));
+            } elseif (!empty($data['reference_url'])) {
+                $refUrls = [$data['reference_url']];
+            }
+            if (!empty($refUrls)) {
+                $data['reference_urls'] = $refUrls;
+            }
+
+            // Handle image
+            if ($request->hasFile('image')) {
+                $img = $request->file('image');
+                $name = 'SCHEDULE_' . time() . '.' . $img->getClientOriginalExtension();
+                $img->move(public_path('file/schedule'), $name);
+
+                // hapus file lama
+                if ($schedule->image && file_exists(public_path('file/schedule/' . $schedule->image))) {
+                    @unlink(public_path('file/schedule/' . $schedule->image));
+                }
+
+                $data['image'] = $name;
+            }
+
+            // Handle reference files (replace full)
+            if ($request->hasFile('reference_files')) {
+                $refFiles = [];
+                foreach ($request->file('reference_files') as $idx => $file) {
+                    $name = 'SCHEDULE_' . time() . '_' . $idx . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/schedule_reference_files'), $name);
+                    $refFiles[] = $name;
+                }
+                $data['reference_files'] = $refFiles;
+            }
+
+            // Normalize executor_ids
+            $execIds = $request->input('executor_ids');
+            if (is_string($execIds)) {
+                $decoded = json_decode($execIds, true);
+                if (is_array($decoded)) {
+                    $data['executor_ids'] = array_values($decoded);
+                }
+            }
+
+            // Default start_date kalau kosong
+            if (empty($data['start_date']) && !$schedule->start_date) {
+                $data['start_date'] = Carbon::today()->toDateString();
+            }
+
+            // Hitung due_date dari start_date + due_in_days
+            if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
+                try {
+                    $start = Carbon::parse($data['start_date'] ?? $schedule->start_date)->startOfDay();
+                    $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
+                } catch (\Throwable $e) {
+                    $data['due_date'] = null;
+                }
+            }
+
+            // Recurrence handling
+            if (!empty($data['recurrence_type'])) {
+                if (empty($data['recurrence_start_date'])) {
+                    $data['recurrence_start_date'] = Carbon::today()->toDateString();
+                }
+                $data['recurrence_interval'] = 1;
+
+                if ($data['recurrence_type'] !== 'weekly') {
+                    $data['recurrence_day_of_week'] = null;
+                }
+                if ($data['recurrence_type'] !== 'monthly') {
+                    try {
+                        $base = Carbon::parse($data['recurrence_start_date']);
+                        $data['recurrence_day_of_month'] = (int) ($data['recurrence_day_of_month'] ?: $base->day);
+                    } catch (\Throwable $e) {
+                        $dom = (int) ($data['recurrence_day_of_month'] ?: Carbon::today()->day);
+                        $data['recurrence_day_of_month'] = max(1, min(31, $dom));
+                    }
+                }
+                $data['recurrence_end_date'] = null;
+            }
+
+            // Update schedule
+            if (!empty($data)) {
+                $schedule->update($data);
+            }
+            $schedule->refresh();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Schedule updated successfully',
+                'data' => $schedule,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $e->getCode() ?: 500,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $schedule = Schedule::findOrFail($id);
+
+            // Delete related tasks that were generated from this schedule
+            Task::where('title', $schedule->title)
+                ->where('created_by', $schedule->created_by)
+                ->whereDate('created_at', '>=', $schedule->created_at->toDateString())
+                ->delete();
+
+            // Delete the schedule
+            $schedule->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Schedule and related tasks deleted successfully',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

@@ -8,6 +8,7 @@
 
 .schedule-card-container {
     max-height: calc(100vh - 200px);
+    min-height: 300px;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 4px;
@@ -69,7 +70,10 @@
 }
 
 .btn-filter-custom,
-.btn-schedule-custom {
+.btn-schedule-custom,
+.btn-filter-custom:hover,
+.btn-schedule-custom:hover,
+.btn-filter-custom.show {
     border: none;
     border-radius: 10px;
     background: #e9eef4;
@@ -83,15 +87,14 @@
 }
 
 .dropdown-filter-menu {
-    border-radius: 20px;
-    background: #f0f1f8;
     position: absolute;
-    top: 100%;
-    right: 40%;
-    z-index: 1000;
+    top: 25%;
+    left: 50%;
+    z-index: 10;
+    width: 250px;
+    background: #f0f1f8;
     border: none;
-    min-width: 280px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
 }
 
 .dropdown-filter-body {
@@ -160,9 +163,8 @@
     border: none;
 }
 
-.custom-card {
-    height: auto !important;
-    min-height: 100px;
+.item-card {
+    max-height: 170px;
     background-color: #f0f1f8;
     border: none;
     border-radius: 20px;
@@ -171,4 +173,108 @@
     padding: 20px;
     white-space: normal;
     word-break: break-word;
+}
+
+.dropdown-icon-container {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+.dropdown-icon-custom {
+    cursor: pointer;
+    font-size: 24px;
+    color: #555;
+    user-select: none;
+}
+
+.dropdown-action {
+    position: absolute;
+    top: 32px;
+    right: 0;
+    background-color: rgb(240, 241, 248);
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-width: 160px;
+    padding: 8px 0;
+    display: none;
+    flex-direction: column;
+    font-size: 14px;
+    color: #333;
+    z-index: 1000;
+}
+
+.dropdown-action:not(.d-none) {
+    display: flex;
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+    color: #555;
+}
+
+.dropdown-item:hover {
+    background-color: #f0f0f0;
+}
+
+.dropdown-item.text-danger {
+    color: #dc3545;
+}
+
+.description-container {
+    position: relative;
+    height: auto;
+    max-height: 75px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.description-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.description-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.description-container::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.description {
+    margin-top: 0.25rem;
+    color: #4c5060;
+    overflow: visible;
+    white-space: normal;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.modal-footer-custom {
+    border: none;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+}
+
+.modal-footer-custom button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.modal-footer-custom .btn-custom-close {
+    background-color: #ebecf2;
+    color: #444444;
+}
+
+.modal-footer-custom .btn-submit-custom {
+    background-color: #444444;
+    color: #ebecf2;
 }
