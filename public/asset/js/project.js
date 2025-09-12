@@ -8837,8 +8837,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 let projectsProcessed = 0;
                 const totalProjects = projects.length;
                 
-                console.log('=== FETCHING TASKS FOR EACH PROJECT ===');
-                console.log('Total projects to process:', totalProjects);
+
                 
                 // If no projects, show empty chart
                 if (totalProjects === 0) {
@@ -8856,18 +8855,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         dataType: "json",
                         success: function (response) {
                             const tasks = response.data || [];
-                            console.log(`Project ${projectId} tasks:`, tasks.length, tasks.map(t => t.status));
-                            
-                            // DEBUG: Check if any task has due dates for Late detection
-                            const tasksWithDueDates = tasks.filter(t => t.due_date || t.due || t.deadline || t.due_time);
-                            if (tasksWithDueDates.length > 0) {
-                                console.log(`Project ${projectId} tasks with due dates:`, tasksWithDueDates.map(t => ({
-                                    id: t.id,
-                                    title: t.title,
-                                    status: t.status,
-                                    due: t.due_date || t.due || t.deadline || t.due_time
-                                })));
-                            }
                             
                             // Convert task status to our format and add to tasksByProject
                             tasksByProject[projectId] = tasks.map(task => ({
@@ -8883,7 +8870,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                         },
                         error: function() {
-                            console.log(`Failed to fetch tasks for project ${projectId}`);
                             tasksByProject[projectId] = [];
                             projectsProcessed++;
                             
@@ -8897,9 +8883,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 
                 // Function to process all task data after all projects are fetched
                 function processAllTasksForChart() {
-                        console.log('=== PROCESSING ALL TASKS FOR CHART ===');
-                        console.log('Tasks by project:', tasksByProject);
-
                         // Helper parse due date (gunakan akhir hari agar tidak false overdue)
                         function parseDue(dateStr) {
                             if (!dateStr) return null;
@@ -8930,98 +8913,69 @@ document.addEventListener("DOMContentLoaded", function () {
                             // Jika project tidak memiliki task, masuk kategori Not Started
                             if (!tasks.length) {
                                 countNotStarted++;
-                                console.log(`Project "${p.name}" (ID: ${pid}) -> Not Started (no tasks)`);
                                 return;
                             }
 
-                            // Kelompokkan task berdasarkan status (termasuk late tasks)
+                            // Kelompokkan task berdasarkan status
                             const completedTasks = tasks.filter(t => t.__status === "completed");
                             const notStartedTasks = tasks.filter(t => t.__status === "not_started");
                             const inProgressTasks = tasks.filter(t => t.__status === "in_progress");
                             const rejectedTasks = tasks.filter(t => t.__status === "rejected");
-                            const lateTasks = tasks.filter(t => {
+                            
+                            // Deteksi Late: jika ada minimal 1 task yang overdue (melewati due_date)
+                            // Mengikuti logika backend: status != 'completed' AND due_date < now()
+                            const hasLateTasks = tasks.some(t => {
                                 // Task yang sudah dikategorikan late dari backend
-                                if (t.__status === "late" || t.status === "late") return true;
+                                if (t.__status === "late" || t.status === "late") {
+                                    return true;
+                                }
                                 
-                                // Atau check manual apakah overdue (dan belum completed)
-                                const dueStr = t.due_date || t.due || t.deadline || t.due_time;
+                                // Check manual apakah task overdue berdasarkan due_date
+                                const dueStr = t.due_date;
+                                if (!dueStr) return false;
+                                
                                 const due = parseDue(dueStr);
                                 if (!due) return false;
                                 
-                                return (
-                                    due.getTime() < now.getTime() &&
-                                    t.__status !== "completed" && 
-                                    t.status !== "completed"
-                                );
+                                // Task overdue jika due_date sudah lewat dan status bukan completed
+                                const isOverdue = due.getTime() < now.getTime();
+                                const statusLower = (t.status || '').toLowerCase();
+                                const isNotCompleted = statusLower !== 'completed';
+                                
+                                return isOverdue && isNotCompleted;
                             });
-
-                            // DEBUG: Log detail task breakdown per project  
-                            console.log(`\n--- Project "${p.title || p.name}" (ID: ${pid}) ---`);
-                            console.log(`Total tasks: ${tasks.length}`);
-                            console.log(`Completed: ${completedTasks.length}`);
-                            console.log(`Not Started: ${notStartedTasks.length}`);
-                            console.log(`In Progress: ${inProgressTasks.length}`);
-                            console.log(`Rejected: ${rejectedTasks.length}`);  
-                            console.log(`Late: ${lateTasks.length}`);
-                            console.log('Task statuses:', tasks.map(t => t.__status));
-                            
-                            // DEBUG: Check Late detection specifically
-                            if (lateTasks.length > 0) {
-                                console.log('Late tasks details:', lateTasks.map(t => ({
-                                    id: t.id,
-                                    title: t.title,
-                                    status: t.status,
-                                    __status: t.__status,
-                                    due_date: t.due_date || t.due || t.deadline || t.due_time,
-                                    isOverdue: (() => {
-                                        const dueStr = t.due_date || t.due || t.deadline || t.due_time;
-                                        const due = parseDue(dueStr);
-                                        return due ? due.getTime() < now.getTime() : false;
-                                    })()
-                                })));
-                            }
 
                             // Kategorisasi project (bisa masuk ke beberapa kategori sekaligus):
                             
                             // 1. Cek apakah project Complete (semua task completed)
                             if (completedTasks.length === tasks.length && tasks.length > 0) {
                                 countCompleted++;
-                                console.log(`Project "${p.title || p.name}" -> COMPLETE (all ${tasks.length} tasks completed)`);
                                 return; // Project completed tidak masuk kategori lain
                             }
 
                             // 2. Cek apakah project Not Started (semua task not_started)
                             if (notStartedTasks.length === tasks.length && tasks.length > 0) {
                                 countNotStarted++;
-                                console.log(`Project "${p.title || p.name}" -> NOT STARTED (all ${tasks.length} tasks not started)`);
                                 return; // Project not started tidak masuk kategori lain
                             }
 
                             // 3. Project dengan campuran status masuk On Progress
-                            const hasNonNotStarted = inProgressTasks.length > 0 || rejectedTasks.length > 0 || completedTasks.length > 0 || lateTasks.length > 0;
-                            const hasNonCompleted = notStartedTasks.length > 0 || inProgressTasks.length > 0 || rejectedTasks.length > 0 || lateTasks.length > 0;
-                            
-                            let projectCategory = [];
+                            const hasNonNotStarted = inProgressTasks.length > 0 || rejectedTasks.length > 0 || completedTasks.length > 0 || hasLateTasks;
+                            const hasNonCompleted = notStartedTasks.length > 0 || inProgressTasks.length > 0 || rejectedTasks.length > 0 || hasLateTasks;
                             
                             if (hasNonNotStarted && hasNonCompleted) {
                                 countOnProgress++;
-                                projectCategory.push('ON PROGRESS');
                             }
 
                             // 4. Project dengan task overdue masuk Late (bisa bersamaan dengan On Progress)
-                            if (lateTasks.length > 0) {
+                            if (hasLateTasks) {
                                 countLate++;
-                                projectCategory.push('LATE');
                             }
 
                             // 5. Jika tidak masuk kategori manapun, fallback ke Not Started
                             if (!hasNonNotStarted && !hasNonCompleted) {
                                 countNotStarted++;
-                                projectCategory.push('NOT STARTED (fallback)');
                             }
-                            
-                            console.log(`Project "${p.title || p.name}" -> ${projectCategory.join(' + ')}`);
-                            console.log(`hasNonNotStarted: ${hasNonNotStarted}, hasNonCompleted: ${hasNonCompleted}`);
                         });
 
                         const derivedCounts = {
@@ -9032,29 +8986,13 @@ document.addEventListener("DOMContentLoaded", function () {
                             not_started: countNotStarted,
                         };
 
-                        // DEBUG: Log untuk membandingkan dengan filter
-                        console.log('=== CHART CALCULATION DEBUG ===');
-                        console.log('Total projects:', projects.length);
-                        console.log('Complete:', countCompleted);
-                        console.log('On Progress:', countOnProgress);
-                        console.log('Late:', countLate);
-                        console.log('Not Started:', countNotStarted);
-                        console.log('Projects breakdown:', projects.map(p => {
-                            const tasks = tasksByProject[p.id] || [];
-                            return {
-                                id: p.id,
-                                title: p.title,
-                                taskCount: tasks.length,
-                                taskStatuses: tasks.map(t => t.__status)
-                            };
-                        }));
+
 
                         updateProjectChartFromData(projects, derivedCounts);
                         $(".loader").fadeOut("fast");
                 }
             },
             error: function (err) {
-                console.error("project/index failed", err);
                 $(".loader").fadeOut("fast");
             },
         });
