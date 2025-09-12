@@ -627,7 +627,7 @@
             <div class="modal-content modal-content-custom">
                 <div
                     class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
-                    <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate"
+                    <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate fs-5 fw-normal"
                         id="projectFeedbackModalLabel">Project Feedback</h5>
                     <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
                         aria-label="Close"></button>
