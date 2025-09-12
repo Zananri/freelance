@@ -1874,3 +1874,13 @@ p {
 .custom-input textarea {
     border: none;
 }
+
+/* Tooltip z-index to ensure it appears above modals */
+.tooltip {
+    z-index: 1070 !important;
+}
+
+/* Ensure PIC/Executor images in modal have proper cursor */
+.pic-executor-image {
+    cursor: pointer;
+}

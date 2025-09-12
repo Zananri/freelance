@@ -4771,7 +4771,7 @@ $(document).on("keyup", "#search_filter", function () {
                             <img src="${imgSrc}" alt="${executor.name}"
                                 class="pic-executor-image ${overlapClass}"
                                 data-bs-toggle="tooltip"
-                                title="${tooltipTitle}" ${zIndexStyle}
+                                data-bs-title="${tooltipTitle}" ${zIndexStyle}
                                 onerror="this.onerror=null;this.src='${fallbackAvatar}';">
                         </div>`;
                     })
@@ -4850,6 +4850,26 @@ $(document).on("keyup", "#search_filter", function () {
                 const detailEl = document.getElementById("taskDetailModal");
                 if (detailEl) {
                     const detailModal = new bootstrap.Modal(detailEl);
+                    
+                    // Initialize tooltips for PIC and executor images in modal after it's shown
+                    detailEl.addEventListener('shown.bs.modal', function () {
+                        // Wait a bit for DOM to be fully rendered
+                        setTimeout(() => {
+                            initBootstrapTooltips(detailEl);
+                        }, 100);
+                    }, { once: true });
+                    
+                    // Clean up tooltips when modal is hidden
+                    detailEl.addEventListener('hidden.bs.modal', function () {
+                        const tooltipElements = detailEl.querySelectorAll('[data-bs-toggle="tooltip"]');
+                        tooltipElements.forEach(el => {
+                            const tooltip = bootstrap.Tooltip.getInstance(el);
+                            if (tooltip) {
+                                tooltip.dispose();
+                            }
+                        });
+                    }, { once: true });
+                    
                     detailModal.show();
                 }
             },
@@ -6321,4 +6341,27 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
             currentYear++;
         }
         renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
+    });
+
+    // Initialize tooltips for task detail modal when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        const taskDetailModal = document.getElementById('taskDetailModal');
+        if (taskDetailModal) {
+            // Add event listeners for tooltip management in modal
+            taskDetailModal.addEventListener('shown.bs.modal', function () {
+                setTimeout(() => {
+                    initBootstrapTooltips(taskDetailModal);
+                }, 100);
+            });
+            
+            taskDetailModal.addEventListener('hidden.bs.modal', function () {
+                const tooltipElements = taskDetailModal.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltipElements.forEach(el => {
+                    const tooltip = bootstrap.Tooltip.getInstance(el);
+                    if (tooltip) {
+                        tooltip.dispose();
+                    }
+                });
+            });
+        }
     });
