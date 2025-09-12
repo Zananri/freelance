@@ -355,19 +355,41 @@ class ProjectController extends Controller
                 });
 
             if ($filter === 'not_started') {
+                // New Request: Project tanpa task ATAU semua task berstatus new_request
                 $query->where(function ($q) {
-                    $q->whereHas('tasks', fn($q2) => $q2->where('status', 'new_request'))
-                        ->orWhereDoesntHave('tasks');
+                    $q->whereDoesntHave('tasks')
+                        ->orWhereIn('projects.id', function ($subquery) {
+                            $subquery->from('tasks')
+                                ->selectRaw('project_id')
+                                ->groupBy('project_id')
+                                ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "new_request" THEN 1 ELSE 0 END)');
+                        });
                 });
             } elseif ($filter === 'in_progress') {
-                $query->whereHas('tasks', fn($q) =>
-                    $q->whereIn('status', ['in_progress', 'rejected']));
+                // On Progress: Project yang memiliki campuran status task
+                $query->whereHas('tasks')
+                    ->whereNotIn('projects.id', function ($subquery) {
+                        // Exclude projects where ALL tasks are completed
+                        $subquery->from('tasks')
+                            ->selectRaw('project_id')
+                            ->groupBy('project_id')
+                            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)');
+                    })
+                    ->whereNotIn('projects.id', function ($subquery) {
+                        // Exclude projects where ALL tasks are new_request
+                        $subquery->from('tasks')
+                            ->selectRaw('project_id')
+                            ->groupBy('project_id')
+                            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "new_request" THEN 1 ELSE 0 END)');
+                    });
             } elseif ($filter === 'completed') {
+                // Complete: Project dimana SEMUA task berstatus completed
                 $query->whereIn('projects.id', function ($subquery) {
                     $subquery->from('tasks')
                         ->selectRaw('project_id')
                         ->groupBy('project_id')
-                        ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)');
+                        ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)')
+                        ->havingRaw('COUNT(*) > 0'); // Pastikan ada task
                 });
             }
 
@@ -511,18 +533,42 @@ class ProjectController extends Controller
             }
 
             if ($filter === 'not_started') {
+                // New Request: Project tanpa task ATAU semua task berstatus new_request
                 $query->where(function ($q) {
                     $q->whereDoesntHave('tasks')
-                        ->orWhereHas('tasks', fn($q2) => $q2->where('status', 'new_request'));
+                        ->orWhereIn('projects.id', function ($subquery) {
+                            $subquery->from('tasks')
+                                ->selectRaw('project_id')
+                                ->groupBy('project_id')
+                                ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "new_request" THEN 1 ELSE 0 END)');
+                        });
                 });
             } elseif ($filter === 'in_progress') {
-                $query->whereHas(
-                    'tasks',
-                    fn($q) =>
-                    $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'rejected'])
-                );
+                // On Progress: Project yang memiliki campuran status task
+                $query->whereHas('tasks')
+                    ->whereNotIn('projects.id', function ($subquery) {
+                        // Exclude projects where ALL tasks are completed
+                        $subquery->from('tasks')
+                            ->selectRaw('project_id')
+                            ->groupBy('project_id')
+                            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)');
+                    })
+                    ->whereNotIn('projects.id', function ($subquery) {
+                        // Exclude projects where ALL tasks are new_request
+                        $subquery->from('tasks')
+                            ->selectRaw('project_id')
+                            ->groupBy('project_id')
+                            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "new_request" THEN 1 ELSE 0 END)');
+                    });
             } elseif ($filter === 'completed') {
-                $query->whereHas('tasks', fn($q) => $q->where('status', 'completed'));
+                // Complete: Project dimana SEMUA task berstatus completed
+                $query->whereIn('projects.id', function ($subquery) {
+                    $subquery->from('tasks')
+                        ->selectRaw('project_id')
+                        ->groupBy('project_id')
+                        ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)')
+                        ->havingRaw('COUNT(*) > 0'); // Pastikan ada task
+                });
             }
 
             $projects = $query
