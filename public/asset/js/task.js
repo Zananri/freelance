@@ -3231,9 +3231,7 @@ function applyCurrentSearchFilter() {
                                                 // Determine if current user is the author of the top-level feedback
                                                 const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
                                                 const canEditTop = String(topAuthorId) === String(currentEmployeeId);
-                                                const topEditIconHtml = canEditTop
-                                                    ? `<span class="material-symbols-outlined icon feedback-edit-trigger ms-2" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">edit</span>`
-                                                    : '';
+                                                const topCanEdit = canEditTop; // keep flag for actions row
 
                                                 let repliesHtml = '';
                                                 if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
@@ -3296,9 +3294,7 @@ function applyCurrentSearchFilter() {
                                                                 // Determine if current user can edit this reply
                                                                 const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
                                                                 const canEditReply = String(repAuthorId) === String(currentEmployeeId);
-                                                                const replyEditIconHtml = canEditReply
-                                                                    ? `<span class="material-symbols-outlined icon reply-edit-trigger ms-2" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; font-size:16px; line-height:1; color:#555;">edit</span>`
-                                                                    : '';
+                                                                const canEditRep = canEditReply; // used in actions row
 
                                                                 return `
                                                                     <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background: rgb(240, 241, 248);">
@@ -3307,7 +3303,6 @@ function applyCurrentSearchFilter() {
                                                                             <div>
                                                                                 <div class="d-flex align-items-center">
                                                                                     <strong style="font-size: 13px;">${rep.employee.name}</strong>
-                                                                                    ${replyEditIconHtml}
                                                                                 </div>
                                                                                 <small class="text-muted d-block" style="font-size: 11px;">${rDate}</small>
                                                                             </div>
@@ -3324,6 +3319,10 @@ function applyCurrentSearchFilter() {
                                                                                 : ''
                                                                         }
                                                                         ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+                                                                        <div class="reply-actions mt-2 d-flex gap-3">
+                                                                            ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                            <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                        </div>
                                                                     </div>
                                                                 `;
                                                         }).join('');
@@ -3338,19 +3337,17 @@ function applyCurrentSearchFilter() {
 
                                                 feedbackHtml += `
                                                 <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
-                                                    <div class="d-flex align-items-center mb-2 justify-content-between">
+                                                    <div class="d-flex align-items-center mb-2">
                                                         <div class="d-flex align-items-center">
                                                             <img src="${feedback.employee.photo}" alt="${feedback.employee.name}"
                                                                 class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                                                             <div>
                                                                 <div class="d-flex align-items-center">
                                                                     <strong>${feedback.employee.name}</strong>
-                                                                    ${topEditIconHtml}
                                                                 </div>
                                                                 <small class="text-muted d-block">${formattedDate}</small>
                                                             </div>
                                                         </div>
-                                                        <span class="material-symbols-outlined feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; font-size:18px; line-height:1; color:#555;">reply</span>
                                                     </div>
                             <p class="mb-2">${feedback.feedback_comment}</p>
                             ${
@@ -3368,6 +3365,10 @@ function applyCurrentSearchFilter() {
                                     ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
                                     : ""
                             }
+                        <div class="feedback-actions mt-2 d-flex gap-3">
+                            ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                            <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                        </div>
                         ${repliesHtml}
                         </div>
                     `;
@@ -4500,15 +4501,36 @@ function applyCurrentSearchFilter() {
                     const feedbackModalEl = document.getElementById("taskFeedbackModal");
                     const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
                     if (titleEl) titleEl.textContent = 'Task Feedback';
-                    const addBtnRef = document.getElementById('addFeedbackButton');
-                    if (addBtnRef) {
-                        addBtnRef.textContent = 'Add Feedback';
-                        const freshBtn = addBtnRef.cloneNode(true);
-                        addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                        // ensure the new button is enabled and clickable
-                        freshBtn.disabled = false;
-                        freshBtn.removeAttribute('disabled');
-                        freshBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                    // Restore Add Feedback button in footer (replace Submit/Close wrapper)
+                    let footer = feedbackModalEl?.querySelector('.feedback-modal-footer')
+                              || feedbackModalEl?.querySelector('.modal-footer')
+                              || feedbackModalEl?.querySelector('.modal-footer-custom');
+                    if (!footer) {
+                        const maybeBtn = feedbackModalEl?.querySelector('#addFeedbackButton');
+                        if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                    }
+                    if (footer) {
+                        // Clear any unified footer content
+                        footer.innerHTML = '';
+                        // Ensure Add Feedback button exists and is bound
+                        let addBtn = document.getElementById('addFeedbackButton');
+                        if (!addBtn) {
+                            addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                            addBtn.className = 'btn btn-submit-black w-100';
+                            addBtn.id = 'addFeedbackButton';
+                            addBtn.textContent = 'Add Feedback';
+                            footer.appendChild(addBtn);
+                        } else {
+                            addBtn.textContent = 'Add Feedback';
+                            const freshBtn = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(freshBtn, addBtn);
+                            addBtn = freshBtn;
+                            footer.appendChild(addBtn);
+                        }
+                        addBtn.disabled = false;
+                        addBtn.removeAttribute('disabled');
+                        addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
                     loadTaskFeedbackData(taskId);
                 } catch (e) { /* noop */ }
