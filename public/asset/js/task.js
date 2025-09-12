@@ -42,21 +42,61 @@
     // Initialize Bootstrap tooltips within a DOM scope (default document)
     function initBootstrapTooltips(root = document) {
         try {
-            const isMobile = window.innerWidth <= 768;
-            const placement = isMobile ? "top" : "bottom";
+            // More reliable mobile detection using multiple methods
+            const isMobile = window.matchMedia('(max-width: 768px)').matches || 
+                             window.innerWidth <= 768 || 
+                             /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const defaultPlacement = isMobile ? "top" : "bottom";
 
             const nodes = [].slice.call(root.querySelectorAll('[data-bs-toggle="tooltip"]'));
             nodes.forEach((el) => {
                 const existing = bootstrap.Tooltip.getInstance(el);
                 if (existing) existing.dispose();
+                
+                // Remove any existing placement attribute to ensure consistency
+                el.removeAttribute('data-bs-placement');
+                
                 new bootstrap.Tooltip(el, {
                     container: 'body',
-                    placement: placement
+                    placement: defaultPlacement,
+                    trigger: 'hover focus'
                 });
             });
         } catch (_) { /* noop */ }
     }
     window.initBootstrapTooltips = initBootstrapTooltips;
+
+    // Debounced tooltip reinitialization for scroll events
+    let tooltipScrollTimeout;
+    function debouncedTooltipReinit() {
+        clearTimeout(tooltipScrollTimeout);
+        tooltipScrollTimeout = setTimeout(() => {
+            initBootstrapTooltips();
+        }, 150);
+    }
+
+    // Listen for scroll on task containers to reinitialize tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        const taskContainers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks'];
+        taskContainers.forEach(containerId => {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.addEventListener('scroll', debouncedTooltipReinit, { passive: true });
+            }
+        });
+    });
+
+    // Listen for resize and orientation change to reinitialize tooltips with correct placement
+    let resizeTimeout;
+    function handleResponsiveTooltipUpdate() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            initBootstrapTooltips();
+        }, 100);
+    }
+    
+    window.addEventListener('resize', handleResponsiveTooltipUpdate, { passive: true });
+    window.addEventListener('orientationchange', handleResponsiveTooltipUpdate, { passive: true });
 
     // Listen for global avatar update: refresh visible task cards (minimal: update any img[data-avatar-universal])
     window.addEventListener('profilePictureUpdated', function(e){
@@ -1588,7 +1628,7 @@ document.addEventListener("click", function (e) {
                 }
                 return `
                 <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
-                    <img src="${imgSrc}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${tooltipTitle}" ${zIndexStyle} onerror="this.onerror=null;this.src='${fallbackAvatar}';">
+                    <img src="${imgSrc}" alt="${executor.name}" class="pic-executor-image ${overlapClass}" data-bs-toggle="tooltip" title="${tooltipTitle}" ${zIndexStyle} onerror="this.onerror=null;this.src='${fallbackAvatar}';">
                 </div>
                 `;
             })
@@ -1969,6 +2009,8 @@ function ensureRejectedCardsPlaced(){
                 }
             }
         });
+        // Reinitialize tooltips after cards are moved
+        initBootstrapTooltips();
     } catch(err){ console.warn('ensureRejectedCardsPlaced error', err); }
 }
 
@@ -4728,7 +4770,7 @@ $(document).on("keyup", "#search_filter", function () {
                         <div class="executor-container" style="position: relative; display: inline-block; margin-right:-8px;">
                             <img src="${imgSrc}" alt="${executor.name}"
                                 class="pic-executor-image ${overlapClass}"
-                                data-bs-toggle="tooltip" data-bs-placement="bottom"
+                                data-bs-toggle="tooltip"
                                 title="${tooltipTitle}" ${zIndexStyle}
                                 onerror="this.onerror=null;this.src='${fallbackAvatar}';">
                         </div>`;
@@ -5839,7 +5881,21 @@ $(document).on("keyup", "#search_filter", function () {
             }
         } catch(_) {}
 
-        initBootstrapTooltips(list[0])
+        // Reinitialize tooltips for mobile with small delay to ensure DOM is stable
+        // Force tooltip reinitialization after DOM update to fix mobile placement timing
+        setTimeout(() => {
+            // Ensure proper cleanup of existing tooltips first
+            const existingTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            existingTooltips.forEach(el => {
+                const tooltip = bootstrap.Tooltip.getInstance(el);
+                if (tooltip) {
+                    tooltip.dispose();
+                }
+            });
+            
+            // Reinitialize with fresh mobile detection
+            initBootstrapTooltips();
+        }, 100);
     }
 
     function initMobileInfiniteScroll() {
@@ -5886,6 +5942,16 @@ $(document).on("keyup", "#search_filter", function () {
             const st = $(this).val();
             mobileState.status = st;
             mobileState.page = 1; mobileState.last = 1; mobileAutoFullLoad = false;
+            
+            // Clear existing tooltips before status change to prevent placement issues
+            const existingTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            existingTooltips.forEach(el => {
+                const tooltip = bootstrap.Tooltip.getInstance(el);
+                if (tooltip) {
+                    tooltip.dispose();
+                }
+            });
+            
             fetchMobileTasks(st, 1, false, { loadAll: st === 'in_progress' });
         });
     });
