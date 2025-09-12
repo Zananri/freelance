@@ -4,6 +4,49 @@ var appUrl = (
 ).replace(/\/$/, "");
 console.log("Project.js appUrl:", appUrl);
 
+// Mobile detection utility for tooltip placement
+function isMobileDevice() {
+    return window.matchMedia('(max-width: 768px)').matches || 
+           window.innerWidth <= 768 || 
+           /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Get appropriate tooltip placement based on device
+function getTooltipPlacement() {
+    return isMobileDevice() ? "top" : "bottom";
+}
+
+// Global function to initialize responsive tooltips
+function initResponsiveTooltips(container = document) {
+    try {
+        const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const placement = getTooltipPlacement();
+        
+        tooltipElements.forEach(el => {
+            // Dispose existing tooltip if any
+            const existingTooltip = bootstrap.Tooltip.getInstance(el);
+            if (existingTooltip) {
+                existingTooltip.dispose();
+            }
+            
+            try {
+                new bootstrap.Tooltip(el, {
+                    placement: placement,
+                    container: 'body',
+                    trigger: 'hover focus'
+                });
+            } catch (e) {
+                // Ignore initialization errors
+            }
+        });
+    } catch (e) {
+        // Ignore any errors
+    }
+}
+
+// Make function globally available
+window.initResponsiveTooltips = initResponsiveTooltips;
+
 // Global avatar cache-bust version (updated when profile picture changes)
 window.__avatarVersion = Date.now();
 function appendAvatarVersion(url) {
@@ -72,6 +115,11 @@ window.addEventListener("profilePictureUpdated", function () {
 });
 
 document.addEventListener("DOMContentLoaded", function () {
+    // Initialize responsive tooltips on page load
+    setTimeout(() => {
+        initResponsiveTooltips();
+    }, 100);
+
     const departmentSelect = document.getElementById("department");
     const divisionSelect = document.getElementById("division");
     const partOfProjectSelect = document.getElementById("part_of_project");
@@ -349,7 +397,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const roleText = roleLabel ? ` (${roleLabel})` : "";
         const titleText = `${name}${roleText}`;
 
-        return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" data-bs-placement="bottom" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? "margin-left:" + marginLeft + "px;" : ""}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
+        return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? "margin-left:" + marginLeft + "px;" : ""}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
     }
 
     // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.
@@ -424,7 +472,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     .join(", ");
 
                 const moreFont = size >= 38 ? 14 : 12;
-                html += `<div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold" title="${hidden}" data-bs-toggle="tooltip" data-bs-placement="bottom" style="width:${size}px;height:${size}px;font-size:${moreFont}px;margin-left:-8px;">+${overflow}</div>`;
+                html += `<div class="more-collaborators rounded-circle d-flex justify-content-center align-items-center text-dark fw-bold" title="${hidden}" data-bs-toggle="tooltip" style="width:${size}px;height:${size}px;font-size:${moreFont}px;margin-left:-8px;">+${overflow}</div>`;
             }
 
             return html;
@@ -605,29 +653,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     // Initialize Bootstrap tooltips for newly injected collaborator images and +N badges
                     try {
-                        const tooltipTriggerList = container.querySelectorAll(
-                            '[data-bs-toggle="tooltip"]'
-                        );
-                        tooltipTriggerList.forEach(function (el) {
-                            // dispose existing (safe) then init bottom placement
-                            try {
-                                if (el._tooltip) {
-                                    el._tooltip.dispose &&
-                                        el._tooltip.dispose();
-                                }
-                            } catch (e) {}
-                            try {
-                                const tip = new bootstrap.Tooltip(el, {
-                                    placement: "bottom",
-                                });
-                                // store ref to allow future disposal
-                                el._tooltip = tip;
-                            } catch (e) {
-                                // bootstrap not available or init failed
-                                // fallback silently
-                                // console.warn('tooltip init failed', e);
-                            }
-                        });
+                        initResponsiveTooltips(container);
                     } catch (e) {
                         // ignore
                     }
@@ -5594,6 +5620,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 // Inject ke modal
                                 $("#projectDetailContent").html(detailHtml);
+                                // Initialize tooltips for collaborator avatars and +N badge inside the detail modal
+                                try {
+                                    const container = document.getElementById('projectDetailContent');
+                                    if (container && typeof initResponsiveTooltips === 'function') {
+                                        initResponsiveTooltips(container);
+                                    }
+                                } catch(_) { /* noop */ }
 
                                 // Bind Edit icon to open Edit Project modal
                                 (function bindEditIcon() {
@@ -6260,7 +6293,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         alt="${person.name}"
                                                         class="pic-contributor-image"
                                                         data-bs-toggle="tooltip"
-                                                        data-bs-placement="bottom"
                                                         title="${person.name} (${person.title})"
                                                         style="width:28px; height:28px; object-fit:cover; border-radius:50%;${overlapStyle} z-index:${zIndex};">
                                                 `;
@@ -6315,19 +6347,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     taskListContainer.innerHTML = html;
 
-                                    // Init tooltip setelah DOM siap
-                                    var tooltipTriggerList = [].slice.call(
-                                        taskListContainer.querySelectorAll(
-                                            '[data-bs-toggle="tooltip"]'
-                                        )
-                                    );
-                                    tooltipTriggerList.map(function (
-                                        tooltipTriggerEl
-                                    ) {
-                                        return new bootstrap.Tooltip(
-                                            tooltipTriggerEl
-                                        );
-                                    });
+                                    // Init tooltip setelah DOM siap dengan responsive placement
+                                    initResponsiveTooltips(taskListContainer);
                                 } else {
                                     taskListContainer.innerHTML =
                                         '<div class="text-center py-4 text-muted">No tasks found for this project.</div>';
@@ -9533,3 +9554,17 @@ function setProjectUnreadBadge(projectId, count) {
         console.warn("setProjectUnreadBadge error", e);
     }
 }
+
+// Handle responsive tooltip updates on resize and orientation change
+let resizeTimeout;
+function handleResponsiveTooltipUpdate() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        // Reinitialize all tooltips with correct placement
+        initResponsiveTooltips();
+    }, 250);
+}
+
+// Listen for resize and orientation change events
+window.addEventListener('resize', handleResponsiveTooltipUpdate);
+window.addEventListener('orientationchange', handleResponsiveTooltipUpdate);
