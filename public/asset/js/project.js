@@ -5620,6 +5620,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 // Inject ke modal
                                 $("#projectDetailContent").html(detailHtml);
+                                // Initialize tooltips for collaborator avatars and +N badge inside the detail modal
+                                try {
+                                    const container = document.getElementById('projectDetailContent');
+                                    if (container && typeof initResponsiveTooltips === 'function') {
+                                        initResponsiveTooltips(container);
+                                    }
+                                } catch(_) { /* noop */ }
 
                                 // Bind Edit icon to open Edit Project modal
                                 (function bindEditIcon() {
