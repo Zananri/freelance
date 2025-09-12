@@ -30,7 +30,7 @@
     <div class="attendance-wrapper">
         <div class="row">
             <div class="col-md-4 mb-3">
-                <div class="employee-attendance rounded-4 bg-card-1 p-4">
+                <div class="employee-attendance rounded-4 bg-card-1 p-4 mb-3">
 
                     <div class="employee-name-shift mb-3">
                         <div class="d-flex align-items-center">
@@ -49,7 +49,10 @@
                                     <div class="employee-shift">
                                         <div class="d-flex justify-content-between align-items-top">
                                             <div class="date-and-shift fs-12 text-secondary">
-                                                <div>{{ $timeStart }} - {{ $timeEnd }}</div>
+                                                <div>
+                                                    <span class="text-body me-3">{{$shiftTitle}}</span>
+                                                    <span>{{ $timeStart }} - {{ $timeEnd }}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -60,7 +63,7 @@
                     </div>
 
                     <div class="attendance-log">
-                        <div class="attendance-log-title">
+                        <div class="attendance-log-title mb-2">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
                                     <span class="fs-14 text-body">Attendance Log</span>
@@ -72,10 +75,10 @@
                             
                         </div>
                         <div class="attendance-log-detail">
-                            <div class="row-checkin">
-                                <div class="d-flex justify-content-between align-items-top">
+                            <div class="row-checkin mb-1">
+                                <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <span class="fs-12 text-secondary">Check In </span>
+                                        <div class="fs-12 text-secondary">Check In </div>
                                     </div>
                                     <div>
                                         <div class="d-flex align-items-center time-log time-in {{ $isLate }}">
@@ -89,9 +92,9 @@
                             </div>
 
                             <div class="row-checkout">
-                                <div class="d-flex justify-content-between align-items-top">
+                                <div class="d-flex justify-content-between align-items-center">
                                     <div>
-                                        <span class="fs-12 text-secondary">Check Out </span>
+                                        <div class="fs-12 text-secondary">Check Out </div>
                                     </div>
                                     <div>
                                         <div class="d-flex align-items-center time-log time-out">
@@ -106,9 +109,111 @@
                         </div>
                     </div>
                 </div>
+
+                <style>
+                    .box-off-time{
+                        height: 86px;
+                        width: 86px;
+                        border-radius: 8px;
+                        background-color: #EBDEDE;
+                        margin-right: 25px;
+                        cursor: pointer;
+                        transition: all 0.3s;
+                    }
+
+                    .box-off-time:hover{
+                        background-color: #e7d5d5;
+                    }
+
+                    .box-overtime{
+                        height: 86px;
+                        width: 86px;
+                        border-radius: 8px;
+                        background-color: #D7E1F0;
+                        cursor: pointer;
+                        transition: all 0.3s;
+                    }
+
+                    .box-overtime:hover{
+                        background-color: #cfdff7;
+                    }
+
+                    .box-overtime .material-symbols-outlined,
+                    .box-off-time .material-symbols-outlined{
+                        font-size: 32px;
+                    }
+                    
+                    .box-off-time .material-symbols-outlined,
+                    .box-off-time .text-off-time{
+                        color:#453636;
+                    }
+
+                    .box-off-time:hover .material-symbols-outlined,
+                    .box-off-time:hover .text-off-time{
+                        color:#291e1e;
+                    }
+
+                    .box-overtime .text-overtime,
+                    .box-off-time .text-off-time{
+                        font-size: 14px;
+                        font-weight: 500;
+                    }
+
+                    .box-overtime .material-symbols-outlined,
+                    .box-overtime .text-overtime{
+                        color:#31353B;
+                    }
+
+                    .box-overtime:hover .material-symbols-outlined,
+                    .box-overtime:hover .text-overtime{
+                        color:#1c2129;
+                    }
+
+                    
+
+
+
+                </style>
+
+                <div class="employee-time-off-overtime rounded-4 bg-card-1 p-4 pe-0">
+                    <div class="d-flex">
+                        <div>
+                            <div class="box-off-time">
+                                <div class="d-flex h-100 flex-column justify-content-center align-items-center">
+                                    <div>
+                                        <div class="icon-off-time">
+                                            <span class="material-symbols-outlined">free_cancellation</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-off-time">
+                                            Off Time
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="box-overtime">
+                                <div class="d-flex h-100 flex-column justify-content-center align-items-center">
+                                    <div>
+                                        <div class="icon-off-time">
+                                            <span class="material-symbols-outlined">more_time</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-overtime">
+                                            Overtime
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="col-md-8">
+            <div class="col-md-8 mb-5 pb-5">
                 <div class="calendar-attendance rounded-4 bg-card-1 position-relative">
 
                     <div class="header-calendar">

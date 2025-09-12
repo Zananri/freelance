@@ -94,11 +94,13 @@ class AttendanceController extends Controller
         
         $timeStart = Carbon::parse($employee->shift->time_start);
         $timeEnd = Carbon::parse($employee->shift->time_end);
+        $shiftTitle = $employee->shift->title;
         
         
         if($employeeShift){
             $timeStart = Carbon::parse($employeeShift->shift->time_start);
             $timeEnd = Carbon::parse($employeeShift->shift->time_end);
+            $shiftTitle = $employeeShift->shift->title;
         }
 
         
@@ -123,6 +125,8 @@ class AttendanceController extends Controller
                     $attendance = Attendance::where('employee_id', $employee->id)
                             ->where('date_attendance', $yesterday)
                     ->first();
+
+                    $shiftTitle = $employeeShiftYesterday->shift->title;
 
                     $todayDate = Carbon::now()->subDays(1)->format('l, j F Y'); 
 
@@ -195,7 +199,7 @@ class AttendanceController extends Controller
         $timeStart = $timeStart->format('H : i');
         $timeEnd = $timeEnd->format('H : i');
         
-        return view('attendance.attendance', compact('employee','office', 'timeStart','timeEnd', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
+        return view('attendance.attendance', compact('employee','office', 'timeStart','timeEnd','shiftTitle', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
     
     }
 
