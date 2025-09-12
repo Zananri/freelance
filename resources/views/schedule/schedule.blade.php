@@ -32,16 +32,15 @@
             <button data-bs-target="#scheduleCreateModal" data-bs-toggle="modal"
                 class="btn btn-icon-toggle btn-schedule-custom"> Add Schedule
             </button>
-            <div class="dropdown-menu dropdown-filter-menu p-3" aria-labelledby="openProjectFilterBtn">
+            <div class="dropdown-menu dropdown-filter-menu" aria-labelledby="openProjectFilterBtn">
                 <div class="dropdown-filter-body">
                     <div class="mb-3">
-                        <label for="filterScheduleStatus" class="form-label label-custom">Filter by Status</label>
-                        <select id="filterScheduleStatus" class="form-select">
-                            <option value="">All Status</option>
-                            <option value="new_request">New Request</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                            <option value="rejected">Rejected</option>
+                        <label for="filterScheduleRecurrence" class="form-label label-custom">Filter by Recurrence</label>
+                        <select id="filterScheduleRecurrence" class="form-select">
+                            <option value="">All Types</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
                         </select>
                     </div>
                 </div>
@@ -55,29 +54,12 @@
 
     <div class="schedule-card-container">
         <div class="project-content">
-            <div class="d-flex justify-content-between align-items-center">
-                <h4 id="date-title" class="schedule-title fw-normal mb-0"></h4>
-
-                <ul class="pagination mb-0">
-                    <li class="page-item active">
-                        <a class="page-link" href="#" data-view="daily">Daily</a>
-                    </li>
-                    <li class="page-item ">
-                        <a class="page-link" href="#" data-view="weekly">Weekly</a>
-                    </li>
-                    <li class="page-item ">
-                        <a class="page-link" href="#" data-view="monthly">Monthly</a>
-                    </li>
-                </ul>
-            </div>
-            <div id="scheduleContainer" class="row g-3 mt-3 schedule-container"></div>
+            <div id="scheduleContainer" class="row g-3 schedule-container"></div>
             <nav aria-label="...">
                 <ul class="pagination pagination-sm justify-content-center">
                     <li class="page-item active">
-                        <a class="page-link" aria-current="page">1</a>
+                        <button class="page-link" aria-current="page">1</button>
                     </li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
                 </ul>
             </nav>
         </div>
