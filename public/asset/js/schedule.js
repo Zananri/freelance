@@ -141,10 +141,9 @@ document.addEventListener("DOMContentLoaded", function () {
     document
         .getElementById("filterScheduleRecurrence")
         .addEventListener("change", function () {
-            currentRecurrenceFilter = this.value; // update filter global
+            currentRecurrenceFilter = this.value;
         });
 
-    // panggil pertama kali
     fetchScheduleData(1, currentRecurrenceFilter, currentSearchFilter);
 
     // Search input listener
@@ -154,10 +153,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const searchValue = this.value.trim();
             currentSearchFilter = searchValue;
 
-            // Clear timeout sebelumnya
             clearTimeout(searchTimeout);
 
-            // Tunggu 500ms setelah user berhenti ngetik
             searchTimeout = setTimeout(() => {
                 fetchScheduleData(
                     1,
@@ -220,7 +217,26 @@ document.addEventListener("DOMContentLoaded", function () {
         container.empty();
 
         scheduleData.forEach((item) => {
-            let imageUrl = item.image;
+            let imageUrl;
+
+            if (item.image) {
+                const imageUrl = `${appUrl}/file/schedule/${item.image}`;
+                imageHtml = `
+                <img src="${imageUrl}"
+                    class="rounded-circle me-2"
+                    style="width:34px;height:34px;object-fit:cover;"
+                    onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">
+            `;
+            } else {
+                const init = getInitials(item.title);
+                const color = getInitialsColor(item.title);
+                imageHtml = `
+                <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                    style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">
+                    ${init}
+                </div>
+            `;
+            }
             const card = $(`
                 <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-item-id="${
                     item.id
@@ -230,22 +246,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <!-- Header -->
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="d-flex align-items-center">
-                                            ${
-                                                imageUrl
-                                                    ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
-                                                    : (function () {
-                                                          const init =
-                                                              getInitials(
-                                                                  item.title
-                                                              );
-                                                          const color =
-                                                              getInitialsColor(
-                                                                  item.title
-                                                              );
-                                                          return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                                            style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${init}</div>`;
-                                                      })()
-                                            }
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div class="d-flex align-items-center">
+                                                    ${imageHtml}
+                                                </div>
+                                            </div>
                                         <div class="d-flex flex-column">
                                             ${
                                                 item.project_id
@@ -444,19 +449,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Handle image
         if (schedule.image) {
-            const imageLabel = document.getElementById(
-                "editScheduleImageLabel"
+            $("#editScheduleImageLabel").css(
+                "background-image",
+                "url(" + appUrl + "/file/schedule/" + schedule.image + ")"
             );
-            if (imageLabel) {
-                imageLabel.style.backgroundImage = `url('${appUrl}/file/schedule/${schedule.image}')`;
-                imageLabel.classList.add("has-image");
-                const clearBtn = document.getElementById(
-                    "editScheduleImageClearBtn"
-                );
-                if (clearBtn) {
-                    clearBtn.classList.remove("d-none");
-                }
-            }
+            $("#editScheduleImageLabel").addClass("has-image");
+            $("#editScheduleImageLabel").css({
+                "background-size": "cover",
+                opacity: "1",
+            });
+            $("#editImageClearBtn").removeClass("d-none");
+        } else {
+            $("#editScheduleImageLabel").removeClass("has-image");
+            $("#editScheduleImageLabel").css("opacity", "0.5");
+            $("#editImageClearBtn").addClass("d-none");
         }
 
         // Handle reference URLs
@@ -788,6 +794,48 @@ document.addEventListener("DOMContentLoaded", function () {
         typeSel.addEventListener("change", sync);
         sync();
     }
+
+    // Handle edit image input change
+    document
+        .getElementById("edit_schedule_image")
+        .addEventListener("change", function () {
+            if (this.files && this.files[0]) {
+                const img = document.getElementById(
+                    "edit_schedule_current_image_display"
+                );
+                if (img) {
+                    // Show preview of the newly selected image
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        img.src = e.target.result;
+                        img.style.display = "block";
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+                // Clear the hidden current image value since a new image is selected
+                document.getElementById("edit_schedule_current_image").value =
+                    "";
+                const clearBtn = document.getElementById("editScheduleImageClearBtn");
+                if (clearBtn) {
+                    clearBtn.classList.remove("d-none");
+                }
+            }
+        });
+
+    // Handle edit image clear button
+    document
+        .getElementById("editScheduleImageClearBtn")
+        .addEventListener("click", function () {
+            const img = document.getElementById(
+                "edit_schedule_current_image_display"
+            );
+            if (img) {
+                img.style.display = "none";
+                img.src = "";
+            }
+            document.getElementById("edit_schedule_current_image").value = "";
+            document.getElementById("edit_schedule_image").value = "";
+        });
 
     // Filter recurrence dropdown listener
     document

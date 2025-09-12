@@ -289,7 +289,7 @@
     {{-- Edit Schedule modal --}}
     <div class="modal fade" id="scheduleEditModal" tabindex="-1" aria-labelledby="scheduleEditModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="editScheduleModalLoader">
                     <div class="loader-spinner"></div>
@@ -317,10 +317,12 @@
                                 <label for="edit_schedule_image"
                                     class="custom-image-upload-photo position-relative photo-upload"
                                     id="editScheduleImageLabel">
+                                    <img id="edit_schedule_current_image_display" src="" alt="Current Image" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
                                     <input type="file" id="edit_schedule_image" name="image" accept="image/*"
                                         hidden>
                                     <span class="image-clear-btn d-none" id="editScheduleImageClearBtn">&times;</span>
                                 </label>
+                                <input type="hidden" id="edit_schedule_current_image" name="current_image" value="">
                             </div>
 
                             <!-- Recurrence Type -->
