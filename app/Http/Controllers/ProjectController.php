@@ -18,6 +18,21 @@ use Illuminate\Support\Facades\DB;
 class ProjectController extends Controller
 {
     /**
+     * Safely derive a proper HTTP status code from an exception.
+     * Falls back to 500 when the exception code is non-numeric or out of 4xx/5xx range.
+     */
+    private function deriveHttpStatusFromException(\Throwable $e): int
+    {
+        $code = $e->getCode();
+        if (is_numeric($code)) {
+            $int = (int) $code;
+            if ($int >= 400 && $int <= 599) {
+                return $int;
+            }
+        }
+        return 500;
+    }
+    /**
      * Resolve universal avatar for an employee (profile_picture > photo > user.photo > default)
      */
     private function resolveEmployeeAvatar($employee)
@@ -54,6 +69,7 @@ class ProjectController extends Controller
 
         return asset($relative);
     }
+
     /**
      * Accept project assignment for the authenticated user.
      */
@@ -119,11 +135,12 @@ class ProjectController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -158,11 +175,12 @@ class ProjectController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -206,11 +224,12 @@ class ProjectController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -435,11 +454,12 @@ class ProjectController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -585,6 +605,10 @@ class ProjectController extends Controller
                     'tasks as completed_tasks' => function ($q) {
                         $q->where('status', 'completed');
                     },
+                    'tasks as late_tasks' => fn($q) =>
+                        $q->whereRaw('LOWER(status) <> ?', ['completed'])
+                            ->whereNotNull('due_date')
+                            ->where('due_date', '<', now()),
                 ])
                 ->paginate(9);
 
@@ -623,6 +647,7 @@ class ProjectController extends Controller
                         'total' => $project->total_tasks,
                         'in_progress' => $project->in_progress_tasks,
                         'completed' => $project->completed_tasks,
+                        'late' => $project->late_tasks,
                     ]
                 ];
             });
@@ -639,11 +664,12 @@ class ProjectController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -854,11 +880,12 @@ class ProjectController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -950,11 +977,12 @@ class ProjectController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -1290,11 +1318,12 @@ class ProjectController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -1401,11 +1430,12 @@ class ProjectController extends Controller
                 'data' => $payload
             ]);
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -1486,11 +1516,12 @@ class ProjectController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -1591,11 +1622,12 @@ class ProjectController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => 'Failed to update feedback: ' . $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -1763,11 +1795,63 @@ class ProjectController extends Controller
                 'data' => $payload,
             ]);
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $status);
+        }
+    }
+
+    /**
+     * Get unread feedback count for a specific project for the current employee.
+     */
+    public function getUnreadFeedbackCount($projectId)
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json([
+                    'success' => true,
+                    'data' => 0,
+                ]);
+            }
+
+            $project = Project::find($projectId);
+            if (!$project || ($project->status ?? null) === 'DELETED') {
+                return response()->json([
+                    'success' => true,
+                    'data' => 0,
+                ]);
+            }
+
+            $markers = [];
+            if (!empty($project->read_markers)) {
+                $markers = is_array($project->read_markers)
+                    ? $project->read_markers
+                    : (json_decode($project->read_markers, true) ?: []);
+            }
+            $lastReadAt = $markers[(string) $employeeId] ?? null;
+
+            $count = ProjectFeedback::where('project_id', $project->id)
+                ->where('employee_id', '!=', $employeeId)
+                ->when($lastReadAt, function ($q) use ($lastReadAt) {
+                    $q->where('created_at', '>', $lastReadAt);
+                })
+                ->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => $count,
+            ]);
+        } catch (\Exception $e) {
+            // On error, do not break UI; return 0
+            return response()->json([
+                'success' => true,
+                'data' => 0,
+            ]);
         }
     }
 

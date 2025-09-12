@@ -8767,22 +8767,22 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateProjectChartFromData(projects, chartCounts) {
         const numberOfProjects = Array.isArray(projects) ? projects.length : 0;
 
-        let completed = Number(chartCounts?.completed || 0);
-        let inProgressLabel = Number(chartCounts?.in_progress || 0);
-        let late = Number(chartCounts?.late || 0);
-        let notStartedChart = Number(chartCounts?.not_started || 0);
+        const completed = Number(chartCounts?.completed || 0);
+        const inProgress = Number(chartCounts?.in_progress || 0);
+        const late = Number(chartCounts?.late || 0);
+        const notStarted = Number(chartCounts?.not_started || 0);
 
-        const chartData = [notStartedChart, completed, inProgressLabel, late];
-        const totalTasks = chartData.reduce((a, b) => a + b, 0);
+        const chartData = [notStarted, completed, inProgress, late];
+        const total = chartData.reduce((a, b) => a + b, 0);
 
-        if (totalTasks === 0) {
+        if (total === 0) {
             projectChartInstance.data.labels = ["No Data"];
             projectChartInstance.data.datasets[0].data = [1];
             projectChartInstance.data.datasets[0].backgroundColor = ["#E8E9F2"];
         } else {
             projectChartInstance.data.labels = [
-                "New Request",
-                "Complete", 
+                "Not Started",
+                "Complete",
                 "On Progress",
                 "Late",
             ];
@@ -8794,208 +8794,116 @@ document.addEventListener("DOMContentLoaded", function () {
                 "#ff6b6b",
             ];
         }
-        projectChartInstance.update();
+        try { projectChartInstance.update(); } catch (_) {}
 
         const spans = document.querySelectorAll(
             ".chart-labels .text-center span:first-child"
         );
         if (spans && spans.length >= 4) {
+            // Order under chart: Total, Complete, On Progress, Late
             spans[0].textContent = numberOfProjects;
             spans[1].textContent = completed;
-            spans[2].textContent = inProgressLabel;
+            spans[2].textContent = inProgress;
             spans[3].textContent = late;
         }
     }
 
     function loadProjectAndTaskData() {
-        // Step 1: ambil daftar project
-        $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            beforeSend: function () {
-                $(".loader").fadeIn("fast");
-            },
-            success: function (projectRes) {
-                const projects = Array.isArray(projectRes)
-                    ? projectRes
-                    : Array.isArray(projectRes.data)
-                    ? projectRes.data
-                    : [];
+        // Helper to normalize API payloads into arrays
+        function normalizeArray(res) {
+            if (!res) return [];
+            if (Array.isArray(res)) return res;
+            if (res.data && Array.isArray(res.data)) return res.data;
+            return [];
+        }
 
-                // Selalu hitung ulang berbasis project & task sesuai aturan baru user.
-                // Aturan:
-                //  - Complete  : semua task di project status completed.
-                //  - Late      : minimal 1 task overdue (due_date lewat & belum completed) ATAU dikategorikan late.
-                //                Late override kategori lain (walau ada task completed / in progress).
-                //  - On Progress: ada kombinasi status (tidak semua completed, tidak semua not_started) dan tidak Late.
-                //  - Not Started: project belum punya task ATAU semua task masih status not_started/new_request.
-                // Total = jumlah project.
+        $(".loader").fadeIn("fast");
 
-                // Step 2: untuk setiap project, ambil tasks menggunakan endpoint yang sama dengan modal
-                const tasksByProject = {};
-                let projectsProcessed = 0;
-                const totalProjects = projects.length;
-                
+        const totalReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json" });
+        const completedReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "completed" } });
+        const inProgressReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "in_progress" } });
+        const notStartedReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "not_started" } });
+        const tasksReq = $.ajax({ url: appUrl + "/task/index/no-pagination", type: "GET", dataType: "json" });
 
-                
-                // If no projects, show empty chart
-                if (totalProjects === 0) {
-                    updateChart([0, 0, 0, 0], 0);
-                    return;
-                }
-                
-                // Fetch tasks for each project using same endpoint as modal
-                projects.forEach((project) => {
-                    const projectId = project.id || project.project_id;
-                    
-                    $.ajax({
-                        url: appUrl + "/projects/" + projectId + "/tasks",
-                        type: "GET",
-                        dataType: "json",
-                        success: function (response) {
-                            const tasks = response.data || [];
-                            
-                            // Convert task status to our format and add to tasksByProject
-                            tasksByProject[projectId] = tasks.map(task => ({
-                                ...task,
-                                __status: task.status || 'not_started'
-                            }));
-                            
-                            projectsProcessed++;
-                            
-                            // If all projects processed, calculate chart
-                            if (projectsProcessed === totalProjects) {
-                                processAllTasksForChart();
-                            }
-                        },
-                        error: function() {
-                            tasksByProject[projectId] = [];
-                            projectsProcessed++;
-                            
-                            // If all projects processed, calculate chart
-                            if (projectsProcessed === totalProjects) {
-                                processAllTasksForChart();
-                            }
-                        }
-                    });
-                });
-                
-                // Function to process all task data after all projects are fetched
-                function processAllTasksForChart() {
-                        // Helper parse due date (gunakan akhir hari agar tidak false overdue)
-                        function parseDue(dateStr) {
-                            if (!dateStr) return null;
-                            const s = String(dateStr).trim();
-                            const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                            if (m) {
-                                const y = +m[1];
-                                const mo = +m[2] - 1;
-                                const d = +m[3];
-                                return new Date(y, mo, d, 23, 59, 59, 999);
-                            }
-                            const dt = new Date(s);
-                            if (!isNaN(dt.getTime())) return dt;
-                            return null;
-                        }
+        $.when(totalReq, completedReq, inProgressReq, notStartedReq, tasksReq)
+            .done(function (totalRes, compRes, progRes, notRes, tRes) {
+                try {
+                    const projects = normalizeArray(totalRes[0]);
+                    const countCompleted = normalizeArray(compRes[0]).length;
+                    const countOnProgress = normalizeArray(progRes[0]).length;
+                    const countNotStarted = normalizeArray(notRes[0]).length;
 
-                        const now = new Date();
-
-                        let countCompleted = 0;
-                        let countOnProgress = 0;
-                        let countLate = 0;
-                        let countNotStarted = 0;
-
-                        projects.forEach((p) => {
-                            const pid = p.id || p.project_id;
-                            const tasks = tasksByProject[pid] || [];
-
-                            // Jika project tidak memiliki task, masuk kategori Not Started
-                            if (!tasks.length) {
-                                countNotStarted++;
-                                return;
-                            }
-
-                            // Kelompokkan task berdasarkan status
-                            const completedTasks = tasks.filter(t => t.__status === "completed");
-                            const notStartedTasks = tasks.filter(t => t.__status === "not_started");
-                            const inProgressTasks = tasks.filter(t => t.__status === "in_progress");
-                            const rejectedTasks = tasks.filter(t => t.__status === "rejected");
-                            
-                            // Deteksi Late: jika ada minimal 1 task yang overdue (melewati due_date)
-                            // Mengikuti logika backend: status != 'completed' AND due_date < now()
-                            const hasLateTasks = tasks.some(t => {
-                                // Task yang sudah dikategorikan late dari backend
-                                if (t.__status === "late" || t.status === "late") {
-                                    return true;
-                                }
-                                
-                                // Check manual apakah task overdue berdasarkan due_date
-                                const dueStr = t.due_date;
-                                if (!dueStr) return false;
-                                
-                                const due = parseDue(dueStr);
-                                if (!due) return false;
-                                
-                                // Task overdue jika due_date sudah lewat dan status bukan completed
-                                const isOverdue = due.getTime() < now.getTime();
-                                const statusLower = (t.status || '').toLowerCase();
-                                const isNotCompleted = statusLower !== 'completed';
-                                
-                                return isOverdue && isNotCompleted;
-                            });
-
-                            // Kategorisasi project (bisa masuk ke beberapa kategori sekaligus):
-                            
-                            // 1. Cek apakah project Complete (semua task completed)
-                            if (completedTasks.length === tasks.length && tasks.length > 0) {
-                                countCompleted++;
-                                return; // Project completed tidak masuk kategori lain
-                            }
-
-                            // 2. Cek apakah project Not Started (semua task not_started)
-                            if (notStartedTasks.length === tasks.length && tasks.length > 0) {
-                                countNotStarted++;
-                                return; // Project not started tidak masuk kategori lain
-                            }
-
-                            // 3. Project dengan campuran status masuk On Progress
-                            const hasNonNotStarted = inProgressTasks.length > 0 || rejectedTasks.length > 0 || completedTasks.length > 0 || hasLateTasks;
-                            const hasNonCompleted = notStartedTasks.length > 0 || inProgressTasks.length > 0 || rejectedTasks.length > 0 || hasLateTasks;
-                            
-                            if (hasNonNotStarted && hasNonCompleted) {
-                                countOnProgress++;
-                            }
-
-                            // 4. Project dengan task overdue masuk Late (bisa bersamaan dengan On Progress)
-                            if (hasLateTasks) {
-                                countLate++;
-                            }
-
-                            // 5. Jika tidak masuk kategori manapun, fallback ke Not Started
-                            if (!hasNonNotStarted && !hasNonCompleted) {
-                                countNotStarted++;
-                            }
+                    // Compute LATE using dashboard logic from tasks
+                    const buckets = (tRes && tRes[0] && tRes[0].data) || {};
+                    const tasksByProject = {};
+                    function collect(list, statusName) {
+                        if (!Array.isArray(list)) return;
+                        list.forEach(function (t) {
+                            const pid = t.project_id || (t.project && (t.project.id || t.project.project_id));
+                            if (!pid) return;
+                            if (!tasksByProject[pid]) tasksByProject[pid] = [];
+                            tasksByProject[pid].push(Object.assign({}, t, { __status: statusName }));
                         });
+                    }
+                    collect(buckets.not_started?.tasks, "not_started");
+                    collect(buckets.in_progress?.tasks, "in_progress");
+                    collect(buckets.completed?.tasks, "completed");
+                    collect(buckets.late?.tasks, "late");
+                    collect(buckets.rejected?.tasks, "rejected");
+                    collect(buckets.new_request?.tasks, "new_request");
 
-                        const derivedCounts = {
-                            total: projects.length,
-                            completed: countCompleted,
-                            in_progress: countOnProgress, // dipakai slot "On Progress"
-                            late: countLate,
-                            not_started: countNotStarted,
-                        };
+                    function parseDue(dateStr) {
+                        if (!dateStr) return null;
+                        const s = String(dateStr).trim();
+                        const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                        if (m) return new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999);
+                        const d = new Date(s);
+                        return isNaN(d.getTime()) ? null : d;
+                    }
 
+                    const now = new Date();
+                    let countLate = 0;
+                    projects.forEach(function (p) {
+                        const pid = p.id || p.project_id;
+                        const tasks = tasksByProject[pid] || [];
+                        if (!tasks.length) return; // no tasks -> not late
+                        const lateTasks = tasks.filter(function (t) {
+                            if (t.__status === "late") return true;
+                            const dueStr = t.due_date || t.due || t.deadline;
+                            const due = parseDue(dueStr);
+                            return !!(due && due.getTime() < now.getTime() && t.__status !== "completed");
+                        });
+                        if (lateTasks.length > 0) countLate++;
+                    });
 
-
-                        updateProjectChartFromData(projects, derivedCounts);
-                        $(".loader").fadeOut("fast");
+                    const derivedCounts = {
+                        total: projects.length,
+                        completed: countCompleted,
+                        in_progress: countOnProgress,
+                        late: countLate,
+                        not_started: countNotStarted,
+                    };
+                    updateProjectChartFromData(projects, derivedCounts);
+                } catch (e) {
+                    console.warn("Failed to derive project chart counts", e);
+                } finally {
+                    $(".loader").fadeOut("fast");
                 }
-            },
-            error: function (err) {
-                $(".loader").fadeOut("fast");
-            },
-        });
+            })
+            .fail(function () {
+                try {
+                    // As a fallback, try to at least load total projects to avoid empty chart
+                    $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json" })
+                        .done(function (res) {
+                            const projects = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : []);
+                            const derivedCounts = { total: projects.length, completed: 0, in_progress: 0, late: 0, not_started: projects.length };
+                            updateProjectChartFromData(projects, derivedCounts);
+                        })
+                        .always(function () { $(".loader").fadeOut("fast"); });
+                } catch (_) {
+                    $(".loader").fadeOut("fast");
+                }
+            });
     }
     loadProjectAndTaskData();
 });
