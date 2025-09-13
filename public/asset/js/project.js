@@ -5512,97 +5512,49 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
                     }
 
-                    // Helper: Set preview (image or initials) for Delete Project modal
-                    function setDeleteProjectModalPreview(title, imageUrl) {
+                    // Helper: Build delete preview content like Task modal and inject into #deleteProjectContent
+                    function setDeleteProjectModalPreview(project) {
                         try {
-                            const modalBody = document.querySelector('#deleteProjectModal .modal-body');
-                            const imgEl = document.getElementById('deleteProjectImage');
-                            let initialsEl = document.getElementById('deleteProjectInitials');
+                            const deleteModalEl = document.getElementById('deleteProjectModal');
+                            if (!deleteModalEl) return;
+                            const contentEl = deleteModalEl.querySelector('#deleteProjectContent');
+                            if (!contentEl) return;
 
-                            // Clean up any previous fallback blocks to avoid duplicates (e.g., lingering NA)
-                            if (modalBody) {
-                                modalBody.querySelectorAll('.delete-initials-fallback, .task-modal-initial-avatar').forEach(function(el){
-                                    try { el.remove(); } catch(_) {}
-                                });
-                            }
-                            // Ensure a fresh element is created next time
-                            initialsEl = null;
+                            const title = project?.title || '';
+                            let imgUrl = project?.image || '';
+                            let avatarHtml = '';
 
-                            function ensureInitialsEl() {
-                                if (!initialsEl) {
-                                    initialsEl = document.createElement('div');
-                                    initialsEl.id = 'deleteProjectInitials';
-                                    initialsEl.style.width = '150px';
-                                    initialsEl.style.height = '150px';
-                                    initialsEl.style.borderRadius = '8px';
-                                    initialsEl.style.display = 'flex';
-                                    initialsEl.style.alignItems = 'center';
-                                    initialsEl.style.justifyContent = 'center';
-                                    initialsEl.style.fontWeight = '700';
-                                    initialsEl.style.color = '#ffffff';
-                                    initialsEl.style.marginBottom = '1rem';
-                                    initialsEl.style.userSelect = 'none';
-                                    // Insert before the image to preserve layout
-                                    if (imgEl && imgEl.parentElement) {
-                                        imgEl.parentElement.insertBefore(initialsEl, imgEl);
-                                    } else if (modalBody) {
-                                        modalBody.insertBefore(initialsEl, modalBody.firstChild);
-                                    }
+                            if (imgUrl) {
+                                const isAbsolute = /^https?:\/\//i.test(imgUrl);
+                                const isFile = /^\/?(file|storage)\//i.test(imgUrl);
+                                if (!isAbsolute && !isFile) {
+                                    imgUrl = appUrl + '/file/project/' + imgUrl;
+                                } else if (!isAbsolute && isFile) {
+                                    imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
                                 }
-
-                                const t = (title || 'NA');
-                                const init = (typeof getInitials === 'function') ? getInitials(t) : (t.substring(0, 2).toUpperCase());
-                                const color = (typeof getInitialsColor === 'function') ? getInitialsColor(t) : '#6A5AE0';
-                                initialsEl.textContent = init;
-                                initialsEl.style.background = color;
-                                initialsEl.style.fontSize = '56px';
-                                initialsEl.style.letterSpacing = '1px';
-                                initialsEl.className = 'delete-initials-fallback';
-                                // Ensure content stays centered
-                                initialsEl.style.display = 'flex';
-                            }
-
-                            function hideInitialsEl() {
-                                if (initialsEl) { initialsEl.style.display = 'none'; }
-                            }
-
-                            // Always set the title first
-                            const titleEl = document.getElementById('deleteProjectTitle');
-                            if (titleEl) titleEl.textContent = title || '';
-
-                            // Reset image state deterministically
-                            if (imgEl) {
-                                imgEl.onerror = null;
-                                imgEl.onload = null;
-                                imgEl.removeAttribute('src');
-                                imgEl.style.display = 'none';
-                            }
-
-                            if (imageUrl) {
-                                ensureInitialsEl(); // show initials until image successfully loads
-                                if (imgEl) {
-                                    imgEl.style.display = '';
-                                    imgEl.onload = function () {
-                                        // Image loaded OK: hide initials
-                                        hideInitialsEl();
-                                    };
-                                    imgEl.onerror = function () {
-                                        // Image failed: keep initials visible
-                                        this.onerror = null;
-                                        this.onload = null;
-                                        this.removeAttribute('src');
-                                        this.style.display = 'none';
-                                        ensureInitialsEl();
-                                    };
-                                    // Set src at the end to trigger load/error
-                                    imgEl.src = imageUrl;
-                                }
+                                avatarHtml = `<img src="${imgUrl}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getInitialsColor(title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getInitials(title)}</div>')">`;
                             } else {
-                                ensureInitialsEl();
+                                avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${getInitialsColor(title)};color:#fff;font-weight:600;font-size:11px;">${getInitials(title)}</div>`;
                             }
-                        } catch (e) {
-                            console.error('setDeleteProjectModalPreview error:', e);
-                        }
+
+                            const parentTitle = project?.part_of_project_title ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>` : '';
+                            const desc = project?.description ? String(project.description) : '';
+
+                            const cardHtml = `
+                                <div class="custom-card-delete rounded-4 position-relative p-3 border-0">
+                                    <div class="d-flex align-items-center mb-2">
+                                        ${avatarHtml}
+                                        <div class="d-flex flex-column">
+                                            ${parentTitle}
+                                            <h5 class="mb-0 task-title" style="line-height:1.2;">${title || 'Untitled Project'}</h5>
+                                        </div>
+                                    </div>
+                                    ${desc ? `<div class="task-description-container mb-2"><p class="task-description mb-0" style="font-size:14px;">${desc}</p></div>` : ''}
+                                    <hr class="task-separator rounded-4">
+                                </div>`;
+
+                            contentEl.innerHTML = cardHtml;
+                        } catch (e) { console.error('setDeleteProjectModalPreview error:', e); }
                     }
 
                     // Remove old confirm dialog and use modal instead
@@ -5620,31 +5572,39 @@ document.addEventListener("DOMContentLoaded", function () {
                                     return;
                                 }
 
-                                // Open delete confirmation modal and populate data
-                                const deleteModalEl =
-                                    document.getElementById(
-                                        "deleteProjectModal"
-                                    );
-                                const deleteModal = new bootstrap.Modal(
-                                    deleteModalEl
-                                );
-
-                                // Set project image (or initials) and title in modal
-                                const projectTitle = card.querySelector(".title-project") || card.closest('[data-project-title]')?.getAttribute('data-project-title') ? { textContent: card.closest('[data-project-title]').getAttribute('data-project-title') } : null;
-                                // Prefer the project header avatar image if present
-                                let projectHeaderImg = card.querySelector('img[data-role="project-avatar"]');
-                                if (!projectHeaderImg) {
-                                    projectHeaderImg = card.querySelector('.project-card .d-flex.justify-content-between.align-items-start .d-flex.align-items-center > img');
-                                }
-                                const imgUrl = projectHeaderImg ? projectHeaderImg.src : null;
-                                setDeleteProjectModalPreview(projectTitle ? projectTitle.textContent : '', imgUrl);
-
+                                // Open delete confirmation modal and populate data (mirror Task delete flow)
+                                const deleteModalEl = document.getElementById("deleteProjectModal");
+                                const deleteModal = new bootstrap.Modal(deleteModalEl);
                                 // Store projectId and card element on modal for use in delete
                                 deleteModalEl.dataset.projectId = projectId;
-                                deleteModalEl.dataset.cardId =
-                                    card.getAttribute("data-project-id");
+                                deleteModalEl.dataset.cardId = card.getAttribute("data-project-id");
 
-                                deleteModal.show();
+                                // Fetch project detail to build rich preview content
+                                $.ajax({
+                                    url: appUrl + "/project/" + projectId,
+                                    type: "GET",
+                                    dataType: "json",
+                                    success: function (response) {
+                                        try {
+                                            const project = response && response.data ? response.data : {};
+                                            setDeleteProjectModalPreview(project);
+                                        } catch(_) {
+                                            const projectTitleEl = card.querySelector('.title-project');
+                                            const title = projectTitleEl ? projectTitleEl.textContent : '';
+                                            setDeleteProjectModalPreview({ title: title });
+                                        }
+                                        deleteModal.show();
+                                        // Clean excess backdrops if any
+                                        try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                                    },
+                                    error: function () {
+                                        const projectTitleEl = card.querySelector('.title-project');
+                                        const title = projectTitleEl ? projectTitleEl.textContent : '';
+                                        setDeleteProjectModalPreview({ title: title });
+                                        deleteModal.show();
+                                        try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                                    }
+                                });
 
                                 // Delete button click handler
                                 const confirmDeleteBtn =
@@ -6046,8 +6006,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                         const deleteModalEl = document.getElementById("deleteProjectModal");
                                         if (!deleteModalEl) { showFloatingAlert('Delete Project Modal not found', 'warning', 3000); return; }
                                         const deleteModal = new bootstrap.Modal(deleteModalEl);
-                                                // Populate image (or initials) and title
-                                                setDeleteProjectModalPreview(project.title || '', imageUrl || null);
+                                                // Populate content card
+                                                setDeleteProjectModalPreview(project);
                                         deleteModalEl.dataset.projectId = pid;
                                         deleteModal.show();
                                         // Confirm delete handler
