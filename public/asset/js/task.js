@@ -2018,30 +2018,11 @@ function renderSingleSection(status, sectionData, append = false) {
     });
 
   if (!append) {
-    if (status === "new_request") {
-      const tasksSorted = incomingTasks.slice().sort(function (a, b) {
-        const pa = isViewerPendingExecutor(a) ? 1 : 0;
-        const pb = isViewerPendingExecutor(b) ? 1 : 0;
-        if (pa !== pb) return pb - pa;
-        try {
-          const da = new Date(a.due_date).getTime() || 0;
-          const db = new Date(b.due_date).getTime() || 0;
-          if (da !== db) return da - db;
-        } catch (_) {}
-        return (b.id || 0) - (a.id || 0);
-      });
-      tasksSorted.forEach(task =>
-        container.insertAdjacentHTML("beforeend", createTaskCard(task))
-      );
-    } else {
-      incomingTasks.forEach(task =>
-        container.insertAdjacentHTML("beforeend", createTaskCard(task))
-      );
-    }
+    incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
   } else {
-    incomingTasks.forEach(task =>
-      container.insertAdjacentHTML("beforeend", createTaskCard(task))
-    );
+    incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+
+
   }
 
   addAttachFileIconListeners();
