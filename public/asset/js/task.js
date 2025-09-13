@@ -1283,6 +1283,52 @@
                 window.clearSelectedExecutorsEdit();
 
             $("#editTaskAlert").addClass("d-none").hide();
+            
+            // Handle timeline modal restoration logic
+            const detailEl = document.getElementById('taskDetailModal');
+            if (detailEl) {
+                // Clear the child opened flag
+                detailEl.removeAttribute('data-child-opened');
+                
+                // Check if we should show the detail modal back
+                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                    // Show detail modal back first
+                    const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                    detailModal.show();
+                    
+                    // Restore the backed up timeline handler if it exists
+                    if (detailEl._timelineHiddenHandlerBackup) {
+                        detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                        detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                        detailEl._timelineHiddenHandlerBackup = null;
+                    } else {
+                        // Create fresh one-time listener to reopen timeline when detail is closed
+                        const onDetailHiddenAfterEdit = function() {
+                            if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                const timelineEl = document.getElementById('timelineModal');
+                                if (timelineEl) {
+                                    const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                    tlInstance.show();
+                                    detailEl.removeAttribute('data-reopen-timeline');
+                                }
+                            }
+                            // Clear the reference
+                            detailEl._timelineHiddenHandler = null;
+                        };
+                        
+                        // Store and attach the handler
+                        detailEl._timelineHiddenHandler = onDetailHiddenAfterEdit;
+                        detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterEdit, { once: true });
+                    }
+                } else {
+                    // If not showing detail modal back, restore the backed up handler anyway
+                    if (detailEl._timelineHiddenHandlerBackup) {
+                        detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                        detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                        detailEl._timelineHiddenHandlerBackup = null;
+                    }
+                }
+            }
         });
     }
 
@@ -2983,12 +3029,63 @@ function applyCurrentSearchFilter() {
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
         if (feedbackModalEl) {
             feedbackModalEl.addEventListener('hidden.bs.modal', function () {
+                // Store the current state before resetting
+                const wasSubmitted = feedbackSubmitted;
+                
                 if (feedbackSubmitted) {
                     // Reload the page only if feedback was submitted
                     window.location.reload();
+                    return; // Exit early if reloading
                 }
+                
                 // Reset feedback submission state
                 feedbackSubmitted = false;
+                
+                // Handle timeline modal restoration logic for feedback modal
+                const detailEl = document.getElementById('taskDetailModal');
+                if (detailEl) {
+                    // Clear the child opened flag
+                    detailEl.removeAttribute('data-child-opened');
+                    
+                    // Check if we should show the detail modal back
+                    if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                        // Show detail modal back first
+                        const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                        detailModal.show();
+                        
+                        // Restore the backed up timeline handler if it exists
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        } else {
+                            // Create fresh one-time listener to reopen timeline when detail is closed
+                            const onDetailHiddenAfterFeedback = function() {
+                                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                    const timelineEl = document.getElementById('timelineModal');
+                                    if (timelineEl) {
+                                        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                        tlInstance.show();
+                                        detailEl.removeAttribute('data-reopen-timeline');
+                                    }
+                                }
+                                // Clear the reference
+                                detailEl._timelineHiddenHandler = null;
+                            };
+                            
+                            // Store and attach the handler
+                            detailEl._timelineHiddenHandler = onDetailHiddenAfterFeedback;
+                            detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterFeedback, { once: true });
+                        }
+                    } else {
+                        // If not showing detail modal back, restore the backed up handler anyway
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        }
+                    }
+                }
             });
         }
     });
@@ -3828,9 +3925,18 @@ function applyCurrentSearchFilter() {
 
     // Function to handle task feedback
     function handleTaskFeedback(taskId) {
-        // Tutup modal detail kalau masih terbuka
+        // Mark that a child modal (feedback) is about to open so timeline won't be restored yet
         const detailEl = document.getElementById("taskDetailModal");
         if (detailEl) {
+            detailEl.setAttribute('data-child-opened', '1');
+            
+            // Remove any existing timeline handler temporarily to prevent conflicts
+            if (detailEl._timelineHiddenHandler) {
+                detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+                detailEl._timelineHiddenHandler = null;
+            }
+            
             const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
             detailModal.hide();
         }
@@ -3889,6 +3995,11 @@ function applyCurrentSearchFilter() {
         try { loadTaskFeedbackData(taskId); } catch(_) {}
 
         feedbackModal.show();
+        
+        // Clean up any duplicate modal backdrops
+        document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+            if (idx < arr.length - 1) el.remove();
+        });
     }
 
     // Function to show add feedback form in the modal
@@ -5363,6 +5474,20 @@ function applyCurrentSearchFilter() {
             if (typeof showFloatingAlert === 'function') showFloatingAlert('Edit modal not found.', 'danger');
             return;
         }
+        
+        // Mark that a child modal (edit) is about to open so timeline won't be restored yet
+        const detailEl = document.getElementById('taskDetailModal');
+        if (detailEl) {
+            detailEl.setAttribute('data-child-opened', '1');
+            
+            // Remove any existing timeline handler temporarily to prevent conflicts
+            if (detailEl._timelineHiddenHandler) {
+                detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+                detailEl._timelineHiddenHandler = null;
+            }
+        }
+        
         const form = document.getElementById("editTaskForm");
         form && form.reset();
         const idInput = document.getElementById("edit_task_id");
@@ -6352,31 +6477,51 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
         const tid = host.getAttribute('data-task-id');
         if (!tid) return;
 
-        // Mark to restore timeline after detail closes
-        window._restoreTimelineAfterDetail = true;
-
-        // Ensure timeline reopens after detail modal is closed
-        const detailEl = document.getElementById('taskDetailModal');
-        if (detailEl) {
-            const onDetailHidden = () => {
-                detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
-                if (window._restoreTimelineAfterDetail) {
-                    const tlInstance2 = bootstrap.Modal.getOrCreateInstance(timelineEl);
-                    tlInstance2.show();
-                    window._restoreTimelineAfterDetail = false;
-                }
-            };
-            detailEl.addEventListener('hidden.bs.modal', onDetailHidden, { once: true });
+        // Detect if timeline modal is currently open
+        let shouldReopenTimeline = false;
+        if (timelineEl && timelineEl.classList.contains('show')) {
+            try {
+                const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                tlInstance.hide();
+                shouldReopenTimeline = true;
+            } catch (_) {}
         }
 
-        // Hide timeline, then open detail when hidden
-        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
-        const onTimelineHidden = () => {
-            timelineEl.removeEventListener('hidden.bs.modal', onTimelineHidden);
-            try { handleTaskDetail(tid); } catch(_) {}
-        };
-        timelineEl.addEventListener('hidden.bs.modal', onTimelineHidden, { once: true });
-        tlInstance.hide();
+        // Mark to reopen timeline after detail is closed (only when originated from timeline)
+        if (shouldReopenTimeline) {
+            const detailEl = document.getElementById('taskDetailModal');
+            if (detailEl) {
+                // Set a flag on detail so we remember to reopen timeline later
+                detailEl.setAttribute('data-reopen-timeline', '1');
+                
+                // Remove any existing timeline handler to avoid conflicts
+                if (detailEl._timelineHiddenHandler) {
+                    detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                }
+                
+                // Create a fresh handler for this specific timeline interaction
+                const onDetailHidden = function () {
+                    try {
+                        // If a child modal (edit/feedback/files) is opening, skip reopening timeline now
+                        if (detailEl.getAttribute('data-child-opened')) {
+                            return;
+                        }
+                        if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                            const tlInstance2 = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                            tlInstance2.show();
+                            detailEl.removeAttribute('data-reopen-timeline');
+                        }
+                    } catch(_) { /* noop */ }
+                };
+                
+                // Store reference to handler and attach it
+                detailEl._timelineHiddenHandler = onDetailHidden;
+                detailEl.addEventListener('hidden.bs.modal', onDetailHidden);
+            }
+        }
+
+        // Proceed to open Task Detail
+        try { handleTaskDetail(tid); } catch(_) {}
     });
 
     // First render on modal show
