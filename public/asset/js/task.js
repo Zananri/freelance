@@ -43,8 +43,8 @@
     function initBootstrapTooltips(root = document) {
         try {
             // More reliable mobile detection using multiple methods
-            const isMobile = window.matchMedia('(max-width: 768px)').matches || 
-                             window.innerWidth <= 768 || 
+            const isMobile = window.matchMedia('(max-width: 768px)').matches ||
+                             window.innerWidth <= 768 ||
                              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const defaultPlacement = isMobile ? "top" : "bottom";
 
@@ -52,10 +52,10 @@
             nodes.forEach((el) => {
                 const existing = bootstrap.Tooltip.getInstance(el);
                 if (existing) existing.dispose();
-                
+
                 // Remove any existing placement attribute to ensure consistency
                 el.removeAttribute('data-bs-placement');
-                
+
                 new bootstrap.Tooltip(el, {
                     container: 'body',
                     placement: defaultPlacement,
@@ -94,7 +94,7 @@
             initBootstrapTooltips();
         }, 100);
     }
-    
+
     window.addEventListener('resize', handleResponsiveTooltipUpdate, { passive: true });
     window.addEventListener('orientationchange', handleResponsiveTooltipUpdate, { passive: true });
 
@@ -1283,19 +1283,19 @@
                 window.clearSelectedExecutorsEdit();
 
             $("#editTaskAlert").addClass("d-none").hide();
-            
+
             // Handle timeline modal restoration logic
             const detailEl = document.getElementById('taskDetailModal');
             if (detailEl) {
                 // Clear the child opened flag
                 detailEl.removeAttribute('data-child-opened');
-                
+
                 // Check if we should show the detail modal back
                 if (detailEl.getAttribute('data-reopen-timeline') === '1') {
                     // Show detail modal back first
                     const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
                     detailModal.show();
-                    
+
                     // Restore the backed up timeline handler if it exists
                     if (detailEl._timelineHiddenHandlerBackup) {
                         detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
@@ -1315,7 +1315,7 @@
                             // Clear the reference
                             detailEl._timelineHiddenHandler = null;
                         };
-                        
+
                         // Store and attach the handler
                         detailEl._timelineHiddenHandler = onDetailHiddenAfterEdit;
                         detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterEdit, { once: true });
@@ -2183,35 +2183,14 @@ function applyCurrentSearchFilter() {
         if (!el || el.id !== 'search_filter') return;
         clearTimeout(searchTimeout);
         const query = el.value || '';
-        // Switch to server-side search like project page: fetch from DB via AJAX
         searchTimeout = setTimeout(() => {
             // Reset pagination state for desktop columns
             try {
                 Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
             } catch(_) {}
             const q = query.trim();
-            try { window.__taskCurrentSearchQuery = q; } catch(_) {}
-            // If there is a search query, explicitly fetch each status bucket so backend filters per status
-            // (Some backends return only a single bucket when 'status' is not provided.)
-            if (q) {
-                try {
-                    const sections = ['new_request','in_progress','completed'];
-                    // Clear current content before rendering fresh results
-                    document.getElementById('new-request-tasks')?.replaceChildren();
-                    document.getElementById('in-progress-tasks')?.replaceChildren();
-                    document.getElementById('completed-tasks')?.replaceChildren();
-                    sections.forEach(st => {
-                        if (desktopState[st]) { desktopState[st].page = 1; desktopState[st].last = 1; desktopState[st].loading = false; }
-                        fetchAndRenderTasks(st, 1, false, q);
-                    });
-                } catch(_) {
-                    // Fallback: single call (may show partial buckets depending on backend)
-                    fetchAndRenderTasks(null, 1, false, q);
-                }
-            } else {
-                // Empty search -> load default all buckets
-                fetchAndRenderTasks(null, 1, false, '');
-            }
+            window.__taskCurrentSearchQuery = q;
+            fetchAndRenderTasks(null, 1, false, q);
         }, 250);
     });
 })();
@@ -3031,28 +3010,28 @@ function applyCurrentSearchFilter() {
             feedbackModalEl.addEventListener('hidden.bs.modal', function () {
                 // Store the current state before resetting
                 const wasSubmitted = feedbackSubmitted;
-                
+
                 if (feedbackSubmitted) {
                     // Reload the page only if feedback was submitted
                     window.location.reload();
                     return; // Exit early if reloading
                 }
-                
+
                 // Reset feedback submission state
                 feedbackSubmitted = false;
-                
+
                 // Handle timeline modal restoration logic for feedback modal
                 const detailEl = document.getElementById('taskDetailModal');
                 if (detailEl) {
                     // Clear the child opened flag
                     detailEl.removeAttribute('data-child-opened');
-                    
+
                     // Check if we should show the detail modal back
                     if (detailEl.getAttribute('data-reopen-timeline') === '1') {
                         // Show detail modal back first
                         const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
                         detailModal.show();
-                        
+
                         // Restore the backed up timeline handler if it exists
                         if (detailEl._timelineHiddenHandlerBackup) {
                             detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
@@ -3072,7 +3051,7 @@ function applyCurrentSearchFilter() {
                                 // Clear the reference
                                 detailEl._timelineHiddenHandler = null;
                             };
-                            
+
                             // Store and attach the handler
                             detailEl._timelineHiddenHandler = onDetailHiddenAfterFeedback;
                             detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterFeedback, { once: true });
@@ -3100,13 +3079,13 @@ function applyCurrentSearchFilter() {
                 if (detailEl) {
                     // Clear the child opened flag
                     detailEl.removeAttribute('data-child-opened');
-                    
+
                     // Check if we should show the detail modal back
                     if (detailEl.getAttribute('data-reopen-timeline') === '1') {
                         // Show detail modal back first
                         const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
                         detailModal.show();
-                        
+
                         // Restore the backed up timeline handler if it exists
                         if (detailEl._timelineHiddenHandlerBackup) {
                             detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
@@ -3126,7 +3105,7 @@ function applyCurrentSearchFilter() {
                                 // Clear the reference
                                 detailEl._timelineHiddenHandler = null;
                             };
-                            
+
                             // Store and attach the handler
                             detailEl._timelineHiddenHandler = onDetailHiddenAfterRefFiles;
                             detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterRefFiles, { once: true });
@@ -3983,14 +3962,14 @@ function applyCurrentSearchFilter() {
         const detailEl = document.getElementById("taskDetailModal");
         if (detailEl) {
             detailEl.setAttribute('data-child-opened', '1');
-            
+
             // Remove any existing timeline handler temporarily to prevent conflicts
             if (detailEl._timelineHiddenHandler) {
                 detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
                 detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
                 detailEl._timelineHiddenHandler = null;
             }
-            
+
             const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
             detailModal.hide();
         }
@@ -4049,7 +4028,7 @@ function applyCurrentSearchFilter() {
         try { loadTaskFeedbackData(taskId); } catch(_) {}
 
         feedbackModal.show();
-        
+
         // Clean up any duplicate modal backdrops
         document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
             if (idx < arr.length - 1) el.remove();
@@ -4866,21 +4845,21 @@ function applyCurrentSearchFilter() {
                             if (detailEl && bootstrap.Modal.getInstance(detailEl)) {
                                 // Mark that a child modal is opening
                                 detailEl.setAttribute('data-child-opened', '1');
-                                
+
                                 // Backup timeline handler if it exists
                                 if (detailEl._timelineHiddenHandler) {
                                     detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
                                     detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
                                     detailEl._timelineHiddenHandler = null;
                                 }
-                                
+
                                 // Hide detail modal first
                                 const detailModal = bootstrap.Modal.getInstance(detailEl);
                                 if (detailModal) {
                                     detailModal.hide();
                                 }
                             }
-                            
+
                             const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                             referenceFilesModal.show();
                         }
@@ -5103,7 +5082,7 @@ function applyCurrentSearchFilter() {
                 const detailEl = document.getElementById("taskDetailModal");
                 if (detailEl) {
                     const detailModal = new bootstrap.Modal(detailEl);
-                    
+
                     // Initialize tooltips for PIC and executor images in modal after it's shown
                     detailEl.addEventListener('shown.bs.modal', function () {
                         // Wait a bit for DOM to be fully rendered
@@ -5111,7 +5090,7 @@ function applyCurrentSearchFilter() {
                             initBootstrapTooltips(detailEl);
                         }, 100);
                     }, { once: true });
-                    
+
                     // Clean up tooltips when modal is hidden
                     detailEl.addEventListener('hidden.bs.modal', function () {
                         const tooltipElements = detailEl.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -5122,7 +5101,7 @@ function applyCurrentSearchFilter() {
                             }
                         });
                     }, { once: true });
-                    
+
                     detailModal.show();
                 }
             },
@@ -5548,12 +5527,12 @@ function applyCurrentSearchFilter() {
             if (typeof showFloatingAlert === 'function') showFloatingAlert('Edit modal not found.', 'danger');
             return;
         }
-        
+
         // Mark that a child modal (edit) is about to open so timeline won't be restored yet
         const detailEl = document.getElementById('taskDetailModal');
         if (detailEl) {
             detailEl.setAttribute('data-child-opened', '1');
-            
+
             // Remove any existing timeline handler temporarily to prevent conflicts
             if (detailEl._timelineHiddenHandler) {
                 detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
@@ -5561,7 +5540,7 @@ function applyCurrentSearchFilter() {
                 detailEl._timelineHiddenHandler = null;
             }
         }
-        
+
         const form = document.getElementById("editTaskForm");
         form && form.reset();
         const idInput = document.getElementById("edit_task_id");
@@ -6173,7 +6152,7 @@ function applyCurrentSearchFilter() {
                     tooltip.dispose();
                 }
             });
-            
+
             // Reinitialize with fresh mobile detection
             initBootstrapTooltips();
         }, 100);
@@ -6223,7 +6202,7 @@ function applyCurrentSearchFilter() {
             const st = $(this).val();
             mobileState.status = st;
             mobileState.page = 1; mobileState.last = 1; mobileAutoFullLoad = false;
-            
+
             // Clear existing tooltips before status change to prevent placement issues
             const existingTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
             existingTooltips.forEach(el => {
@@ -6232,7 +6211,7 @@ function applyCurrentSearchFilter() {
                     tooltip.dispose();
                 }
             });
-            
+
             fetchMobileTasks(st, 1, false, { loadAll: st === 'in_progress' });
         });
     });
@@ -6567,12 +6546,12 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
             if (detailEl) {
                 // Set a flag on detail so we remember to reopen timeline later
                 detailEl.setAttribute('data-reopen-timeline', '1');
-                
+
                 // Remove any existing timeline handler to avoid conflicts
                 if (detailEl._timelineHiddenHandler) {
                     detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
                 }
-                
+
                 // Create a fresh handler for this specific timeline interaction
                 const onDetailHidden = function () {
                     try {
@@ -6587,7 +6566,7 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
                         }
                     } catch(_) { /* noop */ }
                 };
-                
+
                 // Store reference to handler and attach it
                 detailEl._timelineHiddenHandler = onDetailHidden;
                 detailEl.addEventListener('hidden.bs.modal', onDetailHidden);
@@ -6634,7 +6613,7 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
                     initBootstrapTooltips(taskDetailModal);
                 }, 100);
             });
-            
+
             taskDetailModal.addEventListener('hidden.bs.modal', function () {
                 const tooltipElements = taskDetailModal.querySelectorAll('[data-bs-toggle="tooltip"]');
                 tooltipElements.forEach(el => {
