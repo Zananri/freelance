@@ -43,8 +43,8 @@
     function initBootstrapTooltips(root = document) {
         try {
             // More reliable mobile detection using multiple methods
-            const isMobile = window.matchMedia('(max-width: 768px)').matches ||
-                             window.innerWidth <= 768 ||
+            const isMobile = window.matchMedia('(max-width: 768px)').matches || 
+                             window.innerWidth <= 768 || 
                              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const defaultPlacement = isMobile ? "top" : "bottom";
 
@@ -52,10 +52,10 @@
             nodes.forEach((el) => {
                 const existing = bootstrap.Tooltip.getInstance(el);
                 if (existing) existing.dispose();
-
+                
                 // Remove any existing placement attribute to ensure consistency
                 el.removeAttribute('data-bs-placement');
-
+                
                 new bootstrap.Tooltip(el, {
                     container: 'body',
                     placement: defaultPlacement,
@@ -94,7 +94,7 @@
             initBootstrapTooltips();
         }, 100);
     }
-
+    
     window.addEventListener('resize', handleResponsiveTooltipUpdate, { passive: true });
     window.addEventListener('orientationchange', handleResponsiveTooltipUpdate, { passive: true });
 
@@ -1823,6 +1823,17 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
     if (statusKey) params.status = statusKey; // when null => fetch all buckets
     params.page = page;
     if (query) params.search = query;
+    // Include active filters (project/status) if present to keep parity with mobile behavior
+    try {
+        if (currentTaskFilters && currentTaskFilters.project) {
+            params.project_id = currentTaskFilters.project;
+        }
+        // Important: when a search query is present, do NOT constrain by status filter,
+        // so that results can come from New, In Progress, and Completed.
+        if (!query && currentTaskFilters && currentTaskFilters.status) {
+            params.filter_status = currentTaskFilters.status;
+        }
+    } catch(_) { /* noop */ }
 
     if (statusKey && loaderMap[statusKey]) {
         $(loaderMap[statusKey]).removeClass("d-none");
@@ -1953,41 +1964,31 @@ function renderSingleSection(status, sectionData, append = false) {
         return true;
     });
 
-    function sortTasks(tasks, status) {
-        return tasks.slice().sort((a, b) => {
-            if (status === 'new_request') {
-                const pa = isViewerPendingExecutor(a) ? 1 : 0;
-                const pb = isViewerPendingExecutor(b) ? 1 : 0;
-            if (pa !== pb) return pb - pa;
-                // start_date ASC
-                const sa = new Date(a.start_date).getTime() || 0;
-                const sb = new Date(b.start_date).getTime() || 0;
-                if (sa !== sb) return sa - sb;
-                // id ASC
-                return (a.id || 0) - (b.id || 0);
-            } else if (status === 'in_progress') {
-                const sa = new Date(a.start_date).getTime() || 0;
-                const sb = new Date(b.start_date).getTime() || 0;
-            if (sa !== sb) return sb - sa; // DESC
-                // id DESC
-                return (b.id || 0) - (a.id || 0);
-            } else if (status === 'completed') {
-                const ca = new Date(a.complete_date).getTime() || 0;
-                const cb = new Date(b.complete_date).getTime() || 0;
-            if (ca !== cb) return ca - cb; // ASC
-                // id ASC
-                return (a.id || 0) - (b.id || 0);
-            } else {
-                // default id DESC
-                return (b.id || 0) - (a.id || 0);
-            }
-        });
-    }
-
   if (!append) {
-    incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+    if (status === "new_request") {
+      const tasksSorted = incomingTasks.slice().sort(function (a, b) {
+        const pa = isViewerPendingExecutor(a) ? 1 : 0;
+        const pb = isViewerPendingExecutor(b) ? 1 : 0;
+        if (pa !== pb) return pb - pa;
+        try {
+          const da = new Date(a.due_date).getTime() || 0;
+          const db = new Date(b.due_date).getTime() || 0;
+          if (da !== db) return da - db;
+        } catch (_) {}
+        return (b.id || 0) - (a.id || 0);
+      });
+      tasksSorted.forEach(task =>
+        container.insertAdjacentHTML("beforeend", createTaskCard(task))
+      );
+    } else {
+      incomingTasks.forEach(task =>
+        container.insertAdjacentHTML("beforeend", createTaskCard(task))
+      );
+    }
   } else {
-    incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+    incomingTasks.forEach(task =>
+      container.insertAdjacentHTML("beforeend", createTaskCard(task))
+    );
   }
 
   addAttachFileIconListeners();
@@ -2055,7 +2056,12 @@ function injectRejectedIfMissing(rawData){
     } catch(err){ console.warn('injectRejectedIfMissing error', err); }
 }
 
+// Track current search across paginated loads
+window.__taskCurrentSearchQuery = window.__taskCurrentSearchQuery || "";
+
 function initDesktopInfiniteScroll(query = "") {
+    // initialize current search value for subsequent loads
+    try { window.__taskCurrentSearchQuery = String(query || ''); } catch(_) {}
     ["new_request", "in_progress", "completed"].forEach(status => {
         const containerId = sectionMap[status];
         $(document).on("scroll", `#${containerId}`, function () {
@@ -2067,7 +2073,8 @@ function initDesktopInfiniteScroll(query = "") {
                 if (state.page < state.last) {
                     state.loading = true;
                     state.page++;
-                    fetchAndRenderTasks(status, state.page, true, query);
+                    const q = (typeof window.__taskCurrentSearchQuery === 'string') ? window.__taskCurrentSearchQuery : '';
+                    fetchAndRenderTasks(status, state.page, true, q);
                 }
             }
         });
@@ -2101,7 +2108,8 @@ $(document).ready(function () {
             if (st.page < st.last) {
                 st.loading = true;
                 st.page++;
-                fetchAndRenderTasks(status, st.page, true);
+                const q = (typeof window.__taskCurrentSearchQuery === 'string') ? window.__taskCurrentSearchQuery : '';
+                fetchAndRenderTasks(status, st.page, true, q);
             }
         }
     });
@@ -2127,7 +2135,8 @@ function filterVisibleTasks(queryRaw) {
                 const title = (card.querySelector('.task-title')?.textContent || '').toLowerCase();
                 // project title is rendered in a small.text-muted near title
                 const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
-                const match = !q || title.includes(q) || project.includes(q);
+                const desc = (card.querySelector('.task-description')?.textContent || '').toLowerCase();
+                const match = !q || title.includes(q) || project.includes(q) || desc.includes(q);
                 if (match) card.style.removeProperty('display');
                 else card.style.display = 'none';
             });
@@ -2138,7 +2147,8 @@ function filterVisibleTasks(queryRaw) {
             mobileList.querySelectorAll('.custom-card').forEach(card => {
                 const title = (card.querySelector('.task-title')?.textContent || '').toLowerCase();
                 const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
-                const match = !q || title.includes(q) || project.includes(q);
+                const desc = (card.querySelector('.task-description')?.textContent || '').toLowerCase();
+                const match = !q || title.includes(q) || project.includes(q) || desc.includes(q);
                 if (match) card.style.removeProperty('display');
                 else card.style.display = 'none';
             });
@@ -2157,21 +2167,44 @@ function applyCurrentSearchFilter() {
 }
 
 // Debounced input handler for search
-(function initTaskSearchFilter() {
-  let searchTimeout;
-  document.addEventListener('keyup', function (e) {
-    const el = e.target;
-    if (!el || el.id !== 'search_filter') return;
-
-    clearTimeout(searchTimeout);
-    const query = el.value || '';
-
-    searchTimeout = setTimeout(() => {
-      // kalau mau search semua status
-      fetchAndRenderTasks(null, 1, false, query);
-
-    }, 300);
-  });
+(function initTaskSearchFilter(){
+    let searchTimeout;
+    document.addEventListener('keyup', function(e){
+        const el = e.target;
+        if (!el || el.id !== 'search_filter') return;
+        clearTimeout(searchTimeout);
+        const query = el.value || '';
+        // Switch to server-side search like project page: fetch from DB via AJAX
+        searchTimeout = setTimeout(() => {
+            // Reset pagination state for desktop columns
+            try {
+                Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
+            } catch(_) {}
+            const q = query.trim();
+            try { window.__taskCurrentSearchQuery = q; } catch(_) {}
+            // If there is a search query, explicitly fetch each status bucket so backend filters per status
+            // (Some backends return only a single bucket when 'status' is not provided.)
+            if (q) {
+                try {
+                    const sections = ['new_request','in_progress','completed'];
+                    // Clear current content before rendering fresh results
+                    document.getElementById('new-request-tasks')?.replaceChildren();
+                    document.getElementById('in-progress-tasks')?.replaceChildren();
+                    document.getElementById('completed-tasks')?.replaceChildren();
+                    sections.forEach(st => {
+                        if (desktopState[st]) { desktopState[st].page = 1; desktopState[st].last = 1; desktopState[st].loading = false; }
+                        fetchAndRenderTasks(st, 1, false, q);
+                    });
+                } catch(_) {
+                    // Fallback: single call (may show partial buckets depending on backend)
+                    fetchAndRenderTasks(null, 1, false, q);
+                }
+            } else {
+                // Empty search -> load default all buckets
+                fetchAndRenderTasks(null, 1, false, '');
+            }
+        }, 250);
+    });
 })();
 
     // init
@@ -3678,7 +3711,7 @@ function applyCurrentSearchFilter() {
             const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
             if (!card) return;
             let span = card.querySelector('.feedback-comments-count');
-            if (!span && count > 0) {
+            if (!span) {
                 span = document.createElement('span');
                 span.className = 'feedback-comments-count ms-1';
                 span.style.color = '#555';
@@ -3689,15 +3722,7 @@ function applyCurrentSearchFilter() {
                     return; // no place to put it
                 }
             }
-            if (span) {
-                if (count > 0) {
-                    span.textContent = String(count);
-                    span.style.display = '';
-                } else {
-                    span.textContent = '';
-                    span.style.display = 'none';
-                }
-            }
+            span.textContent = String(count);
         }
         function optimisticIncrementFeedbackCount(taskId) {
             const prev = getExistingFeedbackCount(taskId);
@@ -4575,7 +4600,15 @@ function applyCurrentSearchFilter() {
                             const span = card.querySelector('.feedback-comments-count');
                             const prev = span ? parseInt(span.textContent, 10) || 0 : 0;
                             const next = Math.max(prev + 1, 1);
-                            setFeedbackCount(taskId, next);
+                            if (span) { span.textContent = String(next); }
+                            else {
+                                const newSpan = document.createElement('span');
+                                newSpan.className = 'feedback-comments-count ms-1';
+                                newSpan.style.color = '#555';
+                                newSpan.textContent = String(next);
+                                const icon = card.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) icon.parentNode.appendChild(newSpan);
+                            }
                         }
                     } catch(_) {}
                 })();
@@ -4591,8 +4624,18 @@ function applyCurrentSearchFilter() {
                             const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
                             return (typeof val === 'number') ? val : null;
                         })(countResponse);
-                        if (typeof serverCount === 'number') {
-                            setFeedbackCount(taskId, serverCount);
+                        if (typeof serverCount === 'number' && serverCount > 0) {
+                            const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                            if (!taskCard) return;
+                            let span = taskCard.querySelector('.feedback-comments-count');
+                            if (!span) {
+                                span = document.createElement('span');
+                                span.className = 'feedback-comments-count ms-1';
+                                span.style.color = '#555';
+                                const icon = taskCard.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) icon.parentNode.appendChild(span);
+                            }
+                            span.textContent = String(serverCount);
                         }
                     }
                 });
@@ -4909,7 +4952,7 @@ function applyCurrentSearchFilter() {
                 const detailEl = document.getElementById("taskDetailModal");
                 if (detailEl) {
                     const detailModal = new bootstrap.Modal(detailEl);
-
+                    
                     // Initialize tooltips for PIC and executor images in modal after it's shown
                     detailEl.addEventListener('shown.bs.modal', function () {
                         // Wait a bit for DOM to be fully rendered
@@ -4917,7 +4960,7 @@ function applyCurrentSearchFilter() {
                             initBootstrapTooltips(detailEl);
                         }, 100);
                     }, { once: true });
-
+                    
                     // Clean up tooltips when modal is hidden
                     detailEl.addEventListener('hidden.bs.modal', function () {
                         const tooltipElements = detailEl.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -4928,7 +4971,7 @@ function applyCurrentSearchFilter() {
                             }
                         });
                     }, { once: true });
-
+                    
                     detailModal.show();
                 }
             },
@@ -5823,15 +5866,15 @@ function applyCurrentSearchFilter() {
 
     // Flag continuous auto load for in_progress list
     let mobileAutoFullLoad = false;
+
     let searchQueryMobile = '';
-    let searchTimeout;
 
     $(document).on("keyup", "#search_filter_mobile", function () {
         clearTimeout(searchTimeout);
         searchQueryMobile = this.value.trim();
 
         searchTimeout = setTimeout(() => {
-            const status = $("#taskStatusSelect").val(); // ambil status tab aktif
+            const status = $("#taskStatusSelect").val();
             mobileState.page = 1;
             mobileState.last = 1;
             fetchMobileTasks(status, 1, false);
@@ -5841,7 +5884,6 @@ function applyCurrentSearchFilter() {
     function fetchMobileTasks(status, page = 1, append = false, opts = {}) {
         mobileState.status = status;
         if (mobileState.loading) return;
-
         if (!append && opts.loadAll && status === 'in_progress' && page === 1) {
             mobileAutoFullLoad = true;
         }
@@ -5854,9 +5896,15 @@ function applyCurrentSearchFilter() {
         );
 
         const params = { status, page };
-        if (searchQueryMobile) params.search = searchQueryMobile;
-        if (currentTaskFilters?.project) params.project_id = currentTaskFilters.project;
-        if (currentTaskFilters?.status) params.filter_status = currentTaskFilters.status;
+        if (searchQueryMobile && searchQueryMobile.trim() !== "") {
+            params.search = searchQueryMobile.trim();
+        }
+        if (currentTaskFilters?.project) {
+            params.project_id = currentTaskFilters.project;
+        }
+        if (currentTaskFilters?.status) {
+            params.filter_status = currentTaskFilters.status;
+        }
 
         $.ajax({
             url: appUrl + "/task/index",
@@ -5865,7 +5913,6 @@ function applyCurrentSearchFilter() {
             data: params,
             success: function (response) {
                 if (!response || response.code !== 200 || !response.data) return;
-
                 let data = response.data?.[status];
                 if (status === 'in_progress' && response.data?.rejected?.tasks) {
                     const rej = response.data.rejected.tasks;
@@ -5874,10 +5921,8 @@ function applyCurrentSearchFilter() {
                         data = { ...(data || {}), tasks: [...baseTasks, ...rej] };
                     }
                 }
-
                 mobileState.last = data?.pagination?.last_page || 1;
                 renderMobileTasks(status, data, append);
-
                 if (!append && opts.prefetch && mobileState.page === 1 && mobileState.last > 1 && status !== 'new_request') {
                     setTimeout(() => {
                         if (mobileState.status === status && mobileState.page === 1) {
@@ -5886,9 +5931,7 @@ function applyCurrentSearchFilter() {
                         }
                     }, 80);
                 }
-
                 attemptAutoFillMobile(status);
-
                 if (mobileAutoFullLoad && status === 'in_progress') {
                     if (mobileState.page < mobileState.last) {
                         setTimeout(() => {
@@ -5971,7 +6014,7 @@ function applyCurrentSearchFilter() {
                     tooltip.dispose();
                 }
             });
-
+            
             // Reinitialize with fresh mobile detection
             initBootstrapTooltips();
         }, 100);
@@ -6021,7 +6064,7 @@ function applyCurrentSearchFilter() {
             const st = $(this).val();
             mobileState.status = st;
             mobileState.page = 1; mobileState.last = 1; mobileAutoFullLoad = false;
-
+            
             // Clear existing tooltips before status change to prevent placement issues
             const existingTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
             existingTooltips.forEach(el => {
@@ -6030,7 +6073,7 @@ function applyCurrentSearchFilter() {
                     tooltip.dispose();
                 }
             });
-
+            
             fetchMobileTasks(st, 1, false, { loadAll: st === 'in_progress' });
         });
     });
@@ -6070,12 +6113,22 @@ function applyCurrentSearchFilter() {
         </div>
         <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
             <div class="dropdown-filter-body">
-                <div class="mb-3">
-                    <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                    <select id="filterTaskProjectMobile" class="form-select">
-                    <option value="">All Projects</option>
-                    </select>
-                </div>
+            <div class="mb-3">
+                <label for="filterTaskProjectMobile" class="form-label">Project</label>
+                <select id="filterTaskProjectMobile" class="form-select">
+                <option value="">All Projects</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="filterTaskStatusMobile" class="form-label">Status</label>
+                <select id="filterTaskStatusMobile" class="form-select">
+                <option value="">All Status</option>
+                <option value="new_request">New Request</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="rejected">Rejected</option>
+                </select>
+            </div>
             </div>
             <div class="dropdown-filter-footer">
             <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
@@ -6402,7 +6455,7 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
                     initBootstrapTooltips(taskDetailModal);
                 }, 100);
             });
-
+            
             taskDetailModal.addEventListener('hidden.bs.modal', function () {
                 const tooltipElements = taskDetailModal.querySelectorAll('[data-bs-toggle="tooltip"]');
                 tooltipElements.forEach(el => {
