@@ -3,7 +3,7 @@
         {{ __('master') }}
     </x-slot>
     <x-slot name="head_slot">
-        <meta name="app-url" content="{{ url('') }}">
+    <meta name="app-url" content="{{ url('/') }}">
     </x-slot>
 
     <div class="title-content">
