@@ -1826,12 +1826,14 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
     // Include active filters (project/status) if present to keep parity with mobile behavior
     try {
         if (currentTaskFilters && currentTaskFilters.project) {
-            params.project_id = currentTaskFilters.project;
+            // Backend expects 'project'
+            params.project = currentTaskFilters.project;
         }
         // Important: when a search query is present, do NOT constrain by status filter,
         // so that results can come from New, In Progress, and Completed.
-        if (!query && currentTaskFilters && currentTaskFilters.status) {
-            params.filter_status = currentTaskFilters.status;
+        if (!statusKey && !query && currentTaskFilters && currentTaskFilters.status) {
+            // Backend expects 'status'
+            params.status = currentTaskFilters.status;
         }
     } catch(_) { /* noop */ }
 
@@ -2080,47 +2082,8 @@ function initDesktopInfiniteScroll(query = "") {
         });
     });
 }
-
-$(document).ready(function () {
-  ["new_request", "in_progress", "completed"].forEach(status => {
-    desktopState[status].page = 1;
-    desktopState[status].loading = false;
-    fetchAndRenderTasks(status, 1, false);
-  });
-
-  initDesktopInfiniteScroll();
-});
-
-["new_request", "in_progress", "completed"].forEach(status => {
-    const containerId = {
-        new_request: "new-request-tasks",
-        in_progress: "in-progress-tasks",
-        completed: "completed-tasks"
-    }[status];
-
-    $(`#${containerId}`).on("scroll", function () {
-        const el = this;
-        const st = desktopState[status];
-
-        if (st.loading) return;
-
-        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-            if (st.page < st.last) {
-                st.loading = true;
-                st.page++;
-                const q = (typeof window.__taskCurrentSearchQuery === 'string') ? window.__taskCurrentSearchQuery : '';
-                fetchAndRenderTasks(status, st.page, true, q);
-            }
-        }
-    });
-});
-
-$(document).ready(function () {
-    ["new_request", "in_progress", "completed"].forEach(status => {
-        desktopState[status].page = 1;
-        fetchAndRenderTasks(status, 1, false);
-    });
-});
+// Note: desktop data is fetched once in the unified init block below; scroll handlers are
+// bound via initDesktopInfiniteScroll() to avoid duplicate bindings and race conditions.
 
 // Client-side, in-place filter for visible task cards (title + project title)
 function filterVisibleTasks(queryRaw) {
@@ -2211,7 +2174,10 @@ function applyCurrentSearchFilter() {
     $(document).ready(function () {
     // Ensure dropdown toggle handler is bound once globally
     try { setupTaskDropdownListeners(); } catch(_) {}
-        fetchAndRenderTasks();
+        // Initialize infinite scroll once
+        initDesktopInfiniteScroll();
+        // Perform a single full-bucket fetch to populate all sections
+        fetchAndRenderTasks(null, 1, false);
     });
 
     // --- New flow: checkbox selects, done_all triggers Accept; arrow triggers Progress ---
@@ -5576,12 +5542,26 @@ function applyCurrentSearchFilter() {
             });
     }
 
-    if (applyTaskFilterBtnMobile) {
+    if (applyTaskFilterBtnMobile && !applyTaskFilterBtnMobile._bound) {
+        applyTaskFilterBtnMobile._bound = true;
         applyTaskFilterBtnMobile.addEventListener("click", function () {
             currentTaskFilters.project = filterTaskProjectSelectMobile.value;
             currentTaskFilters.status = filterTaskStatusSelectMobile.value;
             fetchAndRenderFilteredTasks(currentTaskFilters);
-            document.getElementById("taskFilterDropdownMobile").style.display = "none";
+            const dd = document.getElementById("taskFilterDropdownMobile");
+            if (dd) dd.style.display = "none";
+        });
+    }
+
+    // Desktop: Apply filter handler (missing previously)
+    if (applyTaskFilterBtn && !applyTaskFilterBtn._bound) {
+        applyTaskFilterBtn._bound = true;
+        applyTaskFilterBtn.addEventListener("click", function () {
+            if (filterTaskProjectSelect) currentTaskFilters.project = filterTaskProjectSelect.value;
+            if (filterTaskStatusSelect) currentTaskFilters.status = filterTaskStatusSelect.value;
+            fetchAndRenderFilteredTasks(currentTaskFilters);
+            const dd = document.getElementById("taskFilterDropdown");
+            if (dd) dd.style.display = "none";
         });
     }
 
@@ -5671,7 +5651,8 @@ function applyCurrentSearchFilter() {
     }
 
     // Apply task filters
-    if (applyTaskFilterBtnMobile) {
+    if (applyTaskFilterBtnMobile && !applyTaskFilterBtnMobile._bound2) {
+        applyTaskFilterBtnMobile._bound2 = true;
         applyTaskFilterBtnMobile.addEventListener("click", function () {
             currentTaskFilters.project = filterTaskProjectSelectMobile.value;
             currentTaskFilters.status = filterTaskStatusSelectMobile.value;
@@ -5681,7 +5662,8 @@ function applyCurrentSearchFilter() {
             mobileState.last = 1;
             fetchMobileTasks(status, 1, false);
 
-            document.getElementById("taskFilterDropdownMobile").style.display = "none";
+            const dd = document.getElementById("taskFilterDropdownMobile");
+            if (dd) dd.style.display = "none";
         });
     }
 
@@ -5754,64 +5736,44 @@ function applyCurrentSearchFilter() {
             url: appUrl + "/task/index",
             type: "GET",
             dataType: "json",
-            data: filters,
+            data: (function(){
+                const p = {};
+                if (filters && filters.project) p.project = filters.project; // backend expects 'project'
+                if (filters && filters.status) p.status = filters.status; // backend expects 'status'
+                return p;
+            })(),
             success: function (data) {
-                let tasksData = data.data || {};
+                const payload = data && data.data ? data.data : {};
 
-                document.getElementById("new-request-tasks").innerHTML = "";
-                document.getElementById("in-progress-tasks").innerHTML = "";
-                document.getElementById("completed-tasks").innerHTML = "";
+                const newEl = document.getElementById("new-request-tasks");
+                const progEl = document.getElementById("in-progress-tasks");
+                const compEl = document.getElementById("completed-tasks");
+                if (newEl) newEl.innerHTML = "";
+                if (progEl) progEl.innerHTML = "";
+                if (compEl) compEl.innerHTML = "";
 
-                let allTasks = [];
-                if (tasksData.new_request) allTasks = allTasks.concat(tasksData.new_request);
-                if (tasksData.in_progress) allTasks = allTasks.concat(tasksData.in_progress);
-                if (tasksData.completed) allTasks = allTasks.concat(tasksData.completed);
-                if (tasksData.rejected) allTasks = allTasks.concat(tasksData.rejected);
+                // Helper to read tasks from a bucket that could be an array or {tasks:[]}
+                const getTasks = (section) => {
+                    if (!section) return [];
+                    if (Array.isArray(section)) return section;
+                    if (Array.isArray(section.tasks)) return section.tasks;
+                    return [];
+                };
 
-                if (filters.project && filters.project !== "") {
-                    allTasks = allTasks.filter(task => task.project_id == filters.project);
+                let newTasks = getTasks(payload.new_request);
+                let progTasks = getTasks(payload.in_progress);
+                let compTasks = getTasks(payload.completed);
+                let rejTasks = getTasks(payload.rejected);
+
+                // When filtering by status=in_progress, backend may already merge rejected; keep extra merge safe
+                if (rejTasks.length) {
+                    progTasks = [...progTasks, ...rejTasks];
                 }
 
-                if (filters.status && filters.status !== "") {
-                    allTasks = allTasks.filter(task => {
-                        // Normalize status: lowercase and collapse any whitespace to underscores
-                        let taskStatus = String(task.status || '')
-                            .toLowerCase()
-                            .replace(/\s+/g, "_");
-                        return taskStatus === filters.status;
-                    });
-                }
-
-                const groupedTasks = { new_request: [], in_progress: [], completed: [], rejected: [] };
-                allTasks.forEach(task => {
-                    let normalizedStatus = String(task.status || '')
-                        .toLowerCase()
-                        .trim()
-                        .replace(/\s+/g, "_");
-                    if (groupedTasks[normalizedStatus] !== undefined) {
-                        groupedTasks[normalizedStatus].push(task);
-                    } else if (normalizedStatus.includes("reject")) {
-                        groupedTasks.rejected.push(task);
-                    }
-                });
-
-                groupedTasks.new_request.forEach(task => {
-                    document.getElementById("new-request-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.in_progress.forEach(task => {
-                    document.getElementById("in-progress-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.completed.forEach(task => {
-                    document.getElementById("completed-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                // Ensure rejected tasks are rendered (design choice: show under In Progress column like default view)
-                groupedTasks.rejected.forEach(task => {
-                    document.getElementById("in-progress-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
+                // Render each bucket
+                newTasks.forEach(t => { if (newEl) newEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
+                progTasks.forEach(t => { if (progEl) progEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
+                compTasks.forEach(t => { if (compEl) compEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
 
                 // Dropdown listeners are bound once globally; avoid rebinding here
                 addAttachFileIconListeners();
@@ -5900,11 +5862,9 @@ function applyCurrentSearchFilter() {
             params.search = searchQueryMobile.trim();
         }
         if (currentTaskFilters?.project) {
-            params.project_id = currentTaskFilters.project;
+            params.project = currentTaskFilters.project; // backend expects 'project'
         }
-        if (currentTaskFilters?.status) {
-            params.filter_status = currentTaskFilters.status;
-        }
+        // Do not add additional status filter on mobile; the bucket 'status' param above controls which list to show
 
         $.ajax({
             url: appUrl + "/task/index",
