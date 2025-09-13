@@ -3,6 +3,35 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
+// Helper function for consistent employee loading error handling
+function handleEmployeeLoadError(xhr, status, error, context = '') {
+    console.error(`Failed to load employees${context ? ' (' + context + ')' : ''}:`, {
+        status: xhr.status,
+        statusText: xhr.statusText,
+        responseText: xhr.responseText,
+        error: error
+    });
+    
+    // Show user-friendly error message
+    if (typeof showFloatingAlert === 'function') {
+        let message = "Failed to load employees list. ";
+        if (status === 'timeout') {
+            message += "Request timed out. Please try again.";
+        } else if (xhr.status === 401) {
+            message += "Authentication required. Please refresh and try again.";
+        } else if (xhr.status === 500) {
+            message += "Server error. Please contact administrator.";
+        } else if (xhr.status === 0) {
+            message += "Network error. Please check your connection.";
+        } else {
+            message += "Please try again or contact administrator.";
+        }
+        showFloatingAlert(message, "warning", 5000);
+    } else {
+        alert("Failed to load employees. Please try again.");
+    }
+}
+
 // Mobile detection utility for tooltip placement
 function isMobileDevice() {
     return window.matchMedia('(max-width: 768px)').matches || 
@@ -1703,6 +1732,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     exclude_employee_id: currentEmployeeId,
                                 },
                                 dataType: "json",
+                                timeout: 10000, // 10 second timeout
                                 success: function (data) {
                                     employees = (data.data || []).map(function (
                                         e
@@ -1717,8 +1747,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                     filteredEmployees = employees;
                                     renderDropdown();
                                 },
-                                error: function () {
-                                    alert("Failed to load employees.");
+                                error: function (xhr, status, error) {
+                                    handleEmployeeLoadError(xhr, status, error, 'Edit Project');
+                                    
+                                    // Provide fallback with empty list
+                                    employees = [];
+                                    filteredEmployees = [];
+                                    renderDropdown();
                                 },
                             });
                         }
@@ -2072,6 +2107,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     exclude_employee_id: currentEmployeeId,
                                 },
                                 dataType: "json",
+                                timeout: 10000, // 10 second timeout
                                 success: function (data) {
                                     employees = (data.data || []).map(function (
                                         e
@@ -2086,8 +2122,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                     filteredEmployees = employees;
                                     renderDropdown();
                                 },
-                                error: function () {
-                                    alert("Failed to load employees.");
+                                error: function (xhr, status, error) {
+                                    handleEmployeeLoadError(xhr, status, error, 'Edit Contributors');
+                                    
+                                    // Provide fallback with empty list
+                                    employees = [];
+                                    filteredEmployees = [];
+                                    renderDropdown();
                                 },
                             });
                         }
@@ -6807,6 +6848,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
+                timeout: 10000, // 10 second timeout
                 success: function (data) {
                     employees = (data.data || []).map(function (e) {
                         // Normalize unified avatar fields
@@ -6820,8 +6862,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     filteredEmployees = employees;
                     renderDropdown();
                 },
-                error: function () {
-                    alert("Failed to load employees.");
+                error: function (xhr, status, error) {
+                    handleEmployeeLoadError(xhr, status, error, 'Add Project Co-Authors');
+                    
+                    // Provide fallback with empty list
+                    employees = [];
+                    filteredEmployees = [];
+                    renderDropdown();
                 },
             });
         }
@@ -7060,6 +7107,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
+                timeout: 10000, // 10 second timeout
                 success: function (data) {
                     // Exclude employees already selected as co-authors
                     const coAuthorIds = window.selectedCoAuthorIds || [];
@@ -7076,8 +7124,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     filteredEmployees = employees;
                     renderDropdown();
                 },
-                error: function () {
-                    alert("Failed to load employees.");
+                error: function (xhr, status, error) {
+                    handleEmployeeLoadError(xhr, status, error, 'Add Project Contributors');
+                    
+                    // Provide fallback with empty list
+                    employees = [];
+                    filteredEmployees = [];
+                    renderDropdown();
                 },
             });
         }
@@ -7598,6 +7651,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
+                timeout: 10000, // 10 second timeout
                 success: function (data) {
                     // Exclude employees already selected as contributors
                     const contributorIds = window.selectedContributorIds || [];
@@ -7607,8 +7661,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     filteredEmployees = employees;
                     renderDropdown();
                 },
-                error: function () {
-                    alert("Failed to load employees.");
+                error: function (xhr, status, error) {
+                    handleEmployeeLoadError(xhr, status, error, 'Project Co-Authors (Modal)');
+                    
+                    // Provide fallback with empty list
+                    employees = [];
+                    filteredEmployees = [];
+                    renderDropdown();
                 },
             });
         }
@@ -7957,10 +8016,21 @@ document.addEventListener("DOMContentLoaded", function () {
                         // single item
                         count = 1;
                     }
-                    if (fbBadge) fbBadge.textContent = count;
+                    if (fbBadge) {
+                        if (count > 0) {
+                            fbBadge.textContent = count;
+                            fbBadge.style.display = '';
+                        } else {
+                            fbBadge.textContent = '';
+                            fbBadge.style.display = 'none';
+                        }
+                    }
                 })
                 .catch((err) => {
-                    if (fbBadge) fbBadge.textContent = "0";
+                    if (fbBadge) {
+                        fbBadge.textContent = '';
+                        fbBadge.style.display = 'none';
+                    }
                 });
 
             // request project detail to read reference_file
@@ -7978,10 +8048,21 @@ document.addEventListener("DOMContentLoaded", function () {
                         )
                             count = 1;
                     }
-                    if (fileBadge) fileBadge.textContent = count;
+                    if (fileBadge) {
+                        if (count > 0) {
+                            fileBadge.textContent = count;
+                            fileBadge.style.display = '';
+                        } else {
+                            fileBadge.textContent = '';
+                            fileBadge.style.display = 'none';
+                        }
+                    }
                 })
                 .catch((err) => {
-                    if (fileBadge) fileBadge.textContent = "0";
+                    if (fileBadge) {
+                        fileBadge.textContent = '';
+                        fileBadge.style.display = 'none';
+                    }
                 });
         });
     })(0);
@@ -8020,10 +8101,21 @@ document.addEventListener("DOMContentLoaded", function () {
                         count = resp.meta.total;
                     else if (resp.data && typeof resp.data === "object")
                         count = 1;
-                    if (fbBadge) fbBadge.textContent = count;
+                    if (fbBadge) {
+                        if (count > 0) {
+                            fbBadge.textContent = count;
+                            fbBadge.style.display = '';
+                        } else {
+                            fbBadge.textContent = '';
+                            fbBadge.style.display = 'none';
+                        }
+                    }
                 })
                 .catch(() => {
-                    if (fbBadge) fbBadge.textContent = "0";
+                    if (fbBadge) {
+                        fbBadge.textContent = '';
+                        fbBadge.style.display = 'none';
+                    }
                 });
 
             const filePromise = fetch(appUrl + "/project/" + pid)
@@ -8040,10 +8132,21 @@ document.addEventListener("DOMContentLoaded", function () {
                         data.reference_file.trim() !== ""
                     )
                         files = [data.reference_file];
-                    if (fileBadge) fileBadge.textContent = files.length;
+                    if (fileBadge) {
+                        if (files.length > 0) {
+                            fileBadge.textContent = files.length;
+                            fileBadge.style.display = '';
+                        } else {
+                            fileBadge.textContent = '';
+                            fileBadge.style.display = 'none';
+                        }
+                    }
                 })
                 .catch(() => {
-                    if (fileBadge) fileBadge.textContent = "0";
+                    if (fileBadge) {
+                        fileBadge.textContent = '';
+                        fileBadge.style.display = 'none';
+                    }
                 });
 
             // Wait for both requests to complete
@@ -8301,6 +8404,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 type: "GET",
                 data: { query: query, exclude_employee_id: currentEmployeeId },
                 dataType: "json",
+                timeout: 10000, // 10 second timeout
                 success: function (data) {
                     // Exclude employees already selected as co-authors
                     const coAuthorIds = window.selectedCoAuthorIds || [];
@@ -8310,8 +8414,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     filteredEmployees = employees;
                     renderDropdown();
                 },
-                error: function () {
-                    alert("Failed to load employees.");
+                error: function (xhr, status, error) {
+                    handleEmployeeLoadError(xhr, status, error, 'Project Contributors (Modal)');
+                    
+                    // Provide fallback with empty list
+                    employees = [];
+                    filteredEmployees = [];
+                    renderDropdown();
                 },
             });
         }
