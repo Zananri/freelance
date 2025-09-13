@@ -20,6 +20,20 @@ use Illuminate\Validation\Rule;
 class EmployeeController extends Controller
 {
     /**
+     * Derive HTTP status code from exception, defaulting to 500 for non-HTTP exceptions
+     */
+    private function deriveHttpStatusFromException(\Throwable $e): int
+    {
+        $code = $e->getCode();
+        if (is_numeric($code)) {
+            $int = (int) $code;
+            if ($int >= 400 && $int <= 599) {
+                return $int;
+            }
+        }
+        return 500;
+    }
+    /**
      * Determine if a given stored path refers to the shared default avatar.
      */
     private function isDefaultAvatarPath(?string $path): bool
@@ -258,12 +272,13 @@ class EmployeeController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => 406,
+                'code' => $status,
                 'status' => 'error',
                 'data' => [],
                 'message' => $e->getMessage()
-            ], 406);
+            ], $status);
         }
     }
 
@@ -427,12 +442,13 @@ class EmployeeController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => 406,
+                'code' => $status,
                 'status' => 'error',
                 'data' => [],
                 'message' => $e->getMessage()
-            ], 406);
+            ], $status);
         }
     }
 
@@ -461,12 +477,13 @@ class EmployeeController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => 406,
+                'code' => $status,
                 'status' => 'error',
                 'data' => [],
                 'message' => $e->getMessage()
-            ], 406);
+            ], $status);
         }
     }
 
@@ -553,11 +570,12 @@ class EmployeeController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => 'Failed to fetch employees: ' . $e->getMessage()
-            ], 500);
+            ], $status);
         }
     }
 }
