@@ -490,6 +490,35 @@
         </div>
     </div>
 
+    {{-- Delete Config Modal --}}
+    <div class="modal fade" id="deleteConfigModal" tabindex="-1" aria-labelledby="deleteConfigModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="deleteConfigModalLabel">Delete Shift</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom text-center">
+                    <div class="mb-3">
+                        <span class="material-symbols-outlined text-warning" style="font-size: 3rem;">warning</span>
+                    </div>
+                    <h6 class="mb-3">Are you sure you want to delete this shift?</h6>
+                    <div class="mb-3">
+                        <strong id="deleteShiftTitle">Shift Title</strong><br>
+                        <small id="deleteShiftTime" class="text-muted">Time: 09:00 - 17:00</small>
+                    </div>
+                    <p class="text-muted small">This action cannot be undone. The shift will be soft deleted.</p>
+                    <input type="hidden" id="deleteConfigShiftId" name="shift_id">
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn submit-employee-btn" id="confirmDeleteShiftConfigBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <x-slot name="script_slot">
         <script src="{{ asset('asset/js/shift.js?v=' . time()) }}"></script>
     </x-slot>

@@ -24,6 +24,9 @@ class ShiftController extends Controller
         $month = $request->input('month', date('m'));
         $year = $request->input('year', date('Y'));
         $search = $request->input('search', '');
+        $departmentFilter = $request->input('department', '');
+        $divisionFilter = $request->input('division', '');
+        $shiftFilter = $request->input('shift', '');
 
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
@@ -33,6 +36,8 @@ class ShiftController extends Controller
             'employees.name',
             'employees.email',
             'employees.profile_picture',
+            'employees.department_id',
+            'employees.division_id',
             // base shift fields
             'employees.shift_id as base_shift_id',
             'base_shifts.title as base_title',
@@ -65,11 +70,30 @@ class ShiftController extends Controller
                 $join->on('employees.shift_id', '=', 'base_shifts.id')
                     ->whereNull('base_shifts.deleted_by');
             })
-            ->where('employees.status', 'active');
+            ->where('employees.status', 'active')
+            ->whereNull('employees.deleted_by');
 
         // Add search filter if provided
         if (!empty($search)) {
             $query->where('employees.name', 'like', '%' . $search . '%');
+        }
+
+        // Add department filter if provided
+        if (!empty($departmentFilter)) {
+            $query->where('employees.department_id', $departmentFilter);
+        }
+
+        // Add division filter if provided  
+        if (!empty($divisionFilter)) {
+            $query->where('employees.division_id', $divisionFilter);
+        }
+
+        // Add shift filter if provided - check both base shift and specific shift assignments
+        if (!empty($shiftFilter)) {
+            $query->where(function($q) use ($shiftFilter) {
+                $q->where('employees.shift_id', $shiftFilter)
+                  ->orWhere('employee_shifts.shift_id', $shiftFilter);
+            });
         }
 
         $employees = $query

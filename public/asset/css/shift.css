@@ -407,7 +407,8 @@
 }
 
 .modal-footer-custom .submit-employee-btn {
-    background: black;
+    background: #444444;
+    color: #e3e4ee;
 }
 
 .modal-footer-custom .btn-light {
