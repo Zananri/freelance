@@ -3,32 +3,77 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
-// Helper function for consistent employee loading error handling
+// Helper function for consistent employee loading error handling (quiet by default)
 function handleEmployeeLoadError(xhr, status, error, context = '') {
-    console.error(`Failed to load employees${context ? ' (' + context + ')' : ''}:`, {
-        status: xhr.status,
-        statusText: xhr.statusText,
-        responseText: xhr.responseText,
-        error: error
-    });
-    
-    // Show user-friendly error message
-    if (typeof showFloatingAlert === 'function') {
-        let message = "Failed to load employees list. ";
-        if (status === 'timeout') {
-            message += "Request timed out. Please try again.";
-        } else if (xhr.status === 401) {
-            message += "Authentication required. Please refresh and try again.";
-        } else if (xhr.status === 500) {
-            message += "Server error. Please contact administrator.";
-        } else if (xhr.status === 0) {
-            message += "Network error. Please check your connection.";
-        } else {
-            message += "Please try again or contact administrator.";
+    try {
+        console.warn(`Failed to load employees${context ? ' (' + context + ')' : ''}:`, {
+            status: xhr?.status,
+            statusText: xhr?.statusText,
+            responseText: xhr?.responseText,
+            error: error
+        });
+
+        // Only notify the user if they're actively interacting with employee pickers
+        function isUserInteracting() {
+            try {
+                const active = document.activeElement;
+                const interactiveIds = new Set([
+                    'co_author_input',
+                    'contributor_input',
+                    'edit_co_author_input',
+                    'edit_contributor_input'
+                ]);
+                if (active && interactiveIds.has(active.id)) return true;
+                // Or if any employee dropdown is currently visible
+                const dropdownSelectors = [
+                    '#co_author_dropdown',
+                    '#contributor_dropdown',
+                    '#edit_co_author_dropdown',
+                    '#edit_contributor_dropdown'
+                ];
+                for (const sel of dropdownSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.style.display !== 'none' && el.offsetParent !== null) {
+                        return true;
+                    }
+                }
+            } catch (_) {}
+            return false;
         }
-        showFloatingAlert(message, "warning", 5000);
-    } else {
-        alert("Failed to load employees. Please try again.");
+
+        // Throttle notifications to avoid noise
+        const now = Date.now();
+        const THROTTLE_MS = 60_000; // 60s
+        window.__employeeErrorLastShown = window.__employeeErrorLastShown || 0;
+        const canNotify = now - window.__employeeErrorLastShown > THROTTLE_MS;
+
+        // Decide whether to show any UI notice at all
+        const shouldShow = isUserInteracting() && canNotify;
+
+        if (!shouldShow) return; // stay quiet (only console.warn)
+
+        window.__employeeErrorLastShown = now;
+
+        if (typeof showFloatingAlert === 'function') {
+            let message = 'Failed to load employees list. ';
+            if (status === 'timeout') {
+                message += 'Request timed out. Please try again.';
+            } else if (xhr && xhr.status === 401) {
+                message += 'Authentication required. Please refresh and try again.';
+            } else if (xhr && xhr.status === 500) {
+                message += 'Server error. Please contact administrator.';
+            } else if (xhr && xhr.status === 0) {
+                message += 'Network error. Please check your connection.';
+            } else {
+                message += 'Please try again or contact administrator.';
+            }
+            showFloatingAlert(message, 'warning', 4000);
+        } else {
+            // No global alert UI available: do not block the user with window.alert; stay silent
+        }
+    } catch (e) {
+        // As a last resort, avoid breaking the page
+        try { console.warn('handleEmployeeLoadError fallback', e); } catch(_) {}
     }
 }
 
@@ -545,18 +590,31 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Load project card data and generate cards dynamically
-    function loadProjectCardData(filter = null, page = 1) {
+    // Accepts optional filter (status grouping), page, and search text
+    // Keep a local state mirrored to window.currentSearch for cross-scope access
+    let currentSearch = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
+    function loadProjectCardData(filter = null, page = 1, search = null) {
         // DEBUG: Log filter parameter
         if (filter) {
             console.log('=== FILTER DEBUG ===');
             console.log('Filter applied:', filter);
         }
-        
+        // Track current search text
+        if (typeof search === 'string') {
+            currentSearch = search;
+            try { window.currentSearch = currentSearch; } catch(_) {}
+        }
+
+        const params = { filter: filter, task_scope: "me", page: page };
+        if (currentSearch && currentSearch.trim() !== '') {
+            params.search = currentSearch.trim();
+        }
+
         $.ajax({
             url: appUrl + "/project/get-all-projects",
             type: "GET",
             dataType: "json",
-            data: { filter: filter, task_scope: "me", page: page },
+            data: params,
             beforeSend: function () {
                 $(".loader").fadeIn("fast");
             },
@@ -565,9 +623,9 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             success: function (data) {
                 // DEBUG: Log filter results
-                if (filter) {
+                if (filter || currentSearch) {
                     console.log('Filter results count:', Array.isArray(data) ? data.length : (data.data ? data.data.length : 0));
-                    console.log('Filter results:', data);
+                    console.log('Filter/search results:', data);
                 }
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
@@ -803,6 +861,13 @@ document.addEventListener("DOMContentLoaded", function () {
                             document.getElementById("search_filter");
                         if (!searchInput || searchInput.value.trim() === "") {
                             refreshAllProjectLatestFeedbackSnippets();
+                        }
+                    } catch (_) {}
+
+                    // Update pagination if backend provides it (supports search pagination)
+                    try {
+                        if (data && data.pagination) {
+                            updatePagination(data.pagination);
                         }
                     } catch (_) {}
 
@@ -6699,17 +6764,37 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/project/get-all-projects",
             type: "GET",
             dataType: "json",
-            data: { task_scope: "me", page: page },
+            data: (function(){
+                const params = { task_scope: "me", page: page };
+                try {
+                    const q = (typeof window.currentSearch === 'string') ? window.currentSearch : currentSearch;
+                    if (typeof q === 'string' && q.trim() !== '') {
+                        params.search = q.trim();
+                    }
+                } catch(_) {}
+                return params;
+            })(),
             success: function (data) {
-                loadProjectCardData(null, page);
+                // Render with the same page and current search
+                const q = (typeof window.currentSearch === 'string') ? window.currentSearch : currentSearch;
+                loadProjectCardData(null, page, (typeof q === 'string' ? q : ''));
 
-                updatePagination(data.pagination);
+                if (data && data.pagination) {
+                    updatePagination(data.pagination);
+                }
             },
             error: function () {
                 console.error("Failed to load project cards");
             },
         });
     }
+
+    // Expose to global so other blocks (e.g., late DOMContentLoaded handlers) can invoke it
+    try {
+        window.loadProjectCardData = loadProjectCardData;
+        window.loadCardProjects = loadCardProjects;
+        window.currentSearch = currentSearch;
+    } catch(_) {}
 
     function updatePagination(pagination) {
         if (!pagination) return;
@@ -9481,54 +9566,23 @@ nextBtn.addEventListener("click", () => {
 
 document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search_filter");
+    if (!searchInput) return;
 
-    searchInput.addEventListener("input", function () {
-        const query = this.value.toLowerCase();
+    // Simple debounce helper
+    function debounce(fn, wait) {
+        let t;
+        return function (...args) {
+            clearTimeout(t);
+            t = setTimeout(() => fn.apply(this, args), wait);
+        };
+    }
 
-        const cards = document.querySelectorAll(
-            "#all-cards-container [data-project-id]"
-        );
+    const doSearch = debounce(function () {
+        const raw = searchInput.value || "";
+        const q = raw.trim();
 
-        cards.forEach((card) => {
-            const projectId = card.getAttribute("data-project-id");
-            const title =
-                card.querySelector("h6")?.textContent.toLowerCase() || "";
-            const desc =
-                card.querySelector("p")?.textContent.toLowerCase() || "";
-
-            const match =
-                title.includes(query) ||
-                desc.includes(query) ||
-                projectId.includes(query);
-
-            if (match) {
-                card.classList.remove("d-none");
-            } else {
-                card.classList.add("d-none");
-            }
-        });
-
-        // When search is cleared, restore feedback snippets that should be visible
-        if (query.trim() === "") {
-            document
-                .querySelectorAll(".latest-feedback-snippet")
-                .forEach((snippet) => {
-                    const projectId = snippet.getAttribute("data-project-id");
-                    if (projectId) {
-                        // First try to restore from cache
-                        if (window.__projectLatest && window.__projectLatest[projectId]) {
-                            const data = window.__projectLatest[projectId];
-                            setProjectLatestFeedbackSnippet(projectId, data);
-                        } else {
-                            // If no cache available, fetch fresh data
-                            try {
-                                fetchLatestFeedbackForProject(projectId);
-                            } catch (_) {}
-                        }
-                    }
-                });
-        } else {
-            // Hide feedback snippets during search to avoid clutter
+        // During active search, hide latest feedback snippets to reduce clutter
+        if (q !== "") {
             document
                 .querySelectorAll(".latest-feedback-snippet")
                 .forEach((snippet) => {
@@ -9536,7 +9590,45 @@ document.addEventListener("DOMContentLoaded", function () {
                     snippet.style.display = "none";
                 });
         }
-    });
+
+        // Reload cards from backend with search param
+        try {
+            if (typeof window.loadProjectCardData === 'function') {
+                window.loadProjectCardData(null, 1, q);
+            } else if (typeof loadProjectCardData === 'function') {
+                loadProjectCardData(null, 1, q);
+            } else {
+                throw new ReferenceError('loadProjectCardData is not defined');
+            }
+        } catch (e) {
+            console.warn("Search reload failed", e);
+        }
+
+        // When search is cleared, restore feedback snippets (if any meaningful content)
+        if (q === "") {
+            document
+                .querySelectorAll(".latest-feedback-snippet")
+                .forEach((snippet) => {
+                    const projectId = snippet.getAttribute("data-project-id");
+                    if (projectId) {
+                        if (
+                            window.__projectLatest &&
+                            window.__projectLatest[projectId]
+                        ) {
+                            const data = window.__projectLatest[projectId];
+                            setProjectLatestFeedbackSnippet(projectId, data);
+                        } else {
+                            try {
+                                fetchLatestFeedbackForProject(projectId);
+                            } catch (_) {}
+                        }
+                    }
+                });
+        }
+    }, 350);
+
+    // Bind input event
+    searchInput.addEventListener("input", doSearch);
 });
 
 function hideProjectLatestFeedbackSnippet(projectId) {
