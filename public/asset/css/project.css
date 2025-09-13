@@ -697,16 +697,50 @@
     justify-content: center;
 }
 
-.modal-footer-custom button,
-.modal-footer-custom button:hover {
-    background: #444444;
-    border-radius: 10px;
-    color: #ebecf2;
-    font-weight: normal;
-    font-size: 14px;
+.modal-footer-custom .btn,
+.modal-footer-custom button {
     border: none;
-    width: 100%;
+    border-radius: 10px;
+    width: auto;
     min-height: 45px;
+    padding: 10px;
+    box-shadow: none !important;
+    outline: none !important;
+    flex: 1;
+}
+
+/* Keep shadows off but allow each button to control its own background (secondary vs black) */
+
+/* Remove focus/active ring and shadow on footer buttons */
+.modal-footer-custom button:focus,
+.modal-footer-custom button:active,
+.modal-footer-custom .btn-secondary:focus,
+.modal-footer-custom .btn-secondary:active,
+.modal-footer-custom .btn-submit-black:focus,
+.modal-footer-custom .btn-submit-black:active {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Dedicated class for flat modal buttons without shadows (Cancel/Delete) */
+.btn-modal-flat {
+    background-color: #444444 !important;
+    color: #ebecf2 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+    min-height: 45px !important;
+    box-shadow: none !important;
+    outline: none !important;
+    -webkit-tap-highlight-color: transparent;
+}
+.btn-modal-flat:hover,
+.btn-modal-flat:focus,
+.btn-modal-flat:active {
+    background-color: #444444 !important;
+    color: #ebecf2 !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 .add-ref-url,

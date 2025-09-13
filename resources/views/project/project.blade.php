@@ -644,23 +644,21 @@
         </div>
     </div>
 
-    <!-- Delete Project Confirmation Modal -->
+    <!-- Delete Project Confirmation Modal (match Task modal exactly) -->
     <div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="deleteProjectModalLabel">Delete Project</h5>
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fs-5" id="deleteProjectModalLabel">Delete Project</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body modal-body-custom d-flex flex-column align-items-center">
-                    <img id="deleteProjectImage" src="" alt="Project Image"
-                        style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem;">
-                    <p id="deleteProjectTitle" class="fw-bold fs-5 text-center mb-4"></p>
-                    <div class="d-flex justify-content-center gap-3 w-100">
-                        <button type="button" class="btn btn-danger" id="confirmDeleteProjectBtn">Delete</button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    </div>
+                <div class="modal-body modal-body-custom">
+                    <div id="deleteProjectContent"></div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteProjectBtn">Delete</button>
                 </div>
             </div>
         </div>
