@@ -43,8 +43,8 @@
     function initBootstrapTooltips(root = document) {
         try {
             // More reliable mobile detection using multiple methods
-            const isMobile = window.matchMedia('(max-width: 768px)').matches || 
-                             window.innerWidth <= 768 || 
+            const isMobile = window.matchMedia('(max-width: 768px)').matches ||
+                             window.innerWidth <= 768 ||
                              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const defaultPlacement = isMobile ? "top" : "bottom";
 
@@ -52,10 +52,10 @@
             nodes.forEach((el) => {
                 const existing = bootstrap.Tooltip.getInstance(el);
                 if (existing) existing.dispose();
-                
+
                 // Remove any existing placement attribute to ensure consistency
                 el.removeAttribute('data-bs-placement');
-                
+
                 new bootstrap.Tooltip(el, {
                     container: 'body',
                     placement: defaultPlacement,
@@ -94,7 +94,7 @@
             initBootstrapTooltips();
         }, 100);
     }
-    
+
     window.addEventListener('resize', handleResponsiveTooltipUpdate, { passive: true });
     window.addEventListener('orientationchange', handleResponsiveTooltipUpdate, { passive: true });
 
@@ -1953,31 +1953,41 @@ function renderSingleSection(status, sectionData, append = false) {
         return true;
     });
 
-  if (!append) {
-    if (status === "new_request") {
-      const tasksSorted = incomingTasks.slice().sort(function (a, b) {
-        const pa = isViewerPendingExecutor(a) ? 1 : 0;
-        const pb = isViewerPendingExecutor(b) ? 1 : 0;
-        if (pa !== pb) return pb - pa;
-        try {
-          const da = new Date(a.due_date).getTime() || 0;
-          const db = new Date(b.due_date).getTime() || 0;
-          if (da !== db) return da - db;
-        } catch (_) {}
-        return (b.id || 0) - (a.id || 0);
-      });
-      tasksSorted.forEach(task =>
-        container.insertAdjacentHTML("beforeend", createTaskCard(task))
-      );
-    } else {
-      incomingTasks.forEach(task =>
-        container.insertAdjacentHTML("beforeend", createTaskCard(task))
-      );
+    function sortTasks(tasks, status) {
+        return tasks.slice().sort((a, b) => {
+            if (status === 'new_request') {
+                const pa = isViewerPendingExecutor(a) ? 1 : 0;
+                const pb = isViewerPendingExecutor(b) ? 1 : 0;
+            if (pa !== pb) return pb - pa;
+                // start_date ASC
+                const sa = new Date(a.start_date).getTime() || 0;
+                const sb = new Date(b.start_date).getTime() || 0;
+                if (sa !== sb) return sa - sb;
+                // id ASC
+                return (a.id || 0) - (b.id || 0);
+            } else if (status === 'in_progress') {
+                const sa = new Date(a.start_date).getTime() || 0;
+                const sb = new Date(b.start_date).getTime() || 0;
+            if (sa !== sb) return sb - sa; // DESC
+                // id DESC
+                return (b.id || 0) - (a.id || 0);
+            } else if (status === 'completed') {
+                const ca = new Date(a.complete_date).getTime() || 0;
+                const cb = new Date(b.complete_date).getTime() || 0;
+            if (ca !== cb) return ca - cb; // ASC
+                // id ASC
+                return (a.id || 0) - (b.id || 0);
+            } else {
+                // default id DESC
+                return (b.id || 0) - (a.id || 0);
+            }
+        });
     }
+
+  if (!append) {
+    incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
   } else {
-    incomingTasks.forEach(task =>
-      container.insertAdjacentHTML("beforeend", createTaskCard(task))
-    );
+    incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
   }
 
   addAttachFileIconListeners();
@@ -4893,7 +4903,7 @@ function applyCurrentSearchFilter() {
                 const detailEl = document.getElementById("taskDetailModal");
                 if (detailEl) {
                     const detailModal = new bootstrap.Modal(detailEl);
-                    
+
                     // Initialize tooltips for PIC and executor images in modal after it's shown
                     detailEl.addEventListener('shown.bs.modal', function () {
                         // Wait a bit for DOM to be fully rendered
@@ -4901,7 +4911,7 @@ function applyCurrentSearchFilter() {
                             initBootstrapTooltips(detailEl);
                         }, 100);
                     }, { once: true });
-                    
+
                     // Clean up tooltips when modal is hidden
                     detailEl.addEventListener('hidden.bs.modal', function () {
                         const tooltipElements = detailEl.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -4912,7 +4922,7 @@ function applyCurrentSearchFilter() {
                             }
                         });
                     }, { once: true });
-                    
+
                     detailModal.show();
                 }
             },
@@ -5955,7 +5965,7 @@ function applyCurrentSearchFilter() {
                     tooltip.dispose();
                 }
             });
-            
+
             // Reinitialize with fresh mobile detection
             initBootstrapTooltips();
         }, 100);
@@ -6005,7 +6015,7 @@ function applyCurrentSearchFilter() {
             const st = $(this).val();
             mobileState.status = st;
             mobileState.page = 1; mobileState.last = 1; mobileAutoFullLoad = false;
-            
+
             // Clear existing tooltips before status change to prevent placement issues
             const existingTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
             existingTooltips.forEach(el => {
@@ -6014,7 +6024,7 @@ function applyCurrentSearchFilter() {
                     tooltip.dispose();
                 }
             });
-            
+
             fetchMobileTasks(st, 1, false, { loadAll: st === 'in_progress' });
         });
     });
@@ -6396,7 +6406,7 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
                     initBootstrapTooltips(taskDetailModal);
                 }, 100);
             });
-            
+
             taskDetailModal.addEventListener('hidden.bs.modal', function () {
                 const tooltipElements = taskDetailModal.querySelectorAll('[data-bs-toggle="tooltip"]');
                 tooltipElements.forEach(el => {
