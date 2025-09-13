@@ -79,7 +79,7 @@
         </div>
     </div>
 
-    <div class="scrollable-container rounded-4 px-4 py-2 shift-container">
+    <div class="scrollable-container rounded-4 mb-3 px-4 py-2 shift-container">
         <div class="d-flex justify-content-between align-items-center">
             <div class="d-flex align-items-center gap-2">
                 <h4 id="shiftMonthTitle" class="fw-normal mb-0 month-year-title">August 2025</h4>
