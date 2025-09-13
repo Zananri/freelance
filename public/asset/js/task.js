@@ -2157,15 +2157,21 @@ function applyCurrentSearchFilter() {
 }
 
 // Debounced input handler for search
-(function initTaskSearchFilter(){
-    let searchTimeout;
-    document.addEventListener('keyup', function(e){
-        const el = e.target;
-        if (!el || el.id !== 'search_filter') return;
-        clearTimeout(searchTimeout);
-        const query = el.value || '';
-        searchTimeout = setTimeout(() => { filterVisibleTasks(query); }, 150);
-    });
+(function initTaskSearchFilter() {
+  let searchTimeout;
+  document.addEventListener('keyup', function (e) {
+    const el = e.target;
+    if (!el || el.id !== 'search_filter') return;
+
+    clearTimeout(searchTimeout);
+    const query = el.value || '';
+
+    searchTimeout = setTimeout(() => {
+      // kalau mau search semua status
+      fetchAndRenderTasks(null, 1, false, query);
+
+    }, 300);
+  });
 })();
 
     // init
