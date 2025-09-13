@@ -119,6 +119,21 @@ trait ScheduleImmediateGeneration
 
     private function createTaskFromScheduleNow(TaskSchedule $s): Task
     {
+        // Idempotency guard: if a task with same title/creator/project already exists for today, reuse it
+        $today = Carbon::now()->toDateString();
+        if ($s->created_by) {
+            $existing = Task::query()
+                ->where('title', $s->title)
+                ->where('created_by', $s->created_by)
+                ->when($s->project_id, function ($q) use ($s) { $q->where('project_id', $s->project_id); })
+                ->whereDate('start_date', $today)
+                ->orderByDesc('id')
+                ->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
+
         // Copy image
         $taskImage = null;
         if (!empty($s->image)) {
@@ -144,7 +159,6 @@ trait ScheduleImmediateGeneration
             }
         }
 
-        $today = Carbon::now()->toDateString();
         // Start date is always the run day for tasks generated from schedules
         $startDate = $today;
         // Compute due date preference: due_in_days if provided; else legacy due_date rules
@@ -182,7 +196,7 @@ trait ScheduleImmediateGeneration
             'deleted_by' => null,
         ]);
 
-        // PIC assignment
+        // PIC assignment (from schedule): PIC must accept first (pending)
         $picUserId = $s->created_by;
         $picEmployee = $picUserId ? Employee::where('user_id', $picUserId)->first() : null;
         if ($picEmployee) {
@@ -190,8 +204,8 @@ trait ScheduleImmediateGeneration
                 'task_id' => $task->id,
                 'employee_id' => $picEmployee->id,
                 'role' => 'PIC',
-                'is_receive' => true,
-                'date_receive' => now(),
+                'is_receive' => false,
+                'date_receive' => null,
                 'created_by' => $picUserId,
                 'updated_by' => $picUserId,
                 'deleted_by' => null,
@@ -355,6 +369,12 @@ class ScheduleController extends Controller
 
             $data = $validator->validated();
 
+            // Set creator metadata
+            if ($request->user()) {
+                $data['created_by'] = $request->user()->id;
+                $data['updated_by'] = $request->user()->id;
+            }
+
             // Normalize reference URLs
             $refUrls = [];
             if (!empty($data['reference_urls']) && is_array($data['reference_urls'])) {
@@ -395,6 +415,8 @@ class ScheduleController extends Controller
                 if (is_array($decoded)) {
                     $data['executor_ids'] = array_values($decoded);
                 }
+            } elseif (is_array($execIds)) {
+                $data['executor_ids'] = array_values($execIds);
             }
 
             // Default start_date ke today kalau kosong
@@ -416,7 +438,7 @@ class ScheduleController extends Controller
             if (empty($data['recurrence_start_date'])) {
                 $data['recurrence_start_date'] = Carbon::today()->toDateString();
             }
-            $data['recurrence_interval'] = 1;
+            $data['recurrence_interval'] = (int)($data['recurrence_interval'] ?? 1) ?: 1;
             if (($data['recurrence_type'] ?? '') !== 'weekly') {
                 $data['recurrence_day_of_week'] = null;
             }
@@ -432,6 +454,8 @@ class ScheduleController extends Controller
                 }
             }
             $data['recurrence_end_date'] = null;
+            $data['is_active'] = true;
+            $data['next_run_at'] = null; // will be initialized in maybeGenerateNow
 
             $schedule = TaskSchedule::create($data);
 

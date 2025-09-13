@@ -131,12 +131,17 @@
         }
     }
 
-    // Helper: determine if current viewer is an invited executor who hasn't accepted yet for this task
+    // Helper: determine if current viewer (PIC or Executor) hasn't accepted yet for this task
     function isViewerPendingExecutor(task) {
         if (!currentEmployeeId) return false;
         try {
-            // If viewer is PIC, never pending
-            if (task && task.pic && String(task.pic.id) === String(currentEmployeeId)) return false;
+            const pic = task && task.pic ? task.pic : null;
+            // If viewer is PIC, pending when PIC hasn't accepted yet
+            if (pic && String(pic.id) === String(currentEmployeeId)) {
+                const isPicAccepted = (pic.is_receive === true || pic.is_receive === 1);
+                return !isPicAccepted;
+            }
+            // Otherwise, check executor acceptance state
             const exList = Array.isArray(task?.executors) ? task.executors : [];
             const mine = exList.find(ex => String(ex.id) === String(currentEmployeeId));
             if (!mine) return false;
