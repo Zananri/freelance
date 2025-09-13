@@ -4289,17 +4289,16 @@ function applyCurrentSearchFilter() {
 
         if (modalTitle) modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
 
-        // Build form HTML
         const existingImg = data.image_url || '';
-        const bgImage = existingImg ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;` : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+        const bgImage = existingImg
+            ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;`
+            : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
         const clearBtnClass = existingImg ? '' : 'd-none';
 
         modalBody.innerHTML = `
             <form id="editFeedbackForm" enctype="multipart/form-data">
                 <input type="hidden" name="task_id" value="${taskId}">
-                ${data.parent_id ? `<input type=\"hidden\" name=\"parent_id\" value=\"${data.parent_id}\">` : ''}
-
-                <!-- Put image section at the very top -->
+                ${data.parent_id ? `<input type="hidden" name="parent_id" value="${data.parent_id}">` : ''}
                 <div class="mb-3">
                     <div class="title-label-image">Upload Image</div>
                     <div class="image-upload-container">
@@ -4309,17 +4308,14 @@ function applyCurrentSearchFilter() {
                         </label>
                     </div>
                 </div>
-
                 <div class="mb-3 custom-input">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
                 </div>
-
                 <div class="mb-3 custom-input">
                     <label class="form-label">Reference URLs (Optional)</label>
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
                 </div>
-
                 <div class="mb-3 custom-input">
                     <label for="reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
@@ -4331,13 +4327,11 @@ function applyCurrentSearchFilter() {
             </form>
         `;
 
-        // Wire image preview/clear
-        (function() {
+        (function () {
             const imageInput = modalBody.querySelector('#feedback_image');
             const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
             const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
             if (!imageInput || !imageLabel || !imageClearBtn) return;
-            // If existing image exists, ensure clear button is visible
             if (existingImg) {
                 imageClearBtn.classList.remove('d-none');
                 imageLabel.classList.add('has-image');
@@ -4368,8 +4362,7 @@ function applyCurrentSearchFilter() {
             });
         })();
 
-        // Prefill multiple reference URLs for edit form
-        (function() {
+        (function () {
             const container = modalBody.querySelector('#feedback_reference_urls_container');
             if (!container) return;
             let urls = [];
@@ -4379,7 +4372,6 @@ function applyCurrentSearchFilter() {
                 urls = [data.reference_url];
             }
             if (urls.length === 0) {
-                // add one empty row
                 const row = document.createElement('div');
                 row.className = 'd-flex gap-2 align-items-center';
                 row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">` +
@@ -4398,19 +4390,14 @@ function applyCurrentSearchFilter() {
             }
         })();
 
-        // Prefill existing reference files as removable list
-        (function() {
+        (function () {
             const container = document.getElementById('existing_feedback_reference_files');
             const hidden = document.getElementById('existing_feedback_reference_files_input');
             if (!container || !hidden) return;
-            // data.reference_files_urls contains absolute URLs; we need display names while keeping URL for click
             let files = Array.isArray(data.reference_files_urls) ? data.reference_files_urls.slice() : [];
-            // Fallback single
             if (files.length === 0 && data.reference_file_url) files = [data.reference_file_url];
-            // Initialize state as array of URLs (server will derive file names if needed)
             let kept = files.slice();
             hidden.value = JSON.stringify(kept);
-
             container.innerHTML = '';
             if (files.length > 0) {
                 files.forEach((url, idx) => {
@@ -4424,9 +4411,13 @@ function applyCurrentSearchFilter() {
                     const link = document.createElement('a');
                     link.href = url;
                     link.target = '_blank';
-                    const fileName = (function(){
-                        try { const u = new URL(url, window.location.origin); return decodeURIComponent(u.pathname.split('/').pop()); } catch(e) {
-                            const parts = String(url).split('/'); return decodeURIComponent(parts[parts.length-1] || String(url));
+                    const fileName = (function () {
+                        try {
+                            const u = new URL(url, window.location.origin);
+                            return decodeURIComponent(u.pathname.split('/').pop());
+                        } catch (e) {
+                            const parts = String(url).split('/');
+                            return decodeURIComponent(parts[parts.length - 1] || String(url));
                         }
                     })();
                     link.textContent = fileName;
@@ -4434,10 +4425,12 @@ function applyCurrentSearchFilter() {
                     remove.type = 'button';
                     remove.className = 'btn btn-sm btn-outline-danger ms-2';
                     remove.innerHTML = '&times;';
-                    remove.addEventListener('click', function(){
-                        // remove from DOM and state
+                    remove.addEventListener('click', function () {
                         const indexInKept = kept.indexOf(url);
-                        if (indexInKept !== -1) { kept.splice(indexInKept, 1); hidden.value = JSON.stringify(kept); }
+                        if (indexInKept !== -1) {
+                            kept.splice(indexInKept, 1);
+                            hidden.value = JSON.stringify(kept);
+                        }
                         item.remove();
                     });
                     info.appendChild(icon);
@@ -4449,7 +4442,6 @@ function applyCurrentSearchFilter() {
             }
         })();
 
-        // Setup selected-files preview for reference files (same UX as Add/Reply)
         try {
             selectedFiles = [];
             const refInput = modalBody.querySelector('#reference_files');
@@ -4465,11 +4457,34 @@ function applyCurrentSearchFilter() {
                     this.value = '';
                 });
             }
-        } catch (_) {}
+        } catch (_) { }
 
-        setUnifiedTaskFeedbackFooter(taskId, 'Save', function(){
+        setUnifiedTaskFeedbackFooter(taskId, 'Save', function () {
             const form = document.getElementById('editFeedbackForm');
-            if (!form) return; submitEditFeedbackForm(form, taskId, data.id, isReply);
+            if (!form) return;
+            submitEditFeedbackForm(form, taskId, data.id, isReply);
+        });
+
+        feedbackModalEl.addEventListener("hidden.bs.modal", function restoreDefault() {
+            const footer = feedbackModalEl.querySelector('.modal-footer')
+                || feedbackModalEl.querySelector('.modal-footer-custom');
+
+            if (footer) {
+                footer.innerHTML = '';
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'btn btn-submit-black w-100';
+                addBtn.id = 'addFeedbackButton';
+                addBtn.textContent = 'Add Feedback';
+                addBtn.addEventListener('click', function () {
+                    const tid = feedbackModalEl.dataset.taskId || '';
+                    showAddFeedbackForm(tid);
+                });
+                footer.appendChild(addBtn);
+            }
+
+            modalTitle.textContent = "Task Feedback";
+            feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDefault);
         });
     }
 
