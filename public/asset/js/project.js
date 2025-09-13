@@ -666,7 +666,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentSearch = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
     let currentProjectId = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : '';
     let currentFilterDate = (typeof window.currentFilterDate === 'string') ? window.currentFilterDate : '';
-    function loadProjectCardData(filter = null, page = 1, search = null) {
+    function loadProjectCardData(filter = null, page = 1, search = null, sortBy = 'asc') {
         // DEBUG: Log filter parameter
         if (filter) {
             console.log('=== FILTER DEBUG ===');
@@ -678,7 +678,7 @@ document.addEventListener("DOMContentLoaded", function () {
             try { window.currentSearch = currentSearch; } catch(_) {}
         }
 
-        const params = { filter: filter, task_scope: "me", page: page };
+        const params = { filter: filter, task_scope: "me", page: page, sort_by: sortBy };
         if (currentSearch && currentSearch.trim() !== '') {
             params.search = currentSearch.trim();
         }
@@ -6206,14 +6206,14 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (text === "Detail") {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                
+
                                 // Clear any timeline reopening flags when opening from dropdown
                                 const detailEl = document.getElementById("projectDetailModal");
                                 if (detailEl) {
                                     detailEl.removeAttribute('data-reopen-timeline');
                                     detailEl.removeAttribute('data-child-opened');
                                 }
-                                
+
                                 fetchAndShowProjectDetail(projectId);
                             } else if (text === "Task") {
                                 e.preventDefault();
@@ -7817,10 +7817,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     projectDetailModalEl.removeAttribute('data-child-opened');
                     return;
                 }
-                
+
                 if (projectDetailModalEl.getAttribute('data-reopen-timeline') === '1') {
                     projectDetailModalEl.removeAttribute('data-reopen-timeline');
-                    
+
                     // Add a small delay to ensure the current modal is fully closed before opening timeline
                     setTimeout(() => {
                         const timelineModalEl = document.getElementById("timelineModal");
@@ -7835,7 +7835,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }, 200);
                     return; // Don't continue with filter dropdown setup immediately
                 }
-                
+
                 // Re-initialize filter dropdown to ensure it works after modal closes
                 setTimeout(() => {
                     try {
@@ -7849,7 +7849,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.warn('Error in project detail modal hidden handler:', e);
             }
         };
-        
+
         projectDetailModalEl.addEventListener("hidden.bs.modal", onModalHidden);
         projectDetailModalEl.setAttribute('data-main-handler-attached', '1');
     }
@@ -8913,17 +8913,19 @@ document.addEventListener("DOMContentLoaded", function () {
         const filterDropdown = document.getElementById("projectFilterDropdown");
         const applyFilterBtn = document.getElementById("applyProjectFilterBtn");
         const resetFilterBtn = document.getElementById("resetProjectFilterBtn");
-    const filterStatus = document.getElementById("filterProjectStatus");
-    // removed: filterSort (Sort By UI)
-    // New: By Project / By Date controls
-    const modeByProject = document.getElementById("modeByProject");
-    const modeByDate = document.getElementById("modeByDate");
-    const byProjectContainer = document.getElementById("byProjectContainer");
-    const byDateContainer = document.getElementById("byDateContainer");
-    const projectSelect = document.getElementById("filterProjectSelect");
-    const dateSelect = document.getElementById("filterProjectDateSelect");
+        const filterStatus = document.getElementById("filterProjectStatus");
+        // removed: filterSort (Sort By UI)
+        // New: By Project / By Date controls
+        const modeByProject = document.getElementById("modeByProject");
+        const modeByDate = document.getElementById("modeByDate");
+        const byProjectContainer = document.getElementById("byProjectContainer");
+        const byDateContainer = document.getElementById("byDateContainer");
+        const projectSelect = document.getElementById("filterProjectSelect");
+        const dateSelect = document.getElementById("filterProjectDateSelect");
+        const sortBySelect = document.getElementById("filterSortBy");
 
         if (!openFilterBtn || !filterDropdown) return;
+
 
         // Remove any existing event listeners to prevent duplicates
         openFilterBtn.replaceWith(openFilterBtn.cloneNode(true));
@@ -9065,6 +9067,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Map UI filter values to backend filter parameters
                 let filterParam = null;
+                let sortBy = 'asc';
                 if (selectedStatus === "") {
                     filterParam = null;
                 } else if (selectedStatus === "ongoing") {
@@ -9073,6 +9076,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     filterParam = "completed";
                 } else if (selectedStatus === "pending") {
                     filterParam = "in_progress";
+                }
+
+                if (sortBySelect) {
+                    sortBy = sortBySelect.value || "desc";
                 }
 
                 // Reload project cards with current filters, keep current search
@@ -9087,7 +9094,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 try { window.currentFilterDate = selectedDate || ''; } catch(_) {}
                 currentProjectId = selectedProjectId || '';
                 currentFilterDate = selectedDate || '';
-                loadProjectCardData(filterParam, 1, (typeof q === 'string' ? q : ''));
+                loadProjectCardData(filterParam, 1, (typeof q === 'string' ? q : ''), sortBy);
             });
         }
 
