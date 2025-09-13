@@ -79,8 +79,8 @@ function handleEmployeeLoadError(xhr, status, error, context = '') {
 
 // Mobile detection utility for tooltip placement
 function isMobileDevice() {
-    return window.matchMedia('(max-width: 768px)').matches || 
-           window.innerWidth <= 768 || 
+    return window.matchMedia('(max-width: 768px)').matches ||
+           window.innerWidth <= 768 ||
            /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
@@ -94,14 +94,14 @@ function initResponsiveTooltips(container = document) {
     try {
         const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
         const placement = getTooltipPlacement();
-        
+
         tooltipElements.forEach(el => {
             // Dispose existing tooltip if any
             const existingTooltip = bootstrap.Tooltip.getInstance(el);
             if (existingTooltip) {
                 existingTooltip.dispose();
             }
-            
+
             try {
                 new bootstrap.Tooltip(el, {
                     placement: placement,
@@ -796,13 +796,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                                 <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                                             </div>
-                              <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" 
+                              <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative"
         title="Comment" data-project-id="${project.id}">
     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
     <span class="project-feedback-count ms-1" data-project-id="${
         project.id
     }" style="font-size:12px; color:#454545;"></span>
-    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" 
+    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none"
           data-project-id="${
               project.id
           }" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
@@ -1925,7 +1925,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 },
                                 error: function (xhr, status, error) {
                                     handleEmployeeLoadError(xhr, status, error, 'Edit Project');
-                                    
+
                                     // Provide fallback with empty list
                                     employees = [];
                                     filteredEmployees = [];
@@ -2300,7 +2300,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 },
                                 error: function (xhr, status, error) {
                                     handleEmployeeLoadError(xhr, status, error, 'Edit Contributors');
-                                    
+
                                     // Provide fallback with empty list
                                     employees = [];
                                     filteredEmployees = [];
@@ -2783,7 +2783,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         feedback.employee_name ||
                                         "Unknown";
                                     nameRow.appendChild(nameStrong);
-                                    
+
                                     // Store edit button data for later positioning
                                     let editBtnInline = null;
                                     if (canEditTopInline) {
@@ -3257,33 +3257,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                     feedbackItem.appendChild(headerDiv);
                                     feedbackItem.appendChild(commentDiv);
                                     feedbackItem.appendChild(mediaDiv);
-                                    
+
                                     // Create actions container for edit and reply buttons
                                     const actionsDiv = document.createElement("div");
                                     actionsDiv.className = "feedback-actions mt-2 d-flex gap-3";
-                                    
+
                                     // Add edit button if exists
                                     if (editBtnInline) {
                                         // Store the original event listener
                                         const editClickHandler = editBtnInline.onclick || function() {};
-                                        
+
                                         // Create edit button wrapper with icon + text
                                         const editWrapper = document.createElement("span");
                                         editWrapper.className = "d-flex align-items-center";
                                         editWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
-                                        
+
                                         // Recreate edit icon
                                         const editIcon = document.createElement("span");
                                         editIcon.className = "material-symbols-outlined feedback-edit-trigger";
                                         editIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                         editIcon.textContent = "edit";
-                                        
+
                                         const editText = document.createElement("span");
                                         editText.textContent = "Edit";
-                                        
+
                                         editWrapper.appendChild(editIcon);
                                         editWrapper.appendChild(editText);
-                                        
+
                                         // Add click handler to wrapper
                                         editWrapper.addEventListener("click", function() {
                                             const payload = {
@@ -3331,35 +3331,35 @@ document.addEventListener("DOMContentLoaded", function () {
                                             };
                                             showEditFeedbackForm(projectId, payload, false);
                                         });
-                                        
+
                                         actionsDiv.appendChild(editWrapper);
                                     }
-                                    
+
                                     // Create reply button wrapper with icon + text
                                     const replyWrapper = document.createElement("span");
                                     replyWrapper.className = "d-flex align-items-center";
                                     replyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
-                                    
+
                                     // Recreate reply icon
                                     const replyIcon = document.createElement("span");
                                     replyIcon.className = "material-symbols-outlined feedback-reply-trigger";
                                     replyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                     replyIcon.textContent = "reply";
-                                    
+
                                     const replyText = document.createElement("span");
                                     replyText.textContent = "Reply";
-                                    
+
                                     replyWrapper.appendChild(replyIcon);
                                     replyWrapper.appendChild(replyText);
-                                    
+
                                     // Add click handler to wrapper
                                     replyWrapper.addEventListener("click", function () {
                                         showReplyFeedbackForm(projectId, feedback.id);
                                     });
-                                    
+
                                     // Add reply button
                                     actionsDiv.appendChild(replyWrapper);
-                                    
+
                                     // Insert actions after media (image/links/files) or comment if no media
                                     feedbackItem.appendChild(actionsDiv);
 
@@ -3481,7 +3481,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         : repEmp.id || 0
                                                 ) ===
                                                 String(currentEmployeeIdTop);
-                                            
+
                                             // Store reply edit button for later positioning
                                             let rEdit = null;
                                             if (canEditReply) {
@@ -3897,30 +3897,30 @@ document.addEventListener("DOMContentLoaded", function () {
                                             )
                                                 repDiv.appendChild(repMedia);
                                             if (rImg) repDiv.appendChild(rImg);
-                                            
-                                            // Create reply actions container for edit and reply buttons  
+
+                                            // Create reply actions container for edit and reply buttons
                                             const replyActionsDiv = document.createElement("div");
                                             replyActionsDiv.className = "reply-actions mt-2 d-flex gap-3";
-                                            
+
                                             // Add edit button if exists
                                             if (rEdit) {
                                                 // Create edit wrapper with icon + text
                                                 const editReplyWrapper = document.createElement("span");
                                                 editReplyWrapper.className = "d-flex align-items-center";
                                                 editReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
-                                                
+
                                                 // Recreate edit icon
                                                 const editReplyIcon = document.createElement("span");
                                                 editReplyIcon.className = "material-symbols-outlined feedback-edit-trigger";
                                                 editReplyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                                 editReplyIcon.textContent = "edit";
-                                                
+
                                                 const editReplyText = document.createElement("span");
                                                 editReplyText.textContent = "Edit";
-                                                
+
                                                 editReplyWrapper.appendChild(editReplyIcon);
                                                 editReplyWrapper.appendChild(editReplyText);
-                                                
+
                                                 // Add click handler to wrapper
                                                 editReplyWrapper.addEventListener("click", function () {
                                                     const payload = {
@@ -3962,33 +3962,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     };
                                                     showEditFeedbackForm(projectId, payload, true);
                                                 });
-                                                
+
                                                 replyActionsDiv.appendChild(editReplyWrapper);
                                             }
-                                            
+
                                             // Create reply wrapper with icon + text
                                             const replyReplyWrapper = document.createElement("span");
                                             replyReplyWrapper.className = "d-flex align-items-center";
                                             replyReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
-                                            
+
                                             // Add reply button for nested reply
                                             const replyToReplyIcon = document.createElement("span");
                                             replyToReplyIcon.className = "material-symbols-outlined feedback-reply-trigger";
                                             replyToReplyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                             replyToReplyIcon.textContent = "reply";
-                                            
+
                                             const replyReplyText = document.createElement("span");
                                             replyReplyText.textContent = "Reply";
-                                            
+
                                             replyReplyWrapper.appendChild(replyToReplyIcon);
                                             replyReplyWrapper.appendChild(replyReplyText);
-                                            
+
                                             replyReplyWrapper.addEventListener("click", function () {
                                                 showReplyFeedbackForm(projectId, feedback.id);
                                             });
-                                            
+
                                             replyActionsDiv.appendChild(replyReplyWrapper);
-                                            
+
                                             repDiv.appendChild(replyActionsDiv);
                                             repliesContainer.appendChild(
                                                 repDiv
@@ -5836,12 +5836,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div class="d-flex align-items-start">
                             <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
                                 <span class="material-symbols-outlined task-icon mode_comment" data-project-id="${pid}">mode_comment</span>
-                                
+
                                 <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${pid}"></span>
                             </div>
                             <div class="btn-attach-file-wrapper d-flex align-items-center">
                                 <span class="material-symbols-outlined task-icon">attach_file</span>
-                                
+
                             </div>
                         </div>
                     </div>
@@ -6287,7 +6287,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 tlInstance2.show();
                                                 detailEl.removeAttribute('data-reopen-timeline');
                                             }
-                                            
+
                                             // Re-initialize filter dropdown to ensure it works after modal closes
                                             setTimeout(() => {
                                                 try {
@@ -6876,7 +6876,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (typeof q === 'string' && q.trim() !== '') {
                         params.search = q.trim();
                     }
-                    
+
                     const pid = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : currentProjectId;
                     if (pid) {
                         params.project_id = pid;
@@ -7085,7 +7085,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 error: function (xhr, status, error) {
                     handleEmployeeLoadError(xhr, status, error, 'Add Project Co-Authors');
-                    
+
                     // Provide fallback with empty list
                     employees = [];
                     filteredEmployees = [];
@@ -7347,7 +7347,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 error: function (xhr, status, error) {
                     handleEmployeeLoadError(xhr, status, error, 'Add Project Contributors');
-                    
+
                     // Provide fallback with empty list
                     employees = [];
                     filteredEmployees = [];
@@ -7815,7 +7815,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Setup filter dropdown functionality
     setupFilterDropdown();
     setupGlobalFilterClickHandler();
-    
+
     // Setup project detail modal hidden event handler to re-initialize filter dropdown
     const projectDetailModalEl = document.getElementById("projectDetailModal");
     if (projectDetailModalEl) {
@@ -7884,7 +7884,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 error: function (xhr, status, error) {
                     handleEmployeeLoadError(xhr, status, error, 'Project Co-Authors (Modal)');
-                    
+
                     // Provide fallback with empty list
                     employees = [];
                     filteredEmployees = [];
@@ -8637,7 +8637,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 error: function (xhr, status, error) {
                     handleEmployeeLoadError(xhr, status, error, 'Project Contributors (Modal)');
-                    
+
                     // Provide fallback with empty list
                     employees = [];
                     filteredEmployees = [];
@@ -8911,15 +8911,15 @@ document.addEventListener("DOMContentLoaded", function () {
         newOpenFilterBtn.addEventListener("click", function (e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Close any other open dropdowns first
             document.querySelectorAll('.dropdown-menu:not(#projectFilterDropdown)').forEach(menu => {
                 menu.classList.add('d-none');
                 menu.style.display = 'none';
             });
-            
+
             const isVisible = filterDropdown.style.display === "block" || !filterDropdown.classList.contains('d-none');
-            
+
             if (isVisible) {
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
@@ -9031,13 +9031,13 @@ document.addEventListener("DOMContentLoaded", function () {
             // Remove existing listeners
             applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
             const newApplyFilterBtn = document.getElementById("applyProjectFilterBtn");
-            
+
             newApplyFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const selectedStatus = filterStatus ? filterStatus.value : "";
-                
+
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
 
@@ -9055,7 +9055,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Reload project cards with current filters, keep current search
                 const q = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
-                
+
                 // Read By Project/By Date values
                 const isByProject = !!(modeByProject && modeByProject.checked);
                 const selectedProjectId = (projectSelect && isByProject) ? projectSelect.value : '';
@@ -9074,11 +9074,11 @@ document.addEventListener("DOMContentLoaded", function () {
             // Remove existing listeners
             resetFilterBtn.replaceWith(resetFilterBtn.cloneNode(true));
             const newResetFilterBtn = document.getElementById("resetProjectFilterBtn");
-            
+
             newResetFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 // Reset the filter dropdown to default
                 if (filterStatus) {
                     filterStatus.value = "";
@@ -9118,20 +9118,20 @@ document.addEventListener("DOMContentLoaded", function () {
         if (window.filterClickHandler) {
             document.removeEventListener("click", window.filterClickHandler);
         }
-        
+
         window.filterClickHandler = function (e) {
             const filterDropdown = document.getElementById("projectFilterDropdown");
             const openFilterBtn = document.getElementById("openProjectFilterBtn");
-            
+
             if (!filterDropdown || !openFilterBtn) return;
-            
+
             // Check if click is outside both button and dropdown
             if (!openFilterBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
             }
         };
-        
+
         document.addEventListener("click", window.filterClickHandler);
     }
 
@@ -9534,6 +9534,12 @@ function buildTimelineFromProjects(projects) {
     } catch (e) {}
 }
 
+function getWeekOfMonth(date) {
+    const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+    return Math.ceil((date.getDate() + offset) / 7);
+}
+
 function renderTimeline(
     targetHeaderSelector,
     targetRowsSelector,
@@ -9727,8 +9733,11 @@ function renderTimeline(
 
     if (mode === "week") {
         const title = document.getElementById("timelineTitle");
-        title.textContent = `${months[month]} week ${weekIndex + 1}`;
+        const today = new Date();
+        const weekNum = getWeekOfMonth(today);
+        title.textContent = `${months[month]} week ${weekNum}`;
     }
+
 }
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
