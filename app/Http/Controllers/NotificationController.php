@@ -60,12 +60,13 @@ class NotificationController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = is_numeric($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599 ? $e->getCode() : 500;
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
                 'data' => []
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -98,12 +99,13 @@ class NotificationController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = is_numeric($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599 ? $e->getCode() : 500;
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
                 'count' => 0
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -142,11 +144,12 @@ class NotificationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = is_numeric($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599 ? $e->getCode() : 500;
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -179,11 +182,12 @@ class NotificationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = is_numeric($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599 ? $e->getCode() : 500;
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -213,11 +217,12 @@ class NotificationController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = is_numeric($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599 ? $e->getCode() : 500;
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -341,11 +346,12 @@ class NotificationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = is_numeric($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599 ? $e->getCode() : 500;
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -384,11 +390,12 @@ class NotificationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = is_numeric($e->getCode()) && $e->getCode() >= 400 && $e->getCode() <= 599 ? $e->getCode() : 500;
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 }
