@@ -974,12 +974,19 @@ class ProjectController extends Controller
                 $emp = $assignment->employee;
                 if (!$emp) continue;
                 $avatar = $this->resolveEmployeeAvatar($emp);
+                $empDivision = null;
+                try {
+                    $empDivision = $emp->division ? ($emp->division->name_division ?? $emp->division->name ?? null) : null;
+                } catch (\Throwable $t) { $empDivision = null; }
                 $wrapped = [
                     'id' => $emp->id,
                     'name' => $emp->name,
                     'user_photo' => $avatar,
                     'profile_picture' => $avatar,
                     'profile_picture_url' => $avatar,
+                    // expose division name for UI collaborator list
+                    'division' => $empDivision,
+                    'division_name' => $empDivision,
                 ];
                 if ($assignment->role === 'author') {
                     $author = $wrapped;
