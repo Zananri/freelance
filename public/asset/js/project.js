@@ -6274,34 +6274,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (detailEl) {
                                 // Set a flag on detail so we remember to reopen timeline later
                                 detailEl.setAttribute('data-reopen-timeline', '1');
-                                // Attach a persistent hidden handler once; it will reopen timeline only when no child modal is opening
-                                if (!detailEl.getAttribute('data-timeline-handler-attached')) {
-                                    const onDetailHidden = function () {
-                                        try {
-                                            // If a child modal (edit/feedback/files) is opening, skip reopening timeline now
-                                            if (detailEl.getAttribute('data-child-opened')) {
-                                                return;
-                                            }
-                                            if (detailEl.getAttribute('data-reopen-timeline') === '1') {
-                                                const tlInstance2 = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
-                                                tlInstance2.show();
-                                                detailEl.removeAttribute('data-reopen-timeline');
-                                            }
-
-                                            // Re-initialize filter dropdown to ensure it works after modal closes
-                                            setTimeout(() => {
-                                                try {
-                                                    setupFilterDropdown();
-                                                    setupGlobalFilterClickHandler();
-                                                } catch(e) {
-                                                    console.warn('Failed to re-initialize filter dropdown:', e);
-                                                }
-                                            }, 100);
-                                        } catch(_) { /* noop */ }
-                                    };
-                                    detailEl.addEventListener('hidden.bs.modal', onDetailHidden);
-                                    detailEl.setAttribute('data-timeline-handler-attached', '1');
-                                }
+                                // Timeline reopen logic is now handled by the main modal hidden handler
                             }
                         }
 
@@ -7818,18 +7791,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Setup project detail modal hidden event handler to re-initialize filter dropdown
     const projectDetailModalEl = document.getElementById("projectDetailModal");
-    if (projectDetailModalEl) {
-        projectDetailModalEl.addEventListener("hidden.bs.modal", function() {
-            // Re-initialize filter dropdown to ensure it works after modal closes
-            setTimeout(() => {
-                try {
-                    setupFilterDropdown();
-                    setupGlobalFilterClickHandler();
-                } catch(e) {
-                    console.warn('Failed to re-initialize filter dropdown after project detail modal close:', e);
+    if (projectDetailModalEl && !projectDetailModalEl.getAttribute('data-main-handler-attached')) {
+        const onModalHidden = function() {
+            try {
+                // Handle timeline reopening logic first
+                if (projectDetailModalEl.getAttribute('data-child-opened')) {
+                    // Skip timeline reopening if a child modal is opening
+                    return;
                 }
-            }, 100);
-        });
+                
+                if (projectDetailModalEl.getAttribute('data-reopen-timeline') === '1') {
+                    const timelineModalEl = document.getElementById("timelineModal");
+                    if (timelineModalEl) {
+                        const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                        tlInstance.show();
+                        projectDetailModalEl.removeAttribute('data-reopen-timeline');
+                    }
+                }
+                
+                // Re-initialize filter dropdown to ensure it works after modal closes
+                setTimeout(() => {
+                    try {
+                        setupFilterDropdown();
+                        setupGlobalFilterClickHandler();
+                    } catch(e) {
+                        console.warn('Failed to re-initialize filter dropdown after project detail modal close:', e);
+                    }
+                }, 100);
+            } catch(e) {
+                console.warn('Error in project detail modal hidden handler:', e);
+            }
+        };
+        
+        projectDetailModalEl.addEventListener("hidden.bs.modal", onModalHidden);
+        projectDetailModalEl.setAttribute('data-main-handler-attached', '1');
     }
 
     // Add event listener to department select to load divisions on change
