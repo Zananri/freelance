@@ -513,7 +513,7 @@
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDeleteShiftConfigBtn">Delete</button>
+                    <button type="button" class="btn submit-employee-btn" id="confirmDeleteShiftConfigBtn">Delete</button>
                 </div>
             </div>
         </div>

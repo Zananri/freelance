@@ -1877,15 +1877,19 @@ function debounce(func, wait) {
     };
 }
 
-// Search with debounce
+// Search with debounce - increased delay to 1000ms (1 second)
 const debouncedSearch = debounce(function(query) {
     currentFilters.search = query;
     loadEmployeeData(currentFilters);
-}, 500);
+}, 1000);
 
 document.getElementById("search_filter").addEventListener("input", function () {
     const query = this.value.trim();
-    debouncedSearch(query);
+    
+    // Only search if query has at least 2 characters or is empty (to reset)
+    if (query.length >= 2 || query.length === 0) {
+        debouncedSearch(query);
+    }
 });
 
 $(document).on('click','.data-fullscreen, .data-fullscreen-exit',function(){
