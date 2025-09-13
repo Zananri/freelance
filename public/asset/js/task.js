@@ -6070,22 +6070,12 @@ function applyCurrentSearchFilter() {
         </div>
         <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
             <div class="dropdown-filter-body">
-            <div class="mb-3">
-                <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                <select id="filterTaskProjectMobile" class="form-select">
-                <option value="">All Projects</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="filterTaskStatusMobile" class="form-label">Status</label>
-                <select id="filterTaskStatusMobile" class="form-select">
-                <option value="">All Status</option>
-                <option value="new_request">New Request</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="rejected">Rejected</option>
-                </select>
-            </div>
+                <div class="mb-3">
+                    <label for="filterTaskProjectMobile" class="form-label">Project</label>
+                    <select id="filterTaskProjectMobile" class="form-select">
+                    <option value="">All Projects</option>
+                    </select>
+                </div>
             </div>
             <div class="dropdown-filter-footer">
             <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
