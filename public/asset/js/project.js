@@ -617,7 +617,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                             style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`;
                                                       })()
                                             }
-                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${
+                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">${
                                                 project.title
                                             }</h6>
                                         </div>
@@ -696,6 +696,26 @@ document.addEventListener("DOMContentLoaded", function () {
                     } catch (e) {
                         // ignore
                     }
+
+                    // Delegated click: clicking on a project title opens Project Detail modal
+                    try {
+                        // Ensure we don't bind multiple times by removing any previous listener
+                        if (container.__titleClickBound !== true) {
+                            container.addEventListener('click', function (ev) {
+                                const titleEl = ev.target.closest('.title-project');
+                                if (!titleEl) return;
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const card = titleEl.closest('.col-md-4');
+                                const pid = card && card.getAttribute('data-project-id');
+                                if (pid) {
+                                    try { fetchAndShowProjectDetail(pid); }
+                                    catch (_) { console.warn('fetchAndShowProjectDetail not available'); }
+                                }
+                            });
+                            container.__titleClickBound = true;
+                        }
+                    } catch (_) { /* noop */ }
 
                     // Add event listeners for dropdown toggle
                     document
