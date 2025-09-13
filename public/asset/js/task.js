@@ -2157,15 +2157,21 @@ function applyCurrentSearchFilter() {
 }
 
 // Debounced input handler for search
-(function initTaskSearchFilter(){
-    let searchTimeout;
-    document.addEventListener('keyup', function(e){
-        const el = e.target;
-        if (!el || el.id !== 'search_filter') return;
-        clearTimeout(searchTimeout);
-        const query = el.value || '';
-        searchTimeout = setTimeout(() => { filterVisibleTasks(query); }, 150);
-    });
+(function initTaskSearchFilter() {
+  let searchTimeout;
+  document.addEventListener('keyup', function (e) {
+    const el = e.target;
+    if (!el || el.id !== 'search_filter') return;
+
+    clearTimeout(searchTimeout);
+    const query = el.value || '';
+
+    searchTimeout = setTimeout(() => {
+      // kalau mau search semua status
+      fetchAndRenderTasks(null, 1, false, query);
+
+    }, 300);
+  });
 })();
 
     // init
@@ -5817,15 +5823,15 @@ function applyCurrentSearchFilter() {
 
     // Flag continuous auto load for in_progress list
     let mobileAutoFullLoad = false;
-
     let searchQueryMobile = '';
+    let searchTimeout;
 
     $(document).on("keyup", "#search_filter_mobile", function () {
         clearTimeout(searchTimeout);
         searchQueryMobile = this.value.trim();
 
         searchTimeout = setTimeout(() => {
-            const status = $("#taskStatusSelect").val();
+            const status = $("#taskStatusSelect").val(); // ambil status tab aktif
             mobileState.page = 1;
             mobileState.last = 1;
             fetchMobileTasks(status, 1, false);
@@ -5835,6 +5841,7 @@ function applyCurrentSearchFilter() {
     function fetchMobileTasks(status, page = 1, append = false, opts = {}) {
         mobileState.status = status;
         if (mobileState.loading) return;
+
         if (!append && opts.loadAll && status === 'in_progress' && page === 1) {
             mobileAutoFullLoad = true;
         }
@@ -5847,15 +5854,9 @@ function applyCurrentSearchFilter() {
         );
 
         const params = { status, page };
-        if (searchQueryMobile && searchQueryMobile.trim() !== "") {
-            params.search = searchQueryMobile.trim();
-        }
-        if (currentTaskFilters?.project) {
-            params.project_id = currentTaskFilters.project;
-        }
-        if (currentTaskFilters?.status) {
-            params.filter_status = currentTaskFilters.status;
-        }
+        if (searchQueryMobile) params.search = searchQueryMobile;
+        if (currentTaskFilters?.project) params.project_id = currentTaskFilters.project;
+        if (currentTaskFilters?.status) params.filter_status = currentTaskFilters.status;
 
         $.ajax({
             url: appUrl + "/task/index",
@@ -5864,6 +5865,7 @@ function applyCurrentSearchFilter() {
             data: params,
             success: function (response) {
                 if (!response || response.code !== 200 || !response.data) return;
+
                 let data = response.data?.[status];
                 if (status === 'in_progress' && response.data?.rejected?.tasks) {
                     const rej = response.data.rejected.tasks;
@@ -5872,8 +5874,10 @@ function applyCurrentSearchFilter() {
                         data = { ...(data || {}), tasks: [...baseTasks, ...rej] };
                     }
                 }
+
                 mobileState.last = data?.pagination?.last_page || 1;
                 renderMobileTasks(status, data, append);
+
                 if (!append && opts.prefetch && mobileState.page === 1 && mobileState.last > 1 && status !== 'new_request') {
                     setTimeout(() => {
                         if (mobileState.status === status && mobileState.page === 1) {
@@ -5882,7 +5886,9 @@ function applyCurrentSearchFilter() {
                         }
                     }, 80);
                 }
+
                 attemptAutoFillMobile(status);
+
                 if (mobileAutoFullLoad && status === 'in_progress') {
                     if (mobileState.page < mobileState.last) {
                         setTimeout(() => {
