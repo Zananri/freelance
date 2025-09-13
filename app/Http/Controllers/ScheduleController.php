@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use App\Models\Schedule;
+use App\Models\TaskSchedule;
 use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\Employee;
@@ -23,7 +23,7 @@ trait ScheduleImmediateGeneration
         return view('schedule/schedule');
     }
 
-    private function maybeGenerateNow(Schedule $s): void
+    private function maybeGenerateNow(TaskSchedule $s): void
     {
         $now = Carbon::now();
         $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
@@ -67,7 +67,7 @@ trait ScheduleImmediateGeneration
         $s->save();
     }
 
-    private function calcInitialRunAt(Schedule $s, Carbon $now): Carbon
+    private function calcInitialRunAt(TaskSchedule $s, Carbon $now): Carbon
     {
         $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
         switch ($s->recurrence_type) {
@@ -88,7 +88,7 @@ trait ScheduleImmediateGeneration
         }
     }
 
-    private function calcNextRunAt(Schedule $s, Carbon $current): Carbon
+    private function calcNextRunAt(TaskSchedule $s, Carbon $current): Carbon
     {
         $interval = max((int) $s->recurrence_interval, 1);
         $next = $current->copy();
@@ -117,7 +117,7 @@ trait ScheduleImmediateGeneration
         return Carbon::create($year, $month, $day, 0, 0, 0);
     }
 
-    private function createTaskFromScheduleNow(Schedule $s): Task
+    private function createTaskFromScheduleNow(TaskSchedule $s): Task
     {
         // Copy image
         $taskImage = null;
@@ -239,7 +239,24 @@ class ScheduleController extends Controller
     use ScheduleImmediateGeneration;
     public function index(Request $request)
     {
-        $schedules = Schedule::with('project')->orderByDesc('created_at')->paginate(10);
+        $query = TaskSchedule::with('project')->orderByDesc('created_at');
+
+        // Apply recurrence_type filter if provided
+        $recurrenceType = $request->input('recurrence_type');
+        if (!empty($recurrenceType)) {
+            $query->where('recurrence_type', $recurrenceType);
+        }
+
+        // Apply search filter if provided
+        $search = $request->input('search');
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        $schedules = $query->paginate(9);
         return response()->json([
             'code' => 200,
             'status' => 'success',
@@ -250,7 +267,7 @@ class ScheduleController extends Controller
     public function show(Request $request, $id)
     {
         try {
-            $schedule = Schedule::with([
+            $schedule = TaskSchedule::with([
                 'project.department',
                 'project.division'
             ])->findOrFail($id);
@@ -416,7 +433,7 @@ class ScheduleController extends Controller
             }
             $data['recurrence_end_date'] = null;
 
-            $schedule = Schedule::create($data);
+            $schedule = TaskSchedule::create($data);
 
             // Generate task langsung kalau emang due hari ini
             $this->maybeGenerateNow($schedule);
@@ -442,7 +459,7 @@ class ScheduleController extends Controller
     public function edit($id)
     {
         try {
-            $schedule = Schedule::findOrFail($id);
+            $schedule = TaskSchedule::findOrFail($id);
 
             return response()->json([
                 'code' => 200,
@@ -463,7 +480,7 @@ class ScheduleController extends Controller
     {
         DB::beginTransaction();
         try {
-            $schedule = Schedule::findOrFail($id);
+            $schedule = TaskSchedule::findOrFail($id);
 
             $validator = \Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
@@ -616,7 +633,7 @@ class ScheduleController extends Controller
     {
         DB::beginTransaction();
         try {
-            $schedule = Schedule::findOrFail($id);
+            $schedule = TaskSchedule::findOrFail($id);
 
             // Delete related tasks that were generated from this schedule
             Task::where('title', $schedule->title)

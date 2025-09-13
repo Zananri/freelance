@@ -3,13 +3,7 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
-let allSchedules = [];
-let currentView = "daily";
-let currentFilterStatus = "";
-
 document.addEventListener("DOMContentLoaded", function () {
-    updateDateTitle("daily");
-
     fetchScheduleData();
 
     function showFloatingAlert(message, type = "success", delayMs = 2500) {
@@ -47,17 +41,31 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {}
     }
 
-    // function for fetch all schedules data
-    function fetchScheduleData() {
+    // fetch function
+    let currentRecurrenceFilter = "";
+    let currentSearchFilter = "";
+    let searchTimeout = null;
+
+    function fetchScheduleData(page = 1, filter = "", search = "") {
         $.ajax({
             url: appUrl + "/schedules/index",
             type: "GET",
+            data: {
+                page: page,
+                recurrence_type: filter,
+                search: search,
+            },
             dataType: "json",
             success: function (response) {
                 console.log(response);
 
-                allSchedules = response.data.data;
-                applyFiltersAndView();
+                const paginatedItems = response.data.data;
+                const totalItems = response.data.total;
+                const currentPage = response.data.current_page;
+                const perPage = response.data.per_page;
+
+                createScheduleCard(paginatedItems);
+                renderPagination(Math.ceil(totalItems / perPage), currentPage);
             },
             error: function (xhr, status, error) {
                 console.error("data gagal di fetch", status, error);
@@ -66,22 +74,111 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Function to apply current view and filter
-    function applyFiltersAndView() {
-        let filtered = allSchedules.filter(
-            (item) =>
-                (item.recurrence_type || "").toLowerCase() ===
-                currentView.toLowerCase()
-        );
+    function renderPagination(totalPages, currentPage) {
+        const paginationContainer = document.querySelector(".pagination");
 
-        if (currentFilterStatus) {
-            filtered = filtered.filter(
-                (item) => (item.status || "") === currentFilterStatus
+        if (!paginationContainer) return;
+        paginationContainer.innerHTML = "";
+
+        // Prev
+        const prevLi = document.createElement("li");
+        prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
+        const prevA = document.createElement("button");
+        prevA.className = "page-link";
+        prevA.href = "#";
+        prevA.textContent = "Previous";
+        prevA.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (currentPage === 1) return;
+            fetchScheduleData(
+                currentPage - 1,
+                currentRecurrenceFilter,
+                currentSearchFilter
             );
+        });
+        prevLi.appendChild(prevA);
+        paginationContainer.appendChild(prevLi);
+
+        // Numbered pages
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement("li");
+            li.className = "page-item" + (i === currentPage ? " active" : "");
+            const a = document.createElement("button");
+            a.className = "page-link";
+            a.textContent = i;
+            a.addEventListener("click", function (e) {
+                e.preventDefault();
+                fetchScheduleData(
+                    i,
+                    currentRecurrenceFilter,
+                    currentSearchFilter
+                );
+            });
+            li.appendChild(a);
+            paginationContainer.appendChild(li);
         }
 
-        createScheduleCard(filtered);
+        // Next
+        const nextLi = document.createElement("li");
+        nextLi.className =
+            "page-item" + (currentPage === totalPages ? " disabled" : "");
+        const nextA = document.createElement("button");
+        nextA.className = "page-link";
+        nextA.textContent = "Next";
+        nextA.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (currentPage === totalPages) return;
+            fetchScheduleData(
+                currentPage + 1,
+                currentRecurrenceFilter,
+                currentSearchFilter
+            );
+        });
+        nextLi.appendChild(nextA);
+        paginationContainer.appendChild(nextLi);
     }
+
+    document
+        .getElementById("filterScheduleRecurrence")
+        .addEventListener("change", function () {
+            currentRecurrenceFilter = this.value;
+        });
+
+    fetchScheduleData(1, currentRecurrenceFilter, currentSearchFilter);
+
+    // Search input listener
+    document
+        .getElementById("search_filter")
+        .addEventListener("input", function () {
+            const searchValue = this.value.trim();
+            currentSearchFilter = searchValue;
+
+            clearTimeout(searchTimeout);
+
+            searchTimeout = setTimeout(() => {
+                fetchScheduleData(
+                    1,
+                    currentRecurrenceFilter,
+                    currentSearchFilter
+                );
+            }, 500);
+        });
+
+    // Filter apply button
+    document
+        .getElementById("applyScheduleFilterBtn")
+        .addEventListener("click", function () {
+            fetchScheduleData(1, currentRecurrenceFilter, currentSearchFilter);
+        });
+
+    // Filter reset button
+    document
+        .getElementById("resetScheduleFilterBtn")
+        .addEventListener("click", function () {
+            document.getElementById("filterScheduleRecurrence").value = "";
+            currentRecurrenceFilter = "";
+            fetchScheduleData(1, currentRecurrenceFilter, currentSearchFilter);
+        });
 
     function getInitials(title) {
         const text = (title || "").trim();
@@ -120,10 +217,26 @@ document.addEventListener("DOMContentLoaded", function () {
         container.empty();
 
         scheduleData.forEach((item) => {
-            let imageUrl = item.image;
-            let formatedDueDate = item.due_date
-                ? new Date(item.due_date).toISOString().split("T")[0]
-                : "";
+            let imageUrl;
+
+            if (item.image) {
+                const imageUrl = `${appUrl}/file/schedule/${item.image}`;
+                imageHtml = `
+                <img src="${imageUrl}"
+                    class="rounded-circle me-2"
+                    style="width:34px;height:34px;object-fit:cover;"
+                    onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">
+            `;
+            } else {
+                const init = getInitials(item.title);
+                const color = getInitialsColor(item.title);
+                imageHtml = `
+                <div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                    style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">
+                    ${init}
+                </div>
+            `;
+            }
             const card = $(`
                 <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-item-id="${
                     item.id
@@ -133,22 +246,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <!-- Header -->
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div class="d-flex align-items-center">
-                                            ${
-                                                imageUrl
-                                                    ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
-                                                    : (function () {
-                                                          const init =
-                                                              getInitials(
-                                                                  item.title
-                                                              );
-                                                          const color =
-                                                              getInitialsColor(
-                                                                  item.title
-                                                              );
-                                                          return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
-                                                            style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${init}</div>`;
-                                                      })()
-                                            }
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div class="d-flex align-items-center">
+                                                    ${imageHtml}
+                                                </div>
+                                            </div>
                                         <div class="d-flex flex-column">
                                             ${
                                                 item.project_id
@@ -166,7 +268,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
                                             </button>
                                             <div class="dropdown-menu dropdown-action d-none">
-                                                <div class="dropdown-item">Detail</div>
                                                 <div class="dropdown-item">Edit</div>
                                                 <div class="dropdown-item text-danger delete-item">Delete</div>
                                             </div>
@@ -181,40 +282,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                             if (!d) return "";
                                             return `<p class="teks-description mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${d}</p>`;
                                         })()}
-                                    </div>
-                                    <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
-
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div style="font-size: 10px; font-weight: 400;">
-                                            <span style="color: #797E91;">Priority: </span>
-                                            <span style="color: ${
-                                                item.priority === "HIGH"
-                                                    ? "red"
-                                                    : "#4B4F5E"
-                                            }">
-                                                ${item.priority}
-                                            </span>
-                                        </div>
-                                        <div style="font-size: 10px; font-weight: 400;">
-                                            <span style="color: #797E91;">Deadline: </span>
-                                            <span style="#color: #4B4F5E">${
-                                                formatedDueDate
-                                                    ? formatedDueDate
-                                                    : "-"
-                                            }</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Footer -->
-                                    <div class="d-flex justify-content-between align-items-center mt-2">
-                                        <div class="d-flex align-items-center">
-                                            <div class="latest-feedback-snippet d-none align-items-center me-1" data-item-id="${
-                                                item.id
-                                            }" style="cursor:pointer; max-width: 160px;">
-                                                <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
-                                                <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
-                                            </div>
-                                        </div>
                                     </div>
 
                                 </div>
@@ -240,73 +307,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Event for Detail Schedule
-    document.addEventListener("click", function (e) {
-        if (
-            e.target.closest(".dropdown-item") &&
-            e.target.textContent.trim() === "Detail"
-        ) {
-            e.preventDefault();
-            const card = e.target.closest(".col-md-4");
-            const scheduleId = card.getAttribute("data-item-id");
-
-            if (scheduleId) {
-                fetchScheduleDetail(scheduleId);
-            }
-        }
-    });
-
-    // Event For Open Filter Dropdown
-    document.addEventListener("click", function (e) {
-        const dropdownBtn = document.getElementById("openProjectFilterBtn");
-        const dropdownMenu = document.getElementById("projectFilterDropdown");
-        const filterContainer = document.querySelector(
-            ".title-filter-container"
-        );
-
-        if (dropdownBtn && e.target.closest("#openProjectFilterBtn")) {
-            if (filterContainer.classList.contains("d-none")) {
-                filterContainer.classList.remove("d-none");
-                dropdownMenu.style.display = "block";
-            } else {
-                filterContainer.classList.add("d-none");
-                dropdownMenu.style.display = "none";
-            }
-        } else {
-            if (
-                filterContainer &&
-                !filterContainer.classList.contains("d-none")
-            ) {
-                filterContainer.classList.add("d-none");
-            }
-            if (dropdownMenu) {
-                dropdownMenu.style.display = "none";
-            }
-        }
-    });
-
-    // Filter apply and reset button handlers
-    document
-        .getElementById("applyScheduleFilterBtn")
-        .addEventListener("click", function () {
-            const statusSelect = document.getElementById(
-                "filterScheduleStatus"
-            );
-            currentFilterStatus = statusSelect.value;
-            applyFiltersAndView();
-        });
-
-    document
-        .getElementById("resetScheduleFilterBtn")
-        .addEventListener("click", function () {
-            const statusSelect = document.getElementById(
-                "filterScheduleStatus"
-            );
-            statusSelect.value = "";
-            currentFilterStatus = "";
-            applyFiltersAndView();
-        });
-
     // Event for Edit Schedule
     document.addEventListener("click", function (e) {
         if (
@@ -314,8 +314,8 @@ document.addEventListener("DOMContentLoaded", function () {
             e.target.textContent.trim() === "Edit"
         ) {
             e.preventDefault();
-            const card = e.target.closest(".col-md-4");
-            const scheduleId = card.getAttribute("data-item-id");
+            const card = e.target.closest("[data-item-id]");
+            const scheduleId = card ? card.getAttribute("data-item-id") : null;
 
             if (scheduleId) {
                 fetchScheduleDataForEdit(scheduleId);
@@ -359,7 +359,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     if (response.code === 200) {
                         $("#scheduleEditModal").modal("hide");
-                        fetchScheduleData();
+                        fetchScheduleData(
+                            1,
+                            currentRecurrenceFilter,
+                            currentSearchFilter
+                        );
 
                         showFloatingAlert(
                             response.message ||
@@ -412,6 +416,13 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Reset currentPage when filter changes
+    document
+        .getElementById("filterScheduleRecurrence")
+        .addEventListener("change", function () {
+            currentPage = 1;
+        });
+
     // Function to populate edit modal fields
     function populateEditModal(schedule) {
         // Populate basic fields
@@ -438,19 +449,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Handle image
         if (schedule.image) {
-            const imageLabel = document.getElementById(
-                "editScheduleImageLabel"
+            $("#editScheduleImageLabel").css(
+                "background-image",
+                "url(" + appUrl + "/file/schedule/" + schedule.image + ")"
             );
-            if (imageLabel) {
-                imageLabel.style.backgroundImage = `url('${appUrl}/file/schedule/${schedule.image}')`;
-                imageLabel.classList.add("has-image");
-                const clearBtn = document.getElementById(
-                    "editScheduleImageClearBtn"
-                );
-                if (clearBtn) {
-                    clearBtn.classList.remove("d-none");
-                }
-            }
+            $("#editScheduleImageLabel").addClass("has-image");
+            $("#editScheduleImageLabel").css({
+                "background-size": "cover",
+                opacity: "1",
+            });
+            $("#editImageClearBtn").removeClass("d-none");
+        } else {
+            $("#editScheduleImageLabel").removeClass("has-image");
+            $("#editScheduleImageLabel").css("opacity", "1");
+            $("#editImageClearBtn").addClass("d-none");
         }
 
         // Handle reference URLs
@@ -567,7 +579,7 @@ document.addEventListener("DOMContentLoaded", function () {
             container.appendChild(row);
         } else {
             urls.forEach((url) => {
-                const safeUrl = url ?? ""; // <-- fallback biar null ga masuk
+                const safeUrl = url ?? "";
                 const row = document.createElement("div");
                 row.className = "d-flex gap-2 align-items-center";
                 row.innerHTML = `
@@ -783,260 +795,58 @@ document.addEventListener("DOMContentLoaded", function () {
         sync();
     }
 
-    // Function for update title
-    function updateDateTitle(view = "day") {
-        const dateTitle = document.getElementById("date-title");
-
-        const days = [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-        ];
-        const months = [
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ];
-
-        const now = new Date();
-        const dayName = days[now.getDay()];
-        const date = now.getDate();
-        const monthName = months[now.getMonth()];
-        const year = now.getFullYear();
-
-        function getWeekOfMonth(d) {
-            const firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
-            const dayOfWeek = firstDay.getDay();
-            return Math.ceil((d.getDate() + dayOfWeek) / 7);
-        }
-
-        if (view === "daily") {
-            dateTitle.textContent = `${dayName}, ${date} ${monthName} ${year}`;
-        } else if (view === "weekly") {
-            const weekOfMonth = getWeekOfMonth(now);
-            dateTitle.textContent = `Week ${weekOfMonth}, ${monthName} ${year}`;
-        } else if (view === "monthly") {
-            dateTitle.textContent = `${monthName} ${year}`;
-        }
-    }
-
-    updateDateTitle("day");
-
-    document.querySelectorAll(".pagination .page-link").forEach((link) => {
-        link.addEventListener("click", function (e) {
-            e.preventDefault();
-
-            document
-                .querySelectorAll(".pagination .page-item")
-                .forEach((li) => li.classList.remove("active"));
-
-            this.parentElement.classList.add("active");
-
-            const view = this.getAttribute("data-view");
-            updateDateTitle(view);
-
-            const filtered = allSchedules.filter((item) => {
-                return (
-                    (item.recurrence_type || "").toLowerCase() ===
-                    view.toLowerCase()
+    // Handle edit image input change
+    document
+        .getElementById("edit_schedule_image")
+        .addEventListener("change", function () {
+            if (this.files && this.files[0]) {
+                const img = document.getElementById(
+                    "edit_schedule_current_image_display"
                 );
-            });
-
-            createScheduleCard(filtered);
-        });
-    });
-
-    updateDateTitle("day");
-
-    // Function to fetch schedule detail
-    function fetchScheduleDetail(scheduleId) {
-        const modalLoader = document.getElementById(
-            "detailScheduleModalLoader"
-        );
-        if (modalLoader) modalLoader.classList.remove("d-none");
-
-        $.ajax({
-            url: appUrl + "/schedules/" + scheduleId,
-            type: "GET",
-            dataType: "json",
-            success: function (response) {
-                if (response.code === 200) {
-                    populateDetailModal(response.data);
-                    $("#scheduleDetailModal").modal("show");
-                } else {
-                    showFloatingAlert(
-                        "Failed to load schedule details",
-                        "warning",
-                        3500
-                    );
+                const label = document.getElementById("editScheduleImageLabel");
+                if (img && label) {
+                    // Show preview of the newly selected image
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        img.src = e.target.result;
+                        img.style.display = "block";
+                        label.style.backgroundImage = "none";
+                        label.classList.add("has-image");
+                    };
+                    reader.readAsDataURL(this.files[0]);
                 }
-            },
-            error: function (xhr, status, error) {
-                console.error(
-                    "Error fetching schedule details:",
-                    status,
-                    error
-                );
-                showFloatingAlert(
-                    "Failed to load schedule details",
-                    "warning",
-                    3500
-                );
-            },
-            complete: function () {
-                if (modalLoader) modalLoader.classList.add("d-none");
-            },
-        });
-    }
-
-    // Function to populate detail modal
-    function populateDetailModal(data) {
-        const schedule = data.schedule;
-        const executors = data.executors || [];
-
-        // Populate schedule card
-        const cardContainer = document.getElementById("scheduleDetailCard");
-        if (cardContainer) {
-            let imageUrl = schedule.image;
-            const card = document.createElement("div");
-            card.className = "item-card p-4";
-            card.style.background = "#F0F1F8";
-            card.style.borderRadius = "20px";
-            card.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div class="d-flex align-items-center">
-                        ${
-                            imageUrl
-                                ? `<img src="${imageUrl}" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
-                                : (function () {
-                                      const init = getInitials(schedule.title);
-                                      const color = getInitialsColor(
-                                          schedule.title
-                                      );
-                                      return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${init}</div>`;
-                                  })()
-                        }
-                        <div class="d-flex flex-column">
-                            ${
-                                schedule.project_id
-                                    ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${schedule.project.title}</small>`
-                                    : ""
-                            }
-                            <h6 class="mb-0" style="font-size:14px; font-weight:600;">${
-                                schedule.title
-                            }</h6>
-                        </div>
-                    </div>
-                </div>
-                ${
-                    schedule.description
-                        ? `<p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${schedule.description}</p>`
-                        : ""
+                // Clear the hidden current image value since a new image is selected
+                document.getElementById("edit_schedule_current_image").value =
+                    "";
+                const clearBtn = document.getElementById("editScheduleImageClearBtn");
+                if (clearBtn) {
+                    clearBtn.classList.remove("d-none");
                 }
-                <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div style="font-size: 10px; font-weight: 400;">
-                        <span style="color: #797E91;">Priority: </span>
-                        <span style="color: ${
-                            schedule.priority === "HIGH" ? "red" : "#4B4F5E"
-                        }">${schedule.priority}</span>
-                    </div>
-                    <div style="font-size: 10px; font-weight: 400;">
-                        <span style="color: #797E91;">Deadline: </span>
-                        <span style="#color: #4B4F5E">${
-                            schedule.due_date || "-"
-                        }</span>
-                    </div>
-                </div>
-            `;
-            cardContainer.innerHTML = "";
-            cardContainer.appendChild(card);
-        }
-
-        // Populate executors
-        const executorsContainer = document.getElementById(
-            "scheduleDetailExecutors"
-        );
-        if (executorsContainer) {
-            if (executors.length === 0) {
-                executorsContainer.innerHTML =
-                    "<p class='text-muted mb-0'>No executors assigned</p>";
-            } else {
-                executorsContainer.innerHTML = executors
-                    .map((executor) => {
-                        const photo = executor.user_photo
-                            ? executor.user_photo.startsWith("http")
-                                ? executor.user_photo
-                                : appUrl +
-                                  "/file/profile_picture/" +
-                                  executor.user_photo
-                            : appUrl + "/asset/img/avatar.png";
-                        return `
-                        <div class="d-flex align-items-center p-2 border rounded me-2 mb-2" style="background: white;">
-                            <img src="${photo}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;">
-                            <div>
-                                <div style="font-size:12px; font-weight:600;">${
-                                    executor.name
-                                }</div>
-                                <div style="font-size:10px; color:#666;">NIK: ${
-                                    executor.nik || "-"
-                                }</div>
-                            </div>
-                        </div>
-                    `;
-                    })
-                    .join("");
             }
-        }
+        });
 
-        // Populate departments and divisions
-        const deptDivContainer = document.getElementById(
-            "scheduleDetailDepartmentsDivisions"
-        );
-        if (deptDivContainer) {
-            const uniqueDepts = [
-                ...new Set(executors.map((e) => e.department).filter((d) => d)),
-            ];
-            const uniqueDivs = [
-                ...new Set(executors.map((e) => e.division).filter((d) => d)),
-            ];
-
-            if (uniqueDepts.length === 0 && uniqueDivs.length === 0) {
-                deptDivContainer.innerHTML =
-                    "<p class='text-muted mb-0'>No department/division information available</p>";
-            } else {
-                deptDivContainer.innerHTML = `
-                    ${
-                        uniqueDepts.length > 0
-                            ? `<div class="me-3"><strong>Departments:</strong> ${uniqueDepts.join(
-                                  ", "
-                              )}</div>`
-                            : ""
-                    }
-                    ${
-                        uniqueDivs.length > 0
-                            ? `<div><strong>Divisions:</strong> ${uniqueDivs.join(
-                                  ", "
-                              )}</div>`
-                            : ""
-                    }
-                `;
+    // Handle edit image clear button
+    document
+        .getElementById("editScheduleImageClearBtn")
+        .addEventListener("click", function () {
+            const img = document.getElementById(
+                "edit_schedule_current_image_display"
+            );
+            if (img) {
+                img.style.display = "none";
+                img.src = "";
             }
-        }
-    }
+            document.getElementById("edit_schedule_current_image").value = "";
+            document.getElementById("edit_schedule_image").value = "";
+        });
+
+    // Filter recurrence dropdown listener
+    document
+        .getElementById("filterScheduleRecurrence")
+        .addEventListener("change", function () {
+            const recurrenceType = this.value;
+            currentRecurrenceFilter = recurrenceType;
+        });
 
     let scheduleIdToDelete = null;
 
@@ -1064,8 +874,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         "success",
                         1500
                     );
-                    location.reload();
-                    fetchScheduleData();
+                    fetchScheduleData(
+                        1,
+                        currentRecurrenceFilter,
+                        currentSearchFilter
+                    );
                 } else {
                     showFloatingAlert(
                         "Failed to delete schedule: " +

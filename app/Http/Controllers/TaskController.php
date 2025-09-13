@@ -136,12 +136,13 @@ class TaskController extends Controller
                                         $r->whereNull('is_receive')->orWhere('is_receive', false);
                                     });
                             });
-                        });
+                        })->orderBy('start_date', 'desc');
                 } elseif ($normalizedFilter === 'new_request') {
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
                         ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
-                    });
+                    })->orderBy('start_date', 'asc');
+
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
                         ->where(function ($q) use ($currentEmployeeId) {
@@ -152,7 +153,8 @@ class TaskController extends Controller
                                         $r->whereNull('is_receive')->orWhere('is_receive', false);
                                     });
                             });
-                        });
+                        }) ->orderBy('complete_date', 'asc');
+
                 } else {
                     $query->where('status', $normalizedFilter)
                         ->where(function ($q) use ($currentEmployeeId) {
@@ -185,7 +187,7 @@ class TaskController extends Controller
                 $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
                     $q->where('status', 'new_request')
                     ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
-                });
+                })->orderBy('start_date', 'asc');
                 $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
                 $response['new_request'] = [
                     'tasks' => $this->mapTasks($newPaginator->items()),
@@ -208,7 +210,7 @@ class TaskController extends Controller
                                             $r->whereNull('is_receive')->orWhere('is_receive', false);
                                         });
                                 });
-                            });
+                            })->orderBy('start_date', 'desc');
                 $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'in_progress_page');
                 $response['in_progress'] = [
                     'tasks' => $this->mapTasks($progressPaginator->items()),
@@ -231,7 +233,7 @@ class TaskController extends Controller
                                             $r->whereNull('is_receive')->orWhere('is_receive', false);
                                         });
                                 });
-                            });
+                            })->orderBy('complete_date', 'asc');
                 $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'completed_page');
                 $response['completed'] = [
                     'tasks' => $this->mapTasks($completedPaginator->items()),

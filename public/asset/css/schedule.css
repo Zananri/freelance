@@ -101,8 +101,14 @@
     padding: 16px;
 }
 
-.dropdown-filter-body select {
+.dropdown-filter-body select,
+.form-select option {
     border: none;
+    font-size: 14px;
+}
+
+.dropdown-filter-body label {
+    font-size: 12px;
 }
 
 .dropdown-filter-footer {
