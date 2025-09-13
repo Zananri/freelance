@@ -593,6 +593,8 @@ document.addEventListener("DOMContentLoaded", function () {
     // Accepts optional filter (status grouping), page, and search text
     // Keep a local state mirrored to window.currentSearch for cross-scope access
     let currentSearch = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
+    let currentProjectId = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : '';
+    let currentFilterDate = (typeof window.currentFilterDate === 'string') ? window.currentFilterDate : '';
     function loadProjectCardData(filter = null, page = 1, search = null) {
         // DEBUG: Log filter parameter
         if (filter) {
@@ -608,6 +610,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const params = { filter: filter, task_scope: "me", page: page };
         if (currentSearch && currentSearch.trim() !== '') {
             params.search = currentSearch.trim();
+        }
+        if (currentProjectId) {
+            params.project_id = currentProjectId;
+        }
+        if (currentFilterDate && currentFilterDate.trim() !== '') {
+            params.date = currentFilterDate.trim();
         }
 
         $.ajax({
@@ -775,27 +783,39 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     } catch (_) { /* noop */ }
 
-                    // Add event listeners for dropdown toggle
-                    document
-                        .querySelectorAll(".dropdown-icon")
-                        .forEach((icon) => {
-                            icon.addEventListener("click", function (e) {
-                                e.stopPropagation();
-                                const dropdownMenu = this.nextElementSibling;
-                                const isVisible =
-                                    !dropdownMenu.classList.contains("d-none");
-                                // Close all dropdowns
-                                document
-                                    .querySelectorAll(".dropdown-menu")
-                                    .forEach((menu) => {
-                                        menu.classList.add("d-none");
-                                    });
-                                // Toggle current dropdownz
-                                if (!isVisible) {
-                                    dropdownMenu.classList.remove("d-none");
-                                }
+                    // Add robust delegated listener for card action menu toggle
+                    if (container && container.__cardMenuDelegated !== true) {
+                        container.addEventListener('click', function (e) {
+                            const btn = e.target.closest('.dropdown-icon');
+                            if (!btn) return;
+                            if (!container.contains(btn)) return;
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const dropdownMenu = btn.nextElementSibling;
+                            const isVisible = dropdownMenu && !dropdownMenu.classList.contains('d-none');
+
+                            // Close all card action menus within this container only
+                            container.querySelectorAll('.dropdown-action').forEach((menu) => {
+                                menu.classList.add('d-none');
                             });
+
+                            // Open the requested one if it wasn't visible
+                            if (dropdownMenu && !isVisible) {
+                                dropdownMenu.classList.remove('d-none');
+                            }
                         });
+                        // Close any open card menus when clicking outside the cards
+                        if (!window.__globalCardMenuCloserBound) {
+                            window.__globalCardMenuCloserBound = true;
+                            document.addEventListener('click', function () {
+                                try {
+                                    document.querySelectorAll('.dropdown-action').forEach((menu) => menu.classList.add('d-none'));
+                                } catch (_) {}
+                            });
+                        }
+                        container.__cardMenuDelegated = true;
+                    }
 
                     // Bind latest-feedback-snippet clicks to open modal and mark read
                     try {
@@ -6731,6 +6751,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (typeof q === 'string' && q.trim() !== '') {
                         params.search = q.trim();
                     }
+                    
+                    const pid = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : currentProjectId;
+                    if (pid) {
+                        params.project_id = pid;
+                    }
+                    const dt = (typeof window.currentFilterDate === 'string') ? window.currentFilterDate : currentFilterDate;
+                    if (typeof dt === 'string' && dt.trim() !== '') {
+                        params.date = dt.trim();
+                    }
                 } catch(_) {}
                 return params;
             })(),
@@ -6754,6 +6783,8 @@ document.addEventListener("DOMContentLoaded", function () {
         window.loadProjectCardData = loadProjectCardData;
         window.loadCardProjects = loadCardProjects;
         window.currentSearch = currentSearch;
+        window.currentProjectId = currentProjectId;
+        window.currentFilterDate = currentFilterDate;
     } catch(_) {}
 
     function updatePagination(pagination) {
@@ -8735,7 +8766,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const filterDropdown = document.getElementById("projectFilterDropdown");
         const applyFilterBtn = document.getElementById("applyProjectFilterBtn");
         const resetFilterBtn = document.getElementById("resetProjectFilterBtn");
-        const filterStatus = document.getElementById("filterProjectStatus");
+    const filterStatus = document.getElementById("filterProjectStatus");
+    // removed: filterSort (Sort By UI)
+    // New: By Project / By Date controls
+    const modeByProject = document.getElementById("modeByProject");
+    const modeByDate = document.getElementById("modeByDate");
+    const byProjectContainer = document.getElementById("byProjectContainer");
+    const byDateContainer = document.getElementById("byDateContainer");
+    const projectSelect = document.getElementById("filterProjectSelect");
+    const dateSelect = document.getElementById("filterProjectDateSelect");
 
         if (!openFilterBtn || !filterDropdown) return;
 
@@ -8765,6 +8804,103 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
+        // Helpers: populate options for project and date selects
+        function populateProjectOptions() {
+            if (!projectSelect) return;
+            projectSelect.innerHTML = '<option value="">All Projects</option>';
+            $.ajax({
+                url: appUrl + "/project/index",
+                type: "GET",
+                dataType: "json",
+                data: { task_scope: "me" },
+            })
+                .done(function (res) {
+                    const arr = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+                    arr.forEach(function (p) {
+                        const opt = document.createElement("option");
+                        opt.value = p.id;
+                        opt.textContent = p.title || ("Project #" + p.id);
+                        projectSelect.appendChild(opt);
+                    });
+                    // Restore previously selected value if any
+                    try {
+                        const prev = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : '';
+                        if (prev) projectSelect.value = String(prev);
+                    } catch (_) {}
+                })
+                .fail(function () { /* noop */ });
+        }
+
+        function populateDateOptions() {
+            if (!dateSelect) return;
+            dateSelect.innerHTML = '<option value="">All Dates</option>';
+            $.ajax({
+                url: appUrl + "/project/index",
+                type: "GET",
+                dataType: "json",
+                data: { task_scope: "me" },
+            })
+                .done(function (res) {
+                    const arr = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+                    const s = new Set();
+                    arr.forEach(function (p) {
+                        const sd = (p.start_date || "").slice(0, 10);
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(sd)) s.add(sd);
+                    });
+                    const list = Array.from(s).sort();
+                    // Helper: format YYYY-MM-DD to "DD Month YYYY" (e.g., 13 September 2025)
+                    function formatDateLabel(ymd) {
+                        try {
+                            const parts = String(ymd).split('-');
+                            if (parts.length !== 3) return ymd;
+                            const y = parseInt(parts[0], 10);
+                            const m = parseInt(parts[1], 10);
+                            const d = parseInt(parts[2], 10);
+                            if (!y || !m || !d) return ymd;
+                            const months = [
+                                'Januari','Februari','Maret','April','Mei','Juni',
+                                'Juli','Agustus','September','Oktober','November','Desember'
+                            ];
+                            const monthName = months[m - 1] || parts[1];
+                            return d + ' ' + monthName + ' ' + y;
+                        } catch (_) {
+                            return ymd;
+                        }
+                    }
+                    list.forEach(function (d) {
+                        const opt = document.createElement("option");
+                        opt.value = d;
+                        opt.textContent = formatDateLabel(d);
+                        dateSelect.appendChild(opt);
+                    });
+                    // Restore previously selected value if any
+                    try {
+                        const prev = (typeof window.currentFilterDate === 'string') ? window.currentFilterDate : '';
+                        if (prev) dateSelect.value = prev;
+                    } catch (_) {}
+                })
+                .fail(function () { /* noop */ });
+        }
+
+        function applyModeVisibility() {
+            const byProject = !!(modeByProject && modeByProject.checked);
+            if (byProject) {
+                if (byProjectContainer) byProjectContainer.classList.remove('d-none');
+                if (byDateContainer) byDateContainer.classList.add('d-none');
+                populateProjectOptions();
+            } else {
+                if (byProjectContainer) byProjectContainer.classList.add('d-none');
+                if (byDateContainer) byDateContainer.classList.remove('d-none');
+                populateDateOptions();
+            }
+        }
+
+        // Bind mode toggles
+        if (modeByProject) modeByProject.addEventListener('change', applyModeVisibility);
+        if (modeByDate) modeByDate.addEventListener('change', applyModeVisibility);
+        // Initialize mode UI on load
+        applyModeVisibility();
+
         // Handle apply filter button
         if (applyFilterBtn) {
             // Remove existing listeners
@@ -8776,6 +8912,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 e.stopPropagation();
                 
                 const selectedStatus = filterStatus ? filterStatus.value : "";
+                
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
 
@@ -8791,8 +8928,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     filterParam = "in_progress";
                 }
 
-                // Reload project cards with filter parameter
-                loadProjectCardData(filterParam);
+                // Reload project cards with current filters, keep current search
+                const q = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
+                
+                // Read By Project/By Date values
+                const isByProject = !!(modeByProject && modeByProject.checked);
+                const selectedProjectId = (projectSelect && isByProject) ? projectSelect.value : '';
+                const selectedDate = (!isByProject && dateSelect) ? dateSelect.value : '';
+                // Persist these states on window and locals
+                try { window.currentProjectId = selectedProjectId || ''; } catch(_) {}
+                try { window.currentFilterDate = selectedDate || ''; } catch(_) {}
+                currentProjectId = selectedProjectId || '';
+                currentFilterDate = selectedDate || '';
+                loadProjectCardData(filterParam, 1, (typeof q === 'string' ? q : ''));
             });
         }
 
@@ -8810,13 +8958,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (filterStatus) {
                     filterStatus.value = "";
                 }
+                if (projectSelect) projectSelect.value = "";
+                if (dateSelect) dateSelect.value = "";
+                if (modeByProject) modeByProject.checked = true;
+                if (modeByDate) modeByDate.checked = false;
+                applyModeVisibility();
 
                 // Close the dropdown
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
 
-                // Reload project cards without filter (show all)
-                loadProjectCardData(null);
+                // Reset states
+                try { window.currentProjectId = ''; } catch(_) {}
+                try { window.currentFilterDate = ''; } catch(_) {}
+                currentProjectId = '';
+                currentFilterDate = '';
+
+                // Reload project cards without filter (show all) and no sort, keep current search
+                const q = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
+                loadProjectCardData(null, 1, (typeof q === 'string' ? q : ''));
             });
         }
 

@@ -182,6 +182,30 @@
                                         <option value="completed">Completed</option>
                                     </select>
                                 </div>
+                                
+                                <hr class="my-2">
+                                <div class="mb-2">
+                                    <label class="form-label d-block mb-1">Filter Mode</label>
+                                    <div class="btn-group" role="group" aria-label="Filter Mode">
+                                        <input type="radio" class="btn-check" name="filterMode" id="modeByProject" autocomplete="off" value="by_project" checked>
+                                        <label class="btn btn-outline-secondary" for="modeByProject">By Project</label>
+
+                                        <input type="radio" class="btn-check" name="filterMode" id="modeByDate" autocomplete="off" value="by_date">
+                                        <label class="btn btn-outline-secondary" for="modeByDate">By Date</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3" id="byProjectContainer">
+                                    <label for="filterProjectSelect" class="form-label">Project</label>
+                                    <select id="filterProjectSelect" class="form-select">
+                                        <option value="">All Projects</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3 d-none" id="byDateContainer">
+                                    <label for="filterProjectDateSelect" class="form-label">Date</label>
+                                    <select id="filterProjectDateSelect" class="form-select">
+                                        <option value="">All Dates</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="dropdown-filter-footer">
                                 <button type="button" class="btn btn-submit-black"

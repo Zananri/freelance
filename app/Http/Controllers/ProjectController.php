@@ -524,6 +524,10 @@ class ProjectController extends Controller
             $employeeId = $user && $user->employee ? $user->employee->id : null;
             $filter = $request->input('filter', null);
             $search = trim((string) $request->input('search', ''));
+            // Removed UI for sort_by; backend will use default ordering
+            // New: optional project/date filters (By Project / By Date)
+            $projectIdFilter = $request->input('project_id');
+            $dateFilter = trim((string) $request->input('date', ''));
             $includeUnaccepted = $request->input('include_unaccepted', false);
             $taskScope = strtolower($request->input('task_scope', 'project'));
             $taskScope = in_array($taskScope, ['project', 'me', 'all']) ? $taskScope : 'project';
@@ -619,6 +623,23 @@ class ProjectController extends Controller
                         ->havingRaw('COUNT(*) > 0'); // Pastikan ada task
                 });
             }
+
+            // Apply project_id filter (By Project)
+            if (!is_null($projectIdFilter) && $projectIdFilter !== '') {
+                $pid = (int) $projectIdFilter;
+                if ($pid > 0) {
+                    $query->where('projects.id', $pid);
+                }
+            }
+
+            // Apply date filter (By Date) - match start_date only
+            if ($dateFilter !== '') {
+                // Expecting YYYY-MM-DD; apply safe match against project start_date only
+                $query->whereDate('projects.start_date', $dateFilter);
+            }
+
+            // Default ordering
+            $query = $query->orderBy('projects.created_at', 'desc');
 
             $projects = $query
                 ->with([
