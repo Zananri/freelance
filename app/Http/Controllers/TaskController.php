@@ -18,6 +18,21 @@ use Illuminate\Support\Str;
 class TaskController extends Controller
 {
     /**
+     * Derive HTTP status code from exception, defaulting to 500 for non-HTTP exceptions
+     */
+    private function deriveHttpStatusFromException(\Throwable $e): int
+    {
+        $code = $e->getCode();
+        if (is_numeric($code)) {
+            $int = (int) $code;
+            if ($int >= 400 && $int <= 599) {
+                return $int;
+            }
+        }
+        return 500;
+    }
+
+    /**
      * Resolve universal avatar for an employee (profile_picture > photo > user.photo > default)
      */
     private function resolveEmployeeAvatar($employee)
@@ -236,11 +251,12 @@ class TaskController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -395,11 +411,12 @@ class TaskController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -684,10 +701,10 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -783,10 +800,10 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -943,10 +960,10 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -1050,10 +1067,10 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -1270,10 +1287,10 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -1316,10 +1333,10 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -1384,10 +1401,10 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -1711,10 +1728,10 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => 'Failed to update feedback: ' . $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -1841,10 +1858,10 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -1922,10 +1939,10 @@ class TaskController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -1947,10 +1964,10 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -2015,10 +2032,10 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -2070,14 +2087,14 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage(),
                 'data' => [
                     'is_accepted' => false,
                     'task_id' => $taskId
                 ]
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -2125,10 +2142,10 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 
@@ -2210,10 +2227,10 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
 

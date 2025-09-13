@@ -200,121 +200,105 @@
     }
 
     async function fetchProjectsAndRender() {
-            try {
-                // Ambil semua project
-                const resp = await fetch(appUrl + '/project/index?task_scope=me');
-                const json = await resp.json();
-                const projects = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : []);
+        function normalizeArray(json) {
+            if (Array.isArray(json)) return json;
+            if (json && Array.isArray(json.data)) return json.data;
+            return [];
+        }
+        try {
+            // Parallel requests: total, completed, in_progress, not_started (from /project/index filters) and tasks aggregation for LATE
+            const [totalRes, compRes, progRes, notRes, tasksRes] = await Promise.all([
+                fetch(appUrl + '/project/index'),
+                fetch(appUrl + '/project/index?filter=completed'),
+                fetch(appUrl + '/project/index?filter=in_progress'),
+                fetch(appUrl + '/project/index?filter=not_started'),
+                fetch(appUrl + '/task/index/no-pagination'),
+            ]);
 
-                // Pastikan tanggal (untuk timeline) diperkaya jika hilang
-                const needsDetail = projects.filter(p => !(p.start_date && p.due_date));
-                if (needsDetail.length) {
-                    await Promise.all(needsDetail.map(async (p) => {
-                        try {
-                            const r = await fetch(appUrl + '/project/' + p.id);
-                            const d = await r.json();
-                            const data = d.data || d;
-                            if (data) {
-                                p.start_date = p.start_date || data.start_date || data.start || data.startDate;
-                                p.due_date = p.due_date || data.due_date || data.due || data.end_date || data.endDate;
-                            }
-                        } catch(_) {}
-                    }));
-                }
+            const [totalJson, compJson, progJson, notJson, tasksJson] = await Promise.all([
+                totalRes.json(), compRes.json(), progRes.json(), notRes.json(), tasksRes.json()
+            ]);
 
-                // Ambil semua task untuk klasifikasi per project (selalu override chart_counts server)
-                let taskBuckets = {};
-                try {
-                    const tResp = await fetch(appUrl + '/task/index/no-pagination');
-                    const tJson = await tResp.json();
-                    taskBuckets = tJson?.data || {};
-                } catch (e) {
-                    // jika gagal, biarkan taskBuckets kosong -> semua project dianggap not started jika tidak ada task
-                }
+            const projects = normalizeArray(totalJson);
+            const completedArr = normalizeArray(compJson);
+            const inProgressArr = normalizeArray(progJson);
+            const notStartedArr = normalizeArray(notJson);
 
-                // Susun map project_id -> tasks[] dengan status disimpan di __status
-                const tasksByProject = {};
-                function collect(arr, statusName){
-                    if (!Array.isArray(arr)) return;
-                    arr.forEach(t => {
-                        const pid = t.project_id || t.projectId || (t.project && (t.project.id || t.project.project_id));
-                        if (!pid) return;
-                        if (!tasksByProject[pid]) tasksByProject[pid] = [];
-                        tasksByProject[pid].push(Object.assign({}, t, { __status: statusName }));
-                    });
-                }
-                collect(taskBuckets.not_started?.tasks, 'not_started');
-                collect(taskBuckets.in_progress?.tasks, 'in_progress');
-                collect(taskBuckets.completed?.tasks, 'completed');
-                collect(taskBuckets.late?.tasks, 'late');
-                collect(taskBuckets.rejected?.tasks, 'rejected');
-                collect(taskBuckets.new_request?.tasks, 'new_request');
-
-                function parseDue(dateStr){
-                    if (!dateStr) return null;
-                    const s = String(dateStr).trim();
-                    const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                    if (m){
-                        return new Date(+m[1], +m[2]-1, +m[3], 23,59,59,999);
-                    }
-                    const d = new Date(s);
-                    return isNaN(d.getTime()) ? null : d;
-                }
-
-                const now = new Date();
-                let countCompleted = 0, countOnProgress = 0, countLate = 0, countNotStarted = 0;
-
-                projects.forEach(p => {
-                    const pid = p.id || p.project_id;
-                    const tasks = tasksByProject[pid] || [];
-                    if (!tasks.length){
-                        const tc = p.task_counts || p.taskCounts || null;
-                        if (tc && typeof tc.total === 'number' && tc.total > 0){
-                            const total = Number(tc.total)||0;
-                            const completedT = Number(tc.completed || tc.completed_tasks || 0);
-                            const inProgT = Number(tc.in_progress || tc.in_progress_tasks || 0);
-                            const rejectedT = Number(tc.rejected || tc.rejected_tasks || 0);
-                            const lateT = Number(tc.late || tc.late_tasks || 0);
-                            const inferredNotStarted = Math.max(0, total - (completedT + inProgT + rejectedT + lateT));
-                            if (lateT > 0){ countLate++; return; }
-                            if (completedT === total && total > 0){ countCompleted++; return; }
-                            if (inProgT > 0 || (completedT>0 && (inferredNotStarted>0 || rejectedT>0))){ countOnProgress++; return; }
-                            countNotStarted++; return;
-                        } else {
-                            countNotStarted++; return;
+            // Enrich missing dates for timeline only
+            const needsDetail = projects.filter(p => !(p.start_date && p.due_date));
+            if (needsDetail.length) {
+                await Promise.all(needsDetail.map(async (p) => {
+                    try {
+                        const r = await fetch(appUrl + '/project/' + p.id);
+                        const d = await r.json();
+                        const data = d.data || d;
+                        if (data) {
+                            p.start_date = p.start_date || data.start_date || data.start || data.startDate;
+                            p.due_date = p.due_date || data.due_date || data.due || data.end_date || data.endDate;
                         }
-                    }
-                    const hasLate = tasks.some(t => {
-                        if (t.__status === 'late') return true;
-                        const dueStr = t.due_date || t.due || t.deadline;
-                        const due = parseDue(dueStr);
-                        return due && (due.getTime() < now.getTime()) && t.__status !== 'completed';
-                    });
-                    if (hasLate){ countLate++; return; }
-                    const allCompleted = tasks.length && tasks.every(t => t.__status === 'completed');
-                    if (allCompleted){ countCompleted++; return; }
-                    const allNotStarted = tasks.every(t => t.__status === 'not_started' || t.__status === 'new_request');
-                    if (allNotStarted){ countNotStarted++; return; }
-                    countOnProgress++;
-                });
-
-                const derivedCounts = {
-                    total: projects.length,
-                    completed: countCompleted,
-                    in_progress: countOnProgress,
-                    late: countLate,
-                    not_started: countNotStarted
-                };
-
-                updateChartAndLabels(projects, derivedCounts);
-                projectsCache = projects;
-                renderTimeline('#timelineRows', '#timelineTitle');
-            } catch (e) {
-                console.error('fetchProjectsAndRender error', e);
-                projectsCache = [];
-                updateChartAndLabels([], {completed:0,in_progress:0,late:0,not_started:0});
-                renderTimeline('#timelineRows', '#timelineTitle');
+                    } catch(_) {}
+                }));
             }
+
+            // Build tasks map and compute LATE per project (Dashboard logic)
+            const buckets = tasksJson?.data || {};
+            const tasksByProject = {};
+            function collect(arr, statusName) {
+                if (!Array.isArray(arr)) return;
+                arr.forEach(t => {
+                    const pid = t.project_id || t.projectId || (t.project && (t.project.id || t.project.project_id));
+                    if (!pid) return;
+                    if (!tasksByProject[pid]) tasksByProject[pid] = [];
+                    tasksByProject[pid].push(Object.assign({}, t, { __status: statusName }));
+                });
+            }
+            collect(buckets.not_started?.tasks, 'not_started');
+            collect(buckets.in_progress?.tasks, 'in_progress');
+            collect(buckets.completed?.tasks, 'completed');
+            collect(buckets.late?.tasks, 'late');
+            collect(buckets.rejected?.tasks, 'rejected');
+            collect(buckets.new_request?.tasks, 'new_request');
+
+            function parseDue(dateStr) {
+                if (!dateStr) return null;
+                const s = String(dateStr).trim();
+                const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                if (m) return new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999);
+                const d = new Date(s);
+                return isNaN(d.getTime()) ? null : d;
+            }
+            const now = new Date();
+            let countLate = 0;
+            projects.forEach(p => {
+                const pid = p.id || p.project_id;
+                const tasks = tasksByProject[pid] || [];
+                if (!tasks.length) return; // no tasks -> not late
+                const hasLate = tasks.some(t => {
+                    if (t.__status === 'late') return true;
+                    const dueStr = t.due_date || t.due || t.deadline;
+                    const due = parseDue(dueStr);
+                    return !!(due && (due.getTime() < now.getTime()) && t.__status !== 'completed');
+                });
+                if (hasLate) countLate++;
+            });
+
+            const derivedCounts = {
+                total: projects.length,
+                completed: completedArr.length,
+                in_progress: inProgressArr.length,
+                late: countLate,
+                not_started: notStartedArr.length,
+            };
+
+            updateChartAndLabels(projects, derivedCounts);
+            projectsCache = projects;
+            renderTimeline('#timelineRows', '#timelineTitle');
+        } catch (e) {
+            console.error('fetchProjectsAndRender error', e);
+            projectsCache = [];
+            updateChartAndLabels([], { completed: 0, in_progress: 0, late: 0, not_started: 0 });
+            renderTimeline('#timelineRows', '#timelineTitle');
+        }
     }
 
     // Init after DOM ready

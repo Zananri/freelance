@@ -2,7 +2,6 @@ var appUrl = (
     document.querySelector('meta[name="app-url"]')?.getAttribute("content") ||
     ""
 ).replace(/\/$/, "");
-console.log("Project.js appUrl:", appUrl);
 
 // Mobile detection utility for tooltip placement
 function isMobileDevice() {

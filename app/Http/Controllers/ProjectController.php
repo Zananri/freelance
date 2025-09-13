@@ -60,14 +60,19 @@ class ProjectController extends Controller
         $relative = ltrim($raw, '/');
 
         // Build public path (assuming uploaded files live under public/)
-        $publicPath = public_path($relative);
+        try {
+            $publicPath = public_path($relative);
 
-        // If the file recorded in DB no longer exists on disk, fallback to default avatar
-        if (!is_file($publicPath)) {
+            // If the file recorded in DB no longer exists on disk, fallback to default avatar
+            if (!is_file($publicPath)) {
+                return asset('asset/img/avatar.png');
+            }
+
+            return asset($relative);
+        } catch (\Throwable $t) {
+            // If any error with file operations, return default avatar
             return asset('asset/img/avatar.png');
         }
-
-        return asset($relative);
     }
 
     /**
@@ -267,11 +272,12 @@ class ProjectController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -302,11 +308,12 @@ class ProjectController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => "error",
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -1274,11 +1281,12 @@ class ProjectController extends Controller
 
     } catch (\Exception $e) {
         DB::rollBack();
+        $status = $this->deriveHttpStatusFromException($e);
         return response()->json([
-            'code' => $e->getCode() ?: 500,
+            'code' => $status,
             'status' => "error",
             'message' => $e->getMessage()
-        ], $e->getCode() ?: 500);
+        ], $status);
     }
 }
 
