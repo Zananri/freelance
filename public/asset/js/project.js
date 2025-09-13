@@ -555,6 +555,77 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Build vertical collaborators list for Project Detail modal
+    // Each row: avatar on the left, then name, and division beneath the name; stacked vertically and scrollable via CSS
+    function buildCollaboratorsDetailList(project) {
+        try {
+            const items = [];
+            if (project && project.author) items.push({ role: 'author', emp: project.author });
+            if (project && Array.isArray(project.co_authors)) {
+                project.co_authors.forEach(emp => items.push({ role: 'co_author', emp }));
+            }
+            // Support legacy key 'executors' as contributors
+            if (project && Array.isArray(project.executors)) {
+                project.executors.forEach(emp => items.push({ role: 'contributor', emp }));
+            } else if (project && Array.isArray(project.contributors)) {
+                project.contributors.forEach(emp => items.push({ role: 'contributor', emp }));
+            }
+
+            function getName(emp) {
+                try {
+                    return (
+                        emp?.name ||
+                        emp?.employee_name ||
+                        emp?.username ||
+                        emp?.full_name ||
+                        (emp?.employee && (emp.employee.name || emp.employee.full_name)) ||
+                        'Unknown'
+                    );
+                } catch (_) { return 'Unknown'; }
+            }
+
+            function getDivision(emp) {
+                try {
+                    // Try common fields first, then nested structures
+                    return (
+                        emp?.division_name || emp?.division || emp?.division_title ||
+                        // backend now also provides 'division' as name string and duplicate 'division_name'
+                        (typeof emp?.division === 'string' ? emp?.division : null) ||
+                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                        emp?.employee_division ||
+                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                        '-'
+                    );
+                } catch (_) { return '-'; }
+            }
+
+            if (!items.length) {
+                return '<div class="text-muted small">No collaborators</div>';
+            }
+
+            const rows = items.map(({ role, emp }) => {
+                const name = getName(emp);
+                const division = getDivision(emp);
+                // Use global resolver for photo (includes cache busting and onerror handling)
+                const photo = resolvePhotoHtml(emp, 36, 0, role);
+                return (
+                    '<div class="collab-item d-flex align-items-center mb-2">' +
+                        '<div class="flex-shrink-0">' + photo + '</div>' +
+                        '<div class="ms-2">' +
+                            '<div class="collab-name">' + (name || 'Unknown') + '</div>' +
+                            '<div class="collab-division text-muted">' + (division || '-') + '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            });
+
+            return '<div class="collab-list">' + rows.join('') + '</div>';
+        } catch (e) {
+            console.warn('buildCollaboratorsDetailList error', e);
+            return '<div class="text-muted small">No collaborators</div>';
+        }
+    }
+
     let currentPage = 1;
 
     // Unified initials logic (match task.js style) + placeholder filtering
@@ -5703,6 +5774,29 @@ document.addEventListener("DOMContentLoaded", function () {
                                           return `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;background:${color};color:#fff;font-weight:600;font-size:11px;">${init}</div>`;
                                       })();
 
+                                // Normalize department/division fields: accept string or object and various key names
+                                function _getDeptText(val) {
+                                    try {
+                                        if (!val) return '-';
+                                        if (typeof val === 'string') return val;
+                                        if (typeof val === 'object') {
+                                            return (
+                                                val.name_department ||
+                                                val.name_division ||
+                                                val.name ||
+                                                val.title ||
+                                                '-'
+                                            );
+                                        }
+                                        return '-';
+                                    } catch(_) { return '-'; }
+                                }
+                                // Pull from various possible fields in the payload
+                                const deptRaw = project.department ?? project.department_name ?? project.dept ?? project.departmentTitle ?? project.department_obj;
+                                const divRaw  = project.division  ?? project.division_name  ?? project.div ?? project.divisionTitle  ?? project.division_obj;
+                                const deptText = _getDeptText(deptRaw);
+                                const divText  = _getDeptText(divRaw);
+
                                 const detailHtml = `
                 <div class="custom-card-detail rounded-4 p-3 border-0" data-project-id="${pid}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
@@ -5731,30 +5825,25 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
                         <span class="text-muted">Department:</span>
-                        <span>${project.department || "-"}</span>
+                        <span>${deptText}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
                         <span class="text-muted">Division:</span>
-                        <span>${project.division || "-"}</span>
+                        <span>${divText}</span>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <div class="d-flex align-items-center pic-executor-container">
-                            ${renderCollaborators(project, 40) || "No collaborators"}
-                        </div>
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                        <div class="flex-grow-1">${buildCollaboratorsDetailList(project)}</div>
+                        <div class="d-flex align-items-start">
                             <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
                                 <span class="material-symbols-outlined task-icon mode_comment" data-project-id="${pid}">mode_comment</span>
-                                ${project.feedback_comments_count > 0 ? `<span class=\"feedback-comments-count ms-1\" style=\"color: #454545; font-size: 12px;\">${project.feedback_comments_count}</span>` : ""}
+                                
                                 <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${pid}"></span>
                             </div>
                             <div class="btn-attach-file-wrapper d-flex align-items-center">
                                 <span class="material-symbols-outlined task-icon">attach_file</span>
-                                ${project.reference_files_count > 0 ? `<span class=\"reference-files-count ms-1\" style=\"color: #454545; font-size: 12px;\">${project.reference_files_count}</span>` : ""}
+                                
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom mt-3">
-                        <button type="button" class="btn btn-custom-close delete-project-btn" data-project-id="${pid}">Delete</button>
                     </div>
                 </div>`;
 
@@ -6055,6 +6144,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 // Show modal
                                 $("#projectDetailModal").modal("show");
+
+                                // Bind sticky footer delete button to open delete modal for this project
+                                try {
+                                    const footerDeleteBtn = document.getElementById('projectDetailDeleteBtn');
+                                    if (footerDeleteBtn) {
+                                        footerDeleteBtn.onclick = function() {
+                                            try { $("#projectDetailModal").modal('hide'); } catch(_) {}
+                                            const deleteModalEl = document.getElementById("deleteProjectModal");
+                                            if (!deleteModalEl) { showFloatingAlert('Delete Project Modal not found', 'warning', 3000); return; }
+                                            const deleteModal = new bootstrap.Modal(deleteModalEl);
+                                            // Populate preview content using fetched project data
+                                            try { setDeleteProjectModalPreview(project); } catch(_) {}
+                                            deleteModalEl.dataset.projectId = pid;
+                                            deleteModal.show();
+                                            const confirmDeleteBtn = document.getElementById("confirmDeleteProjectBtn");
+                                            if (confirmDeleteBtn) {
+                                                confirmDeleteBtn.onclick = function () {
+                                                    $.ajax({
+                                                        url: appUrl + "/project/" + pid,
+                                                        type: "DELETE",
+                                                        headers: { "X-CSRF-TOKEN": $("meta[name='csrf-token']").attr("content") },
+                                                        success: function (resp) {
+                                                            deleteModal.hide();
+                                                            try { loadProjectCardData(); } catch(_) {}
+                                                            showFloatingAlert(resp.message || 'Project deleted successfully', 'success', 2000);
+                                                        },
+                                                        error: function (xhr) {
+                                                            console.error('Delete error:', xhr);
+                                                            showFloatingAlert("Failed to delete project: " + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000);
+                                                        }
+                                                    });
+                                                };
+                                            }
+                                        };
+                                    }
+                                } catch(_) { /* noop */ }
                             },
                             error: function () {
                                 alert("Failed to load project details.");

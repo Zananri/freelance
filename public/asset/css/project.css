@@ -659,6 +659,29 @@
     padding: 8px;
 }
 
+/* Collaborators list inside Project Detail modal */
+#projectDetailContent .collab-list {
+    max-height: 300px; /* allow scrolling if many employees */
+    overflow-y: auto;
+    padding-right: 4px;
+}
+#projectDetailContent .collab-item img {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #f0f1f8;
+}
+#projectDetailContent .collab-name {
+    font-size: 14px;
+    color: #222;
+    line-height: 1.2;
+}
+#projectDetailContent .collab-division {
+    font-size: 12px;
+    color: #777;
+}
+
 .modal-content-custom {
     border-radius: 16px;
     padding: 24px;

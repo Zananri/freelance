@@ -619,6 +619,9 @@
                 <div class="modal-body modal-body-custom position-relative">
                     <div id="projectDetailContent"></div>
                 </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-submit-black" id="projectDetailDeleteBtn">Delete</button>
+                </div>
             </div>
         </div>
     </div>
