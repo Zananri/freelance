@@ -3640,6 +3640,7 @@ function applyCurrentSearchFilter() {
     function showAddFeedbackForm(taskId) {
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
+        const modalFooter = this.querySelector(".modal-footer");
 
         modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
@@ -4023,10 +4024,13 @@ function applyCurrentSearchFilter() {
 
     // Function to show add feedback form in the modal
     function showAddFeedbackForm(taskId) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
+        const footer = feedbackModalEl.querySelector('.modal-footer')
+                    || feedbackModalEl.querySelector('.modal-footer-custom');
 
-    modalTitle.textContent = "Add Feedback";
+        modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
 
         const form = document.createElement("form");
@@ -4041,18 +4045,14 @@ function applyCurrentSearchFilter() {
         const employeeIdInput = document.createElement("input");
         employeeIdInput.type = "hidden";
         employeeIdInput.name = "employee_id";
-        employeeIdInput.value =
-            document
-                .getElementById("taskFeedbackModal")
-                .getAttribute("data-employee-id") || "";
+        employeeIdInput.value = feedbackModalEl.getAttribute("data-employee-id") || "";
 
         form.appendChild(taskIdInput);
         form.appendChild(employeeIdInput);
 
-                // Image upload
+        // Image upload
         const imageDiv = document.createElement("div");
         imageDiv.className = "mb-3";
-
         const imageLabelTitle = document.createElement("div");
         imageLabelTitle.className = "title-label-image";
         imageLabelTitle.textContent = "Upload Image";
@@ -4063,8 +4063,7 @@ function applyCurrentSearchFilter() {
         imageLabel.style.backgroundPosition = "center center";
         imageLabel.style.backgroundRepeat = "no-repeat";
         imageLabel.style.backgroundSize = "50%";
-        imageLabel.style.backgroundImage =
-            "url('" + appUrl + "/asset/img/background/add-image.png')";
+        imageLabel.style.backgroundImage = "url('" + appUrl + "/asset/img/background/add-image.png')";
         imageLabel.htmlFor = "feedback_image";
 
         const imageInput = document.createElement("input");
@@ -4087,16 +4086,14 @@ function applyCurrentSearchFilter() {
 
         form.appendChild(imageDiv);
 
-        // Comment field
+        // Comment
         const commentDiv = document.createElement("div");
         commentDiv.className = "mb-3 custom-input";
-
         const commentLabel = document.createElement("label");
         commentLabel.htmlFor = "feedback_comment";
         commentLabel.className = "form-label label-custom";
         commentLabel.textContent = "Comment";
         commentDiv.appendChild(commentLabel);
-
         const commentTextarea = document.createElement("textarea");
         commentTextarea.className = "form-control input-text";
         commentTextarea.id = "feedback_comment";
@@ -4104,65 +4101,77 @@ function applyCurrentSearchFilter() {
         commentTextarea.rows = 3;
         commentTextarea.required = true;
         commentDiv.appendChild(commentTextarea);
-
         form.appendChild(commentDiv);
 
         // Reference URL
         const refUrlDiv = document.createElement("div");
         refUrlDiv.className = "mb-3 custom-input";
-
         const refUrlLabel = document.createElement("label");
         refUrlLabel.htmlFor = "reference_url";
         refUrlLabel.className = "form-label label-custom";
         refUrlLabel.textContent = "Reference URL";
         refUrlDiv.appendChild(refUrlLabel);
-
         const refUrlInput = document.createElement("input");
         refUrlInput.type = "text";
         refUrlInput.className = "form-control input-text";
         refUrlInput.id = "reference_url";
         refUrlInput.name = "reference_url";
         refUrlDiv.appendChild(refUrlInput);
-
         form.appendChild(refUrlDiv);
 
-    // Reference Files
+        // Reference Files
         const refFileDiv = document.createElement("div");
         refFileDiv.className = "mb-3 custom-input";
-
         const refFileLabel = document.createElement("label");
-    refFileLabel.htmlFor = "reference_files";
+        refFileLabel.htmlFor = "reference_files";
         refFileLabel.className = "form-label label-custom";
-    refFileLabel.textContent = "Reference Files";
+        refFileLabel.textContent = "Reference Files";
         refFileDiv.appendChild(refFileLabel);
-
         const refFileInput = document.createElement("input");
         refFileInput.type = "file";
         refFileInput.className = "form-control input-text";
-    refFileInput.id = "reference_files";
-    refFileInput.name = "reference_files[]";
-    refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
-    refFileInput.multiple = true;
+        refFileInput.id = "reference_files";
+        refFileInput.name = "reference_files[]";
+        refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+        refFileInput.multiple = true;
         refFileDiv.appendChild(refFileInput);
-
         form.appendChild(refFileDiv);
 
-        // Render form into body
         modalBody.appendChild(form);
 
-        // Setup image preview
+        // Image preview
         setupImageInput(imageInput, imageLabel, imageClearBtn);
 
-        // Form submission handler
+        // Submit handler
         form.addEventListener("submit", function (e) {
             e.preventDefault();
             submitTaskFeedbackForm(this, taskId);
         });
 
-        // Use unified footer: Close + Submit
+        // Footer: Close + Submit
         setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
             const form = document.getElementById('addFeedbackForm');
             if (form) submitTaskFeedbackForm(form, taskId);
+        });
+
+        // 🔥 Reset footer & title pas modal ditutup
+        feedbackModalEl.addEventListener("hidden.bs.modal", function restoreDefault() {
+            if (footer) {
+                footer.innerHTML = '';
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'btn btn-submit-black w-100';
+                addBtn.id = 'addFeedbackButton';
+                addBtn.textContent = 'Add Feedback';
+                addBtn.addEventListener('click', function () {
+                    const tid = feedbackModalEl.dataset.taskId || '';
+                    showAddFeedbackForm(tid);
+                });
+                footer.appendChild(addBtn);
+            }
+            modalTitle.textContent = "Task Feedback";
+            // bersihin supaya ga double listener
+            feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDefault);
         });
     }
 
