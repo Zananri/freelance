@@ -6206,6 +6206,14 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (text === "Detail") {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                
+                                // Clear any timeline reopening flags when opening from dropdown
+                                const detailEl = document.getElementById("projectDetailModal");
+                                if (detailEl) {
+                                    detailEl.removeAttribute('data-reopen-timeline');
+                                    detailEl.removeAttribute('data-child-opened');
+                                }
+                                
                                 fetchAndShowProjectDetail(projectId);
                             } else if (text === "Task") {
                                 e.preventDefault();
@@ -6272,9 +6280,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (shouldReopenTimeline) {
                             const detailEl = document.getElementById("projectDetailModal");
                             if (detailEl) {
+                                // Clear any existing flags first
+                                detailEl.removeAttribute('data-child-opened');
                                 // Set a flag on detail so we remember to reopen timeline later
                                 detailEl.setAttribute('data-reopen-timeline', '1');
                                 // Timeline reopen logic is now handled by the main modal hidden handler
+                            }
+                        } else {
+                            // Ensure no timeline reopening if not originated from timeline
+                            const detailEl = document.getElementById("projectDetailModal");
+                            if (detailEl) {
+                                detailEl.removeAttribute('data-reopen-timeline');
+                                detailEl.removeAttribute('data-child-opened');
                             }
                         }
 
@@ -7797,16 +7814,26 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Handle timeline reopening logic first
                 if (projectDetailModalEl.getAttribute('data-child-opened')) {
                     // Skip timeline reopening if a child modal is opening
+                    projectDetailModalEl.removeAttribute('data-child-opened');
                     return;
                 }
                 
                 if (projectDetailModalEl.getAttribute('data-reopen-timeline') === '1') {
-                    const timelineModalEl = document.getElementById("timelineModal");
-                    if (timelineModalEl) {
-                        const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
-                        tlInstance.show();
-                        projectDetailModalEl.removeAttribute('data-reopen-timeline');
-                    }
+                    projectDetailModalEl.removeAttribute('data-reopen-timeline');
+                    
+                    // Add a small delay to ensure the current modal is fully closed before opening timeline
+                    setTimeout(() => {
+                        const timelineModalEl = document.getElementById("timelineModal");
+                        if (timelineModalEl) {
+                            try {
+                                const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                tlInstance.show();
+                            } catch (e) {
+                                console.warn('Error reopening timeline modal:', e);
+                            }
+                        }
+                    }, 200);
+                    return; // Don't continue with filter dropdown setup immediately
                 }
                 
                 // Re-initialize filter dropdown to ensure it works after modal closes
