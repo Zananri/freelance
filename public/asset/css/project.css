@@ -59,6 +59,7 @@
 
 .timeline-card {
     background: transparent;
+    display: block;
 }
 
 .timeline-toggle-btn {
@@ -77,7 +78,14 @@
 .timeline-wrapper {
     max-height: 275px;
     overflow-y: auto;
-    overflow-x: auto;
+    position: relative;
+}
+
+/* Timeline wrapper dalam modal fullscreen */
+#timelineModal .timeline-wrapper {
+    min-height: 40vh;
+    max-height: calc(100vh - 175px);
+    overflow-y: auto;
     position: relative;
 }
 
@@ -182,15 +190,17 @@
     justify-content: center;
     align-items: center;
     z-index: 3000;
+    overflow: hidden;
 }
 
 .timeline-modal {
-    background-color: rgb(240, 241, 248);
+    background: rgb(240, 241, 248);
     border-radius: 12px;
     padding: 20px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: 100%;
 }
 
 .exit-fullscreen-btn {
@@ -1103,9 +1113,16 @@
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
+    
+    /* Timeline wrapper dalam modal - responsive */
+    #timelineModal .timeline-wrapper {
+        min-height: 40vh;
+        max-height: calc(100vh - 175px);
+        overflow-y: auto;
+    }
 
     .timeline-table {
-        min-width: 525%;
+        min-width: 450%;
     }
 
     .bottom-project-content {
