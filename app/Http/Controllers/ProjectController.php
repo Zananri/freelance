@@ -38,7 +38,8 @@ class ProjectController extends Controller
     private function resolveEmployeeAvatar($employee)
     {
         // No employee object at all
-        if (!$employee) return asset('asset/img/avatar.png');
+        if (!$employee)
+            return asset('asset/img/avatar.png');
 
         // Pick first non-empty source (guard against missing related user)
         $userPhoto = null;
@@ -51,10 +52,12 @@ class ProjectController extends Controller
             $userPhoto = null;
         }
         $raw = $employee->profile_picture ?: ($employee->photo ?: $userPhoto);
-        if (!$raw) return asset('asset/img/avatar.png');
+        if (!$raw)
+            return asset('asset/img/avatar.png');
 
         // If already absolute (external or protocol-relative) just return
-        if (preg_match('/^(https?:)?\/\//', $raw)) return $raw; // already absolute URL
+        if (preg_match('/^(https?:)?\/\//', $raw))
+            return $raw; // already absolute URL
 
         // Normalize relative path
         $relative = ltrim($raw, '/');
@@ -524,7 +527,7 @@ class ProjectController extends Controller
             $employeeId = $user && $user->employee ? $user->employee->id : null;
             $filter = $request->input('filter', null);
             $search = trim((string) $request->input('search', ''));
-            // Removed UI for sort_by; backend will use default ordering
+            $sortBy = strtolower($request->input('sort_by', 'asc'));
             // New: optional project/date filters (By Project / By Date)
             $projectIdFilter = $request->input('project_id');
             $dateFilter = trim((string) $request->input('date', ''));
@@ -547,6 +550,12 @@ class ProjectController extends Controller
             }
 
             $query = Project::where('status', '!=', 'DELETED');
+
+            if ($sortBy === 'asc') {
+                $query = $query->orderBy('projects.title', 'asc');
+            } else {
+                $query = $query->orderBy('projects.title', 'desc');
+            }
 
             if ($taskScope !== 'all') {
                 // Only include projects where current employee is assigned.
@@ -820,7 +829,8 @@ class ProjectController extends Controller
                 $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
             }
             foreach ($incomingFiles as $idx => $file) {
-                if (!$file) continue;
+                if (!$file)
+                    continue;
                 $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
                 $file->move(public_path('file/project'), $fileName);
                 $uploadedFiles[] = $fileName;
@@ -972,12 +982,15 @@ class ProjectController extends Controller
 
             foreach ($project->projectAssignments as $assignment) {
                 $emp = $assignment->employee;
-                if (!$emp) continue;
+                if (!$emp)
+                    continue;
                 $avatar = $this->resolveEmployeeAvatar($emp);
                 $empDivision = null;
                 try {
                     $empDivision = $emp->division ? ($emp->division->name_division ?? $emp->division->name ?? null) : null;
-                } catch (\Throwable $t) { $empDivision = null; }
+                } catch (\Throwable $t) {
+                    $empDivision = null;
+                }
                 $wrapped = [
                     'id' => $emp->id,
                     'name' => $emp->name,
@@ -1048,15 +1061,16 @@ class ProjectController extends Controller
      */
     public function edit(string $id)
     {
-    // Eager-load employee.user to avoid null access when resolving avatars
-    $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])->findOrFail($id);
+        // Eager-load employee.user to avoid null access when resolving avatars
+        $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])->findOrFail($id);
 
         $coAuthors = [];
         $contributors = [];
 
         foreach ($project->projectAssignments as $assignment) {
             $employee = $assignment->employee;
-            if (!$employee) continue;
+            if (!$employee)
+                continue;
             $avatar = $this->resolveEmployeeAvatar($employee);
             $entry = [
                 'id' => $employee->id,
@@ -1081,12 +1095,12 @@ class ProjectController extends Controller
         if (!is_array($files)) {
             $files = [];
         }
-    $response['reference_files'] = $files;
+        $response['reference_files'] = $files;
         $response['reference_file'] = $files;
-    // Ensure reference_urls present and normalized
-    $response['reference_urls'] = $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []);
-    $response['co_authors'] = $coAuthors;
-    $response['contributors'] = $contributors;
+        // Ensure reference_urls present and normalized
+        $response['reference_urls'] = $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []);
+        $response['co_authors'] = $coAuthors;
+        $response['contributors'] = $contributors;
 
         return response()->json($response);
     }
@@ -1094,251 +1108,252 @@ class ProjectController extends Controller
      * Update the specified project in storage.
      */
     public function update(Request $request, string $id)
-{
-    DB::beginTransaction();
-    try {
-        $project = Project::findOrFail($id);
+    {
+        DB::beginTransaction();
+        try {
+            $project = Project::findOrFail($id);
 
-        if ($request->has('co_author') && is_string($request->co_author)) {
-            $request->merge(['co_author' => json_decode($request->co_author, true)]);
-        }
-        if ($request->has('contributors') && is_string($request->contributors)) {
-            $request->merge(['contributors' => json_decode($request->contributors, true)]);
-        }
-
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'department' => 'required|exists:departments,id',
-            'division' => 'required|exists:divisions,id',
-            'status' => 'string|max:50',
-            'reference_url' => 'nullable|url',
-            'reference_urls' => 'nullable|array',
-            'reference_urls.*' => 'nullable|url',
-            'start_date' => 'required|date',
-            'due_date' => 'required|date|after_or_equal:start_date',
-            'part_of_project' => 'nullable|exists:projects,id',
-            'complete_date' => 'nullable|date',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
-            'reference_files' => 'nullable|array',
-            'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
-            'reference_file' => 'nullable|array',
-            'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
-            'co_author' => 'nullable|array',
-            'co_author.*' => 'nullable|exists:employees,id',
-            'contributors' => 'nullable|array',
-            'contributors.*' => 'nullable|exists:employees,id',
-        ]);
-
-        // Get existing co-authors and contributors
-        $existingCoAuthors = ProjectAssignment::where('project_id', $project->id)
-            ->where('role', 'co_author')
-            ->pluck('employee_id')
-            ->toArray();
-
-        $existingContributors = ProjectAssignment::where('project_id', $project->id)
-            ->where('role', 'contributor')
-            ->pluck('employee_id')
-            ->toArray();
-
-        // Update project fields
-        $project->title = $request->title;
-        $project->description = $request->description;
-        $project->department_id = $request->department;
-        $project->division_id = $request->division;
-        $project->status = $request->status ?? 'ACTIVE';
-
-        // Normalize reference URLs
-        $refUrls = [];
-        if ($request->has('reference_urls')) {
-            $incoming = $request->input('reference_urls', []);
-            if (is_array($incoming)) {
-                $refUrls = array_values(array_filter($incoming));
+            if ($request->has('co_author') && is_string($request->co_author)) {
+                $request->merge(['co_author' => json_decode($request->co_author, true)]);
             }
-            $project->reference_urls = $refUrls;
-            $project->reference_url = count($refUrls) > 0 ? $refUrls[0] : null;
-        } elseif (!empty($request->reference_url)) {
-            $refUrls = [$request->reference_url];
-            $project->reference_urls = $refUrls;
-            $project->reference_url = $request->reference_url;
-        }
-
-        $project->start_date = $request->start_date;
-        $project->due_date = $request->due_date;
-        $project->part_of_project = $request->part_of_project;
-        $project->complete_date = $request->complete_date;
-        $project->updated_by = auth()->user() ? auth()->user()->id : null;
-
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
-                unlink(public_path('file/project/' . $project->image));
+            if ($request->has('contributors') && is_string($request->contributors)) {
+                $request->merge(['contributors' => json_decode($request->contributors, true)]);
             }
-            $image = $request->file('image');
-            $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
-            $image->move(public_path('file/project'), $imageName);
-            $project->image = $imageName;
-        }
 
-        // Handle reference file uploads & deletions
-        $existing = [];
-        if ($request->has('existing_reference_files')) {
-            $existing = json_decode($request->existing_reference_files, true) ?: [];
-        }
-        $existing = is_array($existing) ? $existing : [];
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'department' => 'required|exists:departments,id',
+                'division' => 'required|exists:divisions,id',
+                'status' => 'string|max:50',
+                'reference_url' => 'nullable|url',
+                'reference_urls' => 'nullable|array',
+                'reference_urls.*' => 'nullable|url',
+                'start_date' => 'required|date',
+                'due_date' => 'required|date|after_or_equal:start_date',
+                'part_of_project' => 'nullable|exists:projects,id',
+                'complete_date' => 'nullable|date',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+                'reference_files' => 'nullable|array',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file' => 'nullable|array',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'co_author' => 'nullable|array',
+                'co_author.*' => 'nullable|exists:employees,id',
+                'contributors' => 'nullable|array',
+                'contributors.*' => 'nullable|exists:employees,id',
+            ]);
 
-        $currentFiles = $project->reference_files ?? $project->reference_file ?? [];
-        if (!is_array($currentFiles) && $currentFiles) {
-            $currentFiles = [$currentFiles];
-        }
+            // Get existing co-authors and contributors
+            $existingCoAuthors = ProjectAssignment::where('project_id', $project->id)
+                ->where('role', 'co_author')
+                ->pluck('employee_id')
+                ->toArray();
 
-        $toDelete = array_diff($currentFiles, $existing);
-        foreach ($toDelete as $del) {
-            $path = public_path('file/project/' . $del);
-            if ($del && file_exists($path)) {
-                @unlink($path);
+            $existingContributors = ProjectAssignment::where('project_id', $project->id)
+                ->where('role', 'contributor')
+                ->pluck('employee_id')
+                ->toArray();
+
+            // Update project fields
+            $project->title = $request->title;
+            $project->description = $request->description;
+            $project->department_id = $request->department;
+            $project->division_id = $request->division;
+            $project->status = $request->status ?? 'ACTIVE';
+
+            // Normalize reference URLs
+            $refUrls = [];
+            if ($request->has('reference_urls')) {
+                $incoming = $request->input('reference_urls', []);
+                if (is_array($incoming)) {
+                    $refUrls = array_values(array_filter($incoming));
+                }
+                $project->reference_urls = $refUrls;
+                $project->reference_url = count($refUrls) > 0 ? $refUrls[0] : null;
+            } elseif (!empty($request->reference_url)) {
+                $refUrls = [$request->reference_url];
+                $project->reference_urls = $refUrls;
+                $project->reference_url = $request->reference_url;
             }
-        }
 
-        $finalFiles = $existing;
+            $project->start_date = $request->start_date;
+            $project->due_date = $request->due_date;
+            $project->part_of_project = $request->part_of_project;
+            $project->complete_date = $request->complete_date;
+            $project->updated_by = auth()->user() ? auth()->user()->id : null;
 
-        $incomingFiles = [];
-        if ($request->hasFile('reference_files')) {
-            $rf = $request->file('reference_files');
-            $incomingFiles = array_merge($incomingFiles, is_array($rf) ? $rf : [$rf]);
-        }
-        if ($request->hasFile('reference_file')) {
-            $rfLegacy = $request->file('reference_file');
-            $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
-        }
-        foreach ($incomingFiles as $idx => $file) {
-            if (!$file) continue;
-            $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('file/project'), $fileName);
-            $finalFiles[] = $fileName;
-        }
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
+                    unlink(public_path('file/project/' . $project->image));
+                }
+                $image = $request->file('image');
+                $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
+                $image->move(public_path('file/project'), $imageName);
+                $project->image = $imageName;
+            }
 
-        $project->reference_files = $finalFiles;
-        $project->save();
+            // Handle reference file uploads & deletions
+            $existing = [];
+            if ($request->has('existing_reference_files')) {
+                $existing = json_decode($request->existing_reference_files, true) ?: [];
+            }
+            $existing = is_array($existing) ? $existing : [];
 
-        // Update project_assignments for author
-        if (auth()->check()) {
-            $employee = auth()->user()->employee;
-            if ($employee) {
-                ProjectAssignment::updateOrCreate(
-                    ['project_id' => $project->id, 'employee_id' => $employee->id],
-                    ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
-                );
+            $currentFiles = $project->reference_files ?? $project->reference_file ?? [];
+            if (!is_array($currentFiles) && $currentFiles) {
+                $currentFiles = [$currentFiles];
+            }
+
+            $toDelete = array_diff($currentFiles, $existing);
+            foreach ($toDelete as $del) {
+                $path = public_path('file/project/' . $del);
+                if ($del && file_exists($path)) {
+                    @unlink($path);
+                }
+            }
+
+            $finalFiles = $existing;
+
+            $incomingFiles = [];
+            if ($request->hasFile('reference_files')) {
+                $rf = $request->file('reference_files');
+                $incomingFiles = array_merge($incomingFiles, is_array($rf) ? $rf : [$rf]);
+            }
+            if ($request->hasFile('reference_file')) {
+                $rfLegacy = $request->file('reference_file');
+                $incomingFiles = array_merge($incomingFiles, is_array($rfLegacy) ? $rfLegacy : [$rfLegacy]);
+            }
+            foreach ($incomingFiles as $idx => $file) {
+                if (!$file)
+                    continue;
+                $fileName = 'PROJECT_REF_' . time() . '_' . $idx . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('file/project'), $fileName);
+                $finalFiles[] = $fileName;
+            }
+
+            $project->reference_files = $finalFiles;
+            $project->save();
+
+            // Update project_assignments for author
+            if (auth()->check()) {
+                $employee = auth()->user()->employee;
+                if ($employee) {
+                    ProjectAssignment::updateOrCreate(
+                        ['project_id' => $project->id, 'employee_id' => $employee->id],
+                        ['role' => 'author', 'updated_at' => now(), 'created_at' => now()]
+                    );
+                } else {
+                    throw new \Exception('Authenticated user has no employee relation');
+                }
             } else {
-                throw new \Exception('Authenticated user has no employee relation');
+                throw new \Exception('User not authenticated');
             }
-        } else {
-            throw new \Exception('User not authenticated');
-        }
 
-        // Handle co-author assignments
-        $newCoAuthors = $request->co_author && is_array($request->co_author)
-            ? array_unique($request->co_author)
-            : [];
-        $addedCoAuthors = array_diff($newCoAuthors, $existingCoAuthors);
+            // Handle co-author assignments
+            $newCoAuthors = $request->co_author && is_array($request->co_author)
+                ? array_unique($request->co_author)
+                : [];
+            $addedCoAuthors = array_diff($newCoAuthors, $existingCoAuthors);
 
-        ProjectAssignment::where('project_id', $project->id)
-            ->where('role', 'co_author')
-            ->delete();
+            ProjectAssignment::where('project_id', $project->id)
+                ->where('role', 'co_author')
+                ->delete();
 
-        if ($newCoAuthors) {
-            $coAuthorAssignments = [];
-            foreach ($newCoAuthors as $employeeId) {
-                if (!Employee::where('id', $employeeId)->exists()) {
-                    throw new \Exception("Co-author employee ID {$employeeId} does not exist");
-                }
-                $coAuthorAssignments[] = [
-                    'project_id' => $project->id,
-                    'employee_id' => $employeeId,
-                    'role' => 'co_author',
-                    'is_receive' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-            ProjectAssignment::insert($coAuthorAssignments);
-        }
-
-        // Handle contributor assignments
-        $newContributors = $request->contributors && is_array($request->contributors)
-            ? array_unique($request->contributors)
-            : [];
-        $addedContributors = array_diff($newContributors, $existingContributors);
-
-        ProjectAssignment::where('project_id', $project->id)
-            ->where('role', 'contributor')
-            ->delete();
-
-        if ($newContributors) {
-            $contributorAssignments = [];
-            foreach ($newContributors as $employeeId) {
-                if (!Employee::where('id', $employeeId)->exists()) {
-                    throw new \Exception("Contributor employee ID {$employeeId} does not exist");
-                }
-                $contributorAssignments[] = [
-                    'project_id' => $project->id,
-                    'employee_id' => $employeeId,
-                    'role' => 'contributor',
-                    'is_receive' => true,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-            ProjectAssignment::insert($contributorAssignments);
-        }
-
-        // 🔔 Gabungkan notifikasi co-author & contributor
-        $notifyEmployees = array_merge($addedCoAuthors, $addedContributors);
-        $uniqueNotifyEmployees = array_unique($notifyEmployees);
-
-        if ($uniqueNotifyEmployees) {
-            $authorEmployee = auth()->user()->employee;
-            foreach ($uniqueNotifyEmployees as $employeeId) {
-                $exists = Notification::where('employee_id', $employeeId)
-                    ->where('type', 'new job')
-                    ->where('title', 'LIKE', '%project: ' . $project->title)
-                    ->where('is_read', false)
-                    ->exists();
-
-                if (!$exists) {
-                    Notification::create([
+            if ($newCoAuthors) {
+                $coAuthorAssignments = [];
+                foreach ($newCoAuthors as $employeeId) {
+                    if (!Employee::where('id', $employeeId)->exists()) {
+                        throw new \Exception("Co-author employee ID {$employeeId} does not exist");
+                    }
+                    $coAuthorAssignments[] = [
+                        'project_id' => $project->id,
                         'employee_id' => $employeeId,
-                        'type' => 'new job',
-                        'title' => 'You have been assigned to project: ' . $project->title,
-                        'message' => 'You have been assigned to project: ' . $project->title,
-                        'sent_at' => now(),
-                        'created_by' => $authorEmployee ? $authorEmployee->id : null,
-                        'updated_at' => now(),
+                        'role' => 'co_author',
+                        'is_receive' => true,
                         'created_at' => now(),
-                    ]);
+                        'updated_at' => now(),
+                    ];
+                }
+                ProjectAssignment::insert($coAuthorAssignments);
+            }
+
+            // Handle contributor assignments
+            $newContributors = $request->contributors && is_array($request->contributors)
+                ? array_unique($request->contributors)
+                : [];
+            $addedContributors = array_diff($newContributors, $existingContributors);
+
+            ProjectAssignment::where('project_id', $project->id)
+                ->where('role', 'contributor')
+                ->delete();
+
+            if ($newContributors) {
+                $contributorAssignments = [];
+                foreach ($newContributors as $employeeId) {
+                    if (!Employee::where('id', $employeeId)->exists()) {
+                        throw new \Exception("Contributor employee ID {$employeeId} does not exist");
+                    }
+                    $contributorAssignments[] = [
+                        'project_id' => $project->id,
+                        'employee_id' => $employeeId,
+                        'role' => 'contributor',
+                        'is_receive' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                ProjectAssignment::insert($contributorAssignments);
+            }
+
+            // 🔔 Gabungkan notifikasi co-author & contributor
+            $notifyEmployees = array_merge($addedCoAuthors, $addedContributors);
+            $uniqueNotifyEmployees = array_unique($notifyEmployees);
+
+            if ($uniqueNotifyEmployees) {
+                $authorEmployee = auth()->user()->employee;
+                foreach ($uniqueNotifyEmployees as $employeeId) {
+                    $exists = Notification::where('employee_id', $employeeId)
+                        ->where('type', 'new job')
+                        ->where('title', 'LIKE', '%project: ' . $project->title)
+                        ->where('is_read', false)
+                        ->exists();
+
+                    if (!$exists) {
+                        Notification::create([
+                            'employee_id' => $employeeId,
+                            'type' => 'new job',
+                            'title' => 'You have been assigned to project: ' . $project->title,
+                            'message' => 'You have been assigned to project: ' . $project->title,
+                            'sent_at' => now(),
+                            'created_by' => $authorEmployee ? $authorEmployee->id : null,
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ]);
+                    }
                 }
             }
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Project updated successfully',
+                'project' => $project
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json([
+                'code' => $status,
+                'status' => "error",
+                'message' => $e->getMessage()
+            ], $status);
         }
-
-        DB::commit();
-
-        return response()->json([
-            'code' => 200,
-            'status' => 'success',
-            'message' => 'Project updated successfully',
-            'project' => $project
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        $status = $this->deriveHttpStatusFromException($e);
-        return response()->json([
-            'code' => $status,
-            'status' => "error",
-            'message' => $e->getMessage()
-        ], $status);
     }
-}
 
 
     /**
@@ -1412,26 +1427,31 @@ class ProjectController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-        $formatOne = function ($fb) {
+            $formatOne = function ($fb) {
                 $item = [
                     'id' => $fb->id,
                     'parent_id' => $fb->parent_id,
                     'feedback_comment' => $fb->feedback_comment,
                     'image' => $fb->image ? asset('file/project/' . $fb->image) : null,
                     'reference_url' => $fb->reference_url,
-            'reference_urls' => $fb->reference_urls ?: ($fb->reference_url ? [$fb->reference_url] : []),
+                    'reference_urls' => $fb->reference_urls ?: ($fb->reference_url ? [$fb->reference_url] : []),
                     'reference_file' => $fb->reference_file ? asset('file/project/' . $fb->reference_file) : null,
-                    'reference_files' => (function() use ($fb) {
+                    'reference_files' => (function () use ($fb) {
                         $arr = $fb->reference_files;
                         if (is_string($arr) && $arr !== '') {
                             $dec = json_decode($arr, true);
-                            if (is_array($dec)) $arr = $dec; else $arr = [$arr];
+                            if (is_array($dec))
+                                $arr = $dec;
+                            else
+                                $arr = [$arr];
                         }
-                        if (!is_array($arr)) $arr = [];
-                        return array_map(function($f){ return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
+                        if (!is_array($arr))
+                            $arr = [];
+                        return array_map(function ($f) {
+                            return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
                     })(),
                     'created_at' => $fb->created_at,
-                    'employee' => $fb->employee ? (function(){})() : null, // placeholder replaced below
+                    'employee' => $fb->employee ? (function () {})() : null, // placeholder replaced below
                 ];
                 if ($fb->employee) {
                     $e = $fb->employee;
@@ -1446,7 +1466,7 @@ class ProjectController extends Controller
                     ];
                 }
 
-        $item['replies'] = $fb->replies->map(function ($reply) {
+                $item['replies'] = $fb->replies->map(function ($reply) {
                     $avatar = $this->resolveEmployeeAvatar($reply->employee);
                     return [
                         'id' => $reply->id,
@@ -1456,14 +1476,19 @@ class ProjectController extends Controller
                         'reference_url' => $reply->reference_url,
                         'reference_urls' => $reply->reference_urls ?: ($reply->reference_url ? [$reply->reference_url] : []),
                         'reference_file' => $reply->reference_file ? asset('file/project/' . $reply->reference_file) : null,
-                        'reference_files' => (function() use ($reply) {
+                        'reference_files' => (function () use ($reply) {
                             $arr = $reply->reference_files;
                             if (is_string($arr) && $arr !== '') {
                                 $dec = json_decode($arr, true);
-                                if (is_array($dec)) $arr = $dec; else $arr = [$arr];
+                                if (is_array($dec))
+                                    $arr = $dec;
+                                else
+                                    $arr = [$arr];
                             }
-                            if (!is_array($arr)) $arr = [];
-                            return array_map(function($f){ return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
+                            if (!is_array($arr))
+                                $arr = [];
+                            return array_map(function ($f) {
+                                return $f ? asset('file/project/' . ltrim($f, '/')) : null; }, $arr);
                         })(),
                         'created_at' => $reply->created_at,
                         'employee' => $reply->employee ? [
@@ -1549,7 +1574,8 @@ class ProjectController extends Controller
             $uploaded = [];
             if ($request->hasFile('reference_files')) {
                 foreach ((array) $request->file('reference_files') as $file) {
-                    if (!$file) continue;
+                    if (!$file)
+                        continue;
                     $fileName = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
                     $file->move(public_path('file/project'), $fileName);
                     $uploaded[] = $fileName;
@@ -1645,17 +1671,20 @@ class ProjectController extends Controller
             }
             $existing = is_array($existing) ? $existing : [];
             $current = $feedback->reference_files ?: ($feedback->reference_file ? [$feedback->reference_file] : []);
-            if (!is_array($current)) $current = (strlen((string) $current) ? [$current] : []);
+            if (!is_array($current))
+                $current = (strlen((string) $current) ? [$current] : []);
             // Delete removed
             $toDelete = array_diff($current, $existing);
             foreach ($toDelete as $del) {
                 $path = public_path('file/project/' . $del);
-                if ($del && file_exists($path)) @unlink($path);
+                if ($del && file_exists($path))
+                    @unlink($path);
             }
             $finalFiles = $existing;
             if ($request->hasFile('reference_files')) {
                 foreach ((array) $request->file('reference_files') as $rf) {
-                    if (!$rf) continue;
+                    if (!$rf)
+                        continue;
                     $name = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $rf->getClientOriginalExtension();
                     $rf->move(public_path('file/project'), $name);
                     $finalFiles[] = $name;
@@ -1693,59 +1722,59 @@ class ProjectController extends Controller
      * Get unread feedback count for a project for current employee.
      */
     public function getAllUnreadCounts()
-{
-    try {
-        $user = auth()->user();
-        $employeeId = $user?->employee?->id;
-        if (!$employeeId) {
-            return response()->json(['success' => true, 'data' => (object)[]]);
-        }
+    {
+        try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json(['success' => true, 'data' => (object) []]);
+            }
 
-        // Ambil semua project aktif + marker baca
-        $projects = Project::where(function($q) {
+            // Ambil semua project aktif + marker baca
+            $projects = Project::where(function ($q) {
                 $q->whereNull('status')->orWhere('status', '!=', 'DELETED');
             })
-            ->select('id', 'read_markers')
-            ->get();
+                ->select('id', 'read_markers')
+                ->get();
 
-        $result = [];
+            $result = [];
 
-        foreach ($projects as $project) {
-            // Ambil marker last_read_at untuk employee ini
-            $markers = [];
-            if (!empty($project->read_markers)) {
-                $markers = is_array($project->read_markers)
-                    ? $project->read_markers
-                    : ((json_decode($project->read_markers, true)) ?: []);
+            foreach ($projects as $project) {
+                // Ambil marker last_read_at untuk employee ini
+                $markers = [];
+                if (!empty($project->read_markers)) {
+                    $markers = is_array($project->read_markers)
+                        ? $project->read_markers
+                        : ((json_decode($project->read_markers, true)) ?: []);
+                }
+                $lastReadAt = $markers[(string) $employeeId] ?? null;
+
+                // Hitung unread langsung pakai query builder
+                $count = ProjectFeedback::where('project_id', $project->id)
+                    ->where('employee_id', '!=', $employeeId)
+                    ->when($lastReadAt, function ($q) use ($lastReadAt) {
+                        $q->where('created_at', '>', $lastReadAt);
+                    })
+                    ->count();
+
+                if ($count > 0) {
+                    $result[$project->id] = $count;
+                }
             }
-            $lastReadAt = $markers[(string)$employeeId] ?? null;
 
-            // Hitung unread langsung pakai query builder
-            $count = ProjectFeedback::where('project_id', $project->id)
-                ->where('employee_id', '!=', $employeeId)
-                ->when($lastReadAt, function ($q) use ($lastReadAt) {
-                    $q->where('created_at', '>', $lastReadAt);
-                })
-                ->count();
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
 
-            if ($count > 0) {
-                $result[$project->id] = $count;
-            }
+        } catch (\Exception $e) {
+            // Kalau ada error → balikin kosong aja biar aman
+            return response()->json([
+                'success' => true,
+                'data' => (object) []
+            ]);
         }
-
-        return response()->json([
-            'success' => true,
-            'data' => $result
-        ]);
-
-    } catch (\Exception $e) {
-        // Kalau ada error → balikin kosong aja biar aman
-        return response()->json([
-            'success' => true,
-            'data' => (object)[]
-        ]);
     }
-}
 
 
     /**
