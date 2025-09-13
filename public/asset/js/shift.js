@@ -674,7 +674,11 @@ function renderShiftConfigTable(shifts) {
                             data-end="${s.time_end || ""}">
                             <span class="material-symbols-outlined">edit</span>
                         </button>
-                        <button class="btn btn-sm delete-btn" data-shift-id="${s.id}">
+                        <button class="btn btn-sm delete-btn" 
+                            data-shift-id="${s.id}"
+                            data-title="${s.title || ""}"
+                            data-start="${s.time_start || ""}"
+                            data-end="${s.time_end || ""}">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
@@ -688,7 +692,11 @@ function renderShiftConfigTable(shifts) {
 function shiftConfigModal(btn) {
     const addShiftModalEl = document.getElementById("shiftConfigModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
-    ensureShiftsLoaded().then((shifts) => renderShiftConfigTable(shifts));
+    ensureShiftsLoaded(true).then((shifts) => {
+        // Filter out deleted shifts and render table
+        const activeShifts = shifts.filter(s => !s.deleted_by);
+        renderShiftConfigTable(activeShifts);
+    });
     addShiftModal.show();
 }
 
@@ -712,50 +720,35 @@ document.addEventListener("click", async (e) => {
 
     if (deleteBtn) {
         const shiftId = deleteBtn.dataset.shiftId;
-        if (!confirm("Are you sure you want to delete this shift?")) return;
-
-        const userId = document.querySelector('meta[name="user-id"]').content || null;
-
-        if (!userId) {
-            showFloatingAlert("User ID not found. Please login again.", "danger");
-            return;
+        const shiftTitle = deleteBtn.dataset.title || "Shift";
+        const shiftStart = deleteBtn.dataset.start || "";
+        const shiftEnd = deleteBtn.dataset.end || "";
+        
+        // Close shift config modal first
+        const shiftConfigModalEl = document.getElementById("shiftConfigModal");
+        const shiftConfigModal = bootstrap.Modal.getInstance(shiftConfigModalEl);
+        if (shiftConfigModal) {
+            shiftConfigModal.hide();
         }
-
-        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        try {
-            const res = await fetch(`${basePath}/shift/${shiftId}/soft-delete`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-                },
-                body: JSON.stringify({ deleted_by: userId }),
-            });
-
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await res.text();
-                throw new Error("Server returned non-JSON response: " + text);
-            }
-
-            const json = await res.json();
-            if (!json.success) {
-                showFloatingAlert(json.message || "Failed to soft delete shift", "danger");
-                return;
-            }
-
-            window.shifts = window.shifts.map(s => {
-                if (s.id == shiftId) s.deleted_by = userId;
-                return s;
-            });
-
-            renderShiftConfigTable(window.shifts.filter(s => !s.deleted_by));
-            showFloatingAlert("Shift deleted (soft)", "success");
-
-        } catch (err) {
-            console.error(err);
-            showFloatingAlert("Error soft deleting shift: " + err.message, "danger");
-        }
+        
+        // Show delete confirmation modal
+        const deleteModalEl = document.getElementById("deleteConfigModal");
+        const deleteModal = new bootstrap.Modal(deleteModalEl);
+        
+        // Populate modal with shift details
+        deleteModalEl.querySelector("#deleteConfigShiftId").value = shiftId;
+        deleteModalEl.querySelector("#deleteShiftTitle").textContent = shiftTitle;
+        
+        const formatTime = (t) => {
+            if (!t) return "--";
+            const [h, m] = String(t).split(":");
+            return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
+        };
+        
+        deleteModalEl.querySelector("#deleteShiftTime").textContent = 
+            `Time: ${formatTime(shiftStart)} - ${formatTime(shiftEnd)}`;
+        
+        deleteModal.show();
     }
 });
 
@@ -827,6 +820,95 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
     }
 });
 
+// Event listener for confirm delete button in delete modal
+document.getElementById("confirmDeleteShiftConfigBtn").addEventListener("click", async () => {
+    const deleteModalEl = document.getElementById("deleteConfigModal");
+    const shiftId = deleteModalEl.querySelector("#deleteConfigShiftId").value;
+    
+    if (!shiftId) {
+        showFloatingAlert("Shift ID not found", "danger");
+        return;
+    }
+
+    const userId = document.querySelector('meta[name="user-id"]').content || null;
+
+    if (!userId) {
+        showFloatingAlert("User ID not found. Please login again.", "danger");
+        return;
+    }
+
+    const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+    try {
+        const res = await fetch(`${basePath}/shift/${shiftId}/soft-delete`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({ deleted_by: userId }),
+        });
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await res.text();
+            throw new Error("Server returned non-JSON response: " + text);
+        }
+
+        const json = await res.json();
+        if (!json.success) {
+            showFloatingAlert(json.message || "Failed to delete shift", "danger");
+            return;
+        }
+
+        // Update local shifts array
+        window.shifts = window.shifts.map(s => {
+            if (s.id == shiftId) s.deleted_by = userId;
+            return s;
+        });
+
+        // Re-render table without deleted shifts
+        const activeShifts = window.shifts.filter(s => !s.deleted_by);
+        renderShiftConfigTable(activeShifts);
+        
+        // Also refresh the filter shift dropdown with updated data
+        populateFilterShiftDropdown(activeShifts);
+        
+        showFloatingAlert("Shift deleted successfully", "success");
+
+        // Set flag to prevent re-opening config modal after successful delete
+        deleteModalEl.setAttribute('data-delete-success', 'true');
+
+        // Hide delete modal
+        bootstrap.Modal.getInstance(deleteModalEl).hide();
+
+    } catch (err) {
+        console.error(err);
+        showFloatingAlert("Error deleting shift: " + err.message, "danger");
+    }
+});
+
+// Event listeners for delete modal hide/close events
+const deleteConfigModal = document.getElementById("deleteConfigModal");
+if (deleteConfigModal) {
+    deleteConfigModal.addEventListener('hidden.bs.modal', function () {
+        // Check if delete was successful - if so, don't re-open config modal
+        const deleteSuccess = this.getAttribute('data-delete-success');
+        
+        if (deleteSuccess === 'true') {
+            // Remove the flag and don't re-open config modal
+            this.removeAttribute('data-delete-success');
+            return;
+        }
+        
+        // Re-open shift config modal when delete modal is closed (cancelled)
+        const shiftConfigModalEl = document.getElementById("shiftConfigModal");
+        if (shiftConfigModalEl) {
+            const shiftConfigModal = new bootstrap.Modal(shiftConfigModalEl);
+            shiftConfigModal.show();
+        }
+    });
+}
+
 loadEmployeeData();
 
 // Function to render error message
@@ -879,9 +961,11 @@ function setupEventListeners() {
     const shiftConfigEl = document.getElementById("shiftConfigModal");
     if (shiftConfigEl) {
         shiftConfigEl.addEventListener("show.bs.modal", () => {
-            ensureShiftsLoaded().then((shifts) =>
-                renderShiftConfigTable(shifts)
-            );
+            ensureShiftsLoaded(true).then((shifts) => {
+                // Filter out deleted shifts and render table
+                const activeShifts = shifts.filter(s => !s.deleted_by);
+                renderShiftConfigTable(activeShifts);
+            });
         });
     }
 
