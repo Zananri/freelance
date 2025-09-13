@@ -22,7 +22,7 @@
     <meta name="author" content="office.nsaperformance.id">
     <meta name="robots" content="noindex, nofollow">
 
-    <meta name="app-url" content="{{ url('') }}">
+    <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>

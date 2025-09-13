@@ -5,6 +5,34 @@ $(".btn-tab-task").on("click", function () {
     showTask();
 });
 
+// Helper function to set dashboard feedback count with proper zero handling
+function setDashboardFeedbackCount(taskId, count) {
+    const selector = `.feedback-comments-count[data-task-id="${taskId}"]`;
+    let countEl = document.querySelector(selector);
+    
+    if (count > 0) {
+        if (countEl) {
+            countEl.textContent = count;
+            countEl.style.display = '';
+        } else {
+            // Create new counter element
+            const iconEl = document.querySelector(`.task-feedback-trigger[data-task-id="${taskId}"]`);
+            if (iconEl && iconEl.parentElement) {
+                const span = document.createElement('span');
+                span.className = 'ms-1 small feedback-comments-count';
+                span.style.color = '#555';
+                span.setAttribute('data-task-id', String(taskId));
+                span.textContent = count;
+                iconEl.insertAdjacentElement('afterend', span);
+            }
+        }
+    } else if (countEl) {
+        // Hide counter when count is 0
+        countEl.textContent = '';
+        countEl.style.display = 'none';
+    }
+}
+
 // Mapping warna status
 function getStatusBackground(statusNorm) {
     let bg = '#FFFFFF'; // default
@@ -701,21 +729,9 @@ function showDashboardAddFeedbackForm(taskId) {
                 try {
                     const selector = `.feedback-comments-count[data-task-id="${taskId}"]`;
                     let countEl = document.querySelector(selector);
-                    if (countEl) {
-                        const cur = parseInt(countEl.textContent || '0', 10) || 0;
-                        countEl.textContent = cur + 1;
-                    } else {
-                        // If not present (was zero), insert a new counter span after the icon
-                        const iconEl = document.querySelector(`.task-feedback-trigger[data-task-id="${taskId}"]`);
-                        if (iconEl && iconEl.parentElement) {
-                            const span = document.createElement('span');
-                            span.className = 'ms-1 small feedback-comments-count';
-                            span.style.color = '#555';
-                            span.setAttribute('data-task-id', String(taskId));
-                            span.textContent = '1';
-                            iconEl.insertAdjacentElement('afterend', span);
-                        }
-                    }
+                    const cur = countEl ? parseInt(countEl.textContent || '0', 10) || 0 : 0;
+                    const newCount = cur + 1;
+                    setDashboardFeedbackCount(taskId, newCount);
                 } catch(_){}
             } catch (e) { /* noop */ }
     })
