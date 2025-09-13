@@ -3090,6 +3090,60 @@ function applyCurrentSearchFilter() {
         }
     });
 
+    // Add event listener for reference files modal close
+    document.addEventListener('DOMContentLoaded', function () {
+        const referenceFilesModalEl = document.getElementById("referenceFilesModal");
+        if (referenceFilesModalEl) {
+            referenceFilesModalEl.addEventListener('hidden.bs.modal', function () {
+                // Handle timeline modal restoration logic for reference files modal
+                const detailEl = document.getElementById('taskDetailModal');
+                if (detailEl) {
+                    // Clear the child opened flag
+                    detailEl.removeAttribute('data-child-opened');
+                    
+                    // Check if we should show the detail modal back
+                    if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                        // Show detail modal back first
+                        const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                        detailModal.show();
+                        
+                        // Restore the backed up timeline handler if it exists
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        } else {
+                            // Create fresh one-time listener to reopen timeline when detail is closed
+                            const onDetailHiddenAfterRefFiles = function() {
+                                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                    const timelineEl = document.getElementById('timelineModal');
+                                    if (timelineEl) {
+                                        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                        tlInstance.show();
+                                        detailEl.removeAttribute('data-reopen-timeline');
+                                    }
+                                }
+                                // Clear the reference
+                                detailEl._timelineHiddenHandler = null;
+                            };
+                            
+                            // Store and attach the handler
+                            detailEl._timelineHiddenHandler = onDetailHiddenAfterRefFiles;
+                            detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterRefFiles, { once: true });
+                        }
+                    } else {
+                        // If not showing detail modal back, restore the backed up handler anyway
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        }
+                    }
+                }
+            });
+        }
+    });
+
     // Function to handle task feedback
     // function handleTaskFeedback(taskId) {
     //     // Reset feedback submission state
@@ -4807,6 +4861,26 @@ function applyCurrentSearchFilter() {
 
                         const modalEl = document.getElementById("referenceFilesModal");
                         if (modalEl) {
+                            // Check if modal is opened from timeline via detail modal
+                            const detailEl = document.getElementById('taskDetailModal');
+                            if (detailEl && bootstrap.Modal.getInstance(detailEl)) {
+                                // Mark that a child modal is opening
+                                detailEl.setAttribute('data-child-opened', '1');
+                                
+                                // Backup timeline handler if it exists
+                                if (detailEl._timelineHiddenHandler) {
+                                    detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+                                    detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                                    detailEl._timelineHiddenHandler = null;
+                                }
+                                
+                                // Hide detail modal first
+                                const detailModal = bootstrap.Modal.getInstance(detailEl);
+                                if (detailModal) {
+                                    detailModal.hide();
+                                }
+                            }
+                            
                             const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                             referenceFilesModal.show();
                         }
