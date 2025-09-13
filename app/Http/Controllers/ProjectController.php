@@ -523,6 +523,7 @@ class ProjectController extends Controller
             $user = auth()->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
             $filter = $request->input('filter', null);
+            $search = trim((string) $request->input('search', ''));
             $includeUnaccepted = $request->input('include_unaccepted', false);
             $taskScope = strtolower($request->input('task_scope', 'project'));
             $taskScope = in_array($taskScope, ['project', 'me', 'all']) ? $taskScope : 'project';
@@ -556,6 +557,27 @@ class ProjectController extends Controller
                                 ->orWhere('is_receive', true);
                         });
                     }
+                });
+            }
+
+            // Optional text search across project fields and related department/division
+            if ($search !== '') {
+                $like = "%" . $search . "%";
+                $query->where(function ($q) use ($like, $search) {
+                    $q->where('projects.title', 'like', $like)
+                        ->orWhere('projects.description', 'like', $like);
+                    // If numeric, also allow direct ID match
+                    if (is_numeric($search)) {
+                        $q->orWhere('projects.id', (int) $search);
+                    }
+                    // Department name (name_department)
+                    $q->orWhereHas('department', function ($qd) use ($like) {
+                        $qd->where('name_department', 'like', $like);
+                    });
+                    // Division name (name_division)
+                    $q->orWhereHas('division', function ($qv) use ($like) {
+                        $qv->where('name_division', 'like', $like);
+                    });
                 });
             }
 

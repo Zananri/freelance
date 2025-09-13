@@ -3,32 +3,77 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
-// Helper function for consistent employee loading error handling
+// Helper function for consistent employee loading error handling (quiet by default)
 function handleEmployeeLoadError(xhr, status, error, context = '') {
-    console.error(`Failed to load employees${context ? ' (' + context + ')' : ''}:`, {
-        status: xhr.status,
-        statusText: xhr.statusText,
-        responseText: xhr.responseText,
-        error: error
-    });
-    
-    // Show user-friendly error message
-    if (typeof showFloatingAlert === 'function') {
-        let message = "Failed to load employees list. ";
-        if (status === 'timeout') {
-            message += "Request timed out. Please try again.";
-        } else if (xhr.status === 401) {
-            message += "Authentication required. Please refresh and try again.";
-        } else if (xhr.status === 500) {
-            message += "Server error. Please contact administrator.";
-        } else if (xhr.status === 0) {
-            message += "Network error. Please check your connection.";
-        } else {
-            message += "Please try again or contact administrator.";
+    try {
+        console.warn(`Failed to load employees${context ? ' (' + context + ')' : ''}:`, {
+            status: xhr?.status,
+            statusText: xhr?.statusText,
+            responseText: xhr?.responseText,
+            error: error
+        });
+
+        // Only notify the user if they're actively interacting with employee pickers
+        function isUserInteracting() {
+            try {
+                const active = document.activeElement;
+                const interactiveIds = new Set([
+                    'co_author_input',
+                    'contributor_input',
+                    'edit_co_author_input',
+                    'edit_contributor_input'
+                ]);
+                if (active && interactiveIds.has(active.id)) return true;
+                // Or if any employee dropdown is currently visible
+                const dropdownSelectors = [
+                    '#co_author_dropdown',
+                    '#contributor_dropdown',
+                    '#edit_co_author_dropdown',
+                    '#edit_contributor_dropdown'
+                ];
+                for (const sel of dropdownSelectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.style.display !== 'none' && el.offsetParent !== null) {
+                        return true;
+                    }
+                }
+            } catch (_) {}
+            return false;
         }
-        showFloatingAlert(message, "warning", 5000);
-    } else {
-        alert("Failed to load employees. Please try again.");
+
+        // Throttle notifications to avoid noise
+        const now = Date.now();
+        const THROTTLE_MS = 60_000; // 60s
+        window.__employeeErrorLastShown = window.__employeeErrorLastShown || 0;
+        const canNotify = now - window.__employeeErrorLastShown > THROTTLE_MS;
+
+        // Decide whether to show any UI notice at all
+        const shouldShow = isUserInteracting() && canNotify;
+
+        if (!shouldShow) return; // stay quiet (only console.warn)
+
+        window.__employeeErrorLastShown = now;
+
+        if (typeof showFloatingAlert === 'function') {
+            let message = 'Failed to load employees list. ';
+            if (status === 'timeout') {
+                message += 'Request timed out. Please try again.';
+            } else if (xhr && xhr.status === 401) {
+                message += 'Authentication required. Please refresh and try again.';
+            } else if (xhr && xhr.status === 500) {
+                message += 'Server error. Please contact administrator.';
+            } else if (xhr && xhr.status === 0) {
+                message += 'Network error. Please check your connection.';
+            } else {
+                message += 'Please try again or contact administrator.';
+            }
+            showFloatingAlert(message, 'warning', 4000);
+        } else {
+            // No global alert UI available: do not block the user with window.alert; stay silent
+        }
+    } catch (e) {
+        // As a last resort, avoid breaking the page
+        try { console.warn('handleEmployeeLoadError fallback', e); } catch(_) {}
     }
 }
 
@@ -545,18 +590,31 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Load project card data and generate cards dynamically
-    function loadProjectCardData(filter = null, page = 1) {
+    // Accepts optional filter (status grouping), page, and search text
+    // Keep a local state mirrored to window.currentSearch for cross-scope access
+    let currentSearch = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
+    function loadProjectCardData(filter = null, page = 1, search = null) {
         // DEBUG: Log filter parameter
         if (filter) {
             console.log('=== FILTER DEBUG ===');
             console.log('Filter applied:', filter);
         }
-        
+        // Track current search text
+        if (typeof search === 'string') {
+            currentSearch = search;
+            try { window.currentSearch = currentSearch; } catch(_) {}
+        }
+
+        const params = { filter: filter, task_scope: "me", page: page };
+        if (currentSearch && currentSearch.trim() !== '') {
+            params.search = currentSearch.trim();
+        }
+
         $.ajax({
             url: appUrl + "/project/get-all-projects",
             type: "GET",
             dataType: "json",
-            data: { filter: filter, task_scope: "me", page: page },
+            data: params,
             beforeSend: function () {
                 $(".loader").fadeIn("fast");
             },
@@ -565,9 +623,9 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             success: function (data) {
                 // DEBUG: Log filter results
-                if (filter) {
+                if (filter || currentSearch) {
                     console.log('Filter results count:', Array.isArray(data) ? data.length : (data.data ? data.data.length : 0));
-                    console.log('Filter results:', data);
+                    console.log('Filter/search results:', data);
                 }
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
@@ -803,6 +861,13 @@ document.addEventListener("DOMContentLoaded", function () {
                             document.getElementById("search_filter");
                         if (!searchInput || searchInput.value.trim() === "") {
                             refreshAllProjectLatestFeedbackSnippets();
+                        }
+                    } catch (_) {}
+
+                    // Update pagination if backend provides it (supports search pagination)
+                    try {
+                        if (data && data.pagination) {
+                            updatePagination(data.pagination);
                         }
                     } catch (_) {}
 
@@ -5447,97 +5512,49 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
                     }
 
-                    // Helper: Set preview (image or initials) for Delete Project modal
-                    function setDeleteProjectModalPreview(title, imageUrl) {
+                    // Helper: Build delete preview content like Task modal and inject into #deleteProjectContent
+                    function setDeleteProjectModalPreview(project) {
                         try {
-                            const modalBody = document.querySelector('#deleteProjectModal .modal-body');
-                            const imgEl = document.getElementById('deleteProjectImage');
-                            let initialsEl = document.getElementById('deleteProjectInitials');
+                            const deleteModalEl = document.getElementById('deleteProjectModal');
+                            if (!deleteModalEl) return;
+                            const contentEl = deleteModalEl.querySelector('#deleteProjectContent');
+                            if (!contentEl) return;
 
-                            // Clean up any previous fallback blocks to avoid duplicates (e.g., lingering NA)
-                            if (modalBody) {
-                                modalBody.querySelectorAll('.delete-initials-fallback, .task-modal-initial-avatar').forEach(function(el){
-                                    try { el.remove(); } catch(_) {}
-                                });
-                            }
-                            // Ensure a fresh element is created next time
-                            initialsEl = null;
+                            const title = project?.title || '';
+                            let imgUrl = project?.image || '';
+                            let avatarHtml = '';
 
-                            function ensureInitialsEl() {
-                                if (!initialsEl) {
-                                    initialsEl = document.createElement('div');
-                                    initialsEl.id = 'deleteProjectInitials';
-                                    initialsEl.style.width = '150px';
-                                    initialsEl.style.height = '150px';
-                                    initialsEl.style.borderRadius = '8px';
-                                    initialsEl.style.display = 'flex';
-                                    initialsEl.style.alignItems = 'center';
-                                    initialsEl.style.justifyContent = 'center';
-                                    initialsEl.style.fontWeight = '700';
-                                    initialsEl.style.color = '#ffffff';
-                                    initialsEl.style.marginBottom = '1rem';
-                                    initialsEl.style.userSelect = 'none';
-                                    // Insert before the image to preserve layout
-                                    if (imgEl && imgEl.parentElement) {
-                                        imgEl.parentElement.insertBefore(initialsEl, imgEl);
-                                    } else if (modalBody) {
-                                        modalBody.insertBefore(initialsEl, modalBody.firstChild);
-                                    }
+                            if (imgUrl) {
+                                const isAbsolute = /^https?:\/\//i.test(imgUrl);
+                                const isFile = /^\/?(file|storage)\//i.test(imgUrl);
+                                if (!isAbsolute && !isFile) {
+                                    imgUrl = appUrl + '/file/project/' + imgUrl;
+                                } else if (!isAbsolute && isFile) {
+                                    imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
                                 }
-
-                                const t = (title || 'NA');
-                                const init = (typeof getInitials === 'function') ? getInitials(t) : (t.substring(0, 2).toUpperCase());
-                                const color = (typeof getInitialsColor === 'function') ? getInitialsColor(t) : '#6A5AE0';
-                                initialsEl.textContent = init;
-                                initialsEl.style.background = color;
-                                initialsEl.style.fontSize = '56px';
-                                initialsEl.style.letterSpacing = '1px';
-                                initialsEl.className = 'delete-initials-fallback';
-                                // Ensure content stays centered
-                                initialsEl.style.display = 'flex';
-                            }
-
-                            function hideInitialsEl() {
-                                if (initialsEl) { initialsEl.style.display = 'none'; }
-                            }
-
-                            // Always set the title first
-                            const titleEl = document.getElementById('deleteProjectTitle');
-                            if (titleEl) titleEl.textContent = title || '';
-
-                            // Reset image state deterministically
-                            if (imgEl) {
-                                imgEl.onerror = null;
-                                imgEl.onload = null;
-                                imgEl.removeAttribute('src');
-                                imgEl.style.display = 'none';
-                            }
-
-                            if (imageUrl) {
-                                ensureInitialsEl(); // show initials until image successfully loads
-                                if (imgEl) {
-                                    imgEl.style.display = '';
-                                    imgEl.onload = function () {
-                                        // Image loaded OK: hide initials
-                                        hideInitialsEl();
-                                    };
-                                    imgEl.onerror = function () {
-                                        // Image failed: keep initials visible
-                                        this.onerror = null;
-                                        this.onload = null;
-                                        this.removeAttribute('src');
-                                        this.style.display = 'none';
-                                        ensureInitialsEl();
-                                    };
-                                    // Set src at the end to trigger load/error
-                                    imgEl.src = imageUrl;
-                                }
+                                avatarHtml = `<img src="${imgUrl}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getInitialsColor(title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getInitials(title)}</div>')">`;
                             } else {
-                                ensureInitialsEl();
+                                avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${getInitialsColor(title)};color:#fff;font-weight:600;font-size:11px;">${getInitials(title)}</div>`;
                             }
-                        } catch (e) {
-                            console.error('setDeleteProjectModalPreview error:', e);
-                        }
+
+                            const parentTitle = project?.part_of_project_title ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>` : '';
+                            const desc = project?.description ? String(project.description) : '';
+
+                            const cardHtml = `
+                                <div class="custom-card-delete rounded-4 position-relative p-3 border-0">
+                                    <div class="d-flex align-items-center mb-2">
+                                        ${avatarHtml}
+                                        <div class="d-flex flex-column">
+                                            ${parentTitle}
+                                            <h5 class="mb-0 task-title" style="line-height:1.2;">${title || 'Untitled Project'}</h5>
+                                        </div>
+                                    </div>
+                                    ${desc ? `<div class="task-description-container mb-2"><p class="task-description mb-0" style="font-size:14px;">${desc}</p></div>` : ''}
+                                    <hr class="task-separator rounded-4">
+                                </div>`;
+
+                            contentEl.innerHTML = cardHtml;
+                        } catch (e) { console.error('setDeleteProjectModalPreview error:', e); }
                     }
 
                     // Remove old confirm dialog and use modal instead
@@ -5555,31 +5572,39 @@ document.addEventListener("DOMContentLoaded", function () {
                                     return;
                                 }
 
-                                // Open delete confirmation modal and populate data
-                                const deleteModalEl =
-                                    document.getElementById(
-                                        "deleteProjectModal"
-                                    );
-                                const deleteModal = new bootstrap.Modal(
-                                    deleteModalEl
-                                );
-
-                                // Set project image (or initials) and title in modal
-                                const projectTitle = card.querySelector(".title-project") || card.closest('[data-project-title]')?.getAttribute('data-project-title') ? { textContent: card.closest('[data-project-title]').getAttribute('data-project-title') } : null;
-                                // Prefer the project header avatar image if present
-                                let projectHeaderImg = card.querySelector('img[data-role="project-avatar"]');
-                                if (!projectHeaderImg) {
-                                    projectHeaderImg = card.querySelector('.project-card .d-flex.justify-content-between.align-items-start .d-flex.align-items-center > img');
-                                }
-                                const imgUrl = projectHeaderImg ? projectHeaderImg.src : null;
-                                setDeleteProjectModalPreview(projectTitle ? projectTitle.textContent : '', imgUrl);
-
+                                // Open delete confirmation modal and populate data (mirror Task delete flow)
+                                const deleteModalEl = document.getElementById("deleteProjectModal");
+                                const deleteModal = new bootstrap.Modal(deleteModalEl);
                                 // Store projectId and card element on modal for use in delete
                                 deleteModalEl.dataset.projectId = projectId;
-                                deleteModalEl.dataset.cardId =
-                                    card.getAttribute("data-project-id");
+                                deleteModalEl.dataset.cardId = card.getAttribute("data-project-id");
 
-                                deleteModal.show();
+                                // Fetch project detail to build rich preview content
+                                $.ajax({
+                                    url: appUrl + "/project/" + projectId,
+                                    type: "GET",
+                                    dataType: "json",
+                                    success: function (response) {
+                                        try {
+                                            const project = response && response.data ? response.data : {};
+                                            setDeleteProjectModalPreview(project);
+                                        } catch(_) {
+                                            const projectTitleEl = card.querySelector('.title-project');
+                                            const title = projectTitleEl ? projectTitleEl.textContent : '';
+                                            setDeleteProjectModalPreview({ title: title });
+                                        }
+                                        deleteModal.show();
+                                        // Clean excess backdrops if any
+                                        try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                                    },
+                                    error: function () {
+                                        const projectTitleEl = card.querySelector('.title-project');
+                                        const title = projectTitleEl ? projectTitleEl.textContent : '';
+                                        setDeleteProjectModalPreview({ title: title });
+                                        deleteModal.show();
+                                        try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                                    }
+                                });
 
                                 // Delete button click handler
                                 const confirmDeleteBtn =
@@ -5981,8 +6006,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                         const deleteModalEl = document.getElementById("deleteProjectModal");
                                         if (!deleteModalEl) { showFloatingAlert('Delete Project Modal not found', 'warning', 3000); return; }
                                         const deleteModal = new bootstrap.Modal(deleteModalEl);
-                                                // Populate image (or initials) and title
-                                                setDeleteProjectModalPreview(project.title || '', imageUrl || null);
+                                                // Populate content card
+                                                setDeleteProjectModalPreview(project);
                                         deleteModalEl.dataset.projectId = pid;
                                         deleteModal.show();
                                         // Confirm delete handler
@@ -6699,17 +6724,37 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/project/get-all-projects",
             type: "GET",
             dataType: "json",
-            data: { task_scope: "me", page: page },
+            data: (function(){
+                const params = { task_scope: "me", page: page };
+                try {
+                    const q = (typeof window.currentSearch === 'string') ? window.currentSearch : currentSearch;
+                    if (typeof q === 'string' && q.trim() !== '') {
+                        params.search = q.trim();
+                    }
+                } catch(_) {}
+                return params;
+            })(),
             success: function (data) {
-                loadProjectCardData(null, page);
+                // Render with the same page and current search
+                const q = (typeof window.currentSearch === 'string') ? window.currentSearch : currentSearch;
+                loadProjectCardData(null, page, (typeof q === 'string' ? q : ''));
 
-                updatePagination(data.pagination);
+                if (data && data.pagination) {
+                    updatePagination(data.pagination);
+                }
             },
             error: function () {
                 console.error("Failed to load project cards");
             },
         });
     }
+
+    // Expose to global so other blocks (e.g., late DOMContentLoaded handlers) can invoke it
+    try {
+        window.loadProjectCardData = loadProjectCardData;
+        window.loadCardProjects = loadCardProjects;
+        window.currentSearch = currentSearch;
+    } catch(_) {}
 
     function updatePagination(pagination) {
         if (!pagination) return;
@@ -9481,54 +9526,23 @@ nextBtn.addEventListener("click", () => {
 
 document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search_filter");
+    if (!searchInput) return;
 
-    searchInput.addEventListener("input", function () {
-        const query = this.value.toLowerCase();
+    // Simple debounce helper
+    function debounce(fn, wait) {
+        let t;
+        return function (...args) {
+            clearTimeout(t);
+            t = setTimeout(() => fn.apply(this, args), wait);
+        };
+    }
 
-        const cards = document.querySelectorAll(
-            "#all-cards-container [data-project-id]"
-        );
+    const doSearch = debounce(function () {
+        const raw = searchInput.value || "";
+        const q = raw.trim();
 
-        cards.forEach((card) => {
-            const projectId = card.getAttribute("data-project-id");
-            const title =
-                card.querySelector("h6")?.textContent.toLowerCase() || "";
-            const desc =
-                card.querySelector("p")?.textContent.toLowerCase() || "";
-
-            const match =
-                title.includes(query) ||
-                desc.includes(query) ||
-                projectId.includes(query);
-
-            if (match) {
-                card.classList.remove("d-none");
-            } else {
-                card.classList.add("d-none");
-            }
-        });
-
-        // When search is cleared, restore feedback snippets that should be visible
-        if (query.trim() === "") {
-            document
-                .querySelectorAll(".latest-feedback-snippet")
-                .forEach((snippet) => {
-                    const projectId = snippet.getAttribute("data-project-id");
-                    if (projectId) {
-                        // First try to restore from cache
-                        if (window.__projectLatest && window.__projectLatest[projectId]) {
-                            const data = window.__projectLatest[projectId];
-                            setProjectLatestFeedbackSnippet(projectId, data);
-                        } else {
-                            // If no cache available, fetch fresh data
-                            try {
-                                fetchLatestFeedbackForProject(projectId);
-                            } catch (_) {}
-                        }
-                    }
-                });
-        } else {
-            // Hide feedback snippets during search to avoid clutter
+        // During active search, hide latest feedback snippets to reduce clutter
+        if (q !== "") {
             document
                 .querySelectorAll(".latest-feedback-snippet")
                 .forEach((snippet) => {
@@ -9536,7 +9550,45 @@ document.addEventListener("DOMContentLoaded", function () {
                     snippet.style.display = "none";
                 });
         }
-    });
+
+        // Reload cards from backend with search param
+        try {
+            if (typeof window.loadProjectCardData === 'function') {
+                window.loadProjectCardData(null, 1, q);
+            } else if (typeof loadProjectCardData === 'function') {
+                loadProjectCardData(null, 1, q);
+            } else {
+                throw new ReferenceError('loadProjectCardData is not defined');
+            }
+        } catch (e) {
+            console.warn("Search reload failed", e);
+        }
+
+        // When search is cleared, restore feedback snippets (if any meaningful content)
+        if (q === "") {
+            document
+                .querySelectorAll(".latest-feedback-snippet")
+                .forEach((snippet) => {
+                    const projectId = snippet.getAttribute("data-project-id");
+                    if (projectId) {
+                        if (
+                            window.__projectLatest &&
+                            window.__projectLatest[projectId]
+                        ) {
+                            const data = window.__projectLatest[projectId];
+                            setProjectLatestFeedbackSnippet(projectId, data);
+                        } else {
+                            try {
+                                fetchLatestFeedbackForProject(projectId);
+                            } catch (_) {}
+                        }
+                    }
+                });
+        }
+    }, 350);
+
+    // Bind input event
+    searchInput.addEventListener("input", doSearch);
 });
 
 function hideProjectLatestFeedbackSnippet(projectId) {
