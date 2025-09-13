@@ -3662,7 +3662,7 @@ function applyCurrentSearchFilter() {
             const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
             if (!card) return;
             let span = card.querySelector('.feedback-comments-count');
-            if (!span) {
+            if (!span && count > 0) {
                 span = document.createElement('span');
                 span.className = 'feedback-comments-count ms-1';
                 span.style.color = '#555';
@@ -3673,7 +3673,15 @@ function applyCurrentSearchFilter() {
                     return; // no place to put it
                 }
             }
-            span.textContent = String(count);
+            if (span) {
+                if (count > 0) {
+                    span.textContent = String(count);
+                    span.style.display = '';
+                } else {
+                    span.textContent = '';
+                    span.style.display = 'none';
+                }
+            }
         }
         function optimisticIncrementFeedbackCount(taskId) {
             const prev = getExistingFeedbackCount(taskId);
@@ -4551,15 +4559,7 @@ function applyCurrentSearchFilter() {
                             const span = card.querySelector('.feedback-comments-count');
                             const prev = span ? parseInt(span.textContent, 10) || 0 : 0;
                             const next = Math.max(prev + 1, 1);
-                            if (span) { span.textContent = String(next); }
-                            else {
-                                const newSpan = document.createElement('span');
-                                newSpan.className = 'feedback-comments-count ms-1';
-                                newSpan.style.color = '#555';
-                                newSpan.textContent = String(next);
-                                const icon = card.querySelector('.task-icon.mode_comment');
-                                if (icon && icon.parentNode) icon.parentNode.appendChild(newSpan);
-                            }
+                            setFeedbackCount(taskId, next);
                         }
                     } catch(_) {}
                 })();
@@ -4575,18 +4575,8 @@ function applyCurrentSearchFilter() {
                             const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
                             return (typeof val === 'number') ? val : null;
                         })(countResponse);
-                        if (typeof serverCount === 'number' && serverCount > 0) {
-                            const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-                            if (!taskCard) return;
-                            let span = taskCard.querySelector('.feedback-comments-count');
-                            if (!span) {
-                                span = document.createElement('span');
-                                span.className = 'feedback-comments-count ms-1';
-                                span.style.color = '#555';
-                                const icon = taskCard.querySelector('.task-icon.mode_comment');
-                                if (icon && icon.parentNode) icon.parentNode.appendChild(span);
-                            }
-                            span.textContent = String(serverCount);
+                        if (typeof serverCount === 'number') {
+                            setFeedbackCount(taskId, serverCount);
                         }
                     }
                 });
