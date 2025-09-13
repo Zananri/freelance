@@ -81,6 +81,7 @@ async function loadDivisions(departmentId) {
             if (filterDivision) {
                 filterDivision.innerHTML = '<option value="">Select Division</option>';
                 filterDivision.disabled = true;
+                filterDivision.value = '';
             }
         }
     } catch (e) {
@@ -90,6 +91,7 @@ async function loadDivisions(departmentId) {
         if (filterDivision) {
             filterDivision.innerHTML = '<option value="">Select Division</option>';
             filterDivision.disabled = true;
+            filterDivision.value = '';
         }
     }
 }
@@ -98,6 +100,13 @@ async function loadDivisions(departmentId) {
 let currentDate = new Date();
 let employees = [];
 window.shifts = window.shifts || [];
+// Global variable untuk menyimpan filter saat ini
+let currentFilters = {
+    department: '',
+    division: '',
+    shift: '',
+    search: ''
+};
 
 // Fetch all shifts from backend (cached in window.shifts)
 async function ensureShiftsLoaded(force = false) {
@@ -132,15 +141,21 @@ async function loadEmployeeData(filters = {}) {
             window.location.pathname.split("/").slice(0, -1).join("/") || "";
         let endpoint = `${basePath}/shift/employees-basic?month=${month}&year=${year}`;
 
+        // Merge current filters with new filters
+        currentFilters = { ...currentFilters, ...filters };
+
         // Add filter parameters if provided
-        if (filters.department) {
-            endpoint += `&department=${encodeURIComponent(filters.department)}`;
+        if (currentFilters.department) {
+            endpoint += `&department=${encodeURIComponent(currentFilters.department)}`;
         }
-        if (filters.division) {
-            endpoint += `&division=${encodeURIComponent(filters.division)}`;
+        if (currentFilters.division) {
+            endpoint += `&division=${encodeURIComponent(currentFilters.division)}`;
         }
-        if (filters.shift) {
-            endpoint += `&shift=${encodeURIComponent(filters.shift)}`;
+        if (currentFilters.shift) {
+            endpoint += `&shift=${encodeURIComponent(currentFilters.shift)}`;
+        }
+        if (currentFilters.search) {
+            endpoint += `&search=${encodeURIComponent(currentFilters.search)}`;
         }
 
         const response = await fetch(endpoint);
@@ -908,15 +923,22 @@ function setupEventListeners() {
     if (filterDepartment) {
         filterDepartment.addEventListener("change", (e) => {
             const departmentId = e.target.value;
+            const filterDivision = document.getElementById("filterDivision");
+            
             if (departmentId) {
                 loadDivisions(departmentId);
             } else {
                 // Clear division dropdown if no department selected
-                const filterDivision = document.getElementById("filterDivision");
                 if (filterDivision) {
                     filterDivision.innerHTML = '<option value="">Select Division</option>';
                     filterDivision.disabled = true;
+                    filterDivision.value = ''; // Reset value
                 }
+            }
+            
+            // Reset division filter in currentFilters when department changes
+            if (currentFilters.division) {
+                currentFilters.division = '';
             }
         });
     }
@@ -927,19 +949,59 @@ function applyFilters() {
     const division = document.getElementById("filterDivision").value;
     const shift = document.getElementById("filterShift").value;
 
-    const filters = {};
-    if (department) filters.department = department;
-    if (division) filters.division = division;
-    if (shift) filters.shift = shift;
+    const filters = {
+        department: department || '',
+        division: division || '',
+        shift: shift || ''
+    };
+
+    // Preserve search filter if exists
+    if (currentFilters.search) {
+        filters.search = currentFilters.search;
+    }
 
     loadEmployeeData(filters);
+    
+    // Close dropdown after applying filters
+    const filterDropdown = document.querySelector('.filter-dropdown .dropdown-toggle');
+    if (filterDropdown) {
+        const dropdown = bootstrap.Dropdown.getInstance(filterDropdown);
+        if (dropdown) {
+            dropdown.hide();
+        }
+    }
 }
 
 function resetFilters() {
     document.getElementById("filterDepartment").value = "";
     document.getElementById("filterDivision").value = "";
     document.getElementById("filterShift").value = "";
-    loadEmployeeData();
+    
+    // Clear division dropdown and disable it
+    const filterDivision = document.getElementById("filterDivision");
+    if (filterDivision) {
+        filterDivision.innerHTML = '<option value="">Select Division</option>';
+        filterDivision.disabled = true;
+    }
+    
+    // Reset filters but preserve search
+    currentFilters = {
+        department: '',
+        division: '',
+        shift: '',
+        search: currentFilters.search || ''
+    };
+    
+    loadEmployeeData(currentFilters);
+    
+    // Close dropdown after resetting filters
+    const filterDropdown = document.querySelector('.filter-dropdown .dropdown-toggle');
+    if (filterDropdown) {
+        const dropdown = bootstrap.Dropdown.getInstance(filterDropdown);
+        if (dropdown) {
+            dropdown.hide();
+        }
+    }
 }
 
 // Assign selected shift to an employee for a specific date (from Add Shift Modal)
@@ -1718,35 +1780,28 @@ $(document).ready(function () {
     });
 });
 
-document.getElementById("search_filter").addEventListener("keyup", async function () {
+// Debounce function untuk mencegah too many requests
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Search with debounce
+const debouncedSearch = debounce(function(query) {
+    currentFilters.search = query;
+    loadEmployeeData(currentFilters);
+}, 500);
+
+document.getElementById("search_filter").addEventListener("input", function () {
     const query = this.value.trim();
-
-    try {
-        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/shift/employees-basic?search=${encodeURIComponent(query)}`;
-
-        const res = await fetch(endpoint, {
-            headers: {
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        });
-
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
-        const data = await res.json();
-
-        if (data.success && data.data) {
-            employees = data.data;
-            renderEmployeeTable(employees, currentDate.getMonth() + 1, currentDate.getFullYear());
-        } else {
-            console.error("Search failed:", data.message);
-            renderEmployeeTable([], currentDate.getMonth() + 1, currentDate.getFullYear());
-        }
-    } catch (err) {
-        console.error("Error searching employees:", err);
-        renderEmployeeTable([], currentDate.getMonth() + 1, currentDate.getFullYear());
-    }
+    debouncedSearch(query);
 });
 
 $(document).on('click','.data-fullscreen, .data-fullscreen-exit',function(){
