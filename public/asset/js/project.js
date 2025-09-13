@@ -421,9 +421,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 emp.employee && (emp.employee.name || emp.employee.full_name);
             return nested || "Unknown";
         })();
-        const roleLabel = role ? formatRoleText(role) : "";
-        const roleText = roleLabel ? ` (${roleLabel})` : "";
-        const titleText = `${name}${roleText}`;
+        // Remove role from tooltip - only show name
+        const titleText = name;
 
         return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? "margin-left:" + marginLeft + "px;" : ""}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
     }
@@ -495,7 +494,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 "Unknown"
                             );
                         })(h.emp);
-                        return `${n} (${formatRoleText(h.type)})`;
+                        // Remove role from tooltip - only show name
+                        return n;
                     })
                     .join(", ");
 
