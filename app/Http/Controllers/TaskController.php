@@ -102,11 +102,12 @@ class TaskController extends Controller
 
             if ($projectId) $baseQuery->where('project_id', $projectId);
 
-            // ===== Tambah filter search =====
             if ($search) {
                 $baseQuery->where(function($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhereHas('project', function($p) use ($search) {
+                        $p->where('title', 'like', "%{$search}%");
+                    });
                 });
             }
 
