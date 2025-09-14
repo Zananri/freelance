@@ -108,71 +108,7 @@
                         </div>
                     </div>
                 </div>
-
-                <style>
-                    .box-off-time{
-                        height: 86px;
-                        width: 86px;
-                        border-radius: 8px;
-                        background-color: #EBDEDE;
-                        margin-right: 25px;
-                        cursor: pointer;
-                        transition: all 0.3s;
-                    }
-
-                    .box-off-time:hover{
-                        background-color: #e7d5d5;
-                    }
-
-                    .box-overtime{
-                        height: 86px;
-                        width: 86px;
-                        border-radius: 8px;
-                        background-color: #D7E1F0;
-                        cursor: pointer;
-                        transition: all 0.3s;
-                    }
-
-                    .box-overtime:hover{
-                        background-color: #cfdff7;
-                    }
-
-                    .box-overtime .material-symbols-outlined,
-                    .box-off-time .material-symbols-outlined{
-                        font-size: 32px;
-                    }
-                    
-                    .box-off-time .material-symbols-outlined,
-                    .box-off-time .text-off-time{
-                        color:#453636;
-                    }
-
-                    .box-off-time:hover .material-symbols-outlined,
-                    .box-off-time:hover .text-off-time{
-                        color:#291e1e;
-                    }
-
-                    .box-overtime .text-overtime,
-                    .box-off-time .text-off-time{
-                        font-size: 14px;
-                        font-weight: 500;
-                    }
-
-                    .box-overtime .material-symbols-outlined,
-                    .box-overtime .text-overtime{
-                        color:#31353B;
-                    }
-
-                    .box-overtime:hover .material-symbols-outlined,
-                    .box-overtime:hover .text-overtime{
-                        color:#1c2129;
-                    }
-
-                    
-
-
-
-                </style>
+ 
 
                 <div class="employee-time-off-overtime rounded-4 bg-card-1 p-4 pe-0">
                     <div class="d-flex">
