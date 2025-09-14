@@ -3,7 +3,7 @@
         {{ __('project') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/project.css')}}?v={{ time() }}">
     </x-slot>
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
         <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
@@ -725,7 +725,7 @@
     <x-slot name="script_slot">
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="{{ asset('asset/js/project.js') }}"></script> {{-- PENTING: project.js dulu --}}
+        <script src="{{ asset('asset/js/project.js')}}?v={{ time() }}"></script> {{-- PENTING: project.js dulu --}}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 window.__projectUnread = {};
