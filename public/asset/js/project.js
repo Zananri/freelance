@@ -79,8 +79,8 @@ function handleEmployeeLoadError(xhr, status, error, context = '') {
 
 // Mobile detection utility for tooltip placement
 function isMobileDevice() {
-    return window.matchMedia('(max-width: 768px)').matches || 
-           window.innerWidth <= 768 || 
+    return window.matchMedia('(max-width: 768px)').matches ||
+           window.innerWidth <= 768 ||
            /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
@@ -94,14 +94,14 @@ function initResponsiveTooltips(container = document) {
     try {
         const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
         const placement = getTooltipPlacement();
-        
+
         tooltipElements.forEach(el => {
             // Dispose existing tooltip if any
             const existingTooltip = bootstrap.Tooltip.getInstance(el);
             if (existingTooltip) {
                 existingTooltip.dispose();
             }
-            
+
             try {
                 new bootstrap.Tooltip(el, {
                     placement: placement,
@@ -555,6 +555,77 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Build vertical collaborators list for Project Detail modal
+    // Each row: avatar on the left, then name, and division beneath the name; stacked vertically and scrollable via CSS
+    function buildCollaboratorsDetailList(project) {
+        try {
+            const items = [];
+            if (project && project.author) items.push({ role: 'author', emp: project.author });
+            if (project && Array.isArray(project.co_authors)) {
+                project.co_authors.forEach(emp => items.push({ role: 'co_author', emp }));
+            }
+            // Support legacy key 'executors' as contributors
+            if (project && Array.isArray(project.executors)) {
+                project.executors.forEach(emp => items.push({ role: 'contributor', emp }));
+            } else if (project && Array.isArray(project.contributors)) {
+                project.contributors.forEach(emp => items.push({ role: 'contributor', emp }));
+            }
+
+            function getName(emp) {
+                try {
+                    return (
+                        emp?.name ||
+                        emp?.employee_name ||
+                        emp?.username ||
+                        emp?.full_name ||
+                        (emp?.employee && (emp.employee.name || emp.employee.full_name)) ||
+                        'Unknown'
+                    );
+                } catch (_) { return 'Unknown'; }
+            }
+
+            function getDivision(emp) {
+                try {
+                    // Try common fields first, then nested structures
+                    return (
+                        emp?.division_name || emp?.division || emp?.division_title ||
+                        // backend now also provides 'division' as name string and duplicate 'division_name'
+                        (typeof emp?.division === 'string' ? emp?.division : null) ||
+                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                        emp?.employee_division ||
+                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                        '-'
+                    );
+                } catch (_) { return '-'; }
+            }
+
+            if (!items.length) {
+                return '<div class="text-muted small">No collaborators</div>';
+            }
+
+            const rows = items.map(({ role, emp }) => {
+                const name = getName(emp);
+                const division = getDivision(emp);
+                // Use global resolver for photo (includes cache busting and onerror handling)
+                const photo = resolvePhotoHtml(emp, 36, 0, role);
+                return (
+                    '<div class="collab-item d-flex align-items-center mb-2">' +
+                        '<div class="flex-shrink-0">' + photo + '</div>' +
+                        '<div class="ms-2">' +
+                            '<div class="collab-name">' + (name || 'Unknown') + '</div>' +
+                            '<div class="collab-division text-muted">' + (division || '-') + '</div>' +
+                        '</div>' +
+                    '</div>'
+                );
+            });
+
+            return '<div class="collab-list">' + rows.join('') + '</div>';
+        } catch (e) {
+            console.warn('buildCollaboratorsDetailList error', e);
+            return '<div class="text-muted small">No collaborators</div>';
+        }
+    }
+
     let currentPage = 1;
 
     // Unified initials logic (match task.js style) + placeholder filtering
@@ -595,7 +666,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentSearch = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
     let currentProjectId = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : '';
     let currentFilterDate = (typeof window.currentFilterDate === 'string') ? window.currentFilterDate : '';
-    function loadProjectCardData(filter = null, page = 1, search = null) {
+    function loadProjectCardData(filter = null, page = 1, search = null, sortBy = 'asc') {
         // DEBUG: Log filter parameter
         if (filter) {
             console.log('=== FILTER DEBUG ===');
@@ -607,7 +678,7 @@ document.addEventListener("DOMContentLoaded", function () {
             try { window.currentSearch = currentSearch; } catch(_) {}
         }
 
-        const params = { filter: filter, task_scope: "me", page: page };
+        const params = { filter: filter, task_scope: "me", page: page, sort_by: sortBy };
         if (currentSearch && currentSearch.trim() !== '') {
             params.search = currentSearch.trim();
         }
@@ -725,13 +796,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                                 <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                                             </div>
-                              <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" 
+                              <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative"
         title="Comment" data-project-id="${project.id}">
     <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
     <span class="project-feedback-count ms-1" data-project-id="${
         project.id
     }" style="font-size:12px; color:#454545;"></span>
-    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" 
+    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none"
           data-project-id="${
               project.id
           }" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
@@ -1854,7 +1925,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 },
                                 error: function (xhr, status, error) {
                                     handleEmployeeLoadError(xhr, status, error, 'Edit Project');
-                                    
+
                                     // Provide fallback with empty list
                                     employees = [];
                                     filteredEmployees = [];
@@ -2229,7 +2300,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 },
                                 error: function (xhr, status, error) {
                                     handleEmployeeLoadError(xhr, status, error, 'Edit Contributors');
-                                    
+
                                     // Provide fallback with empty list
                                     employees = [];
                                     filteredEmployees = [];
@@ -2712,7 +2783,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         feedback.employee_name ||
                                         "Unknown";
                                     nameRow.appendChild(nameStrong);
-                                    
+
                                     // Store edit button data for later positioning
                                     let editBtnInline = null;
                                     if (canEditTopInline) {
@@ -3186,33 +3257,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                     feedbackItem.appendChild(headerDiv);
                                     feedbackItem.appendChild(commentDiv);
                                     feedbackItem.appendChild(mediaDiv);
-                                    
+
                                     // Create actions container for edit and reply buttons
                                     const actionsDiv = document.createElement("div");
                                     actionsDiv.className = "feedback-actions mt-2 d-flex gap-3";
-                                    
+
                                     // Add edit button if exists
                                     if (editBtnInline) {
                                         // Store the original event listener
                                         const editClickHandler = editBtnInline.onclick || function() {};
-                                        
+
                                         // Create edit button wrapper with icon + text
                                         const editWrapper = document.createElement("span");
                                         editWrapper.className = "d-flex align-items-center";
                                         editWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
-                                        
+
                                         // Recreate edit icon
                                         const editIcon = document.createElement("span");
                                         editIcon.className = "material-symbols-outlined feedback-edit-trigger";
                                         editIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                         editIcon.textContent = "edit";
-                                        
+
                                         const editText = document.createElement("span");
                                         editText.textContent = "Edit";
-                                        
+
                                         editWrapper.appendChild(editIcon);
                                         editWrapper.appendChild(editText);
-                                        
+
                                         // Add click handler to wrapper
                                         editWrapper.addEventListener("click", function() {
                                             const payload = {
@@ -3260,35 +3331,35 @@ document.addEventListener("DOMContentLoaded", function () {
                                             };
                                             showEditFeedbackForm(projectId, payload, false);
                                         });
-                                        
+
                                         actionsDiv.appendChild(editWrapper);
                                     }
-                                    
+
                                     // Create reply button wrapper with icon + text
                                     const replyWrapper = document.createElement("span");
                                     replyWrapper.className = "d-flex align-items-center";
                                     replyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
-                                    
+
                                     // Recreate reply icon
                                     const replyIcon = document.createElement("span");
                                     replyIcon.className = "material-symbols-outlined feedback-reply-trigger";
                                     replyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                     replyIcon.textContent = "reply";
-                                    
+
                                     const replyText = document.createElement("span");
                                     replyText.textContent = "Reply";
-                                    
+
                                     replyWrapper.appendChild(replyIcon);
                                     replyWrapper.appendChild(replyText);
-                                    
+
                                     // Add click handler to wrapper
                                     replyWrapper.addEventListener("click", function () {
                                         showReplyFeedbackForm(projectId, feedback.id);
                                     });
-                                    
+
                                     // Add reply button
                                     actionsDiv.appendChild(replyWrapper);
-                                    
+
                                     // Insert actions after media (image/links/files) or comment if no media
                                     feedbackItem.appendChild(actionsDiv);
 
@@ -3410,7 +3481,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         : repEmp.id || 0
                                                 ) ===
                                                 String(currentEmployeeIdTop);
-                                            
+
                                             // Store reply edit button for later positioning
                                             let rEdit = null;
                                             if (canEditReply) {
@@ -3826,30 +3897,30 @@ document.addEventListener("DOMContentLoaded", function () {
                                             )
                                                 repDiv.appendChild(repMedia);
                                             if (rImg) repDiv.appendChild(rImg);
-                                            
-                                            // Create reply actions container for edit and reply buttons  
+
+                                            // Create reply actions container for edit and reply buttons
                                             const replyActionsDiv = document.createElement("div");
                                             replyActionsDiv.className = "reply-actions mt-2 d-flex gap-3";
-                                            
+
                                             // Add edit button if exists
                                             if (rEdit) {
                                                 // Create edit wrapper with icon + text
                                                 const editReplyWrapper = document.createElement("span");
                                                 editReplyWrapper.className = "d-flex align-items-center";
                                                 editReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
-                                                
+
                                                 // Recreate edit icon
                                                 const editReplyIcon = document.createElement("span");
                                                 editReplyIcon.className = "material-symbols-outlined feedback-edit-trigger";
                                                 editReplyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                                 editReplyIcon.textContent = "edit";
-                                                
+
                                                 const editReplyText = document.createElement("span");
                                                 editReplyText.textContent = "Edit";
-                                                
+
                                                 editReplyWrapper.appendChild(editReplyIcon);
                                                 editReplyWrapper.appendChild(editReplyText);
-                                                
+
                                                 // Add click handler to wrapper
                                                 editReplyWrapper.addEventListener("click", function () {
                                                     const payload = {
@@ -3891,33 +3962,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     };
                                                     showEditFeedbackForm(projectId, payload, true);
                                                 });
-                                                
+
                                                 replyActionsDiv.appendChild(editReplyWrapper);
                                             }
-                                            
+
                                             // Create reply wrapper with icon + text
                                             const replyReplyWrapper = document.createElement("span");
                                             replyReplyWrapper.className = "d-flex align-items-center";
                                             replyReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
-                                            
+
                                             // Add reply button for nested reply
                                             const replyToReplyIcon = document.createElement("span");
                                             replyToReplyIcon.className = "material-symbols-outlined feedback-reply-trigger";
                                             replyToReplyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                             replyToReplyIcon.textContent = "reply";
-                                            
+
                                             const replyReplyText = document.createElement("span");
                                             replyReplyText.textContent = "Reply";
-                                            
+
                                             replyReplyWrapper.appendChild(replyToReplyIcon);
                                             replyReplyWrapper.appendChild(replyReplyText);
-                                            
+
                                             replyReplyWrapper.addEventListener("click", function () {
                                                 showReplyFeedbackForm(projectId, feedback.id);
                                             });
-                                            
+
                                             replyActionsDiv.appendChild(replyReplyWrapper);
-                                            
+
                                             repDiv.appendChild(replyActionsDiv);
                                             repliesContainer.appendChild(
                                                 repDiv
@@ -5703,6 +5774,29 @@ document.addEventListener("DOMContentLoaded", function () {
                                           return `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;background:${color};color:#fff;font-weight:600;font-size:11px;">${init}</div>`;
                                       })();
 
+                                // Normalize department/division fields: accept string or object and various key names
+                                function _getDeptText(val) {
+                                    try {
+                                        if (!val) return '-';
+                                        if (typeof val === 'string') return val;
+                                        if (typeof val === 'object') {
+                                            return (
+                                                val.name_department ||
+                                                val.name_division ||
+                                                val.name ||
+                                                val.title ||
+                                                '-'
+                                            );
+                                        }
+                                        return '-';
+                                    } catch(_) { return '-'; }
+                                }
+                                // Pull from various possible fields in the payload
+                                const deptRaw = project.department ?? project.department_name ?? project.dept ?? project.departmentTitle ?? project.department_obj;
+                                const divRaw  = project.division  ?? project.division_name  ?? project.div ?? project.divisionTitle  ?? project.division_obj;
+                                const deptText = _getDeptText(deptRaw);
+                                const divText  = _getDeptText(divRaw);
+
                                 const detailHtml = `
                 <div class="custom-card-detail rounded-4 p-3 border-0" data-project-id="${pid}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
@@ -5731,30 +5825,25 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
                         <span class="text-muted">Department:</span>
-                        <span>${project.department || "-"}</span>
+                        <span>${deptText}</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
                         <span class="text-muted">Division:</span>
-                        <span>${project.division || "-"}</span>
+                        <span>${divText}</span>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <div class="d-flex align-items-center pic-executor-container">
-                            ${renderCollaborators(project, 40) || "No collaborators"}
-                        </div>
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                        <div class="flex-grow-1">${buildCollaboratorsDetailList(project)}</div>
+                        <div class="d-flex align-items-start">
                             <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
                                 <span class="material-symbols-outlined task-icon mode_comment" data-project-id="${pid}">mode_comment</span>
-                                ${project.feedback_comments_count > 0 ? `<span class=\"feedback-comments-count ms-1\" style=\"color: #454545; font-size: 12px;\">${project.feedback_comments_count}</span>` : ""}
+
                                 <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-project-id="${pid}"></span>
                             </div>
                             <div class="btn-attach-file-wrapper d-flex align-items-center">
                                 <span class="material-symbols-outlined task-icon">attach_file</span>
-                                ${project.reference_files_count > 0 ? `<span class=\"reference-files-count ms-1\" style=\"color: #454545; font-size: 12px;\">${project.reference_files_count}</span>` : ""}
+
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom mt-3">
-                        <button type="button" class="btn btn-custom-close delete-project-btn" data-project-id="${pid}">Delete</button>
                     </div>
                 </div>`;
 
@@ -6055,6 +6144,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 // Show modal
                                 $("#projectDetailModal").modal("show");
+
+                                // Bind sticky footer delete button to open delete modal for this project
+                                try {
+                                    const footerDeleteBtn = document.getElementById('projectDetailDeleteBtn');
+                                    if (footerDeleteBtn) {
+                                        footerDeleteBtn.onclick = function() {
+                                            try { $("#projectDetailModal").modal('hide'); } catch(_) {}
+                                            const deleteModalEl = document.getElementById("deleteProjectModal");
+                                            if (!deleteModalEl) { showFloatingAlert('Delete Project Modal not found', 'warning', 3000); return; }
+                                            const deleteModal = new bootstrap.Modal(deleteModalEl);
+                                            // Populate preview content using fetched project data
+                                            try { setDeleteProjectModalPreview(project); } catch(_) {}
+                                            deleteModalEl.dataset.projectId = pid;
+                                            deleteModal.show();
+                                            const confirmDeleteBtn = document.getElementById("confirmDeleteProjectBtn");
+                                            if (confirmDeleteBtn) {
+                                                confirmDeleteBtn.onclick = function () {
+                                                    $.ajax({
+                                                        url: appUrl + "/project/" + pid,
+                                                        type: "DELETE",
+                                                        headers: { "X-CSRF-TOKEN": $("meta[name='csrf-token']").attr("content") },
+                                                        success: function (resp) {
+                                                            deleteModal.hide();
+                                                            try { loadProjectCardData(); } catch(_) {}
+                                                            showFloatingAlert(resp.message || 'Project deleted successfully', 'success', 2000);
+                                                        },
+                                                        error: function (xhr) {
+                                                            console.error('Delete error:', xhr);
+                                                            showFloatingAlert("Failed to delete project: " + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000);
+                                                        }
+                                                    });
+                                                };
+                                            }
+                                        };
+                                    }
+                                } catch(_) { /* noop */ }
                             },
                             error: function () {
                                 alert("Failed to load project details.");
@@ -6081,6 +6206,14 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (text === "Detail") {
                                 e.preventDefault();
                                 e.stopPropagation();
+
+                                // Clear any timeline reopening flags when opening from dropdown
+                                const detailEl = document.getElementById("projectDetailModal");
+                                if (detailEl) {
+                                    detailEl.removeAttribute('data-reopen-timeline');
+                                    detailEl.removeAttribute('data-child-opened');
+                                }
+
                                 fetchAndShowProjectDetail(projectId);
                             } else if (text === "Task") {
                                 e.preventDefault();
@@ -6147,36 +6280,18 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (shouldReopenTimeline) {
                             const detailEl = document.getElementById("projectDetailModal");
                             if (detailEl) {
+                                // Clear any existing flags first
+                                detailEl.removeAttribute('data-child-opened');
                                 // Set a flag on detail so we remember to reopen timeline later
                                 detailEl.setAttribute('data-reopen-timeline', '1');
-                                // Attach a persistent hidden handler once; it will reopen timeline only when no child modal is opening
-                                if (!detailEl.getAttribute('data-timeline-handler-attached')) {
-                                    const onDetailHidden = function () {
-                                        try {
-                                            // If a child modal (edit/feedback/files) is opening, skip reopening timeline now
-                                            if (detailEl.getAttribute('data-child-opened')) {
-                                                return;
-                                            }
-                                            if (detailEl.getAttribute('data-reopen-timeline') === '1') {
-                                                const tlInstance2 = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
-                                                tlInstance2.show();
-                                                detailEl.removeAttribute('data-reopen-timeline');
-                                            }
-                                            
-                                            // Re-initialize filter dropdown to ensure it works after modal closes
-                                            setTimeout(() => {
-                                                try {
-                                                    setupFilterDropdown();
-                                                    setupGlobalFilterClickHandler();
-                                                } catch(e) {
-                                                    console.warn('Failed to re-initialize filter dropdown:', e);
-                                                }
-                                            }, 100);
-                                        } catch(_) { /* noop */ }
-                                    };
-                                    detailEl.addEventListener('hidden.bs.modal', onDetailHidden);
-                                    detailEl.setAttribute('data-timeline-handler-attached', '1');
-                                }
+                                // Timeline reopen logic is now handled by the main modal hidden handler
+                            }
+                        } else {
+                            // Ensure no timeline reopening if not originated from timeline
+                            const detailEl = document.getElementById("projectDetailModal");
+                            if (detailEl) {
+                                detailEl.removeAttribute('data-reopen-timeline');
+                                detailEl.removeAttribute('data-child-opened');
                             }
                         }
 
@@ -6751,7 +6866,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (typeof q === 'string' && q.trim() !== '') {
                         params.search = q.trim();
                     }
-                    
+
                     const pid = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : currentProjectId;
                     if (pid) {
                         params.project_id = pid;
@@ -6960,7 +7075,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 error: function (xhr, status, error) {
                     handleEmployeeLoadError(xhr, status, error, 'Add Project Co-Authors');
-                    
+
                     // Provide fallback with empty list
                     employees = [];
                     filteredEmployees = [];
@@ -7222,7 +7337,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 error: function (xhr, status, error) {
                     handleEmployeeLoadError(xhr, status, error, 'Add Project Contributors');
-                    
+
                     // Provide fallback with empty list
                     employees = [];
                     filteredEmployees = [];
@@ -7690,21 +7805,53 @@ document.addEventListener("DOMContentLoaded", function () {
     // Setup filter dropdown functionality
     setupFilterDropdown();
     setupGlobalFilterClickHandler();
-    
+
     // Setup project detail modal hidden event handler to re-initialize filter dropdown
     const projectDetailModalEl = document.getElementById("projectDetailModal");
-    if (projectDetailModalEl) {
-        projectDetailModalEl.addEventListener("hidden.bs.modal", function() {
-            // Re-initialize filter dropdown to ensure it works after modal closes
-            setTimeout(() => {
-                try {
-                    setupFilterDropdown();
-                    setupGlobalFilterClickHandler();
-                } catch(e) {
-                    console.warn('Failed to re-initialize filter dropdown after project detail modal close:', e);
+    if (projectDetailModalEl && !projectDetailModalEl.getAttribute('data-main-handler-attached')) {
+        const onModalHidden = function() {
+            try {
+                // Handle timeline reopening logic first
+                if (projectDetailModalEl.getAttribute('data-child-opened')) {
+                    // Skip timeline reopening if a child modal is opening
+                    projectDetailModalEl.removeAttribute('data-child-opened');
+                    return;
                 }
-            }, 100);
-        });
+
+                if (projectDetailModalEl.getAttribute('data-reopen-timeline') === '1') {
+                    projectDetailModalEl.removeAttribute('data-reopen-timeline');
+
+                    // Add a small delay to ensure the current modal is fully closed before opening timeline
+                    setTimeout(() => {
+                        const timelineModalEl = document.getElementById("timelineModal");
+                        if (timelineModalEl) {
+                            try {
+                                const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                tlInstance.show();
+                            } catch (e) {
+                                console.warn('Error reopening timeline modal:', e);
+                            }
+                        }
+                    }, 200);
+                    return; // Don't continue with filter dropdown setup immediately
+                }
+
+                // Re-initialize filter dropdown to ensure it works after modal closes
+                setTimeout(() => {
+                    try {
+                        setupFilterDropdown();
+                        setupGlobalFilterClickHandler();
+                    } catch(e) {
+                        console.warn('Failed to re-initialize filter dropdown after project detail modal close:', e);
+                    }
+                }, 100);
+            } catch(e) {
+                console.warn('Error in project detail modal hidden handler:', e);
+            }
+        };
+
+        projectDetailModalEl.addEventListener("hidden.bs.modal", onModalHidden);
+        projectDetailModalEl.setAttribute('data-main-handler-attached', '1');
     }
 
     // Add event listener to department select to load divisions on change
@@ -7759,7 +7906,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 error: function (xhr, status, error) {
                     handleEmployeeLoadError(xhr, status, error, 'Project Co-Authors (Modal)');
-                    
+
                     // Provide fallback with empty list
                     employees = [];
                     filteredEmployees = [];
@@ -8512,7 +8659,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 },
                 error: function (xhr, status, error) {
                     handleEmployeeLoadError(xhr, status, error, 'Project Contributors (Modal)');
-                    
+
                     // Provide fallback with empty list
                     employees = [];
                     filteredEmployees = [];
@@ -8766,17 +8913,19 @@ document.addEventListener("DOMContentLoaded", function () {
         const filterDropdown = document.getElementById("projectFilterDropdown");
         const applyFilterBtn = document.getElementById("applyProjectFilterBtn");
         const resetFilterBtn = document.getElementById("resetProjectFilterBtn");
-    const filterStatus = document.getElementById("filterProjectStatus");
-    // removed: filterSort (Sort By UI)
-    // New: By Project / By Date controls
-    const modeByProject = document.getElementById("modeByProject");
-    const modeByDate = document.getElementById("modeByDate");
-    const byProjectContainer = document.getElementById("byProjectContainer");
-    const byDateContainer = document.getElementById("byDateContainer");
-    const projectSelect = document.getElementById("filterProjectSelect");
-    const dateSelect = document.getElementById("filterProjectDateSelect");
+        const filterStatus = document.getElementById("filterProjectStatus");
+        // removed: filterSort (Sort By UI)
+        // New: By Project / By Date controls
+        const modeByProject = document.getElementById("modeByProject");
+        const modeByDate = document.getElementById("modeByDate");
+        const byProjectContainer = document.getElementById("byProjectContainer");
+        const byDateContainer = document.getElementById("byDateContainer");
+        const projectSelect = document.getElementById("filterProjectSelect");
+        const dateSelect = document.getElementById("filterProjectDateSelect");
+        const sortBySelect = document.getElementById("filterSortBy");
 
         if (!openFilterBtn || !filterDropdown) return;
+
 
         // Remove any existing event listeners to prevent duplicates
         openFilterBtn.replaceWith(openFilterBtn.cloneNode(true));
@@ -8786,15 +8935,15 @@ document.addEventListener("DOMContentLoaded", function () {
         newOpenFilterBtn.addEventListener("click", function (e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Close any other open dropdowns first
             document.querySelectorAll('.dropdown-menu:not(#projectFilterDropdown)').forEach(menu => {
                 menu.classList.add('d-none');
                 menu.style.display = 'none';
             });
-            
+
             const isVisible = filterDropdown.style.display === "block" || !filterDropdown.classList.contains('d-none');
-            
+
             if (isVisible) {
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
@@ -8906,18 +9055,19 @@ document.addEventListener("DOMContentLoaded", function () {
             // Remove existing listeners
             applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
             const newApplyFilterBtn = document.getElementById("applyProjectFilterBtn");
-            
+
             newApplyFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const selectedStatus = filterStatus ? filterStatus.value : "";
-                
+
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
 
                 // Map UI filter values to backend filter parameters
                 let filterParam = null;
+                let sortBy = 'asc';
                 if (selectedStatus === "") {
                     filterParam = null;
                 } else if (selectedStatus === "ongoing") {
@@ -8928,9 +9078,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     filterParam = "in_progress";
                 }
 
+                if (sortBySelect) {
+                    sortBy = sortBySelect.value || "desc";
+                }
+
                 // Reload project cards with current filters, keep current search
                 const q = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
-                
+
                 // Read By Project/By Date values
                 const isByProject = !!(modeByProject && modeByProject.checked);
                 const selectedProjectId = (projectSelect && isByProject) ? projectSelect.value : '';
@@ -8940,7 +9094,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 try { window.currentFilterDate = selectedDate || ''; } catch(_) {}
                 currentProjectId = selectedProjectId || '';
                 currentFilterDate = selectedDate || '';
-                loadProjectCardData(filterParam, 1, (typeof q === 'string' ? q : ''));
+                loadProjectCardData(filterParam, 1, (typeof q === 'string' ? q : ''), sortBy);
             });
         }
 
@@ -8949,11 +9103,11 @@ document.addEventListener("DOMContentLoaded", function () {
             // Remove existing listeners
             resetFilterBtn.replaceWith(resetFilterBtn.cloneNode(true));
             const newResetFilterBtn = document.getElementById("resetProjectFilterBtn");
-            
+
             newResetFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 // Reset the filter dropdown to default
                 if (filterStatus) {
                     filterStatus.value = "";
@@ -8993,20 +9147,20 @@ document.addEventListener("DOMContentLoaded", function () {
         if (window.filterClickHandler) {
             document.removeEventListener("click", window.filterClickHandler);
         }
-        
+
         window.filterClickHandler = function (e) {
             const filterDropdown = document.getElementById("projectFilterDropdown");
             const openFilterBtn = document.getElementById("openProjectFilterBtn");
-            
+
             if (!filterDropdown || !openFilterBtn) return;
-            
+
             // Check if click is outside both button and dropdown
             if (!openFilterBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
             }
         };
-        
+
         document.addEventListener("click", window.filterClickHandler);
     }
 
@@ -9243,7 +9397,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-let currentWeek = 0;
+let currentWeek = (function(){
+    const today = new Date();
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+    return Math.ceil((today.getDate() + offset) / 7) - 1;
+})();
 
 const months = [
     "Jan",
@@ -9409,13 +9568,26 @@ function buildTimelineFromProjects(projects) {
     } catch (e) {}
 }
 
+function getWeeksInMonth(year, month) {
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const used = first.getDay() + last.getDate();
+    return Math.ceil(used / 7);
+}
+
+function getWeekOfMonth(date) {
+    const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+    const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+    return Math.ceil((date.getDate() + offset) / 7);
+}
+
 function renderTimeline(
     targetHeaderSelector,
     targetRowsSelector,
     mode = "week",
     month = null,
     year = null,
-    weekIndex = 0
+    weekIndex = null
 ) {
     const headerRow = document.querySelector(targetHeaderSelector);
     const rowsContainer = document.querySelector(targetRowsSelector);
@@ -9424,211 +9596,141 @@ function renderTimeline(
     headerRow.innerHTML = "";
     rowsContainer.innerHTML = "";
 
-    let totalCells,
-        headerLabels = [];
+    month = month ?? new Date().getMonth();
+    year = year ?? new Date().getFullYear();
 
-    if (mode === "week") {
-        headerLabels = [
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-            "Sunday",
-        ];
-        totalCells = 7;
-    } else {
-        // month
-        month = month ?? new Date().getMonth();
-        year = year ?? new Date().getFullYear();
+    if (mode === "month") {
+        // Modal: tampilkan tanggal sebulan penuh
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        headerLabels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-        totalCells = daysInMonth;
+        // Header: tanggal 1..N
+        for (let d = 1; d <= daysInMonth; d++) {
+            const th = document.createElement("th");
+            th.textContent = d;
+            headerRow.appendChild(th);
+        }
+
+        // Render bar untuk setiap project
+        timelineData.forEach((proj) => {
+            // Cek apakah project overlap dengan bulan ini
+            const startDay = Math.max(1, proj.start_date.getMonth() === month ? proj.start_date.getDate() : 1);
+            const endDay = Math.min(daysInMonth, proj.due_date.getMonth() === month ? proj.due_date.getDate() : daysInMonth);
+
+            // Jika tidak overlap, skip
+            if (proj.start_date.getMonth() > month || proj.due_date.getMonth() < month) return;
+
+            const tr = document.createElement("tr");
+            // Kosong sebelum bar
+            for (let i = 1; i < startDay; i++) tr.appendChild(document.createElement("td"));
+            // Bar project
+            if (endDay >= startDay) {
+                const barTd = document.createElement("td");
+                barTd.colSpan = endDay - startDay + 1;
+                const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+                tr.appendChild(barTd);
+            }
+            // Kosong setelah bar
+            for (let i = endDay + 1; i <= daysInMonth; i++) tr.appendChild(document.createElement("td"));
+            rowsContainer.appendChild(tr);
+        });
+        // Title modal: Timeline Sep 2025
+        const titleEl = document.getElementById("timelineModalTitle");
+        if (titleEl) {
+            titleEl.textContent = `Timeline ${months[month]} ${year}`;
+        }
+        return;
     }
 
-    // Render header
+    // ...existing code for week mode (tidak diubah)...
+    let totalCells = 7;
+    const headerLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     headerLabels.forEach((label) => {
         const th = document.createElement("th");
         th.textContent = label;
-
-        let isSunday = false;
-        if (mode === "month") {
-            const date = new Date(year, month, label);
-            if (date.getDay() === 0) isSunday = true;
-        }
-
-        if (isSunday) th.style.color = "red";
         headerRow.appendChild(th);
     });
 
-    // Render rows based on timelineData date ranges
-    timelineData.forEach((proj) => {
-        const tr = document.createElement("tr");
-
-        if (mode === "week") {
-            // determine week start (Monday) for the given month/weekIndex
+    if (weekIndex === null) {
+        const today = new Date();
+        if (today.getMonth() === month && today.getFullYear() === year) {
             const firstOfMonth = new Date(year, month, 1);
-            const weekStartDate = new Date(firstOfMonth);
-            weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
-            // ensure weekStartDate is Monday
-            while (weekStartDate.getDay() !== 1) {
-                weekStartDate.setDate(weekStartDate.getDate() - 1);
-            }
-
-            for (let i = 0; i < totalCells; i++) {
-                const cellDate = new Date(weekStartDate);
-                cellDate.setDate(weekStartDate.getDate() + i);
-
-                const td = document.createElement("td");
-                if (cellDate.getDay() === 0) td.style.color = "red";
-
-                // If proj covers this cellDate, add bar cell later
-                tr.appendChild(td);
-            }
-
-            // Helper: difference in days using UTC to avoid timezone/DST edges
-            function diffDaysUTC(a, b) {
-                const utcA = Date.UTC(
-                    a.getFullYear(),
-                    a.getMonth(),
-                    a.getDate()
-                );
-                const utcB = Date.UTC(
-                    b.getFullYear(),
-                    b.getMonth(),
-                    b.getDate()
-                );
-                return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
-            }
-
-            // Compute start/end index (0..6) for this project within the week (may be outside 0..6)
-            const rawStart = diffDaysUTC(proj.start_date, weekStartDate);
-            const rawEnd = diffDaysUTC(proj.due_date, weekStartDate);
-            const projStartIdx = Math.max(0, rawStart);
-            const projEndIdx = Math.min(6, rawEnd);
-            try {
-                console.debug(
-                    "weekStartDate",
-                    weekStartDate.toISOString(),
-                    "proj",
-                    proj.name,
-                    "start",
-                    proj.start_date && proj.start_date.toISOString(),
-                    "due",
-                    proj.due_date && proj.due_date.toISOString(),
-                    "rawStart",
-                    rawStart,
-                    "rawEnd",
-                    rawEnd,
-                    "projStartIdx",
-                    projStartIdx,
-                    "projEndIdx",
-                    projEndIdx
-                );
-            } catch (e) {}
-
-            // If project overlaps this week, replace cells with a colspan bar in correct position
-            if (
-                projEndIdx >= 0 &&
-                projStartIdx <= 6 &&
-                projStartIdx <= projEndIdx
-            ) {
-                // remove child nodes and rebuild with bar
-                while (tr.firstChild) tr.removeChild(tr.firstChild);
-
-                // empty before
-                for (let i = 0; i < projStartIdx; i++)
-                    tr.appendChild(document.createElement("td"));
-
-                const barTd = document.createElement("td");
-                barTd.colSpan = projEndIdx - projStartIdx + 1;
-                const titleText = `${
-                    proj.name
-                } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
-                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
-                tr.appendChild(barTd);
-
-                for (let i = projEndIdx + 1; i < totalCells; i++)
-                    tr.appendChild(document.createElement("td"));
-            }
+            const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+            weekIndex = Math.ceil((today.getDate() + offset) / 7) - 1;
         } else {
-            // month mode: cells are days 1..daysInMonth
-            const daysInMonth = totalCells;
-
-            // compute overlap between project and this month
-            const monthStart = new Date(year, month, 1);
-            const monthEnd = new Date(
-                year,
-                month,
-                daysInMonth,
-                23,
-                59,
-                59,
-                999
-            );
-
-            const startDate =
-                proj.start_date < monthStart ? monthStart : proj.start_date;
-            const endDate = proj.due_date > monthEnd ? monthEnd : proj.due_date;
-
-            if (endDate >= monthStart && startDate <= monthEnd) {
-                const startIdx = startDate.getDate() - 1; // 0-based
-                const endIdx = endDate.getDate() - 1;
-
-                // empty before
-                for (let i = 0; i < startIdx; i++)
-                    tr.appendChild(document.createElement("td"));
-
-                const barTd = document.createElement("td");
-                barTd.colSpan = endIdx - startIdx + 1;
-                const titleText = `${
-                    proj.name
-                } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
-                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
-                tr.appendChild(barTd);
-
-                for (let i = endIdx + 1; i < daysInMonth; i++)
-                    tr.appendChild(document.createElement("td"));
-            } else {
-                // no overlap -> empty row
-                for (let i = 0; i < daysInMonth; i++)
-                    tr.appendChild(document.createElement("td"));
-            }
+            weekIndex = 0;
         }
+    }
+
+    const firstOfMonth = new Date(year, month, 1);
+    let weekStartDate = new Date(firstOfMonth);
+    weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
+    while (weekStartDate.getDay() !== 1) {
+        weekStartDate.setDate(weekStartDate.getDate() - 1);
+    }
+    let weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekStartDate.getDate() + 6);
+
+    const filteredProjects = timelineData.filter(proj => {
+        return proj.start_date <= weekEndDate && proj.due_date >= weekStartDate;
+    });
+
+    filteredProjects.forEach((proj) => {
+        const tr = document.createElement("tr");
+        function diffDaysUTC(a, b) {
+            const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+            const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+            return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+        }
+        const rawStart = diffDaysUTC(proj.start_date, weekStartDate);
+        const rawEnd = diffDaysUTC(proj.due_date, weekStartDate);
+        const projStartIdx = Math.max(0, rawStart);
+        const projEndIdx = Math.min(6, rawEnd);
+
+        for (let i = 0; i < projStartIdx; i++)
+            tr.appendChild(document.createElement("td"));
+
+        // Bar project
+        if (projEndIdx >= projStartIdx) {
+            const barTd = document.createElement("td");
+            barTd.colSpan = projEndIdx - projStartIdx + 1;
+            const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+            barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+            tr.appendChild(barTd);
+        }
+
+        for (let i = projEndIdx + 1; i < totalCells; i++)
+            tr.appendChild(document.createElement("td"));
 
         rowsContainer.appendChild(tr);
     });
 
-    if (mode === "week") {
-        const title = document.getElementById("timelineTitle");
-        title.textContent = `${months[month]} week ${weekIndex + 1}`;
+    const titleEl = document.getElementById("timelineTitle");
+    if (titleEl) {
+        const weekNum = getWeekOfMonth(weekStartDate);
+        const monthShort = months[weekStartDate.getMonth()];
+        titleEl.textContent = `${monthShort} Week ${weekNum}`;
     }
 }
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
-    if (currentWeek > 0) currentWeek--;
-    else {
+    if (currentWeek > 0) {
+        currentWeek--;
+    } else {
         currentMonth--;
         if (currentMonth < 0) {
             currentMonth = 11;
             currentYear--;
         }
-        currentWeek = 3;
+        currentWeek = getWeeksInMonth(currentYear, currentMonth) - 1;
     }
-    renderTimeline(
-        "#timelineHeader",
-        "#timelineRows",
-        "week",
-        currentMonth,
-        currentYear,
-        currentWeek
-    );
+    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
 });
 
 document.getElementById("nextTimeline").addEventListener("click", () => {
-    if (currentWeek < 3) currentWeek++;
-    else {
+    const maxWeek = getWeeksInMonth(currentYear, currentMonth) - 1;
+    if (currentWeek < maxWeek) {
+        currentWeek++;
+    } else {
         currentMonth++;
         if (currentMonth > 11) {
             currentMonth = 0;
@@ -9636,14 +9738,7 @@ document.getElementById("nextTimeline").addEventListener("click", () => {
         }
         currentWeek = 0;
     }
-    renderTimeline(
-        "#timelineHeader",
-        "#timelineRows",
-        "week",
-        currentMonth,
-        currentYear,
-        currentWeek
-    );
+    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
 });
 
 const modalTitle = document.getElementById("timelineModalTitle");

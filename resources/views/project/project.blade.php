@@ -158,11 +158,11 @@
                                 <span class="material-symbols-outlined icon">filter_list</span> <span
                                     class="btn-text-filter">Filter</span>
                             </button>
-                            <button class="btn btn-icon-toggle btn-export-custom me-3" type="button"
+                            {{-- <button class="btn btn-icon-toggle btn-export-custom me-3" type="button"
                                 data-label="Export" id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">file_export</span> <span
                                     class="btn-text-filter">Export</span>
-                            </button>
+                            </button> --}}
                             <button class="btn btn-icon-toggle btn-timeline-filter-custom" type="button"
                                 data-bs-toggle="modal" data-bs-target="#timelineModal" data-label="TImeline"
                                 id="openProjectFilterBtn">
@@ -173,36 +173,47 @@
                         <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown"
                             style="display: none;">
                             <div class="dropdown-filter-body">
-                                <div class="mb-3">
-                                    <label for="filterProjectStatus" class="form-la`bel">Filter by Status</label>
-                                    <select id="filterProjectStatus" class="form-select">
+                                <div class="mb-2">
+                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by Status</label>
+                                    <select id="filterProjectStatus" class="form-select label-custom-filter">
                                         <option value="">All Status</option>
                                         <option value="ongoing">Not Started</option>
                                         <option value="pending">In Progress</option>
                                         <option value="completed">Completed</option>
                                     </select>
                                 </div>
-                                
-                                <hr class="my-2">
-                                <div class="mb-2">
-                                    <label class="form-label d-block mb-1">Filter Mode</label>
-                                    <div class="btn-group" role="group" aria-label="Filter Mode">
-                                        <input type="radio" class="btn-check" name="filterMode" id="modeByProject" autocomplete="off" value="by_project" checked>
-                                        <label class="btn btn-outline-secondary" for="modeByProject">By Project</label>
 
-                                        <input type="radio" class="btn-check" name="filterMode" id="modeByDate" autocomplete="off" value="by_date">
-                                        <label class="btn btn-outline-secondary" for="modeByDate">By Date</label>
+                                <hr class="my-2">
+                                <div class="mb-3">
+                                    <label for="filterSortBy" class="form-label label-custom-filter">Sort
+                                        By</label>
+                                    <select id="filterSortBy" class="form-select label-custom-filter">
+                                        <option value="asc">A-Z</option>
+                                        <option value="desc">Z-A</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label d-block mb-1 label-custom-filter">Filter Mode</label>
+                                    <div class="btn-group" role="group" aria-label="Filter Mode">
+                                        <input type="radio" class="btn-check" name="filterMode" id="modeByProject"
+                                            autocomplete="off" value="by_project" checked>
+                                        <label class="btn btn-outline-secondary label-custom-filter" for="modeByProject">By
+                                            Project</label>
+
+                                        <input type="radio" class="btn-check" name="filterMode" id="modeByDate"
+                                            autocomplete="off" value="by_date">
+                                        <label class="btn btn-outline-secondary label-custom-filter" for="modeByDate">By Date</label>
                                     </div>
                                 </div>
                                 <div class="mb-3" id="byProjectContainer">
-                                    <label for="filterProjectSelect" class="form-label">Project</label>
-                                    <select id="filterProjectSelect" class="form-select">
+                                    <label for="filterProjectSelect" class="form-label label-custom-filter">Project</label>
+                                    <select id="filterProjectSelect" class="form-select label-custom-filter">
                                         <option value="">All Projects</option>
                                     </select>
                                 </div>
                                 <div class="mb-3 d-none" id="byDateContainer">
-                                    <label for="filterProjectDateSelect" class="form-label">Date</label>
-                                    <select id="filterProjectDateSelect" class="form-select">
+                                    <label for="filterProjectDateSelect" class="form-label label-custom-filter">Date</label>
+                                    <select id="filterProjectDateSelect" class="form-select label-custom-filter">
                                         <option value="">All Dates</option>
                                     </select>
                                 </div>
@@ -615,9 +626,13 @@
     <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
-                    <button type="button" class="btn-close btn-sm position-absolute end-0" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-sm position-absolute end-0" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
                 <div class="modal-body modal-body-custom position-relative">
                     <div id="projectDetailContent"></div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-submit-black" id="projectDetailDeleteBtn">Delete</button>
                 </div>
             </div>
         </div>
@@ -649,8 +664,7 @@
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
             <div class="modal-content modal-content-custom">
-                <div
-                    class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
                     <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate fs-5 fw-normal"
                         id="projectFeedbackModalLabel">Project Feedback</h5>
                     <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
@@ -710,31 +724,33 @@
     </div>
     <x-slot name="script_slot">
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ asset('asset/js/project.js') }}"></script>  {{-- PENTING: project.js dulu --}}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    window.__projectUnread = {};
-    fetch("{{ route('project-feedbacks.unread-counts') }}")
-      .then(res => res.json())
-      .then(json => {
-          window.__projectUnread = (json && json.data) ? json.data : {};
-          if (typeof refreshAllProjectUnreadBadges === 'function') {
-              refreshAllProjectUnreadBadges();
-          } else {
-              console.warn('refreshAllProjectUnreadBadges belum terdefinisi');
-          }
-          if (typeof refreshAllProjectLatestFeedbackSnippets === 'function') {
-              refreshAllProjectLatestFeedbackSnippets();
-          }
-      })
-      .catch(err => {
-          console.error('Fetch unread counts error:', err);
-          window.__projectUnread = {};
-          try { refreshAllProjectUnreadBadges(); } catch(_) {}
-      });
-});
-</script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="{{ asset('asset/js/project.js') }}"></script> {{-- PENTING: project.js dulu --}}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                window.__projectUnread = {};
+                fetch("{{ route('project-feedbacks.unread-counts') }}")
+                    .then(res => res.json())
+                    .then(json => {
+                        window.__projectUnread = (json && json.data) ? json.data : {};
+                        if (typeof refreshAllProjectUnreadBadges === 'function') {
+                            refreshAllProjectUnreadBadges();
+                        } else {
+                            console.warn('refreshAllProjectUnreadBadges belum terdefinisi');
+                        }
+                        if (typeof refreshAllProjectLatestFeedbackSnippets === 'function') {
+                            refreshAllProjectLatestFeedbackSnippets();
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Fetch unread counts error:', err);
+                        window.__projectUnread = {};
+                        try {
+                            refreshAllProjectUnreadBadges();
+                        } catch (_) {}
+                    });
+            });
+        </script>
 
 
         <script></script>

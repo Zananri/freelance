@@ -131,12 +131,17 @@
         }
     }
 
-    // Helper: determine if current viewer is an invited executor who hasn't accepted yet for this task
+    // Helper: determine if current viewer (PIC or Executor) hasn't accepted yet for this task
     function isViewerPendingExecutor(task) {
         if (!currentEmployeeId) return false;
         try {
-            // If viewer is PIC, never pending
-            if (task && task.pic && String(task.pic.id) === String(currentEmployeeId)) return false;
+            const pic = task && task.pic ? task.pic : null;
+            // If viewer is PIC, pending when PIC hasn't accepted yet
+            if (pic && String(pic.id) === String(currentEmployeeId)) {
+                const isPicAccepted = (pic.is_receive === true || pic.is_receive === 1);
+                return !isPicAccepted;
+            }
+            // Otherwise, check executor acceptance state
             const exList = Array.isArray(task?.executors) ? task.executors : [];
             const mine = exList.find(ex => String(ex.id) === String(currentEmployeeId));
             if (!mine) return false;
@@ -1283,6 +1288,52 @@
                 window.clearSelectedExecutorsEdit();
 
             $("#editTaskAlert").addClass("d-none").hide();
+
+            // Handle timeline modal restoration logic
+            const detailEl = document.getElementById('taskDetailModal');
+            if (detailEl) {
+                // Clear the child opened flag
+                detailEl.removeAttribute('data-child-opened');
+
+                // Check if we should show the detail modal back
+                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                    // Show detail modal back first
+                    const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                    detailModal.show();
+
+                    // Restore the backed up timeline handler if it exists
+                    if (detailEl._timelineHiddenHandlerBackup) {
+                        detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                        detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                        detailEl._timelineHiddenHandlerBackup = null;
+                    } else {
+                        // Create fresh one-time listener to reopen timeline when detail is closed
+                        const onDetailHiddenAfterEdit = function() {
+                            if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                const timelineEl = document.getElementById('timelineModal');
+                                if (timelineEl) {
+                                    const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                    tlInstance.show();
+                                    detailEl.removeAttribute('data-reopen-timeline');
+                                }
+                            }
+                            // Clear the reference
+                            detailEl._timelineHiddenHandler = null;
+                        };
+
+                        // Store and attach the handler
+                        detailEl._timelineHiddenHandler = onDetailHiddenAfterEdit;
+                        detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterEdit, { once: true });
+                    }
+                } else {
+                    // If not showing detail modal back, restore the backed up handler anyway
+                    if (detailEl._timelineHiddenHandlerBackup) {
+                        detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                        detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                        detailEl._timelineHiddenHandlerBackup = null;
+                    }
+                }
+            }
         });
     }
 
@@ -1823,6 +1874,19 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
     if (statusKey) params.status = statusKey; // when null => fetch all buckets
     params.page = page;
     if (query) params.search = query;
+    // Include active filters (project/status) if present to keep parity with mobile behavior
+    try {
+        if (currentTaskFilters && currentTaskFilters.project) {
+            // Backend expects 'project'
+            params.project = currentTaskFilters.project;
+        }
+        // Important: when a search query is present, do NOT constrain by status filter,
+        // so that results can come from New, In Progress, and Completed.
+        if (!statusKey && !query && currentTaskFilters && currentTaskFilters.status) {
+            // Backend expects 'status'
+            params.status = currentTaskFilters.status;
+        }
+    } catch(_) { /* noop */ }
 
     if (statusKey && loaderMap[statusKey]) {
         $(loaderMap[statusKey]).removeClass("d-none");
@@ -1953,41 +2017,12 @@ function renderSingleSection(status, sectionData, append = false) {
         return true;
     });
 
-    function sortTasks(tasks, status) {
-        return tasks.slice().sort((a, b) => {
-            if (status === 'new_request') {
-                const pa = isViewerPendingExecutor(a) ? 1 : 0;
-                const pb = isViewerPendingExecutor(b) ? 1 : 0;
-            if (pa !== pb) return pb - pa;
-                // start_date ASC
-                const sa = new Date(a.start_date).getTime() || 0;
-                const sb = new Date(b.start_date).getTime() || 0;
-                if (sa !== sb) return sa - sb;
-                // id ASC
-                return (a.id || 0) - (b.id || 0);
-            } else if (status === 'in_progress') {
-                const sa = new Date(a.start_date).getTime() || 0;
-                const sb = new Date(b.start_date).getTime() || 0;
-            if (sa !== sb) return sb - sa; // DESC
-                // id DESC
-                return (b.id || 0) - (a.id || 0);
-            } else if (status === 'completed') {
-                const ca = new Date(a.complete_date).getTime() || 0;
-                const cb = new Date(b.complete_date).getTime() || 0;
-            if (ca !== cb) return ca - cb; // ASC
-                // id ASC
-                return (a.id || 0) - (b.id || 0);
-            } else {
-                // default id DESC
-                return (b.id || 0) - (a.id || 0);
-            }
-        });
-    }
-
   if (!append) {
     incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
   } else {
     incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)));
+
+
   }
 
   addAttachFileIconListeners();
@@ -2055,7 +2090,12 @@ function injectRejectedIfMissing(rawData){
     } catch(err){ console.warn('injectRejectedIfMissing error', err); }
 }
 
+// Track current search across paginated loads
+window.__taskCurrentSearchQuery = window.__taskCurrentSearchQuery || "";
+
 function initDesktopInfiniteScroll(query = "") {
+    // initialize current search value for subsequent loads
+    try { window.__taskCurrentSearchQuery = String(query || ''); } catch(_) {}
     ["new_request", "in_progress", "completed"].forEach(status => {
         const containerId = sectionMap[status];
         $(document).on("scroll", `#${containerId}`, function () {
@@ -2067,52 +2107,15 @@ function initDesktopInfiniteScroll(query = "") {
                 if (state.page < state.last) {
                     state.loading = true;
                     state.page++;
-                    fetchAndRenderTasks(status, state.page, true, query);
+                    const q = (typeof window.__taskCurrentSearchQuery === 'string') ? window.__taskCurrentSearchQuery : '';
+                    fetchAndRenderTasks(status, state.page, true, q);
                 }
             }
         });
     });
 }
-
-$(document).ready(function () {
-  ["new_request", "in_progress", "completed"].forEach(status => {
-    desktopState[status].page = 1;
-    desktopState[status].loading = false;
-    fetchAndRenderTasks(status, 1, false);
-  });
-
-  initDesktopInfiniteScroll();
-});
-
-["new_request", "in_progress", "completed"].forEach(status => {
-    const containerId = {
-        new_request: "new-request-tasks",
-        in_progress: "in-progress-tasks",
-        completed: "completed-tasks"
-    }[status];
-
-    $(`#${containerId}`).on("scroll", function () {
-        const el = this;
-        const st = desktopState[status];
-
-        if (st.loading) return;
-
-        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-            if (st.page < st.last) {
-                st.loading = true;
-                st.page++;
-                fetchAndRenderTasks(status, st.page, true);
-            }
-        }
-    });
-});
-
-$(document).ready(function () {
-    ["new_request", "in_progress", "completed"].forEach(status => {
-        desktopState[status].page = 1;
-        fetchAndRenderTasks(status, 1, false);
-    });
-});
+// Note: desktop data is fetched once in the unified init block below; scroll handlers are
+// bound via initDesktopInfiniteScroll() to avoid duplicate bindings and race conditions.
 
 // Client-side, in-place filter for visible task cards (title + project title)
 function filterVisibleTasks(queryRaw) {
@@ -2127,7 +2130,8 @@ function filterVisibleTasks(queryRaw) {
                 const title = (card.querySelector('.task-title')?.textContent || '').toLowerCase();
                 // project title is rendered in a small.text-muted near title
                 const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
-                const match = !q || title.includes(q) || project.includes(q);
+                const desc = (card.querySelector('.task-description')?.textContent || '').toLowerCase();
+                const match = !q || title.includes(q) || project.includes(q) || desc.includes(q);
                 if (match) card.style.removeProperty('display');
                 else card.style.display = 'none';
             });
@@ -2138,7 +2142,8 @@ function filterVisibleTasks(queryRaw) {
             mobileList.querySelectorAll('.custom-card').forEach(card => {
                 const title = (card.querySelector('.task-title')?.textContent || '').toLowerCase();
                 const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
-                const match = !q || title.includes(q) || project.includes(q);
+                const desc = (card.querySelector('.task-description')?.textContent || '').toLowerCase();
+                const match = !q || title.includes(q) || project.includes(q) || desc.includes(q);
                 if (match) card.style.removeProperty('display');
                 else card.style.display = 'none';
             });
@@ -2164,7 +2169,15 @@ function applyCurrentSearchFilter() {
         if (!el || el.id !== 'search_filter') return;
         clearTimeout(searchTimeout);
         const query = el.value || '';
-        searchTimeout = setTimeout(() => { filterVisibleTasks(query); }, 150);
+        searchTimeout = setTimeout(() => {
+            // Reset pagination state for desktop columns
+            try {
+                Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
+            } catch(_) {}
+            const q = query.trim();
+            window.__taskCurrentSearchQuery = q;
+            fetchAndRenderTasks(null, 1, false, q);
+        }, 250);
     });
 })();
 
@@ -2172,7 +2185,10 @@ function applyCurrentSearchFilter() {
     $(document).ready(function () {
     // Ensure dropdown toggle handler is bound once globally
     try { setupTaskDropdownListeners(); } catch(_) {}
-        fetchAndRenderTasks();
+        // Initialize infinite scroll once
+        initDesktopInfiniteScroll();
+        // Perform a single full-bucket fetch to populate all sections
+        fetchAndRenderTasks(null, 1, false);
     });
 
     // --- New flow: checkbox selects, done_all triggers Accept; arrow triggers Progress ---
@@ -2978,12 +2994,117 @@ function applyCurrentSearchFilter() {
         const feedbackModalEl = document.getElementById("taskFeedbackModal");
         if (feedbackModalEl) {
             feedbackModalEl.addEventListener('hidden.bs.modal', function () {
+                // Store the current state before resetting
+                const wasSubmitted = feedbackSubmitted;
+
                 if (feedbackSubmitted) {
                     // Reload the page only if feedback was submitted
                     window.location.reload();
+                    return; // Exit early if reloading
                 }
+
                 // Reset feedback submission state
                 feedbackSubmitted = false;
+
+                // Handle timeline modal restoration logic for feedback modal
+                const detailEl = document.getElementById('taskDetailModal');
+                if (detailEl) {
+                    // Clear the child opened flag
+                    detailEl.removeAttribute('data-child-opened');
+
+                    // Check if we should show the detail modal back
+                    if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                        // Show detail modal back first
+                        const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                        detailModal.show();
+
+                        // Restore the backed up timeline handler if it exists
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        } else {
+                            // Create fresh one-time listener to reopen timeline when detail is closed
+                            const onDetailHiddenAfterFeedback = function() {
+                                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                    const timelineEl = document.getElementById('timelineModal');
+                                    if (timelineEl) {
+                                        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                        tlInstance.show();
+                                        detailEl.removeAttribute('data-reopen-timeline');
+                                    }
+                                }
+                                // Clear the reference
+                                detailEl._timelineHiddenHandler = null;
+                            };
+
+                            // Store and attach the handler
+                            detailEl._timelineHiddenHandler = onDetailHiddenAfterFeedback;
+                            detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterFeedback, { once: true });
+                        }
+                    } else {
+                        // If not showing detail modal back, restore the backed up handler anyway
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    // Add event listener for reference files modal close
+    document.addEventListener('DOMContentLoaded', function () {
+        const referenceFilesModalEl = document.getElementById("referenceFilesModal");
+        if (referenceFilesModalEl) {
+            referenceFilesModalEl.addEventListener('hidden.bs.modal', function () {
+                // Handle timeline modal restoration logic for reference files modal
+                const detailEl = document.getElementById('taskDetailModal');
+                if (detailEl) {
+                    // Clear the child opened flag
+                    detailEl.removeAttribute('data-child-opened');
+
+                    // Check if we should show the detail modal back
+                    if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                        // Show detail modal back first
+                        const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                        detailModal.show();
+
+                        // Restore the backed up timeline handler if it exists
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        } else {
+                            // Create fresh one-time listener to reopen timeline when detail is closed
+                            const onDetailHiddenAfterRefFiles = function() {
+                                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                    const timelineEl = document.getElementById('timelineModal');
+                                    if (timelineEl) {
+                                        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                        tlInstance.show();
+                                        detailEl.removeAttribute('data-reopen-timeline');
+                                    }
+                                }
+                                // Clear the reference
+                                detailEl._timelineHiddenHandler = null;
+                            };
+
+                            // Store and attach the handler
+                            detailEl._timelineHiddenHandler = onDetailHiddenAfterRefFiles;
+                            detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterRefFiles, { once: true });
+                        }
+                    } else {
+                        // If not showing detail modal back, restore the backed up handler anyway
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        }
+                    }
+                }
             });
         }
     });
@@ -3519,6 +3640,7 @@ function applyCurrentSearchFilter() {
     function showAddFeedbackForm(taskId) {
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
+        const modalFooter = this.querySelector(".modal-footer");
 
         modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
@@ -3672,7 +3794,7 @@ function applyCurrentSearchFilter() {
             const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
             if (!card) return;
             let span = card.querySelector('.feedback-comments-count');
-            if (!span && count > 0) {
+            if (!span) {
                 span = document.createElement('span');
                 span.className = 'feedback-comments-count ms-1';
                 span.style.color = '#555';
@@ -3683,15 +3805,7 @@ function applyCurrentSearchFilter() {
                     return; // no place to put it
                 }
             }
-            if (span) {
-                if (count > 0) {
-                    span.textContent = String(count);
-                    span.style.display = '';
-                } else {
-                    span.textContent = '';
-                    span.style.display = 'none';
-                }
-            }
+            span.textContent = String(count);
         }
         function optimisticIncrementFeedbackCount(taskId) {
             const prev = getExistingFeedbackCount(taskId);
@@ -3831,9 +3945,18 @@ function applyCurrentSearchFilter() {
 
     // Function to handle task feedback
     function handleTaskFeedback(taskId) {
-        // Tutup modal detail kalau masih terbuka
+        // Mark that a child modal (feedback) is about to open so timeline won't be restored yet
         const detailEl = document.getElementById("taskDetailModal");
         if (detailEl) {
+            detailEl.setAttribute('data-child-opened', '1');
+
+            // Remove any existing timeline handler temporarily to prevent conflicts
+            if (detailEl._timelineHiddenHandler) {
+                detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+                detailEl._timelineHiddenHandler = null;
+            }
+
             const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
             detailModal.hide();
         }
@@ -3892,14 +4015,22 @@ function applyCurrentSearchFilter() {
         try { loadTaskFeedbackData(taskId); } catch(_) {}
 
         feedbackModal.show();
+
+        // Clean up any duplicate modal backdrops
+        document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+            if (idx < arr.length - 1) el.remove();
+        });
     }
 
     // Function to show add feedback form in the modal
     function showAddFeedbackForm(taskId) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
         const modalTitle = document.getElementById("taskFeedbackModalLabel");
         const modalBody = document.getElementById("taskFeedbackList");
+        const footer = feedbackModalEl.querySelector('.modal-footer')
+                    || feedbackModalEl.querySelector('.modal-footer-custom');
 
-    modalTitle.textContent = "Add Feedback";
+        modalTitle.textContent = "Add Feedback";
         modalBody.innerHTML = "";
 
         const form = document.createElement("form");
@@ -3914,18 +4045,14 @@ function applyCurrentSearchFilter() {
         const employeeIdInput = document.createElement("input");
         employeeIdInput.type = "hidden";
         employeeIdInput.name = "employee_id";
-        employeeIdInput.value =
-            document
-                .getElementById("taskFeedbackModal")
-                .getAttribute("data-employee-id") || "";
+        employeeIdInput.value = feedbackModalEl.getAttribute("data-employee-id") || "";
 
         form.appendChild(taskIdInput);
         form.appendChild(employeeIdInput);
 
-                // Image upload
+        // Image upload
         const imageDiv = document.createElement("div");
         imageDiv.className = "mb-3";
-
         const imageLabelTitle = document.createElement("div");
         imageLabelTitle.className = "title-label-image";
         imageLabelTitle.textContent = "Upload Image";
@@ -3936,8 +4063,7 @@ function applyCurrentSearchFilter() {
         imageLabel.style.backgroundPosition = "center center";
         imageLabel.style.backgroundRepeat = "no-repeat";
         imageLabel.style.backgroundSize = "50%";
-        imageLabel.style.backgroundImage =
-            "url('" + appUrl + "/asset/img/background/add-image.png')";
+        imageLabel.style.backgroundImage = "url('" + appUrl + "/asset/img/background/add-image.png')";
         imageLabel.htmlFor = "feedback_image";
 
         const imageInput = document.createElement("input");
@@ -3960,16 +4086,14 @@ function applyCurrentSearchFilter() {
 
         form.appendChild(imageDiv);
 
-        // Comment field
+        // Comment
         const commentDiv = document.createElement("div");
         commentDiv.className = "mb-3 custom-input";
-
         const commentLabel = document.createElement("label");
         commentLabel.htmlFor = "feedback_comment";
         commentLabel.className = "form-label label-custom";
         commentLabel.textContent = "Comment";
         commentDiv.appendChild(commentLabel);
-
         const commentTextarea = document.createElement("textarea");
         commentTextarea.className = "form-control input-text";
         commentTextarea.id = "feedback_comment";
@@ -3977,65 +4101,77 @@ function applyCurrentSearchFilter() {
         commentTextarea.rows = 3;
         commentTextarea.required = true;
         commentDiv.appendChild(commentTextarea);
-
         form.appendChild(commentDiv);
 
         // Reference URL
         const refUrlDiv = document.createElement("div");
         refUrlDiv.className = "mb-3 custom-input";
-
         const refUrlLabel = document.createElement("label");
         refUrlLabel.htmlFor = "reference_url";
         refUrlLabel.className = "form-label label-custom";
         refUrlLabel.textContent = "Reference URL";
         refUrlDiv.appendChild(refUrlLabel);
-
         const refUrlInput = document.createElement("input");
         refUrlInput.type = "text";
         refUrlInput.className = "form-control input-text";
         refUrlInput.id = "reference_url";
         refUrlInput.name = "reference_url";
         refUrlDiv.appendChild(refUrlInput);
-
         form.appendChild(refUrlDiv);
 
-    // Reference Files
+        // Reference Files
         const refFileDiv = document.createElement("div");
         refFileDiv.className = "mb-3 custom-input";
-
         const refFileLabel = document.createElement("label");
-    refFileLabel.htmlFor = "reference_files";
+        refFileLabel.htmlFor = "reference_files";
         refFileLabel.className = "form-label label-custom";
-    refFileLabel.textContent = "Reference Files";
+        refFileLabel.textContent = "Reference Files";
         refFileDiv.appendChild(refFileLabel);
-
         const refFileInput = document.createElement("input");
         refFileInput.type = "file";
         refFileInput.className = "form-control input-text";
-    refFileInput.id = "reference_files";
-    refFileInput.name = "reference_files[]";
-    refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
-    refFileInput.multiple = true;
+        refFileInput.id = "reference_files";
+        refFileInput.name = "reference_files[]";
+        refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+        refFileInput.multiple = true;
         refFileDiv.appendChild(refFileInput);
-
         form.appendChild(refFileDiv);
 
-        // Render form into body
         modalBody.appendChild(form);
 
-        // Setup image preview
+        // Image preview
         setupImageInput(imageInput, imageLabel, imageClearBtn);
 
-        // Form submission handler
+        // Submit handler
         form.addEventListener("submit", function (e) {
             e.preventDefault();
             submitTaskFeedbackForm(this, taskId);
         });
 
-        // Use unified footer: Close + Submit
+        // Footer: Close + Submit
         setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
             const form = document.getElementById('addFeedbackForm');
             if (form) submitTaskFeedbackForm(form, taskId);
+        });
+
+        // 🔥 Reset footer & title pas modal ditutup
+        feedbackModalEl.addEventListener("hidden.bs.modal", function restoreDefault() {
+            if (footer) {
+                footer.innerHTML = '';
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'btn btn-submit-black w-100';
+                addBtn.id = 'addFeedbackButton';
+                addBtn.textContent = 'Add Feedback';
+                addBtn.addEventListener('click', function () {
+                    const tid = feedbackModalEl.dataset.taskId || '';
+                    showAddFeedbackForm(tid);
+                });
+                footer.appendChild(addBtn);
+            }
+            modalTitle.textContent = "Task Feedback";
+            // bersihin supaya ga double listener
+            feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDefault);
         });
     }
 
@@ -4153,17 +4289,16 @@ function applyCurrentSearchFilter() {
 
         if (modalTitle) modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
 
-        // Build form HTML
         const existingImg = data.image_url || '';
-        const bgImage = existingImg ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;` : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+        const bgImage = existingImg
+            ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;`
+            : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
         const clearBtnClass = existingImg ? '' : 'd-none';
 
         modalBody.innerHTML = `
             <form id="editFeedbackForm" enctype="multipart/form-data">
                 <input type="hidden" name="task_id" value="${taskId}">
-                ${data.parent_id ? `<input type=\"hidden\" name=\"parent_id\" value=\"${data.parent_id}\">` : ''}
-
-                <!-- Put image section at the very top -->
+                ${data.parent_id ? `<input type="hidden" name="parent_id" value="${data.parent_id}">` : ''}
                 <div class="mb-3">
                     <div class="title-label-image">Upload Image</div>
                     <div class="image-upload-container">
@@ -4173,17 +4308,14 @@ function applyCurrentSearchFilter() {
                         </label>
                     </div>
                 </div>
-
                 <div class="mb-3 custom-input">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
                     <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
                 </div>
-
                 <div class="mb-3 custom-input">
                     <label class="form-label">Reference URLs (Optional)</label>
                     <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
                 </div>
-
                 <div class="mb-3 custom-input">
                     <label for="reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
@@ -4195,13 +4327,11 @@ function applyCurrentSearchFilter() {
             </form>
         `;
 
-        // Wire image preview/clear
-        (function() {
+        (function () {
             const imageInput = modalBody.querySelector('#feedback_image');
             const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
             const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
             if (!imageInput || !imageLabel || !imageClearBtn) return;
-            // If existing image exists, ensure clear button is visible
             if (existingImg) {
                 imageClearBtn.classList.remove('d-none');
                 imageLabel.classList.add('has-image');
@@ -4232,8 +4362,7 @@ function applyCurrentSearchFilter() {
             });
         })();
 
-        // Prefill multiple reference URLs for edit form
-        (function() {
+        (function () {
             const container = modalBody.querySelector('#feedback_reference_urls_container');
             if (!container) return;
             let urls = [];
@@ -4243,7 +4372,6 @@ function applyCurrentSearchFilter() {
                 urls = [data.reference_url];
             }
             if (urls.length === 0) {
-                // add one empty row
                 const row = document.createElement('div');
                 row.className = 'd-flex gap-2 align-items-center';
                 row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">` +
@@ -4262,19 +4390,14 @@ function applyCurrentSearchFilter() {
             }
         })();
 
-        // Prefill existing reference files as removable list
-        (function() {
+        (function () {
             const container = document.getElementById('existing_feedback_reference_files');
             const hidden = document.getElementById('existing_feedback_reference_files_input');
             if (!container || !hidden) return;
-            // data.reference_files_urls contains absolute URLs; we need display names while keeping URL for click
             let files = Array.isArray(data.reference_files_urls) ? data.reference_files_urls.slice() : [];
-            // Fallback single
             if (files.length === 0 && data.reference_file_url) files = [data.reference_file_url];
-            // Initialize state as array of URLs (server will derive file names if needed)
             let kept = files.slice();
             hidden.value = JSON.stringify(kept);
-
             container.innerHTML = '';
             if (files.length > 0) {
                 files.forEach((url, idx) => {
@@ -4288,9 +4411,13 @@ function applyCurrentSearchFilter() {
                     const link = document.createElement('a');
                     link.href = url;
                     link.target = '_blank';
-                    const fileName = (function(){
-                        try { const u = new URL(url, window.location.origin); return decodeURIComponent(u.pathname.split('/').pop()); } catch(e) {
-                            const parts = String(url).split('/'); return decodeURIComponent(parts[parts.length-1] || String(url));
+                    const fileName = (function () {
+                        try {
+                            const u = new URL(url, window.location.origin);
+                            return decodeURIComponent(u.pathname.split('/').pop());
+                        } catch (e) {
+                            const parts = String(url).split('/');
+                            return decodeURIComponent(parts[parts.length - 1] || String(url));
                         }
                     })();
                     link.textContent = fileName;
@@ -4298,10 +4425,12 @@ function applyCurrentSearchFilter() {
                     remove.type = 'button';
                     remove.className = 'btn btn-sm btn-outline-danger ms-2';
                     remove.innerHTML = '&times;';
-                    remove.addEventListener('click', function(){
-                        // remove from DOM and state
+                    remove.addEventListener('click', function () {
                         const indexInKept = kept.indexOf(url);
-                        if (indexInKept !== -1) { kept.splice(indexInKept, 1); hidden.value = JSON.stringify(kept); }
+                        if (indexInKept !== -1) {
+                            kept.splice(indexInKept, 1);
+                            hidden.value = JSON.stringify(kept);
+                        }
                         item.remove();
                     });
                     info.appendChild(icon);
@@ -4313,7 +4442,6 @@ function applyCurrentSearchFilter() {
             }
         })();
 
-        // Setup selected-files preview for reference files (same UX as Add/Reply)
         try {
             selectedFiles = [];
             const refInput = modalBody.querySelector('#reference_files');
@@ -4329,11 +4457,34 @@ function applyCurrentSearchFilter() {
                     this.value = '';
                 });
             }
-        } catch (_) {}
+        } catch (_) { }
 
-        setUnifiedTaskFeedbackFooter(taskId, 'Save', function(){
+        setUnifiedTaskFeedbackFooter(taskId, 'Save', function () {
             const form = document.getElementById('editFeedbackForm');
-            if (!form) return; submitEditFeedbackForm(form, taskId, data.id, isReply);
+            if (!form) return;
+            submitEditFeedbackForm(form, taskId, data.id, isReply);
+        });
+
+        feedbackModalEl.addEventListener("hidden.bs.modal", function restoreDefault() {
+            const footer = feedbackModalEl.querySelector('.modal-footer')
+                || feedbackModalEl.querySelector('.modal-footer-custom');
+
+            if (footer) {
+                footer.innerHTML = '';
+                const addBtn = document.createElement('button');
+                addBtn.type = 'button';
+                addBtn.className = 'btn btn-submit-black w-100';
+                addBtn.id = 'addFeedbackButton';
+                addBtn.textContent = 'Add Feedback';
+                addBtn.addEventListener('click', function () {
+                    const tid = feedbackModalEl.dataset.taskId || '';
+                    showAddFeedbackForm(tid);
+                });
+                footer.appendChild(addBtn);
+            }
+
+            modalTitle.textContent = "Task Feedback";
+            feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDefault);
         });
     }
 
@@ -4569,7 +4720,15 @@ function applyCurrentSearchFilter() {
                             const span = card.querySelector('.feedback-comments-count');
                             const prev = span ? parseInt(span.textContent, 10) || 0 : 0;
                             const next = Math.max(prev + 1, 1);
-                            setFeedbackCount(taskId, next);
+                            if (span) { span.textContent = String(next); }
+                            else {
+                                const newSpan = document.createElement('span');
+                                newSpan.className = 'feedback-comments-count ms-1';
+                                newSpan.style.color = '#555';
+                                newSpan.textContent = String(next);
+                                const icon = card.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) icon.parentNode.appendChild(newSpan);
+                            }
                         }
                     } catch(_) {}
                 })();
@@ -4585,8 +4744,18 @@ function applyCurrentSearchFilter() {
                             const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
                             return (typeof val === 'number') ? val : null;
                         })(countResponse);
-                        if (typeof serverCount === 'number') {
-                            setFeedbackCount(taskId, serverCount);
+                        if (typeof serverCount === 'number' && serverCount > 0) {
+                            const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                            if (!taskCard) return;
+                            let span = taskCard.querySelector('.feedback-comments-count');
+                            if (!span) {
+                                span = document.createElement('span');
+                                span.className = 'feedback-comments-count ms-1';
+                                span.style.color = '#555';
+                                const icon = taskCard.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) icon.parentNode.appendChild(span);
+                            }
+                            span.textContent = String(serverCount);
                         }
                     }
                 });
@@ -4681,6 +4850,26 @@ function applyCurrentSearchFilter() {
 
                         const modalEl = document.getElementById("referenceFilesModal");
                         if (modalEl) {
+                            // Check if modal is opened from timeline via detail modal
+                            const detailEl = document.getElementById('taskDetailModal');
+                            if (detailEl && bootstrap.Modal.getInstance(detailEl)) {
+                                // Mark that a child modal is opening
+                                detailEl.setAttribute('data-child-opened', '1');
+
+                                // Backup timeline handler if it exists
+                                if (detailEl._timelineHiddenHandler) {
+                                    detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+                                    detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                                    detailEl._timelineHiddenHandler = null;
+                                }
+
+                                // Hide detail modal first
+                                const detailModal = bootstrap.Modal.getInstance(detailEl);
+                                if (detailModal) {
+                                    detailModal.hide();
+                                }
+                            }
+
                             const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
                             referenceFilesModal.show();
                         }
@@ -5348,6 +5537,20 @@ function applyCurrentSearchFilter() {
             if (typeof showFloatingAlert === 'function') showFloatingAlert('Edit modal not found.', 'danger');
             return;
         }
+
+        // Mark that a child modal (edit) is about to open so timeline won't be restored yet
+        const detailEl = document.getElementById('taskDetailModal');
+        if (detailEl) {
+            detailEl.setAttribute('data-child-opened', '1');
+
+            // Remove any existing timeline handler temporarily to prevent conflicts
+            if (detailEl._timelineHiddenHandler) {
+                detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+                detailEl._timelineHiddenHandler = null;
+            }
+        }
+
         const form = document.getElementById("editTaskForm");
         form && form.reset();
         const idInput = document.getElementById("edit_task_id");
@@ -5527,12 +5730,26 @@ function applyCurrentSearchFilter() {
             });
     }
 
-    if (applyTaskFilterBtnMobile) {
+    if (applyTaskFilterBtnMobile && !applyTaskFilterBtnMobile._bound) {
+        applyTaskFilterBtnMobile._bound = true;
         applyTaskFilterBtnMobile.addEventListener("click", function () {
             currentTaskFilters.project = filterTaskProjectSelectMobile.value;
             currentTaskFilters.status = filterTaskStatusSelectMobile.value;
             fetchAndRenderFilteredTasks(currentTaskFilters);
-            document.getElementById("taskFilterDropdownMobile").style.display = "none";
+            const dd = document.getElementById("taskFilterDropdownMobile");
+            if (dd) dd.style.display = "none";
+        });
+    }
+
+    // Desktop: Apply filter handler (missing previously)
+    if (applyTaskFilterBtn && !applyTaskFilterBtn._bound) {
+        applyTaskFilterBtn._bound = true;
+        applyTaskFilterBtn.addEventListener("click", function () {
+            if (filterTaskProjectSelect) currentTaskFilters.project = filterTaskProjectSelect.value;
+            if (filterTaskStatusSelect) currentTaskFilters.status = filterTaskStatusSelect.value;
+            fetchAndRenderFilteredTasks(currentTaskFilters);
+            const dd = document.getElementById("taskFilterDropdown");
+            if (dd) dd.style.display = "none";
         });
     }
 
@@ -5622,7 +5839,8 @@ function applyCurrentSearchFilter() {
     }
 
     // Apply task filters
-    if (applyTaskFilterBtnMobile) {
+    if (applyTaskFilterBtnMobile && !applyTaskFilterBtnMobile._bound2) {
+        applyTaskFilterBtnMobile._bound2 = true;
         applyTaskFilterBtnMobile.addEventListener("click", function () {
             currentTaskFilters.project = filterTaskProjectSelectMobile.value;
             currentTaskFilters.status = filterTaskStatusSelectMobile.value;
@@ -5632,7 +5850,8 @@ function applyCurrentSearchFilter() {
             mobileState.last = 1;
             fetchMobileTasks(status, 1, false);
 
-            document.getElementById("taskFilterDropdownMobile").style.display = "none";
+            const dd = document.getElementById("taskFilterDropdownMobile");
+            if (dd) dd.style.display = "none";
         });
     }
 
@@ -5705,64 +5924,44 @@ function applyCurrentSearchFilter() {
             url: appUrl + "/task/index",
             type: "GET",
             dataType: "json",
-            data: filters,
+            data: (function(){
+                const p = {};
+                if (filters && filters.project) p.project = filters.project; // backend expects 'project'
+                if (filters && filters.status) p.status = filters.status; // backend expects 'status'
+                return p;
+            })(),
             success: function (data) {
-                let tasksData = data.data || {};
+                const payload = data && data.data ? data.data : {};
 
-                document.getElementById("new-request-tasks").innerHTML = "";
-                document.getElementById("in-progress-tasks").innerHTML = "";
-                document.getElementById("completed-tasks").innerHTML = "";
+                const newEl = document.getElementById("new-request-tasks");
+                const progEl = document.getElementById("in-progress-tasks");
+                const compEl = document.getElementById("completed-tasks");
+                if (newEl) newEl.innerHTML = "";
+                if (progEl) progEl.innerHTML = "";
+                if (compEl) compEl.innerHTML = "";
 
-                let allTasks = [];
-                if (tasksData.new_request) allTasks = allTasks.concat(tasksData.new_request);
-                if (tasksData.in_progress) allTasks = allTasks.concat(tasksData.in_progress);
-                if (tasksData.completed) allTasks = allTasks.concat(tasksData.completed);
-                if (tasksData.rejected) allTasks = allTasks.concat(tasksData.rejected);
+                // Helper to read tasks from a bucket that could be an array or {tasks:[]}
+                const getTasks = (section) => {
+                    if (!section) return [];
+                    if (Array.isArray(section)) return section;
+                    if (Array.isArray(section.tasks)) return section.tasks;
+                    return [];
+                };
 
-                if (filters.project && filters.project !== "") {
-                    allTasks = allTasks.filter(task => task.project_id == filters.project);
+                let newTasks = getTasks(payload.new_request);
+                let progTasks = getTasks(payload.in_progress);
+                let compTasks = getTasks(payload.completed);
+                let rejTasks = getTasks(payload.rejected);
+
+                // When filtering by status=in_progress, backend may already merge rejected; keep extra merge safe
+                if (rejTasks.length) {
+                    progTasks = [...progTasks, ...rejTasks];
                 }
 
-                if (filters.status && filters.status !== "") {
-                    allTasks = allTasks.filter(task => {
-                        // Normalize status: lowercase and collapse any whitespace to underscores
-                        let taskStatus = String(task.status || '')
-                            .toLowerCase()
-                            .replace(/\s+/g, "_");
-                        return taskStatus === filters.status;
-                    });
-                }
-
-                const groupedTasks = { new_request: [], in_progress: [], completed: [], rejected: [] };
-                allTasks.forEach(task => {
-                    let normalizedStatus = String(task.status || '')
-                        .toLowerCase()
-                        .trim()
-                        .replace(/\s+/g, "_");
-                    if (groupedTasks[normalizedStatus] !== undefined) {
-                        groupedTasks[normalizedStatus].push(task);
-                    } else if (normalizedStatus.includes("reject")) {
-                        groupedTasks.rejected.push(task);
-                    }
-                });
-
-                groupedTasks.new_request.forEach(task => {
-                    document.getElementById("new-request-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.in_progress.forEach(task => {
-                    document.getElementById("in-progress-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                groupedTasks.completed.forEach(task => {
-                    document.getElementById("completed-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
-                // Ensure rejected tasks are rendered (design choice: show under In Progress column like default view)
-                groupedTasks.rejected.forEach(task => {
-                    document.getElementById("in-progress-tasks")
-                        .insertAdjacentHTML("beforeend", createTaskCard(task));
-                });
+                // Render each bucket
+                newTasks.forEach(t => { if (newEl) newEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
+                progTasks.forEach(t => { if (progEl) progEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
+                compTasks.forEach(t => { if (compEl) compEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
 
                 // Dropdown listeners are bound once globally; avoid rebinding here
                 addAttachFileIconListeners();
@@ -5851,11 +6050,9 @@ function applyCurrentSearchFilter() {
             params.search = searchQueryMobile.trim();
         }
         if (currentTaskFilters?.project) {
-            params.project_id = currentTaskFilters.project;
+            params.project = currentTaskFilters.project; // backend expects 'project'
         }
-        if (currentTaskFilters?.status) {
-            params.filter_status = currentTaskFilters.status;
-        }
+        // Do not add additional status filter on mobile; the bucket 'status' param above controls which list to show
 
         $.ajax({
             url: appUrl + "/task/index",
@@ -6343,31 +6540,51 @@ $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
         const tid = host.getAttribute('data-task-id');
         if (!tid) return;
 
-        // Mark to restore timeline after detail closes
-        window._restoreTimelineAfterDetail = true;
-
-        // Ensure timeline reopens after detail modal is closed
-        const detailEl = document.getElementById('taskDetailModal');
-        if (detailEl) {
-            const onDetailHidden = () => {
-                detailEl.removeEventListener('hidden.bs.modal', onDetailHidden);
-                if (window._restoreTimelineAfterDetail) {
-                    const tlInstance2 = bootstrap.Modal.getOrCreateInstance(timelineEl);
-                    tlInstance2.show();
-                    window._restoreTimelineAfterDetail = false;
-                }
-            };
-            detailEl.addEventListener('hidden.bs.modal', onDetailHidden, { once: true });
+        // Detect if timeline modal is currently open
+        let shouldReopenTimeline = false;
+        if (timelineEl && timelineEl.classList.contains('show')) {
+            try {
+                const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                tlInstance.hide();
+                shouldReopenTimeline = true;
+            } catch (_) {}
         }
 
-        // Hide timeline, then open detail when hidden
-        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
-        const onTimelineHidden = () => {
-            timelineEl.removeEventListener('hidden.bs.modal', onTimelineHidden);
-            try { handleTaskDetail(tid); } catch(_) {}
-        };
-        timelineEl.addEventListener('hidden.bs.modal', onTimelineHidden, { once: true });
-        tlInstance.hide();
+        // Mark to reopen timeline after detail is closed (only when originated from timeline)
+        if (shouldReopenTimeline) {
+            const detailEl = document.getElementById('taskDetailModal');
+            if (detailEl) {
+                // Set a flag on detail so we remember to reopen timeline later
+                detailEl.setAttribute('data-reopen-timeline', '1');
+
+                // Remove any existing timeline handler to avoid conflicts
+                if (detailEl._timelineHiddenHandler) {
+                    detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                }
+
+                // Create a fresh handler for this specific timeline interaction
+                const onDetailHidden = function () {
+                    try {
+                        // If a child modal (edit/feedback/files) is opening, skip reopening timeline now
+                        if (detailEl.getAttribute('data-child-opened')) {
+                            return;
+                        }
+                        if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                            const tlInstance2 = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                            tlInstance2.show();
+                            detailEl.removeAttribute('data-reopen-timeline');
+                        }
+                    } catch(_) { /* noop */ }
+                };
+
+                // Store reference to handler and attach it
+                detailEl._timelineHiddenHandler = onDetailHidden;
+                detailEl.addEventListener('hidden.bs.modal', onDetailHidden);
+            }
+        }
+
+        // Proceed to open Task Detail
+        try { handleTaskDetail(tid); } catch(_) {}
     });
 
     // First render on modal show

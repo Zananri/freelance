@@ -1,8 +1,9 @@
 .shift-container {
     background-color: rgb(240, 241, 248);
+    max-height: calc(100vh - 210px);
 }
 
-.shift-container .input-soft {
+.shift-container .input-soft {  
     background-color: rgb(240, 241, 248);
 }
 
@@ -407,7 +408,8 @@
 }
 
 .modal-footer-custom .submit-employee-btn {
-    background: black;
+    background: #444444;
+    color: #e3e4ee;
 }
 
 .modal-footer-custom .btn-light {
@@ -697,17 +699,18 @@ img {
     object-fit: contain;
 }
 
-.shift-container.fullscreen{
+.shift-container.fullscreen {
     position: fixed;
     top: 85px;
     left: 0;
     bottom: 0;
     width: 100%;
-    height: 100%;
+    height: 100vh;
+    max-height: 100vh;
     z-index: 2;
 }
 
 .shift-container.fullscreen .table-responsive {
-    max-height: 100vh;
+    max-height: calc( 100vh - 210px );
     height: 100vh;
 }

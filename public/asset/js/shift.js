@@ -81,6 +81,7 @@ async function loadDivisions(departmentId) {
             if (filterDivision) {
                 filterDivision.innerHTML = '<option value="">Select Division</option>';
                 filterDivision.disabled = true;
+                filterDivision.value = '';
             }
         }
     } catch (e) {
@@ -90,6 +91,7 @@ async function loadDivisions(departmentId) {
         if (filterDivision) {
             filterDivision.innerHTML = '<option value="">Select Division</option>';
             filterDivision.disabled = true;
+            filterDivision.value = '';
         }
     }
 }
@@ -98,6 +100,13 @@ async function loadDivisions(departmentId) {
 let currentDate = new Date();
 let employees = [];
 window.shifts = window.shifts || [];
+// Global variable untuk menyimpan filter saat ini
+let currentFilters = {
+    department: '',
+    division: '',
+    shift: '',
+    search: ''
+};
 
 // Fetch all shifts from backend (cached in window.shifts)
 async function ensureShiftsLoaded(force = false) {
@@ -132,15 +141,21 @@ async function loadEmployeeData(filters = {}) {
             window.location.pathname.split("/").slice(0, -1).join("/") || "";
         let endpoint = `${basePath}/shift/employees-basic?month=${month}&year=${year}`;
 
+        // Merge current filters with new filters
+        currentFilters = { ...currentFilters, ...filters };
+
         // Add filter parameters if provided
-        if (filters.department) {
-            endpoint += `&department=${encodeURIComponent(filters.department)}`;
+        if (currentFilters.department) {
+            endpoint += `&department=${encodeURIComponent(currentFilters.department)}`;
         }
-        if (filters.division) {
-            endpoint += `&division=${encodeURIComponent(filters.division)}`;
+        if (currentFilters.division) {
+            endpoint += `&division=${encodeURIComponent(currentFilters.division)}`;
         }
-        if (filters.shift) {
-            endpoint += `&shift=${encodeURIComponent(filters.shift)}`;
+        if (currentFilters.shift) {
+            endpoint += `&shift=${encodeURIComponent(currentFilters.shift)}`;
+        }
+        if (currentFilters.search) {
+            endpoint += `&search=${encodeURIComponent(currentFilters.search)}`;
         }
 
         const response = await fetch(endpoint);
@@ -659,7 +674,11 @@ function renderShiftConfigTable(shifts) {
                             data-end="${s.time_end || ""}">
                             <span class="material-symbols-outlined">edit</span>
                         </button>
-                        <button class="btn btn-sm delete-btn" data-shift-id="${s.id}">
+                        <button class="btn btn-sm delete-btn" 
+                            data-shift-id="${s.id}"
+                            data-title="${s.title || ""}"
+                            data-start="${s.time_start || ""}"
+                            data-end="${s.time_end || ""}">
                             <span class="material-symbols-outlined">delete</span>
                         </button>
                     </div>
@@ -673,7 +692,11 @@ function renderShiftConfigTable(shifts) {
 function shiftConfigModal(btn) {
     const addShiftModalEl = document.getElementById("shiftConfigModal");
     const addShiftModal = new bootstrap.Modal(addShiftModalEl);
-    ensureShiftsLoaded().then((shifts) => renderShiftConfigTable(shifts));
+    ensureShiftsLoaded(true).then((shifts) => {
+        // Filter out deleted shifts and render table
+        const activeShifts = shifts.filter(s => !s.deleted_by);
+        renderShiftConfigTable(activeShifts);
+    });
     addShiftModal.show();
 }
 
@@ -697,50 +720,35 @@ document.addEventListener("click", async (e) => {
 
     if (deleteBtn) {
         const shiftId = deleteBtn.dataset.shiftId;
-        if (!confirm("Are you sure you want to delete this shift?")) return;
-
-        const userId = document.querySelector('meta[name="user-id"]').content || null;
-
-        if (!userId) {
-            showFloatingAlert("User ID not found. Please login again.", "danger");
-            return;
+        const shiftTitle = deleteBtn.dataset.title || "Shift";
+        const shiftStart = deleteBtn.dataset.start || "";
+        const shiftEnd = deleteBtn.dataset.end || "";
+        
+        // Close shift config modal first
+        const shiftConfigModalEl = document.getElementById("shiftConfigModal");
+        const shiftConfigModal = bootstrap.Modal.getInstance(shiftConfigModalEl);
+        if (shiftConfigModal) {
+            shiftConfigModal.hide();
         }
-
-        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        try {
-            const res = await fetch(`${basePath}/shift/${shiftId}/soft-delete`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-                },
-                body: JSON.stringify({ deleted_by: userId }),
-            });
-
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await res.text();
-                throw new Error("Server returned non-JSON response: " + text);
-            }
-
-            const json = await res.json();
-            if (!json.success) {
-                showFloatingAlert(json.message || "Failed to soft delete shift", "danger");
-                return;
-            }
-
-            window.shifts = window.shifts.map(s => {
-                if (s.id == shiftId) s.deleted_by = userId;
-                return s;
-            });
-
-            renderShiftConfigTable(window.shifts.filter(s => !s.deleted_by));
-            showFloatingAlert("Shift deleted (soft)", "success");
-
-        } catch (err) {
-            console.error(err);
-            showFloatingAlert("Error soft deleting shift: " + err.message, "danger");
-        }
+        
+        // Show delete confirmation modal
+        const deleteModalEl = document.getElementById("deleteConfigModal");
+        const deleteModal = new bootstrap.Modal(deleteModalEl);
+        
+        // Populate modal with shift details
+        deleteModalEl.querySelector("#deleteConfigShiftId").value = shiftId;
+        deleteModalEl.querySelector("#deleteShiftTitle").textContent = shiftTitle;
+        
+        const formatTime = (t) => {
+            if (!t) return "--";
+            const [h, m] = String(t).split(":");
+            return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
+        };
+        
+        deleteModalEl.querySelector("#deleteShiftTime").textContent = 
+            `Time: ${formatTime(shiftStart)} - ${formatTime(shiftEnd)}`;
+        
+        deleteModal.show();
     }
 });
 
@@ -812,6 +820,95 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
     }
 });
 
+// Event listener for confirm delete button in delete modal
+document.getElementById("confirmDeleteShiftConfigBtn").addEventListener("click", async () => {
+    const deleteModalEl = document.getElementById("deleteConfigModal");
+    const shiftId = deleteModalEl.querySelector("#deleteConfigShiftId").value;
+    
+    if (!shiftId) {
+        showFloatingAlert("Shift ID not found", "danger");
+        return;
+    }
+
+    const userId = document.querySelector('meta[name="user-id"]').content || null;
+
+    if (!userId) {
+        showFloatingAlert("User ID not found. Please login again.", "danger");
+        return;
+    }
+
+    const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
+    try {
+        const res = await fetch(`${basePath}/shift/${shiftId}/soft-delete`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({ deleted_by: userId }),
+        });
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await res.text();
+            throw new Error("Server returned non-JSON response: " + text);
+        }
+
+        const json = await res.json();
+        if (!json.success) {
+            showFloatingAlert(json.message || "Failed to delete shift", "danger");
+            return;
+        }
+
+        // Update local shifts array
+        window.shifts = window.shifts.map(s => {
+            if (s.id == shiftId) s.deleted_by = userId;
+            return s;
+        });
+
+        // Re-render table without deleted shifts
+        const activeShifts = window.shifts.filter(s => !s.deleted_by);
+        renderShiftConfigTable(activeShifts);
+        
+        // Also refresh the filter shift dropdown with updated data
+        populateFilterShiftDropdown(activeShifts);
+        
+        showFloatingAlert("Shift deleted successfully", "success");
+
+        // Set flag to prevent re-opening config modal after successful delete
+        deleteModalEl.setAttribute('data-delete-success', 'true');
+
+        // Hide delete modal
+        bootstrap.Modal.getInstance(deleteModalEl).hide();
+
+    } catch (err) {
+        console.error(err);
+        showFloatingAlert("Error deleting shift: " + err.message, "danger");
+    }
+});
+
+// Event listeners for delete modal hide/close events
+const deleteConfigModal = document.getElementById("deleteConfigModal");
+if (deleteConfigModal) {
+    deleteConfigModal.addEventListener('hidden.bs.modal', function () {
+        // Check if delete was successful - if so, don't re-open config modal
+        const deleteSuccess = this.getAttribute('data-delete-success');
+        
+        if (deleteSuccess === 'true') {
+            // Remove the flag and don't re-open config modal
+            this.removeAttribute('data-delete-success');
+            return;
+        }
+        
+        // Re-open shift config modal when delete modal is closed (cancelled)
+        const shiftConfigModalEl = document.getElementById("shiftConfigModal");
+        if (shiftConfigModalEl) {
+            const shiftConfigModal = new bootstrap.Modal(shiftConfigModalEl);
+            shiftConfigModal.show();
+        }
+    });
+}
+
 loadEmployeeData();
 
 // Function to render error message
@@ -864,9 +961,11 @@ function setupEventListeners() {
     const shiftConfigEl = document.getElementById("shiftConfigModal");
     if (shiftConfigEl) {
         shiftConfigEl.addEventListener("show.bs.modal", () => {
-            ensureShiftsLoaded().then((shifts) =>
-                renderShiftConfigTable(shifts)
-            );
+            ensureShiftsLoaded(true).then((shifts) => {
+                // Filter out deleted shifts and render table
+                const activeShifts = shifts.filter(s => !s.deleted_by);
+                renderShiftConfigTable(activeShifts);
+            });
         });
     }
 
@@ -908,15 +1007,22 @@ function setupEventListeners() {
     if (filterDepartment) {
         filterDepartment.addEventListener("change", (e) => {
             const departmentId = e.target.value;
+            const filterDivision = document.getElementById("filterDivision");
+            
             if (departmentId) {
                 loadDivisions(departmentId);
             } else {
                 // Clear division dropdown if no department selected
-                const filterDivision = document.getElementById("filterDivision");
                 if (filterDivision) {
                     filterDivision.innerHTML = '<option value="">Select Division</option>';
                     filterDivision.disabled = true;
+                    filterDivision.value = ''; // Reset value
                 }
+            }
+            
+            // Reset division filter in currentFilters when department changes
+            if (currentFilters.division) {
+                currentFilters.division = '';
             }
         });
     }
@@ -927,19 +1033,59 @@ function applyFilters() {
     const division = document.getElementById("filterDivision").value;
     const shift = document.getElementById("filterShift").value;
 
-    const filters = {};
-    if (department) filters.department = department;
-    if (division) filters.division = division;
-    if (shift) filters.shift = shift;
+    const filters = {
+        department: department || '',
+        division: division || '',
+        shift: shift || ''
+    };
+
+    // Preserve search filter if exists
+    if (currentFilters.search) {
+        filters.search = currentFilters.search;
+    }
 
     loadEmployeeData(filters);
+    
+    // Close dropdown after applying filters
+    const filterDropdown = document.querySelector('.filter-dropdown .dropdown-toggle');
+    if (filterDropdown) {
+        const dropdown = bootstrap.Dropdown.getInstance(filterDropdown);
+        if (dropdown) {
+            dropdown.hide();
+        }
+    }
 }
 
 function resetFilters() {
     document.getElementById("filterDepartment").value = "";
     document.getElementById("filterDivision").value = "";
     document.getElementById("filterShift").value = "";
-    loadEmployeeData();
+    
+    // Clear division dropdown and disable it
+    const filterDivision = document.getElementById("filterDivision");
+    if (filterDivision) {
+        filterDivision.innerHTML = '<option value="">Select Division</option>';
+        filterDivision.disabled = true;
+    }
+    
+    // Reset filters but preserve search
+    currentFilters = {
+        department: '',
+        division: '',
+        shift: '',
+        search: currentFilters.search || ''
+    };
+    
+    loadEmployeeData(currentFilters);
+    
+    // Close dropdown after resetting filters
+    const filterDropdown = document.querySelector('.filter-dropdown .dropdown-toggle');
+    if (filterDropdown) {
+        const dropdown = bootstrap.Dropdown.getInstance(filterDropdown);
+        if (dropdown) {
+            dropdown.hide();
+        }
+    }
 }
 
 // Assign selected shift to an employee for a specific date (from Add Shift Modal)
@@ -1718,34 +1864,31 @@ $(document).ready(function () {
     });
 });
 
-document.getElementById("search_filter").addEventListener("keyup", async function () {
+// Debounce function untuk mencegah too many requests
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Search with debounce - increased delay to 1000ms (1 second)
+const debouncedSearch = debounce(function(query) {
+    currentFilters.search = query;
+    loadEmployeeData(currentFilters);
+}, 1000);
+
+document.getElementById("search_filter").addEventListener("input", function () {
     const query = this.value.trim();
-
-    try {
-        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/shift/employees-basic?search=${encodeURIComponent(query)}`;
-
-        const res = await fetch(endpoint, {
-            headers: {
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        });
-
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
-        const data = await res.json();
-
-        if (data.success && data.data) {
-            employees = data.data;
-            renderEmployeeTable(employees, currentDate.getMonth() + 1, currentDate.getFullYear());
-        } else {
-            console.error("Search failed:", data.message);
-            renderEmployeeTable([], currentDate.getMonth() + 1, currentDate.getFullYear());
-        }
-    } catch (err) {
-        console.error("Error searching employees:", err);
-        renderEmployeeTable([], currentDate.getMonth() + 1, currentDate.getFullYear());
+    
+    // Only search if query has at least 2 characters or is empty (to reset)
+    if (query.length >= 2 || query.length === 0) {
+        debouncedSearch(query);
     }
 });
 

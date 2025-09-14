@@ -74,67 +74,58 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function renderPagination(totalPages, currentPage) {
+    function renderPagination(totalPages, currentPage, totalItems = 0, perPage = 9) {
         const paginationContainer = document.querySelector(".pagination");
-
         if (!paginationContainer) return;
+
+        if (totalItems <= perPage) {
+            paginationContainer.innerHTML = "";
+            return;
+        }
+
         paginationContainer.innerHTML = "";
 
         // Prev
         const prevLi = document.createElement("li");
         prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
-        const prevA = document.createElement("button");
-        prevA.className = "page-link";
-        prevA.href = "#";
-        prevA.textContent = "Previous";
-        prevA.addEventListener("click", function (e) {
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "page-link";
+        prevBtn.textContent = "Previous";
+        prevBtn.addEventListener("click", function (e) {
             e.preventDefault();
             if (currentPage === 1) return;
-            fetchScheduleData(
-                currentPage - 1,
-                currentRecurrenceFilter,
-                currentSearchFilter
-            );
+            fetchScheduleData(currentPage - 1, currentRecurrenceFilter, currentSearchFilter);
         });
-        prevLi.appendChild(prevA);
+        prevLi.appendChild(prevBtn);
         paginationContainer.appendChild(prevLi);
 
         // Numbered pages
         for (let i = 1; i <= totalPages; i++) {
             const li = document.createElement("li");
             li.className = "page-item" + (i === currentPage ? " active" : "");
-            const a = document.createElement("button");
-            a.className = "page-link";
-            a.textContent = i;
-            a.addEventListener("click", function (e) {
+            const btn = document.createElement("button");
+            btn.className = "page-link";
+            btn.textContent = i;
+            btn.addEventListener("click", function (e) {
                 e.preventDefault();
-                fetchScheduleData(
-                    i,
-                    currentRecurrenceFilter,
-                    currentSearchFilter
-                );
+                fetchScheduleData(i, currentRecurrenceFilter, currentSearchFilter);
             });
-            li.appendChild(a);
+            li.appendChild(btn);
             paginationContainer.appendChild(li);
         }
 
         // Next
         const nextLi = document.createElement("li");
-        nextLi.className =
-            "page-item" + (currentPage === totalPages ? " disabled" : "");
-        const nextA = document.createElement("button");
-        nextA.className = "page-link";
-        nextA.textContent = "Next";
-        nextA.addEventListener("click", function (e) {
+        nextLi.className = "page-item" + (currentPage === totalPages ? " disabled" : "");
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "page-link";
+        nextBtn.textContent = "Next";
+        nextBtn.addEventListener("click", function (e) {
             e.preventDefault();
             if (currentPage === totalPages) return;
-            fetchScheduleData(
-                currentPage + 1,
-                currentRecurrenceFilter,
-                currentSearchFilter
-            );
+            fetchScheduleData(currentPage + 1, currentRecurrenceFilter, currentSearchFilter);
         });
-        nextLi.appendChild(nextA);
+        nextLi.appendChild(nextBtn);
         paginationContainer.appendChild(nextLi);
     }
 
