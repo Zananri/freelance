@@ -4,7 +4,6 @@
 
 
 
-
 .main-content{
     padding-right: 0px;
     padding-bottom: 0px;
@@ -88,6 +87,43 @@
     margin:0px;
 }
 
+.modal .modal-content{
+    background-color: #F0F1F8;
+}
+
+.modal .btn-close-modal{
+    background-color: #E3E4EE;
+    border: 0px;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 12px 5px;
+    color: #596069;
+}
+
+.modal .btn-close-modal:hover,
+.modal .btn-close-modal:active{
+    background-color: #dedfe9;
+    border: 0px;
+    color: #3a3e42;
+}
+
+
+.modal .btn-submit-modal{
+    background-color: #313131;
+    border: 0px;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 12px 5px;
+    color: #E3E4EE;
+}
+
+.modal .btn-submit-modal:hover,
+.modal .btn-submit-modal:active{
+    background-color: #272727;
+    border: 0px;
+    color: #E3E4EE;
+}
+
 .modal .box-loader,
 .modal .box-camera{
     display: none;
@@ -100,46 +136,7 @@
     cursor: pointer;
     background-color: #e0eeff;
 }
-
-.modal .btn-close-capture .material-symbols-outlined {
-    border: 0px;
-    padding: 6px 5px 0px 0px;
-    width: 35px;
-    height: 35px;
-    border-radius: 35px;
-    background-color: #0000006f;
-    color: #dcdcdc;
-    font-size: 24px;
-    margin-right: 20px;
-    margin-top: 25px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.modal .btn-close-capture .material-symbols-outlined:hover{
-    background-color: #00000096;
-    color: #ffffff;
-}
-
-.modal .btn-capture-photo {
-    padding: 11px 11px;
-    color: #d2d2d2;
-    display: inline-block;
-    width: 50px;
-    height: 50px;
-    border-radius: 50px;
-    border: solid 2px #d2d2d2;
-    background-color: #00000054;
-    transition: all 0.2s;
-    margin-bottom: 30px;
-    cursor: pointer;
-}
-
-.modal .btn-capture-photo:hover{
-    border:solid 2px #fff;
-    color: #fff;
-    background-color: #0000007e;
-}
+ 
 
 .modal .box-btn-submit,
 .modal .box-form{
@@ -191,6 +188,12 @@
     color: #ffffff !important;
 }
 
+.btn-submit-black{
+    background-color: #313131 !important;
+    color: #F3F3F3 !important;
+    font-weight: 300 !important;
+    border: 0px !important;
+}
 
 .box-employee-photo{
     height: 48px;
@@ -458,4 +461,130 @@
 
 .calendar-day.check-in.check-out:hover .bg-day{
     background: linear-gradient(135deg, #0368cc 50%, #5b5b5b 50%);
+}
+
+
+
+
+
+.col-leave,
+.col-sick{
+    width: 50%;
+    max-width: 170px;
+}
+
+.col-leave{
+    margin-right: 25px;
+}
+
+.box-leave{
+    border-radius: 8px;
+    
+    background-color: #E6E8F3;
+    padding: 5px 10px;
+}
+
+.box-sick{
+    border-radius: 8px;
+    background-color: #EEE2EF;
+    padding: 5px 10px;
+}
+
+.box-leave .title,
+.box-sick .title{
+    font-size: 14px;
+    font-weight: 500;
+    color: #4C4D5D;
+}
+
+.box-leave .day-remaining,
+.box-sick .day-remaining{
+    font-size: 32px;
+    font-weight: 500;
+    text-align: right;
+    line-height: 26px;
+    color:#4C4D5D;
+    margin: 6px 0px;
+}
+
+.box-leave .text-days-remaining,
+.box-sick .text-days-remaining{
+    font-size: 12px;
+    font-weight: 300;
+    text-align: right;
+    color:#56565a;
+}
+
+
+
+.box-data{
+    max-height: calc(100vh - 350px);
+    min-height: 30vh;
+    overflow: auto;
+}
+
+.item-time-off{
+    border-radius: 7px;
+    border: 1px solid #D4DBE2;
+    padding: 8px 12px 5px 12px;
+}
+
+.item-header,
+.item-body{
+    padding: 0px 0px;
+}
+
+.item-title{
+    font-size: 14px;
+    font-weight: 500;
+    color: #4C4D5D;
+}
+
+.item-day{
+    font-size: 14px;
+    font-weight: 600;
+    color: #31323a;
+    white-space: nowrap; 
+}
+
+.item-date,
+.item-status{
+    font-size: 10px;
+    font-weight: 300;
+    color: #727275;
+}
+
+
+.item-description{
+    font-size: 12px;
+    font-weight: 300;
+    color: #4C4D5D;
+}
+
+
+.item-action{
+    white-space: nowrap;
+} 
+
+.item-action .material-symbols-outlined{                                
+    font-size: 16px;
+    color: #42484F;
+    font-variation-settings:
+    'FILL' 1,
+    'wght' 400
+}
+
+.item-action .btn-action {
+    width: 24px;
+    height: 24px;
+    padding: 2px 0px 0px 4px;
+    border-radius: 50%;
+    display:inline-block;
+    margin-left: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.item-action .btn-action:hover{
+    background-color: #dbe0e6;
 }

@@ -50,7 +50,6 @@
                                         <div class="d-flex justify-content-between align-items-top">
                                             <div class="date-and-shift fs-12 text-secondary">
                                                 <div>
-                                                    <span class="text-body me-3">{{$shiftTitle}}</span>
                                                     <span>{{ $timeStart }} - {{ $timeEnd }}</span>
                                                 </div>
                                             </div>
@@ -178,7 +177,7 @@
                 <div class="employee-time-off-overtime rounded-4 bg-card-1 p-4 pe-0">
                     <div class="d-flex">
                         <div>
-                            <div class="box-off-time">
+                            <div class="box-off-time" data-bs-toggle="modal" data-bs-target="#timeOffModal">
                                 <div class="d-flex h-100 flex-column justify-content-center align-items-center">
                                     <div>
                                         <div class="icon-off-time">
@@ -296,335 +295,7 @@
 
     
     <x-slot name="body_end_slot">
-
-        <!-- Modal for Check In -->
-        <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content rounded-4" id="modalContent">
-
-                    <!-- Modal Header -->
-                    <div class="modal-header border-0 z-1  d-flex justify-content-center">
-                        <h5 class="modal-title modal-title-custom border-0 text-center w-100" id="checkInModalLabel">Check
-                            In
-                        </h5>
-                        <button type="button" class="btn-close position-absolute" style="right: 1rem;"
-                            data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-
-                    <!-- Modal Body -->
-                    <div class="modal-body m-0 p-0 z-1 border-0">
-                        <div class="box-form">
-                            <form id="checkInForm" novalidate enctype="multipart/form-data" >
-                                @csrf
-                                <!-- Time Display Container -->
-                                <div class="text-center mb-4">
-                                    <div class="mb-0">
-                                        <div class="date-time-display">
-                                            <span class="text-clock-digital" id="time_in">
-                                                00 : 00 : 00    
-                                            </span>
-                                            
-                                        </div>
-                                    </div>
-                                    <div class="mb-0">
-                                        <div class="date-time-display">
-                                            
-                                            {{ $todayDate }}
-                                
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="shift-time-display">
-                                            {{ $shiftTime }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Work Outside -->
-                                <div class="mb-3">
-                                    
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="fs-14 text-secondary">Work Outside</div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_yes" value="1">
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_yes">Yes</label>
-                                        </div>
-                                        <div class="col-6">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_no" value="0" checked>
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_no">No</label>
-                                        </div>
-                                    </div>
-                                    
-                                </div>
-
-                                <!-- Map Location Section for Check In -->
-                                <div class="mb-3">
-                                    <div class="row">
-                                        
-                                        <div class="col-6 col-photo d-none">
-                                            <div class="position-realtive">
-
-                                                <div class="d-none">
-                                                    <label for="imageInputCheckIn" class="label-photo-checkin">Label file</label>
-                                                    <input type="file" name="photo_checkin" id="imageInputCheckIn" accept="image/*" capture="environment">
-                                                </div>
-
-                                                <div class="ratio ratio-1x1">
-
-                                                    <div class="box-photo border rounded-2" id="openCameraCheckIn">
-                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
-                                                            <div class="text-center">
-                                                                <span class="material-symbols-outlined fs-4 opacity-50">photo_camera</span>
-                                                                <div>
-                                                                    <span class="fs-14 text-secondary">Take Photo</span>
-                                                                </div>
-                                                            </div>
-                                                            <img id="photoResult" class="object-fit-cover d-none w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
-                                                        </div>
-
-                                                    </div>
-
-                                                </div>
-                                                
-                                            </div>
-                                        </div>
-                                        <div class="col-12 col-map">
-                                            <div class="">
-                                                <div class="ratio ratio-21x9">
-                                                    <div id="mapCheckIn" class="rounded-2 border"></div>
-                                                </div>
-                                                
-                                                <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
-                                                <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
-                                    
-                                </div>
-
-
-                            </form>
-                        </div>
-                        
-
-                        <div class="mb-4 box-btn-submit pt-4 ">
-                            <button type="submit" class="btn btn-submit-black w-100" id="submitCheckInBtn">
-                                Check In
-                            </button>
-                        </div>
-                    </div>
-
-
-                    <div class="box-camera z-3 rounded-4 bg-black bg-opacity-75 position-absolute top-0 start-0 w-100 h-100">
-                        <video id="videoElement" muted playsinline class="z-3 w-100 h-100 position-absolute top-0 start-0 rounded-4 object-fit-cover" ></video>
-                        <canvas id="canvasElement" style="display:none;"></canvas>
-
-
-                        <div class="z-3 position-absolute bottom-0 start-0 w-100 text-center">
-                            <div id="captureButton" class="btn-capture-photo">
-                                <span class="material-symbols-outlined">photo_camera</span>
-                            </div>
-                        </div>
-
-                        <div class="z-3 position-absolute h-auto top-0 end-0 text-end">
-                            <div id="closeButton" class="btn-close-capture">
-                                <span class="material-symbols-outlined">close</span>
-                            </div>
-                        </div>
-                        
-                    </div>
-
-                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
-
-                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
-                            <div>
-                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <div class="fs-14">Loading...</div>
-                            </div>
-                            
-                        </div>
-                        
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal for Check Out -->
-        <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content border-0 rounded-4" id="modalContent">
-
-                    <!-- Modal Header -->
-                    <div class="modal-header border-0 z-1  d-flex justify-content-center">
-                        <h5 class="modal-title modal-title-custom text-center w-100" id="checkInModalLabel">Check
-                            Out
-                        </h5>
-                        <button type="button" class="btn-close position-absolute" style="right: 1rem;"
-                            data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-
-                    <!-- Modal Body -->
-                    <div class="modal-body m-0 p-0 z-1">
-                        <div class="box-form">
-                            <form id="checkOutForm" novalidate enctype="multipart/form-data" >
-                                @csrf
-                                <!-- Time Display Container -->
-                                <div class="text-center mb-4">
-                                    <div class="mb-0">
-                                        <div class="date-time-display">
-                                            <span class="text-clock-digital" id="time_out">
-                                                00 : 00 : 00    
-                                            </span>
-                                            
-                                        </div>
-                                    </div>
-                                    <div class="mb-0">
-                                        <div class="date-time-display">
-                                            
-                                            {{ $todayDate }}
-                                
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="shift-time-display">
-                                            {{ $shiftTime }}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Work Outside -->
-                                <div class="mb-3">
-                                    
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="fs-14 text-secondary">Work Outside</div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_yes_checkout" value="1">
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_yes_checkout">Yes</label>
-                                        </div>
-                                        <div class="col-6">
-                                            <input class="form-check-input" type="radio" name="is_work_outside"
-                                                id="work_outside_no_checkout" value="0" checked>
-                                            <label class="form-check-label w-100 text-center"
-                                                for="work_outside_no_checkout">No</label>
-                                        </div>
-                                    </div>
-                                    
-                                </div>
-
-                                <div class="mb-3">
-                                    <div class="row">
-                                        
-                                        <div class="col-6 col-photo d-none">
-                                            <div class="position-realtive">
-
-                                                <div class="d-none">
-                                                    <label for="imageInputCheckout" class="label-photo-checkout">Label file</label>
-                                                    <input type="file" name="photo_checkout" id="imageInputCheckout" accept="image/*" capture="environment">
-                                                </div>
-
-                                                <div class="ratio ratio-1x1">
-
-                                                    <div class="box-photo border rounded-2" id="openCameraCheckout">
-                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
-                                                            <div class="text-center">
-                                                                <span class="material-symbols-outlined fs-4 opacity-50">photo_camera</span>
-                                                                <div>
-                                                                    <span class="fs-14 text-secondary">Take Photo</span>
-                                                                </div>
-                                                            </div>
-                                                            <img id="photoResultCheckout" class="object-fit-cover d-none w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
-                                                        </div>
-
-                                                    </div>
-
-                                                </div>
-                                                
-                                            </div>
-                                        </div>
-                                        <div class="col-12 col-map">
-                                            <div class="">
-                                                <div class="ratio ratio-21x9">
-                                                    <div id="mapCheckOut" class="rounded-2 border"></div>
-                                                </div>
-                                                
-                                                <input type="hidden" name="latitudeCheckOut">
-                                                <input type="hidden" name="longitudeCheckOut">
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
-                                    
-                                </div>
-                                
-                            </form>
-                        </div>
-                        
-
-                        <div class="mb-4 box-btn-submit pt-4 ">
-                            <button type="submit" class="btn btn-submit-black w-100" id="submitCheckOutBtn">
-                                Check Out
-                            </button>
-                        </div>
-                    </div>
-
-
-                    <div class="box-camera z-3 rounded-4 bg-black bg-opacity-75 position-absolute top-0 start-0 w-100 h-100">
-                        <video id="videoElementCheckout" muted playsinline class="z-3 w-100 h-100 position-absolute top-0 start-0 rounded-4 object-fit-cover" ></video>
-                        <canvas id="canvasElementCheckout" style="display:none;"></canvas>
-
-
-                        <div class="z-3 position-absolute bottom-0 start-0 w-100 text-center">
-                            <div id="captureButtonCheckout" class="btn-capture-photo">
-                                <span class="material-symbols-outlined">photo_camera</span>
-                            </div>
-                        </div>
-
-                        <div class="z-3 position-absolute h-auto top-0 end-0 text-end">
-                            <div id="closeButtonCheckout" class="btn-close-capture">
-                                <span class="material-symbols-outlined">close</span>
-                            </div>
-                        </div>
-                        
-                    </div>
-
-                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
-
-                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
-                            <div>
-                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                                <div class="fs-14">Loading...</div>
-                            </div>
-                            
-                        </div>
-                        
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
+ 
         <!-- Modal for Check In Detail -->
         <div class="modal fade" id="checkInDetailModal" tabindex="-1" role="dialog" aria-labelledby="checkInDetailModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered" role="document">
@@ -813,6 +484,142 @@
 
                         <div class="mt-5 mb-3">
                             <button type="button" class="btn btn-close-custom w-100" data-bs-dismiss="modal">Close</button>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for Time Off -->
+        <div class="modal fade" id="timeOffModal" tabindex="-1" role="dialog" aria-labelledby="timeOffModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 py-4">
+                        <h5 class="modal-title modal-title-custom text-center w-100" id="timeOffModalLabel">Time Off</h5>
+                        <button type="button" class="btn-close me-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body px-4 border-0 ">
+ 
+                        
+                        <div class="wrapper-leave-sick mb-4">
+                            <div class="d-flex align-items-start">
+
+                                @php
+                                    
+                                    $remainingLeave = 0;
+                                    $remainingSick = 0; 
+ 
+                                    if($employeeLeave){
+                                        $remainingLeave = $employeeLeave->remaining_annual_leave;
+                                        $remainingSick = $employeeLeave->remaining_sick;
+                                    }
+
+                                @endphp
+                                <div class="col-leave">
+                                    <div class="box-leave">
+                                        <div class="title">Leave</div>
+                                        <div class="day-remaining">{{ $remainingLeave }}</div>
+                                        <div class="text-days-remaining">Days Remaining</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-sick">
+                                    <div class="box-sick">
+                                        <div class="title">Sick</div>
+                                        <div class="day-remaining">{{ $remainingSick }}</div>
+                                        <div class="text-days-remaining">Days Remaining</div>
+                                    </div>
+                                </div>
+                                
+
+                            </div>
+                        </div>
+                             
+  
+                        
+                        <div class="wrapper-data-time-off">
+
+                            <div class="box-data scrollbar-transparent pe-1">
+                                
+{{--                                 
+                                <div class="item-time-off">
+                                    <div class="item-header mb-2">
+                                        <div class="mb-0">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="col-title">
+                                                    <div class="item-title me-2">Leave</div>
+                                                </div>
+                                                <div class="col-day-status">
+                                                    <div class="item-day">7 Day</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="col-date"> 
+                                                    <div class="item-date">
+                                                        1 Aug 2025 - 8 Aug 2025
+                                                    </div>
+                                                </div>
+                                                <div class="col-status">
+                                                    <div class="item-status">Request</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                    <div class="item-body mb-2">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="col-description">
+                                                <div class="item-description">
+                                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                                                </div>
+                                            </div> 
+                                        </div>
+                                    </div>
+                                    <div class="item-footer">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            
+                                            <div class="">
+
+                                            </div>
+                                            
+                                            <div class="col-item-action">
+                                                <div class="item-action">
+                                                    <div class="btn-action">
+                                                        <span class="material-symbols-outlined">attach_file</span>
+                                                    </div>
+                                                    <div class="btn-action">
+                                                        <span class="material-symbols-outlined">photo</span>
+                                                    </div>
+                                                    <div class="btn-action">
+                                                        <span class="material-symbols-outlined">edit</span>
+                                                    </div>
+                                                    <div class="btn-action">
+                                                        <span class="material-symbols-outlined">delete</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>  --}}
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-5 mb-2">
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100" data-bs-dismiss="modal">Close</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Request Time Off</button>
+                                </div>
+                            </div>
+                            
                         </div>
 
 

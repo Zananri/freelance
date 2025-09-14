@@ -10,6 +10,8 @@ class EmployeeLeave extends Model
 
     protected $fillable = [
         'employee_id',
+        'year',
+
         'annual_leave',
         'collective_leave',
         'sick',

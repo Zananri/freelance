@@ -468,7 +468,7 @@ table.table > tbody > tr > td {
 }
 
 .table-scroll-wrapper {
-    max-height: 350px;
+    max-height: calc(100vh - 290px);
     overflow-y: auto;
 }
 

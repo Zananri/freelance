@@ -8,6 +8,10 @@ use Carbon\Carbon;
 use App\Models\Office;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
+
+use App\Models\EmployeeLeave;
+use App\Models\EmployeeLeaveRequest;
+
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
 use App\Helpers\DeviceHelper;
@@ -75,6 +79,9 @@ class AttendanceController extends Controller
         // $yesterday = Carbon::parse('2025-09-06')->toDateString();
 
         $employee = Employee::with('division', 'department', 'job','grade','shift')->where('user_id', $user->id)->first();
+ 
+        $employeeLeave = EmployeeLeave::where('employee_id',$employee->id)->where('year',date('Y'))->first();
+         
 
         $office = Office::where('id',$employee->office)->first();
 
@@ -104,7 +111,7 @@ class AttendanceController extends Controller
         }
 
         
-        $todayDate = Carbon::now()->format('D, j F Y'); 
+        $todayDate = Carbon::now()->format('j F Y'); 
         $shiftTimeType = 'NORMAL';
          
         if($employeeShiftYesterday){
@@ -128,7 +135,7 @@ class AttendanceController extends Controller
 
                     $shiftTitle = $employeeShiftYesterday->shift->title;
 
-                    $todayDate = Carbon::now()->subDays(1)->format('l, j F Y'); 
+                    $todayDate = Carbon::now()->subDays(1)->format('j F Y'); 
 
                 }
             }
@@ -199,7 +206,7 @@ class AttendanceController extends Controller
         $timeStart = $timeStart->format('H : i');
         $timeEnd = $timeEnd->format('H : i');
         
-        return view('attendance.attendance', compact('employee','office', 'timeStart','timeEnd','shiftTitle', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
+        return view('attendance.attendance', compact('employee','employeeLeave','office', 'timeStart','timeEnd','shiftTitle', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
     
     }
 
