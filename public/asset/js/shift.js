@@ -1,4 +1,23 @@
 // Shift Management JavaScript - Updated to use employee_shifts data
+// Base URL helpers to ensure correct absolute paths for assets and file links
+const __deriveBaseFromPath = () => {
+    try {
+        const seg = window.location.pathname.split('/').filter(Boolean)[0] || '';
+        return seg ? (window.location.origin + '/' + seg) : window.location.origin;
+    } catch (e) { return window.location.origin; }
+};
+const __metaAppUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/+$/,'');
+const APP_URL = __metaAppUrl || __deriveBaseFromPath();
+const DEFAULT_AVATAR = APP_URL + '/asset/img/avatar.png';
+function toAbsoluteUrl(p){
+    const raw = (p == null ? '' : String(p));
+    if (!raw) return DEFAULT_AVATAR;
+    // absolute (http, https, protocol-relative)
+    if (/^(https?:)?\/\//i.test(raw)) return raw;
+    // strip leading slashes to avoid root-relative paths that drop subpath
+    const cleaned = raw.replace(/^\/+/, '');
+    return APP_URL + '/' + cleaned;
+}
 document.addEventListener("DOMContentLoaded", function () {
     loadEmployeeData();
     setupEventListeners();
@@ -336,8 +355,8 @@ function createEmployeeCell(employee) {
     const td = document.createElement("td");
     td.classList.add("sticky-col");
 
-    // Use universal avatar (profile_picture) if available
-    const profile = employee.profile_picture || employee.profile_picture_url || "/asset/img/avatar.png";
+    // Sesuai kebutuhan: di halaman Shift, pakai foto khusus employee (field `photo`), bukan profile_picture
+    let profile = toAbsoluteUrl(employee.photo || 'asset/img/avatar.png');
     // Try to read any available base shift info on employee, otherwise fallback to empty strings
     const baseShift = employee.shift || null;
     const baseTitle = (baseShift && baseShift.title) || employee.shift_title || "";
@@ -439,10 +458,7 @@ function createShiftCell(employee, shift, dateKey) {
                         data-shift-id="${shiftId}"
                         data-employee-id="${employee.id}"
                         data-employee-name="${employee.name}"
-                        data-employee-picture="${
-                            employee.profile_picture ||
-                            "/asset/img/avatar.png"
-                        }"
+                        data-employee-picture="${toAbsoluteUrl(employee.photo || 'asset/img/avatar.png')}"
                         data-date="${dateKey}"
                         data-start="${shift?.time_start || ""}"
                         data-end="${shift?.time_end || ""}">

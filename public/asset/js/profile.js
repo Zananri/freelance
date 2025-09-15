@@ -68,6 +68,12 @@ $('.box-btn-change-photo-profil .btn-save').click(function(){
 
             $('#profilePreview').attr('src',res.data.new_profile_photo);
             $('.img-avatar img').attr('src',res.data.new_profile_photo);
+            try {
+                // Broadcast global event so listening pages can refresh avatars (except employee/shift tables which use employee.photo)
+                const absUrl = /^https?:\/\//i.test(res.data.new_profile_photo) ? res.data.new_profile_photo : (appUrl + '/' + String(res.data.new_profile_photo).replace(/^\//,''));
+                const evt = new CustomEvent('profilePictureUpdated', { detail: { url: absUrl } });
+                window.dispatchEvent(evt);
+            } catch(_) { /* no-op */ }
             
             showAlertMsg(res.message,'success',5000);
             $('.col-photo-password .loader').fadeOut('fast');
