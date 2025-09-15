@@ -284,3 +284,36 @@
     background-color: #444444;
     color: #ebecf2;
 }
+
+@media (max-width: 480px) {
+    .text-btn {
+        display: none;
+    }
+
+    .schedule-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+
+    .schedule-header .btn-filter-container {
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+        margin-top: 5px;
+    }
+
+    .schedule-header .search-input-container {
+        width: 200px !important;
+        margin-left: 0 !important;
+    }
+
+    .btn-filter-custom,
+    .btn-schedule-custom {
+        min-width: 40px !important;
+        min-height: 40px !important;
+    }
+
+    .text-btn {
+        display: none !important;
+    }
+}
