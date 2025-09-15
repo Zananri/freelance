@@ -142,7 +142,7 @@ class TaskController extends Controller
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
                         ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
-                    })->orderBy('start_date', 'asc');
+                    })->orderBy('created_at', 'asc');
 
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
