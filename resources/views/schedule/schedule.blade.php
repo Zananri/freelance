@@ -3,8 +3,8 @@
         {{ __('task') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link rel="stylesheet" href="{{ asset('asset/css/schedule.css') }}">
-        <link rel="stylesheet" href="{{ asset('asset/css/schedule-create.css') }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/schedule.css?v=' . time()) }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/schedule-create.css?v=' . time()) }}">
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-4 schedule-header">

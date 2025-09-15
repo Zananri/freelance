@@ -3,7 +3,7 @@
         {{ __('shift') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/shift.css') }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/shift.css?v=' . time()) }}" rel="stylesheet">
         <meta name="user-id" content="{{ auth()->id() }}">
     </x-slot>
 
