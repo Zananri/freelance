@@ -5958,6 +5958,7 @@ function applyCurrentSearchFilter() {
     let mobileAutoFullLoad = false;
 
     let searchQueryMobile = '';
+    let searchTimeout;
 
     $(document).on("keyup", "#search_filter_mobile", function () {
         clearTimeout(searchTimeout);
