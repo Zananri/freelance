@@ -304,7 +304,7 @@
 
     .schedule-header .search-input-container {
         width: 200px !important;
-        margin-left: 0 !important;
+
     }
 
     .btn-filter-custom,
@@ -315,5 +315,12 @@
 
     .text-btn {
         display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .schedule-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
     }
 }
