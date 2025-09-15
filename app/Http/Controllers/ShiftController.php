@@ -35,6 +35,7 @@ class ShiftController extends Controller
             'employees.id',
             'employees.name',
             'employees.email',
+            'employees.photo',
             'employees.profile_picture',
             'employees.department_id',
             'employees.division_id',
@@ -126,6 +127,8 @@ class ShiftController extends Controller
                 'id' => $employee->id,
                 'name' => $employee->name,
                 'email' => $employee->email,
+                // Return raw or absolute photo path; frontend normalizes if needed
+                'photo' => $employee->photo ?: '/asset/img/avatar.png',
                 'profile_picture' => $employee->profile_picture ?? '/asset/img/avatar.png',
                 // expose base shift data for prefill in Shift page modal
                 'shift_id' => $employee->base_shift_id,
