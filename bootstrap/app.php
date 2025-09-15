@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Console\Commands\GenerateTasksFromSchedules;
+use App\Http\Middleware\Management;
 use App\Console\Commands\DiagnoseSchedules;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -18,12 +19,16 @@ return Application::configure(basePath: dirname(__DIR__))
         DiagnoseSchedules::class,
     ])
     ->withSchedule(function (Schedule $schedule) {
-        // Run the generator every minute to materialize tasks from schedules
-        $schedule->command('schedules:generate')->everyMinute();
+        // Run schedule generators by recurrence type at sensible intervals
+        $schedule->command('schedules:generate --type=daily')->dailyAt('00:05')->onOneServer();
+
+        $schedule->command('schedules:generate --type=weekly')->dailyAt('00:10')->onOneServer();
+
+        $schedule->command('schedules:generate --type=monthly')->dailyAt('00:15')->onOneServer();
     })
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'management' => \App\Http\Middleware\Management::class,
+            'management' => Management::class,
         ]);
           
     })
