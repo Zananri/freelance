@@ -6940,30 +6940,8 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // function initProjectFilter() {
-    //     const searchInput = document.getElementById("search_filter");
-    //     if (!searchInput) return;
-
-    //     searchInput.addEventListener("keyup", function () {
-    //         const query = this.value.toLowerCase().trim();
-
-    //         const cards = document.querySelectorAll("#all-cards-container .card");
-
-    //         cards.forEach(card => {
-    //             const text = card.innerText.toLowerCase();
-    //             if (text.includes(query)) {
-    //                 card.style.display = "";
-    //             } else {
-    //                 card.style.display = "none";
-    //             }
-    //         });
-    //     });
-    // }
-
-    // // init pas ready
-    // $(document).ready(function () {
-    //     initProjectFilter();
-    // });
+    function updateProjectChartFromData(projects, chartCounts) {
+    }
 
     // ===== Unread badge and latest feedback snippet for Project (parity with Task) =====
     // Helpers to show/hide unread badge
