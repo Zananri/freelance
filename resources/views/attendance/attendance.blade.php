@@ -465,7 +465,7 @@
                                     <div class="box-sick">
                                         <div class="title">Sick</div>
                                         <div class="day-remaining">{{ $remainingSick }}</div>
-                                        <div class="text-days-remaining">Days Remaining</div>
+                                        <div class="text-days-remaining">Days</div>
                                     </div>
                                 </div>
                                 

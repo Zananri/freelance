@@ -21,7 +21,8 @@ class AttendanceTrackingController extends Controller
         ->join('job_list','employees.job_id','=','job_list.id')
         ->join('users','employees.user_id','=','users.id')
         ->where('employees.status',"ACTIVE")
-        ->whereNotIn('users.user_type',["GENERAL_MANAGER","CEO"])
+        ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+        ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 
         return view('attendance_tracking.attendance_tracking',[
