@@ -386,18 +386,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (employeeCreateLoader) employeeCreateLoader.classList.add("d-none");
 
                     if (xhr.status === 422) {
-                        // Validation errors -> show as Settings-style alert (white)
-                        let listHtml = '<ul>';
-                        const errors = (xhr.responseJSON && xhr.responseJSON.errors) || {};
-                        for (const key in errors) {
-                            errors[key].forEach((msg) => { listHtml += `<li>${msg}</li>`; });
+                        const resp = xhr.responseJSON || {};
+                        const errors = resp.errors || {};
+                        let message = resp.message || 'Validation failed.';
+                        const keys = Object.keys(errors);
+                        if (keys.length) {
+                            const firstKey = keys[0];
+                            const arr = errors[firstKey] || [];
+                            if (arr.length) message = arr[0];
                         }
-                        listHtml += '</ul>';
                         if (formAlert) formAlert.innerHTML = "";
-                        showFloatingAlert(listHtml, 'warning', 5000);
+                        showFloatingAlert(message, 'warning', 5000);
                     } else {
+                        const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to create employee.';
                         if (formAlert) formAlert.innerHTML = "";
-                        showFloatingAlert('Failed to create employee.', 'warning', 3500);
+                        showFloatingAlert(msg, 'warning', 4000);
                     }
                 },
             });

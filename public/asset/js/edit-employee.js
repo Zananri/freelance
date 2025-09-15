@@ -500,24 +500,7 @@ function loadJobs(divisionId, selectedId, departmentId) {
                 let data = {};
                 try { data = await response.json(); } catch (_) { /* server may return empty/HTML */ }
                 loaderOverlay.classList.add("d-none");
-                if (data && data.errors) {
-                    // Clear previous errors
-                    form.querySelectorAll(".text-danger").forEach((el) =>
-                        el.remove()
-                    );
-                    // Show validation errors
-                    for (const [field, messages] of Object.entries(
-                        data.errors
-                    )) {
-                        const input = form.querySelector(`[name="${field}"]`);
-                        if (input) {
-                            const errorDiv = document.createElement("div");
-                            errorDiv.className = "text-danger small";
-                            errorDiv.textContent = messages.join(", ");
-                            input.parentNode.appendChild(errorDiv);
-                        }
-                    }
-                } else if (response.ok) {
+                if (response.ok) {
                     // Success (with or without message)
                     const successMsg = (data && data.message) || 'Employee updated successfully.';
                     showFloatingAlert(successMsg, "success", 2000);
@@ -549,16 +532,31 @@ function loadJobs(divisionId, selectedId, departmentId) {
                     });
                     form.classList.remove("was-validated");
                 } else {
-                    // Non-OK response
-                    if (formAlert) { formAlert.innerHTML = ""; }
-                    showFloatingAlert('Failed to update employee. Please try again.', 'warning', 3500);
+                    // Non-OK response (e.g., 422 validation)
+                    const errors = data && data.errors ? data.errors : null;
+                    if (errors) {
+                        // Show only the first error line
+                        const keys = Object.keys(errors);
+                        let message = (data && data.message) ? data.message : 'Validation failed.';
+                        if (keys.length) {
+                            const firstKey = keys[0];
+                            const arr = errors[firstKey] || [];
+                            if (arr.length) message = arr[0];
+                        }
+                        if (formAlert) { formAlert.innerHTML = ""; }
+                        showFloatingAlert(message, 'warning', 5000);
+                    } else {
+                        const msg = (data && data.message) ? data.message : 'Failed to update employee. Please try again.';
+                        if (formAlert) { formAlert.innerHTML = ""; }
+                        showFloatingAlert(msg, 'warning', 4000);
+                    }
                 }
             })
             .catch((error) => {
                 loaderOverlay.classList.add("d-none");
-                // Show Settings-style alert for network/unknown errors
+                // Network/unknown error
                 if (formAlert) { formAlert.innerHTML = ""; }
-                showFloatingAlert('An error occurred while updating the employee.', 'warning', 3500);
+                showFloatingAlert('Failed to update employee. Please try again.', 'warning', 4000);
                 console.error(error);
             });
     });

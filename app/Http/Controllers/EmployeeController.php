@@ -168,7 +168,12 @@ class EmployeeController extends Controller
                 'employee_niks' => 'nullable|string|max:255',
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:employees,email',
-                'email_work' => 'nullable|email|unique:employees,email_work',
+                // email_work must be unique in employees and users
+                'email_work' => [
+                    'nullable', 'email',
+                    Rule::unique('employees', 'email_work'),
+                    Rule::unique('users', 'email'),
+                ],
                 'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
                 'address' => 'required|string',
                 // 10 MB max for images
@@ -182,7 +187,12 @@ class EmployeeController extends Controller
             ]);
 
             if ($validator->fails()) {
-                throw new \Exception($validator->errors()->first());
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
             }
 
             // Generate unique email_work from full name by replacing spaces with underscores and adding timestamp if email_work is empty
@@ -199,10 +209,7 @@ class EmployeeController extends Controller
                 $counter++;
             }
 
-            $existingUser = User::where('email', $emailWork)->first();
-            if ($existingUser) {
-                throw new \Exception('User with this email already exists');
-            }
+            // At this point $emailWork is ensured unique by loop; no need to throw exception on dup.
 
             $photoPath = null;
             $ktpPath = null;
@@ -308,6 +315,7 @@ class EmployeeController extends Controller
                 $request->merge(['status' => $incomingStatus]);
             }
 
+            // Build dynamic rules to allow ignoring current employee/user for unique checks
             $validator = Validator::make($request->all(), [
                 'department_id' => 'sometimes|exists:departments,id',
                 'division_id' => 'sometimes|exists:divisions,id',
@@ -317,9 +325,16 @@ class EmployeeController extends Controller
                 // 10 MB max for images
                 'profile_picture' => 'nullable|file|image|max:10240',
                 'name' => 'sometimes|string|max:255',
-                'email' => 'sometimes|email|unique:employees,email,' . $id,
-                'email_work' => 'nullable|email|unique:employees,email_work,' . $id,
-                'phone' => 'sometimes|string|unique:employees,phone,' . $id,
+                'email' => ['sometimes','email', Rule::unique('employees','email')->ignore($id)],
+                'email_work' => [
+                    'nullable','email',
+                    Rule::unique('employees','email_work')->ignore($id),
+                    Rule::unique('users','email')->ignore($employee->user_id)
+                ],
+                'phone' => [
+                    'sometimes','regex:/^[0-9]+$/','max:14',
+                    Rule::unique('employees','phone')->ignore($id)
+                ],
                 'status' => [
                     'sometimes',
                     Rule::in(['ACTIVE','RESIGN','CANDIDATE','DELETED'])
@@ -335,7 +350,12 @@ class EmployeeController extends Controller
             ]);
 
             if ($validator->fails()) {
-                throw new \Exception($validator->errors()->first());
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
             }
 
             $updateData = $request->only([
