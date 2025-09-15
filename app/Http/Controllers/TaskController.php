@@ -144,7 +144,7 @@ class TaskController extends Controller
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
                         ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
-                    })->orderBy('created_at', 'asc');
+                    })->orderBy('created_at', 'desc');
 
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
@@ -190,7 +190,8 @@ class TaskController extends Controller
                 $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
                     $q->where('status', 'new_request')
                     ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
-                })->orderBy('start_date', 'asc');
+                })
+                ->orderBy('created_at', 'desc');
                 $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
                 $response['new_request'] = [
                     'tasks' => $this->mapTasks($newPaginator->items()),
