@@ -98,7 +98,9 @@ class TaskController extends Controller
                     ->orWhere(function ($q) use ($currentUserId) {
                         if ($currentUserId) $q->where('created_by', $currentUserId);
                     });
-                });
+                })
+                // Exclude tasks marked as DELETED from all listings
+                ->whereRaw('LOWER(status) <> ?', ['deleted']);
 
             if ($projectId) $baseQuery->where('project_id', $projectId);
 
@@ -308,7 +310,9 @@ class TaskController extends Controller
                             $q->where('created_by', $currentUserId);
                         }
                     });
-                });
+                })
+                // Hide soft-deleted tasks from all aggregations
+                ->whereRaw('LOWER(status) <> ?', ['deleted']);
 
             if ($projectId) {
                 $baseQuery->where('project_id', $projectId);
@@ -605,6 +609,8 @@ class TaskController extends Controller
                                 });
                         });
                 })
+                // Exclude DELETED tasks
+                ->whereRaw('LOWER(status) <> ?', ['deleted'])
                 // Do not show tasks that start in the future (e.g., tomorrow) on Today's tab
                 ->where(function ($d) use ($today) {
                     $d->whereNull('start_date')
@@ -744,6 +750,8 @@ class TaskController extends Controller
                                 });
                         });
                 })
+                // Exclude DELETED tasks
+                ->whereRaw('LOWER(status) <> ?', ['deleted'])
                 ->whereDate('start_date', $tomorrow);
 
             $tasks = $base->orderByDesc('created_at')->get();
@@ -1305,25 +1313,10 @@ class TaskController extends Controller
         DB::beginTransaction();
         try {
             $task = Task::findOrFail($id);
-
-            // Delete associated files
-            if ($task->image && file_exists(public_path('file/task/' . $task->image))) {
-                unlink(public_path('file/task/' . $task->image));
-            }
-
-            if ($task->reference_files && is_array($task->reference_files)) {
-                foreach ($task->reference_files as $referenceFile) {
-                    if (file_exists(public_path('file/task_reference_files/' . $referenceFile))) {
-                        unlink(public_path('file/task_reference_files/' . $referenceFile));
-                    }
-                }
-            }
-
-            // Delete task assignments
-            TaskAssignment::where('task_id', $task->id)->delete();
-
-            // Delete task
+            // Soft delete by status: mark as DELETED and set deleted_by; do not remove files or assignments
+            $task->status = 'DELETED';
             $task->deleted_by = auth()->id();
+            $task->save();
 
             DB::commit();
 
@@ -1985,6 +1978,8 @@ class TaskController extends Controller
                 'project'
             ])
                 ->where('project_id', $projectId)
+                // Hide tasks marked as DELETED
+                ->whereRaw('LOWER(status) <> ?', ['deleted'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 

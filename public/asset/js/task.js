@@ -2128,11 +2128,17 @@ function initDesktopInfiniteScroll(query = "") {
     try { window.__taskCurrentSearchQuery = String(query || ''); } catch(_) {}
     ["new_request", "in_progress", "completed"].forEach(status => {
         const containerId = sectionMap[status];
-        $(document).on("scroll", `#${containerId}`, function () {
-            const el = this;
-            const state = desktopState[status];
-            if (!el || !state || state.loading) return;
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        // Bind once per container
+        if (el.dataset.infiniteScrollBound === '1') return;
+        el.dataset.infiniteScrollBound = '1';
 
+        el.addEventListener('scroll', function () {
+            const state = desktopState[status];
+            if (!state || state.loading) return;
+
+            // near-bottom detection with small threshold
             if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
                 if (state.page < state.last) {
                     state.loading = true;
@@ -2141,7 +2147,7 @@ function initDesktopInfiniteScroll(query = "") {
                     fetchAndRenderTasks(status, state.page, true, q);
                 }
             }
-        });
+        }, { passive: true });
     });
 }
 // Note: desktop data is fetched once in the unified init block below; scroll handlers are
@@ -5245,13 +5251,29 @@ function applyCurrentSearchFilter() {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                 },
                 success: function (response) {
-                    // Remove card from UI
-                    taskCard.remove();
+                    // Remove card from UI (safely handle null)
+                    try {
+                        let cardEl = taskCard;
+                        if (!cardEl) {
+                            cardEl = document.querySelector(`[data-task-id="${taskId}"]`);
+                        }
+                        if (cardEl) {
+                            cardEl.remove();
+                        }
+                    } catch (_) {}
                     // Hide modal
                     deleteModal.hide();
                     // Unified success alert
                     try {
                         showFloatingAlert(response.message || "Task deleted successfully", "success", 1500);
+                    } catch (_) {}
+                    // Optionally refresh lists to ensure DELETED tasks are not shown anywhere
+                    try {
+                        if (typeof fetchAndRenderTasks === 'function') {
+                            fetchAndRenderTasks('new_request', 1, false, '');
+                            fetchAndRenderTasks('in_progress', 1, false, '');
+                            fetchAndRenderTasks('completed', 1, false, '');
+                        }
                     } catch (_) {}
                 },
                 error: function () {
