@@ -169,13 +169,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         employees.forEach((employee) => {
-            // Tabel employee menampilkan avatar universal (profile_picture) agar edit halaman employee (photo) hanya mempengaruhi modal detail.
-            let profilePicture = employee.profile_picture_url || employee.profile_picture || null;
+            // Sesuai permintaan: table Employee menggunakan field photo milik employee saja (bukan profile_picture)
+            let photoUrl = employee.photo || null;
             const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
-            if (!profilePicture || String(profilePicture).toLowerCase() === 'null' || String(profilePicture).toLowerCase() === 'undefined') {
-                profilePicture = fallbackAvatar;
-            } else if (!/^https?:\/\//i.test(profilePicture) && !profilePicture.startsWith(appUrl)) {
-                profilePicture = `${appUrl}/${String(profilePicture).replace(/^\//,'')}`;
+            if (!photoUrl || String(photoUrl).toLowerCase() === 'null' || String(photoUrl).toLowerCase() === 'undefined') {
+                photoUrl = fallbackAvatar;
+            } else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
+                photoUrl = `${appUrl}/${String(photoUrl).replace(/^\//,'')}`;
             }
             const departmentName = employee.department
                 ? employee.department.name_department
@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <tr data-id="${employee.id}">
                     <td>
                         <div class="d-flex align-items-center gap-3">
-                            <img src="${profilePicture}" alt="Profile Picture" class="table-image rounded-circle" width="40" height="40" onerror="this.onerror=null;this.src='${fallbackAvatar}';" />
+                            <img src="${photoUrl}" alt="Employee Photo" class="table-image rounded-circle" width="40" height="40" onerror="this.onerror=null;this.src='${fallbackAvatar}';" />
                             <div>
                                 <div class="fw-semibold" style="font-size: 14px;">${employee.first_name} ${employee.last_name}</div>
                                 <div style="font-size: 10px; color: #6c757d;">${employee.email}</div>

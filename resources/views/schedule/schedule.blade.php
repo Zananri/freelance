@@ -3,11 +3,11 @@
         {{ __('task') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link rel="stylesheet" href="{{ asset('asset/css/schedule.css') }}">
-        <link rel="stylesheet" href="{{ asset('asset/css/schedule-create.css') }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/schedule.css?v=' . time()) }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/schedule-create.css?v=' . time()) }}">
     </x-slot>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 schedule-header">
         <div class="title-content d-flex align-items-center gap-2 mb-3">
             <div class="nav-item d-inline-block">
                 <div class="nav-icon-arrow">
@@ -27,10 +27,10 @@
             <button class="btn btn-icon-toggle btn-filter-custom me-3" type="button" id="openProjectFilterBtn"
                 data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="material-symbols-outlined icon">filter_list</span>
-                <span class="btn-text-filter">Filter</span>
+                <span class="text-btn">Filter</span>
             </button>
             <button data-bs-target="#scheduleCreateModal" data-bs-toggle="modal"
-                class="btn btn-icon-toggle btn-schedule-custom"> Add Schedule
+                class="btn btn-icon-toggle btn-schedule-custom">Add <span class="text-btn">Schedule</span>
             </button>
             <div class="dropdown-menu dropdown-filter-menu" aria-labelledby="openProjectFilterBtn">
                 <div class="dropdown-filter-body">

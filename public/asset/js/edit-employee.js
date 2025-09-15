@@ -1,6 +1,22 @@
 document.addEventListener("DOMContentLoaded", function () {
     // Get appUrl from meta tag
     const appUrl = document.querySelector('meta[name="app-url"]')?.content || '';
+    // Helper: extract employee id from URL like /employee/{id}/edit or form.action
+    const getEmployeeIdFromUrl = () => {
+        try {
+            const href = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : '';
+            // Try pattern /employee/{id}/edit
+            let m = href.match(/\/employee\/(\d+)\/(edit|update)?/i);
+            if (m && m[1]) return m[1];
+        } catch (_) {}
+        try {
+            if (form && form.action) {
+                const m2 = String(form.action).match(/\/employee\/(\d+)/i);
+                if (m2 && m2[1]) return m2[1];
+            }
+        } catch (_) {}
+        return null;
+    };
     const form = document.getElementById("employeeEditForm");
     const loaderOverlay = document.createElement("div");
     loaderOverlay.className = "modal-loading-overlay d-none";
@@ -347,6 +363,18 @@ function loadJobs(divisionId, selectedId, departmentId) {
                         label.style.backgroundSize = "cover";
                         label.style.opacity = "1";
                         if (clearBtn) clearBtn.classList.remove("d-none");
+                        // Persist updated employee photo preview so Employee Detail modal can show latest without reload
+                        if (input === inputPhoto) {
+                            const empId = getEmployeeIdFromUrl();
+                            if (empId) {
+                                try {
+                                    localStorage.setItem(
+                                        "editEmployeeUpdatedPhoto",
+                                        JSON.stringify({ employeeId: String(empId), photoUrl: e.target.result })
+                                    );
+                                } catch (_) { /* no-op */ }
+                            }
+                        }
                     }
                 };
                 reader.readAsDataURL(input.files[0]);
@@ -355,6 +383,10 @@ function loadJobs(divisionId, selectedId, departmentId) {
                 label.classList.remove("has-image");
                 label.style.opacity = "0.5";
                 if (clearBtn) clearBtn.classList.add("d-none");
+                // If photo cleared, also clear any pending updated preview cache
+                if (input === inputPhoto) {
+                    try { localStorage.removeItem("editEmployeeUpdatedPhoto"); } catch(_) { /* no-op */ }
+                }
             }
         });
 
@@ -481,13 +513,15 @@ function loadJobs(divisionId, selectedId, departmentId) {
                     setTimeout(() => {
                         // Save updated photo URL and employee ID in localStorage if photo updated
                         if (data && data.updatedPhotoUrl && data.employeeId) {
-                            localStorage.setItem(
-                                "updatedEmployeePhoto",
-                                JSON.stringify({
-                                    employeeId: data.employeeId,
-                                    photoUrl: data.updatedPhotoUrl,
-                                })
-                            );
+                            try {
+                                localStorage.setItem(
+                                    "editEmployeeUpdatedPhoto",
+                                    JSON.stringify({
+                                        employeeId: String(data.employeeId),
+                                        photoUrl: data.updatedPhotoUrl,
+                                    })
+                                );
+                            } catch (_) { /* no-op */ }
                         }
                         window.location.href = appUrl + "/employee";
                     }, 2000);
