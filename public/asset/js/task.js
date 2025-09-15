@@ -387,7 +387,7 @@
                                 </div>
                                 <div class="modal-footer modal-footer-custom">
                                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-submit-black" id="confirmRejectInviteBtn">Accept Task</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmRejectInviteBtn">Reject</button>
                                 </div>
                             </div>
                         </div>
@@ -398,7 +398,7 @@
                 modal.show();
                 mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
                 mEl.querySelector('#confirmRejectInviteBtn').addEventListener('click', function(){
-                    const btn = this; btn.disabled = true; btn.textContent = 'Processing...';
+                    const btn = this; btn.disabled = true; btn.textContent = 'Rejecting...';
                     $.ajax({
                         url: appUrl + '/task/' + taskId + '/reject',
                         method: 'POST',
@@ -408,7 +408,18 @@
                             modal.hide();
                             const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
                             if (card && card.parentNode) card.parentNode.removeChild(card);
-                            markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                            // Mark assignment notifications read (or removed) and refresh counts & UI
+                            markTaskAssignmentNotificationsRead(taskId)
+                                .always(function(){
+                                    refreshNotificationCountBadge();
+                                    try {
+                                        if (typeof fetchAndRenderTasks === 'function') {
+                                            // Refresh only the New column to ensure rejected item disappears from pending list
+                                            fetchAndRenderTasks('new_request', 1, false, '');
+                                        }
+                                    } catch(_){ }
+                                    try { if (typeof fetchNotifications === 'function') fetchNotifications(); } catch(_){ }
+                                });
                         },
                         error: function(xhr){
                             let msg = 'Failed to reject task';
