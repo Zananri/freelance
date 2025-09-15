@@ -171,8 +171,9 @@ class EmployeeController extends Controller
                 'email_work' => 'nullable|email|unique:employees,email_work',
                 'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
                 'address' => 'required|string',
-                'photo' => 'nullable|file|image|max:2048',
-                'ktp' => 'nullable|file|image|max:2048',
+                // 10 MB max for images
+                'photo' => 'nullable|file|image|max:10240',
+                'ktp' => 'nullable|file|image|max:10240',
                 'birth_date' => 'required|date',
                 'hire_date' => 'required|date',
                 'resign_date' => 'nullable|date',
@@ -313,7 +314,8 @@ class EmployeeController extends Controller
                 'job_id' => 'sometimes|exists:job_list,id',
                 'shift_id' => 'sometimes|exists:shifts,id',
                 'employee_niks' => 'nullable|string|max:255',
-                'profile_picture' => 'nullable|file|image',
+                // 10 MB max for images
+                'profile_picture' => 'nullable|file|image|max:10240',
                 'name' => 'sometimes|string|max:255',
                 'email' => 'sometimes|email|unique:employees,email,' . $id,
                 'email_work' => 'nullable|email|unique:employees,email_work,' . $id,
@@ -323,8 +325,8 @@ class EmployeeController extends Controller
                     Rule::in(['ACTIVE','RESIGN','CANDIDATE','DELETED'])
                 ],
                 'address' => 'sometimes|string',
-                'photo' => 'nullable|file|image',
-                'ktp' => 'nullable|file|image',
+                'photo' => 'nullable|file|image|max:10240',
+                'ktp' => 'nullable|file|image|max:10240',
                 'birth_date' => 'sometimes|date',
                 'hire_date' => 'sometimes|date',
                 'resign_date' => 'nullable|date',
@@ -455,12 +457,16 @@ class EmployeeController extends Controller
 
             DB::commit();
 
+            $updatedPhotoUrl = $employee->photo ? asset($employee->photo) : null;
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => $employee,
                 'message' => 'Employee updated successfully',
                 'profile_picture_url' => $employee->profile_picture ? asset($employee->profile_picture) : null,
+                'updatedPhotoUrl' => $updatedPhotoUrl,
+                'employeeId' => $employee->id,
                 'redirect_url' => route('employee')
             ]);
 
