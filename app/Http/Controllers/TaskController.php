@@ -1313,7 +1313,31 @@ class TaskController extends Controller
         DB::beginTransaction();
         try {
             $task = Task::findOrFail($id);
-            // Soft delete by status: mark as DELETED and set deleted_by; do not remove files or assignments
+
+            // Authorization: only PIC of this task may delete
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 401,
+                    'status' => 'error',
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $isPic = TaskAssignment::where('task_id', $task->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->exists();
+
+            if (!$isPic) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Only PIC can delete this task.'
+                ], 403);
+            }
+            // Soft-delete: flag status as DELETED and set deleted_by. Do not remove files or related data.
             $task->status = 'DELETED';
             $task->deleted_by = auth()->id();
             $task->save();

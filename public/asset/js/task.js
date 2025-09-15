@@ -1707,9 +1707,15 @@ document.addEventListener("click", function (e) {
             statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
         }
 
-        const showDelete = task.status === 'new_request' ||
-                        task.status === 'new request' ||
-                        task.status === 'rejected';
+        const showDelete = (function(){
+            // Only show delete if current employee is the PIC
+            try {
+                const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
+                const picId = task?.pic?.id ? String(task.pic.id) : null;
+                if (!empId || !picId) return false;
+                return String(empId) === picId;
+            } catch(_) { return false; }
+        })();
 
         let statusBadge = '';
         if (task.status === 'rejected') {
@@ -5031,9 +5037,14 @@ function applyCurrentSearchFilter() {
                     })
                     .join("");
 
-                const showDelete = task.status === "new_request" ||
-                                task.status === "new request" ||
-                                task.status === "rejected";
+                const showDelete = (function(){
+                    try {
+                        const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
+                        const picId = task?.pic?.id ? String(task.pic.id) : null;
+                        if (!empId || !picId) return false;
+                        return String(empId) === picId;
+                    } catch(_) { return false; }
+                })();
 
                 const html = `
                 <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
@@ -5171,9 +5182,16 @@ function applyCurrentSearchFilter() {
     // Function to handle task delete
     function handleTaskDelete(taskId, taskCard) {
         const deleteModalEl = document.getElementById("deleteTaskModal");
-        const deleteModal = new bootstrap.Modal(deleteModalEl);
+        const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
 
         deleteModalEl.dataset.taskId = taskId;
+
+        // Pre-show the modal with a loader to avoid backdrop flicker while fetching
+        const preContentEl = deleteModalEl.querySelector(".modal-body");
+        if (preContentEl) {
+            preContentEl.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+        }
+        deleteModal.show();
 
         $.ajax({
             url: appUrl + "/task/" + taskId,
@@ -5231,13 +5249,7 @@ function applyCurrentSearchFilter() {
                 `;
 
                 const contentEl = deleteModalEl.querySelector(".modal-body");
-                contentEl.innerHTML = cardHtml;
-
-                deleteModal.show();
-
-                document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
-                    if (idx < arr.length - 1) el.remove();
-                });
+                if (contentEl) contentEl.innerHTML = cardHtml;
             }
         });
 
