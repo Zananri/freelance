@@ -5182,9 +5182,16 @@ function applyCurrentSearchFilter() {
     // Function to handle task delete
     function handleTaskDelete(taskId, taskCard) {
         const deleteModalEl = document.getElementById("deleteTaskModal");
-        const deleteModal = new bootstrap.Modal(deleteModalEl);
+        const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
 
         deleteModalEl.dataset.taskId = taskId;
+
+        // Pre-show the modal with a loader to avoid backdrop flicker while fetching
+        const preContentEl = deleteModalEl.querySelector(".modal-body");
+        if (preContentEl) {
+            preContentEl.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+        }
+        deleteModal.show();
 
         $.ajax({
             url: appUrl + "/task/" + taskId,
@@ -5242,13 +5249,7 @@ function applyCurrentSearchFilter() {
                 `;
 
                 const contentEl = deleteModalEl.querySelector(".modal-body");
-                contentEl.innerHTML = cardHtml;
-
-                deleteModal.show();
-
-                document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
-                    if (idx < arr.length - 1) el.remove();
-                });
+                if (contentEl) contentEl.innerHTML = cardHtml;
             }
         });
 
