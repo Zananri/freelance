@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use App\Models\Schedule;
+use App\Models\TaskSchedule;
 use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\Employee;
@@ -41,7 +41,7 @@ class GenerateTasksFromSchedules extends Command
         }
 
         // Fetch active schedules where next_run_at is due OR needs initialization
-        $schedulesQuery = Schedule::query()
+                $schedulesQuery = TaskSchedule::query()
             ->where('is_active', true)
             ->where(function ($q) use ($now) {
                 $q->whereNull('next_run_at')
@@ -134,7 +134,7 @@ class GenerateTasksFromSchedules extends Command
         return Command::SUCCESS;
     }
 
-    private function calculateInitialRunAt(Schedule $s, Carbon $now): ?Carbon
+    private function calculateInitialRunAt(TaskSchedule $s, Carbon $now): ?Carbon
     {
         // Default to start date if set and in the future or today; otherwise bring it forward to the next valid occurrence
         $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
@@ -157,7 +157,7 @@ class GenerateTasksFromSchedules extends Command
         }
     }
 
-    private function calculateNextRunAt(Schedule $s, Carbon $current): Carbon
+    private function calculateNextRunAt(TaskSchedule $s, Carbon $current): Carbon
     {
         $interval = max((int) $s->recurrence_interval, 1);
         $next = $current->copy();
@@ -191,7 +191,7 @@ class GenerateTasksFromSchedules extends Command
         return Carbon::create($year, $month, $day, 0, 0, 0);
     }
 
-    private function createTaskFromSchedule(Schedule $s): Task
+    private function createTaskFromSchedule(TaskSchedule $s): Task
     {
         // Copy image to task directory if present
         $taskImage = null;
