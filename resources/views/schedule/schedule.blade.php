@@ -30,7 +30,7 @@
                 <span class="text-btn">Filter</span>
             </button>
             <button data-bs-target="#scheduleCreateModal" data-bs-toggle="modal"
-                class="btn btn-icon-toggle btn-schedule-custom">Add Schedule
+                class="btn btn-icon-toggle btn-schedule-custom">Add <span class="text-btn">Schedule</span>
             </button>
             <div class="dropdown-menu dropdown-filter-menu" aria-labelledby="openProjectFilterBtn">
                 <div class="dropdown-filter-body">
