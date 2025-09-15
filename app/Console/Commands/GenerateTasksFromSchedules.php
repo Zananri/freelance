@@ -18,7 +18,7 @@ class GenerateTasksFromSchedules extends Command
      *
      * @var string
      */
-    protected $signature = 'schedules:generate {--dry-run : Only show what would be generated}';
+    protected $signature = 'schedules:generate {--dry-run : Only show what would be generated} {--type= : Limit to recurrence type: daily, weekly, or monthly}';
 
     /**
      * The console command description.
@@ -31,15 +31,28 @@ class GenerateTasksFromSchedules extends Command
     {
         $now = Carbon::now();
         $dryRun = (bool) $this->option('dry-run');
+        $type = $this->option('type');
+        if ($type !== null) {
+            $type = strtolower(trim($type));
+            if (!in_array($type, ['daily', 'weekly', 'monthly'], true)) {
+                $this->error("Invalid --type value. Allowed: daily, weekly, monthly.");
+                return Command::INVALID;
+            }
+        }
 
         // Fetch active schedules where next_run_at is due OR needs initialization
-        $schedules = Schedule::query()
+        $schedulesQuery = Schedule::query()
             ->where('is_active', true)
             ->where(function ($q) use ($now) {
                 $q->whereNull('next_run_at')
                   ->orWhere('next_run_at', '<=', $now);
-            })
-            ->get();
+            });
+
+        if ($type) {
+            $schedulesQuery->where('recurrence_type', $type);
+        }
+
+        $schedules = $schedulesQuery->get();
 
         if ($schedules->isEmpty()) {
             $this->info('No schedules due.');
