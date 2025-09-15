@@ -106,13 +106,17 @@ class EmployeeController extends Controller
                 $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
                 // Map grade to grade title for UI backward-compat
                 $employee->grade = $employee->grade ? $employee->grade->title : null;
+                // Normalize status to uppercase and map legacy INACTIVE -> RESIGN for UI
+                $status = strtoupper((string)($employee->status ?? ''));
+                if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+                $employee->status = $status ?: null;
                 return $employee;
             });
 
             return response()->json(['data' => $employees]);
         }
         // Return view for listing page with employees data
-        $employees = Employee::with(['department', 'division', 'job'])
+    $employees = Employee::with(['department', 'division', 'job'])
             ->where('status', '!=', 'DELETED')
             ->get();
     }
@@ -128,6 +132,10 @@ class EmployeeController extends Controller
     $employee->grade = $employee->grade ? $employee->grade->title : null;
     $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
     $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
+    // Normalize status for response (uppercase, map legacy INACTIVE to RESIGN)
+    $status = strtoupper((string)($employee->status ?? ''));
+    if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+    $employee->status = $status ?: null;
     return response()->json($employee);
     }
 
@@ -292,6 +300,13 @@ class EmployeeController extends Controller
                 throw new \Exception('Employee not found');
             }
 
+            // Normalize and map status before validation (accept mixed case, map legacy INACTIVE->RESIGN)
+            if ($request->has('status')) {
+                $incomingStatus = strtoupper((string)$request->input('status'));
+                if ($incomingStatus === 'INACTIVE') { $incomingStatus = 'RESIGN'; }
+                $request->merge(['status' => $incomingStatus]);
+            }
+
             $validator = Validator::make($request->all(), [
                 'department_id' => 'sometimes|exists:departments,id',
                 'division_id' => 'sometimes|exists:divisions,id',
@@ -303,7 +318,10 @@ class EmployeeController extends Controller
                 'email' => 'sometimes|email|unique:employees,email,' . $id,
                 'email_work' => 'nullable|email|unique:employees,email_work,' . $id,
                 'phone' => 'sometimes|string|unique:employees,phone,' . $id,
-                'status' => 'sometimes|string',
+                'status' => [
+                    'sometimes',
+                    Rule::in(['ACTIVE','RESIGN','CANDIDATE','DELETED'])
+                ],
                 'address' => 'sometimes|string',
                 'photo' => 'nullable|file|image',
                 'ktp' => 'nullable|file|image',
@@ -322,6 +340,12 @@ class EmployeeController extends Controller
                 'department_id', 'division_id', 'job_id', 'shift_id', 'name', 'employee_niks', 'email', 'email_work', 'phone', 'status', 'address',
                 'address', 'birth_date', 'hire_date', 'resign_date', 'grade_id', 'office'
             ]);
+
+            // Ensure status remains uppercase in DB and map legacy value just in case
+            if (isset($updateData['status']) && $updateData['status']) {
+                $updateData['status'] = strtoupper($updateData['status']);
+                if ($updateData['status'] === 'INACTIVE') { $updateData['status'] = 'RESIGN'; }
+            }
 
             if ($request->hasFile('photo')) {
                 $file = $request->file('photo');
@@ -551,6 +575,10 @@ class EmployeeController extends Controller
                         $avatar = asset('asset/img/avatar.png');
                     }
 
+                    // Normalize status for consumer
+                    $status = strtoupper((string)($employee->status ?? ''));
+                    if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+
                     return [
                         'id' => $employee->id,
                         'name' => $employee->name,
@@ -560,6 +588,7 @@ class EmployeeController extends Controller
                         'profile_picture_url' => $avatar,
                         'department' => $employee->department ? $employee->department->name_department : null,
                         'division' => $employee->division ? $employee->division->name_division : null,
+                        'status' => $status,
                     ];
                 });
 

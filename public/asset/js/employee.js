@@ -193,10 +193,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 ? employee.division.name_division
                 : "-";
             const office = employee.office ? employee.office : "-";
-            const status = employee.status ? employee.status : "-";
+            // Ensure status uppercase and map legacy INACTIVE -> RESIGN for UI
+            let status = employee.status ? String(employee.status).toUpperCase() : "-";
+            if (status === 'INACTIVE') status = 'RESIGN';
 
-            const statusClass =
-                status === "ACTIVE" ? "status-ACTIVE" : "status-INACTIVE";
+            let statusClass = 'status-UNKNOWN';
+            if (status === 'ACTIVE') statusClass = 'status-ACTIVE';
+            else if (status === 'RESIGN') statusClass = 'status-RESIGN';
+            else if (status === 'CANDIDATE') statusClass = 'status-CANDIDATE';
 
             rows += `
                 <tr data-id="${employee.id}">
@@ -212,7 +216,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <td>${departmentName}</td>
                     <td>${divisionName}</td>
                     <td>${office}</td>
-                    <td><span class="${statusClass}">${status}</span></td>
+                    <td><span class="status-badge ${statusClass}">${status}</span></td>
                     <td class="text-end">
                         <button class="btn-icon-toggle btn-detail" data-id="${employee.id}" title="Detail">
                             <span class="material-symbols-outlined icon">visibility</span>
@@ -392,12 +396,18 @@ $(document).on("click", ".btn-detail", function () {
                 );
                 $("#detailGrade").text(employee.grade || "-");
                 $("#detailOffice").text(employee.office || "-");
-                $("#detailStatus").text(employee.status || "-");
-                $("#detailStatus").removeClass("status-ACTIVE status-INACTIVE");
-                if (employee.status === "ACTIVE") {
+                // Status badge in detail modal
+                let dStatus = employee.status ? String(employee.status).toUpperCase() : '-';
+                if (dStatus === 'INACTIVE') dStatus = 'RESIGN';
+                $("#detailStatus").text(dStatus);
+                $("#detailStatus").removeClass("status-badge status-ACTIVE status-RESIGN status-CANDIDATE");
+                $("#detailStatus").addClass("status-badge");
+                if (dStatus === "ACTIVE") {
                     $("#detailStatus").addClass("status-ACTIVE");
-                } else if (employee.status === "INACTIVE") {
-                    $("#detailStatus").addClass("status-INACTIVE");
+                } else if (dStatus === "RESIGN") {
+                    $("#detailStatus").addClass("status-RESIGN");
+                } else if (dStatus === "CANDIDATE") {
+                    $("#detailStatus").addClass("status-CANDIDATE");
                 }
 
 
