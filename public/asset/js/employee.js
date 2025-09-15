@@ -26,6 +26,20 @@ function showFloatingAlert(message, type = 'success', delayMs = 2500) {
 document.addEventListener("DOMContentLoaded", function () {
     const tableBody = document.getElementById("employeeTableBody");
 
+    // Normalize image URL: keep absolute/http(s), data:, and blob: as-is; otherwise prefix with appUrl
+    function normalizeImageUrl(url) {
+        let u = url == null ? '' : String(url);
+        if (!u || u.toLowerCase() === 'null' || u.toLowerCase() === 'undefined') {
+            return `${appUrl}/asset/img/avatar.png`;
+        }
+        // Absolute http(s) or protocol-relative //, or data/blob URIs
+        if (/^(https?:)?\/\//i.test(u) || /^data:/i.test(u) || /^blob:/i.test(u)) {
+            return u;
+        }
+        if (u.startsWith(appUrl)) return u;
+        return `${appUrl}/${u.replace(/^\//,'')}`;
+    }
+
     // Current filter selections
     let currentFilters = {
         query: "",
@@ -170,13 +184,8 @@ document.addEventListener("DOMContentLoaded", function () {
         let rows = "";
         employees.forEach((employee) => {
             // Sesuai permintaan: table Employee menggunakan field photo milik employee saja (bukan profile_picture)
-            let photoUrl = employee.photo || null;
+            let photoUrl = normalizeImageUrl(employee.photo || null);
             const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
-            if (!photoUrl || String(photoUrl).toLowerCase() === 'null' || String(photoUrl).toLowerCase() === 'undefined') {
-                photoUrl = fallbackAvatar;
-            } else if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
-                photoUrl = `${appUrl}/${String(photoUrl).replace(/^\//,'')}`;
-            }
             const departmentName = employee.department
                 ? employee.department.name_department
                 : "-";
@@ -394,11 +403,7 @@ $(document).on("click", ".btn-detail", function () {
 
                 // Use updated photo if available, else use employee.photo
             // Detail modal harus menggunakan foto internal (employee.photo) saja agar perubahan dari halaman profile (profile_picture) tidak mempengaruhi.
-            let photoUrl = updatedPhoto || employee.photo || null;
-            if (!photoUrl) photoUrl = `${appUrl}/asset/img/avatar.png`;
-            if (!/^https?:\/\//i.test(photoUrl) && !photoUrl.startsWith(appUrl)) {
-                photoUrl = `${appUrl}/${photoUrl.replace(/^\//,'')}`;
-            }
+            let photoUrl = normalizeImageUrl(updatedPhoto || employee.photo || null);
 
             $("#detailPhoto").attr("src", photoUrl);
 
