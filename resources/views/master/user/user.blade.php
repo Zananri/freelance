@@ -3,7 +3,7 @@
         {{ __('user') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/user.css') }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/user.css?v=' . time()) }}" rel="stylesheet">
     </x-slot>
 
     <div class="title-content d-flex align-items-center gap-2">
@@ -62,6 +62,6 @@
     </div>
 
     <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/user.js') }}"></script>
+        <script src="{{ asset('asset/js/user.js?v=' . time()) }}"></script>
     </x-slot>
 </x-office-layout>

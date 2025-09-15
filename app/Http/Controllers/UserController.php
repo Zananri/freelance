@@ -21,7 +21,10 @@ class UserController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $users = User::select('id', 'name', 'email', 'photo', 'user_type', 'user_role')->get();
+            // Include employee relation with photo field so frontend can use employee.photo consistently
+            $users = User::with(['employee:id,user_id,photo,division_id'])
+                ->select('id', 'name', 'email', 'user_type', 'user_role')
+                ->get();
             return response()->json(['data' => $users]);
         }
 
@@ -112,7 +115,9 @@ class UserController extends Controller
      */
     public function getUsersAjax()
     {
-        $users = User::select('id', 'name', 'email', 'photo', 'user_type', 'user_role')->get();
+        $users = User::with(['employee:id,user_id,photo,division_id'])
+            ->select('id', 'name', 'email', 'user_type', 'user_role')
+            ->get();
         return response()->json(['data' => $users]);
     }
 

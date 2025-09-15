@@ -29,6 +29,19 @@ document.addEventListener("DOMContentLoaded", function () {
     const userDetailModal = new bootstrap.Modal(userDetailModalEl);
     let currentUserId = null;
 
+    // Normalize image URL: keep absolute/http(s), data:, and blob: as-is; otherwise prefix with appUrl
+    function normalizeImageUrl(url) {
+        let u = url == null ? '' : String(url);
+        if (!u || u.toLowerCase() === 'null' || u.toLowerCase() === 'undefined') {
+            return `${appUrl}/asset/img/avatar.png`;
+        }
+        if (/^(https?:)?\/\//i.test(u) || /^data:/i.test(u) || /^blob:/i.test(u)) {
+            return u;
+        }
+        if (u.startsWith(appUrl)) return u;
+        return `${appUrl}/${u.replace(/^\//,'')}`;
+    }
+
     function fetchUsers(cb) {
         $.ajax({
             url: appUrl + "/user/index",
@@ -54,12 +67,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let rows = "";
         users.forEach((user) => {
-            // Prefer universal profile_picture if nested employee exists
-            let photo = null;
-            if (user.employee && (user.employee.profile_picture || user.employee.profile_picture_url)) {
-                photo = user.employee.profile_picture_url || (user.employee.profile_picture ? (user.employee.profile_picture.startsWith('http') ? user.employee.profile_picture : (appUrl + '/' + user.employee.profile_picture.replace(/^\//,''))) : null);
-            }
-            if (!photo) photo = user.photo ? (user.photo.startsWith('http') ? user.photo : appUrl + '/' + user.photo.replace(/^\//,'')) : appUrl + "/asset/img/avatar.png";
+            // Per requirement: On User page (table), use employee.photo only (not profile_picture)
+            // If employee.photo missing, fallback to default avatar (NOT user.profile_picture/user.photo)
+            let photo = normalizeImageUrl(
+                (user.employee && (user.employee.photo_url || user.employee.photo))
+                    ? (user.employee.photo_url || user.employee.photo)
+                    : null
+            );
 
             rows += `
                 <tr data-id="${user.id}">
@@ -96,11 +110,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 $("#detailUserName").text(user.name);
                 $("#detailUserEmail").text(user.email);
 
-                let photoUrl = null;
-                if (user.employee && (user.employee.profile_picture || user.employee.profile_picture_url)) {
-                    photoUrl = user.employee.profile_picture_url || (user.employee.profile_picture ? (user.employee.profile_picture.startsWith('http') ? user.employee.profile_picture : (appUrl + '/' + user.employee.profile_picture.replace(/^\//,''))) : null);
-                }
-                if (!photoUrl) photoUrl = user.photo ? (user.photo.startsWith('http') ? user.photo : appUrl + '/' + user.photo.replace(/^\//,'')) : appUrl + "/asset/img/avatar.png";
+                // Detail modal should also use employee.photo only (fallback default)
+                let photoUrl = normalizeImageUrl(
+                    (user.employee && (user.employee.photo_url || user.employee.photo))
+                        ? (user.employee.photo_url || user.employee.photo)
+                        : null
+                );
                 $("#detailUserPhoto").attr("src", photoUrl);
 
                 if (user.employee && user.employee.division) {
