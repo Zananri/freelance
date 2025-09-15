@@ -355,6 +355,17 @@ function loadJobs(divisionId, selectedId, departmentId) {
 
         input.addEventListener("change", function () {
             if (input.files && input.files[0]) {
+                // Enforce 10 MB max on client-side
+                const maxBytes = 10 * 1024 * 1024; // 10MB
+                if (input.files[0].size > maxBytes) {
+                    showFloatingAlert('Maximum file size is 10 MB.', 'warning', 3500);
+                    input.value = '';
+                    label.style.backgroundImage = '';
+                    label.classList.remove('has-image');
+                    label.style.opacity = '0.5';
+                    if (clearBtn) clearBtn.classList.add('d-none');
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     if (input !== inputProfilePicture) {

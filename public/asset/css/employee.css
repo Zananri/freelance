@@ -301,8 +301,8 @@ table.table tbody tr td:first-child {
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
-.status-ACTIVE {
-    background-color: #28a745;
+/* Base badge style for all employee status chips */
+.status-badge {
     color: white;
     font-weight: 600;
     padding: 3px 8px;
@@ -310,7 +310,14 @@ table.table tbody tr td:first-child {
     font-size: 10px;
     display: inline-block;
     text-align: center;
+    line-height: 1.2;
 }
+
+.status-ACTIVE { background-color: #28a745; }
+
+.status-RESIGN { background-color: #6c757d; }
+
+.status-CANDIDATE { background-color: #ff9b2f; font-weight: 700; }
 
 .btn-detail,
 .btn-edit,
@@ -332,16 +339,8 @@ table.table tbody tr td:first-child {
     border-radius: 4px;
 }
 
-.status-INACTIVE {
-    background-color: #6c757d;
-    color: white;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    display: inline-block;
-    text-align: center;
-}
+/* legacy class kept for backward compatibility, mapped to RESIGN color */
+.status-INACTIVE { background-color: #6c757d; color: white; font-weight: 600; padding: 3px 8px; border-radius: 12px; font-size: 10px; display: inline-block; text-align: center; }
 
 .btn-detail .icon,
 .btn-edit .icon,
