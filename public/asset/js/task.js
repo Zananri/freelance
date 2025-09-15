@@ -412,7 +412,12 @@
                             markTaskAssignmentNotificationsRead(taskId)
                                 .always(function(){
                                     refreshNotificationCountBadge();
-                                    try { if (typeof fetchAndRenderTasks === 'function') fetchAndRenderTasks(); } catch(_){ }
+                                    try {
+                                        if (typeof fetchAndRenderTasks === 'function') {
+                                            // Refresh only the New column to ensure rejected item disappears from pending list
+                                            fetchAndRenderTasks('new_request', 1, false, '');
+                                        }
+                                    } catch(_){ }
                                     try { if (typeof fetchNotifications === 'function') fetchNotifications(); } catch(_){ }
                                 });
                         },

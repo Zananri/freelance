@@ -2211,8 +2211,8 @@ class TaskController extends Controller
                 // Do NOT delete assignments for this task since it's rejected
                 // TaskAssignment::where('task_id', $taskId)->delete();
             } elseif ($assignment && $assignment->role === 'EXECUTOR') {
-                // Executor rejecting - mark as not received instead of deleting
-                $assignment->update(['is_receive' => false]);
+                // Executor rejecting - remove the assignment so the task no longer appears for this user
+                $assignment->delete();
             } elseif ($assignment) {
                 // Other roles can reject by deleting their assignment
                 $assignment->delete();
@@ -2227,6 +2227,8 @@ class TaskController extends Controller
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Task invitation rejected',
+                // Hint for client: when executor rejects, the task is no longer assigned to them and should be hidden from New list
+                'hidden_for_current_user' => !$isPic,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
