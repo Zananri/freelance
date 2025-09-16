@@ -1885,6 +1885,8 @@ const sectionMap = {
 };
 
 let taskFetchSeq = 0; // guard untuk cegah overwrite oleh response lama
+// Track the last in-flight ajax per section to allow cancellation and avoid duplicate requests
+window.__taskAjaxRequestsMap = window.__taskAjaxRequestsMap || {};
 function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query = "") {
     const callSeq = ++taskFetchSeq;
     const params = {};
@@ -1909,10 +1911,20 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
         $(loaderMap[statusKey]).removeClass("d-none");
     }
 
-    $.ajax({
+    // Abort any previous in-flight request for the same key ("all" for full refresh)
+    try {
+        const reqKey = statusKey ? String(statusKey) : 'all';
+        const prev = window.__taskAjaxRequestsMap[reqKey];
+        if (prev && typeof prev.abort === 'function') {
+            prev.abort();
+        }
+    } catch(_) {}
+
+    const jq = $.ajax({
         url: appUrl + "/task/index",
         type: "GET",
         dataType: "json",
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
         data: params,
         success: function(response) {
             // Abaikan response lama
@@ -1970,14 +1982,35 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
             renderSingleSection(statusKey, respSection, append);
             injectRejectedIfMissing(response.data);
         },
-        error: function(err) {
-            console.error(err);
+        error: function(xhr, textStatus) {
+            // Abaikan error dari request yang sengaja di-abort atau jaringan terputus
+            if (textStatus === 'abort' || (xhr && xhr.status === 0)) return;
+            // Tangani 4xx/5xx dengan alert ringan agar tidak banjiri console
+            let msg = 'Failed to load tasks.';
+            try {
+                if (xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
+                    msg = xhr.responseJSON.message || xhr.responseJSON.error;
+                }
+            } catch(_) {}
+            try {
+                if (typeof window.showAlertMsg === 'function') window.showAlertMsg(msg, 'light', 2500);
+                else if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert(msg, 'light');
+                else console.warn('Task fetch error:', msg);
+            } catch(_) { /* noop */ }
         },
         complete: function() {
             if (statusKey && loaderMap[statusKey]) $(loaderMap[statusKey]).addClass("d-none");
             if (statusKey && desktopState[statusKey]) desktopState[statusKey].loading = false;
         }
     });
+
+    try {
+        const reqKey = statusKey ? String(statusKey) : 'all';
+        window.__taskAjaxRequestsMap[reqKey] = jq;
+    } catch(_) {}
+
+    // Return jqXHR so callers can optionally abort or await
+    return jq;
 }
 
     function renderTasks(data) {
@@ -2046,8 +2079,8 @@ function renderSingleSection(status, sectionData, append = false) {
 
   addAttachFileIconListeners();
   initBootstrapTooltips();
-  refreshAllUnreadBadges();
-  refreshAllLatestFeedbackSnippets();
+        // Jadwalkan fetch latest feedback/snippets sekali (hindari banyak request beruntun)
+        scheduleRefreshLatestFeedbackSnippets();
     // Setelah tiap section dirender, pastikan rejected selalu di kolom In Progress
     if (!append) ensureRejectedCardsPlaced();
     // Re-apply current search filter so new/updated cards respect it
@@ -2186,23 +2219,58 @@ function applyCurrentSearchFilter() {
     } catch(_) { /* noop */ }
 }
 
-// Debounced input handler for search
+// Search handler: trigger only on Enter or when input loses focus (change) to limit requests to one action
 (function initTaskSearchFilter(){
-    let searchTimeout;
+    let lastSearchAt = 0;
+    let lastEnterAt = 0;
+    let lastSearchedQuery = '';
+    function runSearch(query){
+        // Reset pagination state for desktop columns
+        try {
+            Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
+        } catch(_) {}
+        const q = (query || '').trim();
+        window.__taskCurrentSearchQuery = q;
+        // Cancel any previous full-fetch and start a new one
+        // Debounce micro-bursts (e.g., Enter followed by blur/change in same moment)
+        const now = Date.now();
+        // If user triggers the same query immediately again, ignore
+        if (q === lastSearchedQuery && (now - lastSearchAt) < 350) return;
+        lastSearchedQuery = q;
+        lastSearchAt = now;
+        fetchAndRenderTasks(null, 1, false, q);
+    }
+
+    // Prevent form submission on Enter at keydown phase
+    document.addEventListener('keydown', function(e){
+        const el = e.target;
+        if (!el || el.id !== 'search_filter') return;
+        if (e.key === 'Enter') {
+            lastEnterAt = Date.now();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
     document.addEventListener('keyup', function(e){
         const el = e.target;
         if (!el || el.id !== 'search_filter') return;
-        clearTimeout(searchTimeout);
-        const query = el.value || '';
-        searchTimeout = setTimeout(() => {
-            // Reset pagination state for desktop columns
-            try {
-                Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
-            } catch(_) {}
-            const q = query.trim();
-            window.__taskCurrentSearchQuery = q;
-            fetchAndRenderTasks(null, 1, false, q);
-        }, 250);
+        if (e.key === 'Enter') {
+            lastEnterAt = Date.now();
+            // Prevent default form submission if inside a form
+            try { if (el.form) e.preventDefault(); } catch(_) {}
+            runSearch(el.value || '');
+        }
+    });
+    document.addEventListener('change', function(e){
+        const el = e.target;
+        if (!el || el.id !== 'search_filter') return;
+        // If change fires right after Enter, ignore to avoid duplicate network call
+        const now = Date.now();
+        if (now - lastEnterAt < 120) return;
+        // If value hasn't changed since the last search, skip
+        const val = (el.value || '').trim();
+        if (val === lastSearchedQuery) return;
+        runSearch(el.value || '');
     });
 })();
 
@@ -3173,28 +3241,10 @@ function applyCurrentSearchFilter() {
     function hideUnreadBadge(taskId) {
         setUnreadBadge(taskId, 0);
     }
-    function fetchLatestFeedback(taskIds) {
-        if (!taskIds.length) return;
-
-        return $.ajax({
-            url: appUrl + "/task-feedbacks/latest",
-            type: "GET",
-            dataType: "json",
-            traditional: true,
-            data: { ids: taskIds },
-        }).then((res) => {
-            const map = res.data || {};
-            taskIds.forEach((tid) => {
-                setLatestFeedbackSnippet(tid, map[tid] || null);
-            });
-        }).catch(() => {
-            taskIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
-        });
-    }
+    // (removed: older fetchLatestFeedback without abort). See throttled version below.
     function refreshAllUnreadBadges() {
-        const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
-            .map(card => card.getAttribute('data-task-id'));
-        fetchLatestFeedback(ids);
+        // Jadwalkan penyegaran snippet/unread secara terpusat
+        scheduleRefreshLatestFeedbackSnippets();
     }
     // Track snippet fetch sequence per task to ignore stale responses
     const latestSnippetSeq = {};
@@ -3245,10 +3295,26 @@ function applyCurrentSearchFilter() {
             el.style.removeProperty('display');
         });
     }
+    // Keep only one in-flight latest feedback request; abort older (keyed by ids set)
+    let __latestFeedbackXHR = window.__latestFeedbackXHR || null;
+    let __latestFeedbackKey = window.__latestFeedbackKey || '';
     function fetchLatestFeedback(taskIds) {
         if (!taskIds.length) return;
 
-        return $.ajax({
+        // Build a stable key for the current request (sorted ids)
+        const idsKey = (taskIds || []).map(id => String(id)).sort().join(',');
+
+        // If an identical request is already in-flight, just return it
+        try {
+            if (__latestFeedbackXHR && __latestFeedbackKey === idsKey && __latestFeedbackXHR.readyState && __latestFeedbackXHR.readyState !== 4) {
+                return __latestFeedbackXHR;
+            }
+        } catch(_) {}
+
+        // Different request incoming: abort the previous
+        try { if (__latestFeedbackXHR && typeof __latestFeedbackXHR.abort === 'function') __latestFeedbackXHR.abort(); } catch(_) {}
+
+        __latestFeedbackXHR = $.ajax({
             url: appUrl + "/task-feedbacks/latest",
             type: "GET",
             dataType: "json",
@@ -3262,11 +3328,27 @@ function applyCurrentSearchFilter() {
         }).catch(() => {
             taskIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
         });
+
+        // store on window for next call
+        try { window.__latestFeedbackXHR = __latestFeedbackXHR; window.__latestFeedbackKey = idsKey; } catch(_) {}
+        return __latestFeedbackXHR;
     }
+    // Scheduler batching for latest feedback to ensure only one request fires rapidly
+    let __latestRefreshTimer = null;
+    function scheduleRefreshLatestFeedbackSnippets(delayMs = 50){
+        if (__latestRefreshTimer) {
+            clearTimeout(__latestRefreshTimer);
+        }
+        __latestRefreshTimer = setTimeout(() => {
+            __latestRefreshTimer = null;
+            const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
+                .map(card => card.getAttribute('data-task-id'));
+            fetchLatestFeedback(ids || []);
+        }, delayMs);
+    }
+
     function refreshAllLatestFeedbackSnippets() {
-        const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
-            .map(card => card.getAttribute('data-task-id'));
-        fetchLatestFeedback(ids);
+        scheduleRefreshLatestFeedbackSnippets(10);
     }
 
     // Fungsi untuk memuat data feedback
@@ -4602,7 +4684,7 @@ function applyCurrentSearchFilter() {
                 }
                 loadTaskFeedbackData(taskId);
                 // Refresh snippets/badges best-effort
-                try { fetchLatestFeedback(taskId); } catch(_) {}
+                try { scheduleRefreshLatestFeedbackSnippets(10); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = 'Failed to update feedback. Please try again.';
