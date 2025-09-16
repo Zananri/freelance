@@ -5105,28 +5105,72 @@ function applyCurrentSearchFilter() {
                         allExecutors.push({ ...ex, role: "Executor" });
                     }
                 });
-
-                const executorsHtml = allExecutors
-                    .map((executor, index) => {
-                        const overlapClass = index === 0 ? "" : "executor-image-overlap";
-                        const zIndexStyle = `style="z-index:${index+1};"`;
-                        // Tooltip should only show employee name (remove role/role label)
-                        const tooltipTitle = `${executor.name}`;
-                        let imgSrc = executor.user_photo || executor.profile_picture || executor.photo || executor.image || "";
-                        imgSrc = String(imgSrc || "").trim();
-                        if (!imgSrc || imgSrc.toLowerCase() === "null" || imgSrc.toLowerCase() === "undefined") {
-                            imgSrc = fallbackAvatar;
+                // Build vertical collaborator list HTML for Task Detail modal to match Project Detail
+                function buildTaskCollaboratorsList(taskObj) {
+                    try {
+                        const items = [];
+                        if (taskObj && taskObj.pic) items.push({ role: 'pic', emp: taskObj.pic });
+                        if (taskObj && Array.isArray(taskObj.executors)) {
+                            taskObj.executors.forEach(emp => items.push({ role: 'executor', emp }));
                         }
-                        return `
-                        <div class="executor-container" style="position: relative; display: inline-block; margin-right:-8px;">
-                            <img src="${imgSrc}" alt="${executor.name}"
-                                class="pic-executor-image ${overlapClass}"
-                                data-bs-toggle="tooltip"
-                                data-bs-title="${tooltipTitle}" ${zIndexStyle}
-                                onerror="this.onerror=null;this.src='${fallbackAvatar}';">
-                        </div>`;
-                    })
-                    .join("");
+
+                        if (!items.length) return '<div class="text-muted small">No collaborators</div>';
+
+                        function getName(emp) {
+                            try {
+                                return emp?.name || emp?.employee_name || emp?.username || emp?.full_name || (emp?.employee && (emp.employee.name || emp.employee.full_name)) || 'Unknown';
+                            } catch (_) { return 'Unknown'; }
+                        }
+
+                        function getDivision(emp) {
+                            try {
+                                return emp?.division_name || emp?.division || emp?.division_title || (typeof emp?.division === 'string' ? emp?.division : null) || (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) || emp?.employee_division || (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) || '-';
+                            } catch (_) { return '-'; }
+                        }
+
+                        function resolvePhotoHtmlForTask(emp, size = 36, marginLeft = 0) {
+                            let userPhoto = emp && (emp.profile_picture_url || emp.profile_picture || emp.user_photo || emp.user_photo_url || emp.photo || emp.image);
+                            let photoUrl = '';
+                            try {
+                                if (userPhoto) {
+                                    const raw = String(userPhoto).trim();
+                                    const trimmed = raw.replace(/^\/+/, '');
+                                    if (/^https?:\/\//i.test(raw)) photoUrl = raw;
+                                    else if (/^(file\/|asset\/|storage\/)/.test(trimmed)) photoUrl = appUrl + '/' + trimmed;
+                                    else if (raw.startsWith('/')) photoUrl = appUrl + raw;
+                                    else if (raw.indexOf('/') !== -1) photoUrl = appUrl + '/' + trimmed;
+                                    else photoUrl = appUrl + '/file/profile_picture/' + raw;
+                                    photoUrl = photoUrl.replace(/\/storage\/asset\//, '/asset/');
+                                } else {
+                                    photoUrl = fallbackAvatar;
+                                }
+                            } catch (e) { photoUrl = fallbackAvatar; }
+
+                            const name = (emp && (emp.name || emp.employee_name || emp.username || emp.full_name)) || 'Unknown';
+                            const titleText = name;
+                            return `<img src="${photoUrl}" alt="${name}" data-bs-toggle="tooltip" title="${titleText}" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:' + marginLeft + 'px;' : ''}" onerror="this.onerror=null;this.src='${fallbackAvatar}';">`;
+                        }
+
+                        const rows = items.map(({ role, emp }) => {
+                            const name = getName(emp);
+                            const division = getDivision(emp);
+                            const photo = resolvePhotoHtmlForTask(emp, 36, 0);
+                            return (
+                                '<div class="collab-item d-flex align-items-center mb-2">' +
+                                    '<div class="flex-shrink-0">' + photo + '</div>' +
+                                    '<div class="ms-2">' +
+                                        '<div class="collab-name">' + (name || 'Unknown') + '</div>' +
+                                        '<div class="collab-division text-muted">' + (division || '-') + '</div>' +
+                                    '</div>' +
+                                '</div>'
+                            );
+                        });
+
+                        return '<div class="collab-list">' + rows.join('') + '</div>';
+                    } catch (e) {
+                        return '<div class="text-muted small">No collaborators</div>';
+                    }
+                }
 
                 const showDelete = (function(){
                     try {
@@ -5177,8 +5221,8 @@ function applyCurrentSearchFilter() {
                     </div>
                     <div class="d-flex justify-content-between align-items-center mt-2">
                         <div class="d-flex align-items-center pic-executor-container">
-                            ${executorsHtml || "No executors"}
-                        </div>
+                                ${buildTaskCollaboratorsList(task) || "No collaborators"}
+                            </div>
                         <div class="d-flex align-items-center">
                             <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
                                 <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
