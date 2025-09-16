@@ -625,12 +625,26 @@ document.addEventListener("DOMContentLoaded", function () {
             return appUrl + "/file/profile_picture/" + userPhoto;
         }
 
+        // Cached fetch helper to reduce duplicate executor loads within schedule views
+        const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+        const empCache = (window.__empExecCache = window.__empExecCache || { map: new Map(), inFlight: new Map() });
+        function fetchEmployeesCached(q = "") {
+            const key = String(q || "").trim().toLowerCase();
+            const now = Date.now();
+            const hit = empCache.map.get(key);
+            if (hit && (now - hit.t) < EMP_CACHE_TTL_MS) return Promise.resolve(hit.v);
+            if (empCache.inFlight.has(key)) return empCache.inFlight.get(key);
+            const p = fetch(appUrl + "/task/employees-for-executor?q=" + encodeURIComponent(key))
+                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                .then((d) => { empCache.map.set(key, { v: d, t: Date.now() }); empCache.inFlight.delete(key); return d; })
+                .catch((e) => { empCache.inFlight.delete(key); throw e; });
+            empCache.inFlight.set(key, p);
+            return p;
+        }
         function fetchEmployeesForEdit(ids) {
-            // Fetch employees by IDs
-            fetch(appUrl + "/task/employees-for-executor")
-                .then((r) => r.json())
+            fetchEmployeesCached("")
                 .then((d) => {
-                    employees = d.data || [];
+                    employees = d.data || d || [];
                     selected = employees.filter((emp) => ids.includes(emp.id));
                     renderSelected();
                     updateHidden();
@@ -639,14 +653,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function fetchEmployees(q = "") {
-            fetch(
-                appUrl +
-                    "/task/employees-for-executor?q=" +
-                    encodeURIComponent(q)
-            )
-                .then((r) => r.json())
+            fetchEmployeesCached(q)
                 .then((d) => {
-                    employees = d.data || [];
+                    employees = d.data || d || [];
                     filtered = employees;
                     renderDropdown();
                 })

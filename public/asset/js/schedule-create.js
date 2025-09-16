@@ -92,13 +92,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const hidden = document.getElementById('schedule_executors');
         if(!input||!dropdown||!selectedContainer||!hidden) return;
         let employees = [], filtered = [], selected = [];
+        // Local cached fetch (shared via window to reuse across reloadless navigations)
+        const EMP_CACHE_TTL_MS = 5*60*1000;
+        const empCache = (window.__empExecCache = window.__empExecCache || { map:new Map(), inFlight:new Map() });
+        function fetchEmployeesCached(q=''){
+            const key = String(q||'').trim().toLowerCase(); const now = Date.now();
+            const hit = empCache.map.get(key);
+            if(hit && (now - hit.t) < EMP_CACHE_TTL_MS){ return Promise.resolve(hit.v); }
+            if(empCache.inFlight.has(key)) return empCache.inFlight.get(key);
+            const p = fetch(appUrl + '/task/employees-for-executor?q='+encodeURIComponent(key))
+                .then(r=>r.ok?r.json():Promise.reject(r))
+                .then(d=>{ empCache.map.set(key,{v:d,t:Date.now()}); empCache.inFlight.delete(key); return d; })
+                .catch(e=>{ empCache.inFlight.delete(key); throw e; });
+            empCache.inFlight.set(key, p);
+            return p;
+        }
         function buildPhotoUrl(userPhoto){
             if(!userPhoto) return appUrl + '/asset/img/avatar.png';
             if(/^https?:/i.test(userPhoto)) return userPhoto; if(userPhoto.startsWith('/')) return appUrl+userPhoto; if(userPhoto.startsWith('file/')||userPhoto.startsWith('asset/')) return appUrl+'/'+userPhoto; return appUrl + '/file/profile_picture/' + userPhoto;
         }
         function fetchEmployees(q=''){
-            fetch(appUrl + '/task/employees-for-executor?q='+encodeURIComponent(q))
-                .then(r=>r.json()).then(d=>{ employees = d.data||[]; filtered=employees; renderDropdown(); })
+            fetchEmployeesCached(q)
+                .then(d=>{ employees = (d && (d.data||d)) || []; filtered=employees; renderDropdown(); })
                 .catch(()=>showScheduleAlert('Failed load employees','danger'));
         }
         function renderDropdown(){

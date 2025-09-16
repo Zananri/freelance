@@ -203,6 +203,37 @@
         return colors[Math.abs(hash) % colors.length];
     }
 
+    // Shared cached fetch for employees-for-executor to avoid duplicate XHRs
+    const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+    const __empCache = { map: new Map(), inFlight: new Map() };
+    function fetchEmployeesForExecutorCached(query = "") {
+        try {
+            const key = String(query || "").trim().toLowerCase();
+            const now = Date.now();
+            const cached = __empCache.map.get(key);
+            if (cached && (now - cached.t) < EMP_CACHE_TTL_MS) {
+                // Return a resolved Deferred with cached value
+                const d = $.Deferred();
+                d.resolve(cached.v);
+                return d.promise();
+            }
+            const inflight = __empCache.inFlight.get(key);
+            if (inflight) return inflight;
+            const jq = $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: key }, dataType: 'json' })
+                .then(res => {
+                    __empCache.map.set(key, { v: res, t: Date.now() });
+                    __empCache.inFlight.delete(key);
+                    return res;
+                })
+                .catch(err => { __empCache.inFlight.delete(key); throw err; });
+            __empCache.inFlight.set(key, jq);
+            return jq;
+        } catch (_) {
+            // Fallback: no cache
+            return $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: query }, dataType: 'json' });
+        }
+    }
+
 // Show Accept confirmation modal (task page, no notification context)
     function showAcceptInviteModal(taskId) {
         // Fetch task to display context
@@ -653,20 +684,15 @@
         let selectedEmployees = [];
 
         function fetchEmployees(query = "") {
-            $.ajax({
-                url: appUrl + "/task/employees-for-executor",
-                type: "GET",
-                data: { q: query },
-                dataType: "json",
-                success: function (data) {
-                    employees = data.data || [];
+            fetchEmployeesForExecutorCached(query)
+                .then(function(data){
+                    employees = (data && (data.data || data)) || [];
                     filteredEmployees = employees;
                     renderDropdown();
-                },
-                error: function () {
-                    showFloatingAlert("Failed to load employees.", "warning", 3000);
-                },
-            });
+                })
+                .catch(function(){
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) {}
+                });
         }
 
         function renderDropdown() {
@@ -1081,9 +1107,9 @@
         let employees = [], filtered = [], selected = [];
 
         function fetchEmployees(query = ''){
-            $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: query }, dataType: 'json' })
-                .done(res => { employees = res.data || []; filtered = employees; renderDropdown(); })
-                .fail(() => { try { showFloatingAlert('Failed to load employees.', 'warning', 3000); } catch(_) {} });
+            fetchEmployeesForExecutorCached(query)
+                .then(res => { employees = (res && (res.data || res)) || []; filtered = employees; renderDropdown(); })
+                .catch(() => { try { showFloatingAlert('Failed to load employees.', 'warning', 3000); } catch(_) {} });
         }
 
         function renderDropdown(){
@@ -1366,20 +1392,15 @@
         let selectedEmployees = [];
 
         function fetchEmployees(query = "") {
-            $.ajax({
-                url: appUrl + "/task/employees-for-executor",
-                type: "GET",
-                data: { q: query },
-                dataType: "json",
-                success: function (data) {
-                    employees = data.data || [];
+            fetchEmployeesForExecutorCached(query)
+                .then(function(data){
+                    employees = (data && (data.data || data)) || [];
                     filteredEmployees = employees;
                     renderDropdown();
-                },
-                error: function () {
-                    showFloatingAlert("Failed to load employees.", "warning", 3000);
-                },
-            });
+                })
+                .catch(function(){
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) {}
+                });
         }
 
         function renderDropdown() {
@@ -3301,8 +3322,11 @@ function applyCurrentSearchFilter() {
     function fetchLatestFeedback(taskIds) {
         if (!taskIds.length) return;
 
+        // Deduplicate and normalize IDs once here
+        const uniqueIds = Array.from(new Set((taskIds || []).map(id => String(id))));
+
         // Build a stable key for the current request (sorted ids)
-        const idsKey = (taskIds || []).map(id => String(id)).sort().join(',');
+        const idsKey = uniqueIds.slice().sort().join(',');
 
         // If an identical request is already in-flight, just return it
         try {
@@ -3319,14 +3343,14 @@ function applyCurrentSearchFilter() {
             type: "GET",
             dataType: "json",
             traditional: true, // penting buat serialize array jadi ids[]=1&ids[]=2
-            data: { ids: taskIds },
+            data: { ids: uniqueIds },
         }).then((res) => {
             const map = res.data || {};
-            taskIds.forEach((tid) => {
+            uniqueIds.forEach((tid) => {
                 setLatestFeedbackSnippet(tid, map[tid] || null);
             });
         }).catch(() => {
-            taskIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
+            uniqueIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
         });
 
         // store on window for next call
@@ -3341,9 +3365,10 @@ function applyCurrentSearchFilter() {
         }
         __latestRefreshTimer = setTimeout(() => {
             __latestRefreshTimer = null;
-            const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
-                .map(card => card.getAttribute('data-task-id'));
-            fetchLatestFeedback(ids || []);
+            const nodes = Array.from(document.querySelectorAll('.custom-card[data-task-id]'));
+            const ids = nodes.map(card => card.getAttribute('data-task-id')).filter(Boolean);
+            const uniqueIds = Array.from(new Set(ids));
+            fetchLatestFeedback(uniqueIds || []);
         }, delayMs);
     }
 
