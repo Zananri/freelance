@@ -196,7 +196,7 @@ trait ScheduleImmediateGeneration
             'deleted_by' => null,
         ]);
 
-        // PIC assignment (from schedule): PIC must accept first (pending)
+        // PIC assignment (from schedule): auto-accept PIC like Add Task modal
         $picUserId = $s->created_by;
         $picEmployee = $picUserId ? Employee::where('user_id', $picUserId)->first() : null;
         if ($picEmployee) {
@@ -204,8 +204,8 @@ trait ScheduleImmediateGeneration
                 'task_id' => $task->id,
                 'employee_id' => $picEmployee->id,
                 'role' => 'PIC',
-                'is_receive' => false,
-                'date_receive' => null,
+                'is_receive' => true,
+                'date_receive' => now(),
                 'created_by' => $picUserId,
                 'updated_by' => $picUserId,
                 'deleted_by' => null,
