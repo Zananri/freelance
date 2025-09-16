@@ -3,6 +3,10 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
+// Flags to prevent double modal triggering
+window.isReopeningTimeline = false;
+window.isHandlingTimelineBarClick = false;
+
 // Helper function for consistent employee loading error handling (quiet by default)
 function handleEmployeeLoadError(xhr, status, error, context = '') {
     try {

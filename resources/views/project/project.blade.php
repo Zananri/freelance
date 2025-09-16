@@ -3,7 +3,7 @@
         {{ __('project') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link rel="stylesheet" href="{{ asset('asset/css/project.css')}}?v={{ time() }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
     </x-slot>
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
         <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
@@ -174,7 +174,8 @@
                             style="display: none;">
                             <div class="dropdown-filter-body">
                                 <div class="mb-2">
-                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by Status</label>
+                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by
+                                        Status</label>
                                     <select id="filterProjectStatus" class="form-select label-custom-filter">
                                         <option value="">All Status</option>
                                         <option value="ongoing">Not Started</option>
@@ -184,38 +185,42 @@
                                 </div>
 
                                 <hr class="my-2">
-                                <div class="mb-3">
-                                    <label for="filterSortBy" class="form-label label-custom-filter">Sort
-                                        By</label>
-                                    <select id="filterSortBy" class="form-select label-custom-filter">
-                                        <option value="asc">A-Z</option>
-                                        <option value="desc">Z-A</option>
-                                    </select>
-                                </div>
                                 <div class="mb-2">
                                     <label class="form-label d-block mb-1 label-custom-filter">Filter Mode</label>
                                     <div class="btn-group" role="group" aria-label="Filter Mode">
                                         <input type="radio" class="btn-check" name="filterMode" id="modeByProject"
                                             autocomplete="off" value="by_project" checked>
-                                        <label class="btn btn-outline-secondary label-custom-filter" for="modeByProject">By
+                                        <label class="btn btn-outline-secondary label-custom-filter"
+                                            for="modeByProject">By
                                             Project</label>
 
-                                        <input type="radio" class="btn-check" name="filterMode" id="modeByDate"
-                                            autocomplete="off" value="by_date">
-                                        <label class="btn btn-outline-secondary label-custom-filter" for="modeByDate">By Date</label>
+                                        <input type="radio" class="btn-check" name="filterMode" id="modeSortBy"
+                                            autocomplete="off" value="sort_by">
+                                        <label class="btn btn-outline-secondary label-custom-filter"
+                                            for="modeSortBy">Sort By</label>
                                     </div>
                                 </div>
                                 <div class="mb-3" id="byProjectContainer">
-                                    <label for="filterProjectSelect" class="form-label label-custom-filter">Project</label>
+                                    <label for="filterProjectSelect"
+                                        class="form-label label-custom-filter">Project</label>
                                     <select id="filterProjectSelect" class="form-select label-custom-filter">
                                         <option value="">All Projects</option>
                                     </select>
                                 </div>
                                 <div class="mb-3 d-none" id="byDateContainer">
-                                    <label for="filterProjectDateSelect" class="form-label label-custom-filter">Date</label>
+                                    <label for="filterProjectDateSelect"
+                                        class="form-label label-custom-filter">Date</label>
                                     <select id="filterProjectDateSelect" class="form-select label-custom-filter">
                                         <option value="">All Dates</option>
                                     </select>
+                                </div>
+                                <div class="mb-3 d-none" id="sortByContainer">
+                                    <label for="filterSortBy" class="form-label label-custom-filter">Sort By</label>
+                                    <select id="filterSortBy" class="form-select label-custom-filter">
+                                        <option value="asc">Newest ↑</option>
+                                        <option value="desc">Oldest ↓</option>
+                                    </select>
+
                                 </div>
                             </div>
                             <div class="dropdown-filter-footer">
@@ -725,7 +730,7 @@
     <x-slot name="script_slot">
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="{{ asset('asset/js/project.js')}}?v={{ time() }}"></script> {{-- PENTING: project.js dulu --}}
+        <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script> {{-- PENTING: project.js dulu --}}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 window.__projectUnread = {};
@@ -749,6 +754,33 @@
                             refreshAllProjectUnreadBadges();
                         } catch (_) {}
                     });
+            });
+
+            // Toggle filter containers based on filter mode
+            document.addEventListener('DOMContentLoaded', function() {
+                const modeByProject = document.getElementById('modeByProject');
+                const modeSortBy = document.getElementById('modeSortBy');
+                const byProjectContainer = document.getElementById('byProjectContainer');
+                const byDateContainer = document.getElementById('byDateContainer');
+                const sortByContainer = document.getElementById('sortByContainer');
+
+                function toggleContainers() {
+                    if (modeByProject.checked) {
+                        byProjectContainer.classList.remove('d-none');
+                        byDateContainer.classList.add('d-none');
+                        sortByContainer.classList.add('d-none');
+                    } else if (modeSortBy.checked) {
+                        byProjectContainer.classList.add('d-none');
+                        byDateContainer.classList.add('d-none');
+                        sortByContainer.classList.remove('d-none');
+                    }
+                }
+
+                if (modeByProject) modeByProject.addEventListener('change', toggleContainers);
+                if (modeSortBy) modeSortBy.addEventListener('change', toggleContainers);
+
+                // Initial call
+                toggleContainers();
             });
         </script>
 
