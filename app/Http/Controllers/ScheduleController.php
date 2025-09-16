@@ -196,7 +196,7 @@ trait ScheduleImmediateGeneration
             'deleted_by' => null,
         ]);
 
-        // PIC assignment (from schedule): PIC must accept first (pending)
+        // PIC assignment (from schedule): auto-accept PIC like Add Task modal
         $picUserId = $s->created_by;
         $picEmployee = $picUserId ? Employee::where('user_id', $picUserId)->first() : null;
         if ($picEmployee) {
@@ -204,8 +204,8 @@ trait ScheduleImmediateGeneration
                 'task_id' => $task->id,
                 'employee_id' => $picEmployee->id,
                 'role' => 'PIC',
-                'is_receive' => false,
-                'date_receive' => null,
+                'is_receive' => true,
+                'date_receive' => now(),
                 'created_by' => $picUserId,
                 'updated_by' => $picUserId,
                 'deleted_by' => null,
@@ -254,6 +254,19 @@ class ScheduleController extends Controller
     public function index(Request $request)
     {
         $query = TaskSchedule::with('project')->orderByDesc('created_at');
+
+        // Only show schedules where current user is PIC (creator) or is listed as an executor
+        $currentUser = $request->user();
+        $currentUserId = $currentUser?->id;
+        $currentEmployeeId = $currentUser?->employee?->id;
+        $query->where(function ($q) use ($currentUserId, $currentEmployeeId) {
+            if ($currentUserId) {
+                $q->where('created_by', $currentUserId);
+            }
+            if ($currentEmployeeId) {
+                $q->orWhereJsonContains('executor_ids', (int) $currentEmployeeId);
+            }
+        });
 
         // Apply recurrence_type filter if provided
         $recurrenceType = $request->input('recurrence_type');

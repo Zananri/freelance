@@ -1493,11 +1493,12 @@
 
 /* PIC and Executor image styling for task modal */
 .pic-executor-image {
-    width: 24px;
-    height: 24px;
+    /* Make PIC/Executor images in Task Detail match Project Detail collaborator size */
+    width: 36px !important;
+    height: 36px !important;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #f0f1f8;
+    border: 2px solid #f0f1f8 !important;
 }
 
 .executor-image-overlap {
