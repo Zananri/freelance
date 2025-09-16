@@ -577,9 +577,10 @@ class EmployeeController extends Controller
             $excludeEmployeeId = $request->input('exclude_employee_id', null);
 
             $employees = Employee::with(['department', 'division', 'user'])
-                ->where('status', '!=', 'DELETED')
+                ->where('status', 'ACTIVE')
                 ->whereHas('user', function ($q) {
-                    $q->where('user_type', '!=', 'ADMINISTRATOR');
+                    $q->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+                    ->whereNotIn('users.user_type',["ADMINISTRATOR"]);
                 })
                 ->when($query, function ($q) use ($query) {
                     $q->where(function ($q2) use ($query) {
