@@ -6356,29 +6356,35 @@ function applyCurrentSearchFilter() {
     async function fetchTimelineTasksOnce() {
         if (timelineTasksCache.length) return; // cache already prepared
         try {
-            const r = await fetch(appUrlTimeline + '/task/index', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const r = await fetch(appUrlTimeline + '/task/index/no-pagination', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             const j = await r.json();
             const buckets = (j && j.data) ? j.data : {};
             const flat = [];
 
-            // API structure (based on other code): { new_request: {tasks:[...]}, in_progress:{tasks:[...]}, completed:{tasks:[...]}, rejected:{tasks:[...]?} }
+            // API structure: { new_request: {tasks:[...]}, in_progress:{tasks:[...]}, completed:{tasks:[...]}, rejected:{tasks:[...]?} }
             Object.keys(buckets).forEach(key => {
                 const section = buckets[key];
                 if (!section) return;
                 if (Array.isArray(section)) {
-                    // In case backend returns simple array
                     section.forEach(t => flat.push(t));
                 } else if (Array.isArray(section.tasks)) {
                     section.tasks.forEach(t => flat.push(t));
                 }
             });
 
-            if (!flat.length) {
-                console.warn('[timeline] No tasks flattened from /task/index response. Raw keys:', Object.keys(buckets));
-            }
+            // Filter duplicate task by ID
+            const uniqueFlat = [];
+            const seenIds = new Set();
+            flat.forEach(t => {
+                if (!t.id) return;
+                if (!seenIds.has(t.id)) {
+                    uniqueFlat.push(t);
+                    seenIds.add(t.id);
+                }
+            });
 
             // Enrich missing dates (only for items lacking either start or due date)
-            await Promise.all(flat.map(async (t) => {
+            await Promise.all(uniqueFlat.map(async (t) => {
                 if (t.start_date && t.due_date) return;
                 try {
                     const rr = await fetch(appUrlTimeline + '/task/' + t.id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -6395,7 +6401,7 @@ function applyCurrentSearchFilter() {
             }));
 
             // Only keep tasks that have at least one bound (start/due)
-            timelineTasksCache = flat.filter(t => t.start_date || t.due_date);
+            timelineTasksCache = uniqueFlat.filter(t => t.start_date || t.due_date);
         } catch (e) {
             console.error('[timeline] Failed to fetch tasks for timeline', e);
             timelineTasksCache = [];
