@@ -4077,6 +4077,8 @@ function applyCurrentSearchFilter() {
                         }
                     }
                 });
+                // Refresh task cards so counts and other data reflect the latest changes
+                try { fetchAndRenderTasks(); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = "Failed to submit feedback. Please try again.";
@@ -4737,6 +4739,8 @@ function applyCurrentSearchFilter() {
                 loadTaskFeedbackData(taskId);
                 // Refresh snippets/badges best-effort
                 try { scheduleRefreshLatestFeedbackSnippets(10); } catch(_) {}
+                // Refresh task cards to update counts immediately
+                try { fetchAndRenderTasks(); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = 'Failed to update feedback. Please try again.';
