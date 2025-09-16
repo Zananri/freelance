@@ -170,8 +170,7 @@
                                     class="btn-text-filter">Timeline</span>
                             </button>
                         </div>
-                        <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown"
-                            style="display: none;">
+                        <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown">
                             <div class="dropdown-filter-body">
                                 <div class="mb-2">
                                     <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by

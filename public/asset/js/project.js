@@ -8921,7 +8921,6 @@ document.addEventListener("DOMContentLoaded", function () {
             // Close any other open dropdowns first
             document.querySelectorAll('.dropdown-menu:not(#projectFilterDropdown)').forEach(menu => {
                 menu.classList.add('d-none');
-                menu.style.display = 'none';
             });
 
             const isVisible = filterDropdown.style.display === "block" || !filterDropdown.classList.contains('d-none');
@@ -9138,7 +9137,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Check if click is outside both button and dropdown
             if (!openFilterBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
-                filterDropdown.style.display = "none";
+                // filterDropdown.style.display = "none";
                 filterDropdown.classList.add('d-none');
             }
         };
