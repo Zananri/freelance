@@ -684,9 +684,11 @@
         let selectedEmployees = [];
 
         function fetchEmployees(query = "") {
-            fetchEmployeesForExecutorCached(query)
+                fetchEmployeesForExecutorCached(query)
                 .then(function(data){
                     employees = (data && (data.data || data)) || [];
+                    // Exclude administrator users from executor pickers
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filteredEmployees = employees;
                     renderDropdown();
                 })
@@ -1108,7 +1110,10 @@
 
         function fetchEmployees(query = ''){
             fetchEmployeesForExecutorCached(query)
-                .then(res => { employees = (res && (res.data || res)) || []; filtered = employees; renderDropdown(); })
+                .then(res => { employees = (res && (res.data || res)) || []; 
+                    // Exclude administrator users from executor pickers
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filtered = employees; renderDropdown(); })
                 .catch(() => { try { showFloatingAlert('Failed to load employees.', 'warning', 3000); } catch(_) {} });
         }
 
@@ -1395,6 +1400,8 @@
             fetchEmployeesForExecutorCached(query)
                 .then(function(data){
                     employees = (data && (data.data || data)) || [];
+                    // Exclude administrator users from executor pickers
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filteredEmployees = employees;
                     renderDropdown();
                 })
