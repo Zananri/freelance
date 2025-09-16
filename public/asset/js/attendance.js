@@ -12,11 +12,6 @@ function updateClock() {
     $("#clock").text(`${hours} : ${minutes} : ${seconds}`);
     
 }
- 
-const timeOffModal = new bootstrap.Modal('#timeOffModal', {
-  keyboard: false
-});
-
 
 const checkInDetailModal = new bootstrap.Modal('#checkInDetailModal', {
   keyboard: false

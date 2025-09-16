@@ -1,185 +1,240 @@
-/* Calendar Section */
-/* Label Styling for Calendar */
-.calendar-day.checked-in {
+#calendarModal .calendar-attendance{
+    height: 85vw;
+    background-color: #f0f1f8;
+}
+
+ .card-container {
+    display: flex; /* Make it a flex container */
+    flex-direction: column; /* Stack children vertically */
+    width: 100%; /* Set a specific width for the card */
+    height: 100%; /* Set a specific height for the entire card */
+}
+
+.fixed-row {
+    height: 55px; /* Set the fixed height */
+    display: flex;
+}
+
+
+.stretch-row {
+    flex-grow: 1; /* This is the key property */
+    overflow-y: auto; /* Adds a scrollbar if content overflows */
+    line-height: 1.6;
+}
+
+
+.header-calendar{
+    padding: 5px 5px;
+}
+
+.dropdown-month .btn-dropdown-month{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #e9eef400;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+.dropdown-month .dropdown-toggle::after {
+    margin-left: 10px;
+    opacity: 0.9;
+}
+
+.dropdown-month .dropdown-item:active,
+.dropdown-month .dropdown-item:hover{
+    background-color: #E9EEF4;
+    color: #313642;
+    cursor: pointer;
+}
+
+
+.calendar-month,
+.calendar-year{
+    font-size: 16px;
+    color: #2A3542;
+    font-weight: 400;
+    margin-left: 10px;
+}
+
+.calendar-next-month,
+.calendar-prev-month{
+    font-size: 20px;
+    color: #474c59;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 10px 10px;
+}
+
+.calendar-next-month:hover,
+.calendar-prev-month:hover,
+.calendar-next-month:active,
+.calendar-prev-month:active,
+.dropdown-month .btn-dropdown-month:hover,
+.dropdown-month .btn-dropdown-month:active{
+    color: #313642 !important;
+    background-color: #E9EEF4 !important;
+}
+
+
+.table-calendar{
+    border-collapse: collapse;
+    width: 100%;
+}
+
+
+.table-calendar thead th{
+    font-size: 10px;
+    font-weight: 400;
+    color: #b0b8c2;
+    text-align: center;
+    max-height: 30px;
+    border:solid 1px #E4E7EE;
+    border-bottom: 0px;
+}
+
+@media (max-width: 567px) {
+    /* .table-calendar {
+        height: calc(100vw - 130px);
+    } */
+}
+
+
+
+.table-calendar tbody td{
     position: relative;
-    /* Add half triangular background */
-    background: linear-gradient(135deg, #007bff 50%, transparent 50%);
+    
+    vertical-align: top;
+    border:solid 1px #E4E7EE;
+    transition: all 0.3s;
+    padding: 5px 5px;
+    width: calc(100% / 7);
+    transition: all 0.3s;
 }
 
-.calendar-card-mobile.animate-in {
-    animation: slideInRight 0.4s ease forwards;
+.table-calendar tbody td:not(.empty-cell):hover{
+    cursor: pointer;
+    background-color: #F5F6FC;
 }
 
-.calendar-card-mobile.animate-out {
-    animation: slideOutRight 0.4s ease forwards;
+.table-calendar tbody tr:first-child td{
+    border-top: 0px;
 }
 
-.check-in-label {
+.table-calendar tbody td .day{
+    text-align: center;
+    font-size: 12px;
+    color: #46515f;
+    font-weight: 600;
+    position: relative;
+}
+
+.table-calendar tbody td .box-event{
+    position: absolute;
+    padding: 2px 5px;
+    top: 25px;
+    left: 0px;
+    width: 100%;
+    height: calc(100% - 30px);
+    overflow-x: auto;
+    
+}
+
+/* Style the entire scrollbar */
+.table-calendar tbody ::-webkit-scrollbar {
+  width: 4px; /* Adjust width as needed */
+  background-color: transparent; /* Initially transparent */
+}
+
+/* Style the scrollbar thumb (draggable part) */
+.table-calendar tbody ::-webkit-scrollbar-thumb {
+  background-color: #46505b2c; /* Default thumb color */
+  border-radius: 4px;
+}
+
+/* Style the scrollbar track (background) */
+.table-calendar tbody ::-webkit-scrollbar-track {
+  background-color: transparent; /* Initially transparent */
+}
+
+/* Hide the scrollbar by default */
+.table-calendar tbody ::-webkit-scrollbar-thumb,
+.table-calendar tbody ::-webkit-scrollbar-track {
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out; /* Smooth transition */
+}
+
+.table-calendar tbody td .box-event:hover ::-webkit-scrollbar-thumb,
+.table-calendar tbody td .box-event:hover ::-webkit-scrollbar-track {
+  opacity: 1;
+}
+
+
+.table-calendar tbody td .text-event{
+    font-size: 10px;
+    color: #46505B;
+    font-weight: 500;
+    background-color: #f2e2e4;
+    padding: 2px 8px;
+    margin-bottom: 5px;
+    border-radius: 15px;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1; /* Number of lines to show */
+    -webkit-box-orient: vertical;
+}
+
+.table-calendar tbody td.today .day{
+    color: #0c6cea;
+    position: relative;
+}
+
+
+.table-calendar{
+    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 20px;
+    overflow: hidden;
+}
+
+.table-calendar .bg-day{
     position: absolute;
     top: 2px;
     left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+    width: calc(100% - 4px);
+    height: calc(100% - 4px);
+    border-radius: 8px;
 }
 
-/* New styling for checkout with both In and Out labels - proper positioning */
-.calendar-day.checked-in {
-    position: relative;
-    /* Add half triangular background for check-in (top-left) */
+
+.calendar-day.check-in .day {
+    color: #fff !important;
+}
+
+.calendar-day.check-in .bg-day {
     background: linear-gradient(135deg, #3391f1 50%, transparent 50%);
 }
 
-.calendar-day.checked-out {
-    position: relative;
-    /* Add half triangular background for check-out (bottom-right) */
-    background: linear-gradient(315deg, #8d8d8d 50%, transparent 50%);
+.calendar-day.check-in:hover .bg-day {
+    background: linear-gradient(135deg, #0368cc 50%, transparent 50%);
 }
 
-.check-in-label {
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+.calendar-day.checked-out .bg-day {
+    background: linear-gradient(135deg, transparent 50%, #8d8d8d 50%);
 }
 
-.check-out-label {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    color: white;
-    font-size: 16px;
-    padding: 1px 4px;
-    border-radius: 2px;
-    z-index: 10;
-    font-weight: 400;
-    line-height: 1;
-    pointer-events: none;
-    user-select: none;
+.calendar-day.checked-out:hover .bg-day {
+    background: linear-gradient(135deg, transparent 50%, #5b5b5b 50%);
 }
 
-/* When both check-in and check-out are present */
-.calendar-day.checked-in.checked-out {
-    /* Single gradient with sharp half split without white line */
+.calendar-day.check-in.check-out .bg-day{
     background: linear-gradient(135deg, #3391f1 50%, #8d8d8d 50%);
-    color: white;
 }
 
-
-/* Fixed dimensions for calendar card with spacing */
-.calendar-container {
-    padding: 10px 10px;
-    height: 420px !important;
-    min-height: 400px !important;
-    max-height: 400px !important;
-    overflow-y: auto;
+.calendar-day.check-in.check-out .day{
+    color: #fff !important;
 }
 
-.calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
+.calendar-day.check-in.check-out:hover .bg-day{
+    background: linear-gradient(135deg, #0368cc 50%, #5b5b5b 50%);
 }
-
-.calendar-header h4 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #2c3e50;
-    margin: 0;
-}
-
-.calendar-weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    text-align: center;
-    font-weight: 500;
-    color: #6c757d;
-    font-size: 12px;
-}
-
-.calendar-weekdays div {
-    padding: 4px 2px;
-}
-
-.calendar-header button {
-    background: none;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.calendar-header button:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-}
-
-.calendar-day {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.calendar-day:hover {
-    background-color: #f8f9fa;
-}
-
-.calendar-day.other-month {
-    color: #adb5bd;
-}
-
-.calendar-day.has-attendance::after {
-    position: absolute;
-    bottom: 3px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-}
-
-.calendar-day.present::after {
-    background-color: #28a745;
-}
-
-.calendar-day.absent::after {
-    background-color: #dc3545;
-}
-
-.calendar-day.late::after {
-    background-color: #ffc107;
-}
-
-.calendar-day.leave::after {
-    background-color: #6f42c1;
-}
-
-
-

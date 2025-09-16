@@ -123,7 +123,7 @@ class AttendanceController extends Controller
                 $shiftTimeType = 'OVERNIGHT';
 
                 //Jika belum lewat 2 jam waktu checkout
-                if($now->diffInHours(Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)) > -2){
+                if($now->diffInHours(Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)) > -3){
 
                     $timeStart = $timeStartYesterday;
                     $timeEnd = $timeEndYesterday;
@@ -719,12 +719,12 @@ class AttendanceController extends Controller
 
             
             $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2); 
-            $rangeEnd = Carbon::parse($today.' '.$employee->shift->time_end)->addHours(2);
+            $rangeEnd = Carbon::parse($today.' '.$employee->shift->time_end)->addHours(3);
 
             
             if($employeeShift){
                 $rangeStart = Carbon::parse($today.' '.$employeeShift->shift->time_start)->subHours(2); 
-                $rangeEnd = Carbon::parse($today.' '.$employeeShift->shift->time_end)->addHours(2);
+                $rangeEnd = Carbon::parse($today.' '.$employeeShift->shift->time_end)->addHours(3);
             }
             
             $dateAttendance = Carbon::today()->toDateString();
@@ -738,7 +738,7 @@ class AttendanceController extends Controller
                     //OVERNIGHT
 
                     $rangeStartYesterday = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start)->subHours(2); 
-                    $rangeEndYesterday = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(2); 
+                    $rangeEndYesterday = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(3); 
                     
                     if($now <= $rangeEndYesterday && $now >= $rangeStartYesterday){
                         $rangeStart = $rangeStartYesterday;

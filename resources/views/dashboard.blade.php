@@ -4,7 +4,7 @@
     </x-slot>
     <x-slot name="head_slot">
         <link href="{{ asset('asset/css/dashboard.css').'?v='.time()}}" rel="stylesheet">
-        <link href="{{ asset('asset/css/calendar-dashboard.css'.'?v='.time()) }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/calendar-dashboard.css')}}?v={{time()}}" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
         <link rel="stylesheet" href=" {{ asset('asset/plugin/leaflet/leaflet.css') }}"/>
 
@@ -161,24 +161,76 @@
                     </div>
 
                     {{-- Calendar --}}
+                    
                     <div class="col-md-6 calendar-card-mobile mb-5">
-                        <div class="rounded-4 body-card calendar-container h-100">
-                            <div class="calendar-header">
-                                <button class="btn btn-sm" id="prevMonth"><i class="fas fa-chevron-left"></i></button>
-                                <h4 id="currentMonthYear">July 2024</h4>
-                                <button class="btn btn-sm" id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+                        <div class="rounded-4 body-card h-100 calendar-attendance position-relative" style="padding-bottom: 0px !important;">
+                            <div class="d-flex card-container">
+                                <div class="fixed-row">
+                                    <div class="header-calendar w-100">
+                                        <div class="d-flex align-items-center">
+                                            <div class="month-year w-100">
+
+                                                <div class="dropdown dropdown-month">
+                                                    <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        
+                                                        <div class="d-inline-flex align-items-center">
+                                                            <span class="calendar-month">{{ date('F') }}</span>
+                                                            <span class="calendar-year">{{ date('Y') }}</span>
+                                                        </div>
+
+                                                    </div>
+
+                                                    <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                                        @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
+                                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                                        @endfor
+                                                        
+                                                    </ul>
+                                                </div>
+
+                                                
+                                            </div>
+                                            <div class="box-view-control white-space-nowrap" >
+                                                <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
+                                                <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="stretch-row">
+                                    <div class="box-table-calendar h-100">
+                                        <table class="table-calendar h-100">
+                                            <thead>
+                                                <tr>
+                                                    <th>Sun</th>
+                                                    <th>Mon</th>
+                                                    <th>Tue</th>
+                                                    <th>Wed</th>
+                                                    <th>Thu</th>
+                                                    <th>Fri</th>
+                                                    <th>Sat</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for ($i = 0; $i < 7; $i++)
+
+                                                    <tr>
+                                                        @for ($j = 0; $j < 7; $j++)
+                                                            <td class="text-center">
+                                                                </td>
+                                                        @endfor
+                                                    </tr>
+
+                                                @endfor
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="calendar-weekdays">
-                                <div>Sun</div>
-                                <div>Mon</div>
-                                <div>Tue</div>
-                                <div>Wed</div>
-                                <div>Thu</div>
-                                <div>Fri</div>
-                                <div>Sat</div>
-                            </div>
-                            <input type="hidden" id="currentDate" name="currentDate" value="">
-                            <div class="calendar-days" id="calendarDays"></div>
+                            
+                            
+                            
+
                         </div>
                     </div>
                 </div>
@@ -944,6 +996,84 @@
                     </div>
                 </div>
 
+                <!-- Task Feedback Modal (shared with Task page behavior) -->  
+                <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 bg-transparent shadow-0">
+                            <div class="modal-body">
+                                <div class="rounded-4 calendar-attendance position-relative">
+                                    <div class="d-flex card-container">
+                                        <div class="fixed-row">
+                                            <div class="header-calendar w-100">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="month-year w-100">
+
+                                                        <div class="dropdown dropdown-month">
+                                                            <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                
+                                                                <div class="d-inline-flex align-items-center">
+                                                                    <span class="calendar-month">{{ date('F') }}</span>
+                                                                    <span class="calendar-year">{{ date('Y') }}</span>
+                                                                </div>
+
+                                                            </div>
+
+                                                            <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                                                @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
+                                                                    <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                                                @endfor
+                                                                
+                                                            </ul>
+                                                        </div>
+
+                                                        
+                                                    </div>
+                                                    <div class="box-view-control white-space-nowrap" >
+                                                        <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
+                                                        <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="stretch-row">
+                                            <div class="box-table-calendar h-100">
+                                                <table class="table-calendar h-100">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Sun</th>
+                                                            <th>Mon</th>
+                                                            <th>Tue</th>
+                                                            <th>Wed</th>
+                                                            <th>Thu</th>
+                                                            <th>Fri</th>
+                                                            <th>Sat</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @for ($i = 0; $i < 7; $i++)
+
+                                                            <tr>
+                                                                @for ($j = 0; $j < 7; $j++)
+                                                                    <td class="text-center">
+                                                                        </td>
+                                                                @endfor
+                                                            </tr>
+
+                                                        @endfor
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    
+                                    
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </x-slot>
             <x-slot name="script_slot">
                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

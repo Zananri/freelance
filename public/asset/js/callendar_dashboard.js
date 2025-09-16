@@ -1,192 +1,238 @@
-$(document).ready(function () {
-    initializeCalendar();
+
+// CALENDAR
+
+const calendarModal = new bootstrap.Modal('#calendarModal', {
+  keyboard: false
 });
 
-// Calendar Functions
+$('.calendar-toggle-btn').on('click',function(){
+    calendarModal.show();
+});
+
 let currentDate = new Date();
-let currentMonth = currentDate.getMonth();
-let currentYear = currentDate.getFullYear();
 
-// Helper: format YYYY-MM-DD in local time
-function formatLocalYMD(dateInput) {
-    const d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
-    if (isNaN(d.getTime())) return '';
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-}
+async function renderCalendar(year, month) {
+    
+    const calendarBody = $('.table-calendar tbody');
+    calendarBody.empty();
 
-// Simple selectDate for dashboard (sets hidden input and highlights selection)
-function selectDate(day, month, year) {
-    const selectedDate = new Date(year, month, day);
-    const dateString = formatLocalYMD(selectedDate);
+    const firstDay = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const monthNames = new Date(year,month);
 
-    const currentDateInput = document.getElementById("currentDate");
-    if (currentDateInput) currentDateInput.value = dateString;
 
-    const days = document.querySelectorAll(".calendar-day");
-    days.forEach((d) => d.classList.remove("selected"));
+    $('.calendar-month').text(`${currentDate.toLocaleString('default', { month: 'long' })}`);
+    $('.calendar-year').text(`${year}`);
 
-    const selectedDay = Array.from(days).find(
-        (d) => d.textContent == day && !d.classList.contains("other-month")
-    );
-    if (selectedDay) selectedDay.classList.add("selected");
-}
+    let day = 1;
+    let row = $('<tr>');
 
-function initializeCalendar() {
-    currentDate = new Date();
-    currentMonth = currentDate.getMonth();
-    currentYear = currentDate.getFullYear();
-    renderCalendar(currentMonth, currentYear);
-}
-
-function renderCalendar(month, year) {
-    console.log("Rendering calendar for", month, year); // Debug log
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDay = firstDay.getDay();
-
-    // Update header
-    const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-    ];
-    document.getElementById(
-        "currentMonthYear"
-    ).textContent = `${monthNames[month]} ${year}`;
-
-    // Clear previous days
-    const calendarDays = document.getElementById("calendarDays");
-    calendarDays.innerHTML = "";
-
-    // Add empty cells for days before month starts
-    for (let i = 0; i < startingDay; i++) {
-        const emptyDay = document.createElement("div");
-        emptyDay.className = "calendar-day other-month";
-        calendarDays.appendChild(emptyDay);
+    for (let i = 0; i < firstDay; i++) {
+        row.append('<td class="empty-cell"></td>');
     }
 
-    // Fetch attendance data for the month and employee
-    const employeeId = document.querySelector(
-        'input[name="employee_id"]'
-    )?.value;
-    if (!employeeId) {
-        console.error("Employee ID not found for attendance calendar");
-        return;
+    for (let i = 0; i < totalDays; i++) {
+        if ((firstDay + i) % 7 === 0 && i !== 0) {
+            calendarBody.append(row);
+            row = $('<tr>');
+        }
+        const today = new Date();
+        const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+
+        row.append(`<td class="calendar-day  ${isToday ? 'today' : ''}" data-calendar-date="${year}-${month+1}-${day}"><div class="bg-day"><div class="day">${day}</div></div></td>`);
+
+        day++;
+    }
+
+    calendarBody.append(row);
+
+    return 'done-rendering';
+}
+
+renderAttendance(currentDate.getFullYear(), currentDate.getMonth());
+
+
+async function renderAttendance(year, month){
+    try {
+        const calendaerResponse = await renderCalendar(year, month);
+
+        if(calendaerResponse == 'done-rendering'){
+            const attendanceReposnse = await getAttendanceEmployeeByMonth(month+1,year);
+        }
+        
+        //console.log(data);
+    } catch (error) {
+        console.error("Error fetching or processing data:", error);
+    }
+}
+
+$('.calendar-prev-month').click(function() {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderAttendance(currentDate.getFullYear(), currentDate.getMonth());
+});
+
+$('.calendar-next-month').click(function() {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderAttendance(currentDate.getFullYear(), currentDate.getMonth());
+});
+
+$(document).on('click','.dropdown-month .month-item',function(){
+    let monthNum = $(this).attr('data-month');
+    
+    currentDate.setMonth(parseInt(monthNum) - 1);
+
+    renderAttendance(currentDate.getFullYear(), currentDate.getMonth());
+
+    //$('.dropdown-month.show').removeClass('show');
+});
+
+$(document).on('click','.calendar-day',function(){
+    let dateCalendar = $(this).attr('data-calendar-date');
+    //alert(dateCalendar);
+});
+
+
+function appendEventCalendar(dateCalendar,text,type){
+
+    let boxEvent = `<div class="text-event">${text}</div>`;
+
+    $(document).find('[data-calendar-date="'+dateCalendar+'"] .box-event').append(boxEvent);
+
+}
+
+// END CALENDAR
+
+// Attendance Calendar Data
+
+async function getAttendanceEmployeeByMonth(month,year)
+{
+
+    $.ajax({
+        url: appUrl + "/attendance/get-attendance-employee-by-month",
+        type: "GET",
+        data:{
+            'YEAR' : year,
+            'MONTH' : month,
+        },
+        beforeSend:function(){
+            //$('.col-user-management .loader').fadeIn('fast');
+            $('.calendar-attendance .loader').fadeIn('fast');
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('.calendar-attendance .loader').fadeOut('fast');
+          //$('.col-user-management .loader').fadeOut('fast');
+        },
+        success: function(response) {
+            var resData = response.data;
+            
+            for (let i = 0; i < resData.length; i++) {
+                const attendance = resData[i];
+
+                const attendanceDateObject = new Date(attendance.date_attendance);
+                const attendanceDateEN = attendanceDateObject.toISOString().slice(0, 10);
+                
+                const timeIn = formatTimeDisplay(attendance.time_in);
+                const timeOut = formatTimeDisplay(attendance.time_out);
+
+                const dateAttendance = formatDateMedium(attendance.date_attendance);
+
+                $(`[data-calendar-date="${dateAttendance}"]`).attr('attendance_date',attendanceDateEN);
+                $(`[data-calendar-date="${dateAttendance}"]`).attr('attendance',attendance.id);
+                $(`[data-calendar-date="${dateAttendance}"]`).attr('check-in',timeIn);
+                $(`[data-calendar-date="${dateAttendance}"]`).attr('check-out',timeOut);
+
+                if(timeIn != '--:--'){
+                    $(document).find(`[data-calendar-date="${dateAttendance}"]`).addClass('check-in');
+                }
+
+                if(timeOut != '--:--'){
+                    $(document).find(`[data-calendar-date="${dateAttendance}"]`).addClass('check-out');
+                }
+
+            }
+
+            $('.calendar-attendance .loader').fadeOut('fast');
+        
+        }
+         
+    });
+
+}
+
+// Attendance Calendar Data
+
+
+
+// Format Date Time
+
+function formatTimeDisplay(timeString) {
+
+    if (!timeString) return '--:--';
+
+    if (typeof timeString === 'string') {
+        const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) return `${m[1]}:${m[2]}`;
     }
     
+    let date = new Date(timeString);
 
-    fetch(`${baseUrl}/attendance/monthly/${employeeId}/${year}/${month + 1}`)
-        .then((response) => response.json())
-        .then((data) => {
-            let attendanceData = {};
-            if (data.status === "success" && Array.isArray(data.data)) {
-                // Group attendance records by date
-                data.data.forEach((record) => {
-                    const ds = (record.date_attendance || '').toString();
-                    let day = NaN;
-                    try {
-                        if (/Z$|[+\-]\d{2}:?\d{2}$/.test(ds)) {
-                            // ISO string with timezone -> use Date to get local day
-                            const d = new Date(ds);
-                            if (!isNaN(d.getTime())) day = d.getDate();
-                        } else if (ds.includes('T') || ds.includes(' ')) {
-                            // Likely "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DD HH:MM:SS"
-                            const norm = ds.replace(' ', 'T');
-                            const d = new Date(norm);
-                            if (!isNaN(d.getTime())) day = d.getDate();
-                        } else {
-                            // Pure date string YYYY-MM-DD
-                            const parts = ds.split('-');
-                            day = parseInt(parts[2], 10);
-                        }
-                    } catch (e) {}
-                    if (!isFinite(day)) return;
-                    if (!attendanceData[day]) attendanceData[day] = [];
-                    attendanceData[day].push(record);
-                });
-            }
+    if (isNaN(date.getTime()) && typeof timeString === 'string' && timeString.includes(' ')) {
+        
+        date = new Date(timeString.replace(' ', 'T'));
+    }
+    
+    if (isNaN(date.getTime())) {
+        return '--:--';
+    }
 
-            // Add days of the month
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayElement = document.createElement("div");
-                dayElement.className = "calendar-day";
-                dayElement.textContent = day;
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
 
-                // Check if this is today
-                const checkDate = new Date(year, month, day);
-                if (checkDate.toDateString() === new Date().toDateString()) {
-                    dayElement.classList.add("today");
-                }
-
-                // Add attendance classes based on data
-                if (attendanceData[day]) {
-                    const records = attendanceData[day];
-
-                    // Detect using either time_in/time_out or type_attendance fields
-                    const hasCheckIn = records.some(
-                        (r) => (r.time_in && String(r.time_in).length > 0) || r.type_attendance === "check_in"
-                    );
-                    const hasCheckOut = records.some(
-                        (r) => (r.time_out && String(r.time_out).length > 0) || r.type_attendance === "check_out"
-                    );
-
-                    if (hasCheckIn && hasCheckOut) {
-                        // Both check-in and check-out (two-color background only)
-                        dayElement.classList.add("checked-in", "checked-out");
-                    } else if (hasCheckIn) {
-                        // Only check-in (blue corner only)
-                        dayElement.classList.add("checked-in");
-                    } else if (hasCheckOut) {
-                        // Only check-out (gray corner only)
-                        dayElement.classList.add("checked-out");
-                    }
-                }
-
-                // Add click event with left/right split behavior
-                dayElement.addEventListener("click", function (e) {
-                    selectDate(day, month, year);
-                    const hasIn = dayElement.classList.contains('checked-in');
-                    const hasOut = dayElement.classList.contains('checked-out');
-                    const clickedDate = `${year}-${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-
-                    try {
-                        if (hasIn && hasOut && e && e.currentTarget) {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            const clickX = e.clientX - rect.left;
-                            const isLeftHalf = clickX < rect.width / 2;
-                            if (isLeftHalf) {
-                                if (typeof openCheckInDetailModal === 'function') openCheckInDetailModal(clickedDate);
-                            } else {
-                                if (typeof openCheckOutDetailModal === 'function') openCheckOutDetailModal(clickedDate);
-                            }
-                            return;
-                        }
-
-                        if (hasIn) {
-                            if (typeof openCheckInDetailModal === 'function') openCheckInDetailModal(clickedDate);
-                        } else if (hasOut) {
-                            if (typeof openCheckOutDetailModal === 'function') openCheckOutDetailModal(clickedDate);
-                        }
-                    } catch (err) { console.error(err); }
-                });
-
-                calendarDays.appendChild(dayElement);
-            }
-        })
-        .catch((error) => {
-            console.error("Error fetching monthly attendance:", error);
-        });
+    return `${hours}:${minutes}`;
 }
+
+function formatTimeShort(timeString) {
+
+    if (!timeString) return '--:--';
+
+    if (typeof timeString === 'string') {
+        const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) return `${m[1]} : ${m[2]}`;
+    }
+    
+    return timeString;
+}
+
+function formatDateMedium(date) {
+    const newDate = new Date(date);
+    const year = newDate.getFullYear();
+    const month = newDate.getMonth() + 1; // getMonth() returns 0-11
+    const day = newDate.getDate();
+
+    // No padding needed for single-digit month/day in yyyy-m-d format
+    return `${year}-${month}-${day}`;
+}
+
+function formateDateFull(dateString){
+
+    if (!dateString) return '';
+
+    const newDate = new Date(dateString); // Or your specific date object
+
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    const dayOfWeek = weekdays[newDate.getDay()];
+    const dateNumber = newDate.getDate();
+    const monthName = months[newDate.getMonth()];
+    const year = newDate.getFullYear();
+
+    const formattedDate = `${dayOfWeek} ${dateNumber} ${monthName} ${year}`;
+
+    return formattedDate;
+
+}
+
+

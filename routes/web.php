@@ -38,7 +38,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [UserController::class, 'login'])->name('login');
 });
 
-Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword')->middleware('auth');
+
 
 Route::get('/server-time', function () {
     $now = Carbon::now('Asia/Jakarta');
@@ -173,21 +173,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
     Route::get('/attendance/get-attendance-employee-by-month', [AttendanceController::class, 'getAttendanceEmployeeByMonth'])->name('attendance.getAttendanceEmployeeByMonth');
 
-    Route::get('/attendance/index', [AttendanceController::class, 'index'])->name('attendance.index');
-    Route::get('/attendance/create', [AttendanceController::class, 'create'])->name('attendance.create');
-    Route::get('/attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
-    Route::get('/attendance/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
+    Route::post('/attendance/time-off-new-request', [CalendarController::class, 'timeOffNewRequest'])->name('attendance.timeOffNewRequest');
 
     Route::post('/attendance/submit-checkin', [AttendanceController::class, 'submitCheckin'])->name('attendance.submitCheckin');
     Route::post('/attendance/submit-checkout', [AttendanceController::class, 'submitCheckout'])->name('attendance.submitCheckout');
-
-    Route::post('/attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
-    Route::post('/attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
-    Route::get('/attendance/today/{employeeId}', [AttendanceController::class, 'getTodayAttendance'])->name('attendance.today');
-    Route::get('/attendance/monthly/{employeeId}/{year}/{month}', [AttendanceController::class, 'getMonthlyAttendance'])->name('attendance.monthly');
-    Route::put('/attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
-    Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
-
 
     Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
     Route::get('/shift/employees-with-shifts', [ShiftController::class, 'getEmployeesWithShifts'])->name('shift.employees-with-shifts');
@@ -220,6 +209,7 @@ Route::middleware('auth', 'management')->group(function () {
     })->name('master');
 
 
+    Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword');
     Route::get('/user', [UserController::class, 'showUserPage'])->name('user');
     Route::get('/user/index', [UserController::class, 'index'])->name('user.index');
     Route::get('/user/create', [UserController::class, 'create'])->name('user.create');
@@ -229,7 +219,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
     Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('user.destroy');
     Route::get('/user/ajax/data', [UserController::class, 'getUsersAjax'])->name('user.ajax.data');
-
+    
 
     Route::get('/department', [DepartmentController::class, 'showDepartmentPage'])->name('department');
     Route::get('/department/index', [DepartmentController::class, 'index'])->name('department.index');

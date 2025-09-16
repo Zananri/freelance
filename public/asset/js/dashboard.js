@@ -3,37 +3,6 @@ const baseUrl = $('meta[name="app-url"]').attr('content');
 const appUrl = $('meta[name="app-url"]').attr('content');
 // calendar mobile toggle
 $(document).ready(function () {
-    // --- Calendar Toggle ---
-    const $calendar = $(".calendar-card-mobile");
-    const $calendarOverlay = $("<div class='calendar-overlay'></div>").appendTo("body");
-
-    $(".toggle-calendar").on("click", function (e) {
-        e.preventDefault();
-
-        if ($calendar.hasClass("active")) {
-            // Tutup
-            $calendar.removeClass("animate-in").addClass("animate-out");
-            $calendarOverlay.removeClass("active");
-
-            setTimeout(() => {
-                $calendar.removeClass("active animate-out");
-            }, 400);
-        } else {
-            // Buka
-            $calendar.addClass("active animate-in p-3").removeClass("animate-out");
-            $calendarOverlay.addClass("active");
-        }
-    });
-
-    $calendarOverlay.on("click", function () {
-        $calendar.removeClass("animate-in").addClass("animate-out");
-        $(this).removeClass("active");
-
-        setTimeout(() => {
-            $calendar.removeClass("active animate-out");
-        }, 400);
-    });
-
 
     // --- Timeline Toggle ---
     const $timeline = $(".timeline-card-mobile");

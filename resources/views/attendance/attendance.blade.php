@@ -478,8 +478,7 @@
                         <div class="wrapper-data-time-off">
 
                             <div class="box-data scrollbar-transparent pe-1">
-                                
-{{--                                 
+                                {{--                                 
                                 <div class="item-time-off">
                                     <div class="item-header mb-2">
                                         <div class="mb-0">
@@ -540,7 +539,8 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>  --}}
+                                </div>  
+                                --}}
 
                             </div>
 
@@ -563,13 +563,148 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal for Time Off -->
+        <div class="modal fade" id="requestTimeOffModal" tabindex="-1" role="dialog" aria-labelledby="requestTimeOffModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
+                    
+                    <div class="modal-body px-4 border-0 ">
+                        
+                        <style>
+                            .wrapper-form label,
+                            .wrapper-form input,
+                            .wrapper-form textarea,
+                            .wrapper-form select{
+                                font-size: 14px !important;
+                            }
+                            
+                            .wrapper-form .form-select,
+                            .wrapper-form .form-control{
+                                font-size: 14px !important;
+                                padding : 12px 14px;
+                                border-radius: 10px;
+                                border:0px;
+                            }
+
+                            .wrapper-form .form-label {
+                                margin-bottom: 4px;
+                            }
+
+                            input[type="file"]::file-selector-button {
+                                /* Customize button appearance */
+                                display: none;
+                            }
+
+                            .form-control.is-invalid{
+                                border-color: var(--bs-form-invalid-border-color);
+                                padding-right: calc(1.5em + .75rem);
+                                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+                                background-repeat: no-repeat;
+                                background-position: right calc(.375em + .1875rem) center;
+                                background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+                            }
+                        </style>
+                        <div class="form-header mb-4">
+                            <h5 class="modal-title fs-18">Request Time Off</h5>
+                        </div>
+
+                        <div class="wrapper-form">
+
+                            <form action="" id="form-request-time-off" class="needs-validation" novalidate enctype="multipart/form-data"  >
+
+                                @csrf
+
+                                <div class="mb-3">
+                                    <label for="select-type" class="form-label">Leave Type</label>
+                                    <select class="form-select" name="leave_type" id="select-type" attr-validation="required">
+                                        <option value="ANNUAL_LEAVE">Annual Leave</option>
+                                        <option value="SICK">Sick</option>
+                                    </select>
+                                    <div class="invalid-feedback fs-12">Please select a leave type</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="start-date" class="form-label">Start Date</label>
+                                            <input class="form-control" type="date" name="start_date" id="start-date" attr-validation="required">
+                                            <div class="invalid-feedback fs-12">Please choose a start date</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="end-date" class="form-label" >End Date</label>
+                                            <input class="form-control" type="date" name="end_date" id="end-date" attr-validation="required">
+                                            <div class="invalid-feedback fs-12">Please choose a end date</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" name="description" id="description" rows="3" attr-validation="required"></textarea>
+                                    <div class="invalid-feedback fs-12">Please input a description</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="file-pdf" class="form-label">File PDF</label>
+                                    <input class="form-control" type="file" name="file_pdf" id="file-pdf" accept=".pdf">
+                                    <div class="invalid-feedback fs-12">Please add a file PDF</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="file-image" class="form-label">Image</label>
+                                    <input class="form-control" type="file" name="file_image" id="file-image" accept="image/*" capture="environment">
+                                    <div class="invalid-feedback fs-12">Please add a photo</div>
+                                </div>
+
+
+                            </form>
+
+                        </div>
+
+                        <div class="mt-5 mb-2">
+
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100" data-bs-dismiss="modal">Cancel</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Submit</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+
+
+                    </div>
+
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fs-14">Loading...</div>
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
                     
 
     </x-slot>
 
 
     <x-slot name="script_slot">
+
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
         <script src="{{ asset('asset/js/attendance.js?v=' . time()) }}"></script>
+        <script src="{{ asset('asset/js/attendance_time_off.js?v=' . time()) }}"></script>
+    
     </x-slot>
+
 </x-office-layout>
