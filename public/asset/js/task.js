@@ -5170,21 +5170,30 @@ function applyCurrentSearchFilter() {
 
                         const rows = items.map(({ role, emp }) => {
                             const name = getName(emp);
-                            let division = getDivision(emp);
-                            // If employee division is not available, fallback to the task's project division (helps when emp object lacks division fields)
-                            if (!division || division === '-') {
+                            // For Task Detail, show each employee's role inside the task instead of division
+                            function getRoleLabel(role, empObj) {
                                 try {
-                                    const proj = (taskObj && taskObj.project) ? taskObj.project : (task && task.project) ? task.project : null;
-                                    division = (proj && (proj.division || proj.division_name || proj.division_title)) || '-';
-                                } catch (_) { division = '-'; }
+                                    // Prefer explicit role on employee object if available
+                                    if (empObj && empObj.role) return String(empObj.role).replace(/_/g, ' ');
+                                    if (!role) return '-';
+                                    switch (role) {
+                                        case 'pic': return 'PIC';
+                                        case 'executor': return 'Executor';
+                                        case 'author': return 'Author';
+                                        case 'co_author': return 'Co-author';
+                                        case 'contributor': return 'Contributor';
+                                        default: return String(role).charAt(0).toUpperCase() + String(role).slice(1);
+                                    }
+                                } catch (_) { return '-'; }
                             }
+                            const roleLabel = getRoleLabel(role, emp);
                             const photo = resolvePhotoHtmlForTask(emp, 36, 0);
                             return (
                                 '<div class="collab-item d-flex align-items-center mb-2">' +
                                     '<div class="flex-shrink-0">' + photo + '</div>' +
                                     '<div class="ms-2">' +
                                         '<div class="collab-name">' + (name || 'Unknown') + '</div>' +
-                                        '<div class="collab-division text-muted">' + (division || '-') + '</div>' +
+                                        '<div class="collab-division text-muted">' + (roleLabel || '-') + '</div>' +
                                     '</div>' +
                                 '</div>'
                             );
