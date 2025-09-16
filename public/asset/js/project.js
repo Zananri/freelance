@@ -8346,39 +8346,65 @@ document.addEventListener("DOMContentLoaded", function () {
     function updatePagination(pagination) {
         if (!pagination) return;
 
+        const paginationContainer = document.querySelector(".pagination");
+        if (!paginationContainer) return;
+
         const currentPage = parseInt(pagination.current_page, 10);
         const perPage = parseInt(pagination.per_page, 10);
         const total = parseInt(pagination.total, 10);
         const lastPage = parseInt(pagination.last_page, 10);
 
-        if (total <= perPage) {
-            $("#project-pagination").addClass("d-none");
-        } else {
-            $("#project-pagination").removeClass("d-none");
-            $("#project-pagination").addClass("d-flex");
+        if (total <= perPage || lastPage <= 1) {
+            paginationContainer.innerHTML = "";
+            return;
         }
 
-        const from = (currentPage - 1) * perPage + 1;
-        let to = currentPage * perPage;
-        if (to > total) to = total;
+        paginationContainer.innerHTML = "";
 
-        $("#paginationInfo").text(`${currentPage} OF ${lastPage}`);
+        const prevLi = document.createElement("li");
+        prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "page-link";
+        prevBtn.textContent = "Previous";
+        prevBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (currentPage === 1) return;
+            loadCardProjects(currentPage - 1);
+        });
+        prevLi.appendChild(prevBtn);
+        paginationContainer.appendChild(prevLi);
 
-        $("#prevPageBtn")
-            .prop("disabled", currentPage <= 1)
-            .data("page", currentPage - 1);
-        $("#nextPageBtn")
-            .prop("disabled", currentPage >= lastPage)
-            .data("page", currentPage + 1);
-
-        $("#prevPageBtn, #nextPageBtn")
-            .off("click")
-            .on("click", function () {
-                const page = $(this).data("page");
-                if (page) {
-                    loadCardProjects(page);
-                }
+        for (let i = 1; i <= lastPage; i++) {
+            const li = document.createElement("li");
+            li.className = "page-item" + (i === currentPage ? " active" : "");
+            const btn = document.createElement("button");
+            btn.className = "page-link";
+            btn.textContent = i;
+            btn.addEventListener("click", function (e) {
+                e.preventDefault();
+                loadCardProjects(i);
             });
+            li.appendChild(btn);
+            paginationContainer.appendChild(li);
+        }
+
+        const nextLi = document.createElement("li");
+        nextLi.className = "page-item" + (currentPage === lastPage ? " disabled" : "");
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "page-link";
+        nextBtn.textContent = "Next";
+        nextBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (currentPage === lastPage) return;
+            loadCardProjects(currentPage + 1);
+        });
+        nextLi.appendChild(nextBtn);
+        paginationContainer.appendChild(nextLi);
+
+        const infoEl = document.getElementById("paginationInfo");
+        if (infoEl) {
+            infoEl.textContent = `${currentPage} OF ${lastPage}`;
+        }
     }
 
     function updateProjectChartFromData(projects, chartCounts) {}
