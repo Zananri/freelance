@@ -99,7 +99,7 @@
         <!-- Modal -->
         <div class="modal fade" id="modalView" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalViewLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
+                <div class="modal-content position-relative rounded-4 border-0">
 
                     <div class="modal-body position-relative">
 
@@ -178,6 +178,9 @@
 
                     </div> 
 
+                    <div class=" employee-photo-wall rounded-4 border-0 position-absolute w-100 h-100 top-0 start-0 bg-body bg-opacity-50">
+
+                    </div>
                 </div>
             </div>
         </div>

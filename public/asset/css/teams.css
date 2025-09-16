@@ -285,3 +285,10 @@
     }
 }
  
+
+.modal .employee-photo-wall{
+    display: none;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
