@@ -2755,6 +2755,26 @@ function applyCurrentSearchFilter() {
                 });
                 return;
             }
+
+            // Click on task title -> open detail modal
+            const titleEl = e.target.closest('.task-title');
+            if (titleEl) {
+                // Find nearest task card and its id
+                const card = titleEl.closest('.custom-card');
+                const taskId = card ? card.getAttribute('data-task-id') : null;
+                if (taskId) {
+                    try {
+                        // If detail modal already open, hide it first to avoid duplicates
+                        const detailModalEl = document.getElementById('taskDetailModal');
+                        if (detailModalEl) {
+                            const dm = bootstrap.Modal.getInstance(detailModalEl);
+                            if (dm) dm.hide();
+                        }
+                    } catch(_) {}
+                    try { handleTaskDetail(taskId); } catch(_) { /* noop */ }
+                }
+                return; // prevent other handlers from also reacting
+            }
         });
 
         // Bind latest-feedback-snippet clicks
