@@ -9918,27 +9918,6 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
     }
 }
 
-// small seq guard for concurrent requests
-window.latestProjectSnippetSeq = window.latestProjectSnippetSeq || {};
-function fetchLatestFeedbackForProject(projectId) {
-    const seq = (window.latestProjectSnippetSeq[projectId] =
-        (window.latestProjectSnippetSeq[projectId] || 0) + 1);
-    return $.ajax({
-        url: appUrl + `/project-feedbacks/${projectId}/latest`,
-        type: "GET",
-        dataType: "json",
-    })
-        .then((res) => {
-            if (window.latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
-            const data = res && (res.data || null);
-            setProjectLatestFeedbackSnippet(projectId, data);
-        })
-        .catch(() => {
-            if (window.latestProjectSnippetSeq[projectId] !== seq) return;
-            setProjectLatestFeedbackSnippet(projectId, null);
-        });
-}
-
 // === Global Unread Badge Refresher ===
 function refreshAllProjectUnreadBadges() {
     try {
