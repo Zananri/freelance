@@ -754,33 +754,6 @@
                         } catch (_) {}
                     });
             });
-
-            // Toggle filter containers based on filter mode
-            document.addEventListener('DOMContentLoaded', function() {
-                const modeByProject = document.getElementById('modeByProject');
-                const modeSortBy = document.getElementById('modeSortBy');
-                const byProjectContainer = document.getElementById('byProjectContainer');
-                const byDateContainer = document.getElementById('byDateContainer');
-                const sortByContainer = document.getElementById('sortByContainer');
-
-                function toggleContainers() {
-                    if (modeByProject.checked) {
-                        byProjectContainer.classList.remove('d-none');
-                        byDateContainer.classList.add('d-none');
-                        sortByContainer.classList.add('d-none');
-                    } else if (modeSortBy.checked) {
-                        byProjectContainer.classList.add('d-none');
-                        byDateContainer.classList.add('d-none');
-                        sortByContainer.classList.remove('d-none');
-                    }
-                }
-
-                if (modeByProject) modeByProject.addEventListener('change', toggleContainers);
-                if (modeSortBy) modeSortBy.addEventListener('change', toggleContainers);
-
-                // Initial call
-                toggleContainers();
-            });
         </script>
 
 

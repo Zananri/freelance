@@ -87,7 +87,7 @@ Route::middleware('auth')->group(function () {
         ->name('project-feedbacks.unread-count');
     Route::post('/project/{id}/feedbacks/mark-read', [ProjectController::class, 'markProjectFeedbacksRead'])
         ->name('project-feedbacks.mark-read');
-    Route::get('/project-feedbacks/{projectId}/latest', [ProjectController::class, 'getProjectLatestFeedback'])
+    Route::get('/project-feedbacks/latest/{projectId}', [ProjectController::class, 'getProjectLatestFeedback'])
         ->name('project-feedbacks.latest');
 
     // === Project update & delete ===
