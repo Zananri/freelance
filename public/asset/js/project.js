@@ -7005,13 +7005,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 setProjectLatestFeedbackSnippet(projectId, null);
             });
     }
+
+    let lastRefresh = 0;
     function refreshAllProjectLatestFeedbackSnippets() {
-        document
-            .querySelectorAll("#all-cards-container .col-md-4[data-project-id]")
-            .forEach((col) => {
-                const pid = col.getAttribute("data-project-id");
-                fetchLatestFeedbackForProject(pid);
-            });
+        const now = Date.now();
+        if (now - lastRefresh < 5000) return;
+        lastRefresh = now;
+
+        const pids = [...document.querySelectorAll("[data-project-id]")]
+                    .map(el => el.getAttribute("data-project-id"));
+
+        Promise.all(pids.map(pid =>
+            fetchLatestFeedbackForProject(pid)
+        ));
     }
 
     // New implementation for co-author input with checkbox multi-select and search
@@ -8192,396 +8198,279 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     };
 
-    // Populate feedback and file counts for each card
-    // Retry a few times if cards are not yet present (cards are loaded via AJAX)
-    (function populateCounts(retry = 0) {
-        const MAX_RETRIES = 12; // total ~12 * 250ms = 3s max wait
-        const RETRY_DELAY = 250;
+window.__projectCache = window.__projectCache || {};
+window.__feedbackCache = window.__feedbackCache || {};
+window.__projectFetchPromises = window.__projectFetchPromises || {};
+window.__feedbackFetchPromises = window.__feedbackFetchPromises || {};
 
-        const containerEl = document.getElementById("all-cards-container");
-        if (!containerEl) {
-            if (retry < MAX_RETRIES) {
-                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+function getProject(pid, force) {
+    if (!force && window.__projectCache[pid]) return Promise.resolve(window.__projectCache[pid]);
+    if (window.__projectFetchPromises[pid]) return window.__projectFetchPromises[pid];
+    const p = fetch(appUrl + "/project/" + pid)
+        .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+        .then((resp) => {
+            const data = resp.data || resp;
+            window.__projectCache[pid] = data;
+            delete window.__projectFetchPromises[pid];
+            return data;
+        })
+        .catch((err) => {
+            delete window.__projectFetchPromises[pid];
+            throw err;
+        });
+    window.__projectFetchPromises[pid] = p;
+    return p;
+}
+
+function getFeedback(pid, force) {
+    if (!force && window.__feedbackCache[pid]) return Promise.resolve(window.__feedbackCache[pid]);
+    if (window.__feedbackFetchPromises[pid]) return window.__feedbackFetchPromises[pid];
+    const p = fetch(appUrl + "/project-feedbacks/" + pid)
+        .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+        .then((resp) => {
+            let arr = [];
+            if (Array.isArray(resp)) arr = resp;
+            else if (Array.isArray(resp.data)) arr = resp.data;
+            else if (resp.data && typeof resp.data === "object") arr = [resp.data];
+            else if (typeof resp.total === "number") arr = new Array(resp.total).fill(null);
+            window.__feedbackCache[pid] = arr;
+            delete window.__feedbackFetchPromises[pid];
+            return arr;
+        })
+        .catch((err) => {
+            delete window.__feedbackFetchPromises[pid];
+            throw err;
+        });
+    window.__feedbackFetchPromises[pid] = p;
+    return p;
+}
+
+(function populateCounts(retry = 0) {
+    const MAX_RETRIES = 12;
+    const RETRY_DELAY = 250;
+    const containerEl = document.getElementById("all-cards-container");
+    if (!containerEl) {
+        if (retry < MAX_RETRIES) return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+        return;
+    }
+    const cards = containerEl.querySelectorAll("[data-project-id]");
+    if (!cards || cards.length === 0) {
+        if (retry < MAX_RETRIES) return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+        return;
+    }
+    cards.forEach((card) => {
+        const pid = card.getAttribute("data-project-id");
+        const fbBadge = card.querySelector(".project-feedback-count");
+        const fileBadge = card.querySelector(".project-file-count");
+        if (window.__feedbackCache && window.__feedbackCache[pid]) {
+            const count = (window.__feedbackCache[pid] && window.__feedbackCache[pid].length) || 0;
+            if (fbBadge) {
+                fbBadge.textContent = count > 0 ? count : "";
+                fbBadge.style.display = count > 0 ? "" : "none";
             }
-            return; // give up
+        } else {
+            getFeedback(pid).then((arr) => {
+                const count = (arr && arr.length) || 0;
+                if (fbBadge) {
+                    fbBadge.textContent = count > 0 ? count : "";
+                    fbBadge.style.display = count > 0 ? "" : "none";
+                }
+            }).catch(() => {
+                if (fbBadge) {
+                    fbBadge.textContent = "";
+                    fbBadge.style.display = "none";
+                }
+            });
         }
-
-        const cards = containerEl.querySelectorAll("[data-project-id]");
-        if (!cards || cards.length === 0) {
-            if (retry < MAX_RETRIES) {
-                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+        if (window.__projectCache && window.__projectCache[pid]) {
+            const data = window.__projectCache[pid];
+            let files = [];
+            if (Array.isArray(data.reference_files)) files = data.reference_files;
+            else if (Array.isArray(data.reference_file)) files = data.reference_file;
+            else if (typeof data.reference_file === "string" && data.reference_file.trim() !== "") files = [data.reference_file];
+            const count = files.length || 0;
+            if (fileBadge) {
+                fileBadge.textContent = count > 0 ? count : "";
+                fileBadge.style.display = count > 0 ? "" : "none";
             }
+        } else {
+            getProject(pid).then((data) => {
+                let files = [];
+                if (Array.isArray(data.reference_files)) files = data.reference_files;
+                else if (Array.isArray(data.reference_file)) files = data.reference_file;
+                else if (typeof data.reference_file === "string" && data.reference_file.trim() !== "") files = [data.reference_file];
+                const count = files.length || 0;
+                if (fileBadge) {
+                    fileBadge.textContent = count > 0 ? count : "";
+                    fileBadge.style.display = count > 0 ? "" : "none";
+                }
+            }).catch(() => {
+                if (fileBadge) {
+                    fileBadge.textContent = "";
+                    fileBadge.style.display = "none";
+                }
+            });
+        }
+    });
+})(0);
+
+window.updateProjectBadges = function (pid, attempt = 0) {
+    try {
+        const containerEl = document.getElementById("all-cards-container");
+        if (!containerEl) return;
+        const card = containerEl.querySelector('[data-project-id="' + pid + '"]');
+        if (!card) {
+            if (attempt < 5) return setTimeout(() => window.updateProjectBadges(pid, attempt + 1), 50);
             return;
         }
-
-        cards.forEach((card) => {
-            const pid = card.getAttribute("data-project-id");
-            // find badges
-            const fbBadge = card.querySelector(".project-feedback-count");
-            const fileBadge = card.querySelector(".project-file-count");
-
-            // request feedback count (robust parsing)
-            fetch(appUrl + "/project-feedbacks/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    let count = 0;
-                    // resp can be array, { data: [...] }, { total: n }, or single object
-                    if (Array.isArray(resp)) {
-                        count = resp.length;
-                    } else if (Array.isArray(resp.data)) {
-                        count = resp.data.length;
-                    } else if (typeof resp.total === "number") {
-                        count = resp.total;
-                    } else if (
-                        resp.meta &&
-                        typeof resp.meta.total === "number"
-                    ) {
-                        count = resp.meta.total;
-                    } else if (resp.data && typeof resp.data === "object") {
-                        // single item
-                        count = 1;
-                    }
-                    if (fbBadge) {
-                        if (count > 0) {
-                            fbBadge.textContent = count;
-                            fbBadge.style.display = '';
-                        } else {
-                            fbBadge.textContent = '';
-                            fbBadge.style.display = 'none';
-                        }
-                    }
-                })
-                .catch((err) => {
-                    if (fbBadge) {
-                        fbBadge.textContent = '';
-                        fbBadge.style.display = 'none';
-                    }
-                });
-
-            // request project detail to read reference_file
-            fetch(appUrl + "/project/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    const data = resp.data || resp;
-                    let count = 0;
-                    if (data.reference_file) {
-                        if (Array.isArray(data.reference_file))
-                            count = data.reference_file.length;
-                        else if (
-                            typeof data.reference_file === "string" &&
-                            data.reference_file.trim() !== ""
-                        )
-                            count = 1;
-                    }
-                    if (fileBadge) {
-                        if (count > 0) {
-                            fileBadge.textContent = count;
-                            fileBadge.style.display = '';
-                        } else {
-                            fileBadge.textContent = '';
-                            fileBadge.style.display = 'none';
-                        }
-                    }
-                })
-                .catch((err) => {
-                    if (fileBadge) {
-                        fileBadge.textContent = '';
-                        fileBadge.style.display = 'none';
-                    }
-                });
+        const fbBadge = card.querySelector(".project-feedback-count");
+        const fileBadge = card.querySelector(".project-file-count");
+        getFeedback(pid).then((arr) => {
+            const count = (arr && arr.length) || 0;
+            if (fbBadge) {
+                fbBadge.textContent = count > 0 ? count : "";
+                fbBadge.style.display = count > 0 ? "" : "none";
+            }
+        }).catch(() => {
+            if (fbBadge) {
+                fbBadge.textContent = "";
+                fbBadge.style.display = "none";
+            }
         });
-    })(0);
-
-    // Expose helper to update badges for a single project id (used after edit)
-    window.updateProjectBadges = function (pid, attempt = 0) {
-        try {
-            const containerEl = document.getElementById("all-cards-container");
-            if (!containerEl) return;
-            const card = containerEl.querySelector(
-                '[data-project-id="' + pid + '"]'
-            );
-            if (!card) {
-                // retry a few times until card is rendered
-                if (attempt < 5) {
-                    return setTimeout(
-                        () => window.updateProjectBadges(pid, attempt + 1),
-                        50
-                    );
-                }
-                return;
+        getProject(pid).then((data) => {
+            let files = [];
+            if (Array.isArray(data.reference_files)) files = data.reference_files;
+            else if (Array.isArray(data.reference_file)) files = data.reference_file;
+            else if (typeof data.reference_file === "string" && data.reference_file.trim() !== "") files = [data.reference_file];
+            const count = files.length || 0;
+            if (fileBadge) {
+                fileBadge.textContent = count > 0 ? count : "";
+                fileBadge.style.display = count > 0 ? "" : "none";
             }
+        }).catch(() => {
+            if (fileBadge) {
+                fileBadge.textContent = "";
+                fileBadge.style.display = "none";
+            }
+        });
+    } catch (e) {}
+};
 
-            const fbBadge = card.querySelector(".project-feedback-count");
-            const fileBadge = card.querySelector(".project-file-count");
-
-            // Parallel fetch for faster loading
-            const feedbackPromise = fetch(appUrl + "/project-feedbacks/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    let count = 0;
-                    if (Array.isArray(resp)) count = resp.length;
-                    else if (Array.isArray(resp.data)) count = resp.data.length;
-                    else if (typeof resp.total === "number") count = resp.total;
-                    else if (resp.meta && typeof resp.meta.total === "number")
-                        count = resp.meta.total;
-                    else if (resp.data && typeof resp.data === "object")
-                        count = 1;
-                    if (fbBadge) {
-                        if (count > 0) {
-                            fbBadge.textContent = count;
-                            fbBadge.style.display = '';
-                        } else {
-                            fbBadge.textContent = '';
-                            fbBadge.style.display = 'none';
-                        }
-                    }
-                })
-                .catch(() => {
-                    if (fbBadge) {
-                        fbBadge.textContent = '';
-                        fbBadge.style.display = 'none';
-                    }
-                });
-
-            const filePromise = fetch(appUrl + "/project/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    const data = resp.data || resp;
-                    let files = [];
-                    if (Array.isArray(data.reference_file))
-                        files = data.reference_file;
-                    else if (Array.isArray(data.reference_files))
-                        files = data.reference_files;
-                    else if (
-                        typeof data.reference_file === "string" &&
-                        data.reference_file.trim() !== ""
-                    )
-                        files = [data.reference_file];
-                    if (fileBadge) {
-                        if (files.length > 0) {
-                            fileBadge.textContent = files.length;
-                            fileBadge.style.display = '';
-                        } else {
-                            fileBadge.textContent = '';
-                            fileBadge.style.display = 'none';
-                        }
-                    }
-                })
-                .catch(() => {
-                    if (fileBadge) {
-                        fileBadge.textContent = '';
-                        fileBadge.style.display = 'none';
-                    }
-                });
-
-            // Wait for both requests to complete
-            Promise.all([feedbackPromise, filePromise]).then(() => {
-                // Both badges updated
+function bindCardInteractions(cardEl, pid) {
+    try {
+        if (!cardEl) return;
+        cardEl.querySelectorAll(".dropdown-icon").forEach((icon) => {
+            icon.addEventListener("click", function (e) {
+                e.stopPropagation();
+                const dropdownMenu = this.nextElementSibling;
+                const isVisible = dropdownMenu && !dropdownMenu.classList.contains("d-none");
+                document.querySelectorAll(".dropdown-menu").forEach((menu) => menu.classList.add("d-none"));
+                if (!isVisible && dropdownMenu) dropdownMenu.classList.remove("d-none");
             });
-        } catch (e) {}
-    };
-
-    // Refresh only one project card in-place using fresh data
-    window.refreshSingleProjectCard = function (pid, attempt = 0) {
-        try {
-            const containerEl = document.getElementById("all-cards-container");
-            if (!containerEl) return;
-            const col = containerEl.querySelector(
-                '[data-project-id="' + pid + '"]'
-            );
-            if (!col) {
-                if (attempt < 10)
-                    return setTimeout(
-                        () => window.refreshSingleProjectCard(pid, attempt + 1),
-                        200
-                    );
-                return;
-            }
-
-            // Keep current badge counts while refreshing content to avoid flashing 0
-            const currentFb =
-                col.querySelector(".project-feedback-count")?.textContent || "";
-            const currentFiles =
-                col.querySelector(".project-file-count")?.textContent || "";
-
-            fetch(appUrl + "/project/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    const p = resp.data || resp;
-
-                    // Rebuild only the inner content of the card body with latest fields
-                    let imageUrl = p.image
-                        ? appUrl + "/file/project/" + p.image
-                        : appUrl + "/asset/img/background/add-image.png";
-
-                    const newHeader = `
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div class="d-flex align-items-center">
-                                                ${p.image ? `<img src="${appUrl + "/file/project/" + p.image}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">` : (function(){ const init = getInitials(p.title || ""); const color = getInitialsColor(p.title || ""); return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\" style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`; })()}
-                                                <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${p.title || ""}</h6>
-                                            </div>
-                                            <div class="dropdown-icon-container">
-                                                <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
-                                                        style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
-                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
-                                                </button>
-                                                <div class="dropdown-menu d-none">
-                                                    <div class="dropdown-item">Detail</div>
-                                                    <div class="dropdown-item">Task</div>
-                                                    <div class="dropdown-item">Feedback</div>
-                                                    <div class="dropdown-item">Edit</div>
-                                                    <div class="dropdown-item text-danger delete-project">Delete</div>
-                                                </div>
-                                            </div>
-                                        </div>`;
-
-                    const newDesc = (function () {
-                        const d = (p.description || "").trim();
-                        if (!d) return "";
-                        return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
-                    })();
-
-                    const newFooter = `
-                                        <div class="d-flex justify-content-between align-items-center mt-2">
-                                            <div class="collaborators-image d-flex align-items-center">${renderCollaborators(
-                                                p
-                                            )}</div>
-                                            <div class="d-flex align-items-center">
-                                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${
-                                                    p.id
-                                                }" style="cursor:pointer; max-width: 160px;">
-                                                    <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
-                                                    <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
-                                                </div>
-                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${
-                                                    p.id
-                                                }">
-                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-                                                    <span class="project-feedback-count ms-1" data-project-id="${
-                                                        p.id
-                                                    }" style="font-size:12px; color:#454545;">${currentFb}</span>
-                                                    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" data-project-id="${
-                                                        p.id
-                                                    }" style="background: red; border-radius: 50%; width: 8px; height: 8px;"></span>
-                                                </button>
-                                                <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${
-                                                    p.id
-                                                }">
-                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
-                                                    <span class="project-file-count ms-1" data-project-id="${
-                                                        p.id
-                                                    }" style="font-size:12px; color:#454545;">${currentFiles}</span>
-                                                </button>
-                                            </div>
-                                        </div>`;
-
-                    const cardEl = col.querySelector(".project-card");
-                    if (cardEl) {
-                        // Replace sections inside card
-                        const oldDropdown =
-                            cardEl.querySelector(".dropdown-menu");
-                    }
-
-                    // Re-bind dropdown and attach-file handlers and tooltips
-                    try {
-                        cardEl
-                            .querySelectorAll(".dropdown-icon")
-                            .forEach((icon) => {
-                                icon.addEventListener("click", function (e) {
-                                    e.stopPropagation();
-                                    const dropdownMenu =
-                                        this.nextElementSibling;
-                                    const isVisible =
-                                        !dropdownMenu.classList.contains(
-                                            "d-none"
-                                        );
-                                    document
-                                        .querySelectorAll(".dropdown-menu")
-                                        .forEach((menu) =>
-                                            menu.classList.add("d-none")
-                                        );
-                                    if (!isVisible)
-                                        dropdownMenu.classList.remove("d-none");
-                                });
-                            });
-                        // Bind snippet click
-                        cardEl
-                            .querySelectorAll(
-                                ".latest-feedback-snippet[data-project-id]"
-                            )
-                            .forEach((el) => {
-                                el.addEventListener("click", function (ev) {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
-                                    const pid =
-                                        this.getAttribute("data-project-id");
-                                    hideProjectUnreadBadge(pid);
-                                    hideProjectLatestFeedbackSnippet(pid);
-                                    try {
-                                        window.__projectLatestTarget =
-                                            window.__projectLatestTarget || {};
-                                        const latest =
-                                            (window.__projectLatest &&
-                                                window.__projectLatest[
-                                                    String(pid)
-                                                ]) ||
-                                            null;
-                                        if (latest)
-                                            window.__projectLatestTarget[
-                                                String(pid)
-                                            ] = latest;
-                                    } catch (_) {}
-                                    markProjectFeedbacksRead(pid).always(() => {
-                                        const projectFeedbackModalEl =
-                                            document.getElementById(
-                                                "projectFeedbackModal"
-                                            );
-                                        if (!projectFeedbackModalEl) return;
-                                        projectFeedbackModalEl.setAttribute(
-                                            "data-project-id",
-                                            pid
-                                        );
-                                        try {
-                                            loadFeedbackData(pid);
-                                        } catch (_) {}
-                                        const m = new bootstrap.Modal(
-                                            projectFeedbackModalEl
-                                        );
-                                        m.show();
-                                    });
-                                });
-                            });
-                        const tooltipTriggerList = cardEl.querySelectorAll(
-                            '[data-bs-toggle="tooltip"]'
-                        );
-                        tooltipTriggerList.forEach(function (el) {
-                            try {
-                                new bootstrap.Tooltip(el, {
-                                    placement: "bottom",
-                                });
-                            } catch (e) {}
-                        });
-                    } catch (e) {}
-
-                    // Finally, update badges with live values
-                    if (typeof window.updateProjectBadges === "function") {
-                        window.updateProjectBadges(pid);
-                    }
-                    try {
-                        fetchUnreadForProject(pid);
-                    } catch (_) {}
-                    try {
-                        fetchLatestFeedbackForProject(pid);
-                    } catch (_) {}
-                })
-                .catch(() => {
-                    // As a fallback, update badges only
-                    if (typeof window.updateProjectBadges === "function") {
-                        window.updateProjectBadges(pid);
-                    }
+        });
+        cardEl.querySelectorAll(".latest-feedback-snippet[data-project-id]").forEach((el) => {
+            el.addEventListener("click", function (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const pidLocal = this.getAttribute("data-project-id");
+                hideProjectUnreadBadge(pidLocal);
+                hideProjectLatestFeedbackSnippet(pidLocal);
+                markProjectFeedbacksRead(pidLocal).always(() => {
+                    const projectFeedbackModalEl = document.getElementById("projectFeedbackModal");
+                    if (!projectFeedbackModalEl) return;
+                    projectFeedbackModalEl.setAttribute("data-project-id", pidLocal);
+                    loadFeedbackData(pidLocal);
+                    const m = new bootstrap.Modal(projectFeedbackModalEl);
+                    m.show();
                 });
-        } catch (e) {}
-    };
+            });
+        });
+        const tooltipTriggerList = cardEl.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltipTriggerList.forEach(function (el) {
+            try {
+                new bootstrap.Tooltip(el, { placement: "bottom" });
+            } catch (e) {}
+        });
+    } catch (e) {}
+}
+
+window.refreshSingleProjectCard = function (pid, attempt = 0) {
+    try {
+        const containerEl = document.getElementById("all-cards-container");
+        if (!containerEl) return;
+        const col = containerEl.querySelector('[data-project-id="' + pid + '"]');
+        if (!col) {
+            if (attempt < 10) return setTimeout(() => window.refreshSingleProjectCard(pid, attempt + 1), 200);
+            return;
+        }
+        const currentFb = col.querySelector(".project-feedback-count")?.textContent || "";
+        const currentFiles = col.querySelector(".project-file-count")?.textContent || "";
+        getProject(pid, true).then((p) => {
+            window.__projectCache[pid] = p;
+            const imageUrl = p.image ? appUrl + "/file/project/" + p.image : appUrl + "/asset/img/background/add-image.png";
+            const newHeader = `
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex align-items-center">
+                        ${p.image ? `<img src="${imageUrl}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">` : (function(){ const init = getInitials(p.title || ""); const color = getInitialsColor(p.title || ""); return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${init}</div>`; })()}
+                        <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${p.title || ""}</h6>
+                    </div>
+                    <div class="dropdown-icon-container">
+                        <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon" style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
+                            <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
+                        </button>
+                        <div class="dropdown-menu d-none">
+                            <div class="dropdown-item">Detail</div>
+                            <div class="dropdown-item">Task</div>
+                            <div class="dropdown-item">Feedback</div>
+                            <div class="dropdown-item">Edit</div>
+                            <div class="dropdown-item text-danger delete-project">Delete</div>
+                        </div>
+                    </div>
+                </div>`;
+            const newDesc = (function () {
+                const d = (p.description || "").trim();
+                if (!d) return "";
+                return `<p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${d}</p>`;
+            })();
+            let files = [];
+            if (Array.isArray(p.reference_files)) files = p.reference_files;
+            else if (Array.isArray(p.reference_file)) files = p.reference_file;
+            else if (typeof p.reference_file === "string" && p.reference_file.trim() !== "") files = [p.reference_file];
+            const fileCount = files.length || (currentFiles || "");
+            const fbCountPlaceholder = currentFb || "";
+            const newFooter = `
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div class="collaborators-image d-flex align-items-center">${renderCollaborators(p)}</div>
+                    <div class="d-flex align-items-center">
+                        <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${p.id}" style="cursor:pointer; max-width: 160px;">
+                            <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                            <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                        </div>
+                        <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${p.id}">
+                            <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
+                            <span class="project-feedback-count ms-1" data-project-id="${p.id}" style="font-size:12px; color:#454545;">${fbCountPlaceholder}</span>
+                            <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" data-project-id="${p.id}" style="background: red; border-radius: 50%; width: 8px; height: 8px;"></span>
+                        </button>
+                        <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${p.id}">
+                            <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
+                            <span class="project-file-count ms-1" data-project-id="${p.id}" style="font-size:12px; color:#454545;">${fileCount}</span>
+                        </button>
+                    </div>
+                </div>`;
+            const cardEl = col.querySelector(".project-card");
+            if (cardEl) {
+                cardEl.innerHTML = newHeader + newDesc + '<hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">' + newFooter;
+            }
+            if (cardEl) bindCardInteractions(cardEl, pid);
+            if (typeof window.updateProjectBadges === "function") window.updateProjectBadges(pid);
+            try { if (typeof fetchUnreadForProject === "function") fetchUnreadForProject(pid); } catch (_) {}
+            try { if (typeof fetchLatestFeedbackForProject === "function") fetchLatestFeedbackForProject(pid); } catch (_) {}
+        }).catch(() => {
+            if (typeof window.updateProjectBadges === "function") window.updateProjectBadges(pid);
+        });
+    } catch (e) {}
+};
+
 
     // Function to refresh contributor dropdown when co-author selection changes
     window.refreshContributorDropdown = function () {
