@@ -1703,8 +1703,8 @@ document.addEventListener("click", function (e) {
                 const overlapClass = index === 0 ? "" : "executor-image-overlap";
                 const zIndexStyle = `style="z-index: ${index + 1};"`;
                 const isPic = task.pic && executor && task.pic.id === executor.id;
-                const roleLabel = isPic ? 'PIC' : 'Executor';
-                const tooltipTitle = `${executor.name} (${roleLabel})`;
+                // Tooltip should only show employee name (remove role label)
+                const tooltipTitle = `${executor.name}`;
                 let imgSrc = (executor && executor.image) ? String(executor.image).trim() : '';
                 if (!imgSrc || imgSrc.toLowerCase() === 'null' || imgSrc.toLowerCase() === 'undefined') {
                     imgSrc = fallbackAvatar;
@@ -5110,7 +5110,8 @@ function applyCurrentSearchFilter() {
                     .map((executor, index) => {
                         const overlapClass = index === 0 ? "" : "executor-image-overlap";
                         const zIndexStyle = `style="z-index:${index+1};"`;
-                        const tooltipTitle = `${executor.name} (${executor.role})`;
+                        // Tooltip should only show employee name (remove role/role label)
+                        const tooltipTitle = `${executor.name}`;
                         let imgSrc = executor.user_photo || executor.profile_picture || executor.photo || executor.image || "";
                         imgSrc = String(imgSrc || "").trim();
                         if (!imgSrc || imgSrc.toLowerCase() === "null" || imgSrc.toLowerCase() === "undefined") {
