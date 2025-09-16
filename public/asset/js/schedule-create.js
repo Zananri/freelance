@@ -113,7 +113,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         function fetchEmployees(q=''){
             fetchEmployeesCached(q)
-                .then(d=>{ employees = (d && (d.data||d)) || []; filtered=employees; renderDropdown(); })
+                .then(d=>{ employees = (d && (d.data||d)) || []; 
+                    // Exclude administrators
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filtered=employees; renderDropdown(); })
                 .catch(()=>showScheduleAlert('Failed load employees','danger'));
         }
         function renderDropdown(){

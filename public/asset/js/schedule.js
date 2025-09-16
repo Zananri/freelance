@@ -631,10 +631,7 @@ document.addEventListener("DOMContentLoaded", function () {
             filtered = [],
             selected = [];
 
-        // Load initial selected employees if any
-        if (initialExecutorIds.length > 0) {
-            fetchEmployeesForEdit(initialExecutorIds);
-        }
+        // (initial fetch moved below after helper initializations to avoid TDZ issues)
 
         function buildPhotoUrl(userPhoto) {
             if (!userPhoto) return appUrl + "/asset/img/avatar.png";
@@ -665,6 +662,8 @@ document.addEventListener("DOMContentLoaded", function () {
             fetchEmployeesCached("")
                 .then((d) => {
                     employees = d.data || d || [];
+                    // Exclude administrators
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     selected = employees.filter((emp) => ids.includes(emp.id));
                     renderSelected();
                     updateHidden();
@@ -672,10 +671,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 .catch(() => showAlertMsg("Failed to load employees", "error"));
         }
 
+        // Load initial selected employees if any (deferred until helpers are initialized)
+        if (initialExecutorIds.length > 0) {
+            fetchEmployeesForEdit(initialExecutorIds);
+        }
+
         function fetchEmployees(q = "") {
             fetchEmployeesCached(q)
                 .then((d) => {
                     employees = d.data || d || [];
+                    // Exclude administrators
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filtered = employees;
                     renderDropdown();
                 })
