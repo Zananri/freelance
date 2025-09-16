@@ -74,6 +74,16 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Expose a global refresh helper so other modules (e.g., schedule-create.js) can trigger list reload
+    window.refreshScheduleList = function () {
+        try {
+            fetchScheduleData(1, currentRecurrenceFilter, currentSearchFilter);
+        } catch (e) {
+            // Fallback: reload entire page if something goes wrong
+            try { window.location.reload(); } catch (_) {}
+        }
+    };
+
     function renderPagination(totalPages, currentPage, totalItems = 0, perPage = 9) {
         const paginationContainer = document.querySelector(".pagination");
         if (!paginationContainer) return;
