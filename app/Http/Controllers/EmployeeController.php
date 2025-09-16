@@ -43,7 +43,7 @@ class EmployeeController extends Controller
         $norm = ltrim($norm, '/');
         return $norm === 'asset/img/avatar.png';
     }
-   
+
     public function showEmployeePage()
     {
         return view('employee/employee');
@@ -200,7 +200,7 @@ class EmployeeController extends Controller
             if (empty($emailWork)) {
                 $emailWork = str_replace(' ', '_', trim($request->name)) . '_' . time();
             }
-            
+
             // Ensure email_work is unique
             $counter = 1;
             $originalEmailWork = $emailWork;
@@ -545,7 +545,7 @@ class EmployeeController extends Controller
         }
         $departments = Department::all();
         $divisions = Division::all();
-        
+
         // Load jobs filtered by employee's current department and division
         $jobs = Job::where('status', '!=', 'DELETED');
         if ($employee->department_id) {
@@ -555,7 +555,7 @@ class EmployeeController extends Controller
             $jobs = $jobs->where('division_id', $employee->division_id);
         }
         $jobs = $jobs->get();
-        
+
         // Order grades and offices with the same rules as in create()
         $grades = Grade::orderByRaw(
             "FIELD(title, 'Manager','Analyst','Senior Analyst','Associate','Junior Manager','Junior Analyst','Junior Associate')"
@@ -563,7 +563,7 @@ class EmployeeController extends Controller
         $offices = Office::orderByRaw(
             "FIELD(name, 'NSA Performance Petojo Barat 6 No. 4','Gudang SEHA')"
         )->orderBy('name')->get();
-        
+
         return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
     }
 
@@ -578,10 +578,13 @@ class EmployeeController extends Controller
 
             $employees = Employee::with(['department', 'division', 'user'])
                 ->where('status', '!=', 'DELETED')
+                ->whereHas('user', function ($q) {
+                    $q->where('user_type', '!=', 'ADMINISTRATOR');
+                })
                 ->when($query, function ($q) use ($query) {
                     $q->where(function ($q2) use ($query) {
                         $q2->where('name', 'like', '%' . $query . '%')
-                          ->orWhere('email', 'like', '%' . $query . '%');
+                        ->orWhere('email', 'like', '%' . $query . '%');
                     });
                 })
                 ->when($excludeEmployeeId, function ($q) use ($excludeEmployeeId) {
@@ -590,10 +593,8 @@ class EmployeeController extends Controller
                 ->orderBy('name')
                 ->get()
                 ->map(function ($employee) {
-                    // Safely resolve avatar from profile_picture > photo > user.photo
                     $raw = $employee->profile_picture ?: ($employee->photo ?: ($employee->user?->photo ?? null));
                     if ($raw) {
-                        // Normalize slashes to forward for URLs (Windows-safe)
                         $raw = str_replace('\\', '/', $raw);
                         $relative = ltrim($raw, '/');
                         $avatar = preg_match('/^https?:\/\//i', $raw) ? $raw : asset($relative);
@@ -601,9 +602,10 @@ class EmployeeController extends Controller
                         $avatar = asset('asset/img/avatar.png');
                     }
 
-                    // Normalize status for consumer
                     $status = strtoupper((string)($employee->status ?? ''));
-                    if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+                    if ($status === 'INACTIVE') {
+                        $status = 'RESIGN';
+                    }
 
                     return [
                         'id' => $employee->id,
@@ -612,9 +614,10 @@ class EmployeeController extends Controller
                         'user_photo' => $avatar,
                         'profile_picture' => $avatar,
                         'profile_picture_url' => $avatar,
-                        'department' => $employee->department ? $employee->department->name_department : null,
-                        'division' => $employee->division ? $employee->division->name_division : null,
+                        'department' => $employee->department?->name_department,
+                        'division' => $employee->division?->name_division,
                         'status' => $status,
+                        'user_type' => $employee->user?->user_type,
                     ];
                 });
 
@@ -623,7 +626,6 @@ class EmployeeController extends Controller
                 'status' => 'success',
                 'data' => $employees
             ]);
-
         } catch (\Exception $e) {
             $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
