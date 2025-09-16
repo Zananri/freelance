@@ -672,6 +672,7 @@ body.touch-device
 .task-title {
     font-size: 16px;
     font-weight: 600;
+    cursor: pointer;
 }
 
 p {
@@ -1883,4 +1884,22 @@ p {
 /* Ensure PIC/Executor images in modal have proper cursor */
 .pic-executor-image {
     cursor: pointer;
+}
+
+#taskDetailModal .collab-name {
+    font-size: 14px;
+    color: #222;
+    line-height: 1.2;
+}
+
+#taskDetailModal .task-icon {
+    color: #555;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#taskDetailModal .collab-division {
+    font-size: 12px;
+    color: #777;
 }

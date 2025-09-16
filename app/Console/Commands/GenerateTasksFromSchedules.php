@@ -260,7 +260,7 @@ class GenerateTasksFromSchedules extends Command
 
         $task = Task::create($data);
 
-        // Create PIC assignment from schedule creator if has employee
+        // Create PIC assignment from schedule creator if has employee (auto-accept like Add Task modal)
         $picUserId = $s->created_by;
         $picEmployee = $picUserId ? Employee::where('user_id', $picUserId)->first() : null;
         if ($picEmployee) {
@@ -268,8 +268,8 @@ class GenerateTasksFromSchedules extends Command
                 'task_id' => $task->id,
                 'employee_id' => $picEmployee->id,
                 'role' => 'PIC',
-                'is_receive' => false,
-                'date_receive' => null,
+                'is_receive' => true,
+                'date_receive' => now(),
                 'created_by' => $picUserId,
                 'updated_by' => $picUserId,
                 'deleted_by' => null,

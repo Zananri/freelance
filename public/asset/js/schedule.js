@@ -74,11 +74,22 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function renderPagination(totalPages, currentPage, totalItems = 0, perPage = 9) {
+    // Expose a global refresh helper so other modules (e.g., schedule-create.js) can trigger list reload
+    window.refreshScheduleList = function () {
+        try {
+            fetchScheduleData(1, currentRecurrenceFilter, currentSearchFilter);
+        } catch (e) {
+            // Fallback: reload entire page if something goes wrong
+            try { window.location.reload(); } catch (_) {}
+        }
+    };
+
+    function renderPagination(totalPages, currentPage) {
         const paginationContainer = document.querySelector(".pagination");
         if (!paginationContainer) return;
 
-        if (totalItems <= perPage) {
+        // If only one or zero pages, hide pagination
+        if (!Number.isFinite(totalPages) || totalPages <= 1) {
             paginationContainer.innerHTML = "";
             return;
         }
@@ -273,6 +284,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                             if (!d) return "";
                                             return `<p class="teks-description mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${d}</p>`;
                                         })()}
+                                    </div>
+
+                                    <!-- Separator and Type (Daily/Weekly/Monthly) -->
+                                    <div style="margin-top:12px;">
+                                        <div style="height:1px;background:#E0E0E0;border-radius:2px;margin-bottom:8px;"></div>
+                                        <div style="display:flex;align-items:center;justify-content:flex-start;font-size:10px;color:#4B4F5E;">
+                                            <span style="color:#797E91;margin-right:6px;">Type :</span>
+                                            <span style="text-transform:capitalize;">${(item.recurrence_type || '-')}</span>
+                                        </div>
                                     </div>
 
                                 </div>
@@ -611,10 +631,7 @@ document.addEventListener("DOMContentLoaded", function () {
             filtered = [],
             selected = [];
 
-        // Load initial selected employees if any
-        if (initialExecutorIds.length > 0) {
-            fetchEmployeesForEdit(initialExecutorIds);
-        }
+        // (initial fetch moved below after helper initializations to avoid TDZ issues)
 
         function buildPhotoUrl(userPhoto) {
             if (!userPhoto) return appUrl + "/asset/img/avatar.png";
@@ -625,12 +642,28 @@ document.addEventListener("DOMContentLoaded", function () {
             return appUrl + "/file/profile_picture/" + userPhoto;
         }
 
+        // Cached fetch helper to reduce duplicate executor loads within schedule views
+        const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+        const empCache = (window.__empExecCache = window.__empExecCache || { map: new Map(), inFlight: new Map() });
+        function fetchEmployeesCached(q = "") {
+            const key = String(q || "").trim().toLowerCase();
+            const now = Date.now();
+            const hit = empCache.map.get(key);
+            if (hit && (now - hit.t) < EMP_CACHE_TTL_MS) return Promise.resolve(hit.v);
+            if (empCache.inFlight.has(key)) return empCache.inFlight.get(key);
+            const p = fetch(appUrl + "/task/employees-for-executor?q=" + encodeURIComponent(key))
+                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                .then((d) => { empCache.map.set(key, { v: d, t: Date.now() }); empCache.inFlight.delete(key); return d; })
+                .catch((e) => { empCache.inFlight.delete(key); throw e; });
+            empCache.inFlight.set(key, p);
+            return p;
+        }
         function fetchEmployeesForEdit(ids) {
-            // Fetch employees by IDs
-            fetch(appUrl + "/task/employees-for-executor")
-                .then((r) => r.json())
+            fetchEmployeesCached("")
                 .then((d) => {
-                    employees = d.data || [];
+                    employees = d.data || d || [];
+                    // Exclude administrators
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     selected = employees.filter((emp) => ids.includes(emp.id));
                     renderSelected();
                     updateHidden();
@@ -638,15 +671,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 .catch(() => showAlertMsg("Failed to load employees", "error"));
         }
 
+        // Load initial selected employees if any (deferred until helpers are initialized)
+        if (initialExecutorIds.length > 0) {
+            fetchEmployeesForEdit(initialExecutorIds);
+        }
+
         function fetchEmployees(q = "") {
-            fetch(
-                appUrl +
-                    "/task/employees-for-executor?q=" +
-                    encodeURIComponent(q)
-            )
-                .then((r) => r.json())
+            fetchEmployeesCached(q)
                 .then((d) => {
-                    employees = d.data || [];
+                    employees = d.data || d || [];
+                    // Exclude administrators
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filtered = employees;
                     renderDropdown();
                 })

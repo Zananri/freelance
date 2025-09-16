@@ -1493,11 +1493,12 @@
 
 /* PIC and Executor image styling for task modal */
 .pic-executor-image {
-    width: 24px;
-    height: 24px;
+    /* Make PIC/Executor images in Task Detail match Project Detail collaborator size */
+    width: 36px !important;
+    height: 36px !important;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #f0f1f8;
+    border: 2px solid #f0f1f8 !important;
 }
 
 .executor-image-overlap {
@@ -1701,30 +1702,41 @@
     width: 95%;
 }
 
-.btn-pagination {
-    background: transparent;
+.pagination {
+    gap: 0;
+    min-height: 40px;
+}
+
+.page-link {
+    background-color: #e9eef4;
+    color: #444444;
     border: none;
-}
-
-.btn-pagination span {
-    background: transparent;
-    border: none;
-    font-size: 14px;
-}
-
-.pagination-pill {
-    background: #f0f1f8;
-    border-radius: 50px;
-    padding: 4px 12px;
-    gap: 12px;
-    margin-bottom: 100px;
-}
-
-.pagination-info {
-    font-weight: 600;
+    border-radius: 0;
     font-size: 12px;
-    min-width: 80px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
     text-align: center;
+}
+
+.page-link:focus,
+.page-link:active,
+.page-link:active:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.page-link:hover {
+    background-color: #e9eef4;
+    color: #444444;
+}
+
+.page-item.active .page-link {
+    background-color: #444444;
+    color: #ffffff;
+    border: none;
 }
 
 .btn-nav {

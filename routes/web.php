@@ -87,7 +87,7 @@ Route::middleware('auth')->group(function () {
         ->name('project-feedbacks.unread-count');
     Route::post('/project/{id}/feedbacks/mark-read', [ProjectController::class, 'markProjectFeedbacksRead'])
         ->name('project-feedbacks.mark-read');
-    Route::get('/project-feedbacks/{projectId}/latest', [ProjectController::class, 'getProjectLatestFeedback'])
+    Route::get('/project-feedbacks/latest/{projectId}', [ProjectController::class, 'getProjectLatestFeedback'])
         ->name('project-feedbacks.latest');
 
     // === Project update & delete ===
@@ -127,6 +127,8 @@ Route::middleware('auth')->group(function () {
     // Task Feedback routes
     Route::post('/task-feedbacks', [TaskController::class, 'storeFeedback'])->name('task-feedbacks.store');
     Route::put('/task-feedbacks/{id}', [TaskController::class, 'updateFeedback'])->name('task-feedbacks.update');
+    // Batched latest feedbacks for multiple tasks (must be BEFORE dynamic {taskId} route)
+    Route::get('/task-feedbacks/latest', [TaskController::class, 'getLatestFeedbacksBatch'])->name('task-feedbacks.latest-batch');
     Route::get('/task-feedbacks/{taskId}', [TaskController::class, 'getTaskFeedbacks'])->name('task-feedbacks.get');
     Route::get('/task-feedbacks/{taskId}/latest', [TaskController::class, 'getTaskLatestFeedback'])->name('task-feedbacks.latest');
     Route::get('/task-feedbacks/count/{taskId}', [TaskController::class, 'getTaskFeedbackCount'])->name('task-feedbacks.count');

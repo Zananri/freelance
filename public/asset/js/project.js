@@ -3,37 +3,48 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
+// Flags to prevent double modal triggering
+window.isReopeningTimeline = false;
+window.isHandlingTimelineBarClick = false;
+
 // Helper function for consistent employee loading error handling (quiet by default)
-function handleEmployeeLoadError(xhr, status, error, context = '') {
+function handleEmployeeLoadError(xhr, status, error, context = "") {
     try {
-        console.warn(`Failed to load employees${context ? ' (' + context + ')' : ''}:`, {
-            status: xhr?.status,
-            statusText: xhr?.statusText,
-            responseText: xhr?.responseText,
-            error: error
-        });
+        console.warn(
+            `Failed to load employees${context ? " (" + context + ")" : ""}:`,
+            {
+                status: xhr?.status,
+                statusText: xhr?.statusText,
+                responseText: xhr?.responseText,
+                error: error,
+            }
+        );
 
         // Only notify the user if they're actively interacting with employee pickers
         function isUserInteracting() {
             try {
                 const active = document.activeElement;
                 const interactiveIds = new Set([
-                    'co_author_input',
-                    'contributor_input',
-                    'edit_co_author_input',
-                    'edit_contributor_input'
+                    "co_author_input",
+                    "contributor_input",
+                    "edit_co_author_input",
+                    "edit_contributor_input",
                 ]);
                 if (active && interactiveIds.has(active.id)) return true;
                 // Or if any employee dropdown is currently visible
                 const dropdownSelectors = [
-                    '#co_author_dropdown',
-                    '#contributor_dropdown',
-                    '#edit_co_author_dropdown',
-                    '#edit_contributor_dropdown'
+                    "#co_author_dropdown",
+                    "#contributor_dropdown",
+                    "#edit_co_author_dropdown",
+                    "#edit_contributor_dropdown",
                 ];
                 for (const sel of dropdownSelectors) {
                     const el = document.querySelector(sel);
-                    if (el && el.style.display !== 'none' && el.offsetParent !== null) {
+                    if (
+                        el &&
+                        el.style.display !== "none" &&
+                        el.offsetParent !== null
+                    ) {
                         return true;
                     }
                 }
@@ -54,34 +65,41 @@ function handleEmployeeLoadError(xhr, status, error, context = '') {
 
         window.__employeeErrorLastShown = now;
 
-        if (typeof showFloatingAlert === 'function') {
-            let message = 'Failed to load employees list. ';
-            if (status === 'timeout') {
-                message += 'Request timed out. Please try again.';
+        if (typeof showFloatingAlert === "function") {
+            let message = "Failed to load employees list. ";
+            if (status === "timeout") {
+                message += "Request timed out. Please try again.";
             } else if (xhr && xhr.status === 401) {
-                message += 'Authentication required. Please refresh and try again.';
+                message +=
+                    "Authentication required. Please refresh and try again.";
             } else if (xhr && xhr.status === 500) {
-                message += 'Server error. Please contact administrator.';
+                message += "Server error. Please contact administrator.";
             } else if (xhr && xhr.status === 0) {
-                message += 'Network error. Please check your connection.';
+                message += "Network error. Please check your connection.";
             } else {
-                message += 'Please try again or contact administrator.';
+                message += "Please try again or contact administrator.";
             }
-            showFloatingAlert(message, 'warning', 4000);
+            showFloatingAlert(message, "warning", 4000);
         } else {
             // No global alert UI available: do not block the user with window.alert; stay silent
         }
     } catch (e) {
         // As a last resort, avoid breaking the page
-        try { console.warn('handleEmployeeLoadError fallback', e); } catch(_) {}
+        try {
+            console.warn("handleEmployeeLoadError fallback", e);
+        } catch (_) {}
     }
 }
 
 // Mobile detection utility for tooltip placement
 function isMobileDevice() {
-    return window.matchMedia('(max-width: 768px)').matches ||
-           window.innerWidth <= 768 ||
-           /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return (
+        window.matchMedia("(max-width: 768px)").matches ||
+        window.innerWidth <= 768 ||
+        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+        )
+    );
 }
 
 // Get appropriate tooltip placement based on device
@@ -92,10 +110,12 @@ function getTooltipPlacement() {
 // Global function to initialize responsive tooltips
 function initResponsiveTooltips(container = document) {
     try {
-        const tooltipElements = container.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipElements = container.querySelectorAll(
+            '[data-bs-toggle="tooltip"]'
+        );
         const placement = getTooltipPlacement();
 
-        tooltipElements.forEach(el => {
+        tooltipElements.forEach((el) => {
             // Dispose existing tooltip if any
             const existingTooltip = bootstrap.Tooltip.getInstance(el);
             if (existingTooltip) {
@@ -105,8 +125,8 @@ function initResponsiveTooltips(container = document) {
             try {
                 new bootstrap.Tooltip(el, {
                     placement: placement,
-                    container: 'body',
-                    trigger: 'hover focus'
+                    container: "body",
+                    trigger: "hover focus",
                 });
             } catch (e) {
                 // Ignore initialization errors
@@ -476,7 +496,10 @@ document.addEventListener("DOMContentLoaded", function () {
     // Optional sizeOverride lets caller control avatar size (default 30 for cards; use 40 for Project Detail modal)
     function renderCollaborators(project, sizeOverride) {
         try {
-            const size = (function(s){ const n = Number(s); return Number.isFinite(n) && n > 0 ? n : 30; })(sizeOverride);
+            const size = (function (s) {
+                const n = Number(s);
+                return Number.isFinite(n) && n > 0 ? n : 30;
+            })(sizeOverride);
             const maxVisible = 3;
             let coll = [];
 
@@ -560,15 +583,22 @@ document.addEventListener("DOMContentLoaded", function () {
     function buildCollaboratorsDetailList(project) {
         try {
             const items = [];
-            if (project && project.author) items.push({ role: 'author', emp: project.author });
+            if (project && project.author)
+                items.push({ role: "author", emp: project.author });
             if (project && Array.isArray(project.co_authors)) {
-                project.co_authors.forEach(emp => items.push({ role: 'co_author', emp }));
+                project.co_authors.forEach((emp) =>
+                    items.push({ role: "co_author", emp })
+                );
             }
             // Support legacy key 'executors' as contributors
             if (project && Array.isArray(project.executors)) {
-                project.executors.forEach(emp => items.push({ role: 'contributor', emp }));
+                project.executors.forEach((emp) =>
+                    items.push({ role: "contributor", emp })
+                );
             } else if (project && Array.isArray(project.contributors)) {
-                project.contributors.forEach(emp => items.push({ role: 'contributor', emp }));
+                project.contributors.forEach((emp) =>
+                    items.push({ role: "contributor", emp })
+                );
             }
 
             function getName(emp) {
@@ -578,25 +608,39 @@ document.addEventListener("DOMContentLoaded", function () {
                         emp?.employee_name ||
                         emp?.username ||
                         emp?.full_name ||
-                        (emp?.employee && (emp.employee.name || emp.employee.full_name)) ||
-                        'Unknown'
+                        (emp?.employee &&
+                            (emp.employee.name || emp.employee.full_name)) ||
+                        "Unknown"
                     );
-                } catch (_) { return 'Unknown'; }
+                } catch (_) {
+                    return "Unknown";
+                }
             }
 
             function getDivision(emp) {
                 try {
                     // Try common fields first, then nested structures
                     return (
-                        emp?.division_name || emp?.division || emp?.division_title ||
+                        emp?.division_name ||
+                        emp?.division ||
+                        emp?.division_title ||
                         // backend now also provides 'division' as name string and duplicate 'division_name'
-                        (typeof emp?.division === 'string' ? emp?.division : null) ||
-                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                        (typeof emp?.division === "string"
+                            ? emp?.division
+                            : null) ||
+                        (typeof emp?.division === "object" &&
+                            (emp.division?.name || emp.division?.title)) ||
                         emp?.employee_division ||
-                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
-                        '-'
+                        (emp?.employee &&
+                            (emp.employee.division_name ||
+                                (emp.employee.division &&
+                                    (emp.employee.division.name ||
+                                        emp.employee.division.title)))) ||
+                        "-"
                     );
-                } catch (_) { return '-'; }
+                } catch (_) {
+                    return "-";
+                }
             }
 
             if (!items.length) {
@@ -610,18 +654,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 const photo = resolvePhotoHtml(emp, 36, 0, role);
                 return (
                     '<div class="collab-item d-flex align-items-center mb-2">' +
-                        '<div class="flex-shrink-0">' + photo + '</div>' +
-                        '<div class="ms-2">' +
-                            '<div class="collab-name">' + (name || 'Unknown') + '</div>' +
-                            '<div class="collab-division text-muted">' + (division || '-') + '</div>' +
-                        '</div>' +
-                    '</div>'
+                    '<div class="flex-shrink-0">' +
+                    photo +
+                    "</div>" +
+                    '<div class="ms-2">' +
+                    '<div class="collab-name">' +
+                    (name || "Unknown") +
+                    "</div>" +
+                    '<div class="collab-division text-muted">' +
+                    (division || "-") +
+                    "</div>" +
+                    "</div>" +
+                    "</div>"
                 );
             });
 
-            return '<div class="collab-list">' + rows.join('') + '</div>';
+            return '<div class="collab-list">' + rows.join("") + "</div>";
         } catch (e) {
-            console.warn('buildCollaboratorsDetailList error', e);
+            console.warn("buildCollaboratorsDetailList error", e);
             return '<div class="text-muted small">No collaborators</div>';
         }
     }
@@ -663,29 +713,48 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load project card data and generate cards dynamically
     // Accepts optional filter (status grouping), page, and search text
     // Keep a local state mirrored to window.currentSearch for cross-scope access
-    let currentSearch = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
-    let currentProjectId = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : '';
-    let currentFilterDate = (typeof window.currentFilterDate === 'string') ? window.currentFilterDate : '';
-    function loadProjectCardData(filter = null, page = 1, search = null, sortBy = 'asc') {
+    let currentSearch =
+        typeof window.currentSearch === "string" ? window.currentSearch : "";
+    let currentProjectId =
+        typeof window.currentProjectId !== "undefined"
+            ? window.currentProjectId
+            : "";
+    let currentFilterDate =
+        typeof window.currentFilterDate === "string"
+            ? window.currentFilterDate
+            : "";
+    function loadProjectCardData(
+        filter = null,
+        page = 1,
+        search = null,
+        sortBy = "asc"
+    ) {
         // DEBUG: Log filter parameter
         if (filter) {
-            console.log('=== FILTER DEBUG ===');
-            console.log('Filter applied:', filter);
+            console.log("=== FILTER DEBUG ===");
+            console.log("Filter applied:", filter);
         }
         // Track current search text
-        if (typeof search === 'string') {
+        if (typeof search === "string") {
             currentSearch = search;
-            try { window.currentSearch = currentSearch; } catch(_) {}
+            try {
+                window.currentSearch = currentSearch;
+            } catch (_) {}
         }
 
-        const params = { filter: filter, task_scope: "me", page: page, sort_by: sortBy };
-        if (currentSearch && currentSearch.trim() !== '') {
+        const params = {
+            filter: filter,
+            task_scope: "me",
+            page: page,
+            sort_by: sortBy,
+        };
+        if (currentSearch && currentSearch.trim() !== "") {
             params.search = currentSearch.trim();
         }
         if (currentProjectId) {
             params.project_id = currentProjectId;
         }
-        if (currentFilterDate && currentFilterDate.trim() !== '') {
+        if (currentFilterDate && currentFilterDate.trim() !== "") {
             params.date = currentFilterDate.trim();
         }
 
@@ -703,8 +772,15 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (data) {
                 // DEBUG: Log filter results
                 if (filter || currentSearch) {
-                    console.log('Filter results count:', Array.isArray(data) ? data.length : (data.data ? data.data.length : 0));
-                    console.log('Filter/search results:', data);
+                    console.log(
+                        "Filter results count:",
+                        Array.isArray(data)
+                            ? data.length
+                            : data.data
+                            ? data.data.length
+                            : 0
+                    );
+                    console.log("Filter/search results:", data);
                 }
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
@@ -728,7 +804,10 @@ document.addEventListener("DOMContentLoaded", function () {
                             ? appUrl + "/file/project/" + project.image
                             : null;
 
-                        const dataTitle = (project.title || '').replace(/"/g, '&quot;');
+                        const dataTitle = (project.title || "").replace(
+                            /"/g,
+                            "&quot;"
+                        );
                         rowHtml += `
                             <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
@@ -838,50 +917,68 @@ document.addEventListener("DOMContentLoaded", function () {
                     try {
                         // Ensure we don't bind multiple times by removing any previous listener
                         if (container.__titleClickBound !== true) {
-                            container.addEventListener('click', function (ev) {
-                                const titleEl = ev.target.closest('.title-project');
+                            container.addEventListener("click", function (ev) {
+                                const titleEl =
+                                    ev.target.closest(".title-project");
                                 if (!titleEl) return;
                                 ev.preventDefault();
                                 ev.stopPropagation();
-                                const card = titleEl.closest('.col-md-4');
-                                const pid = card && card.getAttribute('data-project-id');
+                                const card = titleEl.closest(".col-md-4");
+                                const pid =
+                                    card &&
+                                    card.getAttribute("data-project-id");
                                 if (pid) {
-                                    try { fetchAndShowProjectDetail(pid); }
-                                    catch (_) { console.warn('fetchAndShowProjectDetail not available'); }
+                                    try {
+                                        fetchAndShowProjectDetail(pid);
+                                    } catch (_) {
+                                        console.warn(
+                                            "fetchAndShowProjectDetail not available"
+                                        );
+                                    }
                                 }
                             });
                             container.__titleClickBound = true;
                         }
-                    } catch (_) { /* noop */ }
+                    } catch (_) {
+                        /* noop */
+                    }
 
                     // Add robust delegated listener for card action menu toggle
                     if (container && container.__cardMenuDelegated !== true) {
-                        container.addEventListener('click', function (e) {
-                            const btn = e.target.closest('.dropdown-icon');
+                        container.addEventListener("click", function (e) {
+                            const btn = e.target.closest(".dropdown-icon");
                             if (!btn) return;
                             if (!container.contains(btn)) return;
                             e.preventDefault();
                             e.stopPropagation();
 
                             const dropdownMenu = btn.nextElementSibling;
-                            const isVisible = dropdownMenu && !dropdownMenu.classList.contains('d-none');
+                            const isVisible =
+                                dropdownMenu &&
+                                !dropdownMenu.classList.contains("d-none");
 
                             // Close all card action menus within this container only
-                            container.querySelectorAll('.dropdown-action').forEach((menu) => {
-                                menu.classList.add('d-none');
-                            });
+                            container
+                                .querySelectorAll(".dropdown-action")
+                                .forEach((menu) => {
+                                    menu.classList.add("d-none");
+                                });
 
                             // Open the requested one if it wasn't visible
                             if (dropdownMenu && !isVisible) {
-                                dropdownMenu.classList.remove('d-none');
+                                dropdownMenu.classList.remove("d-none");
                             }
                         });
                         // Close any open card menus when clicking outside the cards
                         if (!window.__globalCardMenuCloserBound) {
                             window.__globalCardMenuCloserBound = true;
-                            document.addEventListener('click', function () {
+                            document.addEventListener("click", function () {
                                 try {
-                                    document.querySelectorAll('.dropdown-action').forEach((menu) => menu.classList.add('d-none'));
+                                    document
+                                        .querySelectorAll(".dropdown-action")
+                                        .forEach((menu) =>
+                                            menu.classList.add("d-none")
+                                        );
                                 } catch (_) {}
                             });
                         }
@@ -1924,7 +2021,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     renderDropdown();
                                 },
                                 error: function (xhr, status, error) {
-                                    handleEmployeeLoadError(xhr, status, error, 'Edit Project');
+                                    handleEmployeeLoadError(
+                                        xhr,
+                                        status,
+                                        error,
+                                        "Edit Project"
+                                    );
 
                                     // Provide fallback with empty list
                                     employees = [];
@@ -2299,7 +2401,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     renderDropdown();
                                 },
                                 error: function (xhr, status, error) {
-                                    handleEmployeeLoadError(xhr, status, error, 'Edit Contributors');
+                                    handleEmployeeLoadError(
+                                        xhr,
+                                        status,
+                                        error,
+                                        "Edit Contributors"
+                                    );
 
                                     // Provide fallback with empty list
                                     employees = [];
@@ -2634,9 +2741,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     function getProjectFeedbackFooter() {
                         try {
                             return (
-                                projectFeedbackModalEl.querySelector('.feedback-modal-footer') ||
-                                projectFeedbackModalEl.querySelector('.modal-footer') ||
-                                projectFeedbackModalEl.querySelector('.modal-footer-custom')
+                                projectFeedbackModalEl.querySelector(
+                                    ".feedback-modal-footer"
+                                ) ||
+                                projectFeedbackModalEl.querySelector(
+                                    ".modal-footer"
+                                ) ||
+                                projectFeedbackModalEl.querySelector(
+                                    ".modal-footer-custom"
+                                )
                             );
                         } catch (_) {
                             return null;
@@ -2663,7 +2776,10 @@ document.addEventListener("DOMContentLoaded", function () {
                             .then((data) => {
                                 modalBody.innerHTML = ""; // Clear loading spinner
                                 // Ensure dialog element is available for height toggling
-                                const dialogEl = projectFeedbackModalEl.closest('.modal-dialog');
+                                const dialogEl =
+                                    projectFeedbackModalEl.closest(
+                                        ".modal-dialog"
+                                    );
 
                                 // Update feedback badge count on project card
                                 const card = document.querySelector(
@@ -2686,11 +2802,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                     modalBody.innerHTML =
                                         '<p class="text-center text-muted">No feedback available for this project.</p>';
                                     // Shrink modal height when empty
-                                    if (dialogEl) dialogEl.classList.add('compact');
+                                    if (dialogEl)
+                                        dialogEl.classList.add("compact");
                                     return;
                                 } else {
                                     // Ensure default height when there is content
-                                    if (dialogEl) dialogEl.classList.remove('compact');
+                                    if (dialogEl)
+                                        dialogEl.classList.remove("compact");
                                 }
 
                                 // Render feedback items
@@ -2787,7 +2905,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // Store edit button data for later positioning
                                     let editBtnInline = null;
                                     if (canEditTopInline) {
-                                        editBtnInline = document.createElement("span");
+                                        editBtnInline =
+                                            document.createElement("span");
                                         editBtnInline.className =
                                             "material-symbols-outlined icon feedback-edit-trigger ms-2";
                                         editBtnInline.style.cssText =
@@ -3237,7 +3356,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     }
 
                                     // Store reply button for later positioning
-                                    const replyBtn = document.createElement("span");
+                                    const replyBtn =
+                                        document.createElement("span");
                                     replyBtn.className =
                                         "material-symbols-outlined feedback-reply-trigger";
                                     replyBtn.style.cssText =
@@ -3259,103 +3379,266 @@ document.addEventListener("DOMContentLoaded", function () {
                                     feedbackItem.appendChild(mediaDiv);
 
                                     // Create actions container for edit and reply buttons
-                                    const actionsDiv = document.createElement("div");
-                                    actionsDiv.className = "feedback-actions mt-2 d-flex gap-3";
+                                    const actionsDiv =
+                                        document.createElement("div");
+                                    actionsDiv.className =
+                                        "feedback-actions mt-2 d-flex gap-3";
 
                                     // Add edit button if exists
                                     if (editBtnInline) {
                                         // Store the original event listener
-                                        const editClickHandler = editBtnInline.onclick || function() {};
+                                        const editClickHandler =
+                                            editBtnInline.onclick ||
+                                            function () {};
 
                                         // Create edit button wrapper with icon + text
-                                        const editWrapper = document.createElement("span");
-                                        editWrapper.className = "d-flex align-items-center";
-                                        editWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                        const editWrapper =
+                                            document.createElement("span");
+                                        editWrapper.className =
+                                            "d-flex align-items-center";
+                                        editWrapper.style.cssText =
+                                            "cursor:pointer; color:#555; font-size:12px;";
 
                                         // Recreate edit icon
-                                        const editIcon = document.createElement("span");
-                                        editIcon.className = "material-symbols-outlined feedback-edit-trigger";
-                                        editIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
+                                        const editIcon =
+                                            document.createElement("span");
+                                        editIcon.className =
+                                            "material-symbols-outlined feedback-edit-trigger";
+                                        editIcon.style.cssText =
+                                            "font-size:18px; line-height:1; margin-right:5px;";
                                         editIcon.textContent = "edit";
 
-                                        const editText = document.createElement("span");
+                                        const editText =
+                                            document.createElement("span");
                                         editText.textContent = "Edit";
 
                                         editWrapper.appendChild(editIcon);
                                         editWrapper.appendChild(editText);
 
                                         // Add click handler to wrapper
-                                        editWrapper.addEventListener("click", function() {
-                                            const payload = {
-                                                id: feedback.id,
-                                                parent_id: null,
-                                                feedback_comment: feedback.feedback_comment || "",
-                                                reference_url: feedback.reference_url || "",
-                                                reference_urls: feedback.reference_urls || [],
-                                                reference_file_url: feedback.reference_file || "",
-                                                reference_files_urls: (function () {
-                                                    let files = [];
-                                                    let rf = feedback.reference_files;
-                                                    if (!Array.isArray(rf) && typeof rf === "string") {
-                                                        try {
-                                                            const arr = JSON.parse(rf);
-                                                            if (Array.isArray(arr)) rf = arr;
-                                                        } catch (_) {}
-                                                    }
-                                                    if (Array.isArray(rf) && rf.length) {
-                                                        files = rf.map(function (f) {
-                                                            if (!f) return null;
-                                                            const isAbs = typeof f === "string" && (f.startsWith("http://") || f.startsWith("https://"));
-                                                            const isPath = typeof f === "string" && (f.startsWith("/file/project/") || f.startsWith("file/project/"));
-                                                            if (!isAbs && !isPath) return appUrl + "/file/project/" + f;
-                                                            if (!isAbs && isPath) return f.startsWith("/") ? appUrl + f : appUrl + "/" + f;
-                                                            return f;
-                                                        }).filter(Boolean);
-                                                    } else if (feedback.reference_file) {
-                                                        let single = feedback.reference_file;
-                                                        const isAbs2 = typeof single === "string" && (single.startsWith("http://") || single.startsWith("https://"));
-                                                        const isPath2 = typeof single === "string" && (single.startsWith("/file/project/") || single.startsWith("file/project/"));
-                                                        if (!isAbs2 && !isPath2) single = appUrl + "/file/project/" + single;
-                                                        else if (!isAbs2 && isPath2) single = single.startsWith("/") ? appUrl + single : appUrl + "/" + single;
-                                                        files = [single];
-                                                    }
-                                                    return files;
-                                                })(),
-                                                image_url: (function () {
-                                                    const img = feedback.image || "";
-                                                    if (!img) return "";
-                                                    if (String(img).startsWith("http")) return img;
-                                                    if (String(img).startsWith("/")) return appUrl + img;
-                                                    return appUrl + "/file/project/" + img;
-                                                })(),
-                                            };
-                                            showEditFeedbackForm(projectId, payload, false);
-                                        });
+                                        editWrapper.addEventListener(
+                                            "click",
+                                            function () {
+                                                const payload = {
+                                                    id: feedback.id,
+                                                    parent_id: null,
+                                                    feedback_comment:
+                                                        feedback.feedback_comment ||
+                                                        "",
+                                                    reference_url:
+                                                        feedback.reference_url ||
+                                                        "",
+                                                    reference_urls:
+                                                        feedback.reference_urls ||
+                                                        [],
+                                                    reference_file_url:
+                                                        feedback.reference_file ||
+                                                        "",
+                                                    reference_files_urls:
+                                                        (function () {
+                                                            let files = [];
+                                                            let rf =
+                                                                feedback.reference_files;
+                                                            if (
+                                                                !Array.isArray(
+                                                                    rf
+                                                                ) &&
+                                                                typeof rf ===
+                                                                    "string"
+                                                            ) {
+                                                                try {
+                                                                    const arr =
+                                                                        JSON.parse(
+                                                                            rf
+                                                                        );
+                                                                    if (
+                                                                        Array.isArray(
+                                                                            arr
+                                                                        )
+                                                                    )
+                                                                        rf =
+                                                                            arr;
+                                                                } catch (_) {}
+                                                            }
+                                                            if (
+                                                                Array.isArray(
+                                                                    rf
+                                                                ) &&
+                                                                rf.length
+                                                            ) {
+                                                                files = rf
+                                                                    .map(
+                                                                        function (
+                                                                            f
+                                                                        ) {
+                                                                            if (
+                                                                                !f
+                                                                            )
+                                                                                return null;
+                                                                            const isAbs =
+                                                                                typeof f ===
+                                                                                    "string" &&
+                                                                                (f.startsWith(
+                                                                                    "http://"
+                                                                                ) ||
+                                                                                    f.startsWith(
+                                                                                        "https://"
+                                                                                    ));
+                                                                            const isPath =
+                                                                                typeof f ===
+                                                                                    "string" &&
+                                                                                (f.startsWith(
+                                                                                    "/file/project/"
+                                                                                ) ||
+                                                                                    f.startsWith(
+                                                                                        "file/project/"
+                                                                                    ));
+                                                                            if (
+                                                                                !isAbs &&
+                                                                                !isPath
+                                                                            )
+                                                                                return (
+                                                                                    appUrl +
+                                                                                    "/file/project/" +
+                                                                                    f
+                                                                                );
+                                                                            if (
+                                                                                !isAbs &&
+                                                                                isPath
+                                                                            )
+                                                                                return f.startsWith(
+                                                                                    "/"
+                                                                                )
+                                                                                    ? appUrl +
+                                                                                          f
+                                                                                    : appUrl +
+                                                                                          "/" +
+                                                                                          f;
+                                                                            return f;
+                                                                        }
+                                                                    )
+                                                                    .filter(
+                                                                        Boolean
+                                                                    );
+                                                            } else if (
+                                                                feedback.reference_file
+                                                            ) {
+                                                                let single =
+                                                                    feedback.reference_file;
+                                                                const isAbs2 =
+                                                                    typeof single ===
+                                                                        "string" &&
+                                                                    (single.startsWith(
+                                                                        "http://"
+                                                                    ) ||
+                                                                        single.startsWith(
+                                                                            "https://"
+                                                                        ));
+                                                                const isPath2 =
+                                                                    typeof single ===
+                                                                        "string" &&
+                                                                    (single.startsWith(
+                                                                        "/file/project/"
+                                                                    ) ||
+                                                                        single.startsWith(
+                                                                            "file/project/"
+                                                                        ));
+                                                                if (
+                                                                    !isAbs2 &&
+                                                                    !isPath2
+                                                                )
+                                                                    single =
+                                                                        appUrl +
+                                                                        "/file/project/" +
+                                                                        single;
+                                                                else if (
+                                                                    !isAbs2 &&
+                                                                    isPath2
+                                                                )
+                                                                    single =
+                                                                        single.startsWith(
+                                                                            "/"
+                                                                        )
+                                                                            ? appUrl +
+                                                                              single
+                                                                            : appUrl +
+                                                                              "/" +
+                                                                              single;
+                                                                files = [
+                                                                    single,
+                                                                ];
+                                                            }
+                                                            return files;
+                                                        })(),
+                                                    image_url: (function () {
+                                                        const img =
+                                                            feedback.image ||
+                                                            "";
+                                                        if (!img) return "";
+                                                        if (
+                                                            String(
+                                                                img
+                                                            ).startsWith("http")
+                                                        )
+                                                            return img;
+                                                        if (
+                                                            String(
+                                                                img
+                                                            ).startsWith("/")
+                                                        )
+                                                            return appUrl + img;
+                                                        return (
+                                                            appUrl +
+                                                            "/file/project/" +
+                                                            img
+                                                        );
+                                                    })(),
+                                                };
+                                                showEditFeedbackForm(
+                                                    projectId,
+                                                    payload,
+                                                    false
+                                                );
+                                            }
+                                        );
 
                                         actionsDiv.appendChild(editWrapper);
                                     }
 
                                     // Create reply button wrapper with icon + text
-                                    const replyWrapper = document.createElement("span");
-                                    replyWrapper.className = "d-flex align-items-center";
-                                    replyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                    const replyWrapper =
+                                        document.createElement("span");
+                                    replyWrapper.className =
+                                        "d-flex align-items-center";
+                                    replyWrapper.style.cssText =
+                                        "cursor:pointer; color:#555; font-size:12px;";
 
                                     // Recreate reply icon
-                                    const replyIcon = document.createElement("span");
-                                    replyIcon.className = "material-symbols-outlined feedback-reply-trigger";
-                                    replyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
+                                    const replyIcon =
+                                        document.createElement("span");
+                                    replyIcon.className =
+                                        "material-symbols-outlined feedback-reply-trigger";
+                                    replyIcon.style.cssText =
+                                        "font-size:18px; line-height:1; margin-right:5px;";
                                     replyIcon.textContent = "reply";
 
-                                    const replyText = document.createElement("span");
+                                    const replyText =
+                                        document.createElement("span");
                                     replyText.textContent = "Reply";
 
                                     replyWrapper.appendChild(replyIcon);
                                     replyWrapper.appendChild(replyText);
 
                                     // Add click handler to wrapper
-                                    replyWrapper.addEventListener("click", function () {
-                                        showReplyFeedbackForm(projectId, feedback.id);
-                                    });
+                                    replyWrapper.addEventListener(
+                                        "click",
+                                        function () {
+                                            showReplyFeedbackForm(
+                                                projectId,
+                                                feedback.id
+                                            );
+                                        }
+                                    );
 
                                     // Add reply button
                                     actionsDiv.appendChild(replyWrapper);
@@ -3485,7 +3768,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                             // Store reply edit button for later positioning
                                             let rEdit = null;
                                             if (canEditReply) {
-                                                rEdit = document.createElement("span");
+                                                rEdit =
+                                                    document.createElement(
+                                                        "span"
+                                                    );
                                                 rEdit.className =
                                                     "material-symbols-outlined feedback-edit-trigger ms-2";
                                                 rEdit.style.cssText =
@@ -3899,95 +4185,249 @@ document.addEventListener("DOMContentLoaded", function () {
                                             if (rImg) repDiv.appendChild(rImg);
 
                                             // Create reply actions container for edit and reply buttons
-                                            const replyActionsDiv = document.createElement("div");
-                                            replyActionsDiv.className = "reply-actions mt-2 d-flex gap-3";
+                                            const replyActionsDiv =
+                                                document.createElement("div");
+                                            replyActionsDiv.className =
+                                                "reply-actions mt-2 d-flex gap-3";
 
                                             // Add edit button if exists
                                             if (rEdit) {
                                                 // Create edit wrapper with icon + text
-                                                const editReplyWrapper = document.createElement("span");
-                                                editReplyWrapper.className = "d-flex align-items-center";
-                                                editReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                                const editReplyWrapper =
+                                                    document.createElement(
+                                                        "span"
+                                                    );
+                                                editReplyWrapper.className =
+                                                    "d-flex align-items-center";
+                                                editReplyWrapper.style.cssText =
+                                                    "cursor:pointer; color:#555; font-size:12px;";
 
                                                 // Recreate edit icon
-                                                const editReplyIcon = document.createElement("span");
-                                                editReplyIcon.className = "material-symbols-outlined feedback-edit-trigger";
-                                                editReplyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
-                                                editReplyIcon.textContent = "edit";
+                                                const editReplyIcon =
+                                                    document.createElement(
+                                                        "span"
+                                                    );
+                                                editReplyIcon.className =
+                                                    "material-symbols-outlined feedback-edit-trigger";
+                                                editReplyIcon.style.cssText =
+                                                    "font-size:18px; line-height:1; margin-right:5px;";
+                                                editReplyIcon.textContent =
+                                                    "edit";
 
-                                                const editReplyText = document.createElement("span");
-                                                editReplyText.textContent = "Edit";
+                                                const editReplyText =
+                                                    document.createElement(
+                                                        "span"
+                                                    );
+                                                editReplyText.textContent =
+                                                    "Edit";
 
-                                                editReplyWrapper.appendChild(editReplyIcon);
-                                                editReplyWrapper.appendChild(editReplyText);
+                                                editReplyWrapper.appendChild(
+                                                    editReplyIcon
+                                                );
+                                                editReplyWrapper.appendChild(
+                                                    editReplyText
+                                                );
 
                                                 // Add click handler to wrapper
-                                                editReplyWrapper.addEventListener("click", function () {
-                                                    const payload = {
-                                                        id: rep.id,
-                                                        parent_id: feedback.id,
-                                                        feedback_comment: rep.feedback_comment || "",
-                                                        reference_url: rep.reference_url || "",
-                                                        reference_urls: rep.reference_urls || [],
-                                                        reference_file_url: rep.reference_file || "",
-                                                        reference_files_urls: (function () {
-                                                            let files = [];
-                                                            let rf = rep.reference_files;
-                                                            if (!Array.isArray(rf) && typeof rf === "string") {
-                                                                try {
-                                                                    const arr = JSON.parse(rf);
-                                                                    if (Array.isArray(arr)) rf = arr;
-                                                                } catch (_) {}
-                                                            }
-                                                            if (Array.isArray(rf) && rf.length) files = rf;
-                                                            else if (rep.reference_file) files = [rep.reference_file];
-                                                            return files.map(function (f) {
-                                                                if (!f) return null;
-                                                                let href = f;
-                                                                if (href && !(String(href).startsWith("http") || String(href).startsWith("/"))) {
-                                                                    href = appUrl + "/file/project/" + href;
-                                                                } else if (href && String(href).startsWith("/")) {
-                                                                    href = appUrl + href;
-                                                                }
-                                                                return href;
-                                                            }).filter(Boolean);
-                                                        })(),
-                                                        image_url: (function () {
-                                                            const img = rep.image || "";
-                                                            if (!img) return "";
-                                                            if (String(img).startsWith("http")) return img;
-                                                            if (String(img).startsWith("/")) return appUrl + img;
-                                                            return appUrl + "/file/project/" + img;
-                                                        })(),
-                                                    };
-                                                    showEditFeedbackForm(projectId, payload, true);
-                                                });
+                                                editReplyWrapper.addEventListener(
+                                                    "click",
+                                                    function () {
+                                                        const payload = {
+                                                            id: rep.id,
+                                                            parent_id:
+                                                                feedback.id,
+                                                            feedback_comment:
+                                                                rep.feedback_comment ||
+                                                                "",
+                                                            reference_url:
+                                                                rep.reference_url ||
+                                                                "",
+                                                            reference_urls:
+                                                                rep.reference_urls ||
+                                                                [],
+                                                            reference_file_url:
+                                                                rep.reference_file ||
+                                                                "",
+                                                            reference_files_urls:
+                                                                (function () {
+                                                                    let files =
+                                                                        [];
+                                                                    let rf =
+                                                                        rep.reference_files;
+                                                                    if (
+                                                                        !Array.isArray(
+                                                                            rf
+                                                                        ) &&
+                                                                        typeof rf ===
+                                                                            "string"
+                                                                    ) {
+                                                                        try {
+                                                                            const arr =
+                                                                                JSON.parse(
+                                                                                    rf
+                                                                                );
+                                                                            if (
+                                                                                Array.isArray(
+                                                                                    arr
+                                                                                )
+                                                                            )
+                                                                                rf =
+                                                                                    arr;
+                                                                        } catch (_) {}
+                                                                    }
+                                                                    if (
+                                                                        Array.isArray(
+                                                                            rf
+                                                                        ) &&
+                                                                        rf.length
+                                                                    )
+                                                                        files =
+                                                                            rf;
+                                                                    else if (
+                                                                        rep.reference_file
+                                                                    )
+                                                                        files =
+                                                                            [
+                                                                                rep.reference_file,
+                                                                            ];
+                                                                    return files
+                                                                        .map(
+                                                                            function (
+                                                                                f
+                                                                            ) {
+                                                                                if (
+                                                                                    !f
+                                                                                )
+                                                                                    return null;
+                                                                                let href =
+                                                                                    f;
+                                                                                if (
+                                                                                    href &&
+                                                                                    !(
+                                                                                        String(
+                                                                                            href
+                                                                                        ).startsWith(
+                                                                                            "http"
+                                                                                        ) ||
+                                                                                        String(
+                                                                                            href
+                                                                                        ).startsWith(
+                                                                                            "/"
+                                                                                        )
+                                                                                    )
+                                                                                ) {
+                                                                                    href =
+                                                                                        appUrl +
+                                                                                        "/file/project/" +
+                                                                                        href;
+                                                                                } else if (
+                                                                                    href &&
+                                                                                    String(
+                                                                                        href
+                                                                                    ).startsWith(
+                                                                                        "/"
+                                                                                    )
+                                                                                ) {
+                                                                                    href =
+                                                                                        appUrl +
+                                                                                        href;
+                                                                                }
+                                                                                return href;
+                                                                            }
+                                                                        )
+                                                                        .filter(
+                                                                            Boolean
+                                                                        );
+                                                                })(),
+                                                            image_url:
+                                                                (function () {
+                                                                    const img =
+                                                                        rep.image ||
+                                                                        "";
+                                                                    if (!img)
+                                                                        return "";
+                                                                    if (
+                                                                        String(
+                                                                            img
+                                                                        ).startsWith(
+                                                                            "http"
+                                                                        )
+                                                                    )
+                                                                        return img;
+                                                                    if (
+                                                                        String(
+                                                                            img
+                                                                        ).startsWith(
+                                                                            "/"
+                                                                        )
+                                                                    )
+                                                                        return (
+                                                                            appUrl +
+                                                                            img
+                                                                        );
+                                                                    return (
+                                                                        appUrl +
+                                                                        "/file/project/" +
+                                                                        img
+                                                                    );
+                                                                })(),
+                                                        };
+                                                        showEditFeedbackForm(
+                                                            projectId,
+                                                            payload,
+                                                            true
+                                                        );
+                                                    }
+                                                );
 
-                                                replyActionsDiv.appendChild(editReplyWrapper);
+                                                replyActionsDiv.appendChild(
+                                                    editReplyWrapper
+                                                );
                                             }
 
                                             // Create reply wrapper with icon + text
-                                            const replyReplyWrapper = document.createElement("span");
-                                            replyReplyWrapper.className = "d-flex align-items-center";
-                                            replyReplyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                            const replyReplyWrapper =
+                                                document.createElement("span");
+                                            replyReplyWrapper.className =
+                                                "d-flex align-items-center";
+                                            replyReplyWrapper.style.cssText =
+                                                "cursor:pointer; color:#555; font-size:12px;";
 
                                             // Add reply button for nested reply
-                                            const replyToReplyIcon = document.createElement("span");
-                                            replyToReplyIcon.className = "material-symbols-outlined feedback-reply-trigger";
-                                            replyToReplyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
-                                            replyToReplyIcon.textContent = "reply";
+                                            const replyToReplyIcon =
+                                                document.createElement("span");
+                                            replyToReplyIcon.className =
+                                                "material-symbols-outlined feedback-reply-trigger";
+                                            replyToReplyIcon.style.cssText =
+                                                "font-size:18px; line-height:1; margin-right:5px;";
+                                            replyToReplyIcon.textContent =
+                                                "reply";
 
-                                            const replyReplyText = document.createElement("span");
-                                            replyReplyText.textContent = "Reply";
+                                            const replyReplyText =
+                                                document.createElement("span");
+                                            replyReplyText.textContent =
+                                                "Reply";
 
-                                            replyReplyWrapper.appendChild(replyToReplyIcon);
-                                            replyReplyWrapper.appendChild(replyReplyText);
+                                            replyReplyWrapper.appendChild(
+                                                replyToReplyIcon
+                                            );
+                                            replyReplyWrapper.appendChild(
+                                                replyReplyText
+                                            );
 
-                                            replyReplyWrapper.addEventListener("click", function () {
-                                                showReplyFeedbackForm(projectId, feedback.id);
-                                            });
+                                            replyReplyWrapper.addEventListener(
+                                                "click",
+                                                function () {
+                                                    showReplyFeedbackForm(
+                                                        projectId,
+                                                        feedback.id
+                                                    );
+                                                }
+                                            );
 
-                                            replyActionsDiv.appendChild(replyReplyWrapper);
+                                            replyActionsDiv.appendChild(
+                                                replyReplyWrapper
+                                            );
 
                                             repDiv.appendChild(replyActionsDiv);
                                             repliesContainer.appendChild(
@@ -4364,20 +4804,28 @@ document.addEventListener("DOMContentLoaded", function () {
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply flex-grow-1";
+                                closeBtn.className =
+                                    "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
                                 closeBtn.addEventListener("click", function () {
                                     try {
                                         // Restore footer to single Add Feedback button (like Task)
                                         footer.innerHTML = "";
-                                        const restore = document.createElement("button");
+                                        const restore =
+                                            document.createElement("button");
                                         restore.type = "button";
-                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.className =
+                                            "btn btn-submit-black w-100";
                                         restore.id = "addFeedbackButton";
                                         restore.textContent = "Add Feedback";
-                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        restore.addEventListener(
+                                            "click",
+                                            function () {
+                                                showAddFeedbackForm(projectId);
+                                            }
+                                        );
                                         footer.appendChild(restore);
-                                    } catch(_) {}
+                                    } catch (_) {}
                                     loadFeedbackData(projectId);
                                 });
 
@@ -4839,19 +5287,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply flex-grow-1";
+                                closeBtn.className =
+                                    "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
                                 closeBtn.addEventListener("click", function () {
                                     try {
                                         footer.innerHTML = "";
-                                        const restore = document.createElement("button");
+                                        const restore =
+                                            document.createElement("button");
                                         restore.type = "button";
-                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.className =
+                                            "btn btn-submit-black w-100";
                                         restore.id = "addFeedbackButton";
                                         restore.textContent = "Add Feedback";
-                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        restore.addEventListener(
+                                            "click",
+                                            function () {
+                                                showAddFeedbackForm(projectId);
+                                            }
+                                        );
                                         footer.appendChild(restore);
-                                    } catch(_) {}
+                                    } catch (_) {}
                                     loadFeedbackData(projectId);
                                 });
                                 wrap.appendChild(closeBtn);
@@ -5357,19 +5813,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                     document.createElement("button");
                                 closeBtn.id = "replyCloseButton";
                                 closeBtn.type = "button";
-                                closeBtn.className = "btn btn-close-reply flex-grow-1";
+                                closeBtn.className =
+                                    "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
                                 closeBtn.addEventListener("click", function () {
                                     try {
                                         footer.innerHTML = "";
-                                        const restore = document.createElement("button");
+                                        const restore =
+                                            document.createElement("button");
                                         restore.type = "button";
-                                        restore.className = "btn btn-submit-black w-100";
+                                        restore.className =
+                                            "btn btn-submit-black w-100";
                                         restore.id = "addFeedbackButton";
                                         restore.textContent = "Add Feedback";
-                                        restore.addEventListener("click", function(){ showAddFeedbackForm(projectId); });
+                                        restore.addEventListener(
+                                            "click",
+                                            function () {
+                                                showAddFeedbackForm(projectId);
+                                            }
+                                        );
                                         footer.appendChild(restore);
-                                    } catch(_) {}
+                                    } catch (_) {}
                                     loadFeedbackData(projectId);
                                 });
                                 wrap.appendChild(closeBtn);
@@ -5606,30 +6070,49 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Helper: Build delete preview content like Task modal and inject into #deleteProjectContent
                     function setDeleteProjectModalPreview(project) {
                         try {
-                            const deleteModalEl = document.getElementById('deleteProjectModal');
+                            const deleteModalEl =
+                                document.getElementById("deleteProjectModal");
                             if (!deleteModalEl) return;
-                            const contentEl = deleteModalEl.querySelector('#deleteProjectContent');
+                            const contentEl = deleteModalEl.querySelector(
+                                "#deleteProjectContent"
+                            );
                             if (!contentEl) return;
 
-                            const title = project?.title || '';
-                            let imgUrl = project?.image || '';
-                            let avatarHtml = '';
+                            const title = project?.title || "";
+                            let imgUrl = project?.image || "";
+                            let avatarHtml = "";
 
                             if (imgUrl) {
                                 const isAbsolute = /^https?:\/\//i.test(imgUrl);
-                                const isFile = /^\/?(file|storage)\//i.test(imgUrl);
+                                const isFile = /^\/?(file|storage)\//i.test(
+                                    imgUrl
+                                );
                                 if (!isAbsolute && !isFile) {
-                                    imgUrl = appUrl + '/file/project/' + imgUrl;
+                                    imgUrl = appUrl + "/file/project/" + imgUrl;
                                 } else if (!isAbsolute && isFile) {
-                                    imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                                    imgUrl = imgUrl.startsWith("/")
+                                        ? appUrl + imgUrl
+                                        : appUrl + "/" + imgUrl;
                                 }
-                                avatarHtml = `<img src="${imgUrl}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getInitialsColor(title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getInitials(title)}</div>')">`;
+                                avatarHtml = `<img src="${imgUrl}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getInitialsColor(
+                                    title
+                                )};color:#fff;font-weight:600;font-size:11px;&quot;>${getInitials(
+                                    title
+                                )}</div>')">`;
                             } else {
-                                avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${getInitialsColor(title)};color:#fff;font-weight:600;font-size:11px;">${getInitials(title)}</div>`;
+                                avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${getInitialsColor(
+                                    title
+                                )};color:#fff;font-weight:600;font-size:11px;">${getInitials(
+                                    title
+                                )}</div>`;
                             }
 
-                            const parentTitle = project?.part_of_project_title ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>` : '';
-                            const desc = project?.description ? String(project.description) : '';
+                            const parentTitle = project?.part_of_project_title
+                                ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>`
+                                : "";
+                            const desc = project?.description
+                                ? String(project.description)
+                                : "";
 
                             const cardHtml = `
                                 <div class="custom-card-delete rounded-4 position-relative p-3 border-0">
@@ -5637,15 +6120,26 @@ document.addEventListener("DOMContentLoaded", function () {
                                         ${avatarHtml}
                                         <div class="d-flex flex-column">
                                             ${parentTitle}
-                                            <h5 class="mb-0 task-title" style="line-height:1.2;">${title || 'Untitled Project'}</h5>
+                                            <h5 class="mb-0 task-title" style="line-height:1.2;">${
+                                                title || "Untitled Project"
+                                            }</h5>
                                         </div>
                                     </div>
-                                    ${desc ? `<div class="task-description-container mb-2"><p class="task-description mb-0" style="font-size:14px;">${desc}</p></div>` : ''}
+                                    ${
+                                        desc
+                                            ? `<div class="task-description-container mb-2"><p class="task-description mb-0" style="font-size:14px;">${desc}</p></div>`
+                                            : ""
+                                    }
                                     <hr class="task-separator rounded-4">
                                 </div>`;
 
                             contentEl.innerHTML = cardHtml;
-                        } catch (e) { console.error('setDeleteProjectModalPreview error:', e); }
+                        } catch (e) {
+                            console.error(
+                                "setDeleteProjectModalPreview error:",
+                                e
+                            );
+                        }
                     }
 
                     // Remove old confirm dialog and use modal instead
@@ -5664,11 +6158,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                 }
 
                                 // Open delete confirmation modal and populate data (mirror Task delete flow)
-                                const deleteModalEl = document.getElementById("deleteProjectModal");
-                                const deleteModal = new bootstrap.Modal(deleteModalEl);
+                                const deleteModalEl =
+                                    document.getElementById(
+                                        "deleteProjectModal"
+                                    );
+                                const deleteModal = new bootstrap.Modal(
+                                    deleteModalEl
+                                );
                                 // Store projectId and card element on modal for use in delete
                                 deleteModalEl.dataset.projectId = projectId;
-                                deleteModalEl.dataset.cardId = card.getAttribute("data-project-id");
+                                deleteModalEl.dataset.cardId =
+                                    card.getAttribute("data-project-id");
 
                                 // Fetch project detail to build rich preview content
                                 $.ajax({
@@ -5677,24 +6177,61 @@ document.addEventListener("DOMContentLoaded", function () {
                                     dataType: "json",
                                     success: function (response) {
                                         try {
-                                            const project = response && response.data ? response.data : {};
-                                            setDeleteProjectModalPreview(project);
-                                        } catch(_) {
-                                            const projectTitleEl = card.querySelector('.title-project');
-                                            const title = projectTitleEl ? projectTitleEl.textContent : '';
-                                            setDeleteProjectModalPreview({ title: title });
+                                            const project =
+                                                response && response.data
+                                                    ? response.data
+                                                    : {};
+                                            setDeleteProjectModalPreview(
+                                                project
+                                            );
+                                        } catch (_) {
+                                            const projectTitleEl =
+                                                card.querySelector(
+                                                    ".title-project"
+                                                );
+                                            const title = projectTitleEl
+                                                ? projectTitleEl.textContent
+                                                : "";
+                                            setDeleteProjectModalPreview({
+                                                title: title,
+                                            });
                                         }
                                         deleteModal.show();
                                         // Clean excess backdrops if any
-                                        try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                                        try {
+                                            document
+                                                .querySelectorAll(
+                                                    ".modal-backdrop"
+                                                )
+                                                .forEach((el, idx, arr) => {
+                                                    if (idx < arr.length - 1)
+                                                        el.remove();
+                                                });
+                                        } catch (_) {}
                                     },
                                     error: function () {
-                                        const projectTitleEl = card.querySelector('.title-project');
-                                        const title = projectTitleEl ? projectTitleEl.textContent : '';
-                                        setDeleteProjectModalPreview({ title: title });
+                                        const projectTitleEl =
+                                            card.querySelector(
+                                                ".title-project"
+                                            );
+                                        const title = projectTitleEl
+                                            ? projectTitleEl.textContent
+                                            : "";
+                                        setDeleteProjectModalPreview({
+                                            title: title,
+                                        });
                                         deleteModal.show();
-                                        try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
-                                    }
+                                        try {
+                                            document
+                                                .querySelectorAll(
+                                                    ".modal-backdrop"
+                                                )
+                                                .forEach((el, idx, arr) => {
+                                                    if (idx < arr.length - 1)
+                                                        el.remove();
+                                                });
+                                        } catch (_) {}
+                                    },
                                 });
 
                                 // Delete button click handler
@@ -5769,33 +6306,49 @@ document.addEventListener("DOMContentLoaded", function () {
                                 let avatarHtml = imageUrl
                                     ? `<img src="${imageUrl}" class="rounded-circle me-3" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
                                     : (function () {
-                                          const init = getInitials(project.title || "N/A");
-                                          const color = getInitialsColor(project.title || "N/A");
+                                          const init = getInitials(
+                                              project.title || "N/A"
+                                          );
+                                          const color = getInitialsColor(
+                                              project.title || "N/A"
+                                          );
                                           return `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:48px;height:48px;background:${color};color:#fff;font-weight:600;font-size:11px;">${init}</div>`;
                                       })();
 
                                 // Normalize department/division fields: accept string or object and various key names
                                 function _getDeptText(val) {
                                     try {
-                                        if (!val) return '-';
-                                        if (typeof val === 'string') return val;
-                                        if (typeof val === 'object') {
+                                        if (!val) return "-";
+                                        if (typeof val === "string") return val;
+                                        if (typeof val === "object") {
                                             return (
                                                 val.name_department ||
                                                 val.name_division ||
                                                 val.name ||
                                                 val.title ||
-                                                '-'
+                                                "-"
                                             );
                                         }
-                                        return '-';
-                                    } catch(_) { return '-'; }
+                                        return "-";
+                                    } catch (_) {
+                                        return "-";
+                                    }
                                 }
                                 // Pull from various possible fields in the payload
-                                const deptRaw = project.department ?? project.department_name ?? project.dept ?? project.departmentTitle ?? project.department_obj;
-                                const divRaw  = project.division  ?? project.division_name  ?? project.div ?? project.divisionTitle  ?? project.division_obj;
+                                const deptRaw =
+                                    project.department ??
+                                    project.department_name ??
+                                    project.dept ??
+                                    project.departmentTitle ??
+                                    project.department_obj;
+                                const divRaw =
+                                    project.division ??
+                                    project.division_name ??
+                                    project.div ??
+                                    project.divisionTitle ??
+                                    project.division_obj;
                                 const deptText = _getDeptText(deptRaw);
-                                const divText  = _getDeptText(divRaw);
+                                const divText = _getDeptText(divRaw);
 
                                 const detailHtml = `
                 <div class="custom-card-detail rounded-4 p-3 border-0" data-project-id="${pid}">
@@ -5803,24 +6356,41 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div class="d-flex align-items-center">
                             ${avatarHtml}
                             <div class="d-flex flex-column">
-                                ${project.part_of_project_title ? `<small class=\"text-muted\" style=\"font-size:11px;\">${project.part_of_project_title}</small>` : ""}
-                                <h5 class="mb-0 task-title" style="font-size:16px; font-weight:600;">${project.title || "Unknown Project"}</h5>
+                                ${
+                                    project.part_of_project_title
+                                        ? `<small class=\"text-muted\" style=\"font-size:11px;\">${project.part_of_project_title}</small>`
+                                        : ""
+                                }
+                                <h5 class="mb-0 task-title" style="font-size:16px; font-weight:600;">${
+                                    project.title || "Unknown Project"
+                                }</h5>
                             </div>
                         </div>
                         <div class="dropdown-icon-container">
                             <span class="material-symbols-outlined dropdown-icon mt-2 mx-2 project-edit-icon" tabindex="0">edit</span>
                         </div>
                     </div>
-                    ${project.description ? `<p style=\"font-size:14px;\" class=\"mb-2\">${project.description}</p>` : ""}
+                    ${
+                        project.description
+                            ? `<p style=\"font-size:14px;\" class=\"mb-2\">${project.description}</p>`
+                            : ""
+                    }
                     <hr class="task-separator rounded-4">
                     <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
                         <div>
                             <span style="color:#797E91;">Priority: </span>
-                            <span style="color:${(project.priority||'').toUpperCase()==='HIGH' ? 'red' : '#4B4F5E'}">${(project.priority || '-')}</span>
+                            <span style="color:${
+                                (project.priority || "").toUpperCase() ===
+                                "HIGH"
+                                    ? "red"
+                                    : "#4B4F5E"
+                            }">${project.priority || "-"}</span>
                         </div>
                         <div>
                             <span style="color:#797E91;">Deadline: </span>
-                            <span style="color:#4B4F5E;">${project.due_date || "-"}</span>
+                            <span style="color:#4B4F5E;">${
+                                project.due_date || "-"
+                            }</span>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -5832,7 +6402,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         <span>${divText}</span>
                     </div>
                         <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
-                        <div class="flex-grow-1">${buildCollaboratorsDetailList(project)}</div>
+                        <div class="flex-grow-1">${buildCollaboratorsDetailList(
+                            project
+                        )}</div>
                         <div class="d-flex align-items-start">
                             <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
                                 <span class="material-symbols-outlined task-icon mode_comment" data-project-id="${pid}">mode_comment</span>
@@ -5851,295 +6423,1044 @@ document.addEventListener("DOMContentLoaded", function () {
                                 $("#projectDetailContent").html(detailHtml);
                                 // Initialize tooltips for collaborator avatars and +N badge inside the detail modal
                                 try {
-                                    const container = document.getElementById('projectDetailContent');
-                                    if (container && typeof initResponsiveTooltips === 'function') {
+                                    const container = document.getElementById(
+                                        "projectDetailContent"
+                                    );
+                                    if (
+                                        container &&
+                                        typeof initResponsiveTooltips ===
+                                            "function"
+                                    ) {
                                         initResponsiveTooltips(container);
                                     }
-                                } catch(_) { /* noop */ }
+                                } catch (_) {
+                                    /* noop */
+                                }
 
                                 // Bind Edit icon to open Edit Project modal
                                 (function bindEditIcon() {
-                                    const editBtn = document.querySelector('#projectDetailContent .project-edit-icon');
+                                    const editBtn = document.querySelector(
+                                        "#projectDetailContent .project-edit-icon"
+                                    );
                                     if (!editBtn) return;
-                                    editBtn.addEventListener('click', function () {
-                                        // Mark that a child modal (edit) is about to open so timeline won't be restored yet
-                                        try {
-                                            const detailModalEl = document.getElementById('projectDetailModal');
-                                            if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'edit');
-                                        } catch(_) { /* noop */ }
-                                        // Hide project detail modal first
-                                        try { $("#projectDetailModal").modal('hide'); } catch(_) {}
-                                        // Reuse edit flow: fetch project data and populate modal, then show
-                                        $.ajax({
-                                            url: appUrl + "/project/" + pid + "/edit",
-                                            type: "GET",
-                                            dataType: "json",
-                                            success: function (data) {
-                                                try {
-                                                    // Populate Edit form fields (same logic as dropdown Edit)
-                                                    $("#edit_project_id").val(data.id);
-                                                    $("#edit_title").val(data.title);
-                                                    $("#edit_description").val(data.description);
-
-                                                    // Prefill multiple reference URLs
-                                                    (function () {
-                                                        const container = document.getElementById("edit_project_reference_urls_container");
-                                                        if (!container) return;
-                                                        container.innerHTML = "";
-                                                        let urls = [];
-                                                        if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
-                                                        else if (typeof data.reference_urls === 'string') {
-                                                            try { const arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_) {}
-                                                        }
-                                                        if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
-                                                        function makeRow(value, withAdd) {
-                                                            const row = document.createElement('div');
-                                                            row.className = 'd-flex gap-2 align-items-center';
-                                                            row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
-                                                            container.appendChild(row);
-                                                            const inp = row.querySelector('input[type="url"]');
-                                                            if (inp && value) inp.value = value;
-                                                        }
-                                                        if (urls && urls.length) { urls.forEach(u => makeRow(u, false)); makeRow("", true); } else { makeRow("", true); }
-                                                    })();
-
-                                                    $("#edit_start_date").val(data.start_date);
-                                                    $("#edit_due_date").val(data.due_date);
-
-                                                    try {
-                                                        const currentProjectId = data.id || $("#edit_project_id").val();
-                                                        const currentProjectTitle = data.title || "";
-                                                        populatePartOfProjectSelects(currentProjectId, currentProjectTitle, data.part_of_project);
-                                                    } catch (_) {
-                                                        try { $("#edit_part_of_project").val(data.part_of_project); } catch(_) {}
-                                                    }
-
-                                                    // Load departments/divisions
-                                                    loadDepartments(function () {
-                                                        $("#edit_department").val(data.department_id).trigger("change");
-                                                        loadDivisions(data.department_id, function () {
-                                                            $("#edit_division").val(data.division_id);
-                                                            $("#edit_division").trigger("change");
-                                                        }, document.getElementById("edit_division"));
-                                                        $("#edit_department").trigger("change");
-                                                    }, document.getElementById("edit_department"));
-
-                                                    // Image preview
-                                                    if (data.image) {
-                                                        $("#editImageLabel").css("background-image", "url(" + appUrl + "/file/project/" + data.image + ")");
-                                                        $("#editImageLabel").addClass("has-image");
-                                                        $("#editImageLabel").css({ "background-size": "cover", opacity: "1" });
-                                                        $("#editImageClearBtn").removeClass("d-none");
-                                                    } else {
-                                                        $("#editImageLabel").css("background-image", "url('" + appUrl + "/asset/img/background/add-image.png')");
-                                                        $("#editImageLabel").removeClass("has-image");
-                                                        $("#editImageLabel").css("opacity", "0.5");
-                                                        $("#editImageClearBtn").addClass("d-none");
-                                                    }
-
-                                                    // Files (existing and new)
-                                                    $("#edit_reference_file").val("");
-                                                    var existingFiles = Array.isArray(data.reference_files) ? data.reference_files.slice() : Array.isArray(data.reference_file) ? data.reference_file.slice() : data.reference_file ? [data.reference_file] : [];
-                                                    var existingInput = document.getElementById("existing_reference_files_input");
-                                                    if (!existingInput) {
-                                                        existingInput = document.createElement("input");
-                                                        existingInput.type = "hidden"; existingInput.id = "existing_reference_files_input"; existingInput.name = "existing_reference_files";
-                                                        document.getElementById("editProjectForm").appendChild(existingInput);
-                                                    }
-                                                    existingInput.value = JSON.stringify(existingFiles);
-
-                                                    var previewEdit = document.getElementById("edit_reference_files_preview");
-                                                    var existingContainer = document.getElementById("existing_reference_files");
-                                                    if (previewEdit) previewEdit.innerHTML = ""; if (existingContainer) existingContainer.innerHTML = "";
-                                                    window.editProjectSelectedFiles = [];
-                                                    function renderExistingProjectFiles() {
-                                                        if (!existingContainer) return; existingContainer.innerHTML = "";
-                                                        if (existingFiles.length > 0) {
-                                                            var title = document.createElement("div"); title.className = "fw-bold mb-2"; title.textContent = "Current Files:"; existingContainer.appendChild(title);
-                                                            var fileList = document.createElement("div"); fileList.className = "existing-files-list w-100";
-                                                            existingFiles.forEach(function (fileName) {
-                                                                var fileItem = document.createElement("div"); fileItem.className = "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
-                                                                var fileInfo = document.createElement("div"); fileInfo.className = "d-flex align-items-center flex-grow-1";
-                                                                var fileIcon = document.createElement("span"); fileIcon.className = "material-symbols-outlined me-2"; fileIcon.textContent = "description";
-                                                                var fileLink = document.createElement("a"); fileLink.href = appUrl + "/file/project/" + fileName; fileLink.textContent = fileName; fileLink.className = "text-decoration-none"; fileLink.target = "_blank";
-                                                                var removeBtn = document.createElement("button"); removeBtn.type = "button"; removeBtn.className = "btn btn-sm btn-outline-danger"; removeBtn.innerHTML = "&times;"; removeBtn.onclick = function () { existingFiles = existingFiles.filter(function (f) { return f !== fileName; }); existingInput.value = JSON.stringify(existingFiles); renderExistingProjectFiles(); };
-                                                                fileInfo.appendChild(fileIcon); fileInfo.appendChild(fileLink); fileItem.appendChild(fileInfo); fileItem.appendChild(removeBtn); fileList.appendChild(fileItem);
-                                                            });
-                                                            existingContainer.appendChild(fileList);
-                                                        }
-                                                    }
-                                                    function renderEditProjectSelectedFiles() {
-                                                        if (!previewEdit) return; previewEdit.innerHTML = "";
-                                                        if (window.editProjectSelectedFiles.length > 0) {
-                                                            var fileList = document.createElement("div"); fileList.className = "selected-files-list mt-2";
-                                                            window.editProjectSelectedFiles.forEach(function (file, index) {
-                                                                var fileItem = document.createElement("div"); fileItem.className = "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
-                                                                var fileInfo = document.createElement("div"); fileInfo.className = "d-flex align-items-center flex-grow-1";
-                                                                var fileIcon = document.createElement("span"); fileIcon.className = "material-symbols-outlined me-2"; fileIcon.textContent = "description";
-                                                                var fileName = document.createElement("span"); fileName.textContent = file.name; fileName.className = "file-name";
-                                                                var fileSize = document.createElement("small"); fileSize.textContent = " (" + (file.size/1024/1024).toFixed(2) + " MB)"; fileSize.className = "text-muted ms-1";
-                                                                var removeBtn = document.createElement("button"); removeBtn.type = "button"; removeBtn.className = "btn btn-sm btn-outline-danger"; removeBtn.innerHTML = "&times;"; removeBtn.onclick = function () { window.editProjectSelectedFiles.splice(index, 1); renderEditProjectSelectedFiles(); };
-                                                                fileInfo.appendChild(fileIcon); fileInfo.appendChild(fileName); fileInfo.appendChild(fileSize);
-                                                                fileItem.appendChild(fileInfo); fileItem.appendChild(removeBtn); fileList.appendChild(fileItem);
-                                                            });
-                                                            previewEdit.appendChild(fileList);
-                                                        }
-                                                    }
-                                                    $("#edit_reference_file").off("change").on("change", function () { var files = Array.from(this.files || []); if (files.length > 0) { window.editProjectSelectedFiles = window.editProjectSelectedFiles.concat(files); renderEditProjectSelectedFiles(); this.value = ""; } });
-                                                    renderExistingProjectFiles(); renderEditProjectSelectedFiles();
-
-                                                    // Co-authors & contributors
-                                                    window.clearSelectedCoAuthorsEdit && window.clearSelectedCoAuthorsEdit();
-                                                    window.clearSelectedContributorsEdit && window.clearSelectedContributorsEdit();
-                                                    if (data.co_authors) {
-                                                        var coAuthors = data.co_authors.map(function (a) { return { id: a.id, name: a.name, user_photo: a.user_photo || null }; });
-                                                        window.setSelectedCoAuthorsEdit && window.setSelectedCoAuthorsEdit(coAuthors);
-                                                    }
-                                                    if (data.contributors) {
-                                                        var contributors = data.contributors.map(function (a) { return { id: a.id, name: a.name, user_photo: a.user_photo || null }; });
-                                                        window.setSelectedContributorsEdit && window.setSelectedContributorsEdit(contributors);
-                                                    }
-
-                                                    const editProjectModalEl = document.getElementById("editProjectModal");
-                                                    if (!editProjectModalEl) { showFloatingAlert("Edit Project Modal element not found", "warning", 3500); return; }
-                                                    const editProjectModal = bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(editProjectModalEl) : (bootstrap.Modal.getInstance(editProjectModalEl) || new bootstrap.Modal(editProjectModalEl));
-                                                    editProjectModal.show();
-                                                    // When Edit closes, return to Detail (and clear child-open flag)
-                                                    try {
-                                                        const onEditHidden = function () {
-                                                            const detailEl = document.getElementById('projectDetailModal');
-                                                            if (detailEl) {
-                                                                detailEl.removeAttribute('data-child-opened');
-                                                                // Prefer showing existing detail modal instance; fallback to refetch
-                                                                try { $("#projectDetailModal").modal('show'); }
-                                                                catch(_) { try { fetchAndShowProjectDetail(pid); } catch(__) {} }
-                                                            }
-                                                            editProjectModalEl.removeEventListener('hidden.bs.modal', onEditHidden);
-                                                        };
-                                                        editProjectModalEl.addEventListener('hidden.bs.modal', onEditHidden, { once: true });
-                                                    } catch(_) { /* noop */ }
-                                                } catch (err) {
-                                                    console.error('Failed to open edit project modal from detail:', err);
-                                                    showFloatingAlert('Failed to open edit project modal', 'warning', 3500);
-                                                }
-                                            },
-                                            error: function () {
-                                                try {
-                                                    const detailEl = document.getElementById('projectDetailModal');
-                                                    if (detailEl) detailEl.removeAttribute('data-child-opened');
-                                                    $("#projectDetailModal").modal('show');
-                                                } catch(_) {}
-                                                showFloatingAlert('Failed to load edit form. Please try again.', 'warning', 3500);
+                                    editBtn.addEventListener(
+                                        "click",
+                                        function () {
+                                            // Mark that a child modal (edit) is about to open so timeline won't be restored yet
+                                            try {
+                                                const detailModalEl =
+                                                    document.getElementById(
+                                                        "projectDetailModal"
+                                                    );
+                                                if (detailModalEl)
+                                                    detailModalEl.setAttribute(
+                                                        "data-child-opened",
+                                                        "edit"
+                                                    );
+                                            } catch (_) {
+                                                /* noop */
                                             }
-                                        });
-                                    });
+                                            // Hide project detail modal first
+                                            try {
+                                                $("#projectDetailModal").modal(
+                                                    "hide"
+                                                );
+                                            } catch (_) {}
+                                            // Reuse edit flow: fetch project data and populate modal, then show
+                                            $.ajax({
+                                                url:
+                                                    appUrl +
+                                                    "/project/" +
+                                                    pid +
+                                                    "/edit",
+                                                type: "GET",
+                                                dataType: "json",
+                                                success: function (data) {
+                                                    try {
+                                                        // Populate Edit form fields (same logic as dropdown Edit)
+                                                        $(
+                                                            "#edit_project_id"
+                                                        ).val(data.id);
+                                                        $("#edit_title").val(
+                                                            data.title
+                                                        );
+                                                        $(
+                                                            "#edit_description"
+                                                        ).val(data.description);
+
+                                                        // Prefill multiple reference URLs
+                                                        (function () {
+                                                            const container =
+                                                                document.getElementById(
+                                                                    "edit_project_reference_urls_container"
+                                                                );
+                                                            if (!container)
+                                                                return;
+                                                            container.innerHTML =
+                                                                "";
+                                                            let urls = [];
+                                                            if (
+                                                                Array.isArray(
+                                                                    data.reference_urls
+                                                                )
+                                                            )
+                                                                urls =
+                                                                    data.reference_urls;
+                                                            else if (
+                                                                typeof data.reference_urls ===
+                                                                "string"
+                                                            ) {
+                                                                try {
+                                                                    const arr =
+                                                                        JSON.parse(
+                                                                            data.reference_urls
+                                                                        );
+                                                                    if (
+                                                                        Array.isArray(
+                                                                            arr
+                                                                        )
+                                                                    )
+                                                                        urls =
+                                                                            arr;
+                                                                } catch (_) {}
+                                                            }
+                                                            if (
+                                                                (!urls ||
+                                                                    urls.length ===
+                                                                        0) &&
+                                                                data.reference_url
+                                                            )
+                                                                urls = [
+                                                                    data.reference_url,
+                                                                ];
+                                                            function makeRow(
+                                                                value,
+                                                                withAdd
+                                                            ) {
+                                                                const row =
+                                                                    document.createElement(
+                                                                        "div"
+                                                                    );
+                                                                row.className =
+                                                                    "d-flex gap-2 align-items-center";
+                                                                row.innerHTML =
+                                                                    '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                                                                    (withAdd
+                                                                        ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>'
+                                                                        : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+                                                                container.appendChild(
+                                                                    row
+                                                                );
+                                                                const inp =
+                                                                    row.querySelector(
+                                                                        'input[type="url"]'
+                                                                    );
+                                                                if (
+                                                                    inp &&
+                                                                    value
+                                                                )
+                                                                    inp.value =
+                                                                        value;
+                                                            }
+                                                            if (
+                                                                urls &&
+                                                                urls.length
+                                                            ) {
+                                                                urls.forEach(
+                                                                    (u) =>
+                                                                        makeRow(
+                                                                            u,
+                                                                            false
+                                                                        )
+                                                                );
+                                                                makeRow(
+                                                                    "",
+                                                                    true
+                                                                );
+                                                            } else {
+                                                                makeRow(
+                                                                    "",
+                                                                    true
+                                                                );
+                                                            }
+                                                        })();
+
+                                                        $(
+                                                            "#edit_start_date"
+                                                        ).val(data.start_date);
+                                                        $("#edit_due_date").val(
+                                                            data.due_date
+                                                        );
+
+                                                        try {
+                                                            const currentProjectId =
+                                                                data.id ||
+                                                                $(
+                                                                    "#edit_project_id"
+                                                                ).val();
+                                                            const currentProjectTitle =
+                                                                data.title ||
+                                                                "";
+                                                            populatePartOfProjectSelects(
+                                                                currentProjectId,
+                                                                currentProjectTitle,
+                                                                data.part_of_project
+                                                            );
+                                                        } catch (_) {
+                                                            try {
+                                                                $(
+                                                                    "#edit_part_of_project"
+                                                                ).val(
+                                                                    data.part_of_project
+                                                                );
+                                                            } catch (_) {}
+                                                        }
+
+                                                        // Load departments/divisions
+                                                        loadDepartments(
+                                                            function () {
+                                                                $(
+                                                                    "#edit_department"
+                                                                )
+                                                                    .val(
+                                                                        data.department_id
+                                                                    )
+                                                                    .trigger(
+                                                                        "change"
+                                                                    );
+                                                                loadDivisions(
+                                                                    data.department_id,
+                                                                    function () {
+                                                                        $(
+                                                                            "#edit_division"
+                                                                        ).val(
+                                                                            data.division_id
+                                                                        );
+                                                                        $(
+                                                                            "#edit_division"
+                                                                        ).trigger(
+                                                                            "change"
+                                                                        );
+                                                                    },
+                                                                    document.getElementById(
+                                                                        "edit_division"
+                                                                    )
+                                                                );
+                                                                $(
+                                                                    "#edit_department"
+                                                                ).trigger(
+                                                                    "change"
+                                                                );
+                                                            },
+                                                            document.getElementById(
+                                                                "edit_department"
+                                                            )
+                                                        );
+
+                                                        // Image preview
+                                                        if (data.image) {
+                                                            $(
+                                                                "#editImageLabel"
+                                                            ).css(
+                                                                "background-image",
+                                                                "url(" +
+                                                                    appUrl +
+                                                                    "/file/project/" +
+                                                                    data.image +
+                                                                    ")"
+                                                            );
+                                                            $(
+                                                                "#editImageLabel"
+                                                            ).addClass(
+                                                                "has-image"
+                                                            );
+                                                            $(
+                                                                "#editImageLabel"
+                                                            ).css({
+                                                                "background-size":
+                                                                    "cover",
+                                                                opacity: "1",
+                                                            });
+                                                            $(
+                                                                "#editImageClearBtn"
+                                                            ).removeClass(
+                                                                "d-none"
+                                                            );
+                                                        } else {
+                                                            $(
+                                                                "#editImageLabel"
+                                                            ).css(
+                                                                "background-image",
+                                                                "url('" +
+                                                                    appUrl +
+                                                                    "/asset/img/background/add-image.png')"
+                                                            );
+                                                            $(
+                                                                "#editImageLabel"
+                                                            ).removeClass(
+                                                                "has-image"
+                                                            );
+                                                            $(
+                                                                "#editImageLabel"
+                                                            ).css(
+                                                                "opacity",
+                                                                "0.5"
+                                                            );
+                                                            $(
+                                                                "#editImageClearBtn"
+                                                            ).addClass(
+                                                                "d-none"
+                                                            );
+                                                        }
+
+                                                        // Files (existing and new)
+                                                        $(
+                                                            "#edit_reference_file"
+                                                        ).val("");
+                                                        var existingFiles =
+                                                            Array.isArray(
+                                                                data.reference_files
+                                                            )
+                                                                ? data.reference_files.slice()
+                                                                : Array.isArray(
+                                                                      data.reference_file
+                                                                  )
+                                                                ? data.reference_file.slice()
+                                                                : data.reference_file
+                                                                ? [
+                                                                      data.reference_file,
+                                                                  ]
+                                                                : [];
+                                                        var existingInput =
+                                                            document.getElementById(
+                                                                "existing_reference_files_input"
+                                                            );
+                                                        if (!existingInput) {
+                                                            existingInput =
+                                                                document.createElement(
+                                                                    "input"
+                                                                );
+                                                            existingInput.type =
+                                                                "hidden";
+                                                            existingInput.id =
+                                                                "existing_reference_files_input";
+                                                            existingInput.name =
+                                                                "existing_reference_files";
+                                                            document
+                                                                .getElementById(
+                                                                    "editProjectForm"
+                                                                )
+                                                                .appendChild(
+                                                                    existingInput
+                                                                );
+                                                        }
+                                                        existingInput.value =
+                                                            JSON.stringify(
+                                                                existingFiles
+                                                            );
+
+                                                        var previewEdit =
+                                                            document.getElementById(
+                                                                "edit_reference_files_preview"
+                                                            );
+                                                        var existingContainer =
+                                                            document.getElementById(
+                                                                "existing_reference_files"
+                                                            );
+                                                        if (previewEdit)
+                                                            previewEdit.innerHTML =
+                                                                "";
+                                                        if (existingContainer)
+                                                            existingContainer.innerHTML =
+                                                                "";
+                                                        window.editProjectSelectedFiles =
+                                                            [];
+                                                        function renderExistingProjectFiles() {
+                                                            if (
+                                                                !existingContainer
+                                                            )
+                                                                return;
+                                                            existingContainer.innerHTML =
+                                                                "";
+                                                            if (
+                                                                existingFiles.length >
+                                                                0
+                                                            ) {
+                                                                var title =
+                                                                    document.createElement(
+                                                                        "div"
+                                                                    );
+                                                                title.className =
+                                                                    "fw-bold mb-2";
+                                                                title.textContent =
+                                                                    "Current Files:";
+                                                                existingContainer.appendChild(
+                                                                    title
+                                                                );
+                                                                var fileList =
+                                                                    document.createElement(
+                                                                        "div"
+                                                                    );
+                                                                fileList.className =
+                                                                    "existing-files-list w-100";
+                                                                existingFiles.forEach(
+                                                                    function (
+                                                                        fileName
+                                                                    ) {
+                                                                        var fileItem =
+                                                                            document.createElement(
+                                                                                "div"
+                                                                            );
+                                                                        fileItem.className =
+                                                                            "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                                                        var fileInfo =
+                                                                            document.createElement(
+                                                                                "div"
+                                                                            );
+                                                                        fileInfo.className =
+                                                                            "d-flex align-items-center flex-grow-1";
+                                                                        var fileIcon =
+                                                                            document.createElement(
+                                                                                "span"
+                                                                            );
+                                                                        fileIcon.className =
+                                                                            "material-symbols-outlined me-2";
+                                                                        fileIcon.textContent =
+                                                                            "description";
+                                                                        var fileLink =
+                                                                            document.createElement(
+                                                                                "a"
+                                                                            );
+                                                                        fileLink.href =
+                                                                            appUrl +
+                                                                            "/file/project/" +
+                                                                            fileName;
+                                                                        fileLink.textContent =
+                                                                            fileName;
+                                                                        fileLink.className =
+                                                                            "text-decoration-none";
+                                                                        fileLink.target =
+                                                                            "_blank";
+                                                                        var removeBtn =
+                                                                            document.createElement(
+                                                                                "button"
+                                                                            );
+                                                                        removeBtn.type =
+                                                                            "button";
+                                                                        removeBtn.className =
+                                                                            "btn btn-sm btn-outline-danger";
+                                                                        removeBtn.innerHTML =
+                                                                            "&times;";
+                                                                        removeBtn.onclick =
+                                                                            function () {
+                                                                                existingFiles =
+                                                                                    existingFiles.filter(
+                                                                                        function (
+                                                                                            f
+                                                                                        ) {
+                                                                                            return (
+                                                                                                f !==
+                                                                                                fileName
+                                                                                            );
+                                                                                        }
+                                                                                    );
+                                                                                existingInput.value =
+                                                                                    JSON.stringify(
+                                                                                        existingFiles
+                                                                                    );
+                                                                                renderExistingProjectFiles();
+                                                                            };
+                                                                        fileInfo.appendChild(
+                                                                            fileIcon
+                                                                        );
+                                                                        fileInfo.appendChild(
+                                                                            fileLink
+                                                                        );
+                                                                        fileItem.appendChild(
+                                                                            fileInfo
+                                                                        );
+                                                                        fileItem.appendChild(
+                                                                            removeBtn
+                                                                        );
+                                                                        fileList.appendChild(
+                                                                            fileItem
+                                                                        );
+                                                                    }
+                                                                );
+                                                                existingContainer.appendChild(
+                                                                    fileList
+                                                                );
+                                                            }
+                                                        }
+                                                        function renderEditProjectSelectedFiles() {
+                                                            if (!previewEdit)
+                                                                return;
+                                                            previewEdit.innerHTML =
+                                                                "";
+                                                            if (
+                                                                window
+                                                                    .editProjectSelectedFiles
+                                                                    .length > 0
+                                                            ) {
+                                                                var fileList =
+                                                                    document.createElement(
+                                                                        "div"
+                                                                    );
+                                                                fileList.className =
+                                                                    "selected-files-list mt-2";
+                                                                window.editProjectSelectedFiles.forEach(
+                                                                    function (
+                                                                        file,
+                                                                        index
+                                                                    ) {
+                                                                        var fileItem =
+                                                                            document.createElement(
+                                                                                "div"
+                                                                            );
+                                                                        fileItem.className =
+                                                                            "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                                                        var fileInfo =
+                                                                            document.createElement(
+                                                                                "div"
+                                                                            );
+                                                                        fileInfo.className =
+                                                                            "d-flex align-items-center flex-grow-1";
+                                                                        var fileIcon =
+                                                                            document.createElement(
+                                                                                "span"
+                                                                            );
+                                                                        fileIcon.className =
+                                                                            "material-symbols-outlined me-2";
+                                                                        fileIcon.textContent =
+                                                                            "description";
+                                                                        var fileName =
+                                                                            document.createElement(
+                                                                                "span"
+                                                                            );
+                                                                        fileName.textContent =
+                                                                            file.name;
+                                                                        fileName.className =
+                                                                            "file-name";
+                                                                        var fileSize =
+                                                                            document.createElement(
+                                                                                "small"
+                                                                            );
+                                                                        fileSize.textContent =
+                                                                            " (" +
+                                                                            (
+                                                                                file.size /
+                                                                                1024 /
+                                                                                1024
+                                                                            ).toFixed(
+                                                                                2
+                                                                            ) +
+                                                                            " MB)";
+                                                                        fileSize.className =
+                                                                            "text-muted ms-1";
+                                                                        var removeBtn =
+                                                                            document.createElement(
+                                                                                "button"
+                                                                            );
+                                                                        removeBtn.type =
+                                                                            "button";
+                                                                        removeBtn.className =
+                                                                            "btn btn-sm btn-outline-danger";
+                                                                        removeBtn.innerHTML =
+                                                                            "&times;";
+                                                                        removeBtn.onclick =
+                                                                            function () {
+                                                                                window.editProjectSelectedFiles.splice(
+                                                                                    index,
+                                                                                    1
+                                                                                );
+                                                                                renderEditProjectSelectedFiles();
+                                                                            };
+                                                                        fileInfo.appendChild(
+                                                                            fileIcon
+                                                                        );
+                                                                        fileInfo.appendChild(
+                                                                            fileName
+                                                                        );
+                                                                        fileInfo.appendChild(
+                                                                            fileSize
+                                                                        );
+                                                                        fileItem.appendChild(
+                                                                            fileInfo
+                                                                        );
+                                                                        fileItem.appendChild(
+                                                                            removeBtn
+                                                                        );
+                                                                        fileList.appendChild(
+                                                                            fileItem
+                                                                        );
+                                                                    }
+                                                                );
+                                                                previewEdit.appendChild(
+                                                                    fileList
+                                                                );
+                                                            }
+                                                        }
+                                                        $(
+                                                            "#edit_reference_file"
+                                                        )
+                                                            .off("change")
+                                                            .on(
+                                                                "change",
+                                                                function () {
+                                                                    var files =
+                                                                        Array.from(
+                                                                            this
+                                                                                .files ||
+                                                                                []
+                                                                        );
+                                                                    if (
+                                                                        files.length >
+                                                                        0
+                                                                    ) {
+                                                                        window.editProjectSelectedFiles =
+                                                                            window.editProjectSelectedFiles.concat(
+                                                                                files
+                                                                            );
+                                                                        renderEditProjectSelectedFiles();
+                                                                        this.value =
+                                                                            "";
+                                                                    }
+                                                                }
+                                                            );
+                                                        renderExistingProjectFiles();
+                                                        renderEditProjectSelectedFiles();
+
+                                                        // Co-authors & contributors
+                                                        window.clearSelectedCoAuthorsEdit &&
+                                                            window.clearSelectedCoAuthorsEdit();
+                                                        window.clearSelectedContributorsEdit &&
+                                                            window.clearSelectedContributorsEdit();
+                                                        if (data.co_authors) {
+                                                            var coAuthors =
+                                                                data.co_authors.map(
+                                                                    function (
+                                                                        a
+                                                                    ) {
+                                                                        return {
+                                                                            id: a.id,
+                                                                            name: a.name,
+                                                                            user_photo:
+                                                                                a.user_photo ||
+                                                                                null,
+                                                                        };
+                                                                    }
+                                                                );
+                                                            window.setSelectedCoAuthorsEdit &&
+                                                                window.setSelectedCoAuthorsEdit(
+                                                                    coAuthors
+                                                                );
+                                                        }
+                                                        if (data.contributors) {
+                                                            var contributors =
+                                                                data.contributors.map(
+                                                                    function (
+                                                                        a
+                                                                    ) {
+                                                                        return {
+                                                                            id: a.id,
+                                                                            name: a.name,
+                                                                            user_photo:
+                                                                                a.user_photo ||
+                                                                                null,
+                                                                        };
+                                                                    }
+                                                                );
+                                                            window.setSelectedContributorsEdit &&
+                                                                window.setSelectedContributorsEdit(
+                                                                    contributors
+                                                                );
+                                                        }
+
+                                                        const editProjectModalEl =
+                                                            document.getElementById(
+                                                                "editProjectModal"
+                                                            );
+                                                        if (
+                                                            !editProjectModalEl
+                                                        ) {
+                                                            showFloatingAlert(
+                                                                "Edit Project Modal element not found",
+                                                                "warning",
+                                                                3500
+                                                            );
+                                                            return;
+                                                        }
+                                                        const editProjectModal =
+                                                            bootstrap &&
+                                                            bootstrap.Modal &&
+                                                            bootstrap.Modal
+                                                                .getOrCreateInstance
+                                                                ? bootstrap.Modal.getOrCreateInstance(
+                                                                      editProjectModalEl
+                                                                  )
+                                                                : bootstrap.Modal.getInstance(
+                                                                      editProjectModalEl
+                                                                  ) ||
+                                                                  new bootstrap.Modal(
+                                                                      editProjectModalEl
+                                                                  );
+                                                        editProjectModal.show();
+                                                        // When Edit closes, return to Detail (and clear child-open flag)
+                                                        try {
+                                                            const onEditHidden =
+                                                                function () {
+                                                                    const detailEl =
+                                                                        document.getElementById(
+                                                                            "projectDetailModal"
+                                                                        );
+                                                                    if (
+                                                                        detailEl
+                                                                    ) {
+                                                                        detailEl.removeAttribute(
+                                                                            "data-child-opened"
+                                                                        );
+                                                                        // Prefer showing existing detail modal instance; fallback to refetch
+                                                                        try {
+                                                                            $(
+                                                                                "#projectDetailModal"
+                                                                            ).modal(
+                                                                                "show"
+                                                                            );
+                                                                        } catch (_) {
+                                                                            try {
+                                                                                fetchAndShowProjectDetail(
+                                                                                    pid
+                                                                                );
+                                                                            } catch (__) {}
+                                                                        }
+                                                                    }
+                                                                    editProjectModalEl.removeEventListener(
+                                                                        "hidden.bs.modal",
+                                                                        onEditHidden
+                                                                    );
+                                                                };
+                                                            editProjectModalEl.addEventListener(
+                                                                "hidden.bs.modal",
+                                                                onEditHidden,
+                                                                { once: true }
+                                                            );
+                                                        } catch (_) {
+                                                            /* noop */
+                                                        }
+                                                    } catch (err) {
+                                                        console.error(
+                                                            "Failed to open edit project modal from detail:",
+                                                            err
+                                                        );
+                                                        showFloatingAlert(
+                                                            "Failed to open edit project modal",
+                                                            "warning",
+                                                            3500
+                                                        );
+                                                    }
+                                                },
+                                                error: function () {
+                                                    try {
+                                                        const detailEl =
+                                                            document.getElementById(
+                                                                "projectDetailModal"
+                                                            );
+                                                        if (detailEl)
+                                                            detailEl.removeAttribute(
+                                                                "data-child-opened"
+                                                            );
+                                                        $(
+                                                            "#projectDetailModal"
+                                                        ).modal("show");
+                                                    } catch (_) {}
+                                                    showFloatingAlert(
+                                                        "Failed to load edit form. Please try again.",
+                                                        "warning",
+                                                        3500
+                                                    );
+                                                },
+                                            });
+                                        }
+                                    );
                                 })();
 
                                 // Bind comment icon (mode_comment) to open Project Feedback modal
                                 (function bindCommentIcon() {
-                                    const icon = document.querySelector('#projectDetailContent .task-icon.mode_comment');
-                                    const btn  = document.getElementById('projectDetailCommentBtn');
+                                    const icon = document.querySelector(
+                                        "#projectDetailContent .task-icon.mode_comment"
+                                    );
+                                    const btn = document.getElementById(
+                                        "projectDetailCommentBtn"
+                                    );
                                     const handler = function (ev) {
-                                        ev && ev.preventDefault && ev.preventDefault();
-                                        ev && ev.stopPropagation && ev.stopPropagation();
+                                        ev &&
+                                            ev.preventDefault &&
+                                            ev.preventDefault();
+                                        ev &&
+                                            ev.stopPropagation &&
+                                            ev.stopPropagation();
                                         // Mark that a child modal (feedback) is about to open
                                         try {
-                                            const detailModalEl = document.getElementById('projectDetailModal');
-                                            if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'feedback');
-                                        } catch(_) { /* noop */ }
-                                        try { $("#projectDetailModal").modal('hide'); } catch(_) {}
-                                        const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
-                                        if (projectFeedbackModalEl) {
-                                            projectFeedbackModalEl.setAttribute('data-project-id', String(pid));
-                                            projectFeedbackModalEl.setAttribute('data-return-to-detail', '1');
-                                            // When feedback modal closes, return to detail (one-time listener)
-                                            projectFeedbackModalEl.addEventListener('hidden.bs.modal', function onHidden() {
-                                                try {
-                                                    if (projectFeedbackModalEl.getAttribute('data-return-to-detail') === '1') {
-                                                        projectFeedbackModalEl.removeAttribute('data-return-to-detail');
-                                                        const detailEl = document.getElementById('projectDetailModal');
-                                                        if (detailEl) detailEl.removeAttribute('data-child-opened');
-                                                        fetchAndShowProjectDetail(pid);
-                                                    }
-                                                } catch(_) {}
-                                            }, { once: true });
+                                            const detailModalEl =
+                                                document.getElementById(
+                                                    "projectDetailModal"
+                                                );
+                                            if (detailModalEl)
+                                                detailModalEl.setAttribute(
+                                                    "data-child-opened",
+                                                    "feedback"
+                                                );
+                                        } catch (_) {
+                                            /* noop */
                                         }
-                                        try { loadFeedbackData(pid); } catch(_) {}
-                                        const m = new bootstrap.Modal(projectFeedbackModalEl);
+                                        try {
+                                            $("#projectDetailModal").modal(
+                                                "hide"
+                                            );
+                                        } catch (_) {}
+                                        const projectFeedbackModalEl =
+                                            document.getElementById(
+                                                "projectFeedbackModal"
+                                            );
+                                        if (projectFeedbackModalEl) {
+                                            projectFeedbackModalEl.setAttribute(
+                                                "data-project-id",
+                                                String(pid)
+                                            );
+                                            projectFeedbackModalEl.setAttribute(
+                                                "data-return-to-detail",
+                                                "1"
+                                            );
+                                            // When feedback modal closes, return to detail (one-time listener)
+                                            projectFeedbackModalEl.addEventListener(
+                                                "hidden.bs.modal",
+                                                function onHidden() {
+                                                    try {
+                                                        if (
+                                                            projectFeedbackModalEl.getAttribute(
+                                                                "data-return-to-detail"
+                                                            ) === "1"
+                                                        ) {
+                                                            projectFeedbackModalEl.removeAttribute(
+                                                                "data-return-to-detail"
+                                                            );
+                                                            const detailEl =
+                                                                document.getElementById(
+                                                                    "projectDetailModal"
+                                                                );
+                                                            if (detailEl)
+                                                                detailEl.removeAttribute(
+                                                                    "data-child-opened"
+                                                                );
+                                                            fetchAndShowProjectDetail(
+                                                                pid
+                                                            );
+                                                        }
+                                                    } catch (_) {}
+                                                },
+                                                { once: true }
+                                            );
+                                        }
+                                        try {
+                                            loadFeedbackData(pid);
+                                        } catch (_) {}
+                                        const m = new bootstrap.Modal(
+                                            projectFeedbackModalEl
+                                        );
                                         m.show();
                                     };
-                                    if (icon) icon.style.cursor = 'pointer', icon.addEventListener('click', handler);
-                                    if (btn)  btn.style.cursor = 'pointer',  btn.addEventListener('click', handler);
+                                    if (icon)
+                                        (icon.style.cursor = "pointer"),
+                                            icon.addEventListener(
+                                                "click",
+                                                handler
+                                            );
+                                    if (btn)
+                                        (btn.style.cursor = "pointer"),
+                                            btn.addEventListener(
+                                                "click",
+                                                handler
+                                            );
                                 })();
 
                                 // Bind attach icon to open Project Files modal
                                 (function bindAttachIcon() {
-                                    const attachWrapper = document.querySelectorAll('#projectDetailContent .btn-attach-file-wrapper .task-icon');
+                                    const attachWrapper =
+                                        document.querySelectorAll(
+                                            "#projectDetailContent .btn-attach-file-wrapper .task-icon"
+                                        );
                                     attachWrapper.forEach(function (el) {
-                                        if (el.textContent.trim() === 'attach_file') {
-                                            el.style.cursor = 'pointer';
-                                            el.addEventListener('click', function () {
-                                                // Mark that a child modal (files) is about to open
-                                                try {
-                                                    const detailModalEl = document.getElementById('projectDetailModal');
-                                                    if (detailModalEl) detailModalEl.setAttribute('data-child-opened', 'files');
-                                                } catch(_) { /* noop */ }
-                                                try { $("#projectDetailModal").modal('hide'); } catch(_) {}
-                                                const filesModalEl = document.getElementById('projectFilesModal');
-                                                if (filesModalEl) {
-                                                    filesModalEl.setAttribute('data-return-to-detail', '1');
-                                                    // One-time listener to return to detail when files modal closes
-                                                    filesModalEl.addEventListener('hidden.bs.modal', function onHidden() {
-                                                        try {
-                                                            if (filesModalEl.getAttribute('data-return-to-detail') === '1') {
-                                                                filesModalEl.removeAttribute('data-return-to-detail');
-                                                                const detailEl = document.getElementById('projectDetailModal');
-                                                                if (detailEl) detailEl.removeAttribute('data-child-opened');
-                                                                fetchAndShowProjectDetail(pid);
-                                                            }
-                                                        } catch(_) {}
-                                                    }, { once: true });
+                                        if (
+                                            el.textContent.trim() ===
+                                            "attach_file"
+                                        ) {
+                                            el.style.cursor = "pointer";
+                                            el.addEventListener(
+                                                "click",
+                                                function () {
+                                                    // Mark that a child modal (files) is about to open
+                                                    try {
+                                                        const detailModalEl =
+                                                            document.getElementById(
+                                                                "projectDetailModal"
+                                                            );
+                                                        if (detailModalEl)
+                                                            detailModalEl.setAttribute(
+                                                                "data-child-opened",
+                                                                "files"
+                                                            );
+                                                    } catch (_) {
+                                                        /* noop */
+                                                    }
+                                                    try {
+                                                        $(
+                                                            "#projectDetailModal"
+                                                        ).modal("hide");
+                                                    } catch (_) {}
+                                                    const filesModalEl =
+                                                        document.getElementById(
+                                                            "projectFilesModal"
+                                                        );
+                                                    if (filesModalEl) {
+                                                        filesModalEl.setAttribute(
+                                                            "data-return-to-detail",
+                                                            "1"
+                                                        );
+                                                        // One-time listener to return to detail when files modal closes
+                                                        filesModalEl.addEventListener(
+                                                            "hidden.bs.modal",
+                                                            function onHidden() {
+                                                                try {
+                                                                    if (
+                                                                        filesModalEl.getAttribute(
+                                                                            "data-return-to-detail"
+                                                                        ) ===
+                                                                        "1"
+                                                                    ) {
+                                                                        filesModalEl.removeAttribute(
+                                                                            "data-return-to-detail"
+                                                                        );
+                                                                        const detailEl =
+                                                                            document.getElementById(
+                                                                                "projectDetailModal"
+                                                                            );
+                                                                        if (
+                                                                            detailEl
+                                                                        )
+                                                                            detailEl.removeAttribute(
+                                                                                "data-child-opened"
+                                                                            );
+                                                                        fetchAndShowProjectDetail(
+                                                                            pid
+                                                                        );
+                                                                    }
+                                                                } catch (_) {}
+                                                            },
+                                                            { once: true }
+                                                        );
+                                                    }
+                                                    showProjectFiles(pid);
                                                 }
-                                                showProjectFiles(pid);
-                                            });
+                                            );
                                         }
                                     });
                                 })();
 
                                 // Bind Delete button in footer to open Delete Project confirmation modal
                                 (function bindDeleteButton() {
-                                    const delBtn = document.querySelector('#projectDetailContent .delete-project-btn');
+                                    const delBtn = document.querySelector(
+                                        "#projectDetailContent .delete-project-btn"
+                                    );
                                     if (!delBtn) return;
-                                    delBtn.addEventListener('click', function () {
-                                        try { $("#projectDetailModal").modal('hide'); } catch(_) {}
-                                        const deleteModalEl = document.getElementById("deleteProjectModal");
-                                        if (!deleteModalEl) { showFloatingAlert('Delete Project Modal not found', 'warning', 3000); return; }
-                                        const deleteModal = new bootstrap.Modal(deleteModalEl);
-                                                // Populate content card
-                                                setDeleteProjectModalPreview(project);
-                                        deleteModalEl.dataset.projectId = pid;
-                                        deleteModal.show();
-                                        // Confirm delete handler
-                                        const confirmDeleteBtn = document.getElementById("confirmDeleteProjectBtn");
-                                        if (confirmDeleteBtn) {
-                                            confirmDeleteBtn.onclick = function () {
-                                                $.ajax({
-                                                    url: appUrl + "/project/" + pid,
-                                                    type: "DELETE",
-                                                    headers: { "X-CSRF-TOKEN": $("meta[name='csrf-token']").attr("content") },
-                                                    success: function (resp) {
-                                                        deleteModal.hide();
-                                                        try { loadProjectCardData(); } catch(_) {}
-                                                        showFloatingAlert(resp.message || 'Project deleted successfully', 'success', 2000);
-                                                    },
-                                                    error: function (xhr) {
-                                                        console.error('Delete error:', xhr);
-                                                        showFloatingAlert("Failed to delete project: " + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000);
-                                                    }
-                                                });
-                                            };
+                                    delBtn.addEventListener(
+                                        "click",
+                                        function () {
+                                            try {
+                                                $("#projectDetailModal").modal(
+                                                    "hide"
+                                                );
+                                            } catch (_) {}
+                                            const deleteModalEl =
+                                                document.getElementById(
+                                                    "deleteProjectModal"
+                                                );
+                                            if (!deleteModalEl) {
+                                                showFloatingAlert(
+                                                    "Delete Project Modal not found",
+                                                    "warning",
+                                                    3000
+                                                );
+                                                return;
+                                            }
+                                            const deleteModal =
+                                                new bootstrap.Modal(
+                                                    deleteModalEl
+                                                );
+                                            // Populate content card
+                                            setDeleteProjectModalPreview(
+                                                project
+                                            );
+                                            deleteModalEl.dataset.projectId =
+                                                pid;
+                                            deleteModal.show();
+                                            // Confirm delete handler
+                                            const confirmDeleteBtn =
+                                                document.getElementById(
+                                                    "confirmDeleteProjectBtn"
+                                                );
+                                            if (confirmDeleteBtn) {
+                                                confirmDeleteBtn.onclick =
+                                                    function () {
+                                                        $.ajax({
+                                                            url:
+                                                                appUrl +
+                                                                "/project/" +
+                                                                pid,
+                                                            type: "DELETE",
+                                                            headers: {
+                                                                "X-CSRF-TOKEN":
+                                                                    $(
+                                                                        "meta[name='csrf-token']"
+                                                                    ).attr(
+                                                                        "content"
+                                                                    ),
+                                                            },
+                                                            success: function (
+                                                                resp
+                                                            ) {
+                                                                deleteModal.hide();
+                                                                try {
+                                                                    loadProjectCardData();
+                                                                } catch (_) {}
+                                                                showFloatingAlert(
+                                                                    resp.message ||
+                                                                        "Project deleted successfully",
+                                                                    "success",
+                                                                    2000
+                                                                );
+                                                            },
+                                                            error: function (
+                                                                xhr
+                                                            ) {
+                                                                console.error(
+                                                                    "Delete error:",
+                                                                    xhr
+                                                                );
+                                                                showFloatingAlert(
+                                                                    "Failed to delete project: " +
+                                                                        (xhr
+                                                                            .responseJSON
+                                                                            ?.message ||
+                                                                            "Unknown error"),
+                                                                    "warning",
+                                                                    4000
+                                                                );
+                                                            },
+                                                        });
+                                                    };
+                                            }
                                         }
-                                    });
+                                    );
                                 })();
 
                                 // Show modal
@@ -6147,39 +7468,102 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 // Bind sticky footer delete button to open delete modal for this project
                                 try {
-                                    const footerDeleteBtn = document.getElementById('projectDetailDeleteBtn');
+                                    const footerDeleteBtn =
+                                        document.getElementById(
+                                            "projectDetailDeleteBtn"
+                                        );
                                     if (footerDeleteBtn) {
-                                        footerDeleteBtn.onclick = function() {
-                                            try { $("#projectDetailModal").modal('hide'); } catch(_) {}
-                                            const deleteModalEl = document.getElementById("deleteProjectModal");
-                                            if (!deleteModalEl) { showFloatingAlert('Delete Project Modal not found', 'warning', 3000); return; }
-                                            const deleteModal = new bootstrap.Modal(deleteModalEl);
+                                        footerDeleteBtn.onclick = function () {
+                                            try {
+                                                $("#projectDetailModal").modal(
+                                                    "hide"
+                                                );
+                                            } catch (_) {}
+                                            const deleteModalEl =
+                                                document.getElementById(
+                                                    "deleteProjectModal"
+                                                );
+                                            if (!deleteModalEl) {
+                                                showFloatingAlert(
+                                                    "Delete Project Modal not found",
+                                                    "warning",
+                                                    3000
+                                                );
+                                                return;
+                                            }
+                                            const deleteModal =
+                                                new bootstrap.Modal(
+                                                    deleteModalEl
+                                                );
                                             // Populate preview content using fetched project data
-                                            try { setDeleteProjectModalPreview(project); } catch(_) {}
-                                            deleteModalEl.dataset.projectId = pid;
+                                            try {
+                                                setDeleteProjectModalPreview(
+                                                    project
+                                                );
+                                            } catch (_) {}
+                                            deleteModalEl.dataset.projectId =
+                                                pid;
                                             deleteModal.show();
-                                            const confirmDeleteBtn = document.getElementById("confirmDeleteProjectBtn");
+                                            const confirmDeleteBtn =
+                                                document.getElementById(
+                                                    "confirmDeleteProjectBtn"
+                                                );
                                             if (confirmDeleteBtn) {
-                                                confirmDeleteBtn.onclick = function () {
-                                                    $.ajax({
-                                                        url: appUrl + "/project/" + pid,
-                                                        type: "DELETE",
-                                                        headers: { "X-CSRF-TOKEN": $("meta[name='csrf-token']").attr("content") },
-                                                        success: function (resp) {
-                                                            deleteModal.hide();
-                                                            try { loadProjectCardData(); } catch(_) {}
-                                                            showFloatingAlert(resp.message || 'Project deleted successfully', 'success', 2000);
-                                                        },
-                                                        error: function (xhr) {
-                                                            console.error('Delete error:', xhr);
-                                                            showFloatingAlert("Failed to delete project: " + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000);
-                                                        }
-                                                    });
-                                                };
+                                                confirmDeleteBtn.onclick =
+                                                    function () {
+                                                        $.ajax({
+                                                            url:
+                                                                appUrl +
+                                                                "/project/" +
+                                                                pid,
+                                                            type: "DELETE",
+                                                            headers: {
+                                                                "X-CSRF-TOKEN":
+                                                                    $(
+                                                                        "meta[name='csrf-token']"
+                                                                    ).attr(
+                                                                        "content"
+                                                                    ),
+                                                            },
+                                                            success: function (
+                                                                resp
+                                                            ) {
+                                                                deleteModal.hide();
+                                                                try {
+                                                                    loadProjectCardData();
+                                                                } catch (_) {}
+                                                                showFloatingAlert(
+                                                                    resp.message ||
+                                                                        "Project deleted successfully",
+                                                                    "success",
+                                                                    2000
+                                                                );
+                                                            },
+                                                            error: function (
+                                                                xhr
+                                                            ) {
+                                                                console.error(
+                                                                    "Delete error:",
+                                                                    xhr
+                                                                );
+                                                                showFloatingAlert(
+                                                                    "Failed to delete project: " +
+                                                                        (xhr
+                                                                            .responseJSON
+                                                                            ?.message ||
+                                                                            "Unknown error"),
+                                                                    "warning",
+                                                                    4000
+                                                                );
+                                                            },
+                                                        });
+                                                    };
                                             }
                                         };
                                     }
-                                } catch(_) { /* noop */ }
+                                } catch (_) {
+                                    /* noop */
+                                }
                             },
                             error: function () {
                                 alert("Failed to load project details.");
@@ -6208,10 +7592,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                 e.stopPropagation();
 
                                 // Clear any timeline reopening flags when opening from dropdown
-                                const detailEl = document.getElementById("projectDetailModal");
+                                const detailEl =
+                                    document.getElementById(
+                                        "projectDetailModal"
+                                    );
                                 if (detailEl) {
-                                    detailEl.removeAttribute('data-reopen-timeline');
-                                    detailEl.removeAttribute('data-child-opened');
+                                    detailEl.removeAttribute(
+                                        "data-reopen-timeline"
+                                    );
+                                    detailEl.removeAttribute(
+                                        "data-child-opened"
+                                    );
                                 }
 
                                 fetchAndShowProjectDetail(projectId);
@@ -6278,20 +7669,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         // Mark to reopen timeline after detail is closed (only when originated from timeline)
                         if (shouldReopenTimeline) {
-                            const detailEl = document.getElementById("projectDetailModal");
+                            const detailEl =
+                                document.getElementById("projectDetailModal");
                             if (detailEl) {
                                 // Clear any existing flags first
-                                detailEl.removeAttribute('data-child-opened');
+                                detailEl.removeAttribute("data-child-opened");
                                 // Set a flag on detail so we remember to reopen timeline later
-                                detailEl.setAttribute('data-reopen-timeline', '1');
+                                detailEl.setAttribute(
+                                    "data-reopen-timeline",
+                                    "1"
+                                );
                                 // Timeline reopen logic is now handled by the main modal hidden handler
                             }
                         } else {
                             // Ensure no timeline reopening if not originated from timeline
-                            const detailEl = document.getElementById("projectDetailModal");
+                            const detailEl =
+                                document.getElementById("projectDetailModal");
                             if (detailEl) {
-                                detailEl.removeAttribute('data-reopen-timeline');
-                                detailEl.removeAttribute('data-child-opened');
+                                detailEl.removeAttribute(
+                                    "data-reopen-timeline"
+                                );
+                                detailEl.removeAttribute("data-child-opened");
                             }
                         }
 
@@ -6684,46 +8082,77 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     function resetAddFeedbackButton() {
                         // Resolve footer consistently (like Task)
-                        const footer = (function(){
+                        const footer = (function () {
                             try {
                                 return (
-                                    projectFeedbackModalEl.querySelector('.feedback-modal-footer') ||
-                                    projectFeedbackModalEl.querySelector('.modal-footer') ||
-                                    projectFeedbackModalEl.querySelector('.modal-footer-custom')
+                                    projectFeedbackModalEl.querySelector(
+                                        ".feedback-modal-footer"
+                                    ) ||
+                                    projectFeedbackModalEl.querySelector(
+                                        ".modal-footer"
+                                    ) ||
+                                    projectFeedbackModalEl.querySelector(
+                                        ".modal-footer-custom"
+                                    )
                                 );
-                            } catch(_) { return null; }
+                            } catch (_) {
+                                return null;
+                            }
                         })();
 
                         if (footer) {
                             try {
                                 // Clear footer completely and rebuild single Add Feedback button
                                 footer.innerHTML = "";
-                                const addBtn = document.createElement('button');
-                                addBtn.type = 'button';
-                                addBtn.className = 'btn btn-submit-black w-100';
-                                addBtn.id = 'addFeedbackButton';
-                                addBtn.textContent = 'Add Feedback';
-                                addBtn.addEventListener('click', function(){
-                                    const projectId = projectFeedbackModalEl.getAttribute('data-project-id');
-                                    if (projectId) showAddFeedbackForm(projectId);
+                                const addBtn = document.createElement("button");
+                                addBtn.type = "button";
+                                addBtn.className = "btn btn-submit-black w-100";
+                                addBtn.id = "addFeedbackButton";
+                                addBtn.textContent = "Add Feedback";
+                                addBtn.addEventListener("click", function () {
+                                    const projectId =
+                                        projectFeedbackModalEl.getAttribute(
+                                            "data-project-id"
+                                        );
+                                    if (projectId)
+                                        showAddFeedbackForm(projectId);
                                 });
                                 footer.appendChild(addBtn);
-                            } catch(_) { /* noop */ }
+                            } catch (_) {
+                                /* noop */
+                            }
                         } else {
                             // Fallback: just update existing button text
                             try {
-                                const addFeedbackButton = document.getElementById('addFeedbackButton');
+                                const addFeedbackButton =
+                                    document.getElementById(
+                                        "addFeedbackButton"
+                                    );
                                 if (addFeedbackButton) {
-                                    addFeedbackButton.textContent = 'Add Feedback';
-                                    addFeedbackButton.classList.add('w-100');
-                                    const fresh = addFeedbackButton.cloneNode(true);
-                                    addFeedbackButton.parentNode.replaceChild(fresh, addFeedbackButton);
-                                    fresh.addEventListener('click', function(){
-                                        const projectId = projectFeedbackModalEl.getAttribute('data-project-id');
-                                        if (projectId) showAddFeedbackForm(projectId);
-                                    });
+                                    addFeedbackButton.textContent =
+                                        "Add Feedback";
+                                    addFeedbackButton.classList.add("w-100");
+                                    const fresh =
+                                        addFeedbackButton.cloneNode(true);
+                                    addFeedbackButton.parentNode.replaceChild(
+                                        fresh,
+                                        addFeedbackButton
+                                    );
+                                    fresh.addEventListener(
+                                        "click",
+                                        function () {
+                                            const projectId =
+                                                projectFeedbackModalEl.getAttribute(
+                                                    "data-project-id"
+                                                );
+                                            if (projectId)
+                                                showAddFeedbackForm(projectId);
+                                        }
+                                    );
                                 }
-                            } catch(_) { /* noop */ }
+                            } catch (_) {
+                                /* noop */
+                            }
                         }
                     }
 
@@ -6859,29 +8288,41 @@ document.addEventListener("DOMContentLoaded", function () {
             url: appUrl + "/project/get-all-projects",
             type: "GET",
             dataType: "json",
-            data: (function(){
+            data: (function () {
                 const params = { task_scope: "me", page: page };
                 try {
-                    const q = (typeof window.currentSearch === 'string') ? window.currentSearch : currentSearch;
-                    if (typeof q === 'string' && q.trim() !== '') {
+                    const q =
+                        typeof window.currentSearch === "string"
+                            ? window.currentSearch
+                            : currentSearch;
+                    if (typeof q === "string" && q.trim() !== "") {
                         params.search = q.trim();
                     }
 
-                    const pid = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : currentProjectId;
+                    const pid =
+                        typeof window.currentProjectId !== "undefined"
+                            ? window.currentProjectId
+                            : currentProjectId;
                     if (pid) {
                         params.project_id = pid;
                     }
-                    const dt = (typeof window.currentFilterDate === 'string') ? window.currentFilterDate : currentFilterDate;
-                    if (typeof dt === 'string' && dt.trim() !== '') {
+                    const dt =
+                        typeof window.currentFilterDate === "string"
+                            ? window.currentFilterDate
+                            : currentFilterDate;
+                    if (typeof dt === "string" && dt.trim() !== "") {
                         params.date = dt.trim();
                     }
-                } catch(_) {}
+                } catch (_) {}
                 return params;
             })(),
             success: function (data) {
                 // Render with the same page and current search
-                const q = (typeof window.currentSearch === 'string') ? window.currentSearch : currentSearch;
-                loadProjectCardData(null, page, (typeof q === 'string' ? q : ''));
+                const q =
+                    typeof window.currentSearch === "string"
+                        ? window.currentSearch
+                        : currentSearch;
+                loadProjectCardData(null, page, typeof q === "string" ? q : "");
 
                 if (data && data.pagination) {
                     updatePagination(data.pagination);
@@ -6900,48 +8341,73 @@ document.addEventListener("DOMContentLoaded", function () {
         window.currentSearch = currentSearch;
         window.currentProjectId = currentProjectId;
         window.currentFilterDate = currentFilterDate;
-    } catch(_) {}
+    } catch (_) {}
 
     function updatePagination(pagination) {
         if (!pagination) return;
+
+        const paginationContainer = document.querySelector(".pagination");
+        if (!paginationContainer) return;
 
         const currentPage = parseInt(pagination.current_page, 10);
         const perPage = parseInt(pagination.per_page, 10);
         const total = parseInt(pagination.total, 10);
         const lastPage = parseInt(pagination.last_page, 10);
 
-        if (total <= perPage) {
-            $("#project-pagination").addClass("d-none");
-        } else {
-            $("#project-pagination").removeClass("d-none");
-            $("#project-pagination").addClass("d-flex");
+        if (total <= perPage || lastPage <= 1) {
+            paginationContainer.innerHTML = "";
+            return;
         }
 
-        const from = (currentPage - 1) * perPage + 1;
-        let to = currentPage * perPage;
-        if (to > total) to = total;
+        paginationContainer.innerHTML = "";
 
-        $("#paginationInfo").text(`${currentPage} OF ${lastPage}`);
+        const prevLi = document.createElement("li");
+        prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "page-link";
+        prevBtn.textContent = "Previous";
+        prevBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (currentPage === 1) return;
+            loadCardProjects(currentPage - 1);
+        });
+        prevLi.appendChild(prevBtn);
+        paginationContainer.appendChild(prevLi);
 
-        $("#prevPageBtn")
-            .prop("disabled", currentPage <= 1)
-            .data("page", currentPage - 1);
-        $("#nextPageBtn")
-            .prop("disabled", currentPage >= lastPage)
-            .data("page", currentPage + 1);
-
-        $("#prevPageBtn, #nextPageBtn")
-            .off("click")
-            .on("click", function () {
-                const page = $(this).data("page");
-                if (page) {
-                    loadCardProjects(page);
-                }
+        for (let i = 1; i <= lastPage; i++) {
+            const li = document.createElement("li");
+            li.className = "page-item" + (i === currentPage ? " active" : "");
+            const btn = document.createElement("button");
+            btn.className = "page-link";
+            btn.textContent = i;
+            btn.addEventListener("click", function (e) {
+                e.preventDefault();
+                loadCardProjects(i);
             });
+            li.appendChild(btn);
+            paginationContainer.appendChild(li);
+        }
+
+        const nextLi = document.createElement("li");
+        nextLi.className = "page-item" + (currentPage === lastPage ? " disabled" : "");
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "page-link";
+        nextBtn.textContent = "Next";
+        nextBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            if (currentPage === lastPage) return;
+            loadCardProjects(currentPage + 1);
+        });
+        nextLi.appendChild(nextBtn);
+        paginationContainer.appendChild(nextLi);
+
+        const infoEl = document.getElementById("paginationInfo");
+        if (infoEl) {
+            infoEl.textContent = `${currentPage} OF ${lastPage}`;
+        }
     }
 
-    function updateProjectChartFromData(projects, chartCounts) {
-    }
+    function updateProjectChartFromData(projects, chartCounts) {}
 
     // ===== Unread badge and latest feedback snippet for Project (parity with Task) =====
     // Helpers to show/hide unread badge
@@ -6983,31 +8449,57 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (_) {}
     }
 
+    window.latestProjectSnippetSeq = window.latestProjectSnippetSeq || {};
+    let lastRefresh = 0;
+    let feedbackCache = {};
+
     function fetchLatestFeedbackForProject(projectId) {
-        const seq = (latestProjectSnippetSeq[projectId] =
-            (latestProjectSnippetSeq[projectId] || 0) + 1);
+        if (!projectId) return Promise.resolve();
+
+        const pid = String(projectId);
+        const now = Date.now();
+        const cached = feedbackCache[pid];
+
+        if (cached && (now - cached.time < 60000)) {
+            setProjectLatestFeedbackSnippet(pid, cached.data);
+            return Promise.resolve(cached.data);
+        }
+
+        const seq = (window.latestProjectSnippetSeq[pid] =
+            (window.latestProjectSnippetSeq[pid] || 0) + 1);
+
         return $.ajax({
-            url: appUrl + `/project-feedbacks/${projectId}/latest`,
+            url: appUrl + `/project-feedbacks/latest/${pid}`,
             type: "GET",
             dataType: "json",
         })
             .then((res) => {
-                if (latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
-                const data = res && (res.data || null);
-                setProjectLatestFeedbackSnippet(projectId, data);
+                if (window.latestProjectSnippetSeq[pid] !== seq) return;
+                const data = res && res.data ? res.data : null;
+                feedbackCache[pid] = { time: now, data };
+                setProjectLatestFeedbackSnippet(pid, data);
+                return data;
             })
             .catch(() => {
-                if (latestProjectSnippetSeq[projectId] !== seq) return;
-                setProjectLatestFeedbackSnippet(projectId, null);
+                if (window.latestProjectSnippetSeq[pid] !== seq) return;
+                feedbackCache[pid] = { time: now, data: null };
             });
     }
+
     function refreshAllProjectLatestFeedbackSnippets() {
-        document
-            .querySelectorAll("#all-cards-container .col-md-4[data-project-id]")
-            .forEach((col) => {
-                const pid = col.getAttribute("data-project-id");
-                fetchLatestFeedbackForProject(pid);
-            });
+        const now = Date.now();
+        if (now - lastRefresh < 5000) return;
+        lastRefresh = now;
+
+        const projectIds = [
+            ...new Set(
+                [...document.querySelectorAll("[data-project-id]")]
+                    .map((el) => el.getAttribute("data-project-id"))
+                    .filter(Boolean)
+            ),
+        ];
+
+        Promise.all(projectIds.map((pid) => fetchLatestFeedbackForProject(pid)));
     }
 
     // New implementation for co-author input with checkbox multi-select and search
@@ -7052,7 +8544,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 },
                 error: function (xhr, status, error) {
-                    handleEmployeeLoadError(xhr, status, error, 'Add Project Co-Authors');
+                    handleEmployeeLoadError(
+                        xhr,
+                        status,
+                        error,
+                        "Add Project Co-Authors"
+                    );
 
                     // Provide fallback with empty list
                     employees = [];
@@ -7314,7 +8811,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 },
                 error: function (xhr, status, error) {
-                    handleEmployeeLoadError(xhr, status, error, 'Add Project Contributors');
+                    handleEmployeeLoadError(
+                        xhr,
+                        status,
+                        error,
+                        "Add Project Contributors"
+                    );
 
                     // Provide fallback with empty list
                     employees = [];
@@ -7770,10 +9272,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Load departments and projects on page load
-    loadProjects();
     loadProjectCardData();
     loadTimelineProjects();
-    loadCardProjects();
     loadDepartments();
     // Populate "Part of Project" selects for Add and Edit modals
     try {
@@ -7786,28 +9286,44 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Setup project detail modal hidden event handler to re-initialize filter dropdown
     const projectDetailModalEl = document.getElementById("projectDetailModal");
-    if (projectDetailModalEl && !projectDetailModalEl.getAttribute('data-main-handler-attached')) {
-        const onModalHidden = function() {
+    if (
+        projectDetailModalEl &&
+        !projectDetailModalEl.getAttribute("data-main-handler-attached")
+    ) {
+        const onModalHidden = function () {
             try {
                 // Handle timeline reopening logic first
-                if (projectDetailModalEl.getAttribute('data-child-opened')) {
+                if (projectDetailModalEl.getAttribute("data-child-opened")) {
                     // Skip timeline reopening if a child modal is opening
-                    projectDetailModalEl.removeAttribute('data-child-opened');
+                    projectDetailModalEl.removeAttribute("data-child-opened");
                     return;
                 }
 
-                if (projectDetailModalEl.getAttribute('data-reopen-timeline') === '1') {
-                    projectDetailModalEl.removeAttribute('data-reopen-timeline');
+                if (
+                    projectDetailModalEl.getAttribute(
+                        "data-reopen-timeline"
+                    ) === "1"
+                ) {
+                    projectDetailModalEl.removeAttribute(
+                        "data-reopen-timeline"
+                    );
 
                     // Add a small delay to ensure the current modal is fully closed before opening timeline
                     setTimeout(() => {
-                        const timelineModalEl = document.getElementById("timelineModal");
+                        const timelineModalEl =
+                            document.getElementById("timelineModal");
                         if (timelineModalEl) {
                             try {
-                                const tlInstance = bootstrap.Modal.getInstance(timelineModalEl) || new bootstrap.Modal(timelineModalEl);
+                                const tlInstance =
+                                    bootstrap.Modal.getInstance(
+                                        timelineModalEl
+                                    ) || new bootstrap.Modal(timelineModalEl);
                                 tlInstance.show();
                             } catch (e) {
-                                console.warn('Error reopening timeline modal:', e);
+                                console.warn(
+                                    "Error reopening timeline modal:",
+                                    e
+                                );
                             }
                         }
                     }, 200);
@@ -7819,17 +9335,23 @@ document.addEventListener("DOMContentLoaded", function () {
                     try {
                         setupFilterDropdown();
                         setupGlobalFilterClickHandler();
-                    } catch(e) {
-                        console.warn('Failed to re-initialize filter dropdown after project detail modal close:', e);
+                    } catch (e) {
+                        console.warn(
+                            "Failed to re-initialize filter dropdown after project detail modal close:",
+                            e
+                        );
                     }
                 }, 100);
-            } catch(e) {
-                console.warn('Error in project detail modal hidden handler:', e);
+            } catch (e) {
+                console.warn(
+                    "Error in project detail modal hidden handler:",
+                    e
+                );
             }
         };
 
         projectDetailModalEl.addEventListener("hidden.bs.modal", onModalHidden);
-        projectDetailModalEl.setAttribute('data-main-handler-attached', '1');
+        projectDetailModalEl.setAttribute("data-main-handler-attached", "1");
     }
 
     // Add event listener to department select to load divisions on change
@@ -7883,7 +9405,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 },
                 error: function (xhr, status, error) {
-                    handleEmployeeLoadError(xhr, status, error, 'Project Co-Authors (Modal)');
+                    handleEmployeeLoadError(
+                        xhr,
+                        status,
+                        error,
+                        "Project Co-Authors (Modal)"
+                    );
 
                     // Provide fallback with empty list
                     employees = [];
@@ -8188,107 +9715,149 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     };
 
-    // Populate feedback and file counts for each card
-    // Retry a few times if cards are not yet present (cards are loaded via AJAX)
-    (function populateCounts(retry = 0) {
-        const MAX_RETRIES = 12; // total ~12 * 250ms = 3s max wait
-        const RETRY_DELAY = 250;
+    window.__projectCache = window.__projectCache || {};
+    window.__feedbackCache = window.__feedbackCache || {};
+    window.__projectFetchPromises = window.__projectFetchPromises || {};
+    window.__feedbackFetchPromises = window.__feedbackFetchPromises || {};
 
+    function getProject(pid, force) {
+        if (!force && window.__projectCache[pid])
+            return Promise.resolve(window.__projectCache[pid]);
+        if (window.__projectFetchPromises[pid])
+            return window.__projectFetchPromises[pid];
+        const p = fetch(appUrl + "/project/" + pid)
+            .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+            .then((resp) => {
+                const data = resp.data || resp;
+                window.__projectCache[pid] = data;
+                delete window.__projectFetchPromises[pid];
+                return data;
+            })
+            .catch((err) => {
+                delete window.__projectFetchPromises[pid];
+                throw err;
+            });
+        window.__projectFetchPromises[pid] = p;
+        return p;
+    }
+
+    function getFeedback(pid, force) {
+        if (!force && window.__feedbackCache[pid])
+            return Promise.resolve(window.__feedbackCache[pid]);
+        if (window.__feedbackFetchPromises[pid])
+            return window.__feedbackFetchPromises[pid];
+        const p = fetch(appUrl + "/project-feedbacks/" + pid)
+            .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+            .then((resp) => {
+                let arr = [];
+                if (Array.isArray(resp)) arr = resp;
+                else if (Array.isArray(resp.data)) arr = resp.data;
+                else if (resp.data && typeof resp.data === "object")
+                    arr = [resp.data];
+                else if (typeof resp.total === "number")
+                    arr = new Array(resp.total).fill(null);
+                window.__feedbackCache[pid] = arr;
+                delete window.__feedbackFetchPromises[pid];
+                return arr;
+            })
+            .catch((err) => {
+                delete window.__feedbackFetchPromises[pid];
+                throw err;
+            });
+        window.__feedbackFetchPromises[pid] = p;
+        return p;
+    }
+
+    (function populateCounts(retry = 0) {
+        const MAX_RETRIES = 12;
+        const RETRY_DELAY = 250;
         const containerEl = document.getElementById("all-cards-container");
         if (!containerEl) {
-            if (retry < MAX_RETRIES) {
+            if (retry < MAX_RETRIES)
                 return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
-            }
-            return; // give up
-        }
-
-        const cards = containerEl.querySelectorAll("[data-project-id]");
-        if (!cards || cards.length === 0) {
-            if (retry < MAX_RETRIES) {
-                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
-            }
             return;
         }
-
+        const cards = containerEl.querySelectorAll("[data-project-id]");
+        if (!cards || cards.length === 0) {
+            if (retry < MAX_RETRIES)
+                return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
+            return;
+        }
         cards.forEach((card) => {
             const pid = card.getAttribute("data-project-id");
-            // find badges
             const fbBadge = card.querySelector(".project-feedback-count");
             const fileBadge = card.querySelector(".project-file-count");
-
-            // request feedback count (robust parsing)
-            fetch(appUrl + "/project-feedbacks/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    let count = 0;
-                    // resp can be array, { data: [...] }, { total: n }, or single object
-                    if (Array.isArray(resp)) {
-                        count = resp.length;
-                    } else if (Array.isArray(resp.data)) {
-                        count = resp.data.length;
-                    } else if (typeof resp.total === "number") {
-                        count = resp.total;
-                    } else if (
-                        resp.meta &&
-                        typeof resp.meta.total === "number"
-                    ) {
-                        count = resp.meta.total;
-                    } else if (resp.data && typeof resp.data === "object") {
-                        // single item
-                        count = 1;
-                    }
-                    if (fbBadge) {
-                        if (count > 0) {
-                            fbBadge.textContent = count;
-                            fbBadge.style.display = '';
-                        } else {
-                            fbBadge.textContent = '';
-                            fbBadge.style.display = 'none';
+            if (window.__feedbackCache && window.__feedbackCache[pid]) {
+                const count =
+                    (window.__feedbackCache[pid] &&
+                        window.__feedbackCache[pid].length) ||
+                    0;
+                if (fbBadge) {
+                    fbBadge.textContent = count > 0 ? count : "";
+                    fbBadge.style.display = count > 0 ? "" : "none";
+                }
+            } else {
+                getFeedback(pid)
+                    .then((arr) => {
+                        const count = (arr && arr.length) || 0;
+                        if (fbBadge) {
+                            fbBadge.textContent = count > 0 ? count : "";
+                            fbBadge.style.display = count > 0 ? "" : "none";
                         }
-                    }
-                })
-                .catch((err) => {
-                    if (fbBadge) {
-                        fbBadge.textContent = '';
-                        fbBadge.style.display = 'none';
-                    }
-                });
-
-            // request project detail to read reference_file
-            fetch(appUrl + "/project/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    const data = resp.data || resp;
-                    let count = 0;
-                    if (data.reference_file) {
-                        if (Array.isArray(data.reference_file))
-                            count = data.reference_file.length;
+                    })
+                    .catch(() => {
+                        if (fbBadge) {
+                            fbBadge.textContent = "";
+                            fbBadge.style.display = "none";
+                        }
+                    });
+            }
+            if (window.__projectCache && window.__projectCache[pid]) {
+                const data = window.__projectCache[pid];
+                let files = [];
+                if (Array.isArray(data.reference_files))
+                    files = data.reference_files;
+                else if (Array.isArray(data.reference_file))
+                    files = data.reference_file;
+                else if (
+                    typeof data.reference_file === "string" &&
+                    data.reference_file.trim() !== ""
+                )
+                    files = [data.reference_file];
+                const count = files.length || 0;
+                if (fileBadge) {
+                    fileBadge.textContent = count > 0 ? count : "";
+                    fileBadge.style.display = count > 0 ? "" : "none";
+                }
+            } else {
+                getProject(pid)
+                    .then((data) => {
+                        let files = [];
+                        if (Array.isArray(data.reference_files))
+                            files = data.reference_files;
+                        else if (Array.isArray(data.reference_file))
+                            files = data.reference_file;
                         else if (
                             typeof data.reference_file === "string" &&
                             data.reference_file.trim() !== ""
                         )
-                            count = 1;
-                    }
-                    if (fileBadge) {
-                        if (count > 0) {
-                            fileBadge.textContent = count;
-                            fileBadge.style.display = '';
-                        } else {
-                            fileBadge.textContent = '';
-                            fileBadge.style.display = 'none';
+                            files = [data.reference_file];
+                        const count = files.length || 0;
+                        if (fileBadge) {
+                            fileBadge.textContent = count > 0 ? count : "";
+                            fileBadge.style.display = count > 0 ? "" : "none";
                         }
-                    }
-                })
-                .catch((err) => {
-                    if (fileBadge) {
-                        fileBadge.textContent = '';
-                        fileBadge.style.display = 'none';
-                    }
-                });
+                    })
+                    .catch(() => {
+                        if (fileBadge) {
+                            fileBadge.textContent = "";
+                            fileBadge.style.display = "none";
+                        }
+                    });
+            }
         });
     })(0);
 
-    // Expose helper to update badges for a single project id (used after edit)
     window.updateProjectBadges = function (pid, attempt = 0) {
         try {
             const containerEl = document.getElementById("all-cards-container");
@@ -8297,87 +9866,109 @@ document.addEventListener("DOMContentLoaded", function () {
                 '[data-project-id="' + pid + '"]'
             );
             if (!card) {
-                // retry a few times until card is rendered
-                if (attempt < 5) {
+                if (attempt < 5)
                     return setTimeout(
                         () => window.updateProjectBadges(pid, attempt + 1),
                         50
                     );
-                }
                 return;
             }
-
             const fbBadge = card.querySelector(".project-feedback-count");
             const fileBadge = card.querySelector(".project-file-count");
-
-            // Parallel fetch for faster loading
-            const feedbackPromise = fetch(appUrl + "/project-feedbacks/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    let count = 0;
-                    if (Array.isArray(resp)) count = resp.length;
-                    else if (Array.isArray(resp.data)) count = resp.data.length;
-                    else if (typeof resp.total === "number") count = resp.total;
-                    else if (resp.meta && typeof resp.meta.total === "number")
-                        count = resp.meta.total;
-                    else if (resp.data && typeof resp.data === "object")
-                        count = 1;
+            getFeedback(pid)
+                .then((arr) => {
+                    const count = (arr && arr.length) || 0;
                     if (fbBadge) {
-                        if (count > 0) {
-                            fbBadge.textContent = count;
-                            fbBadge.style.display = '';
-                        } else {
-                            fbBadge.textContent = '';
-                            fbBadge.style.display = 'none';
-                        }
+                        fbBadge.textContent = count > 0 ? count : "";
+                        fbBadge.style.display = count > 0 ? "" : "none";
                     }
                 })
                 .catch(() => {
                     if (fbBadge) {
-                        fbBadge.textContent = '';
-                        fbBadge.style.display = 'none';
+                        fbBadge.textContent = "";
+                        fbBadge.style.display = "none";
                     }
                 });
-
-            const filePromise = fetch(appUrl + "/project/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    const data = resp.data || resp;
+            getProject(pid)
+                .then((data) => {
                     let files = [];
-                    if (Array.isArray(data.reference_file))
-                        files = data.reference_file;
-                    else if (Array.isArray(data.reference_files))
+                    if (Array.isArray(data.reference_files))
                         files = data.reference_files;
+                    else if (Array.isArray(data.reference_file))
+                        files = data.reference_file;
                     else if (
                         typeof data.reference_file === "string" &&
                         data.reference_file.trim() !== ""
                     )
                         files = [data.reference_file];
+                    const count = files.length || 0;
                     if (fileBadge) {
-                        if (files.length > 0) {
-                            fileBadge.textContent = files.length;
-                            fileBadge.style.display = '';
-                        } else {
-                            fileBadge.textContent = '';
-                            fileBadge.style.display = 'none';
-                        }
+                        fileBadge.textContent = count > 0 ? count : "";
+                        fileBadge.style.display = count > 0 ? "" : "none";
                     }
                 })
                 .catch(() => {
                     if (fileBadge) {
-                        fileBadge.textContent = '';
-                        fileBadge.style.display = 'none';
+                        fileBadge.textContent = "";
+                        fileBadge.style.display = "none";
                     }
                 });
-
-            // Wait for both requests to complete
-            Promise.all([feedbackPromise, filePromise]).then(() => {
-                // Both badges updated
-            });
         } catch (e) {}
     };
 
-    // Refresh only one project card in-place using fresh data
+    function bindCardInteractions(cardEl, pid) {
+        try {
+            if (!cardEl) return;
+            cardEl.querySelectorAll(".dropdown-icon").forEach((icon) => {
+                icon.addEventListener("click", function (e) {
+                    e.stopPropagation();
+                    const dropdownMenu = this.nextElementSibling;
+                    const isVisible =
+                        dropdownMenu &&
+                        !dropdownMenu.classList.contains("d-none");
+                    document
+                        .querySelectorAll(".dropdown-menu")
+                        .forEach((menu) => menu.classList.add("d-none"));
+                    if (!isVisible && dropdownMenu)
+                        dropdownMenu.classList.remove("d-none");
+                });
+            });
+            cardEl
+                .querySelectorAll(".latest-feedback-snippet[data-project-id]")
+                .forEach((el) => {
+                    el.addEventListener("click", function (ev) {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        const pidLocal = this.getAttribute("data-project-id");
+                        hideProjectUnreadBadge(pidLocal);
+                        hideProjectLatestFeedbackSnippet(pidLocal);
+                        markProjectFeedbacksRead(pidLocal).always(() => {
+                            const projectFeedbackModalEl =
+                                document.getElementById("projectFeedbackModal");
+                            if (!projectFeedbackModalEl) return;
+                            projectFeedbackModalEl.setAttribute(
+                                "data-project-id",
+                                pidLocal
+                            );
+                            loadFeedbackData(pidLocal);
+                            const m = new bootstrap.Modal(
+                                projectFeedbackModalEl
+                            );
+                            m.show();
+                        });
+                    });
+                });
+            const tooltipTriggerList = cardEl.querySelectorAll(
+                '[data-bs-toggle="tooltip"]'
+            );
+            tooltipTriggerList.forEach(function (el) {
+                try {
+                    new bootstrap.Tooltip(el, { placement: "bottom" });
+                } catch (e) {}
+            });
+        } catch (e) {}
+    }
+
     window.refreshSingleProjectCard = function (pid, attempt = 0) {
         try {
             const containerEl = document.getElementById("all-cards-container");
@@ -8393,188 +9984,120 @@ document.addEventListener("DOMContentLoaded", function () {
                     );
                 return;
             }
-
-            // Keep current badge counts while refreshing content to avoid flashing 0
             const currentFb =
                 col.querySelector(".project-feedback-count")?.textContent || "";
             const currentFiles =
                 col.querySelector(".project-file-count")?.textContent || "";
-
-            fetch(appUrl + "/project/" + pid)
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((resp) => {
-                    const p = resp.data || resp;
-
-                    // Rebuild only the inner content of the card body with latest fields
-                    let imageUrl = p.image
+            getProject(pid, true)
+                .then((p) => {
+                    window.__projectCache[pid] = p;
+                    const imageUrl = p.image
                         ? appUrl + "/file/project/" + p.image
                         : appUrl + "/asset/img/background/add-image.png";
-
                     const newHeader = `
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div class="d-flex align-items-center">
-                                                ${p.image ? `<img src="${appUrl + "/file/project/" + p.image}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">` : (function(){ const init = getInitials(p.title || ""); const color = getInitialsColor(p.title || ""); return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\" style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`; })()}
-                                                <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${p.title || ""}</h6>
-                                            </div>
-                                            <div class="dropdown-icon-container">
-                                                <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon"
-                                                        style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
-                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
-                                                </button>
-                                                <div class="dropdown-menu d-none">
-                                                    <div class="dropdown-item">Detail</div>
-                                                    <div class="dropdown-item">Task</div>
-                                                    <div class="dropdown-item">Feedback</div>
-                                                    <div class="dropdown-item">Edit</div>
-                                                    <div class="dropdown-item text-danger delete-project">Delete</div>
-                                                </div>
-                                            </div>
-                                        </div>`;
-
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex align-items-center">
+                        ${
+                            p.image
+                                ? `<img src="${imageUrl}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
+                                : (function () {
+                                      const init = getInitials(p.title || "");
+                                      const color = getInitialsColor(
+                                          p.title || ""
+                                      );
+                                      return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center" style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${init}</div>`;
+                                  })()
+                        }
+                        <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600;">${
+                            p.title || ""
+                        }</h6>
+                    </div>
+                    <div class="dropdown-icon-container">
+                        <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon" style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
+                            <span class="material-symbols-outlined" style="font-size:16px; color:#828282;" tabindex="0">more_vert</span>
+                        </button>
+                        <div class="dropdown-menu d-none">
+                            <div class="dropdown-item">Detail</div>
+                            <div class="dropdown-item">Task</div>
+                            <div class="dropdown-item">Feedback</div>
+                            <div class="dropdown-item">Edit</div>
+                            <div class="dropdown-item text-danger delete-project">Delete</div>
+                        </div>
+                    </div>
+                </div>`;
                     const newDesc = (function () {
                         const d = (p.description || "").trim();
                         if (!d) return "";
-                        return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
+                        return `<p class="mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${d}</p>`;
                     })();
-
+                    let files = [];
+                    if (Array.isArray(p.reference_files))
+                        files = p.reference_files;
+                    else if (Array.isArray(p.reference_file))
+                        files = p.reference_file;
+                    else if (
+                        typeof p.reference_file === "string" &&
+                        p.reference_file.trim() !== ""
+                    )
+                        files = [p.reference_file];
+                    const fileCount = files.length || currentFiles || "";
+                    const fbCountPlaceholder = currentFb || "";
                     const newFooter = `
-                                        <div class="d-flex justify-content-between align-items-center mt-2">
-                                            <div class="collaborators-image d-flex align-items-center">${renderCollaborators(
-                                                p
-                                            )}</div>
-                                            <div class="d-flex align-items-center">
-                                                <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${
-                                                    p.id
-                                                }" style="cursor:pointer; max-width: 160px;">
-                                                    <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
-                                                    <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
-                                                </div>
-                                                <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${
-                                                    p.id
-                                                }">
-                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-                                                    <span class="project-feedback-count ms-1" data-project-id="${
-                                                        p.id
-                                                    }" style="font-size:12px; color:#454545;">${currentFb}</span>
-                                                    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" data-project-id="${
-                                                        p.id
-                                                    }" style="background: red; border-radius: 50%; width: 8px; height: 8px;"></span>
-                                                </button>
-                                                <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${
-                                                    p.id
-                                                }">
-                                                    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
-                                                    <span class="project-file-count ms-1" data-project-id="${
-                                                        p.id
-                                                    }" style="font-size:12px; color:#454545;">${currentFiles}</span>
-                                                </button>
-                                            </div>
-                                        </div>`;
-
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div class="collaborators-image d-flex align-items-center">${renderCollaborators(
+                        p
+                    )}</div>
+                    <div class="d-flex align-items-center">
+                        <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${
+                            p.id
+                        }" style="cursor:pointer; max-width: 160px;">
+                            <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
+                            <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
+                        </div>
+                        <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${
+                            p.id
+                        }">
+                            <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
+                            <span class="project-feedback-count ms-1" data-project-id="${
+                                p.id
+                            }" style="font-size:12px; color:#454545;">${fbCountPlaceholder}</span>
+                            <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none" data-project-id="${
+                                p.id
+                            }" style="background: red; border-radius: 50%; width: 8px; height: 8px;"></span>
+                        </button>
+                        <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${
+                            p.id
+                        }">
+                            <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">attach_file</span>
+                            <span class="project-file-count ms-1" data-project-id="${
+                                p.id
+                            }" style="font-size:12px; color:#454545;">${fileCount}</span>
+                        </button>
+                    </div>
+                </div>`;
                     const cardEl = col.querySelector(".project-card");
                     if (cardEl) {
-                        // Replace sections inside card
-                        const oldDropdown =
-                            cardEl.querySelector(".dropdown-menu");
+                        cardEl.innerHTML =
+                            newHeader +
+                            newDesc +
+                            '<hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">' +
+                            newFooter;
                     }
-
-                    // Re-bind dropdown and attach-file handlers and tooltips
-                    try {
-                        cardEl
-                            .querySelectorAll(".dropdown-icon")
-                            .forEach((icon) => {
-                                icon.addEventListener("click", function (e) {
-                                    e.stopPropagation();
-                                    const dropdownMenu =
-                                        this.nextElementSibling;
-                                    const isVisible =
-                                        !dropdownMenu.classList.contains(
-                                            "d-none"
-                                        );
-                                    document
-                                        .querySelectorAll(".dropdown-menu")
-                                        .forEach((menu) =>
-                                            menu.classList.add("d-none")
-                                        );
-                                    if (!isVisible)
-                                        dropdownMenu.classList.remove("d-none");
-                                });
-                            });
-                        // Bind snippet click
-                        cardEl
-                            .querySelectorAll(
-                                ".latest-feedback-snippet[data-project-id]"
-                            )
-                            .forEach((el) => {
-                                el.addEventListener("click", function (ev) {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
-                                    const pid =
-                                        this.getAttribute("data-project-id");
-                                    hideProjectUnreadBadge(pid);
-                                    hideProjectLatestFeedbackSnippet(pid);
-                                    try {
-                                        window.__projectLatestTarget =
-                                            window.__projectLatestTarget || {};
-                                        const latest =
-                                            (window.__projectLatest &&
-                                                window.__projectLatest[
-                                                    String(pid)
-                                                ]) ||
-                                            null;
-                                        if (latest)
-                                            window.__projectLatestTarget[
-                                                String(pid)
-                                            ] = latest;
-                                    } catch (_) {}
-                                    markProjectFeedbacksRead(pid).always(() => {
-                                        const projectFeedbackModalEl =
-                                            document.getElementById(
-                                                "projectFeedbackModal"
-                                            );
-                                        if (!projectFeedbackModalEl) return;
-                                        projectFeedbackModalEl.setAttribute(
-                                            "data-project-id",
-                                            pid
-                                        );
-                                        try {
-                                            loadFeedbackData(pid);
-                                        } catch (_) {}
-                                        const m = new bootstrap.Modal(
-                                            projectFeedbackModalEl
-                                        );
-                                        m.show();
-                                    });
-                                });
-                            });
-                        const tooltipTriggerList = cardEl.querySelectorAll(
-                            '[data-bs-toggle="tooltip"]'
-                        );
-                        tooltipTriggerList.forEach(function (el) {
-                            try {
-                                new bootstrap.Tooltip(el, {
-                                    placement: "bottom",
-                                });
-                            } catch (e) {}
-                        });
-                    } catch (e) {}
-
-                    // Finally, update badges with live values
-                    if (typeof window.updateProjectBadges === "function") {
+                    if (cardEl) bindCardInteractions(cardEl, pid);
+                    if (typeof window.updateProjectBadges === "function")
                         window.updateProjectBadges(pid);
-                    }
                     try {
-                        fetchUnreadForProject(pid);
+                        if (typeof fetchUnreadForProject === "function")
+                            fetchUnreadForProject(pid);
                     } catch (_) {}
                     try {
-                        fetchLatestFeedbackForProject(pid);
+                        if (typeof fetchLatestFeedbackForProject === "function")
+                            fetchLatestFeedbackForProject(projectId);
                     } catch (_) {}
                 })
                 .catch(() => {
-                    // As a fallback, update badges only
-                    if (typeof window.updateProjectBadges === "function") {
+                    if (typeof window.updateProjectBadges === "function")
                         window.updateProjectBadges(pid);
-                    }
                 });
         } catch (e) {}
     };
@@ -8636,7 +10159,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 },
                 error: function (xhr, status, error) {
-                    handleEmployeeLoadError(xhr, status, error, 'Project Contributors (Modal)');
+                    handleEmployeeLoadError(
+                        xhr,
+                        status,
+                        error,
+                        "Project Contributors (Modal)"
+                    );
 
                     // Provide fallback with empty list
                     employees = [];
@@ -8896,7 +10424,8 @@ document.addEventListener("DOMContentLoaded", function () {
         // New: By Project / By Date controls
         const modeByProject = document.getElementById("modeByProject");
         const modeByDate = document.getElementById("modeByDate");
-        const byProjectContainer = document.getElementById("byProjectContainer");
+        const byProjectContainer =
+            document.getElementById("byProjectContainer");
         const byDateContainer = document.getElementById("byDateContainer");
         const projectSelect = document.getElementById("filterProjectSelect");
         const dateSelect = document.getElementById("filterProjectDateSelect");
@@ -8904,10 +10433,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!openFilterBtn || !filterDropdown) return;
 
-
         // Remove any existing event listeners to prevent duplicates
         openFilterBtn.replaceWith(openFilterBtn.cloneNode(true));
-        const newOpenFilterBtn = document.getElementById("openProjectFilterBtn");
+        const newOpenFilterBtn = document.getElementById(
+            "openProjectFilterBtn"
+        );
 
         // Toggle dropdown visibility with improved event handling
         newOpenFilterBtn.addEventListener("click", function (e) {
@@ -8915,19 +10445,22 @@ document.addEventListener("DOMContentLoaded", function () {
             e.stopPropagation();
 
             // Close any other open dropdowns first
-            document.querySelectorAll('.dropdown-menu:not(#projectFilterDropdown)').forEach(menu => {
-                menu.classList.add('d-none');
-                menu.style.display = 'none';
-            });
+            document
+                .querySelectorAll(".dropdown-menu:not(#projectFilterDropdown)")
+                .forEach((menu) => {
+                    menu.classList.add("d-none");
+                });
 
-            const isVisible = filterDropdown.style.display === "block" || !filterDropdown.classList.contains('d-none');
+            const isVisible =
+                filterDropdown.style.display === "block" ||
+                !filterDropdown.classList.contains("d-none");
 
             if (isVisible) {
                 filterDropdown.style.display = "none";
-                filterDropdown.classList.add('d-none');
+                filterDropdown.classList.add("d-none");
             } else {
                 filterDropdown.style.display = "block";
-                filterDropdown.classList.remove('d-none');
+                filterDropdown.classList.remove("d-none");
             }
         });
 
@@ -8942,20 +10475,29 @@ document.addEventListener("DOMContentLoaded", function () {
                 data: { task_scope: "me" },
             })
                 .done(function (res) {
-                    const arr = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+                    const arr = Array.isArray(res)
+                        ? res
+                        : Array.isArray(res?.data)
+                        ? res.data
+                        : [];
                     arr.forEach(function (p) {
                         const opt = document.createElement("option");
                         opt.value = p.id;
-                        opt.textContent = p.title || ("Project #" + p.id);
+                        opt.textContent = p.title || "Project #" + p.id;
                         projectSelect.appendChild(opt);
                     });
                     // Restore previously selected value if any
                     try {
-                        const prev = (typeof window.currentProjectId !== 'undefined') ? window.currentProjectId : '';
+                        const prev =
+                            typeof window.currentProjectId !== "undefined"
+                                ? window.currentProjectId
+                                : "";
                         if (prev) projectSelect.value = String(prev);
                     } catch (_) {}
                 })
-                .fail(function () { /* noop */ });
+                .fail(function () {
+                    /* noop */
+                });
         }
 
         function populateDateOptions() {
@@ -8968,7 +10510,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 data: { task_scope: "me" },
             })
                 .done(function (res) {
-                    const arr = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+                    const arr = Array.isArray(res)
+                        ? res
+                        : Array.isArray(res?.data)
+                        ? res.data
+                        : [];
                     const s = new Set();
                     arr.forEach(function (p) {
                         const sd = (p.start_date || "").slice(0, 10);
@@ -8978,18 +10524,28 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Helper: format YYYY-MM-DD to "DD Month YYYY" (e.g., 13 September 2025)
                     function formatDateLabel(ymd) {
                         try {
-                            const parts = String(ymd).split('-');
+                            const parts = String(ymd).split("-");
                             if (parts.length !== 3) return ymd;
                             const y = parseInt(parts[0], 10);
                             const m = parseInt(parts[1], 10);
                             const d = parseInt(parts[2], 10);
                             if (!y || !m || !d) return ymd;
                             const months = [
-                                'Januari','Februari','Maret','April','Mei','Juni',
-                                'Juli','Agustus','September','Oktober','November','Desember'
+                                "Januari",
+                                "Februari",
+                                "Maret",
+                                "April",
+                                "Mei",
+                                "Juni",
+                                "Juli",
+                                "Agustus",
+                                "September",
+                                "Oktober",
+                                "November",
+                                "Desember",
                             ];
                             const monthName = months[m - 1] || parts[1];
-                            return d + ' ' + monthName + ' ' + y;
+                            return d + " " + monthName + " " + y;
                         } catch (_) {
                             return ymd;
                         }
@@ -9002,29 +10558,38 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
                     // Restore previously selected value if any
                     try {
-                        const prev = (typeof window.currentFilterDate === 'string') ? window.currentFilterDate : '';
+                        const prev =
+                            typeof window.currentFilterDate === "string"
+                                ? window.currentFilterDate
+                                : "";
                         if (prev) dateSelect.value = prev;
                     } catch (_) {}
                 })
-                .fail(function () { /* noop */ });
+                .fail(function () {
+                    /* noop */
+                });
         }
 
         function applyModeVisibility() {
             const byProject = !!(modeByProject && modeByProject.checked);
             if (byProject) {
-                if (byProjectContainer) byProjectContainer.classList.remove('d-none');
-                if (byDateContainer) byDateContainer.classList.add('d-none');
+                if (byProjectContainer)
+                    byProjectContainer.classList.remove("d-none");
+                if (byDateContainer) byDateContainer.classList.add("d-none");
                 populateProjectOptions();
             } else {
-                if (byProjectContainer) byProjectContainer.classList.add('d-none');
-                if (byDateContainer) byDateContainer.classList.remove('d-none');
+                if (byProjectContainer)
+                    byProjectContainer.classList.add("d-none");
+                if (byDateContainer) byDateContainer.classList.remove("d-none");
                 populateDateOptions();
             }
         }
 
         // Bind mode toggles
-        if (modeByProject) modeByProject.addEventListener('change', applyModeVisibility);
-        if (modeByDate) modeByDate.addEventListener('change', applyModeVisibility);
+        if (modeByProject)
+            modeByProject.addEventListener("change", applyModeVisibility);
+        if (modeByDate)
+            modeByDate.addEventListener("change", applyModeVisibility);
         // Initialize mode UI on load
         applyModeVisibility();
 
@@ -9032,7 +10597,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (applyFilterBtn) {
             // Remove existing listeners
             applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
-            const newApplyFilterBtn = document.getElementById("applyProjectFilterBtn");
+            const newApplyFilterBtn = document.getElementById(
+                "applyProjectFilterBtn"
+            );
 
             newApplyFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
@@ -9041,11 +10608,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 const selectedStatus = filterStatus ? filterStatus.value : "";
 
                 filterDropdown.style.display = "none";
-                filterDropdown.classList.add('d-none');
+                filterDropdown.classList.add("d-none");
 
                 // Map UI filter values to backend filter parameters
                 let filterParam = null;
-                let sortBy = 'asc';
+                let sortBy = "asc";
                 if (selectedStatus === "") {
                     filterParam = null;
                 } else if (selectedStatus === "ongoing") {
@@ -9061,18 +10628,32 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 // Reload project cards with current filters, keep current search
-                const q = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
+                const q =
+                    typeof window.currentSearch === "string"
+                        ? window.currentSearch
+                        : "";
 
                 // Read By Project/By Date values
                 const isByProject = !!(modeByProject && modeByProject.checked);
-                const selectedProjectId = (projectSelect && isByProject) ? projectSelect.value : '';
-                const selectedDate = (!isByProject && dateSelect) ? dateSelect.value : '';
+                const selectedProjectId =
+                    projectSelect && isByProject ? projectSelect.value : "";
+                const selectedDate =
+                    !isByProject && dateSelect ? dateSelect.value : "";
                 // Persist these states on window and locals
-                try { window.currentProjectId = selectedProjectId || ''; } catch(_) {}
-                try { window.currentFilterDate = selectedDate || ''; } catch(_) {}
-                currentProjectId = selectedProjectId || '';
-                currentFilterDate = selectedDate || '';
-                loadProjectCardData(filterParam, 1, (typeof q === 'string' ? q : ''), sortBy);
+                try {
+                    window.currentProjectId = selectedProjectId || "";
+                } catch (_) {}
+                try {
+                    window.currentFilterDate = selectedDate || "";
+                } catch (_) {}
+                currentProjectId = selectedProjectId || "";
+                currentFilterDate = selectedDate || "";
+                loadProjectCardData(
+                    filterParam,
+                    1,
+                    typeof q === "string" ? q : "",
+                    sortBy
+                );
             });
         }
 
@@ -9080,7 +10661,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (resetFilterBtn) {
             // Remove existing listeners
             resetFilterBtn.replaceWith(resetFilterBtn.cloneNode(true));
-            const newResetFilterBtn = document.getElementById("resetProjectFilterBtn");
+            const newResetFilterBtn = document.getElementById(
+                "resetProjectFilterBtn"
+            );
 
             newResetFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
@@ -9098,17 +10681,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 // Close the dropdown
                 filterDropdown.style.display = "none";
-                filterDropdown.classList.add('d-none');
+                filterDropdown.classList.add("d-none");
 
                 // Reset states
-                try { window.currentProjectId = ''; } catch(_) {}
-                try { window.currentFilterDate = ''; } catch(_) {}
-                currentProjectId = '';
-                currentFilterDate = '';
+                try {
+                    window.currentProjectId = "";
+                } catch (_) {}
+                try {
+                    window.currentFilterDate = "";
+                } catch (_) {}
+                currentProjectId = "";
+                currentFilterDate = "";
 
                 // Reload project cards without filter (show all) and no sort, keep current search
-                const q = (typeof window.currentSearch === 'string') ? window.currentSearch : '';
-                loadProjectCardData(null, 1, (typeof q === 'string' ? q : ''));
+                const q =
+                    typeof window.currentSearch === "string"
+                        ? window.currentSearch
+                        : "";
+                loadProjectCardData(null, 1, typeof q === "string" ? q : "");
             });
         }
 
@@ -9127,15 +10717,22 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         window.filterClickHandler = function (e) {
-            const filterDropdown = document.getElementById("projectFilterDropdown");
-            const openFilterBtn = document.getElementById("openProjectFilterBtn");
+            const filterDropdown = document.getElementById(
+                "projectFilterDropdown"
+            );
+            const openFilterBtn = document.getElementById(
+                "openProjectFilterBtn"
+            );
 
             if (!filterDropdown || !openFilterBtn) return;
 
             // Check if click is outside both button and dropdown
-            if (!openFilterBtn.contains(e.target) && !filterDropdown.contains(e.target)) {
-                filterDropdown.style.display = "none";
-                filterDropdown.classList.add('d-none');
+            if (
+                !openFilterBtn.contains(e.target) &&
+                !filterDropdown.contains(e.target)
+            ) {
+                // filterDropdown.style.display = "none";
+                filterDropdown.classList.add("d-none");
             }
         };
 
@@ -9259,7 +10856,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 "#ff6b6b",
             ];
         }
-        try { projectChartInstance.update(); } catch (_) {}
+        try {
+            projectChartInstance.update();
+        } catch (_) {}
 
         const spans = document.querySelectorAll(
             ".chart-labels .text-center span:first-child"
@@ -9284,11 +10883,34 @@ document.addEventListener("DOMContentLoaded", function () {
 
         $(".loader").fadeIn("fast");
 
-        const totalReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json" });
-        const completedReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "completed" } });
-        const inProgressReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "in_progress" } });
-        const notStartedReq = $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json", data: { filter: "not_started" } });
-        const tasksReq = $.ajax({ url: appUrl + "/task/index/no-pagination", type: "GET", dataType: "json" });
+        const totalReq = $.ajax({
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+        });
+        const completedReq = $.ajax({
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+            data: { filter: "completed" },
+        });
+        const inProgressReq = $.ajax({
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+            data: { filter: "in_progress" },
+        });
+        const notStartedReq = $.ajax({
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+            data: { filter: "not_started" },
+        });
+        const tasksReq = $.ajax({
+            url: appUrl + "/task/index/no-pagination",
+            type: "GET",
+            dataType: "json",
+        });
 
         $.when(totalReq, completedReq, inProgressReq, notStartedReq, tasksReq)
             .done(function (totalRes, compRes, progRes, notRes, tRes) {
@@ -9304,10 +10926,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     function collect(list, statusName) {
                         if (!Array.isArray(list)) return;
                         list.forEach(function (t) {
-                            const pid = t.project_id || (t.project && (t.project.id || t.project.project_id));
+                            const pid =
+                                t.project_id ||
+                                (t.project &&
+                                    (t.project.id || t.project.project_id));
                             if (!pid) return;
                             if (!tasksByProject[pid]) tasksByProject[pid] = [];
-                            tasksByProject[pid].push(Object.assign({}, t, { __status: statusName }));
+                            tasksByProject[pid].push(
+                                Object.assign({}, t, { __status: statusName })
+                            );
                         });
                     }
                     collect(buckets.not_started?.tasks, "not_started");
@@ -9321,7 +10948,16 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (!dateStr) return null;
                         const s = String(dateStr).trim();
                         const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                        if (m) return new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999);
+                        if (m)
+                            return new Date(
+                                +m[1],
+                                +m[2] - 1,
+                                +m[3],
+                                23,
+                                59,
+                                59,
+                                999
+                            );
                         const d = new Date(s);
                         return isNaN(d.getTime()) ? null : d;
                     }
@@ -9336,7 +10972,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (t.__status === "late") return true;
                             const dueStr = t.due_date || t.due || t.deadline;
                             const due = parseDue(dueStr);
-                            return !!(due && due.getTime() < now.getTime() && t.__status !== "completed");
+                            return !!(
+                                due &&
+                                due.getTime() < now.getTime() &&
+                                t.__status !== "completed"
+                            );
                         });
                         if (lateTasks.length > 0) countLate++;
                     });
@@ -9358,13 +10998,29 @@ document.addEventListener("DOMContentLoaded", function () {
             .fail(function () {
                 try {
                     // As a fallback, try to at least load total projects to avoid empty chart
-                    $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json" })
+                    $.ajax({
+                        url: appUrl + "/project/index",
+                        type: "GET",
+                        dataType: "json",
+                    })
                         .done(function (res) {
-                            const projects = Array.isArray(res) ? res : (Array.isArray(res.data) ? res.data : []);
-                            const derivedCounts = { total: projects.length, completed: 0, in_progress: 0, late: 0, not_started: projects.length };
+                            const projects = Array.isArray(res)
+                                ? res
+                                : Array.isArray(res.data)
+                                ? res.data
+                                : [];
+                            const derivedCounts = {
+                                total: projects.length,
+                                completed: 0,
+                                in_progress: 0,
+                                late: 0,
+                                not_started: projects.length,
+                            };
                             updateProjectChartFromData(projects, derivedCounts);
                         })
-                        .always(function () { $(".loader").fadeOut("fast"); });
+                        .always(function () {
+                            $(".loader").fadeOut("fast");
+                        });
                 } catch (_) {
                     $(".loader").fadeOut("fast");
                 }
@@ -9375,7 +11031,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
-let currentWeek = (function(){
+let currentWeek = (function () {
     const today = new Date();
     const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
@@ -9590,25 +11246,43 @@ function renderTimeline(
         // Render bar untuk setiap project
         timelineData.forEach((proj) => {
             // Cek apakah project overlap dengan bulan ini
-            const startDay = Math.max(1, proj.start_date.getMonth() === month ? proj.start_date.getDate() : 1);
-            const endDay = Math.min(daysInMonth, proj.due_date.getMonth() === month ? proj.due_date.getDate() : daysInMonth);
+            const startDay = Math.max(
+                1,
+                proj.start_date.getMonth() === month
+                    ? proj.start_date.getDate()
+                    : 1
+            );
+            const endDay = Math.min(
+                daysInMonth,
+                proj.due_date.getMonth() === month
+                    ? proj.due_date.getDate()
+                    : daysInMonth
+            );
 
             // Jika tidak overlap, skip
-            if (proj.start_date.getMonth() > month || proj.due_date.getMonth() < month) return;
+            if (
+                proj.start_date.getMonth() > month ||
+                proj.due_date.getMonth() < month
+            )
+                return;
 
             const tr = document.createElement("tr");
             // Kosong sebelum bar
-            for (let i = 1; i < startDay; i++) tr.appendChild(document.createElement("td"));
+            for (let i = 1; i < startDay; i++)
+                tr.appendChild(document.createElement("td"));
             // Bar project
             if (endDay >= startDay) {
                 const barTd = document.createElement("td");
                 barTd.colSpan = endDay - startDay + 1;
-                const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                const titleText = `${
+                    proj.name
+                } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
                 barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
             }
             // Kosong setelah bar
-            for (let i = endDay + 1; i <= daysInMonth; i++) tr.appendChild(document.createElement("td"));
+            for (let i = endDay + 1; i <= daysInMonth; i++)
+                tr.appendChild(document.createElement("td"));
             rowsContainer.appendChild(tr);
         });
         // Title modal: Timeline Sep 2025
@@ -9621,7 +11295,15 @@ function renderTimeline(
 
     // ...existing code for week mode (tidak diubah)...
     let totalCells = 7;
-    const headerLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const headerLabels = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ];
     headerLabels.forEach((label) => {
         const th = document.createElement("th");
         th.textContent = label;
@@ -9632,7 +11314,8 @@ function renderTimeline(
         const today = new Date();
         if (today.getMonth() === month && today.getFullYear() === year) {
             const firstOfMonth = new Date(year, month, 1);
-            const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+            const offset =
+                firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
             weekIndex = Math.ceil((today.getDate() + offset) / 7) - 1;
         } else {
             weekIndex = 0;
@@ -9648,7 +11331,7 @@ function renderTimeline(
     let weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekStartDate.getDate() + 6);
 
-    const filteredProjects = timelineData.filter(proj => {
+    const filteredProjects = timelineData.filter((proj) => {
         return proj.start_date <= weekEndDate && proj.due_date >= weekStartDate;
     });
 
@@ -9671,7 +11354,9 @@ function renderTimeline(
         if (projEndIdx >= projStartIdx) {
             const barTd = document.createElement("td");
             barTd.colSpan = projEndIdx - projStartIdx + 1;
-            const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+            const titleText = `${
+                proj.name
+            } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
             barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
             tr.appendChild(barTd);
         }
@@ -9701,7 +11386,14 @@ document.getElementById("prevTimeline").addEventListener("click", () => {
         }
         currentWeek = getWeeksInMonth(currentYear, currentMonth) - 1;
     }
-    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+    renderTimeline(
+        "#timelineHeader",
+        "#timelineRows",
+        "week",
+        currentMonth,
+        currentYear,
+        currentWeek
+    );
 });
 
 document.getElementById("nextTimeline").addEventListener("click", () => {
@@ -9716,7 +11408,14 @@ document.getElementById("nextTimeline").addEventListener("click", () => {
         }
         currentWeek = 0;
     }
-    renderTimeline("#timelineHeader", "#timelineRows", "week", currentMonth, currentYear, currentWeek);
+    renderTimeline(
+        "#timelineHeader",
+        "#timelineRows",
+        "week",
+        currentMonth,
+        currentYear,
+        currentWeek
+    );
 });
 
 const modalTitle = document.getElementById("timelineModalTitle");
@@ -9786,12 +11485,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Reload cards from backend with search param
         try {
-            if (typeof window.loadProjectCardData === 'function') {
+            if (typeof window.loadProjectCardData === "function") {
                 window.loadProjectCardData(null, 1, q);
-            } else if (typeof loadProjectCardData === 'function') {
+            } else if (typeof loadProjectCardData === "function") {
                 loadProjectCardData(null, 1, q);
             } else {
-                throw new ReferenceError('loadProjectCardData is not defined');
+                throw new ReferenceError("loadProjectCardData is not defined");
             }
         } catch (e) {
             console.warn("Search reload failed", e);
@@ -9862,6 +11561,17 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
             data.employee && data.employee.photo
                 ? data.employee.photo
                 : appUrl + "/asset/img/avatar.png";
+        data.employee &&
+        (data.employee.photo ||
+            data.employee.user_photo ||
+            data.employee.profile_picture_url)
+            ? buildAvatarUrl(
+                  data.employee.photo ||
+                      data.employee.user_photo ||
+                      data.employee.profile_picture_url
+              )
+            : appUrl + "/asset/img/avatar.png";
+
         // sanitize feedback_comment: strip HTML tags so any embedded <img> or markup
         // will be shown as text-free preview instead of raw HTML.
         const raw = String(data.feedback_comment || "");
@@ -9913,27 +11623,6 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
     } catch (e) {
         console.warn("setProjectLatestFeedbackSnippet error", e);
     }
-}
-
-// small seq guard for concurrent requests
-window.latestProjectSnippetSeq = window.latestProjectSnippetSeq || {};
-function fetchLatestFeedbackForProject(projectId) {
-    const seq = (window.latestProjectSnippetSeq[projectId] =
-        (window.latestProjectSnippetSeq[projectId] || 0) + 1);
-    return $.ajax({
-        url: appUrl + `/project-feedbacks/${projectId}/latest`,
-        type: "GET",
-        dataType: "json",
-    })
-        .then((res) => {
-            if (window.latestProjectSnippetSeq[projectId] !== seq) return; // ignore stale
-            const data = res && (res.data || null);
-            setProjectLatestFeedbackSnippet(projectId, data);
-        })
-        .catch(() => {
-            if (window.latestProjectSnippetSeq[projectId] !== seq) return;
-            setProjectLatestFeedbackSnippet(projectId, null);
-        });
 }
 
 // === Global Unread Badge Refresher ===
@@ -9990,5 +11679,33 @@ function handleResponsiveTooltipUpdate() {
 }
 
 // Listen for resize and orientation change events
-window.addEventListener('resize', handleResponsiveTooltipUpdate);
-window.addEventListener('orientationchange', handleResponsiveTooltipUpdate);
+window.addEventListener("resize", handleResponsiveTooltipUpdate);
+window.addEventListener("orientationchange", handleResponsiveTooltipUpdate);
+
+// Toggle filter containers based on filter mode
+document.addEventListener("DOMContentLoaded", function () {
+    const modeByProject = document.getElementById("modeByProject");
+    const modeSortBy = document.getElementById("modeSortBy");
+    const byProjectContainer = document.getElementById("byProjectContainer");
+    const byDateContainer = document.getElementById("byDateContainer");
+    const sortByContainer = document.getElementById("sortByContainer");
+
+    function toggleContainers() {
+        if (modeByProject.checked) {
+            byProjectContainer.classList.remove("d-none");
+            byDateContainer.classList.add("d-none");
+            sortByContainer.classList.add("d-none");
+        } else if (modeSortBy.checked) {
+            byProjectContainer.classList.add("d-none");
+            byDateContainer.classList.add("d-none");
+            sortByContainer.classList.remove("d-none");
+        }
+    }
+
+    if (modeByProject)
+        modeByProject.addEventListener("change", toggleContainers);
+    if (modeSortBy) modeSortBy.addEventListener("change", toggleContainers);
+
+    // Initial call
+    toggleContainers();
+});

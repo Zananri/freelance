@@ -552,9 +552,9 @@ class ProjectController extends Controller
             $query = Project::where('status', '!=', 'DELETED');
 
             if ($sortBy === 'asc') {
-                $query = $query->orderBy('projects.title', 'asc');
+                $query = $query->orderBy('projects.created_at', 'asc');
             } else {
-                $query = $query->orderBy('projects.title', 'desc');
+                $query = $query->orderBy('projects.created_at', 'desc');
             }
 
             if ($taskScope !== 'all') {

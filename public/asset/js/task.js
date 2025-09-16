@@ -39,6 +39,28 @@
     // Shared buffer for multi-file preview across modals (Add Task, Add/Reply Feedback)
     let selectedFiles = [];
 
+    // File size limits (bytes)
+    const MAX_TOTAL_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB
+    const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB for image inputs (label image uploads)
+
+    // Helper: compute total size of FileList/Array of File objects
+    function computeTotalBytes(filesArray) {
+        try {
+            if (!filesArray) return 0;
+            return filesArray.reduce((acc, f) => acc + (f && f.size ? f.size : 0), 0);
+        } catch (_) { return 0; }
+    }
+
+    // Helper: validate total size (including optional image) against MAX_TOTAL_UPLOAD_BYTES
+    function validateTotalUploadSize({imageFile, extraFiles}) {
+        try {
+            let total = 0;
+            if (imageFile) total += (imageFile.size || 0);
+            if (Array.isArray(extraFiles) && extraFiles.length) total += computeTotalBytes(extraFiles);
+            return {ok: total <= MAX_TOTAL_UPLOAD_BYTES, totalBytes: total};
+        } catch (e) { return {ok: false, totalBytes: Infinity}; }
+    }
+
     // Initialize Bootstrap tooltips within a DOM scope (default document)
     function initBootstrapTooltips(root = document) {
         try {
@@ -65,6 +87,24 @@
         } catch (_) { /* noop */ }
     }
     window.initBootstrapTooltips = initBootstrapTooltips;
+
+    // Helper: hide and dispose any visible Bootstrap tooltips to avoid orphaned popper nodes
+    function hideAllFloatingTooltips() {
+        try {
+            const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            triggers.forEach(el => {
+                try {
+                    const inst = bootstrap.Tooltip.getInstance(el);
+                    if (inst) {
+                        try { inst.hide(); } catch(_) {}
+                        try { inst.dispose(); } catch(_) {}
+                    }
+                } catch(_) {}
+            });
+            // Remove any leftover tooltip elements appended directly to body
+            document.querySelectorAll('body > .tooltip').forEach(t => { try { t.remove(); } catch(_) {} });
+        } catch(_) {}
+    }
 
     // Debounced tooltip reinitialization for scroll events
     let tooltipScrollTimeout;
@@ -201,6 +241,37 @@
             hash = text.charCodeAt(i) + ((hash << 5) - hash);
         }
         return colors[Math.abs(hash) % colors.length];
+    }
+
+    // Shared cached fetch for employees-for-executor to avoid duplicate XHRs
+    const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+    const __empCache = { map: new Map(), inFlight: new Map() };
+    function fetchEmployeesForExecutorCached(query = "") {
+        try {
+            const key = String(query || "").trim().toLowerCase();
+            const now = Date.now();
+            const cached = __empCache.map.get(key);
+            if (cached && (now - cached.t) < EMP_CACHE_TTL_MS) {
+                // Return a resolved Deferred with cached value
+                const d = $.Deferred();
+                d.resolve(cached.v);
+                return d.promise();
+            }
+            const inflight = __empCache.inFlight.get(key);
+            if (inflight) return inflight;
+            const jq = $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: key }, dataType: 'json' })
+                .then(res => {
+                    __empCache.map.set(key, { v: res, t: Date.now() });
+                    __empCache.inFlight.delete(key);
+                    return res;
+                })
+                .catch(err => { __empCache.inFlight.delete(key); throw err; });
+            __empCache.inFlight.set(key, jq);
+            return jq;
+        } catch (_) {
+            // Fallback: no cache
+            return $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: query }, dataType: 'json' });
+        }
     }
 
 // Show Accept confirmation modal (task page, no notification context)
@@ -453,6 +524,13 @@
     function setupImageInput(input, label, clearBtn) {
         input.addEventListener("change", function () {
             if (input.files && input.files[0]) {
+                // Enforce image size limit
+                const file = input.files[0];
+                if (file.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                    input.value = '';
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     label.style.backgroundImage = `url('${e.target.result}')`;
@@ -461,7 +539,7 @@
                     label.style.opacity = "1";
                     clearBtn.classList.remove("d-none");
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             } else {
                 label.style.backgroundImage = "";
                 label.classList.remove("has-image");
@@ -567,8 +645,22 @@
             );
             if (submitBtn) submitBtn.disabled = true;
 
-            const formData = new FormData(addTaskForm);
+            // Validate sizes: include task image (if any) and selectedFiles
+            try {
+                const imageEl = document.getElementById('task_image');
+                const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+                if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
+                    return;
+                }
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+                if (!totalCheck.ok) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                    return;
+                }
+            } catch(_) {}
 
+            const formData = new FormData(addTaskForm);
             // Append all selected reference files to formData
             selectedFiles.forEach((file) => {
                 formData.append("reference_files[]", file);
@@ -653,20 +745,17 @@
         let selectedEmployees = [];
 
         function fetchEmployees(query = "") {
-            $.ajax({
-                url: appUrl + "/task/employees-for-executor",
-                type: "GET",
-                data: { q: query },
-                dataType: "json",
-                success: function (data) {
-                    employees = data.data || [];
+                fetchEmployeesForExecutorCached(query)
+                .then(function(data){
+                    employees = (data && (data.data || data)) || [];
+                    // Exclude administrator users from executor pickers
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filteredEmployees = employees;
                     renderDropdown();
-                },
-                error: function () {
-                    showFloatingAlert("Failed to load employees.", "warning", 3000);
-                },
-            });
+                })
+                .catch(function(){
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) {}
+                });
         }
 
         function renderDropdown() {
@@ -1081,9 +1170,12 @@
         let employees = [], filtered = [], selected = [];
 
         function fetchEmployees(query = ''){
-            $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: query }, dataType: 'json' })
-                .done(res => { employees = res.data || []; filtered = employees; renderDropdown(); })
-                .fail(() => { try { showFloatingAlert('Failed to load employees.', 'warning', 3000); } catch(_) {} });
+            fetchEmployeesForExecutorCached(query)
+                .then(res => { employees = (res && (res.data || res)) || []; 
+                    // Exclude administrator users from executor pickers
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filtered = employees; renderDropdown(); })
+                .catch(() => { try { showFloatingAlert('Failed to load employees.', 'warning', 3000); } catch(_) {} });
         }
 
         function renderDropdown(){
@@ -1167,6 +1259,22 @@
                 "button[type='submit']"
             );
             if (submitBtn) submitBtn.disabled = true;
+
+            // Validate sizes: include edit task image and editSelectedFiles
+            try {
+                const imageEl = document.getElementById('edit_task_image');
+                const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+                if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
+                    return;
+                }
+                const extraFiles = (window.editSelectedFiles && Array.isArray(window.editSelectedFiles)) ? window.editSelectedFiles : [];
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: extraFiles});
+                if (!totalCheck.ok) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                    return;
+                }
+            } catch(_) {}
 
             const formData = new FormData(editTaskForm);
             // Add _method to FormData for Laravel PUT request
@@ -1366,20 +1474,17 @@
         let selectedEmployees = [];
 
         function fetchEmployees(query = "") {
-            $.ajax({
-                url: appUrl + "/task/employees-for-executor",
-                type: "GET",
-                data: { q: query },
-                dataType: "json",
-                success: function (data) {
-                    employees = data.data || [];
+            fetchEmployeesForExecutorCached(query)
+                .then(function(data){
+                    employees = (data && (data.data || data)) || [];
+                    // Exclude administrator users from executor pickers
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filteredEmployees = employees;
                     renderDropdown();
-                },
-                error: function () {
-                    showFloatingAlert("Failed to load employees.", "warning", 3000);
-                },
-            });
+                })
+                .catch(function(){
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) {}
+                });
         }
 
         function renderDropdown() {
@@ -1566,6 +1671,8 @@
 
 document.addEventListener("click", function (e) {
     if (e.target && e.target.classList.contains("arrow-forward-icon")) {
+        // Ensure any visible tooltips are hidden and disposed before we move/remove the card.
+        try { hideAllFloatingTooltips(); } catch(_) {}
         const taskId = e.target.getAttribute("data-task-id");
         const currentStatus = e.target.getAttribute("data-task-status");
         if (!taskId) { showFloatingAlert("Task ID not found.", "warning", 3000); return; }
@@ -1682,8 +1789,8 @@ document.addEventListener("click", function (e) {
                 const overlapClass = index === 0 ? "" : "executor-image-overlap";
                 const zIndexStyle = `style="z-index: ${index + 1};"`;
                 const isPic = task.pic && executor && task.pic.id === executor.id;
-                const roleLabel = isPic ? 'PIC' : 'Executor';
-                const tooltipTitle = `${executor.name} (${roleLabel})`;
+                // Tooltip should only show employee name (remove role label)
+                const tooltipTitle = `${executor.name}`;
                 let imgSrc = (executor && executor.image) ? String(executor.image).trim() : '';
                 if (!imgSrc || imgSrc.toLowerCase() === 'null' || imgSrc.toLowerCase() === 'undefined') {
                     imgSrc = fallbackAvatar;
@@ -1885,6 +1992,8 @@ const sectionMap = {
 };
 
 let taskFetchSeq = 0; // guard untuk cegah overwrite oleh response lama
+// Track the last in-flight ajax per section to allow cancellation and avoid duplicate requests
+window.__taskAjaxRequestsMap = window.__taskAjaxRequestsMap || {};
 function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query = "") {
     const callSeq = ++taskFetchSeq;
     const params = {};
@@ -1909,10 +2018,20 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
         $(loaderMap[statusKey]).removeClass("d-none");
     }
 
-    $.ajax({
+    // Abort any previous in-flight request for the same key ("all" for full refresh)
+    try {
+        const reqKey = statusKey ? String(statusKey) : 'all';
+        const prev = window.__taskAjaxRequestsMap[reqKey];
+        if (prev && typeof prev.abort === 'function') {
+            prev.abort();
+        }
+    } catch(_) {}
+
+    const jq = $.ajax({
         url: appUrl + "/task/index",
         type: "GET",
         dataType: "json",
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
         data: params,
         success: function(response) {
             // Abaikan response lama
@@ -1970,14 +2089,35 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
             renderSingleSection(statusKey, respSection, append);
             injectRejectedIfMissing(response.data);
         },
-        error: function(err) {
-            console.error(err);
+        error: function(xhr, textStatus) {
+            // Abaikan error dari request yang sengaja di-abort atau jaringan terputus
+            if (textStatus === 'abort' || (xhr && xhr.status === 0)) return;
+            // Tangani 4xx/5xx dengan alert ringan agar tidak banjiri console
+            let msg = 'Failed to load tasks.';
+            try {
+                if (xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
+                    msg = xhr.responseJSON.message || xhr.responseJSON.error;
+                }
+            } catch(_) {}
+            try {
+                if (typeof window.showAlertMsg === 'function') window.showAlertMsg(msg, 'light', 2500);
+                else if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert(msg, 'light');
+                else console.warn('Task fetch error:', msg);
+            } catch(_) { /* noop */ }
         },
         complete: function() {
             if (statusKey && loaderMap[statusKey]) $(loaderMap[statusKey]).addClass("d-none");
             if (statusKey && desktopState[statusKey]) desktopState[statusKey].loading = false;
         }
     });
+
+    try {
+        const reqKey = statusKey ? String(statusKey) : 'all';
+        window.__taskAjaxRequestsMap[reqKey] = jq;
+    } catch(_) {}
+
+    // Return jqXHR so callers can optionally abort or await
+    return jq;
 }
 
     function renderTasks(data) {
@@ -2046,12 +2186,14 @@ function renderSingleSection(status, sectionData, append = false) {
 
   addAttachFileIconListeners();
   initBootstrapTooltips();
-  refreshAllUnreadBadges();
-  refreshAllLatestFeedbackSnippets();
+        // Jadwalkan fetch latest feedback/snippets sekali (hindari banyak request beruntun)
+        scheduleRefreshLatestFeedbackSnippets();
     // Setelah tiap section dirender, pastikan rejected selalu di kolom In Progress
     if (!append) ensureRejectedCardsPlaced();
     // Re-apply current search filter so new/updated cards respect it
     try { applyCurrentSearchFilter(); } catch(_) {}
+    // If rendering New Request column, update arrow visibility according to select-all state
+    try { if (status === 'new_request' && typeof window.updateNewRequestArrowVisibility === 'function') window.updateNewRequestArrowVisibility(); } catch(_) {}
 }
 
 // Normalisasi posisi card rejected (fallback jika ada card nyasar / tidak tergabung)
@@ -2186,23 +2328,58 @@ function applyCurrentSearchFilter() {
     } catch(_) { /* noop */ }
 }
 
-// Debounced input handler for search
+// Search handler: trigger only on Enter or when input loses focus (change) to limit requests to one action
 (function initTaskSearchFilter(){
-    let searchTimeout;
+    let lastSearchAt = 0;
+    let lastEnterAt = 0;
+    let lastSearchedQuery = '';
+    function runSearch(query){
+        // Reset pagination state for desktop columns
+        try {
+            Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
+        } catch(_) {}
+        const q = (query || '').trim();
+        window.__taskCurrentSearchQuery = q;
+        // Cancel any previous full-fetch and start a new one
+        // Debounce micro-bursts (e.g., Enter followed by blur/change in same moment)
+        const now = Date.now();
+        // If user triggers the same query immediately again, ignore
+        if (q === lastSearchedQuery && (now - lastSearchAt) < 350) return;
+        lastSearchedQuery = q;
+        lastSearchAt = now;
+        fetchAndRenderTasks(null, 1, false, q);
+    }
+
+    // Prevent form submission on Enter at keydown phase
+    document.addEventListener('keydown', function(e){
+        const el = e.target;
+        if (!el || el.id !== 'search_filter') return;
+        if (e.key === 'Enter') {
+            lastEnterAt = Date.now();
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
     document.addEventListener('keyup', function(e){
         const el = e.target;
         if (!el || el.id !== 'search_filter') return;
-        clearTimeout(searchTimeout);
-        const query = el.value || '';
-        searchTimeout = setTimeout(() => {
-            // Reset pagination state for desktop columns
-            try {
-                Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
-            } catch(_) {}
-            const q = query.trim();
-            window.__taskCurrentSearchQuery = q;
-            fetchAndRenderTasks(null, 1, false, q);
-        }, 250);
+        if (e.key === 'Enter') {
+            lastEnterAt = Date.now();
+            // Prevent default form submission if inside a form
+            try { if (el.form) e.preventDefault(); } catch(_) {}
+            runSearch(el.value || '');
+        }
+    });
+    document.addEventListener('change', function(e){
+        const el = e.target;
+        if (!el || el.id !== 'search_filter') return;
+        // If change fires right after Enter, ignore to avoid duplicate network call
+        const now = Date.now();
+        if (now - lastEnterAt < 120) return;
+        // If value hasn't changed since the last search, skip
+        const val = (el.value || '').trim();
+        if (val === lastSearchedQuery) return;
+        runSearch(el.value || '');
     });
 })();
 
@@ -2244,6 +2421,8 @@ function applyCurrentSearchFilter() {
                 ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const cb=document.getElementById(id); if(cb) cb.checked=false; });
                 labels.forEach(label=>{ label.style.visibility='hidden'; label.style.opacity='0'; });
             }
+            // Update arrow visibility to reflect select-all state
+            try { if (typeof window.updateNewRequestArrowVisibility === 'function') window.updateNewRequestArrowVisibility(); } catch(_) {}
         }
 
         function collectPendingNewTaskIds(){
@@ -2532,15 +2711,16 @@ function applyCurrentSearchFilter() {
             }
             if (bulkProgress) {
                 if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
-                bulkProgress.style.visibility = hasAnySelection ? 'visible' : 'hidden';
-                bulkProgress.style.opacity = hasAnySelection ? '1' : '0';
-                bulkProgress.disabled = !allAcceptedSelected;
+                // Show progress (arrow) only when there is a selection AND all selected are accepted
+                bulkProgress.style.visibility = (hasAnySelection && !anyPendingSelected) ? 'visible' : 'hidden';
+                bulkProgress.style.opacity = (hasAnySelection && !anyPendingSelected) ? '1' : '0';
+                bulkProgress.disabled = !(hasAnySelection && !anyPendingSelected);
             }
             if (bulkProgressMobile) {
                 if (getComputedStyle(bulkProgressMobile).display === 'none') bulkProgressMobile.style.display = 'inline-flex';
-                bulkProgressMobile.style.visibility = hasAnySelection ? 'visible' : 'hidden';
-                bulkProgressMobile.style.opacity = hasAnySelection ? '1' : '0';
-                bulkProgressMobile.disabled = !allAcceptedSelected;
+                bulkProgressMobile.style.visibility = (hasAnySelection && !anyPendingSelected) ? 'visible' : 'hidden';
+                bulkProgressMobile.style.opacity = (hasAnySelection && !anyPendingSelected) ? '1' : '0';
+                bulkProgressMobile.disabled = !(hasAnySelection && !anyPendingSelected);
             }
             // Ensure visibility sync each time state recalculated
             updateSelectAllVisibility(); // NEW
@@ -2595,6 +2775,85 @@ function applyCurrentSearchFilter() {
             updateSelectAllVisibility(); // NEW
         });
     })();
+
+    // Update visibility of arrow-forward icons in New Request column
+    // When Select All is checked but any task still shows Accept button, hide the arrows.
+    // Otherwise show arrows on cards that are accepted (i.e., do not have .btn-accept-invite).
+    window.updateNewRequestArrowVisibility = function() {
+        try {
+            const desktopCheckbox = document.getElementById('taskNewAcceptAll');
+            const mobileCheckbox = document.getElementById('taskNewAcceptAllMobile');
+            const selectAllChecked = !!(desktopCheckbox && desktopCheckbox.checked) || !!(mobileCheckbox && mobileCheckbox.checked);
+
+            // Determine selection set: if select-all checked => all cards; else selected thumbs only
+            let selectedCards = [];
+            if (selectAllChecked) {
+                selectedCards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card, #mobile-task-list .custom-card'));
+            } else {
+                const thumbs = Array.from(document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected'));
+                selectedCards = thumbs.map(t => t.closest('.custom-card')).filter(Boolean);
+            }
+
+            const bulkAccept = document.getElementById('taskNewBulkAction');
+            const bulkProgress = document.getElementById('taskNewBulkProgress');
+            const bulkAcceptMobile = document.getElementById('taskNewBulkActionMobile');
+            const bulkProgressMobile = document.getElementById('taskNewBulkProgressMobile');
+
+            // No explicit selection => hide header icons
+            if (!selectedCards || selectedCards.length === 0) {
+                if (bulkAccept) { bulkAccept.style.display = 'inline-flex'; bulkAccept.style.visibility = 'hidden'; bulkAccept.style.opacity = '0'; bulkAccept.disabled = true; }
+                if (bulkAcceptMobile) { bulkAcceptMobile.style.display = 'inline-flex'; bulkAcceptMobile.style.visibility = 'hidden'; bulkAcceptMobile.style.opacity = '0'; bulkAcceptMobile.disabled = true; }
+                if (bulkProgress) { bulkProgress.style.display = 'inline-flex'; bulkProgress.style.visibility = 'hidden'; bulkProgress.style.opacity = '0'; bulkProgress.disabled = true; }
+                if (bulkProgressMobile) { bulkProgressMobile.style.display = 'inline-flex'; bulkProgressMobile.style.visibility = 'hidden'; bulkProgressMobile.style.opacity = '0'; bulkProgressMobile.disabled = true; }
+                return;
+            }
+
+            // Check if any selected card is still unaccepted (has Accept button)
+            const anySelectedUnaccepted = selectedCards.some(card => !!card.querySelector('.btn-accept-invite'));
+
+            if (anySelectedUnaccepted) {
+                // show done_all (accept) and hide arrow (progress)
+                if (bulkAccept) { bulkAccept.style.display = 'inline-flex'; bulkAccept.style.visibility = 'visible'; bulkAccept.style.opacity = '1'; bulkAccept.disabled = false; }
+                if (bulkAcceptMobile) { bulkAcceptMobile.style.display = 'inline-flex'; bulkAcceptMobile.style.visibility = 'visible'; bulkAcceptMobile.style.opacity = '1'; bulkAcceptMobile.disabled = false; }
+                if (bulkProgress) { bulkProgress.style.display = 'inline-flex'; bulkProgress.style.visibility = 'hidden'; bulkProgress.style.opacity = '0'; bulkProgress.disabled = true; }
+                if (bulkProgressMobile) { bulkProgressMobile.style.display = 'inline-flex'; bulkProgressMobile.style.visibility = 'hidden'; bulkProgressMobile.style.opacity = '0'; bulkProgressMobile.disabled = true; }
+                // Place the visible icon right before the select-all label (desktop)
+                try {
+                    const desktopLabel = document.querySelector('.new-request-container .task-selectall-toggle');
+                    if (desktopLabel && bulkAccept && bulkAccept.parentNode && desktopLabel.parentNode) {
+                        desktopLabel.parentNode.insertBefore(bulkAccept, desktopLabel);
+                    }
+                } catch(_) {}
+                // Mobile placement inside mobileBulkControls
+                try {
+                    const mobileLabel = document.querySelector('#mobileBulkControls .task-selectall-toggle');
+                    if (mobileLabel && bulkAcceptMobile && mobileLabel.parentNode) {
+                        mobileLabel.parentNode.insertBefore(bulkAcceptMobile, mobileLabel);
+                    }
+                } catch(_) {}
+            } else {
+                // all selected are accepted -> show arrow (progress) only
+                if (bulkProgress) { bulkProgress.style.display = 'inline-flex'; bulkProgress.style.visibility = 'visible'; bulkProgress.style.opacity = '1'; bulkProgress.disabled = false; }
+                if (bulkProgressMobile) { bulkProgressMobile.style.display = 'inline-flex'; bulkProgressMobile.style.visibility = 'visible'; bulkProgressMobile.style.opacity = '1'; bulkProgressMobile.disabled = false; }
+                if (bulkAccept) { bulkAccept.style.display = 'inline-flex'; bulkAccept.style.visibility = 'hidden'; bulkAccept.style.opacity = '0'; bulkAccept.disabled = true; }
+                if (bulkAcceptMobile) { bulkAcceptMobile.style.display = 'inline-flex'; bulkAcceptMobile.style.visibility = 'hidden'; bulkAcceptMobile.style.opacity = '0'; bulkAcceptMobile.disabled = true; }
+                // Place arrow icon right before the select-all label (desktop)
+                try {
+                    const desktopLabel = document.querySelector('.new-request-container .task-selectall-toggle');
+                    if (desktopLabel && bulkProgress && desktopLabel.parentNode) {
+                        desktopLabel.parentNode.insertBefore(bulkProgress, desktopLabel);
+                    }
+                } catch(_) {}
+                // Mobile placement inside mobileBulkControls
+                try {
+                    const mobileLabel = document.querySelector('#mobileBulkControls .task-selectall-toggle');
+                    if (mobileLabel && bulkProgressMobile && mobileLabel.parentNode) {
+                        mobileLabel.parentNode.insertBefore(bulkProgressMobile, mobileLabel);
+                    }
+                } catch(_) {}
+            }
+        } catch(_) { /* noop */ }
+    };
 
     // Function to setup dropdown event listeners for task cards
     function setupTaskDropdownListeners() {
@@ -2658,6 +2917,26 @@ function applyCurrentSearchFilter() {
                     handleTaskFeedback(taskId);
                 });
                 return;
+            }
+
+            // Click on task title -> open detail modal
+            const titleEl = e.target.closest('.task-title');
+            if (titleEl) {
+                // Find nearest task card and its id
+                const card = titleEl.closest('.custom-card');
+                const taskId = card ? card.getAttribute('data-task-id') : null;
+                if (taskId) {
+                    try {
+                        // If detail modal already open, hide it first to avoid duplicates
+                        const detailModalEl = document.getElementById('taskDetailModal');
+                        if (detailModalEl) {
+                            const dm = bootstrap.Modal.getInstance(detailModalEl);
+                            if (dm) dm.hide();
+                        }
+                    } catch(_) {}
+                    try { handleTaskDetail(taskId); } catch(_) { /* noop */ }
+                }
+                return; // prevent other handlers from also reacting
             }
         });
 
@@ -3173,28 +3452,10 @@ function applyCurrentSearchFilter() {
     function hideUnreadBadge(taskId) {
         setUnreadBadge(taskId, 0);
     }
-    function fetchLatestFeedback(taskIds) {
-        if (!taskIds.length) return;
-
-        return $.ajax({
-            url: appUrl + "/task-feedbacks/latest",
-            type: "GET",
-            dataType: "json",
-            traditional: true,
-            data: { ids: taskIds },
-        }).then((res) => {
-            const map = res.data || {};
-            taskIds.forEach((tid) => {
-                setLatestFeedbackSnippet(tid, map[tid] || null);
-            });
-        }).catch(() => {
-            taskIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
-        });
-    }
+    // (removed: older fetchLatestFeedback without abort). See throttled version below.
     function refreshAllUnreadBadges() {
-        const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
-            .map(card => card.getAttribute('data-task-id'));
-        fetchLatestFeedback(ids);
+        // Jadwalkan penyegaran snippet/unread secara terpusat
+        scheduleRefreshLatestFeedbackSnippets();
     }
     // Track snippet fetch sequence per task to ignore stale responses
     const latestSnippetSeq = {};
@@ -3245,28 +3506,64 @@ function applyCurrentSearchFilter() {
             el.style.removeProperty('display');
         });
     }
+    // Keep only one in-flight latest feedback request; abort older (keyed by ids set)
+    let __latestFeedbackXHR = window.__latestFeedbackXHR || null;
+    let __latestFeedbackKey = window.__latestFeedbackKey || '';
     function fetchLatestFeedback(taskIds) {
         if (!taskIds.length) return;
 
-        return $.ajax({
+        // Deduplicate and normalize IDs once here
+        const uniqueIds = Array.from(new Set((taskIds || []).map(id => String(id))));
+
+        // Build a stable key for the current request (sorted ids)
+        const idsKey = uniqueIds.slice().sort().join(',');
+
+        // If an identical request is already in-flight, just return it
+        try {
+            if (__latestFeedbackXHR && __latestFeedbackKey === idsKey && __latestFeedbackXHR.readyState && __latestFeedbackXHR.readyState !== 4) {
+                return __latestFeedbackXHR;
+            }
+        } catch(_) {}
+
+        // Different request incoming: abort the previous
+        try { if (__latestFeedbackXHR && typeof __latestFeedbackXHR.abort === 'function') __latestFeedbackXHR.abort(); } catch(_) {}
+
+        __latestFeedbackXHR = $.ajax({
             url: appUrl + "/task-feedbacks/latest",
             type: "GET",
             dataType: "json",
             traditional: true, // penting buat serialize array jadi ids[]=1&ids[]=2
-            data: { ids: taskIds },
+            data: { ids: uniqueIds },
         }).then((res) => {
             const map = res.data || {};
-            taskIds.forEach((tid) => {
+            uniqueIds.forEach((tid) => {
                 setLatestFeedbackSnippet(tid, map[tid] || null);
             });
         }).catch(() => {
-            taskIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
+            uniqueIds.forEach((tid) => setLatestFeedbackSnippet(tid, null));
         });
+
+        // store on window for next call
+        try { window.__latestFeedbackXHR = __latestFeedbackXHR; window.__latestFeedbackKey = idsKey; } catch(_) {}
+        return __latestFeedbackXHR;
     }
+    // Scheduler batching for latest feedback to ensure only one request fires rapidly
+    let __latestRefreshTimer = null;
+    function scheduleRefreshLatestFeedbackSnippets(delayMs = 50){
+        if (__latestRefreshTimer) {
+            clearTimeout(__latestRefreshTimer);
+        }
+        __latestRefreshTimer = setTimeout(() => {
+            __latestRefreshTimer = null;
+            const nodes = Array.from(document.querySelectorAll('.custom-card[data-task-id]'));
+            const ids = nodes.map(card => card.getAttribute('data-task-id')).filter(Boolean);
+            const uniqueIds = Array.from(new Set(ids));
+            fetchLatestFeedback(uniqueIds || []);
+        }, delayMs);
+    }
+
     function refreshAllLatestFeedbackSnippets() {
-        const ids = Array.from(document.querySelectorAll('.custom-card[data-task-id]'))
-            .map(card => card.getAttribute('data-task-id'));
-        fetchLatestFeedback(ids);
+        scheduleRefreshLatestFeedbackSnippets(10);
     }
 
     // Fungsi untuk memuat data feedback
@@ -3854,6 +4151,23 @@ function applyCurrentSearchFilter() {
             submitBtn.disabled = true;
         }
 
+        // Validate image and total sizes before creating FormData
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
+
         const formData = new FormData(form);
         // Append multi-selected files from preview buffer
         try {
@@ -3943,6 +4257,8 @@ function applyCurrentSearchFilter() {
                         }
                     }
                 });
+                // Refresh task cards so counts and other data reflect the latest changes
+                try { fetchAndRenderTasks(); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = "Failed to submit feedback. Please try again.";
@@ -4247,6 +4563,12 @@ function applyCurrentSearchFilter() {
 
         imageInput.addEventListener("change", function () {
             if (this.files && this.files[0]) {
+                const file = this.files[0];
+                if (file.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                    this.value = '';
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     imageLabel.style.backgroundImage = `url('${e.target.result}')`;
@@ -4255,7 +4577,7 @@ function applyCurrentSearchFilter() {
                     imageLabel.style.opacity = "1";
                     imageClearBtn.classList.remove("d-none");
                 };
-                reader.readAsDataURL(this.files[0]);
+                reader.readAsDataURL(file);
             }
         });
 
@@ -4360,6 +4682,12 @@ function applyCurrentSearchFilter() {
             }
             imageInput.addEventListener('change', function () {
                 if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    if (file.size > MAX_IMAGE_BYTES) {
+                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                        this.value = '';
+                        return;
+                    }
                     const reader = new FileReader();
                     reader.onload = function (e) {
                         imageLabel.style.backgroundImage = `url('${e.target.result}')`;
@@ -4368,7 +4696,7 @@ function applyCurrentSearchFilter() {
                         imageLabel.style.opacity = '1';
                         imageClearBtn.classList.remove('d-none');
                     };
-                    reader.readAsDataURL(this.files[0]);
+                    reader.readAsDataURL(file);
                 }
             });
             imageClearBtn.addEventListener('click', function (e) {
@@ -4541,6 +4869,23 @@ function applyCurrentSearchFilter() {
             submitBtn.disabled = true;
         }
 
+        // Validate image and total sizes before creating FormData
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
+
         const formData = new FormData(form);
         formData.append('_method', 'PUT');
         // Append any newly selected reference files from preview buffer
@@ -4602,7 +4947,9 @@ function applyCurrentSearchFilter() {
                 }
                 loadTaskFeedbackData(taskId);
                 // Refresh snippets/badges best-effort
-                try { fetchLatestFeedback(taskId); } catch(_) {}
+                try { scheduleRefreshLatestFeedbackSnippets(10); } catch(_) {}
+                // Refresh task cards to update counts immediately
+                try { fetchAndRenderTasks(); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = 'Failed to update feedback. Please try again.';
@@ -4639,6 +4986,23 @@ function applyCurrentSearchFilter() {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             submitBtn.disabled = true;
         }
+
+        // Validate image and total sizes before creating FormData
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
 
         const formData = new FormData(form);
         // Ensure selectedFiles (from preview buffer) are appended
@@ -4998,27 +5362,105 @@ function applyCurrentSearchFilter() {
                         allExecutors.push({ ...ex, role: "Executor" });
                     }
                 });
-
-                const executorsHtml = allExecutors
-                    .map((executor, index) => {
-                        const overlapClass = index === 0 ? "" : "executor-image-overlap";
-                        const zIndexStyle = `style="z-index:${index+1};"`;
-                        const tooltipTitle = `${executor.name} (${executor.role})`;
-                        let imgSrc = executor.user_photo || executor.profile_picture || executor.photo || executor.image || "";
-                        imgSrc = String(imgSrc || "").trim();
-                        if (!imgSrc || imgSrc.toLowerCase() === "null" || imgSrc.toLowerCase() === "undefined") {
-                            imgSrc = fallbackAvatar;
+                // Build vertical collaborator list HTML for Task Detail modal to match Project Detail
+                function buildTaskCollaboratorsList(taskObj) {
+                    try {
+                        const items = [];
+                        if (taskObj && taskObj.pic) items.push({ role: 'pic', emp: taskObj.pic });
+                        if (taskObj && Array.isArray(taskObj.executors)) {
+                            taskObj.executors.forEach(emp => items.push({ role: 'executor', emp }));
                         }
-                        return `
-                        <div class="executor-container" style="position: relative; display: inline-block; margin-right:-8px;">
-                            <img src="${imgSrc}" alt="${executor.name}"
-                                class="pic-executor-image ${overlapClass}"
-                                data-bs-toggle="tooltip"
-                                data-bs-title="${tooltipTitle}" ${zIndexStyle}
-                                onerror="this.onerror=null;this.src='${fallbackAvatar}';">
-                        </div>`;
-                    })
-                    .join("");
+
+                        if (!items.length) return '<div class="text-muted small">No collaborators</div>';
+
+                        function getName(emp) {
+                            try {
+                                return (
+                                    emp?.name ||
+                                    emp?.employee_name ||
+                                    emp?.username ||
+                                    emp?.full_name ||
+                                    (emp?.employee && (emp.employee.name || emp.employee.full_name)) ||
+                                    'Unknown'
+                                );
+                            } catch (_) { return 'Unknown'; }
+                        }
+
+                        function getDivision(emp) {
+                            try {
+                                // Try common fields first, then nested structures (mirror project.js logic)
+                                return (
+                                    emp?.division_name ||
+                                    emp?.division ||
+                                    emp?.division_title ||
+                                    (typeof emp?.division === 'string' ? emp?.division : null) ||
+                                    (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                                    emp?.employee_division ||
+                                    (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                                    '-'
+                                );
+                            } catch (_) { return '-'; }
+                        }
+
+                        function resolvePhotoHtmlForTask(emp, size = 36, marginLeft = 0) {
+                            let userPhoto = emp && (emp.profile_picture_url || emp.profile_picture || emp.user_photo || emp.user_photo_url || emp.photo || emp.image);
+                            let photoUrl = '';
+                            try {
+                                if (userPhoto) {
+                                    const raw = String(userPhoto).trim();
+                                    const trimmed = raw.replace(/^\/+/, '');
+                                    if (/^https?:\/\//i.test(raw)) photoUrl = raw;
+                                    else if (/^(file\/|asset\/|storage\/)/.test(trimmed)) photoUrl = appUrl + '/' + trimmed;
+                                    else if (raw.startsWith('/')) photoUrl = appUrl + raw;
+                                    else if (raw.indexOf('/') !== -1) photoUrl = appUrl + '/' + trimmed;
+                                    else photoUrl = appUrl + '/file/profile_picture/' + raw;
+                                    photoUrl = photoUrl.replace(/\/storage\/asset\//, '/asset/');
+                                } else {
+                                    photoUrl = fallbackAvatar;
+                                }
+                            } catch (e) { photoUrl = fallbackAvatar; }
+
+                            const name = (emp && (emp.name || emp.employee_name || emp.username || emp.full_name)) || 'Unknown';
+                            const titleText = name;
+                            return `<img src="${photoUrl}" alt="${name}" data-bs-toggle="tooltip" title="${titleText}" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? 'margin-left:' + marginLeft + 'px;' : ''}" onerror="this.onerror=null;this.src='${fallbackAvatar}';">`;
+                        }
+
+                        const rows = items.map(({ role, emp }) => {
+                            const name = getName(emp);
+                            // For Task Detail, show each employee's role inside the task instead of division
+                            function getRoleLabel(role, empObj) {
+                                try {
+                                    // Prefer explicit role on employee object if available
+                                    if (empObj && empObj.role) return String(empObj.role).replace(/_/g, ' ');
+                                    if (!role) return '-';
+                                    switch (role) {
+                                        case 'pic': return 'PIC';
+                                        case 'executor': return 'Executor';
+                                        case 'author': return 'Author';
+                                        case 'co_author': return 'Co-author';
+                                        case 'contributor': return 'Contributor';
+                                        default: return String(role).charAt(0).toUpperCase() + String(role).slice(1);
+                                    }
+                                } catch (_) { return '-'; }
+                            }
+                            const roleLabel = getRoleLabel(role, emp);
+                            const photo = resolvePhotoHtmlForTask(emp, 36, 0);
+                            return (
+                                '<div class="collab-item d-flex align-items-center mb-2">' +
+                                    '<div class="flex-shrink-0">' + photo + '</div>' +
+                                    '<div class="ms-2">' +
+                                        '<div class="collab-name">' + (name || 'Unknown') + '</div>' +
+                                        '<div class="collab-division text-muted">' + (roleLabel || '-') + '</div>' +
+                                    '</div>' +
+                                '</div>'
+                            );
+                        });
+
+                        return '<div class="collab-list">' + rows.join('') + '</div>';
+                    } catch (e) {
+                        return '<div class="text-muted small">No collaborators</div>';
+                    }
+                }
 
                 const showDelete = (function(){
                     try {
@@ -5067,13 +5509,12 @@ function applyCurrentSearchFilter() {
                         <span class="text-muted">Division:</span>
                         <span>${task.project?.division || "-"}</span>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <div class="d-flex align-items-center pic-executor-container">
-                            ${executorsHtml || "No executors"}
-                        </div>
-                        <div class="d-flex align-items-center">
+                    <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                        <div class="flex-grow-1">${buildTaskCollaboratorsList(task)}</div>
+                        <div class="d-flex align-items-start">
                             <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
                                 <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+
                                 ${task.feedback_comments_count > 0
                                     ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>`
                                     : ""}
@@ -5081,6 +5522,7 @@ function applyCurrentSearchFilter() {
                             </div>
                             <div class="btn-attach-file-wrapper d-flex align-items-center">
                                 <span class="material-symbols-outlined task-icon">attach_file</span>
+
                                 ${task.reference_files_count > 0
                                     ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>`
                                     : ""}

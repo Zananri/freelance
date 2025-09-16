@@ -1968,6 +1968,109 @@ class TaskController extends Controller
     }
 
     /**
+     * Get latest feedbacks for multiple tasks in one request
+     * Query: GET /task-feedbacks/latest?ids[]=1&ids[]=2
+     * Returns: { code, status, data: { [taskId]: LatestFeedback|null } }
+     */
+    public function getLatestFeedbacksBatch(Request $request)
+    {
+        try {
+            $ids = $request->input('ids', []);
+            if (!is_array($ids)) {
+                $ids = [$ids];
+            }
+            // Normalize to unique integers and drop invalids
+            $taskIds = collect($ids)
+                ->map(function ($v) { return (int) $v; })
+                ->filter(fn ($v) => $v > 0)
+                ->unique()
+                ->values()
+                ->all();
+
+            if (empty($taskIds)) {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => new \stdClass(),
+                ]);
+            }
+
+            $employeeId = auth()->user()?->employee?->id;
+
+            // Preload tasks to read per-employee last_read markers
+            $tasks = Task::whereIn('id', $taskIds)->get(['id', 'read_markers']);
+            $lastReadMap = [];
+            if ($employeeId) {
+                foreach ($tasks as $t) {
+                    $markers = [];
+                    if (!empty($t->read_markers)) {
+                        $markers = is_array($t->read_markers)
+                            ? $t->read_markers
+                            : ((json_decode($t->read_markers, true)) ?: []);
+                    }
+                    $lastReadMap[$t->id] = $markers[(string) $employeeId] ?? null;
+                }
+            }
+
+            // Fetch latest feedback per task, excluding self-authored and older than last read
+            $results = [];
+            foreach ($taskIds as $tid) {
+                $q = TaskFeedback::with(['employee.user'])
+                    ->where('task_id', $tid);
+                if ($employeeId) {
+                    $q->where('employee_id', '!=', $employeeId);
+                }
+                $last = $lastReadMap[$tid] ?? null;
+                if ($last) {
+                    $q->where('created_at', '>', $last);
+                }
+                $latest = $q->orderBy('created_at', 'desc')->first();
+                if ($latest) {
+                    $results[$tid] = [
+                        'id' => $latest->id,
+                        'parent_id' => $latest->parent_id,
+                        'feedback_comment' => $latest->feedback_comment,
+                        'created_at' => $latest->created_at,
+                        'reference_files' => (function () use ($latest) {
+                            $arr = [];
+                            if (is_array($latest->reference_files))
+                                $arr = $latest->reference_files;
+                            elseif (is_string($latest->reference_files) && $latest->reference_files !== '') {
+                                $decoded = json_decode($latest->reference_files, true);
+                                if (is_array($decoded))
+                                    $arr = $decoded;
+                                else
+                                    $arr = array_filter(array_map('trim', explode(',', $latest->reference_files)));
+                            }
+                            return array_map(function ($f) { return asset('file/task_reference_files/' . $f); }, $arr);
+                        })(),
+                        'employee' => [
+                            'id' => $latest->employee->id,
+                            'name' => $latest->employee->name,
+                            'photo' => $this->resolveEmployeeAvatar($latest->employee),
+                            'profile_picture' => $this->resolveEmployeeAvatar($latest->employee),
+                        ],
+                    ];
+                } else {
+                    $results[$tid] = null;
+                }
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $results,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
      * Get count of feedbacks for a specific task
      */
     public function getTaskFeedbackCount($taskId)
@@ -2272,6 +2375,14 @@ class TaskController extends Controller
                 ->when($query !== '', function ($q) use ($query) {
                     $q->where('name', 'like', '%' . $query . '%');
                 })
+                // Exclude employees whose related user has user_type = 'ADMINISTRATOR'
+                // but keep employees without a linked user record.
+                ->where(function ($q) {
+                    $q->whereDoesntHave('user')
+                      ->orWhereHas('user', function ($uq) {
+                          $uq->where('user_type', '!=', 'ADMINISTRATOR');
+                      });
+                })
                 ->orderBy('name')
                 ->get();
 
@@ -2285,6 +2396,8 @@ class TaskController extends Controller
                     // Provide unified avatar fields consumed by buildPhotoUrl in task.js
                     'profile_picture' => $resolved,
                     'profile_picture_url' => $resolved,
+                    // Expose user_type so client can filter out ADMINISTRATOR users
+                    'user_type' => $emp->user && isset($emp->user->user_type) ? $emp->user->user_type : null,
                 ];
             })->values();
 

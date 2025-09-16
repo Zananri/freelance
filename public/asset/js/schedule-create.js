@@ -91,14 +91,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedContainer = document.getElementById('schedule_selected_executors');
         const hidden = document.getElementById('schedule_executors');
         if(!input||!dropdown||!selectedContainer||!hidden) return;
-        let employees = [], filtered = [], selected = [];
+    let employees = [], filtered = [], selected = [];
+        // Local cached fetch (shared via window to reuse across reloadless navigations)
+        const EMP_CACHE_TTL_MS = 5*60*1000;
+        const empCache = (window.__empExecCache = window.__empExecCache || { map:new Map(), inFlight:new Map() });
+        function fetchEmployeesCached(q=''){
+            const key = String(q||'').trim().toLowerCase(); const now = Date.now();
+            const hit = empCache.map.get(key);
+            if(hit && (now - hit.t) < EMP_CACHE_TTL_MS){ return Promise.resolve(hit.v); }
+            if(empCache.inFlight.has(key)) return empCache.inFlight.get(key);
+            const p = fetch(appUrl + '/task/employees-for-executor?q='+encodeURIComponent(key))
+                .then(r=>r.ok?r.json():Promise.reject(r))
+                .then(d=>{ empCache.map.set(key,{v:d,t:Date.now()}); empCache.inFlight.delete(key); return d; })
+                .catch(e=>{ empCache.inFlight.delete(key); throw e; });
+            empCache.inFlight.set(key, p);
+            return p;
+        }
         function buildPhotoUrl(userPhoto){
             if(!userPhoto) return appUrl + '/asset/img/avatar.png';
             if(/^https?:/i.test(userPhoto)) return userPhoto; if(userPhoto.startsWith('/')) return appUrl+userPhoto; if(userPhoto.startsWith('file/')||userPhoto.startsWith('asset/')) return appUrl+'/'+userPhoto; return appUrl + '/file/profile_picture/' + userPhoto;
         }
         function fetchEmployees(q=''){
-            fetch(appUrl + '/task/employees-for-executor?q='+encodeURIComponent(q))
-                .then(r=>r.json()).then(d=>{ employees = d.data||[]; filtered=employees; renderDropdown(); })
+            fetchEmployeesCached(q)
+                .then(d=>{ employees = (d && (d.data||d)) || []; 
+                    // Exclude administrators
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filtered=employees; renderDropdown(); })
                 .catch(()=>showScheduleAlert('Failed load employees','danger'));
         }
         function renderDropdown(){
@@ -107,11 +125,23 @@ document.addEventListener('DOMContentLoaded', () => {
             dropdown.style.display='block';
             dropdown.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', function(){ const id=parseInt(this.getAttribute('data-id')); if(this.checked){ if(!selected.some(s=>s.id===id)){ const emp=employees.find(e=>e.id===id); selected.push({id, name:emp.name, user_photo:emp.user_photo}); } } else { selected = selected.filter(s=>s.id!==id); } renderSelected(); renderDropdown(); updateHidden(); }));
         }
-        function renderSelected(){ selectedContainer.innerHTML=''; selected.forEach(emp=>{ const photo=buildPhotoUrl(emp.user_photo); const badge=document.createElement('span'); badge.className='badge bg-primary d-inline-flex align-items-center me-2 mb-2'; badge.innerHTML=`<img src='${photo}' class='rounded-circle me-2' style='width:24px;height:24px;object-fit:cover;'>${emp.name}<button type='button' class='btn-close btn-close-white btn-sm ms-2'></button>`; badge.querySelector('button').addEventListener('click', ()=>{ selected = selected.filter(s=>s.id!==emp.id); renderSelected(); renderDropdown(); updateHidden(); }); selectedContainer.appendChild(badge); }); }
+    function renderSelected(){ selectedContainer.innerHTML=''; selected.forEach(emp=>{ const photo=buildPhotoUrl(emp.user_photo); const badge=document.createElement('span'); badge.className='badge bg-primary d-inline-flex align-items-center me-2 mb-2'; badge.innerHTML=`<img src='${photo}' class='rounded-circle me-2' style='width:24px;height:24px;object-fit:cover;'>${emp.name}<button type='button' class='btn-close btn-close-white btn-sm ms-2'></button>`; badge.querySelector('button').addEventListener('click', ()=>{ selected = selected.filter(s=>s.id!==emp.id); renderSelected(); renderDropdown(); updateHidden(); }); selectedContainer.appendChild(badge); }); }
         function updateHidden(){ hidden.value = JSON.stringify(selected.map(s=>s.id)); }
         input.addEventListener('input', function(){ fetchEmployees(this.value.trim()); });
         input.addEventListener('focus', function(){ fetchEmployees(''); });
         document.addEventListener('click', e=>{ if(!dropdown.contains(e.target) && e.target!==input){ dropdown.style.display='none'; } });
+
+        // Expose a small API to clear selections from outside (e.g., when modal closes)
+        window.__scheduleExecPicker = {
+            clear: function(){
+                try {
+                    selected = [];
+                    renderSelected();
+                    updateHidden();
+                    dropdown.innerHTML = '';
+                } catch(e) {}
+            }
+        };
     })();
 
     // Recurrence toggle logic (reuse simplified logic from task.js schedule section)
@@ -155,6 +185,73 @@ document.addEventListener('DOMContentLoaded', () => {
         if(e.target.closest('.remove-ref-url')){ const row=e.target.closest('.d-flex'); if(row) row.remove(); }
     });
 
+    function resetCreateScheduleForm(){
+        try {
+            // Reset form fields
+            if (form) form.reset();
+            // Clear selected files & preview
+            selectedFiles = [];
+            displaySelectedFiles();
+            // Reset image display
+            try {
+                const lbl = document.getElementById('scheduleImageLabel');
+                const clr = document.getElementById('scheduleImageClearBtn');
+                if (lbl) { lbl.style.backgroundImage = ''; lbl.classList.remove('has-image'); }
+                if (clr) clr.classList.add('d-none');
+            } catch(_) {}
+            // Reset executors
+            try {
+                const selectedBox = document.getElementById('schedule_selected_executors');
+                const hidden = document.getElementById('schedule_executors');
+                const dropdown = document.getElementById('schedule_executor_dropdown');
+                if (window.__scheduleExecPicker && typeof window.__scheduleExecPicker.clear === 'function') {
+                    window.__scheduleExecPicker.clear();
+                }
+                if (selectedBox) selectedBox.innerHTML = '';
+                if (hidden) hidden.value = '[]';
+                if (dropdown) dropdown.innerHTML = '';
+            } catch(_) {}
+            // Reset reference URLs container to one empty row
+            try {
+                const container = document.getElementById('schedule_reference_urls_container');
+                if (container) {
+                    container.innerHTML = "<div class=\"d-flex gap-2 align-items-center\"><input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-submit-black add-ref-url' aria-label='Add URL'><span class='material-symbols-outlined'>add</span></button></div>";
+                }
+            } catch(_) {}
+            // Reset recurrence toggles
+            try {
+                const typeSel = document.getElementById('schedule_recurrence_type');
+                const weekly = document.getElementById('schedule_weekly_opts');
+                const monthly = document.getElementById('schedule_monthly_opts');
+                const dow = document.getElementById('schedule_recurrence_day_of_week');
+                const monthlyDateInput = document.getElementById('schedule_monthly_date');
+                const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
+                if (typeSel) typeSel.value = '';
+                if (weekly) weekly.classList.add('d-none');
+                if (monthly) monthly.classList.add('d-none');
+                if (dow) dow.required = false;
+                if (monthlyDateInput) {
+                    const def = monthlyDateInput.getAttribute('data-initial-display');
+                    monthlyDateInput.value = def || '';
+                }
+                if (monthlyDayHidden) monthlyDayHidden.value = (new Date()).getDate();
+            } catch(_) {}
+            // Reset project selection to default (No Project)
+            try {
+                const sel = document.getElementById('schedule_project_id');
+                if (sel) sel.value = '';
+            } catch(_) {}
+        } catch(e) {}
+    }
+
+    // Reset the form when modal is hidden (closed), so next open is clean
+    try {
+        const createModalEl = document.getElementById('scheduleCreateModal');
+        if (createModalEl) {
+            createModalEl.addEventListener('hidden.bs.modal', resetCreateScheduleForm);
+        }
+    } catch(_) {}
+
     form.addEventListener('submit', e=>{
         e.preventDefault();
         if(!form.checkValidity()){ e.stopPropagation(); form.classList.add('was-validated'); return; }
@@ -166,7 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Prefer due_in_days over due_date (no due_date field visible anyway)
         fetch(appUrl + '/schedules/create', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: fd })
             .then(r=> r.json().then(j=>({ok:r.ok, body:j})))
-            .then(({ok, body})=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; if(!ok || body.code!==200){ const msg = (body && (body.message || 'Failed to create schedule')) || 'Failed.'; showScheduleAlert(msg,'danger'); return; } showScheduleAlert(body.message || 'Schedule created successfully','success'); form.reset(); selectedFiles=[]; displaySelectedFiles(); document.getElementById('scheduleImageLabel').style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`; window.location.href = appUrl + '/task'; })
+            .then(({ok, body})=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; if(!ok || body.code!==200){ const msg = (body && (body.message || 'Failed to create schedule')) || 'Failed.'; showScheduleAlert(msg,'danger'); return; } showScheduleAlert(body.message || 'Schedule created successfully','success');
+                // Reset all UI state then close modal and refresh list
+                resetCreateScheduleForm();
+                try { const modalEl = document.getElementById('scheduleCreateModal'); if (modalEl) { const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl); modalInstance.hide(); } } catch(_) {}
+                try { if (typeof window.refreshScheduleList === 'function') { window.refreshScheduleList(); } else { if (typeof fetchScheduleData === 'function') fetchScheduleData(1, '', ''); } } catch(_) {}
+            })
             .catch(()=>{ if(loader) loader.classList.add('d-none'); if(submitBtn) submitBtn.disabled=false; showScheduleAlert('Failed to create schedule','danger'); });
     });
 });
