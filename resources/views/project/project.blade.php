@@ -244,17 +244,13 @@
                     </div>
                 </div>
                 <div class="d-flex justify-content-center mt-3">
-                    <div id="project-pagination" class="pagination-pill d-none align-items-center">
-                        <button id="prevPageBtn" class="btn-nav" disabled>
-                            <span class="material-symbols-outlined">chevron_left</span>
-                        </button>
-
-                        <span id="paginationInfo" class="pagination-info">1 OF 1</span>
-
-                        <button id="nextPageBtn" class="btn-nav">
-                            <span class="material-symbols-outlined">chevron_right</span>
-                        </button>
-                    </div>
+                    <nav aria-label="...">
+                        <ul class="pagination pagination-sm justify-content-center">
+                            <li class="page-item active">
+                                <button class="page-link" aria-current="page">1</button>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -526,106 +522,6 @@
             <div class="alert-container mt-2" style="width: 100%;"></div>
         </div>
     </div>
-
-    <!-- View Project Detail Modal -->
-    {{-- <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:640px;">
-            <div class="modal-content border-0 rounded-4 shadow-lg">
-                <div class="modal-body p-4">
-
-                    <!-- Tombol close di kanan atas -->
-                    <div class="d-flex justify-content-end mb-2">
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-
-                    <!-- Header: avatar + title + more_vert -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="d-flex align-items-center">
-                            <img id="projectDetailImage" src="" class="rounded-circle me-2"
-                                style="width:34px;height:34px;object-fit:cover;"
-                                onerror="this.src='/asset/img/avatar.png'">
-                            <h6 class="mb-0" style="font-size:14px; font-weight:600;" id="projectDetailTitle"></h6>
-                        </div>
-                        <div class="dropdown-icon-container-detail">
-                            <button
-                                class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon dropdown-icon-detail"
-                                style="background:#E8E9F2; border-radius:50%; width:32px; height:32px;">
-                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;"
-                                    tabindex="0">more_vert</span>
-                            </button>
-                            <div class="dropdown-menu dropdown-action dropdown-action-custom d-none">
-                                <div class="dropdown-item">Edit</div>
-                                <div class="dropdown-item text-danger delete-project">Delete</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <p id="projectDetailDescription" class="mb-2 small text-muted"
-                        style="font-size:12px; line-height:1.4;"></p>
-
-                    <!-- Collaborators -->
-                    <div class="collaborators-image d-flex align-items-center mb-2" id="projectDetailCollaborators">
-                    </div>
-
-                    <!-- Feedback Snippet (hidden by default, muncul kalau ada data) -->
-                    <div class="latest-feedback-snippet d-none align-items-center me-1"
-                        id="projectDetailFeedbackSnippet" style="cursor:pointer; max-width: 160px;">
-                        <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar"
-                            width="20" height="20" style="object-fit:cover;">
-                        <span class="latest-feedback-text text-truncate"
-                            style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
-                    </div>
-
-                    <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
-
-                    <!-- Footer (Collaborators + icons) -->
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <div class="collaborators-image d-flex align-items-center"
-                            id="projectDetailCollaboratorsFooter"></div>
-                        <div class="d-flex align-items-center">
-                            <button
-                                class="btn btn-sm p-0 border-0 bg-transparent me-2 d-flex align-items-center position-relative"
-                                title="Comment" id="projectDetailCommentBtn">
-                                <span class="material-symbols-outlined"
-                                    style="font-size:16px; color:#828282;">mode_comment</span>
-                                <span class="project-feedback-count ms-1" id="projectDetailCommentCount"
-                                    style="font-size:12px; color:#454545;"></span>
-                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none"
-                                    id="projectDetailUnreadBadge"></span>
-                            </button>
-                            <button class="btn btn-sm p-0 border-0 bg-transparent d-flex align-items-center"
-                                title="Attach File" id="projectDetailAttachBtn">
-                                <span class="material-symbols-outlined"
-                                    style="font-size:16px; color:#828282;">attach_file</span>
-                                <span class="project-file-count ms-1" id="projectDetailFileCount"
-                                    style="font-size:12px; color:#454545;"></span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Footer -->
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <div>
-                            <span class="me-3">
-                                <span>Department:</span> <span id="projectDetailDepartment"></span>
-                            </span>
-                            <span>
-                                <span>Division:</span> <span id="projectDetailDivision"></span>
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-sm btn-outline-secondary"
-                            data-bs-dismiss="modal">Close</button>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-    </div> --}}
 
     <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
