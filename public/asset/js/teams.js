@@ -1,27 +1,5 @@
 const appUrl = ($('meta[name=app-url]').attr("content") || '').replace(/\/$/, '');
 
-function buildTeamAvatar(raw){
-    if(!raw) return appUrl + '/asset/img/avatar.png';
-    try {
-        raw = String(raw).trim();
-        const trimmed = raw.replace(/^\/+/, '');
-        if(/^https?:\/\//i.test(raw)) return raw;
-        if(/^(file\/|asset\/|storage\/)/.test(trimmed)) return appUrl + '/' + trimmed;
-        if(raw.startsWith('/')) return appUrl + raw;
-        if(raw.indexOf('/') !== -1) return appUrl + '/' + trimmed;
-        return appUrl + '/file/profile_picture/' + raw;
-    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
-}
-
-// Live update when profile picture changes
-window.addEventListener('profilePictureUpdated', function(){
-    document.querySelectorAll('.teams-container img.employee-photo[data-global-avatar]').forEach(function(img){
-        try {
-            const base = img.getAttribute('src').replace(/\?t=\d+$/,'');
-            img.src = base + '?t=' + Date.now();
-        } catch(_) {}
-    });
-});
 
 const modalView = new bootstrap.Modal('#modalView', {
   keyboard: false
@@ -67,8 +45,12 @@ function getTeamsDetail(employeeId)
             $('#modalView .employee-department').text(resData.department.name_department);
             $('#modalView .employee-division').text(resData.division.name_division);
             $('#modalView .employee-job').text(resData.job.job_name);
-            const avatarRaw = resData.profile_picture || resData.photo || (resData.user_photo || (resData.user ? resData.user.photo : null));
-            $('#modalView .employee-photo').attr('src', buildTeamAvatar(avatarRaw) + '?t=' + Date.now());
+
+            var employeeProfilePhoto = appUrl+'/'+resData.profile_picture;
+
+            $('#modalView .employee-photo').attr('src',employeeProfilePhoto );
+
+            $('#modalView .employee-photo-wall').css('background-image',`url("${ employeeProfilePhoto }")`);
 
             modalView.show();
         }
@@ -76,6 +58,10 @@ function getTeamsDetail(employeeId)
     });
 
 }
+
+$(document).on('click','.modal .employee-photo',function(){
+
+});
 
 $('.input-card-action.search-query').on('keyup',function(){
     let searchQuery = $(this).val();
