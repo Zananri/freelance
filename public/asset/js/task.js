@@ -5118,13 +5118,30 @@ function applyCurrentSearchFilter() {
 
                         function getName(emp) {
                             try {
-                                return emp?.name || emp?.employee_name || emp?.username || emp?.full_name || (emp?.employee && (emp.employee.name || emp.employee.full_name)) || 'Unknown';
+                                return (
+                                    emp?.name ||
+                                    emp?.employee_name ||
+                                    emp?.username ||
+                                    emp?.full_name ||
+                                    (emp?.employee && (emp.employee.name || emp.employee.full_name)) ||
+                                    'Unknown'
+                                );
                             } catch (_) { return 'Unknown'; }
                         }
 
                         function getDivision(emp) {
                             try {
-                                return emp?.division_name || emp?.division || emp?.division_title || (typeof emp?.division === 'string' ? emp?.division : null) || (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) || emp?.employee_division || (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) || '-';
+                                // Try common fields first, then nested structures (mirror project.js logic)
+                                return (
+                                    emp?.division_name ||
+                                    emp?.division ||
+                                    emp?.division_title ||
+                                    (typeof emp?.division === 'string' ? emp?.division : null) ||
+                                    (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                                    emp?.employee_division ||
+                                    (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                                    '-'
+                                );
                             } catch (_) { return '-'; }
                         }
 
@@ -5153,7 +5170,14 @@ function applyCurrentSearchFilter() {
 
                         const rows = items.map(({ role, emp }) => {
                             const name = getName(emp);
-                            const division = getDivision(emp);
+                            let division = getDivision(emp);
+                            // If employee division is not available, fallback to the task's project division (helps when emp object lacks division fields)
+                            if (!division || division === '-') {
+                                try {
+                                    const proj = (taskObj && taskObj.project) ? taskObj.project : (task && task.project) ? task.project : null;
+                                    division = (proj && (proj.division || proj.division_name || proj.division_title)) || '-';
+                                } catch (_) { division = '-'; }
+                            }
                             const photo = resolvePhotoHtmlForTask(emp, 36, 0);
                             return (
                                 '<div class="collab-item d-flex align-items-center mb-2">' +
@@ -5219,13 +5243,12 @@ function applyCurrentSearchFilter() {
                         <span class="text-muted">Division:</span>
                         <span>${task.project?.division || "-"}</span>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <div class="d-flex align-items-center pic-executor-container">
-                                ${buildTaskCollaboratorsList(task) || "No collaborators"}
-                            </div>
-                        <div class="d-flex align-items-center">
+                    <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                        <div class="flex-grow-1">${buildTaskCollaboratorsList(task)}</div>
+                        <div class="d-flex align-items-start">
                             <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
                                 <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+
                                 ${task.feedback_comments_count > 0
                                     ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>`
                                     : ""}
@@ -5233,6 +5256,7 @@ function applyCurrentSearchFilter() {
                             </div>
                             <div class="btn-attach-file-wrapper d-flex align-items-center">
                                 <span class="material-symbols-outlined task-icon">attach_file</span>
+
                                 ${task.reference_files_count > 0
                                     ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>`
                                     : ""}
