@@ -286,6 +286,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                         })()}
                                     </div>
 
+                                    <!-- Separator and Type (Daily/Weekly/Monthly) -->
+                                    <div style="margin-top:12px;">
+                                        <div style="height:1px;background:#E0E0E0;border-radius:2px;margin-bottom:8px;"></div>
+                                        <div style="display:flex;align-items:center;justify-content:flex-start;font-size:10px;color:#4B4F5E;">
+                                            <span style="color:#797E91;margin-right:6px;">Type :</span>
+                                            <span style="text-transform:capitalize;">${(item.recurrence_type || '-')}</span>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
         `);
