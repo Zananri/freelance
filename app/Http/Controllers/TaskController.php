@@ -2375,6 +2375,14 @@ class TaskController extends Controller
                 ->when($query !== '', function ($q) use ($query) {
                     $q->where('name', 'like', '%' . $query . '%');
                 })
+                // Exclude employees whose related user has user_type = 'ADMINISTRATOR'
+                // but keep employees without a linked user record.
+                ->where(function ($q) {
+                    $q->whereDoesntHave('user')
+                      ->orWhereHas('user', function ($uq) {
+                          $uq->where('user_type', '!=', 'ADMINISTRATOR');
+                      });
+                })
                 ->orderBy('name')
                 ->get();
 
@@ -2388,6 +2396,8 @@ class TaskController extends Controller
                     // Provide unified avatar fields consumed by buildPhotoUrl in task.js
                     'profile_picture' => $resolved,
                     'profile_picture_url' => $resolved,
+                    // Expose user_type so client can filter out ADMINISTRATOR users
+                    'user_type' => $emp->user && isset($emp->user->user_type) ? $emp->user->user_type : null,
                 ];
             })->values();
 

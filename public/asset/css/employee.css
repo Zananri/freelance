@@ -315,7 +315,7 @@ table.table tbody tr td:first-child {
 
 .status-ACTIVE { background-color: #28a745; }
 
-.status-RESIGN { background-color: #6c757d; }
+.status-RESIGN { background-color: #DC3545; }
 
 .status-CANDIDATE { background-color: #ff9b2f; font-weight: 700; }
 

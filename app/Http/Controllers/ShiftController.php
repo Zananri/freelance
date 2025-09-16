@@ -31,7 +31,7 @@ class ShiftController extends Controller
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-        $query = Employee::select(
+    $query = Employee::select(
             'employees.id',
             'employees.name',
             'employees.email',
@@ -72,7 +72,14 @@ class ShiftController extends Controller
                     ->whereNull('base_shifts.deleted_by');
             })
             ->where('employees.status', 'active')
-            ->whereNull('employees.deleted_by');
+            ->whereNull('employees.deleted_by')
+            // Exclude employees whose related user has user_type = 'ADMINISTRATOR'
+            ->where(function($q) {
+                $q->whereDoesntHave('user')
+                  ->orWhereHas('user', function($uq) {
+                      $uq->where('user_type', '!=', 'ADMINISTRATOR');
+                  });
+            });
 
         // Add search filter if provided
         if (!empty($search)) {
