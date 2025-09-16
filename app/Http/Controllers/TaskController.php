@@ -2371,22 +2371,17 @@ class TaskController extends Controller
         try {
             $query = $request->input('q', '');
             // Include user relation for legacy photo fallback; we'll compute a universal avatar.
-            $employees = Employee::with('user')
-                ->when($query !== '', function ($q) use ($query) {
-                    $q->where('name', 'like', '%' . $query . '%');
-                })
-                // Exclude employees whose related user has user_type = 'ADMINISTRATOR'
-                // but keep employees without a linked user record.
-                ->where(function ($q) {
-                    $q->whereDoesntHave('user')
-                      ->orWhereHas('user', function ($uq) {
-                          $uq->where('user_type', '!=', 'ADMINISTRATOR');
-                      });
-                })
-                ->orderBy('name')
-                ->get();
+           $employee = Employee::select('employees.id','employees.user_id','employees.department_id','employees.division_id','employees.name','employees.status','employees.photo',
+            'job_list.job_name'
+        )
+            ->join('job_list','employees.job_id','=','job_list.id')
+            ->join('users','employees.user_id','=','users.id')
+            ->where('employees.status',"ACTIVE")
+            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+            ->get();
 
-            $mapped = $employees->map(function ($emp) {
+            $mapped = $employee->map(function ($emp) {
                 $resolved = $this->resolveEmployeeAvatar($emp);
                 return [
                     'id' => $emp->id,
