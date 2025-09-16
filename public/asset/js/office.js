@@ -168,10 +168,33 @@ $(document).ready(function() {
         checkTaskAcceptanceStatus(notifications).then(notificationsWithTaskStatus => {
             return checkProjectAcceptanceStatus(notificationsWithTaskStatus);
         }).then(notificationsWithStatus => {
-            // Cache for bulk operations
-            __notificationsCache = notificationsWithStatus || [];
+            // Filter out task assignment notifications that are no longer assigned (e.g., after reject)
+            const filteredNotifications = (notificationsWithStatus || []).filter(function(n){
+                try {
+                    if (n && n.type === 'task_assignment' && typeof n.is_assigned !== 'undefined') {
+                        // Keep only still-assigned task invites; hide when unassigned (rejected)
+                        return !!n.is_assigned;
+                    }
+                } catch(_) {}
+                return true;
+            });
+
+            // Cache for bulk operations (post-filter)
+            __notificationsCache = filteredNotifications || [];
+
+            // Render empty state when none left after filtering
+            if (!filteredNotifications || filteredNotifications.length === 0) {
+                $('#notificationList').html(`
+                        <div class="empty-notifications">
+                            <span class="material-symbols-outlined d-block mb-2" style="font-size: 48px; color: #dee2e6;">notifications_none</span>
+                            <p class="mb-0">No new notifications</p>
+                        </div>
+                    `);
+                return;
+            }
+
             let html = '';
-            notificationsWithStatus.forEach(notification => {
+            filteredNotifications.forEach(notification => {
                 const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
                 const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
                 const taskId = taskIdMatch ? taskIdMatch[1] : null;
@@ -1211,6 +1234,8 @@ $(document).ready(function() {
 
     // Initial load
     fetchNotificationCount();
+    // Expose fetchNotifications globally so other modules can trigger a refresh after actions like reject
+    window.fetchNotifications = fetchNotifications;
 
     // Refresh notification count every 30 seconds
     setInterval(fetchNotificationCount, 30000);

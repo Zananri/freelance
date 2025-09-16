@@ -106,13 +106,17 @@ class EmployeeController extends Controller
                 $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
                 // Map grade to grade title for UI backward-compat
                 $employee->grade = $employee->grade ? $employee->grade->title : null;
+                // Normalize status to uppercase and map legacy INACTIVE -> RESIGN for UI
+                $status = strtoupper((string)($employee->status ?? ''));
+                if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+                $employee->status = $status ?: null;
                 return $employee;
             });
 
             return response()->json(['data' => $employees]);
         }
         // Return view for listing page with employees data
-        $employees = Employee::with(['department', 'division', 'job'])
+    $employees = Employee::with(['department', 'division', 'job'])
             ->where('status', '!=', 'DELETED')
             ->get();
     }
@@ -128,6 +132,10 @@ class EmployeeController extends Controller
     $employee->grade = $employee->grade ? $employee->grade->title : null;
     $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
     $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
+    // Normalize status for response (uppercase, map legacy INACTIVE to RESIGN)
+    $status = strtoupper((string)($employee->status ?? ''));
+    if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+    $employee->status = $status ?: null;
     return response()->json($employee);
     }
 
@@ -160,11 +168,17 @@ class EmployeeController extends Controller
                 'employee_niks' => 'nullable|string|max:255',
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:employees,email',
-                'email_work' => 'nullable|email|unique:employees,email_work',
+                // email_work must be unique in employees and users
+                'email_work' => [
+                    'nullable', 'email',
+                    Rule::unique('employees', 'email_work'),
+                    Rule::unique('users', 'email'),
+                ],
                 'phone' => 'required|string|max:14|regex:/^[0-9]+$/|unique:employees,phone',
                 'address' => 'required|string',
-                'photo' => 'nullable|file|image|max:2048',
-                'ktp' => 'nullable|file|image|max:2048',
+                // 10 MB max for images
+                'photo' => 'nullable|file|image|max:10240',
+                'ktp' => 'nullable|file|image|max:10240',
                 'birth_date' => 'required|date',
                 'hire_date' => 'required|date',
                 'resign_date' => 'nullable|date',
@@ -173,7 +187,12 @@ class EmployeeController extends Controller
             ]);
 
             if ($validator->fails()) {
-                throw new \Exception($validator->errors()->first());
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
             }
 
             // Generate unique email_work from full name by replacing spaces with underscores and adding timestamp if email_work is empty
@@ -190,10 +209,7 @@ class EmployeeController extends Controller
                 $counter++;
             }
 
-            $existingUser = User::where('email', $emailWork)->first();
-            if ($existingUser) {
-                throw new \Exception('User with this email already exists');
-            }
+            // At this point $emailWork is ensured unique by loop; no need to throw exception on dup.
 
             $photoPath = null;
             $ktpPath = null;
@@ -292,21 +308,40 @@ class EmployeeController extends Controller
                 throw new \Exception('Employee not found');
             }
 
+            // Normalize and map status before validation (accept mixed case, map legacy INACTIVE->RESIGN)
+            if ($request->has('status')) {
+                $incomingStatus = strtoupper((string)$request->input('status'));
+                if ($incomingStatus === 'INACTIVE') { $incomingStatus = 'RESIGN'; }
+                $request->merge(['status' => $incomingStatus]);
+            }
+
+            // Build dynamic rules to allow ignoring current employee/user for unique checks
             $validator = Validator::make($request->all(), [
                 'department_id' => 'sometimes|exists:departments,id',
                 'division_id' => 'sometimes|exists:divisions,id',
                 'job_id' => 'sometimes|exists:job_list,id',
                 'shift_id' => 'sometimes|exists:shifts,id',
                 'employee_niks' => 'nullable|string|max:255',
-                'profile_picture' => 'nullable|file|image',
+                // 10 MB max for images
+                'profile_picture' => 'nullable|file|image|max:10240',
                 'name' => 'sometimes|string|max:255',
-                'email' => 'sometimes|email|unique:employees,email,' . $id,
-                'email_work' => 'nullable|email|unique:employees,email_work,' . $id,
-                'phone' => 'sometimes|string|unique:employees,phone,' . $id,
-                'status' => 'sometimes|string',
+                'email' => ['sometimes','email', Rule::unique('employees','email')->ignore($id)],
+                'email_work' => [
+                    'nullable','email',
+                    Rule::unique('employees','email_work')->ignore($id),
+                    Rule::unique('users','email')->ignore($employee->user_id)
+                ],
+                'phone' => [
+                    'sometimes','regex:/^[0-9]+$/','max:14',
+                    Rule::unique('employees','phone')->ignore($id)
+                ],
+                'status' => [
+                    'sometimes',
+                    Rule::in(['ACTIVE','RESIGN','CANDIDATE','DELETED'])
+                ],
                 'address' => 'sometimes|string',
-                'photo' => 'nullable|file|image',
-                'ktp' => 'nullable|file|image',
+                'photo' => 'nullable|file|image|max:10240',
+                'ktp' => 'nullable|file|image|max:10240',
                 'birth_date' => 'sometimes|date',
                 'hire_date' => 'sometimes|date',
                 'resign_date' => 'nullable|date',
@@ -315,13 +350,24 @@ class EmployeeController extends Controller
             ]);
 
             if ($validator->fails()) {
-                throw new \Exception($validator->errors()->first());
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
             }
 
             $updateData = $request->only([
                 'department_id', 'division_id', 'job_id', 'shift_id', 'name', 'employee_niks', 'email', 'email_work', 'phone', 'status', 'address',
                 'address', 'birth_date', 'hire_date', 'resign_date', 'grade_id', 'office'
             ]);
+
+            // Ensure status remains uppercase in DB and map legacy value just in case
+            if (isset($updateData['status']) && $updateData['status']) {
+                $updateData['status'] = strtoupper($updateData['status']);
+                if ($updateData['status'] === 'INACTIVE') { $updateData['status'] = 'RESIGN'; }
+            }
 
             if ($request->hasFile('photo')) {
                 $file = $request->file('photo');
@@ -431,12 +477,16 @@ class EmployeeController extends Controller
 
             DB::commit();
 
+            $updatedPhotoUrl = $employee->photo ? asset($employee->photo) : null;
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => $employee,
                 'message' => 'Employee updated successfully',
                 'profile_picture_url' => $employee->profile_picture ? asset($employee->profile_picture) : null,
+                'updatedPhotoUrl' => $updatedPhotoUrl,
+                'employeeId' => $employee->id,
                 'redirect_url' => route('employee')
             ]);
 
@@ -551,6 +601,10 @@ class EmployeeController extends Controller
                         $avatar = asset('asset/img/avatar.png');
                     }
 
+                    // Normalize status for consumer
+                    $status = strtoupper((string)($employee->status ?? ''));
+                    if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+
                     return [
                         'id' => $employee->id,
                         'name' => $employee->name,
@@ -560,6 +614,7 @@ class EmployeeController extends Controller
                         'profile_picture_url' => $avatar,
                         'department' => $employee->department ? $employee->department->name_department : null,
                         'division' => $employee->division ? $employee->division->name_division : null,
+                        'status' => $status,
                     ];
                 });
 

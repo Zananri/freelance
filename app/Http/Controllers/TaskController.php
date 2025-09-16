@@ -98,7 +98,9 @@ class TaskController extends Controller
                     ->orWhere(function ($q) use ($currentUserId) {
                         if ($currentUserId) $q->where('created_by', $currentUserId);
                     });
-                });
+                })
+                // Exclude tasks marked as DELETED from all listings
+                ->whereRaw('LOWER(status) <> ?', ['deleted']);
 
             if ($projectId) $baseQuery->where('project_id', $projectId);
 
@@ -142,7 +144,7 @@ class TaskController extends Controller
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
                         ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
-                    })->orderBy('created_at', 'asc');
+                    })->orderBy('created_at', 'desc');
 
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
@@ -188,7 +190,8 @@ class TaskController extends Controller
                 $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
                     $q->where('status', 'new_request')
                     ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
-                })->orderBy('start_date', 'asc');
+                })
+                ->orderBy('created_at', 'desc');
                 $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
                 $response['new_request'] = [
                     'tasks' => $this->mapTasks($newPaginator->items()),
@@ -308,7 +311,9 @@ class TaskController extends Controller
                             $q->where('created_by', $currentUserId);
                         }
                     });
-                });
+                })
+                // Hide soft-deleted tasks from all aggregations
+                ->whereRaw('LOWER(status) <> ?', ['deleted']);
 
             if ($projectId) {
                 $baseQuery->where('project_id', $projectId);
@@ -605,6 +610,8 @@ class TaskController extends Controller
                                 });
                         });
                 })
+                // Exclude DELETED tasks
+                ->whereRaw('LOWER(status) <> ?', ['deleted'])
                 // Do not show tasks that start in the future (e.g., tomorrow) on Today's tab
                 ->where(function ($d) use ($today) {
                     $d->whereNull('start_date')
@@ -744,6 +751,8 @@ class TaskController extends Controller
                                 });
                         });
                 })
+                // Exclude DELETED tasks
+                ->whereRaw('LOWER(status) <> ?', ['deleted'])
                 ->whereDate('start_date', $tomorrow);
 
             $tasks = $base->orderByDesc('created_at')->get();
@@ -1306,24 +1315,33 @@ class TaskController extends Controller
         try {
             $task = Task::findOrFail($id);
 
-            // Delete associated files
-            if ($task->image && file_exists(public_path('file/task/' . $task->image))) {
-                unlink(public_path('file/task/' . $task->image));
+            // Authorization: only PIC of this task may delete
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 401,
+                    'status' => 'error',
+                    'message' => 'Unauthorized'
+                ], 401);
             }
 
-            if ($task->reference_files && is_array($task->reference_files)) {
-                foreach ($task->reference_files as $referenceFile) {
-                    if (file_exists(public_path('file/task_reference_files/' . $referenceFile))) {
-                        unlink(public_path('file/task_reference_files/' . $referenceFile));
-                    }
-                }
+            $isPic = TaskAssignment::where('task_id', $task->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->exists();
+
+            if (!$isPic) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Only PIC can delete this task.'
+                ], 403);
             }
-
-            // Delete task assignments
-            TaskAssignment::where('task_id', $task->id)->delete();
-
-            // Delete task
+            // Soft-delete: flag status as DELETED and set deleted_by. Do not remove files or related data.
+            $task->status = 'DELETED';
             $task->deleted_by = auth()->id();
+            $task->save();
 
             DB::commit();
 
@@ -1985,6 +2003,8 @@ class TaskController extends Controller
                 'project'
             ])
                 ->where('project_id', $projectId)
+                // Hide tasks marked as DELETED
+                ->whereRaw('LOWER(status) <> ?', ['deleted'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -2211,8 +2231,8 @@ class TaskController extends Controller
                 // Do NOT delete assignments for this task since it's rejected
                 // TaskAssignment::where('task_id', $taskId)->delete();
             } elseif ($assignment && $assignment->role === 'EXECUTOR') {
-                // Executor rejecting - mark as not received instead of deleting
-                $assignment->update(['is_receive' => false]);
+                // Executor rejecting - remove the assignment so the task no longer appears for this user
+                $assignment->delete();
             } elseif ($assignment) {
                 // Other roles can reject by deleting their assignment
                 $assignment->delete();
@@ -2227,6 +2247,8 @@ class TaskController extends Controller
                 'code' => 200,
                 'status' => 'success',
                 'message' => 'Task invitation rejected',
+                // Hint for client: when executor rejects, the task is no longer assigned to them and should be hidden from New list
+                'hidden_for_current_user' => !$isPic,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

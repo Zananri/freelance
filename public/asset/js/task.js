@@ -387,7 +387,7 @@
                                 </div>
                                 <div class="modal-footer modal-footer-custom">
                                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-submit-black" id="confirmRejectInviteBtn">Accept Task</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmRejectInviteBtn">Reject</button>
                                 </div>
                             </div>
                         </div>
@@ -398,7 +398,7 @@
                 modal.show();
                 mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
                 mEl.querySelector('#confirmRejectInviteBtn').addEventListener('click', function(){
-                    const btn = this; btn.disabled = true; btn.textContent = 'Processing...';
+                    const btn = this; btn.disabled = true; btn.textContent = 'Rejecting...';
                     $.ajax({
                         url: appUrl + '/task/' + taskId + '/reject',
                         method: 'POST',
@@ -408,7 +408,18 @@
                             modal.hide();
                             const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
                             if (card && card.parentNode) card.parentNode.removeChild(card);
-                            markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                            // Mark assignment notifications read (or removed) and refresh counts & UI
+                            markTaskAssignmentNotificationsRead(taskId)
+                                .always(function(){
+                                    refreshNotificationCountBadge();
+                                    try {
+                                        if (typeof fetchAndRenderTasks === 'function') {
+                                            // Refresh only the New column to ensure rejected item disappears from pending list
+                                            fetchAndRenderTasks('new_request', 1, false, '');
+                                        }
+                                    } catch(_){ }
+                                    try { if (typeof fetchNotifications === 'function') fetchNotifications(); } catch(_){ }
+                                });
                         },
                         error: function(xhr){
                             let msg = 'Failed to reject task';
@@ -1696,9 +1707,15 @@ document.addEventListener("click", function (e) {
             statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
         }
 
-        const showDelete = task.status === 'new_request' ||
-                        task.status === 'new request' ||
-                        task.status === 'rejected';
+        const showDelete = (function(){
+            // Only show delete if current employee is the PIC
+            try {
+                const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
+                const picId = task?.pic?.id ? String(task.pic.id) : null;
+                if (!empId || !picId) return false;
+                return String(empId) === picId;
+            } catch(_) { return false; }
+        })();
 
         let statusBadge = '';
         if (task.status === 'rejected') {
@@ -2018,26 +2035,9 @@ function renderSingleSection(status, sectionData, append = false) {
     });
 
   if (!append) {
-    if (status === "new_request") {
-      const tasksSorted = incomingTasks.slice().sort(function (a, b) {
-        const pa = isViewerPendingExecutor(a) ? 1 : 0;
-        const pb = isViewerPendingExecutor(b) ? 1 : 0;
-        if (pa !== pb) return pb - pa;
-        try {
-          const da = new Date(a.due_date).getTime() || 0;
-          const db = new Date(b.due_date).getTime() || 0;
-          if (da !== db) return da - db;
-        } catch (_) {}
-        return (b.id || 0) - (a.id || 0);
-      });
-      tasksSorted.forEach(task =>
-        container.insertAdjacentHTML("beforeend", createTaskCard(task))
-      );
-    } else {
-      incomingTasks.forEach(task =>
-        container.insertAdjacentHTML("beforeend", createTaskCard(task))
-      );
-    }
+    incomingTasks.forEach(task =>
+      container.insertAdjacentHTML("beforeend", createTaskCard(task))
+    );
   } else {
     incomingTasks.forEach(task =>
       container.insertAdjacentHTML("beforeend", createTaskCard(task))
@@ -2117,11 +2117,17 @@ function initDesktopInfiniteScroll(query = "") {
     try { window.__taskCurrentSearchQuery = String(query || ''); } catch(_) {}
     ["new_request", "in_progress", "completed"].forEach(status => {
         const containerId = sectionMap[status];
-        $(document).on("scroll", `#${containerId}`, function () {
-            const el = this;
-            const state = desktopState[status];
-            if (!el || !state || state.loading) return;
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        // Bind once per container
+        if (el.dataset.infiniteScrollBound === '1') return;
+        el.dataset.infiniteScrollBound = '1';
 
+        el.addEventListener('scroll', function () {
+            const state = desktopState[status];
+            if (!state || state.loading) return;
+
+            // near-bottom detection with small threshold
             if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
                 if (state.page < state.last) {
                     state.loading = true;
@@ -2130,7 +2136,7 @@ function initDesktopInfiniteScroll(query = "") {
                     fetchAndRenderTasks(status, state.page, true, q);
                 }
             }
-        });
+        }, { passive: true });
     });
 }
 // Note: desktop data is fetched once in the unified init block below; scroll handlers are
@@ -5014,9 +5020,14 @@ function applyCurrentSearchFilter() {
                     })
                     .join("");
 
-                const showDelete = task.status === "new_request" ||
-                                task.status === "new request" ||
-                                task.status === "rejected";
+                const showDelete = (function(){
+                    try {
+                        const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
+                        const picId = task?.pic?.id ? String(task.pic.id) : null;
+                        if (!empId || !picId) return false;
+                        return String(empId) === picId;
+                    } catch(_) { return false; }
+                })();
 
                 const html = `
                 <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
@@ -5154,9 +5165,16 @@ function applyCurrentSearchFilter() {
     // Function to handle task delete
     function handleTaskDelete(taskId, taskCard) {
         const deleteModalEl = document.getElementById("deleteTaskModal");
-        const deleteModal = new bootstrap.Modal(deleteModalEl);
+        const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
 
         deleteModalEl.dataset.taskId = taskId;
+
+        // Pre-show the modal with a loader to avoid backdrop flicker while fetching
+        const preContentEl = deleteModalEl.querySelector(".modal-body");
+        if (preContentEl) {
+            preContentEl.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+        }
+        deleteModal.show();
 
         $.ajax({
             url: appUrl + "/task/" + taskId,
@@ -5214,13 +5232,7 @@ function applyCurrentSearchFilter() {
                 `;
 
                 const contentEl = deleteModalEl.querySelector(".modal-body");
-                contentEl.innerHTML = cardHtml;
-
-                deleteModal.show();
-
-                document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
-                    if (idx < arr.length - 1) el.remove();
-                });
+                if (contentEl) contentEl.innerHTML = cardHtml;
             }
         });
 
@@ -5234,13 +5246,29 @@ function applyCurrentSearchFilter() {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                 },
                 success: function (response) {
-                    // Remove card from UI
-                    taskCard.remove();
+                    // Remove card from UI (safely handle null)
+                    try {
+                        let cardEl = taskCard;
+                        if (!cardEl) {
+                            cardEl = document.querySelector(`[data-task-id="${taskId}"]`);
+                        }
+                        if (cardEl) {
+                            cardEl.remove();
+                        }
+                    } catch (_) {}
                     // Hide modal
                     deleteModal.hide();
                     // Unified success alert
                     try {
                         showFloatingAlert(response.message || "Task deleted successfully", "success", 1500);
+                    } catch (_) {}
+                    // Optionally refresh lists to ensure DELETED tasks are not shown anywhere
+                    try {
+                        if (typeof fetchAndRenderTasks === 'function') {
+                            fetchAndRenderTasks('new_request', 1, false, '');
+                            fetchAndRenderTasks('in_progress', 1, false, '');
+                            fetchAndRenderTasks('completed', 1, false, '');
+                        }
                     } catch (_) {}
                 },
                 error: function () {
@@ -6328,29 +6356,35 @@ function applyCurrentSearchFilter() {
     async function fetchTimelineTasksOnce() {
         if (timelineTasksCache.length) return; // cache already prepared
         try {
-            const r = await fetch(appUrlTimeline + '/task/index', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const r = await fetch(appUrlTimeline + '/task/index/no-pagination', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
             const j = await r.json();
             const buckets = (j && j.data) ? j.data : {};
             const flat = [];
 
-            // API structure (based on other code): { new_request: {tasks:[...]}, in_progress:{tasks:[...]}, completed:{tasks:[...]}, rejected:{tasks:[...]?} }
+            // API structure: { new_request: {tasks:[...]}, in_progress:{tasks:[...]}, completed:{tasks:[...]}, rejected:{tasks:[...]?} }
             Object.keys(buckets).forEach(key => {
                 const section = buckets[key];
                 if (!section) return;
                 if (Array.isArray(section)) {
-                    // In case backend returns simple array
                     section.forEach(t => flat.push(t));
                 } else if (Array.isArray(section.tasks)) {
                     section.tasks.forEach(t => flat.push(t));
                 }
             });
 
-            if (!flat.length) {
-                console.warn('[timeline] No tasks flattened from /task/index response. Raw keys:', Object.keys(buckets));
-            }
+            // Filter duplicate task by ID
+            const uniqueFlat = [];
+            const seenIds = new Set();
+            flat.forEach(t => {
+                if (!t.id) return;
+                if (!seenIds.has(t.id)) {
+                    uniqueFlat.push(t);
+                    seenIds.add(t.id);
+                }
+            });
 
             // Enrich missing dates (only for items lacking either start or due date)
-            await Promise.all(flat.map(async (t) => {
+            await Promise.all(uniqueFlat.map(async (t) => {
                 if (t.start_date && t.due_date) return;
                 try {
                     const rr = await fetch(appUrlTimeline + '/task/' + t.id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -6367,7 +6401,7 @@ function applyCurrentSearchFilter() {
             }));
 
             // Only keep tasks that have at least one bound (start/due)
-            timelineTasksCache = flat.filter(t => t.start_date || t.due_date);
+            timelineTasksCache = uniqueFlat.filter(t => t.start_date || t.due_date);
         } catch (e) {
             console.error('[timeline] Failed to fetch tasks for timeline', e);
             timelineTasksCache = [];

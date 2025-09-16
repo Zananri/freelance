@@ -193,6 +193,23 @@
                                 </div>
                             </div>
 
+                            <!-- Status selection -->
+                            @php
+                                $currentStatus = strtoupper($employee->status ?? 'ACTIVE');
+                                if ($currentStatus === 'INACTIVE') { $currentStatus = 'RESIGN'; }
+                            @endphp
+                            <div class="custom-form-employee">
+                                <label for="status" class="form-label">Status</label>
+                                <select id="status" name="status" class="form-select input-select" required>
+                                    <option value="ACTIVE" {{ $currentStatus === 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
+                                    <option value="RESIGN" {{ $currentStatus === 'RESIGN' ? 'selected' : '' }}>RESIGN</option>
+                                    <option value="CANDIDATE" {{ $currentStatus === 'CANDIDATE' ? 'selected' : '' }}>CANDIDATE</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select a status.
+                                </div>
+                            </div>
+
                             <!-- Shift selection (from shifts table) -->
                             <div class="custom-form-employee">
                                 <label for="shift_id" class="form-label">Shift</label>
