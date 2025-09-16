@@ -39,6 +39,28 @@
     // Shared buffer for multi-file preview across modals (Add Task, Add/Reply Feedback)
     let selectedFiles = [];
 
+    // File size limits (bytes)
+    const MAX_TOTAL_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB
+    const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB for image inputs (label image uploads)
+
+    // Helper: compute total size of FileList/Array of File objects
+    function computeTotalBytes(filesArray) {
+        try {
+            if (!filesArray) return 0;
+            return filesArray.reduce((acc, f) => acc + (f && f.size ? f.size : 0), 0);
+        } catch (_) { return 0; }
+    }
+
+    // Helper: validate total size (including optional image) against MAX_TOTAL_UPLOAD_BYTES
+    function validateTotalUploadSize({imageFile, extraFiles}) {
+        try {
+            let total = 0;
+            if (imageFile) total += (imageFile.size || 0);
+            if (Array.isArray(extraFiles) && extraFiles.length) total += computeTotalBytes(extraFiles);
+            return {ok: total <= MAX_TOTAL_UPLOAD_BYTES, totalBytes: total};
+        } catch (e) { return {ok: false, totalBytes: Infinity}; }
+    }
+
     // Initialize Bootstrap tooltips within a DOM scope (default document)
     function initBootstrapTooltips(root = document) {
         try {
@@ -502,6 +524,13 @@
     function setupImageInput(input, label, clearBtn) {
         input.addEventListener("change", function () {
             if (input.files && input.files[0]) {
+                // Enforce image size limit
+                const file = input.files[0];
+                if (file.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                    input.value = '';
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     label.style.backgroundImage = `url('${e.target.result}')`;
@@ -510,7 +539,7 @@
                     label.style.opacity = "1";
                     clearBtn.classList.remove("d-none");
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             } else {
                 label.style.backgroundImage = "";
                 label.classList.remove("has-image");
@@ -616,8 +645,22 @@
             );
             if (submitBtn) submitBtn.disabled = true;
 
-            const formData = new FormData(addTaskForm);
+            // Validate sizes: include task image (if any) and selectedFiles
+            try {
+                const imageEl = document.getElementById('task_image');
+                const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+                if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
+                    return;
+                }
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+                if (!totalCheck.ok) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                    return;
+                }
+            } catch(_) {}
 
+            const formData = new FormData(addTaskForm);
             // Append all selected reference files to formData
             selectedFiles.forEach((file) => {
                 formData.append("reference_files[]", file);
@@ -1216,6 +1259,22 @@
                 "button[type='submit']"
             );
             if (submitBtn) submitBtn.disabled = true;
+
+            // Validate sizes: include edit task image and editSelectedFiles
+            try {
+                const imageEl = document.getElementById('edit_task_image');
+                const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+                if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
+                    return;
+                }
+                const extraFiles = (window.editSelectedFiles && Array.isArray(window.editSelectedFiles)) ? window.editSelectedFiles : [];
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: extraFiles});
+                if (!totalCheck.ok) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                    return;
+                }
+            } catch(_) {}
 
             const formData = new FormData(editTaskForm);
             // Add _method to FormData for Laravel PUT request
@@ -4092,6 +4151,23 @@ function applyCurrentSearchFilter() {
             submitBtn.disabled = true;
         }
 
+        // Validate image and total sizes before creating FormData
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
+
         const formData = new FormData(form);
         // Append multi-selected files from preview buffer
         try {
@@ -4487,6 +4563,12 @@ function applyCurrentSearchFilter() {
 
         imageInput.addEventListener("change", function () {
             if (this.files && this.files[0]) {
+                const file = this.files[0];
+                if (file.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                    this.value = '';
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function (e) {
                     imageLabel.style.backgroundImage = `url('${e.target.result}')`;
@@ -4495,7 +4577,7 @@ function applyCurrentSearchFilter() {
                     imageLabel.style.opacity = "1";
                     imageClearBtn.classList.remove("d-none");
                 };
-                reader.readAsDataURL(this.files[0]);
+                reader.readAsDataURL(file);
             }
         });
 
@@ -4600,6 +4682,12 @@ function applyCurrentSearchFilter() {
             }
             imageInput.addEventListener('change', function () {
                 if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    if (file.size > MAX_IMAGE_BYTES) {
+                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                        this.value = '';
+                        return;
+                    }
                     const reader = new FileReader();
                     reader.onload = function (e) {
                         imageLabel.style.backgroundImage = `url('${e.target.result}')`;
@@ -4608,7 +4696,7 @@ function applyCurrentSearchFilter() {
                         imageLabel.style.opacity = '1';
                         imageClearBtn.classList.remove('d-none');
                     };
-                    reader.readAsDataURL(this.files[0]);
+                    reader.readAsDataURL(file);
                 }
             });
             imageClearBtn.addEventListener('click', function (e) {
@@ -4781,6 +4869,23 @@ function applyCurrentSearchFilter() {
             submitBtn.disabled = true;
         }
 
+        // Validate image and total sizes before creating FormData
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
+
         const formData = new FormData(form);
         formData.append('_method', 'PUT');
         // Append any newly selected reference files from preview buffer
@@ -4881,6 +4986,23 @@ function applyCurrentSearchFilter() {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             submitBtn.disabled = true;
         }
+
+        // Validate image and total sizes before creating FormData
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
 
         const formData = new FormData(form);
         // Ensure selectedFiles (from preview buffer) are appended
