@@ -255,6 +255,19 @@ class ScheduleController extends Controller
     {
         $query = TaskSchedule::with('project')->orderByDesc('created_at');
 
+        // Only show schedules where current user is PIC (creator) or is listed as an executor
+        $currentUser = $request->user();
+        $currentUserId = $currentUser?->id;
+        $currentEmployeeId = $currentUser?->employee?->id;
+        $query->where(function ($q) use ($currentUserId, $currentEmployeeId) {
+            if ($currentUserId) {
+                $q->where('created_by', $currentUserId);
+            }
+            if ($currentEmployeeId) {
+                $q->orWhereJsonContains('executor_ids', (int) $currentEmployeeId);
+            }
+        });
+
         // Apply recurrence_type filter if provided
         $recurrenceType = $request->input('recurrence_type');
         if (!empty($recurrenceType)) {
