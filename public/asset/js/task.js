@@ -66,6 +66,24 @@
     }
     window.initBootstrapTooltips = initBootstrapTooltips;
 
+    // Helper: hide and dispose any visible Bootstrap tooltips to avoid orphaned popper nodes
+    function hideAllFloatingTooltips() {
+        try {
+            const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            triggers.forEach(el => {
+                try {
+                    const inst = bootstrap.Tooltip.getInstance(el);
+                    if (inst) {
+                        try { inst.hide(); } catch(_) {}
+                        try { inst.dispose(); } catch(_) {}
+                    }
+                } catch(_) {}
+            });
+            // Remove any leftover tooltip elements appended directly to body
+            document.querySelectorAll('body > .tooltip').forEach(t => { try { t.remove(); } catch(_) {} });
+        } catch(_) {}
+    }
+
     // Debounced tooltip reinitialization for scroll events
     let tooltipScrollTimeout;
     function debouncedTooltipReinit() {
@@ -1594,6 +1612,8 @@
 
 document.addEventListener("click", function (e) {
     if (e.target && e.target.classList.contains("arrow-forward-icon")) {
+        // Ensure any visible tooltips are hidden and disposed before we move/remove the card.
+        try { hideAllFloatingTooltips(); } catch(_) {}
         const taskId = e.target.getAttribute("data-task-id");
         const currentStatus = e.target.getAttribute("data-task-status");
         if (!taskId) { showFloatingAlert("Task ID not found.", "warning", 3000); return; }
@@ -2113,6 +2133,8 @@ function renderSingleSection(status, sectionData, append = false) {
     if (!append) ensureRejectedCardsPlaced();
     // Re-apply current search filter so new/updated cards respect it
     try { applyCurrentSearchFilter(); } catch(_) {}
+    // If rendering New Request column, update arrow visibility according to select-all state
+    try { if (status === 'new_request' && typeof window.updateNewRequestArrowVisibility === 'function') window.updateNewRequestArrowVisibility(); } catch(_) {}
 }
 
 // Normalisasi posisi card rejected (fallback jika ada card nyasar / tidak tergabung)
@@ -2340,6 +2362,8 @@ function applyCurrentSearchFilter() {
                 ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const cb=document.getElementById(id); if(cb) cb.checked=false; });
                 labels.forEach(label=>{ label.style.visibility='hidden'; label.style.opacity='0'; });
             }
+            // Update arrow visibility to reflect select-all state
+            try { if (typeof window.updateNewRequestArrowVisibility === 'function') window.updateNewRequestArrowVisibility(); } catch(_) {}
         }
 
         function collectPendingNewTaskIds(){
@@ -2628,15 +2652,16 @@ function applyCurrentSearchFilter() {
             }
             if (bulkProgress) {
                 if (getComputedStyle(bulkProgress).display === 'none') bulkProgress.style.display = 'inline-flex';
-                bulkProgress.style.visibility = hasAnySelection ? 'visible' : 'hidden';
-                bulkProgress.style.opacity = hasAnySelection ? '1' : '0';
-                bulkProgress.disabled = !allAcceptedSelected;
+                // Show progress (arrow) only when there is a selection AND all selected are accepted
+                bulkProgress.style.visibility = (hasAnySelection && !anyPendingSelected) ? 'visible' : 'hidden';
+                bulkProgress.style.opacity = (hasAnySelection && !anyPendingSelected) ? '1' : '0';
+                bulkProgress.disabled = !(hasAnySelection && !anyPendingSelected);
             }
             if (bulkProgressMobile) {
                 if (getComputedStyle(bulkProgressMobile).display === 'none') bulkProgressMobile.style.display = 'inline-flex';
-                bulkProgressMobile.style.visibility = hasAnySelection ? 'visible' : 'hidden';
-                bulkProgressMobile.style.opacity = hasAnySelection ? '1' : '0';
-                bulkProgressMobile.disabled = !allAcceptedSelected;
+                bulkProgressMobile.style.visibility = (hasAnySelection && !anyPendingSelected) ? 'visible' : 'hidden';
+                bulkProgressMobile.style.opacity = (hasAnySelection && !anyPendingSelected) ? '1' : '0';
+                bulkProgressMobile.disabled = !(hasAnySelection && !anyPendingSelected);
             }
             // Ensure visibility sync each time state recalculated
             updateSelectAllVisibility(); // NEW
@@ -2691,6 +2716,85 @@ function applyCurrentSearchFilter() {
             updateSelectAllVisibility(); // NEW
         });
     })();
+
+    // Update visibility of arrow-forward icons in New Request column
+    // When Select All is checked but any task still shows Accept button, hide the arrows.
+    // Otherwise show arrows on cards that are accepted (i.e., do not have .btn-accept-invite).
+    window.updateNewRequestArrowVisibility = function() {
+        try {
+            const desktopCheckbox = document.getElementById('taskNewAcceptAll');
+            const mobileCheckbox = document.getElementById('taskNewAcceptAllMobile');
+            const selectAllChecked = !!(desktopCheckbox && desktopCheckbox.checked) || !!(mobileCheckbox && mobileCheckbox.checked);
+
+            // Determine selection set: if select-all checked => all cards; else selected thumbs only
+            let selectedCards = [];
+            if (selectAllChecked) {
+                selectedCards = Array.from(document.querySelectorAll('#new-request-tasks .custom-card, #mobile-task-list .custom-card'));
+            } else {
+                const thumbs = Array.from(document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected'));
+                selectedCards = thumbs.map(t => t.closest('.custom-card')).filter(Boolean);
+            }
+
+            const bulkAccept = document.getElementById('taskNewBulkAction');
+            const bulkProgress = document.getElementById('taskNewBulkProgress');
+            const bulkAcceptMobile = document.getElementById('taskNewBulkActionMobile');
+            const bulkProgressMobile = document.getElementById('taskNewBulkProgressMobile');
+
+            // No explicit selection => hide header icons
+            if (!selectedCards || selectedCards.length === 0) {
+                if (bulkAccept) { bulkAccept.style.display = 'inline-flex'; bulkAccept.style.visibility = 'hidden'; bulkAccept.style.opacity = '0'; bulkAccept.disabled = true; }
+                if (bulkAcceptMobile) { bulkAcceptMobile.style.display = 'inline-flex'; bulkAcceptMobile.style.visibility = 'hidden'; bulkAcceptMobile.style.opacity = '0'; bulkAcceptMobile.disabled = true; }
+                if (bulkProgress) { bulkProgress.style.display = 'inline-flex'; bulkProgress.style.visibility = 'hidden'; bulkProgress.style.opacity = '0'; bulkProgress.disabled = true; }
+                if (bulkProgressMobile) { bulkProgressMobile.style.display = 'inline-flex'; bulkProgressMobile.style.visibility = 'hidden'; bulkProgressMobile.style.opacity = '0'; bulkProgressMobile.disabled = true; }
+                return;
+            }
+
+            // Check if any selected card is still unaccepted (has Accept button)
+            const anySelectedUnaccepted = selectedCards.some(card => !!card.querySelector('.btn-accept-invite'));
+
+            if (anySelectedUnaccepted) {
+                // show done_all (accept) and hide arrow (progress)
+                if (bulkAccept) { bulkAccept.style.display = 'inline-flex'; bulkAccept.style.visibility = 'visible'; bulkAccept.style.opacity = '1'; bulkAccept.disabled = false; }
+                if (bulkAcceptMobile) { bulkAcceptMobile.style.display = 'inline-flex'; bulkAcceptMobile.style.visibility = 'visible'; bulkAcceptMobile.style.opacity = '1'; bulkAcceptMobile.disabled = false; }
+                if (bulkProgress) { bulkProgress.style.display = 'inline-flex'; bulkProgress.style.visibility = 'hidden'; bulkProgress.style.opacity = '0'; bulkProgress.disabled = true; }
+                if (bulkProgressMobile) { bulkProgressMobile.style.display = 'inline-flex'; bulkProgressMobile.style.visibility = 'hidden'; bulkProgressMobile.style.opacity = '0'; bulkProgressMobile.disabled = true; }
+                // Place the visible icon right before the select-all label (desktop)
+                try {
+                    const desktopLabel = document.querySelector('.new-request-container .task-selectall-toggle');
+                    if (desktopLabel && bulkAccept && bulkAccept.parentNode && desktopLabel.parentNode) {
+                        desktopLabel.parentNode.insertBefore(bulkAccept, desktopLabel);
+                    }
+                } catch(_) {}
+                // Mobile placement inside mobileBulkControls
+                try {
+                    const mobileLabel = document.querySelector('#mobileBulkControls .task-selectall-toggle');
+                    if (mobileLabel && bulkAcceptMobile && mobileLabel.parentNode) {
+                        mobileLabel.parentNode.insertBefore(bulkAcceptMobile, mobileLabel);
+                    }
+                } catch(_) {}
+            } else {
+                // all selected are accepted -> show arrow (progress) only
+                if (bulkProgress) { bulkProgress.style.display = 'inline-flex'; bulkProgress.style.visibility = 'visible'; bulkProgress.style.opacity = '1'; bulkProgress.disabled = false; }
+                if (bulkProgressMobile) { bulkProgressMobile.style.display = 'inline-flex'; bulkProgressMobile.style.visibility = 'visible'; bulkProgressMobile.style.opacity = '1'; bulkProgressMobile.disabled = false; }
+                if (bulkAccept) { bulkAccept.style.display = 'inline-flex'; bulkAccept.style.visibility = 'hidden'; bulkAccept.style.opacity = '0'; bulkAccept.disabled = true; }
+                if (bulkAcceptMobile) { bulkAcceptMobile.style.display = 'inline-flex'; bulkAcceptMobile.style.visibility = 'hidden'; bulkAcceptMobile.style.opacity = '0'; bulkAcceptMobile.disabled = true; }
+                // Place arrow icon right before the select-all label (desktop)
+                try {
+                    const desktopLabel = document.querySelector('.new-request-container .task-selectall-toggle');
+                    if (desktopLabel && bulkProgress && desktopLabel.parentNode) {
+                        desktopLabel.parentNode.insertBefore(bulkProgress, desktopLabel);
+                    }
+                } catch(_) {}
+                // Mobile placement inside mobileBulkControls
+                try {
+                    const mobileLabel = document.querySelector('#mobileBulkControls .task-selectall-toggle');
+                    if (mobileLabel && bulkProgressMobile && mobileLabel.parentNode) {
+                        mobileLabel.parentNode.insertBefore(bulkProgressMobile, mobileLabel);
+                    }
+                } catch(_) {}
+            }
+        } catch(_) { /* noop */ }
+    };
 
     // Function to setup dropdown event listeners for task cards
     function setupTaskDropdownListeners() {
@@ -2754,6 +2858,26 @@ function applyCurrentSearchFilter() {
                     handleTaskFeedback(taskId);
                 });
                 return;
+            }
+
+            // Click on task title -> open detail modal
+            const titleEl = e.target.closest('.task-title');
+            if (titleEl) {
+                // Find nearest task card and its id
+                const card = titleEl.closest('.custom-card');
+                const taskId = card ? card.getAttribute('data-task-id') : null;
+                if (taskId) {
+                    try {
+                        // If detail modal already open, hide it first to avoid duplicates
+                        const detailModalEl = document.getElementById('taskDetailModal');
+                        if (detailModalEl) {
+                            const dm = bootstrap.Modal.getInstance(detailModalEl);
+                            if (dm) dm.hide();
+                        }
+                    } catch(_) {}
+                    try { handleTaskDetail(taskId); } catch(_) { /* noop */ }
+                }
+                return; // prevent other handlers from also reacting
             }
         });
 
@@ -4057,6 +4181,8 @@ function applyCurrentSearchFilter() {
                         }
                     }
                 });
+                // Refresh task cards so counts and other data reflect the latest changes
+                try { fetchAndRenderTasks(); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = "Failed to submit feedback. Please try again.";
@@ -4717,6 +4843,8 @@ function applyCurrentSearchFilter() {
                 loadTaskFeedbackData(taskId);
                 // Refresh snippets/badges best-effort
                 try { scheduleRefreshLatestFeedbackSnippets(10); } catch(_) {}
+                // Refresh task cards to update counts immediately
+                try { fetchAndRenderTasks(); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = 'Failed to update feedback. Please try again.';

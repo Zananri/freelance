@@ -672,6 +672,7 @@ body.touch-device
 .task-title {
     font-size: 16px;
     font-weight: 600;
+    cursor: pointer;
 }
 
 p {
