@@ -84,11 +84,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
-    function renderPagination(totalPages, currentPage, totalItems = 0, perPage = 9) {
+    function renderPagination(totalPages, currentPage) {
         const paginationContainer = document.querySelector(".pagination");
         if (!paginationContainer) return;
 
-        if (totalItems <= perPage) {
+        // If only one or zero pages, hide pagination
+        if (!Number.isFinite(totalPages) || totalPages <= 1) {
             paginationContainer.innerHTML = "";
             return;
         }
