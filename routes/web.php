@@ -41,9 +41,13 @@ Route::middleware('guest')->group(function () {
     
     // Forgot password (accessible to guests)
     Route::get('/forgot-password', [ForgotController::class, 'showForgotPasswordPage'])->name('forgot-password');
-    Route::get('/reset-password', [ResetPasswordController::class, 'showResetPasswordPage'])->name('reset-password');
+    // Handle form submission from forgot password page
+    Route::post('/forgot-password', [ForgotController::class, 'submitForgotPassword'])->name('forgot-password.post');
+    // Show reset password form with token (link from email)
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetPasswordPage'])->name('password.reset');
+    // Handle reset password submission
+    Route::post('/reset-password', [ResetPasswordController::class, 'submitResetPassword'])->name('password.update');
 });
-
 
 
 Route::get('/server-time', function () {

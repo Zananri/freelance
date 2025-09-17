@@ -13,7 +13,7 @@
                     <p class="fs-14 text-black text-opacity-75">Please enter email below</p>
                 </div>
 
-                <form method="POST" action="{{ route('forgot-password') }}" autocomplete="off">
+                <form method="POST" action="{{ route('forgot-password.post') }}" autocomplete="off">
                     @csrf
                     <div class="mb-3">
                         <input type="text" name="email" class="form-control form-input bg-white bg-opacity-75"
