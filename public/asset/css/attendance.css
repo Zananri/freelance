@@ -574,7 +574,7 @@
 }
 
 .wrapper-form {
-    max-height: calc(100vh - 220px);
+    max-height: calc(100vh - 230px);
     overflow-y: auto;
     overflow-x: hidden;
 }

@@ -569,14 +569,13 @@
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content rounded-4 border-0">
                     
-                    <div class="modal-body px-4 border-0 ">
-                        
+                    <div class="modal-body p-0 border-0 ">
 
-                        <div class="form-header mb-4">
+                        <div class="form-header p-4">
                             <h5 class="modal-title fs-18">Request Time Off</h5>
                         </div>
 
-                        <div class="wrapper-form scrollbar-transparent">
+                        <div class="wrapper-form px-4 scrollbar-transparent">
 
                             <form action="" id="form-request-time-off" class="needs-validation" novalidate enctype="multipart/form-data"  >
 
@@ -629,7 +628,7 @@
 
                         </div>
 
-                        <div class="mt-4 mb-2">
+                        <div class="p-4">
 
                             <div class="row">
                                 <div class="col-6">
@@ -641,8 +640,6 @@
                             </div>
                             
                         </div>
-
-
                     </div>
 
                     <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
@@ -667,13 +664,13 @@
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content rounded-4 border-0">
                     
-                    <div class="modal-body px-4 border-0 ">
+                    <div class="modal-body p-0 border-0 ">
                         
-                        <div class="form-header mb-4">
+                        <div class="form-header p-4">
                             <h5 class="modal-title fs-18">Edit Time Off</h5>
                         </div>
 
-                        <div class="wrapper-form scrollbar-transparent">
+                        <div class="wrapper-form px-4 scrollbar-transparent">
 
                             <form action="" id="form-edit-time-off" class="needs-validation" novalidate enctype="multipart/form-data"  >
                                 @csrf
@@ -727,7 +724,7 @@
 
                         </div>
 
-                        <div class="mt-4 mb-2">
+                        <div class="p-4">
 
                             <div class="row">
                                 <div class="col-6">

@@ -309,6 +309,9 @@
     white-space: nowrap;
     scrollbar-width: none;
 }
+
+
+
 .table-attendance .col-photo{
     height: 28px;
     width: 28px;
@@ -317,6 +320,11 @@
 .table-attendance .col-name{
     overflow-x: auto;
 }
+
+.table-attendance .col-day.is-late .time-in{
+    color:#be3131 !important;
+}
+
 .table-attendance .box-employee {
     padding: 8px 8px;
     width: 200px;

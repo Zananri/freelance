@@ -110,6 +110,8 @@ function getAttendanceTrackingData(month,year)
             
             $('.employee-row .time-in, .employee-row  .time-out').text(' ');
 
+            $('.table-attendance .col-day').removeClass('is-late');
+
             for (let i = 0; i < resData.length; i++) {
                 const attendance = resData[i];
 
@@ -120,9 +122,16 @@ function getAttendanceTrackingData(month,year)
                 const timeIn = formatTimeDisplay(attendance.time_in);
                 const timeOut = formatTimeDisplay(attendance.time_out);
 
+                console.log(attendance.time_late);
 
+                if(attendance.time_late != null){
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"]').addClass('is-late');   
+                }
+                
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text(timeIn);
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text(timeOut);
+                
+                
                 
             }
 

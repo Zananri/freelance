@@ -43,12 +43,20 @@ class AttendanceTrackingController extends Controller
             $year = $request->YEAR;
         }
 
-
         $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
         $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
 
+        $employee = Employee::select('employees.id')
+            ->join('users','employees.user_id','=','users.id')
+            ->where('employees.status',"ACTIVE")
+            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+        ->get();
+
+        $employeeIds = $employee->pluck('id');
 
         $attendance = Attendance::where('date_attendance','>=',$firstDayOfMonth)
+            ->whereIn('employee_id',$employeeIds)
             ->where('date_attendance','<=',$lastDayOfMonth)
             ->get();
 
