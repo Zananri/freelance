@@ -397,4 +397,24 @@ function formateDateFull(dateString){
     return formattedDate;
 
 } 
+
+function formateDateNumMonYear(dateString){
+
+    if (!dateString) return '';
+
+    const newDate = new Date(dateString); // Or your specific date object
+
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+
+    //const dayOfWeek = weekdays[newDate.getDay()];
+    const dateNumber = newDate.getDate();
+    const monthName = months[newDate.getMonth()];
+    const year = newDate.getFullYear();
+
+    const formattedDate = `${dateNumber} ${monthName} ${year}`;
+
+    return formattedDate;
+
+}
 //

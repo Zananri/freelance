@@ -564,52 +564,19 @@
             </div>
         </div>
 
-        <!-- Modal for Time Off -->
+        <!-- Modal request Time Off -->
         <div class="modal fade" id="requestTimeOffModal" tabindex="-1" role="dialog" aria-labelledby="requestTimeOffModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content rounded-4 border-0">
                     
                     <div class="modal-body px-4 border-0 ">
                         
-                        <style>
-                            .wrapper-form label,
-                            .wrapper-form input,
-                            .wrapper-form textarea,
-                            .wrapper-form select{
-                                font-size: 14px !important;
-                            }
-                            
-                            .wrapper-form .form-select,
-                            .wrapper-form .form-control{
-                                font-size: 14px !important;
-                                padding : 12px 14px;
-                                border-radius: 10px;
-                                border:0px;
-                            }
 
-                            .wrapper-form .form-label {
-                                margin-bottom: 4px;
-                            }
-
-                            input[type="file"]::file-selector-button {
-                                /* Customize button appearance */
-                                display: none;
-                            }
-
-                            .form-control.is-invalid{
-                                border-color: var(--bs-form-invalid-border-color);
-                                padding-right: calc(1.5em + .75rem);
-                                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
-                                background-repeat: no-repeat;
-                                background-position: right calc(.375em + .1875rem) center;
-                                background-size: calc(.75em + .375rem) calc(.75em + .375rem);
-                            }
-                        </style>
                         <div class="form-header mb-4">
                             <h5 class="modal-title fs-18">Request Time Off</h5>
                         </div>
 
-                        <div class="wrapper-form">
+                        <div class="wrapper-form scrollbar-transparent">
 
                             <form action="" id="form-request-time-off" class="needs-validation" novalidate enctype="multipart/form-data"  >
 
@@ -646,15 +613,15 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="file-pdf" class="form-label">File PDF</label>
-                                    <input class="form-control" type="file" name="file_pdf" id="file-pdf" accept=".pdf">
-                                    <div class="invalid-feedback fs-12">Please add a file PDF</div>
+                                    <label for="file-1" class="form-label">File 1</label>
+                                    <input class="form-control" type="file" name="file_1" id="file-1" attr-validation="required"  accept="image/*,.pdf">
+                                    <div class="invalid-feedback fs-12">Please add a file</div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="file-image" class="form-label">Image</label>
-                                    <input class="form-control" type="file" name="file_image" id="file-image" accept="image/*" capture="environment">
-                                    <div class="invalid-feedback fs-12">Please add a photo</div>
+                                    <label for="file-2" class="form-label">File 2</label>
+                                    <input class="form-control" type="file" name="file_2" id="file-2"  accept="image/*,.pdf">
+                                    <div class="invalid-feedback fs-12">Please add a file</div>
                                 </div>
 
 
@@ -662,11 +629,11 @@
 
                         </div>
 
-                        <div class="mt-5 mb-2">
+                        <div class="mt-4 mb-2">
 
                             <div class="row">
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-close-modal w-100" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
                                 </div>
                                 <div class="col-6">
                                     <button type="button" class="btn btn-submit-modal w-100" >Submit</button>
@@ -694,7 +661,165 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal edit Time Off -->
+        <div class="modal fade" id="editTimeOffModal" tabindex="-1" role="dialog" aria-labelledby="editTimeOffModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
                     
+                    <div class="modal-body px-4 border-0 ">
+                        
+                        <div class="form-header mb-4">
+                            <h5 class="modal-title fs-18">Edit Time Off</h5>
+                        </div>
+
+                        <div class="wrapper-form scrollbar-transparent">
+
+                            <form action="" id="form-edit-time-off" class="needs-validation" novalidate enctype="multipart/form-data"  >
+                                @csrf
+
+                                <input type="hidden" name="id_time_off" value="">
+
+                                <div class="mb-3">
+                                    <label for="select-type-edit" class="form-label">Leave Type</label>
+                                    <select class="form-select" name="leave_type" id="select-type-edit" attr-validation="required">
+                                        <option value="ANNUAL_LEAVE">Annual Leave</option>
+                                        <option value="SICK">Sick</option>
+                                    </select>
+                                    <div class="invalid-feedback fs-12">Please select a leave type</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="start-date-edit" class="form-label">Start Date</label>
+                                            <input class="form-control" type="date" name="start_date" id="start-date-edit" attr-validation="required">
+                                            <div class="invalid-feedback fs-12">Please choose a start date</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="end-date-edit" class="form-label" >End Date</label>
+                                            <input class="form-control" type="date" name="end_date" id="end-date-edit" attr-validation="required">
+                                            <div class="invalid-feedback fs-12">Please choose a end date</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="description-edit" class="form-label">Description</label>
+                                    <textarea class="form-control" name="description" id="description-edit" rows="3" attr-validation="required"></textarea>
+                                    <div class="invalid-feedback fs-12">Please input a description</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="file-1" class="form-label-edit">File 1</label>
+                                    <input class="form-control" type="file" name="file_1" id="file-1-edit"  accept="image/*,.pdf">
+                                    <div class="invalid-feedback fs-12">Please add a file</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="file-2" class="form-label-edit">File 2</label>
+                                    <input class="form-control" type="file" name="file_2" id="file-2-edit"  accept="image/*,.pdf">
+                                    <div class="invalid-feedback fs-12">Please add a file</div>
+                                </div>
+
+
+                            </form>
+
+                        </div>
+
+                        <div class="mt-4 mb-2">
+
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Save</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+
+
+                    </div>
+
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fs-14">Loading...</div>
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal edit Time Off -->
+        <div class="modal fade" id="deleteTimeOffModal" tabindex="-1" role="dialog" aria-labelledby="deleteTimeOffModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
+                    
+                    <div class="modal-body px-4 border-0 ">
+                        
+                        <div class="form-header mb-4">
+                            <h5 class="modal-title fs-18">Delete Time Off</h5>
+                        </div>
+
+                        <div class="mb-2">
+                            <form action="" id="form-delete-time-off" class="needs-validation" novalidate >
+                                @csrf
+
+                                <input type="hidden" name="id_time_off" value="">
+                                <div class="box-data">
+
+                                </div>
+
+
+                            </form>
+                        </div>
+
+                        <div class="mb-3 fs-14 fw-normal">
+                            Are you sure to delete this time off?
+                        </div>
+
+                        <div class="mt-4 mb-2">
+
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Delete</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+
+
+                    </div>
+
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fs-14">Loading...</div>
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>            
 
     </x-slot>
 

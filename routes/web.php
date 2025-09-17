@@ -5,6 +5,7 @@ use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeTimeOffController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AttendanceController;
@@ -174,11 +175,15 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
     Route::get('/attendance/get-attendance-employee-by-month', [AttendanceController::class, 'getAttendanceEmployeeByMonth'])->name('attendance.getAttendanceEmployeeByMonth');
-
-    Route::post('/attendance/time-off-new-request', [CalendarController::class, 'timeOffNewRequest'])->name('attendance.timeOffNewRequest');
-
+    
     Route::post('/attendance/submit-checkin', [AttendanceController::class, 'submitCheckin'])->name('attendance.submitCheckin');
     Route::post('/attendance/submit-checkout', [AttendanceController::class, 'submitCheckout'])->name('attendance.submitCheckout');
+
+    Route::get('/employee-time-off/all-request', [EmployeeTimeOffController::class, 'allRequest'])->name('employee-time-off.allRequest');    
+    Route::post('/employee-time-off/submit-new-request', [EmployeeTimeOffController::class, 'submitNewRequest'])->name('employee-time-off.submitNewRequest');
+    Route::post('/employee-time-off/edit-time-off', [EmployeeTimeOffController::class, 'editTimeOff'])->name('employee-time-off.editTimeOff');
+    Route::post('/employee-time-off/delete-time-off', [EmployeeTimeOffController::class, 'deleteTimeOff'])->name('employee-time-off.deleteTimeOff');
+
 
     Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
     Route::get('/shift/employees-with-shifts', [ShiftController::class, 'getEmployeesWithShifts'])->name('shift.employees-with-shifts');
@@ -190,11 +195,6 @@ Route::middleware('auth')->group(function () {
     Route::put('/shift/config/{id}', [ShiftController::class, 'updateConfig'])->name('shift.config.update');
     Route::put('/shift/{id}/soft-delete', [ShiftController::class, 'softDelete'])
         ->name('shift.soft-delete');
-
-    Route::get('/attendance/latest-unclosed/{employeeId}', [AttendanceController::class, 'getLatestUnclosedAttendance']);
-    Route::get('/attendance/daily/{employeeId}/{date}', [AttendanceController::class, 'getDailyAttendances']);
-    Route::get('/attendance/shift-details/{employeeId}/{date}', [AttendanceController::class, 'getEmployeeShiftDetails']);
-    Route::get('/attendance/today-status/{employeeId}', [AttendanceController::class, 'getTodayStatus']);
 
 
     Route::get('/calendar', [CalendarController::class, 'showCalendarPage'])->name('calendar');

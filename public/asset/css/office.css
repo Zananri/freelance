@@ -1042,7 +1042,7 @@ td > .btn-delete {
 .scrollbar-transparent::-webkit-scrollbar {
   width: 5px; /* Adjust width as needed */
   height: 5px; /* Adjust height for horizontal scrollbar */
-  background-color: #272e3510; /* Make the scrollbar's background transparent */
+  background-color: #272e350a; /* Make the scrollbar's background transparent */
 }
 
 /* Target the scrollbar track (the background behind the thumb) */
@@ -1052,7 +1052,7 @@ td > .btn-delete {
 
 /* Target the scrollbar thumb (the draggable part) */
 .scrollbar-transparent::-webkit-scrollbar-thumb {
-  background-color: rgba(23, 38, 66, 0.2); /* Example: Semi-transparent black thumb */
+  background-color: rgba(23, 38, 66, 0.1); /* Example: Semi-transparent black thumb */
   border-radius: 5px; /* Optional: Rounded corners for the thumb */
 }
 
