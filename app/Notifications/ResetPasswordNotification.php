@@ -22,10 +22,15 @@ class ResetPasswordNotification extends Notification
 
     public function toMail($notifiable)
     {
-        $url = url('/reset-password/'.$this->token).'?email='.urlencode($notifiable->getEmailForPasswordReset());
+        $recipientEmail = $notifiable->getEmailForPasswordReset();
+        $url = url('/reset-password/'.$this->token).'?email='.urlencode($recipientEmail);
 
+        // Important: SMTP authentication (MAIL_USERNAME / MAIL_PASSWORD) must be a valid mail account.
+        // You cannot dynamically authenticate as an arbitrary address entered in the forgot form.
+        // Best option for making replies go to the entered email is to set Reply-To to that address.
         return (new MailMessage)
             ->subject('Reset Password')
+            ->replyTo($recipientEmail)
             ->view('emails.reset_password', ['url' => $url]);
     }
 }
