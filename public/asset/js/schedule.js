@@ -561,14 +561,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const monthlyOpts = document.getElementById(
             "edit_schedule_monthly_opts"
         );
+        const startAtDiv = document.getElementById("edit_schedule_start_at_div");
 
-        if (!weeklyOpts || !monthlyOpts) {
+        if (!weeklyOpts || !monthlyOpts || !startAtDiv) {
             return;
         }
 
         if (recurrenceType === "weekly") {
             weeklyOpts.classList.remove("d-none");
             monthlyOpts.classList.add("d-none");
+            startAtDiv.classList.remove("d-none");
             if (dayOfWeek !== null && dayOfWeek !== undefined) {
                 const dowElem = document.getElementById(
                     "edit_schedule_recurrence_day_of_week"
@@ -578,15 +580,21 @@ document.addEventListener("DOMContentLoaded", function () {
         } else if (recurrenceType === "monthly") {
             weeklyOpts.classList.add("d-none");
             monthlyOpts.classList.remove("d-none");
+            startAtDiv.classList.remove("d-none");
             if (dayOfMonth !== null && dayOfMonth !== undefined) {
                 const domElem = document.getElementById(
                     "edit_schedule_recurrence_day_of_month"
                 );
                 if (domElem) domElem.value = dayOfMonth;
             }
+        } else if (recurrenceType === "daily") {
+            weeklyOpts.classList.add("d-none");
+            monthlyOpts.classList.add("d-none");
+            startAtDiv.classList.remove("d-none"); // Show start_at for daily in edit modal
         } else {
             weeklyOpts.classList.add("d-none");
             monthlyOpts.classList.add("d-none");
+            startAtDiv.classList.add("d-none");
         }
     }
 
@@ -841,9 +849,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
-            // hide start_at for daily
+            // hide start_at for daily in create modal, but show in edit modal
             if (startAtDiv) {
-                startAtDiv.classList.toggle("d-none", v === "daily");
+                startAtDiv.classList.remove("d-none"); // Always show in edit modal
             }
 
             if (v === "weekly") {

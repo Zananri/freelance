@@ -658,13 +658,6 @@ class ScheduleController extends Controller
                     }
                 }
                 $data['recurrence_end_date'] = null;
-
-                // For daily schedules, auto-set start_at to creation date + 1 day if not provided
-                if ($data['recurrence_type'] === 'daily') {
-                    if (empty($data['start_at'])) {
-                        $data['start_at'] = Carbon::tomorrow()->toDateString();
-                    }
-                }
             }
 
             // Update schedule

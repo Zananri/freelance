@@ -366,18 +366,23 @@
                             </div>
 
                             <!-- Monthly options -->
-                            @php
-                                $now = now();
-                                $monthlyDisplay = $now->translatedFormat('l, j F Y');
-                            @endphp
-                            <div class="custom-form-employee d-none" id="edit_schedule_monthly_opts">
-                                <label for="edit_schedule_monthly_date" class="form-label label-custom">Start
-                                    date</label>
-                                <input type="text" id="edit_schedule_monthly_date" class="form-control input-text"
-                                    readonly value="{{ $monthlyDisplay }}"
-                                    data-initial-display="{{ $monthlyDisplay }}">
-                                <input type="hidden" id="edit_schedule_recurrence_day_of_month"
-                                    name="recurrence_day_of_month" value="{{ $now->day }}">
+                            <div class="custom-form-employee" id="edit_schedule_date_opts">
+                                <div class="d-flex gap-2">
+                                    <!-- Start Date -->
+                                    <div class="w-50">
+                                        <label for="edit_schedule_start_at" class="form-label label-custom">Start
+                                            Date</label>
+                                        <input type="date" id="edit_schedule_start_at" name="start_at"
+                                            class="form-control input-text">
+                                    </div>
+
+                                    <!-- End Date -->
+                                    <div class="w-50">
+                                        <label for="edit_schedule_end_at" class="form-label label-custom">End Date</label>
+                                        <input type="date" id="edit_schedule_end_at" name="end_at"
+                                            class="form-control input-text">
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Points -->
@@ -408,26 +413,6 @@
                                 <input type="number" min="0" id="edit_schedule_due_in_days"
                                     name="due_in_days" class="form-control input-text" placeholder="e.g. 3">
                                 <div class="form-text">Due date = Start date + Total days.</div>
-                            </div>
-
-                            {{-- Start & End Date --}}
-                            <div class="custom-form-employee" id="edit_schedule_date_opts">
-                                <div class="d-flex gap-2">
-                                    <!-- Start Date -->
-                                    <div class="w-50">
-                                        <label for="edit_schedule_start_at" class="form-label label-custom">Start
-                                            Date</label>
-                                        <input type="date" id="edit_schedule_start_at" name="start_at"
-                                            class="form-control input-text">
-                                    </div>
-
-                                    <!-- End Date -->
-                                    <div class="w-50">
-                                        <label for="edit_schedule_end_at" class="form-label label-custom">End Date</label>
-                                        <input type="date" id="edit_schedule_end_at" name="end_at"
-                                            class="form-control input-text">
-                                    </div>
-                                </div>
                             </div>
 
                             <!-- Title -->
