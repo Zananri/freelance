@@ -124,10 +124,10 @@ function getAttendanceTrackingData(month,year)
 
                 console.log(attendance.time_late);
 
-                if(attendance.time_late != null){
+                if(attendance.time_late != null && attendance.time_late != '00:00:00'){
                     $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"]').addClass('is-late');   
                 }
-                
+
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text(timeIn);
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text(timeOut);
                 
@@ -204,7 +204,12 @@ function getAttendanceDetail(employeeId,dateAttendance)
             $('#modalAttendance .employee-name').text(employee.name);
             $('#modalAttendance .employee-shift').text(employeeShift);
 
-            $('#modalAttendance .attendance-late').text(formatTimeShort(attendance.time_late));
+            $('#modalAttendance .attendance-late').text(formatTimeShort(attendance.time_late)).removeClass('text-danger');
+
+            if(attendance.time_late != null && attendance.time_late != '00:00:00'){
+                $('#modalAttendance .attendance-late').addClass('text-danger');   
+            }
+
             $('#modalAttendance .attendance-checkin').text(formatTimeShort(attendance.time_in));
             $('#modalAttendance .attendance-checkout').text(formatTimeShort(attendance.time_out));
             $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendance.total_work_duration));

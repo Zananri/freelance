@@ -141,9 +141,6 @@
                 <div class="modal-content">
 
                     <div class="modal-body p-4 position-relative">
-                        <div class="position-absolute top-0 end-0 m-3 p-2 " data-bs-dismiss="modal">
-                            <span class="material-symbols-outlined fs-18 text-secondary">close</span>
-                        </div>
                         <div class="text-center">
                                 <span class="fw-light fs-24">Attendance</span>
                         </div>
@@ -181,7 +178,7 @@
                                     <div class="fs-14 text-secondary fw-normal">Late</div>
                                 </div>
                                 <div>
-                                    <div class="attendance-late  fs-14 fw-normal text-danger"></div>
+                                    <div class="attendance-late  fs-14 fw-normal"></div>
                                 </div>
                             </div>
                         </div>
