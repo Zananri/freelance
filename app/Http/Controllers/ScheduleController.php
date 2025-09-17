@@ -44,11 +44,11 @@ trait ScheduleImmediateGeneration
                 break;
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $today->day);
-                $dueToday = ((int) $today->day === $dom);
+                $dueToday = false;
                 break;
             case 'daily':
             default:
-                $dueToday = true;
+                $dueToday = false;
         }
 
         if (!$dueToday) {
@@ -73,18 +73,17 @@ trait ScheduleImmediateGeneration
         switch ($s->recurrence_type) {
             case 'weekly':
                 $dow = (int) ($s->recurrence_day_of_week ?? $start->dayOfWeek);
-                $c = $start->copy();
-                while ((int) $c->dayOfWeek !== $dow) {
-                    $c->addDay();
+                $next = $start->copy()->addDay(); // start from tomorrow
+                while ((int) $next->dayOfWeek !== $dow) {
+                    $next->addDay();
                 }
-                return $c;
+                return $next;
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $start->day);
-                // If Start From is on or before today, first run is the month matching Start From date
-                return $this->safeMonthly($start->year, $start->month, $dom);
+                return $start->copy()->addDay(); // generate the day after start_at
             case 'daily':
             default:
-                return $start;
+                return $start->addDay(); // tomorrow
         }
     }
 
@@ -103,7 +102,7 @@ trait ScheduleImmediateGeneration
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
                 $next->addMonthsNoOverflow($interval);
-                return $this->safeMonthly($next->year, $next->month, $dom);
+                return $this->safeMonthly($next->year, $next->month, $dom)->addDay();
             case 'daily':
             default:
                 return $next->addDays($interval)->startOfDay();
@@ -190,6 +189,8 @@ trait ScheduleImmediateGeneration
             'reference_files' => $taskRefFiles,
             'start_date' => $startDate,
             'due_date' => $dueDate,
+            'end_at' => $s->end_at,
+            'start_at' => $s->start_at,
             'complete_date' => null,
             'created_by' => $s->created_by,
             'updated_by' => $s->updated_by,
@@ -267,6 +268,9 @@ class ScheduleController extends Controller
                 $q->orWhereJsonContains('executor_ids', (int) $currentEmployeeId);
             }
         });
+
+        // Do not show schedules that have not yet run the generate command (next_run_at is null)
+        $query->whereNotNull('next_run_at');
 
         // Apply recurrence_type filter if provided
         $recurrenceType = $request->input('recurrence_type');
@@ -360,6 +364,8 @@ class ScheduleController extends Controller
                 'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'start_date' => 'nullable|date',
                 'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
+                'start_at' => 'required_unless:recurrence_type,daily|nullable|date',
+                'end_at' => 'date|after_or_equal:start_at',
                 'due_in_days' => 'nullable|integer|min:0|max:3650',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
                 'recurrence_type' => 'required|in:daily,weekly,monthly',
@@ -460,15 +466,22 @@ class ScheduleController extends Controller
             } else {
                 try {
                     $base = Carbon::parse($data['recurrence_start_date']);
-                    $data['recurrence_day_of_month'] = (int) ($data['recurrence_day_of_month'] ?: $base->day);
+                    $data['recurrence_day_of_month'] = (int) (($data['recurrence_day_of_month'] ?? null) ?: $base->day);
                 } catch (\Throwable $e) {
-                    $dom = (int) ($data['recurrence_day_of_month'] ?: Carbon::today()->day);
+                    $dom = (int) (($data['recurrence_day_of_month'] ?? null) ?: Carbon::today()->day);
                     $data['recurrence_day_of_month'] = max(1, min(31, $dom));
                 }
             }
             $data['recurrence_end_date'] = null;
             $data['is_active'] = true;
             $data['next_run_at'] = null; // will be initialized in maybeGenerateNow
+
+            // For daily schedules, auto-set start_at to tomorrow if not provided
+            if ($data['recurrence_type'] === 'daily') {
+                if (empty($data['start_at'])) {
+                    $data['start_at'] = Carbon::tomorrow()->toDateString();
+                }
+            }
 
             $schedule = TaskSchedule::create($data);
 
@@ -533,6 +546,8 @@ class ScheduleController extends Controller
                 'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'start_date' => 'nullable|date',
                 'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
+                'start_at' => 'required_unless:recurrence_type,daily|nullable|date',
+                'end_at' => 'nullable|date|after_or_equal:start_at',
                 'due_in_days' => 'nullable|integer|min:0|max:3650',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
                 'recurrence_type' => 'nullable|in:daily,weekly,monthly',
@@ -631,11 +646,13 @@ class ScheduleController extends Controller
                     $data['recurrence_day_of_week'] = null;
                 }
                 if ($data['recurrence_type'] !== 'monthly') {
+                    $data['recurrence_day_of_month'] = null;
+                } else {
                     try {
                         $base = Carbon::parse($data['recurrence_start_date']);
-                        $data['recurrence_day_of_month'] = (int) ($data['recurrence_day_of_month'] ?: $base->day);
+                        $data['recurrence_day_of_month'] = (int) (($data['recurrence_day_of_month'] ?? null) ?: $base->day);
                     } catch (\Throwable $e) {
-                        $dom = (int) ($data['recurrence_day_of_month'] ?: Carbon::today()->day);
+                        $dom = (int) (($data['recurrence_day_of_month'] ?? null) ?: Carbon::today()->day);
                         $data['recurrence_day_of_month'] = max(1, min(31, $dom));
                     }
                 }

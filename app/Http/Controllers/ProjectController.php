@@ -1056,6 +1056,101 @@ class ProjectController extends Controller
         }
     }
 
+    public function getProjectsIds(Request $request)
+    {
+        $ids = $request->query('ids');
+        if (!$ids) {
+            return response()->json([
+                'code' => 400,
+                'status' => 'error',
+                'message' => 'No project IDs provided'
+            ], 400);
+        }
+
+        $ids = explode(',', $ids);
+
+        $projects = Project::with(['department', 'division', 'projectAssignments.employee.user'])
+            ->whereIn('id', $ids)
+            ->get();
+
+        $result = [];
+
+        foreach ($ids as $id) {
+            $project = $projects->firstWhere('id', $id);
+
+            if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
+                $result[] = null; // kalo ga ketemu atau deleted, tetap null
+                continue;
+            }
+
+            $author = null;
+            $coAuthors = [];
+            $contributors = [];
+
+            foreach ($project->projectAssignments as $assignment) {
+                $emp = $assignment->employee;
+                if (!$emp)
+                    continue;
+
+                $avatar = $this->resolveEmployeeAvatar($emp);
+                $empDivision = null;
+                try {
+                    $empDivision = $emp->division ? ($emp->division->name_division ?? $emp->division->name ?? null) : null;
+                } catch (\Throwable $t) {
+                    $empDivision = null;
+                }
+
+                $wrapped = [
+                    'id' => $emp->id,
+                    'name' => $emp->name,
+                    'user_photo' => $avatar,
+                    'profile_picture' => $avatar,
+                    'profile_picture_url' => $avatar,
+                    'division' => $empDivision,
+                    'division_name' => $empDivision,
+                ];
+
+                if ($assignment->role === 'author') {
+                    $author = $wrapped;
+                } elseif ($assignment->role === 'co_author') {
+                    $coAuthors[] = $wrapped;
+                } elseif ($assignment->role === 'contributor') {
+                    $contributors[] = $wrapped;
+                }
+            }
+
+            $files = $project->reference_files ?? $project->reference_file;
+            if (is_string($files) && $files !== '')
+                $files = [$files];
+            if (!is_array($files))
+                $files = [];
+
+            $result[] = [
+                'id' => $project->id,
+                'title' => $project->title,
+                'description' => $project->description,
+                'image' => $project->image,
+                'department' => $project->department ? $project->department->name_department ?? $project->department->name : null,
+                'division' => $project->division ? $project->division->name_division ?? $project->division->name : null,
+                'reference_url' => $project->reference_url,
+                'reference_urls' => $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []),
+                'reference_file' => $files,
+                'reference_files' => $files,
+                'start_date' => $project->start_date,
+                'due_date' => $project->due_date,
+                'author' => $author,
+                'co_authors' => $coAuthors,
+                'contributors' => $contributors,
+            ];
+        }
+
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'data' => $result
+        ]);
+    }
+
     /**
      * Show the form for editing the specified project.
      */
@@ -1940,6 +2035,27 @@ class ProjectController extends Controller
                 'data' => 0,
             ]);
         }
+    }
+
+    public function getAllProjectFeedbacks(Request $request)
+    {
+        $ids = $request->query('ids');
+
+        if (!$ids) {
+            return response()->json([
+                'data' => []
+            ]);
+        }
+
+        $ids = explode(',', $ids);
+
+        $feedbacks = ProjectFeedback::whereIn('project_id', $ids)->get();
+
+        $grouped = $feedbacks->groupBy('project_id');
+
+        return response()->json([
+            'data' => $grouped
+        ]);
     }
 
 

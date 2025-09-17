@@ -14,6 +14,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\ForgotController;
+use App\Http\Controllers\ResetPasswordController;
 
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
@@ -37,8 +39,16 @@ Route::middleware('guest')->group(function () {
     });
 
     Route::post('/login', [UserController::class, 'login'])->name('login');
-});
 
+    // Forgot password (accessible to guests)
+    Route::get('/forgot-password', [ForgotController::class, 'showForgotPasswordPage'])->name('forgot-password');
+    // Handle form submission from forgot password page
+    Route::post('/forgot-password', [ForgotController::class, 'submitForgotPassword'])->name('forgot-password.post');
+    // Show reset password form with token (link from email)
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'showResetPasswordPage'])->name('password.reset');
+    // Handle reset password submission
+    Route::post('/reset-password', [ResetPasswordController::class, 'submitResetPassword'])->name('password.update');
+});
 
 
 Route::get('/server-time', function () {
@@ -72,12 +82,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
     Route::get('/project/{id}', [ProjectController::class, 'show'])->name('project.show');
+    Route::get('/projects', [ProjectController::class, 'getProjectsIds'])->name('projects.ids');
     Route::post('/project/store', [ProjectController::class, 'store'])->name('project.store');
 
     // === Project feedback routes ===
     Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
     Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
     Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
+    Route::get('/project-feedbacks', [ProjectController::class, 'getAllProjectFeedbacks'])->name('project-feedbacks.all');
 
     // 🔥 Global unread counts (semua project) — ganti prefix agar tidak tabrakan
     Route::get('/projects/feedbacks/unread-counts', [ProjectController::class, 'getAllUnreadCounts'])
@@ -221,7 +233,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
     Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('user.destroy');
     Route::get('/user/ajax/data', [UserController::class, 'getUsersAjax'])->name('user.ajax.data');
-    
+
 
     Route::get('/department', [DepartmentController::class, 'showDepartmentPage'])->name('department');
     Route::get('/department/index', [DepartmentController::class, 'index'])->name('department.index');
@@ -265,6 +277,8 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
     Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
     Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');
+
+
 
 });
 

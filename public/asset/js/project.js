@@ -9720,53 +9720,98 @@ document.addEventListener("DOMContentLoaded", function () {
     window.__projectFetchPromises = window.__projectFetchPromises || {};
     window.__feedbackFetchPromises = window.__feedbackFetchPromises || {};
 
-    function getProject(pid, force) {
-        if (!force && window.__projectCache[pid])
-            return Promise.resolve(window.__projectCache[pid]);
-        if (window.__projectFetchPromises[pid])
-            return window.__projectFetchPromises[pid];
-        const p = fetch(appUrl + "/project/" + pid)
-            .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-            .then((resp) => {
-                const data = resp.data || resp;
-                window.__projectCache[pid] = data;
-                delete window.__projectFetchPromises[pid];
-                return data;
-            })
-            .catch((err) => {
-                delete window.__projectFetchPromises[pid];
-                throw err;
-            });
+    let projectBatchQueue = [];
+    let projectBatchTimer = null;
+
+    function getProject(pid, force = false) {
+        if (!force && window.__projectCache[pid]) return Promise.resolve(window.__projectCache[pid]);
+        if (window.__projectFetchPromises[pid]) return window.__projectFetchPromises[pid];
+
+        const p = new Promise((resolve, reject) => {
+            projectBatchQueue.push({ pid, resolve, reject });
+
+            if (!projectBatchTimer) {
+                projectBatchTimer = setTimeout(() => {
+                    const batch = [...projectBatchQueue];
+                    projectBatchQueue = [];
+                    projectBatchTimer = null;
+
+                    const ids = batch.map(b => b.pid);
+
+                    fetch(`${appUrl}/projects?ids=${ids.join(",")}`)
+                        .then(r => r.ok ? r.json() : Promise.reject(r))
+                        .then(resp => {
+                            const dataArr = Array.isArray(resp.data) ? resp.data : [];
+                            // update cache
+                            dataArr.forEach(d => {
+                                window.__projectCache[d.id] = d;
+                            });
+                            // resolve tiap promise sesuai urutan request
+                            batch.forEach(b => {
+                                b.resolve(window.__projectCache[b.pid] || null);
+                            });
+                        })
+                        .catch(err => {
+                            // reject semua kalau ada error fetch
+                            batch.forEach(b => b.reject(err));
+                        })
+                        .finally(() => {
+                            ids.forEach(id => delete window.__projectFetchPromises[id]);
+                        });
+                }, 50);
+            }
+        });
+
         window.__projectFetchPromises[pid] = p;
         return p;
     }
 
-    function getFeedback(pid, force) {
-        if (!force && window.__feedbackCache[pid])
+    let feedbackBatchQueue = [];
+    let feedbackBatchTimer = null;
+
+    function getFeedback(pid, force = false) {
+        if (!force && window.__feedbackCache[pid]) {
             return Promise.resolve(window.__feedbackCache[pid]);
-        if (window.__feedbackFetchPromises[pid])
+        }
+        if (window.__feedbackFetchPromises[pid]) {
             return window.__feedbackFetchPromises[pid];
-        const p = fetch(appUrl + "/project-feedbacks/" + pid)
-            .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-            .then((resp) => {
-                let arr = [];
-                if (Array.isArray(resp)) arr = resp;
-                else if (Array.isArray(resp.data)) arr = resp.data;
-                else if (resp.data && typeof resp.data === "object")
-                    arr = [resp.data];
-                else if (typeof resp.total === "number")
-                    arr = new Array(resp.total).fill(null);
-                window.__feedbackCache[pid] = arr;
-                delete window.__feedbackFetchPromises[pid];
-                return arr;
-            })
-            .catch((err) => {
-                delete window.__feedbackFetchPromises[pid];
-                throw err;
-            });
+        }
+
+        const p = new Promise((resolve, reject) => {
+            feedbackBatchQueue.push({ pid, resolve, reject });
+
+            if (!feedbackBatchTimer) {
+                feedbackBatchTimer = setTimeout(() => {
+                    const batch = [...feedbackBatchQueue];
+                    feedbackBatchQueue = [];
+                    feedbackBatchTimer = null;
+
+                    const ids = batch.map(i => i.pid);
+
+                    fetch(`${appUrl}/project-feedbacks?ids=${ids.join(",")}`)
+                        .then(r => (r.ok ? r.json() : Promise.reject(r)))
+                        .then(resp => {
+                            const grouped = resp.data || {};
+                            batch.forEach(b => {
+                                const arr = grouped[b.pid] || [];
+                                window.__feedbackCache[b.pid] = arr;
+                                b.resolve(arr);
+                            });
+                        })
+                        .catch(err => {
+                            batch.forEach(b => b.reject(err));
+                        })
+                        .finally(() => {
+                            ids.forEach(id => delete window.__feedbackFetchPromises[id]);
+                        });
+                }, 50);
+            }
+        });
+
         window.__feedbackFetchPromises[pid] = p;
         return p;
     }
+
 
     (function populateCounts(retry = 0) {
         const MAX_RETRIES = 12;
