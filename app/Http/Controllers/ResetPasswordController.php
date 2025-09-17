@@ -40,7 +40,16 @@ class ResetPasswordController extends Controller
         );
 
         if ($status == Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', __($status));
+            // Instead of immediately redirecting to login, render the reset page with
+            // a success message so the client can display the floating alert first
+            // and then redirect to login via JS. This provides the UX you requested.
+            $message = __($status);
+            return view('reset-password.reset', [
+                'token' => null,
+                'email' => $request->email,
+                'status_message' => $message,
+                'redirect_to' => route('login'),
+            ]);
         }
 
         return back()->withErrors(['email' => [__($status)]]);

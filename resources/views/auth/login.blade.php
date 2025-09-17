@@ -51,17 +51,20 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"
         integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous">
     </script>
-    <script>
-        // Auto dismiss alert after 1.5 seconds
-        setTimeout(function() {
-            const alertContainer = document.querySelector('.alert-success');
-            if (alertContainer) {
-                alertContainer.style.transition = 'opacity 0.5s ease';
-                alertContainer.style.opacity = '0';
-                setTimeout(() => alertContainer.remove(), 500);
-            }
-        }, 1500);
-    </script>
+</script>
 
+    <!-- Guest alert assets: styles and behavior moved to external files -->
+    <link rel="stylesheet" href="{{ asset('asset/css/guest-alert.css') }}">
 
+    <!-- Floating alert markup (data attributes filled from session) -->
+    <div class="box-alert-messages" id="guestFloatingAlert"
+         data-guest-message="{{ e(session('success') ?? session('status') ?? session('message') ?? '') }}"
+         data-guest-type="{{ e(session('status_type') ?? (session('success') ? 'success' : 'light')) }}">
+        <div class="box-message" role="">
+            <div class="message-content fs-14">{!! session('success') ?? session('status') ?? session('message') ?? '' !!}</div>
+            <div class="btn-close-alert-messages" aria-hidden="true"></div>
+        </div>
+    </div>
+
+    <script src="{{ asset('asset/js/guest-alert.js') }}"></script>
 </x-guest-layout>
