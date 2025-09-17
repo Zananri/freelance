@@ -689,12 +689,7 @@ class ScheduleController extends Controller
         try {
             $schedule = TaskSchedule::findOrFail($id);
 
-            // Delete related tasks that were generated from this schedule
-            Task::where('title', $schedule->title)
-                ->where('created_by', $schedule->created_by)
-                ->whereDate('created_at', '>=', $schedule->created_at->toDateString())
-                ->delete();
-
+            // soft delete
             // Delete the schedule
             $schedule->delete();
 
