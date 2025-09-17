@@ -190,6 +190,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 startAtDiv.classList.toggle('d-none', v === 'daily' || v === 'weekly');
             }
 
+            // adjust end_at width
+            const endAtDiv = document.querySelector('#schedule_date_opts .d-flex > div:nth-child(2)');
+            if(endAtDiv){
+                if(v === 'monthly'){
+                    endAtDiv.classList.remove('w-100');
+                    endAtDiv.classList.add('w-50');
+                } else {
+                    endAtDiv.classList.remove('w-50');
+                    endAtDiv.classList.add('w-100');
+                }
+            }
+
             // required rules
             const startAt = document.getElementById('schedule_start_at');
             if(startAt){
