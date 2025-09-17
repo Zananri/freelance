@@ -29,7 +29,9 @@
                         <input type="hidden" name="token" value="{{ $token ?? old('token') }}">
 
                         <div class="mb-3">
-                            <input type="email" name="email" class="form-control form-input bg-white bg-opacity-75" placeholder="Email" value="{{ old('email', $email ?? '') }}" required>
+                            <label class="form-label">Email Address :</label>
+                            <div class="p-2 bg-white" style="border-radius:8px;">{{ old('email', $email ?? '') }}</div>
+                            <input type="hidden" name="email" value="{{ old('email', $email ?? '') }}">
                         </div>
 
                         <div class="mb-3">
