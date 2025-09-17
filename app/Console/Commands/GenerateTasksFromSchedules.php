@@ -148,9 +148,9 @@ class GenerateTasksFromSchedules extends Command
                     $candidate->addDay();
                 }
                 return $candidate;
-            case 'monthly':
-                $dom = (int) ($s->recurrence_day_of_month ?: $start->day);
-                return $this->safeMonthlyDate($start->year, $start->month, $dom, $start);
+        case 'monthly':
+            $dom = (int) ($s->recurrence_day_of_month ?: $start->day);
+            return $this->safeMonthlyDate($start->year, $start->month, $dom, $start)->addDay();
             case 'daily':
             default:
                 return $start;
@@ -172,11 +172,11 @@ class GenerateTasksFromSchedules extends Command
                     $next->addDay();
                 }
                 return $next->startOfDay();
-            case 'monthly':
-                // Add N months and clamp to chosen DOM
-                $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
-                $next->addMonthsNoOverflow($interval);
-                return $this->safeMonthlyDate($next->year, $next->month, $dom, $next);
+        case 'monthly':
+            // Add N months and clamp to chosen DOM
+            $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
+            $next->addMonthsNoOverflow($interval);
+            return $this->safeMonthlyDate($next->year, $next->month, $dom, $next)->addDay(); // Generate the day after the recurrence date
             case 'daily':
             default:
                 return $next->addDays($interval)->startOfDay();

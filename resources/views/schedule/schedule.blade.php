@@ -141,7 +141,7 @@
                                     </div>
 
                                     <!-- End Date -->
-                                    <div class="w-50">
+                                    <div class="w-100">
                                         <label for="schedule_end_at" class="form-label label-custom">End At</label>
                                         <input type="date" id="schedule_end_at" name="end_at"
                                             class="form-control input-text">
@@ -377,7 +377,7 @@
                                     </div>
 
                                     <!-- End Date -->
-                                    <div class="w-50">
+                                    <div class="w-100">
                                         <label for="edit_schedule_end_at" class="form-label label-custom">End Date</label>
                                         <input type="date" id="edit_schedule_end_at" name="end_at"
                                             class="form-control input-text">
