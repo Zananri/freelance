@@ -20,6 +20,7 @@ class DashboardController extends Controller
         $now = Carbon::now();
         $today = Carbon::today()->toDateString();
         $yesterday = Carbon::today()->subDays(1)->toDateString();
+        $tomorow = Carbon::today()->addDay()->toDateString();
 
         // $now = Carbon::parse('2025-09-07 01:15:00');
         // $today = Carbon::parse('2025-09-07')->toDateString();
@@ -36,71 +37,94 @@ class DashboardController extends Controller
         $employeeShiftYesterday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
                 ->where('date_shift', $yesterday)
         ->first();
-
-        $attendance = Attendance::where('employee_id', $employee->id)
-            ->where('date_attendance', $today)
+  
+        $employeeShiftToday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+            ->where('date_shift', $today)
         ->first();
 
-        
-        
+        $employeeShiftYesterday = EmployeeShift::with('shift')->where('employee_id', $employee->id)
+                ->where('date_shift', $yesterday)
+        ->first();
+
+        $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2); 
+        $rangeEnd = Carbon::parse($today.' '.$employee->shift->time_end)->addHours(3);
+
         $timeStart = Carbon::parse($employee->shift->time_start);
         $timeEnd = Carbon::parse($employee->shift->time_end);
         
-        
-        if($employeeShift){
-            $timeStart = Carbon::parse($employeeShift->shift->time_start);
-            $timeEnd = Carbon::parse($employeeShift->shift->time_end);
+        if($timeEnd < $timeStart){
+            $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2); 
+            $rangeEnd = Carbon::parse($tomorow.' '.$employee->shift->time_end)->addHours(3);
         }
 
+        if($employeeShiftToday){
+
+            $rangeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start)->subHours(2); 
+            $rangeEnd = Carbon::parse($today.' '.$employeeShiftToday->shift->time_end)->addHours(3);
+
+            $timeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start);
+            $timeEnd = Carbon::parse($today.' '.$employeeShiftToday->shift->time_end);
+            
+
+            if($timeEnd < $timeStart){
+                $rangeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start)->subHours(2); 
+                $rangeEnd = Carbon::parse($tomorow.' '.$employeeShiftToday->shift->time_end)->addHours(3);
+            }
+            
+        }        
         
-        $todayDate = Carbon::now()->format('l, j F Y'); 
-        $shiftTimeType = 'NORMAL';
-         
+        
         if($employeeShiftYesterday){
 
-            $timeStartYesterday = Carbon::parse($employeeShiftYesterday->shift->time_start);
-            $timeEndYesterday = Carbon::parse($employeeShiftYesterday->shift->time_end);
 
-            if($timeEndYesterday < $timeStartYesterday){
-                $shiftTimeType = 'OVERNIGHT';
+            $checkTimeStart = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start);
+            $checkTimeEnd = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_end);
+            
+            
+            
 
-                //Jika belum lewat 2 jam waktu checkout
-                if($now->diffInHours(Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)) > -2){
+            if($checkTimeEnd < $checkTimeStart){
+            
 
-                    $timeStart = $timeStartYesterday;
-                    $timeEnd = $timeEndYesterday;
-                    
-                    $employeeShift = $employeeShiftYesterday;
-                    $attendance = Attendance::where('employee_id', $employee->id)
-                            ->where('date_attendance', $yesterday)
-                    ->first();
+                $checkRangeStart = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start)->subHours(2); 
+                $checkRangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(3);
 
-                    $todayDate = Carbon::now()->subDays(1)->format('l, j F Y'); 
+                if($now <= $checkRangeEnd && $now >= $checkRangeStart){
 
+                    $timeStart = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start);
+                    $timeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end);
+            
+                    $rangeStart = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start)->subHours(2); 
+                    $rangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(3);
                 }
             }
-
-           // dd($timeEndYesterday ,$now->diffInHours($timeEndYesterday),$attendance );
-            
             
         }
 
+        
+        
         $isLate = '';
 
         $atendanceTrackingCheckin = '';
         $atendanceTrackingCheckout = '';
 
         
+        $timeIn = '';
+        $timeOut = '';
+
+        $totalWorkHour = '';
+        
+        $attendance = Attendance::where('employee_id', $employee->id)
+            ->where('date_attendance', $rangeStart->addHours(2)->toDateString())
+        ->first();
+
+        $todayDate = $rangeStart->format('l, j F Y');
+
 
         if($attendance){
  
             $attendanceTimeIn = Carbon::parse($attendance->time_in);
-
-            if( $shiftTimeType == 'OVERNIGHT'){
-                $attendanceTimeIn = Carbon::parse( $today.' '.$attendance->time_in);
-            }
-
-
+ 
             if($attendanceTimeIn > $timeStart){
                 $isLate = 'islate';
             }
@@ -114,19 +138,8 @@ class DashboardController extends Controller
             $atendanceTrackingCheckout = AttendanceTracking::where('attendance_id', $attendance->id)
                 ->where('type', 'check_out')
             ->first();
-
-        }
-
-        
-        
-        $timeIn = '';
-        $timeOut = '';
-
-        $totalWorkHour = '';
-
-
-        if($attendance){
             
+
             if($attendance->time_in){
                 $timeIn = Carbon::parse($attendance->time_in)->format('H:i');
             }
@@ -145,7 +158,7 @@ class DashboardController extends Controller
         
 
 
-        return view('dashboard', compact('employee','office', 'attendance','employeeShift','shiftTimeType','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
+        return view('dashboard', compact('employee','office', 'attendance','employeeShift','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
     }
 
     // 'Present'

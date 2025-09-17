@@ -74,6 +74,28 @@ function setDefaultLocation(){
     }
 }
 
+function initialiseMapsCheckIn(){
+    
+    if($('#detailMapCheckIn').attr('data-location')){
+
+        MAP_CHECKIN_DETAIL_LOCATION = $('#detailMapCheckIn').attr('data-location').split(',');
+
+        MAP_CHECKIN_DETAIL = L.map('detailMapCheckIn', {
+                    center: MAP_CHECKIN_DETAIL_LOCATION,
+                    zoom: 16
+                });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'NSA Performance',
+            maxZoom: 19
+        }).addTo(MAP_CHECKIN_DETAIL);
+
+        MAP_CHECKIN_DETAIL_MARKER = L.marker(MAP_CHECKIN_DETAIL_LOCATION).addTo(MAP_CHECKIN_DETAIL);
+        MAP_CHECKIN_DETAIL_MARKER.bindTooltip("Check In Location", { permanent: true, direction: 'top', offset: [0, 0] });
+
+
+    }
+}
 
 let LOC_LATITUDE = 0;
 let LOC_LONGITUDE = 0;
@@ -86,6 +108,7 @@ let MAP_CHECKIN_DETAIL_MARKER = null;
 
 const employeeOffice = $('[name="employee_office"]').val();
 
+initialiseMapsCheckIn();
 //const LOC_OFFICE = L.latLng(-6.164849, 106.809542); // NSA Petotjo
 let locationLat = -6.164849;
 let locationLong = 106.809542;
@@ -97,19 +120,8 @@ if(employeeOffice){
 
 const LOC_OFFICE = L.latLng(locationLat, locationLong);
 
-
 const loopGetLocation = setInterval(setDefaultLocation, 500);
 
-
-$('#checkInBtn').click(function(){
-
-    if($('#checkInBtn').hasClass('active')){
-        showCheckinDetail();
-    }else{
-        checkInModal.show();
-    }
-    
-});
 
 $('.time-log.time-in').on('click', function(){
     showCheckinDetail();
@@ -163,6 +175,30 @@ function showCheckoutDetail(){
     }, 700);
 }
 
+
+function initialiseMapsCheckOut(){
+    
+    if($('#detailMapCheckOut').attr('data-location')){
+
+        MAP_CHECKOUT_DETAIL_LOCATION = $('#detailMapCheckOut').attr('data-location').split(',');
+
+        MAP_CHECKOUT_DETAIL = L.map('detailMapCheckOut', {
+                    center: MAP_CHECKOUT_DETAIL_LOCATION,
+                    zoom: 16
+                });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'NSA Performance',
+            maxZoom: 19
+        }).addTo(MAP_CHECKOUT_DETAIL);
+
+        MAP_CHECKOUT_DETAIL_MARKER = L.marker(MAP_CHECKOUT_DETAIL_LOCATION).addTo(MAP_CHECKOUT_DETAIL);
+        MAP_CHECKOUT_DETAIL_MARKER.bindTooltip("Check In Location", { permanent: true, direction: 'top', offset: [0, 0] });
+
+    }
+}
+
+initialiseMapsCheckOut();
 
 
 
