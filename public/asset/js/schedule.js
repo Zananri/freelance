@@ -57,8 +57,6 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             dataType: "json",
             success: function (response) {
-                console.log(response);
-
                 const paginatedItems = response.data.data;
                 const totalItems = response.data.total;
                 const currentPage = response.data.current_page;
@@ -80,7 +78,9 @@ document.addEventListener("DOMContentLoaded", function () {
             fetchScheduleData(1, currentRecurrenceFilter, currentSearchFilter);
         } catch (e) {
             // Fallback: reload entire page if something goes wrong
-            try { window.location.reload(); } catch (_) {}
+            try {
+                window.location.reload();
+            } catch (_) {}
         }
     };
 
@@ -105,7 +105,11 @@ document.addEventListener("DOMContentLoaded", function () {
         prevBtn.addEventListener("click", function (e) {
             e.preventDefault();
             if (currentPage === 1) return;
-            fetchScheduleData(currentPage - 1, currentRecurrenceFilter, currentSearchFilter);
+            fetchScheduleData(
+                currentPage - 1,
+                currentRecurrenceFilter,
+                currentSearchFilter
+            );
         });
         prevLi.appendChild(prevBtn);
         paginationContainer.appendChild(prevLi);
@@ -119,7 +123,11 @@ document.addEventListener("DOMContentLoaded", function () {
             btn.textContent = i;
             btn.addEventListener("click", function (e) {
                 e.preventDefault();
-                fetchScheduleData(i, currentRecurrenceFilter, currentSearchFilter);
+                fetchScheduleData(
+                    i,
+                    currentRecurrenceFilter,
+                    currentSearchFilter
+                );
             });
             li.appendChild(btn);
             paginationContainer.appendChild(li);
@@ -127,14 +135,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Next
         const nextLi = document.createElement("li");
-        nextLi.className = "page-item" + (currentPage === totalPages ? " disabled" : "");
+        nextLi.className =
+            "page-item" + (currentPage === totalPages ? " disabled" : "");
         const nextBtn = document.createElement("button");
         nextBtn.className = "page-link";
         nextBtn.textContent = "Next";
         nextBtn.addEventListener("click", function (e) {
             e.preventDefault();
             if (currentPage === totalPages) return;
-            fetchScheduleData(currentPage + 1, currentRecurrenceFilter, currentSearchFilter);
+            fetchScheduleData(
+                currentPage + 1,
+                currentRecurrenceFilter,
+                currentSearchFilter
+            );
         });
         nextLi.appendChild(nextBtn);
         paginationContainer.appendChild(nextLi);
@@ -291,7 +304,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div style="height:1px;background:#E0E0E0;border-radius:2px;margin-bottom:8px;"></div>
                                         <div style="display:flex;align-items:center;justify-content:flex-start;font-size:10px;color:#4B4F5E;">
                                             <span style="color:#797E91;margin-right:6px;">Type :</span>
-                                            <span style="text-transform:capitalize;">${(item.recurrence_type || '-')}</span>
+                                            <span style="text-transform:capitalize;">${
+                                                item.recurrence_type || "-"
+                                            }</span>
                                         </div>
                                     </div>
 
@@ -448,6 +463,10 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.priority || "";
         document.getElementById("edit_schedule_due_in_days").value =
             schedule.due_in_days || "";
+        document.getElementById("edit_schedule_start_at").value =
+            schedule.start_at || "";
+        document.getElementById("edit_schedule_end_at").value =
+            schedule.end_at || "";
         document.getElementById("edit_schedule_recurrence_type").value =
             schedule.recurrence_type || "";
 
@@ -644,17 +663,34 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Cached fetch helper to reduce duplicate executor loads within schedule views
         const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-        const empCache = (window.__empExecCache = window.__empExecCache || { map: new Map(), inFlight: new Map() });
+        const empCache = (window.__empExecCache = window.__empExecCache || {
+            map: new Map(),
+            inFlight: new Map(),
+        });
         function fetchEmployeesCached(q = "") {
-            const key = String(q || "").trim().toLowerCase();
+            const key = String(q || "")
+                .trim()
+                .toLowerCase();
             const now = Date.now();
             const hit = empCache.map.get(key);
-            if (hit && (now - hit.t) < EMP_CACHE_TTL_MS) return Promise.resolve(hit.v);
+            if (hit && now - hit.t < EMP_CACHE_TTL_MS)
+                return Promise.resolve(hit.v);
             if (empCache.inFlight.has(key)) return empCache.inFlight.get(key);
-            const p = fetch(appUrl + "/task/employees-for-executor?q=" + encodeURIComponent(key))
+            const p = fetch(
+                appUrl +
+                    "/task/employees-for-executor?q=" +
+                    encodeURIComponent(key)
+            )
                 .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((d) => { empCache.map.set(key, { v: d, t: Date.now() }); empCache.inFlight.delete(key); return d; })
-                .catch((e) => { empCache.inFlight.delete(key); throw e; });
+                .then((d) => {
+                    empCache.map.set(key, { v: d, t: Date.now() });
+                    empCache.inFlight.delete(key);
+                    return d;
+                })
+                .catch((e) => {
+                    empCache.inFlight.delete(key);
+                    throw e;
+                });
             empCache.inFlight.set(key, p);
             return p;
         }
@@ -663,7 +699,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then((d) => {
                     employees = d.data || d || [];
                     // Exclude administrators
-                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    employees = employees.filter(
+                        (emp) =>
+                            String(emp.user_type || "").toUpperCase() !==
+                            "ADMINISTRATOR"
+                    );
                     selected = employees.filter((emp) => ids.includes(emp.id));
                     renderSelected();
                     updateHidden();
@@ -681,7 +721,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then((d) => {
                     employees = d.data || d || [];
                     // Exclude administrators
-                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    employees = employees.filter(
+                        (emp) =>
+                            String(emp.user_type || "").toUpperCase() !==
+                            "ADMINISTRATOR"
+                    );
                     filtered = employees;
                     renderDropdown();
                 })
@@ -772,6 +816,8 @@ document.addEventListener("DOMContentLoaded", function () {
         );
         const weekly = document.getElementById("edit_schedule_weekly_opts");
         const monthly = document.getElementById("edit_schedule_monthly_opts");
+        const dateOpts = document.getElementById("edit_schedule_date_opts");
+        const startAtDiv = document.getElementById("edit_schedule_start_at_div");
         const monthlyDateInput = document.getElementById(
             "edit_schedule_monthly_date"
         );
@@ -785,6 +831,20 @@ document.addEventListener("DOMContentLoaded", function () {
             const v = typeSel.value;
             weekly.classList.toggle("d-none", v !== "weekly");
             monthly.classList.toggle("d-none", v !== "monthly");
+            if (dateOpts) {
+                if (v === "daily") {
+                    dateOpts.style.display = "block";
+                } else if (v === "weekly" || v === "monthly") {
+                    dateOpts.style.display = "block";
+                } else {
+                    dateOpts.style.display = "none";
+                }
+            }
+
+            // hide start_at for daily
+            if (startAtDiv) {
+                startAtDiv.classList.toggle("d-none", v === "daily");
+            }
 
             if (v === "weekly") {
                 const dayOfWeekSelect = document.getElementById(
@@ -844,7 +904,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Clear the hidden current image value since a new image is selected
                 document.getElementById("edit_schedule_current_image").value =
                     "";
-                const clearBtn = document.getElementById("editScheduleImageClearBtn");
+                const clearBtn = document.getElementById(
+                    "editScheduleImageClearBtn"
+                );
                 if (clearBtn) {
                     clearBtn.classList.remove("d-none");
                 }
@@ -900,6 +962,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         "success",
                         1500
                     );
+                    // Close the delete modal after successful deletion
+                    const deleteModalEl = document.getElementById("deleteScheduleModal");
+                    const deleteModal = bootstrap.Modal.getInstance(deleteModalEl);
+                    if (deleteModal) {
+                        deleteModal.hide();
+                    }
                     fetchScheduleData(
                         1,
                         currentRecurrenceFilter,

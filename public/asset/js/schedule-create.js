@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         function fetchEmployees(q=''){
             fetchEmployeesCached(q)
-                .then(d=>{ employees = (d && (d.data||d)) || []; 
+                .then(d=>{ employees = (d && (d.data||d)) || [];
                     // Exclude administrators
                     employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filtered=employees; renderDropdown(); })
@@ -149,31 +149,71 @@ document.addEventListener('DOMContentLoaded', () => {
         const typeSel = document.getElementById('schedule_recurrence_type');
         const weekly = document.getElementById('schedule_weekly_opts');
         const monthly = document.getElementById('schedule_monthly_opts');
+        const dateOpts = document.getElementById('schedule_date_opts');
+        const startAtDiv = document.getElementById('schedule_start_at_div');
         const monthlyDateInput = document.getElementById('schedule_monthly_date');
         const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
+
         function sync(){
-            const v=typeSel.value;
-            weekly.classList.toggle('d-none', v!=='weekly');
-            monthly.classList.toggle('d-none', v!=='monthly');
-            if(v==='weekly') { document.getElementById('schedule_recurrence_day_of_week').required=true; }
-            else { document.getElementById('schedule_recurrence_day_of_week').required=false; }
-            if(v==='monthly') {
-                // Tampilkan format lengkap. Jika input kosong (misal setelah switch), isi ulang.
+            const v = typeSel?.value;
+
+            // toggle weekly & monthly section (pastikan elemennya ada)
+            if(weekly) weekly.classList.toggle('d-none', v !== 'weekly');
+            if(monthly) monthly.classList.toggle('d-none', v !== 'monthly');
+
+            // date options hanya muncul kalau weekly atau monthly, tapi untuk daily hanya end_at
+            if(dateOpts){
+                if(v === 'daily'){
+                    dateOpts.classList.remove('d-none');
+                } else {
+                    dateOpts.classList.toggle('d-none', !(v === 'weekly' || v === 'monthly'));
+                }
+            }
+
+            // hide start_at for daily
+            if(startAtDiv){
+                startAtDiv.classList.toggle('d-none', v === 'daily');
+            }
+
+            // required rules
+            const startAt = document.getElementById('schedule_start_at');
+            if(startAt){
+                startAt.required = (v === 'weekly' || v === 'monthly');
+            }
+            const endAt = document.getElementById('schedule_end_at');
+            if(endAt){
+                endAt.required = false;
+            }
+
+            // khusus weekly
+            const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
+            if(weeklyDay){
+                weeklyDay.required = (v === 'weekly');
+            }
+
+            // khusus monthly
+            if(v === 'monthly' && monthlyDayHidden){
                 if(!monthlyDayHidden.value){
                     const today = new Date();
                     monthlyDayHidden.value = today.getDate();
                 }
-                if(!monthlyDateInput.value){
+                if(monthlyDateInput && !monthlyDateInput.value){
                     const today = new Date();
-                    const full = today.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long', year:'numeric'});
+                    const full = today.toLocaleDateString(undefined, {
+                        weekday:'long',
+                        day:'numeric',
+                        month:'long',
+                        year:'numeric'
+                    });
                     monthlyDateInput.value = full;
                 }
-            } else {
-                // Jangan hapus value jika user kembali lagi ke monthly; cukup biarkan.
             }
         }
-        typeSel.addEventListener('change', sync);
-        sync();
+
+        if(typeSel){
+            typeSel.addEventListener('change', sync);
+            sync();
+        }
     })();
 
     // Load projects for select

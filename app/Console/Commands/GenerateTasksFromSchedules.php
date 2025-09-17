@@ -41,11 +41,11 @@ class GenerateTasksFromSchedules extends Command
         }
 
         // Fetch active schedules where next_run_at is due OR needs initialization
-                $schedulesQuery = TaskSchedule::query()
+        $schedulesQuery = TaskSchedule::query()
             ->where('is_active', true)
             ->where(function ($q) use ($now) {
                 $q->whereNull('next_run_at')
-                  ->orWhere('next_run_at', '<=', $now);
+                    ->orWhere('next_run_at', '<=', $now);
             });
 
         if ($type) {
@@ -214,7 +214,7 @@ class GenerateTasksFromSchedules extends Command
             if (is_file($src)) {
                 $ext = pathinfo($fname, PATHINFO_EXTENSION);
                 $new = 'TASK_FROM_SCHEDULE_' . time() . '_' . $idx . '.' . $ext;
-                $dest = public_path('file/task_reference_files/' . $new);
+                $dest = public_path('file/task_refe rence_files/' . $new);
                 @copy($src, $dest);
                 $taskRefFiles[] = $new;
             }
@@ -317,7 +317,7 @@ class GenerateTasksFromSchedules extends Command
             }
         }
 
-    // Note: Do not notify PIC/creator; only executors receive assignment notifications
+        // Note: Do not notify PIC/creator; only executors receive assignment notifications
 
         return $task;
     }
