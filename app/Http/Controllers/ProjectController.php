@@ -1942,6 +1942,27 @@ class ProjectController extends Controller
         }
     }
 
+    public function getAllProjectFeedbacks(Request $request)
+    {
+        $ids = $request->query('ids');
+
+        if (!$ids) {
+            return response()->json([
+                'data' => []
+            ]);
+        }
+
+        $ids = explode(',', $ids);
+
+        $feedbacks = ProjectFeedback::whereIn('project_id', $ids)->get();
+
+        $grouped = $feedbacks->groupBy('project_id');
+
+        return response()->json([
+            'data' => $grouped
+        ]);
+    }
+
 
 }
 

@@ -38,7 +38,7 @@ Route::middleware('guest')->group(function () {
     });
 
     Route::post('/login', [UserController::class, 'login'])->name('login');
-    
+
     // Forgot password (accessible to guests)
     Route::get('/forgot-password', [ForgotController::class, 'showForgotPasswordPage'])->name('forgot-password');
     // Handle form submission from forgot password page
@@ -87,6 +87,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
     Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
     Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
+    Route::get('/project-feedbacks', [ProjectController::class, 'getAllProjectFeedbacks'])->name('project-feedbacks.all');
 
     // 🔥 Global unread counts (semua project) — ganti prefix agar tidak tabrakan
     Route::get('/projects/feedbacks/unread-counts', [ProjectController::class, 'getAllUnreadCounts'])
@@ -231,7 +232,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
     Route::delete('/user/{id}', [UserController::class, 'destroy'])->name('user.destroy');
     Route::get('/user/ajax/data', [UserController::class, 'getUsersAjax'])->name('user.ajax.data');
-    
+
 
     Route::get('/department', [DepartmentController::class, 'showDepartmentPage'])->name('department');
     Route::get('/department/index', [DepartmentController::class, 'index'])->name('department.index');

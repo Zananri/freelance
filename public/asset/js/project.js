@@ -8450,16 +8450,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.latestProjectSnippetSeq = window.latestProjectSnippetSeq || {};
-    let lastRefresh = 0;
-    let feedbackCache = {};
+    let latestFeedbackCache = {};
+    let latestFeedbackQueue = [];
+    let latestFeedbackTimer = null;
 
     function fetchLatestFeedbackForProject(projectId) {
         if (!projectId) return Promise.resolve();
 
         const pid = String(projectId);
         const now = Date.now();
-        const cached = feedbackCache[pid];
+        const cached = latestFeedbackCache[pid];
 
+        // gunakan cache biar nggak spam request
         if (cached && (now - cached.time < 60000)) {
             setProjectLatestFeedbackSnippet(pid, cached.data);
             return Promise.resolve(cached.data);
@@ -8468,22 +8470,44 @@ document.addEventListener("DOMContentLoaded", function () {
         const seq = (window.latestProjectSnippetSeq[pid] =
             (window.latestProjectSnippetSeq[pid] || 0) + 1);
 
-        return $.ajax({
-            url: appUrl + `/project-feedbacks/latest/${pid}`,
-            type: "GET",
-            dataType: "json",
-        })
-            .then((res) => {
-                if (window.latestProjectSnippetSeq[pid] !== seq) return;
-                const data = res && res.data ? res.data : null;
-                feedbackCache[pid] = { time: now, data };
-                setProjectLatestFeedbackSnippet(pid, data);
-                return data;
-            })
-            .catch(() => {
-                if (window.latestProjectSnippetSeq[pid] !== seq) return;
-                feedbackCache[pid] = { time: now, data: null };
-            });
+        return new Promise((resolve, reject) => {
+            latestFeedbackQueue.push({ pid, seq, resolve, reject });
+
+            if (!latestFeedbackTimer) {
+                latestFeedbackTimer = setTimeout(() => {
+                    const batch = [...latestFeedbackQueue];
+                    latestFeedbackQueue = [];
+                    latestFeedbackTimer = null;
+
+                    const ids = batch.map((b) => b.pid);
+
+                    $.ajax({
+                        url: appUrl + `/project-feedbacks/latest?ids=${ids.join(",")}`,
+                        type: "GET",
+                        dataType: "json",
+                    })
+                        .then((res) => {
+                            const grouped = res && res.data ? res.data : {};
+
+                            batch.forEach((b) => {
+                                if (window.latestProjectSnippetSeq[b.pid] !== b.seq) return;
+
+                                const data = grouped[b.pid] || null;
+                                latestFeedbackCache[b.pid] = { time: Date.now(), data };
+                                setProjectLatestFeedbackSnippet(b.pid, data);
+                                b.resolve(data);
+                            });
+                        })
+                        .catch((err) => {
+                            batch.forEach((b) => {
+                                if (window.latestProjectSnippetSeq[b.pid] !== b.seq) return;
+                                latestFeedbackCache[b.pid] = { time: Date.now(), data: null };
+                                b.reject(err);
+                            });
+                        });
+                }, 50); // nunggu 50ms biar kumpul batch
+            }
+        });
     }
 
     function refreshAllProjectLatestFeedbackSnippets() {
@@ -9720,53 +9744,94 @@ document.addEventListener("DOMContentLoaded", function () {
     window.__projectFetchPromises = window.__projectFetchPromises || {};
     window.__feedbackFetchPromises = window.__feedbackFetchPromises || {};
 
-    function getProject(pid, force) {
+    let projectBatchQueue = [];
+    let projectBatchTimer = null;
+
+    function getProject(pid, force = false) {
         if (!force && window.__projectCache[pid])
             return Promise.resolve(window.__projectCache[pid]);
         if (window.__projectFetchPromises[pid])
             return window.__projectFetchPromises[pid];
-        const p = fetch(appUrl + "/project/" + pid)
-            .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-            .then((resp) => {
-                const data = resp.data || resp;
-                window.__projectCache[pid] = data;
-                delete window.__projectFetchPromises[pid];
-                return data;
-            })
-            .catch((err) => {
-                delete window.__projectFetchPromises[pid];
-                throw err;
-            });
+
+        const p = new Promise((resolve, reject) => {
+            projectBatchQueue.push({ pid, resolve, reject });
+            if (!projectBatchTimer) {
+                projectBatchTimer = setTimeout(() => {
+                    const batch = [...projectBatchQueue];
+                    projectBatchQueue = [];
+                    projectBatchTimer = null;
+
+                    const ids = batch.map(i => i.pid);
+
+                    fetch(`${appUrl}/project?ids=${ids.join(",")}`)
+                        .then(r => r.ok ? r.json() : Promise.reject(r))
+                        .then(resp => {
+                            const dataArr = Array.isArray(resp.data) ? resp.data : [];
+                            dataArr.forEach(d => {
+                                window.__projectCache[d.id] = d;
+                            });
+
+                            batch.forEach(b => {
+                                const data = window.__projectCache[b.pid] || null;
+                                b.resolve(data);
+                            });
+                        })
+                        .catch(err => batch.forEach(b => b.reject(err)))
+                        .finally(() => ids.forEach(id => delete window.__projectFetchPromises[id]));
+                }, 50); // tunggu 50ms biar bisa ngumpulin banyak request
+            }
+        });
+
         window.__projectFetchPromises[pid] = p;
         return p;
     }
 
-    function getFeedback(pid, force) {
-        if (!force && window.__feedbackCache[pid])
+    let feedbackBatchQueue = [];
+    let feedbackBatchTimer = null;
+
+    function getFeedback(pid, force = false) {
+        if (!force && window.__feedbackCache[pid]) {
             return Promise.resolve(window.__feedbackCache[pid]);
-        if (window.__feedbackFetchPromises[pid])
+        }
+        if (window.__feedbackFetchPromises[pid]) {
             return window.__feedbackFetchPromises[pid];
-        const p = fetch(appUrl + "/project-feedbacks/" + pid)
-            .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-            .then((resp) => {
-                let arr = [];
-                if (Array.isArray(resp)) arr = resp;
-                else if (Array.isArray(resp.data)) arr = resp.data;
-                else if (resp.data && typeof resp.data === "object")
-                    arr = [resp.data];
-                else if (typeof resp.total === "number")
-                    arr = new Array(resp.total).fill(null);
-                window.__feedbackCache[pid] = arr;
-                delete window.__feedbackFetchPromises[pid];
-                return arr;
-            })
-            .catch((err) => {
-                delete window.__feedbackFetchPromises[pid];
-                throw err;
-            });
+        }
+
+        const p = new Promise((resolve, reject) => {
+            feedbackBatchQueue.push({ pid, resolve, reject });
+
+            if (!feedbackBatchTimer) {
+                feedbackBatchTimer = setTimeout(() => {
+                    const batch = [...feedbackBatchQueue];
+                    feedbackBatchQueue = [];
+                    feedbackBatchTimer = null;
+
+                    const ids = batch.map(i => i.pid);
+
+                    fetch(`${appUrl}/project-feedbacks?ids=${ids.join(",")}`)
+                        .then(r => (r.ok ? r.json() : Promise.reject(r)))
+                        .then(resp => {
+                            const grouped = resp.data || {};
+                            batch.forEach(b => {
+                                const arr = grouped[b.pid] || [];
+                                window.__feedbackCache[b.pid] = arr;
+                                b.resolve(arr);
+                            });
+                        })
+                        .catch(err => {
+                            batch.forEach(b => b.reject(err));
+                        })
+                        .finally(() => {
+                            ids.forEach(id => delete window.__feedbackFetchPromises[id]);
+                        });
+                }, 50);
+            }
+        });
+
         window.__feedbackFetchPromises[pid] = p;
         return p;
     }
+
 
     (function populateCounts(retry = 0) {
         const MAX_RETRIES = 12;
