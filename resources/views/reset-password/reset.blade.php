@@ -6,7 +6,6 @@
     <title>Reset Password</title>
     <link rel="stylesheet" href="{{ asset('asset/css/reset_password.css') }}">
     <link rel="stylesheet" href="{{ asset('asset/css/guest-alert.css') }}">
-    <link rel="stylesheet" href="{{ asset('asset/css/guest-alert-reset.css') }}">
     <!-- If you use Bootstrap in the project, this view keeps compatibility. -->
 </head>
 <body>
@@ -50,7 +49,6 @@
     </div>
 
 </body>
-</html>
 
 <!-- If controller passed a status_message, show floating alert and then redirect (guest-alert handles redirect if data attr present) -->
 @if(!empty($status_message ?? ''))
@@ -66,3 +64,5 @@
     </div>
     <script src="{{ asset('asset/js/guest-alert.js') }}"></script>
 @endif
+
+</html>
