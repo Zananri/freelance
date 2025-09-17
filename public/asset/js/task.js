@@ -2558,14 +2558,12 @@ function applyCurrentSearchFilter() {
                 <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
                         <div class="modal-content modal-content-custom">
-                            <div class="modal-header modal-header-custom">
-                                <h5 class="modal-title modal-title-custom">Confirmation</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body"><p class="mb-0">Accept ${count} selected task${count>1?'s':''}?</p></div>
-                            <div class="modal-footer d-flex justify-content-center" style="gap:8px;">
-                            <button type="button" class="btn btn-close-reply" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-submit-black" id="confirmBulkAcceptBtn">Accept</button>
+                            <div class="modal-body"><p class="mb-3">Accept ${count} selected task${count>1?'s':''}?</p></div>
+                            <hr class="border-1">
+                            <p class="text-center mb-3">Are you sure want to accept all selected task?</p>
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="confirmBulkAcceptBtn">Accept</button>
                             </div>
                         </div>
                     </div>
@@ -5669,6 +5667,24 @@ function applyCurrentSearchFilter() {
                             <p class="task-description mb-0" style="font-size:14px;">${task.description || ''}</p>
                         </div>
                         <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Priority: </span>
+                                <span style="color:${task.priority === "HIGH" ? "red" : "#4B4F5E"}">${task.priority || "-"}</span>
+                            </div>
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Deadline: </span>
+                                <span style="color:#4B4F5E;">${task.due_date || "-"}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                            <span class="text-muted">Department:</span>
+                            <span>${task.project?.department || "-"}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                            <span class="text-muted">Division:</span>
+                            <span>${task.project?.division || "-"}</span>
+                        </div>
                     </div>
                 `;
 

@@ -423,10 +423,6 @@
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fs-5" id="deleteTaskModalLabel">Delete Task</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
                 <div class="modal-body modal-body-custom">
                     <div id="deleteTaskContent"></div>
                 </div>
