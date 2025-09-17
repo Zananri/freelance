@@ -44,11 +44,11 @@ trait ScheduleImmediateGeneration
                 break;
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $today->day);
-                $dueToday = ((int) $today->day === $dom);
+                $dueToday = false;
                 break;
             case 'daily':
             default:
-                $dueToday = false; // daily starts tomorrow
+                $dueToday = false;
         }
 
         if (!$dueToday) {
@@ -80,8 +80,7 @@ trait ScheduleImmediateGeneration
                 return $next;
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $start->day);
-                $next = $start->copy()->addMonth(); // start from next month
-                return $this->safeMonthly($next->year, $next->month, $dom);
+                return $start->copy()->addDay(); // generate the day after start_at
             case 'daily':
             default:
                 return $start->addDay(); // tomorrow
@@ -103,7 +102,7 @@ trait ScheduleImmediateGeneration
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
                 $next->addMonthsNoOverflow($interval);
-                return $this->safeMonthly($next->year, $next->month, $dom);
+                return $this->safeMonthly($next->year, $next->month, $dom)->addDay();
             case 'daily':
             default:
                 return $next->addDays($interval)->startOfDay();
