@@ -14,6 +14,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\ForgotController;
+use App\Http\Controllers\ResetPasswordController;
 
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
@@ -40,6 +41,7 @@ Route::middleware('guest')->group(function () {
     
     // Forgot password (accessible to guests)
     Route::get('/forgot-password', [ForgotController::class, 'showForgotPasswordPage'])->name('forgot-password');
+    Route::get('/reset-password', [ResetPasswordController::class, 'showResetPasswordPage'])->name('reset-password');
 });
 
 
