@@ -363,7 +363,7 @@
                             try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){ }
                             modal.hide();
                             markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
-                            fetchAndRenderTasks();
+                            window.location.reload();
                         },
                         error: function(xhr){
                             let msg = 'Failed to accept task';
@@ -383,7 +383,7 @@
                         url: appUrl + '/task/' + taskId + '/accept',
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                        success: function(){ markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); fetchAndRenderTasks(); },
+            success: function(){ markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); window.location.reload(); },
                     });
                 }
             }
@@ -1171,7 +1171,7 @@
 
         function fetchEmployees(query = ''){
             fetchEmployeesForExecutorCached(query)
-                .then(res => { employees = (res && (res.data || res)) || []; 
+                .then(res => { employees = (res && (res.data || res)) || [];
                     // Exclude administrator users from executor pickers
                     employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filtered = employees; renderDropdown(); })
@@ -2459,8 +2459,6 @@ function applyCurrentSearchFilter() {
             }).then(function(){
                 // Also mark its task-assignment notifications read for this user
                 return markTaskAssignmentNotificationsRead(taskId).then(function(){
-                    // Immediate refresh (AJAX) without full reload
-                    fetchAndRenderTasks();
                     try { showFloatingAlert('Task accepted', 'success', 1200); } catch(_) {}
                 });
             }).catch(function(){
@@ -2475,7 +2473,6 @@ function applyCurrentSearchFilter() {
             ids.forEach((id) => { chain = chain.then(() => acceptOne(id)); });
             return chain.then(() => {
                 refreshNotificationCountBadge();
-                fetchAndRenderTasks();
                 try { showFloatingAlert(ids.length + ' task(s) accepted', 'success', 1500); } catch(_) {}
             });
         }
@@ -2582,13 +2579,7 @@ function applyCurrentSearchFilter() {
             modalEl.querySelector('#confirmBulkAcceptBtn').addEventListener('click', function(){
                 acceptAll(selectedPendingIds).finally(() => {
                     try { m.hide(); } catch(_) {}
-                    ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
-                    selectedPendingIds = [];
-                    selectedAllNewIds = [];
-                    // clear UI selected class
-                    document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
-                    updateBulkHeaderButtons();
-                    updateSelectAllVisibility(); // NEW
+                    window.location.reload();
                 });
             });
         });
