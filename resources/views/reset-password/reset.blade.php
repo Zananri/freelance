@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Reset Password</title>
     <link rel="stylesheet" href="{{ asset('asset/css/reset_password.css') }}">
+    <link rel="stylesheet" href="{{ asset('asset/css/guest-alert.css') }}">
+    <link rel="stylesheet" href="{{ asset('asset/css/guest-alert-reset.css') }}">
     <!-- If you use Bootstrap in the project, this view keeps compatibility. -->
 </head>
 <body>
@@ -49,3 +51,18 @@
 
 </body>
 </html>
+
+<!-- If controller passed a status_message, show floating alert and then redirect (guest-alert handles redirect if data attr present) -->
+@if(!empty($status_message ?? ''))
+    <div class="box-alert-messages" id="guestFloatingAlert"
+         data-guest-message="{{ e($status_message) }}"
+         data-guest-type="success"
+         data-guest-delay="2500"
+         data-guest-redirect="{{ e($redirect_to ?? route('login')) }}">
+        <div class="box-message" role="">
+            <div class="message-content fs-14">{{ $status_message }}</div>
+            <div class="btn-close-alert-messages" aria-hidden="true"></div>
+        </div>
+    </div>
+    <script src="{{ asset('asset/js/guest-alert.js') }}"></script>
+@endif

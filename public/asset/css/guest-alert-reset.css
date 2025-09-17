@@ -1,0 +1,3 @@
+/* Override guest alert height only for reset page */
+.box-alert-messages .box-message { height: 48px !important; padding-top: 10px !important; padding-bottom: 10px !important; }
+.box-alert-messages .message-content { line-height: 1.1; }

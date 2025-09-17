@@ -37,7 +37,15 @@
             if(!el) return;
             var msg = el.getAttribute('data-guest-message');
             var type = el.getAttribute('data-guest-type');
-            if(msg){ showGuestAlert(msg, type, 2500); }
+            var redirect = el.getAttribute('data-guest-redirect');
+            var delay = parseInt(el.getAttribute('data-guest-delay')) || 2500;
+            if(msg){
+                showGuestAlert(msg, type, delay);
+                // If redirect is provided, perform it after delay + small buffer
+                if(redirect){
+                    setTimeout(function(){ try{ window.location.href = redirect; }catch(e){} }, delay + 300);
+                }
+            }
         }catch(e){}
     });
 })();
