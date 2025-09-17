@@ -154,6 +154,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const monthlyDateInput = document.getElementById('schedule_monthly_date');
         const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
 
+        function updateWeeklyStartDate(){
+            const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
+            const startAt = document.getElementById('schedule_start_at');
+            if(!weeklyDay || !startAt || typeSel?.value !== 'weekly') return;
+            const selectedDow = parseInt(weeklyDay.value);
+            if(isNaN(selectedDow)) return;
+            const today = new Date();
+            const currentDow = today.getDay();
+            let daysToAdd = selectedDow - currentDow;
+            if(daysToAdd < 0) daysToAdd += 7;
+            const newDate = new Date(today);
+            newDate.setDate(today.getDate() + daysToAdd);
+            startAt.value = newDate.toISOString().split('T')[0];
+        }
+
         function sync(){
             const v = typeSel?.value;
 
@@ -163,22 +178,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // date options hanya muncul kalau weekly atau monthly, tapi untuk daily hanya end_at
             if(dateOpts){
-                if(v === 'daily'){
+                if(v === 'daily' || v === 'weekly'){
                     dateOpts.classList.remove('d-none');
                 } else {
-                    dateOpts.classList.toggle('d-none', !(v === 'weekly' || v === 'monthly'));
+                    dateOpts.classList.toggle('d-none', !(v === 'monthly'));
                 }
             }
 
-            // hide start_at for daily
+            // hide start_at for daily and weekly
             if(startAtDiv){
-                startAtDiv.classList.toggle('d-none', v === 'daily');
+                startAtDiv.classList.toggle('d-none', v === 'daily' || v === 'weekly');
             }
 
             // required rules
             const startAt = document.getElementById('schedule_start_at');
             if(startAt){
-                startAt.required = (v === 'weekly' || v === 'monthly');
+                startAt.required = (v === 'monthly');
             }
             const endAt = document.getElementById('schedule_end_at');
             if(endAt){
@@ -189,6 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
             if(weeklyDay){
                 weeklyDay.required = (v === 'weekly');
+                if(v === 'weekly'){
+                    updateWeeklyStartDate();
+                }
             }
 
             // khusus monthly
@@ -213,6 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if(typeSel){
             typeSel.addEventListener('change', sync);
             sync();
+        }
+
+        // Add listener for weekly day change
+        const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
+        if(weeklyDay){
+            weeklyDay.addEventListener('change', updateWeeklyStartDate);
         }
     })();
 
