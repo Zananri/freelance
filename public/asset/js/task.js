@@ -363,7 +363,7 @@
                             try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){ }
                             modal.hide();
                             markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
-                            fetchAndRenderTasks();
+                            window.location.reload();
                         },
                         error: function(xhr){
                             let msg = 'Failed to accept task';
@@ -383,7 +383,7 @@
                         url: appUrl + '/task/' + taskId + '/accept',
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                        success: function(){ markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); fetchAndRenderTasks(); },
+            success: function(){ markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); window.location.reload(); },
                     });
                 }
             }
@@ -1171,7 +1171,7 @@
 
         function fetchEmployees(query = ''){
             fetchEmployeesForExecutorCached(query)
-                .then(res => { employees = (res && (res.data || res)) || []; 
+                .then(res => { employees = (res && (res.data || res)) || [];
                     // Exclude administrator users from executor pickers
                     employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filtered = employees; renderDropdown(); })
@@ -2459,8 +2459,6 @@ function applyCurrentSearchFilter() {
             }).then(function(){
                 // Also mark its task-assignment notifications read for this user
                 return markTaskAssignmentNotificationsRead(taskId).then(function(){
-                    // Immediate refresh (AJAX) without full reload
-                    fetchAndRenderTasks();
                     try { showFloatingAlert('Task accepted', 'success', 1200); } catch(_) {}
                 });
             }).catch(function(){
@@ -2475,7 +2473,6 @@ function applyCurrentSearchFilter() {
             ids.forEach((id) => { chain = chain.then(() => acceptOne(id)); });
             return chain.then(() => {
                 refreshNotificationCountBadge();
-                fetchAndRenderTasks();
                 try { showFloatingAlert(ids.length + ' task(s) accepted', 'success', 1500); } catch(_) {}
             });
         }
@@ -2561,14 +2558,12 @@ function applyCurrentSearchFilter() {
                 <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
                         <div class="modal-content modal-content-custom">
-                            <div class="modal-header modal-header-custom">
-                                <h5 class="modal-title modal-title-custom">Confirmation</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body"><p class="mb-0">Accept ${count} selected task${count>1?'s':''}?</p></div>
-                            <div class="modal-footer d-flex justify-content-center" style="gap:8px;">
-                            <button type="button" class="btn btn-close-reply" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-submit-black" id="confirmBulkAcceptBtn">Accept</button>
+                            <div class="modal-body"><p class="mb-3">Accept ${count} selected task${count>1?'s':''}?</p></div>
+                            <hr class="border-1">
+                            <p class="text-center mb-3">Are you sure want to accept all selected task?</p>
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="confirmBulkAcceptBtn">Accept</button>
                             </div>
                         </div>
                     </div>
@@ -2582,13 +2577,7 @@ function applyCurrentSearchFilter() {
             modalEl.querySelector('#confirmBulkAcceptBtn').addEventListener('click', function(){
                 acceptAll(selectedPendingIds).finally(() => {
                     try { m.hide(); } catch(_) {}
-                    ['taskNewAcceptAll','taskNewAcceptAllMobile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
-                    selectedPendingIds = [];
-                    selectedAllNewIds = [];
-                    // clear UI selected class
-                    document.querySelectorAll('#new-request-tasks .task-selectable-thumb.selected, #mobile-task-list .task-selectable-thumb.selected').forEach(n => n.classList.remove('selected'));
-                    updateBulkHeaderButtons();
-                    updateSelectAllVisibility(); // NEW
+                    window.location.reload();
                 });
             });
         });
@@ -3046,6 +3035,10 @@ function applyCurrentSearchFilter() {
                     const tId = acceptBtn.getAttribute('data-task-id');
                     if (!tId) return;
                     showAcceptInviteModal(tId);
+
+                    setTimeout(() => {
+                        window.updateNewRequestArrowVisibility();
+                    }, 200);
                     return;
                 }
 
@@ -3055,6 +3048,10 @@ function applyCurrentSearchFilter() {
                     const tId = rejectBtn.getAttribute('data-task-id');
                     if (!tId) return;
                     showRejectInviteModal(tId);
+
+                    setTimeout(() => {
+                        window.updateNewRequestArrowVisibility();
+                    }, 200);
                     return;
                 }
             });
@@ -5670,6 +5667,24 @@ function applyCurrentSearchFilter() {
                             <p class="task-description mb-0" style="font-size:14px;">${task.description || ''}</p>
                         </div>
                         <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Priority: </span>
+                                <span style="color:${task.priority === "HIGH" ? "red" : "#4B4F5E"}">${task.priority || "-"}</span>
+                            </div>
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Deadline: </span>
+                                <span style="color:#4B4F5E;">${task.due_date || "-"}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                            <span class="text-muted">Department:</span>
+                            <span>${task.project?.department || "-"}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                            <span class="text-muted">Division:</span>
+                            <span>${task.project?.division || "-"}</span>
+                        </div>
                     </div>
                 `;
 

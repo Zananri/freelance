@@ -35,7 +35,8 @@
             <div class="dropdown-menu dropdown-filter-menu" aria-labelledby="openProjectFilterBtn">
                 <div class="dropdown-filter-body">
                     <div class="mb-3">
-                        <label for="filterScheduleRecurrence" class="form-label label-custom">Filter by Recurrence</label>
+                        <label for="filterScheduleRecurrence" class="form-label label-custom">Filter by
+                            Recurrence</label>
                         <select id="filterScheduleRecurrence" class="form-select">
                             <option value="">All Types</option>
                             <option value="daily">Daily</option>
@@ -93,8 +94,7 @@
                                 <label for="schedule_image"
                                     class="custom-image-upload-photo position-relative photo-upload"
                                     id="scheduleImageLabel">
-                                    <input type="file" id="schedule_image" name="image" accept="image/*"
-                                        hidden>
+                                    <input type="file" id="schedule_image" name="image" accept="image/*" hidden>
                                     <span class="image-clear-btn d-none" id="scheduleImageClearBtn">&times;</span>
                                 </label>
                             </div>
@@ -128,18 +128,25 @@
                                 </select>
                             </div>
 
-                            <!-- Monthly options -->
-                            @php
-                                $now = now();
-                                $monthlyDisplay = $now->translatedFormat('l, j F Y');
-                            @endphp
-                            <div class="custom-form-employee d-none" id="schedule_monthly_opts">
-                                <label for="schedule_monthly_date" class="form-label label-custom">Start date</label>
-                                <input type="text" id="schedule_monthly_date" class="form-control input-text"
-                                    readonly value="{{ $monthlyDisplay }}"
-                                    data-initial-display="{{ $monthlyDisplay }}">
-                                <input type="hidden" id="schedule_recurrence_day_of_month"
-                                    name="recurrence_day_of_month" value="{{ $now->day }}">
+                            <!-- Date options -->
+                            <div class="custom-form-employee" id="schedule_date_opts">
+                                <div class="d-flex gap-2">
+                                    <!-- Start Date -->
+                                    <div class="w-50" id="schedule_start_at_div">
+                                        <label for="schedule_start_at" class="form-label label-custom">Start
+                                            At</label>
+                                        <input type="date" id="schedule_start_at" name="start_at"
+                                            class="form-control input-text" required>
+                                        <div class="invalid-feedback">Start date is required.</div>
+                                    </div>
+
+                                    <!-- End Date -->
+                                    <div class="w-50">
+                                        <label for="schedule_end_at" class="form-label label-custom">End At</label>
+                                        <input type="date" id="schedule_end_at" name="end_at"
+                                            class="form-control input-text">
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Points -->
@@ -317,12 +324,14 @@
                                 <label for="edit_schedule_image"
                                     class="custom-image-upload-photo position-relative photo-upload"
                                     id="editScheduleImageLabel">
-                                    <img id="edit_schedule_current_image_display" src="" alt="Current Image" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
+                                    <img id="edit_schedule_current_image_display" src="" alt="Current Image"
+                                        style="display:none; width:100%; height:100%; object-fit:cover; border-radius:10px;">
                                     <input type="file" id="edit_schedule_image" name="image" accept="image/*"
                                         hidden>
                                     <span class="image-clear-btn d-none" id="editScheduleImageClearBtn">&times;</span>
                                 </label>
-                                <input type="hidden" id="edit_schedule_current_image" name="current_image" value="">
+                                <input type="hidden" id="edit_schedule_current_image" name="current_image"
+                                    value="">
                             </div>
 
                             <!-- Recurrence Type -->
@@ -357,18 +366,23 @@
                             </div>
 
                             <!-- Monthly options -->
-                            @php
-                                $now = now();
-                                $monthlyDisplay = $now->translatedFormat('l, j F Y');
-                            @endphp
-                            <div class="custom-form-employee d-none" id="edit_schedule_monthly_opts">
-                                <label for="edit_schedule_monthly_date" class="form-label label-custom">Start
-                                    date</label>
-                                <input type="text" id="edit_schedule_monthly_date" class="form-control input-text"
-                                    readonly value="{{ $monthlyDisplay }}"
-                                    data-initial-display="{{ $monthlyDisplay }}">
-                                <input type="hidden" id="edit_schedule_recurrence_day_of_month"
-                                    name="recurrence_day_of_month" value="{{ $now->day }}">
+                            <div class="custom-form-employee" id="edit_schedule_date_opts">
+                                <div class="d-flex gap-2">
+                                    <!-- Start Date -->
+                                    <div class="w-50">
+                                        <label for="edit_schedule_start_at" class="form-label label-custom">Start
+                                            Date</label>
+                                        <input type="date" id="edit_schedule_start_at" name="start_at"
+                                            class="form-control input-text">
+                                    </div>
+
+                                    <!-- End Date -->
+                                    <div class="w-50">
+                                        <label for="edit_schedule_end_at" class="form-label label-custom">End Date</label>
+                                        <input type="date" id="edit_schedule_end_at" name="end_at"
+                                            class="form-control input-text">
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Points -->
