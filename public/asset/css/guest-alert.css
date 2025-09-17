@@ -1,0 +1,9 @@
+.box-alert-messages { position: fixed; display: none; bottom: 20px; left: calc(50% - 250px); width: 500px; z-index: 99999; }
+@media (max-width: 567px) { .box-alert-messages { left: 20px; width: calc(100% - 40px); } }
+.box-alert-messages .box-message { position: relative; border: 0px; background-color: #f2f7fa; padding: 17px 48px 17px 17px; min-height: 55px; box-shadow: 0px 10px 35px rgba(0,0,0,0.07), 0px 3px 5px rgba(0,0,0,0.1); border-radius: 15px; }
+.box-alert-messages .box-message.success { background-color: #cef4e0; }
+.box-alert-messages .box-message.warning { background-color: #f5ebcf; }
+.box-alert-messages .box-message.error { background-color: #d2224b; }
+.box-alert-messages .box-message.error .message-content { color: #ffffff; }
+.box-alert-messages .btn-close-alert-messages { position: absolute; display: inline-block; top: 20px; right: 20px; padding: 6px 6px; height: 5px; width: 5px; opacity: 0.5; cursor: pointer; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e"); }
+.box-alert-messages .btn-close-alert-messages:hover { opacity: 1; }
