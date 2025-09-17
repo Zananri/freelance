@@ -13,6 +13,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\ForgotController;
 
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
@@ -36,6 +37,9 @@ Route::middleware('guest')->group(function () {
     });
 
     Route::post('/login', [UserController::class, 'login'])->name('login');
+    
+    // Forgot password (accessible to guests)
+    Route::get('/forgot-password', [ForgotController::class, 'showForgotPasswordPage'])->name('forgot-password');
 });
 
 
@@ -265,6 +269,8 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/settings', [SettingsController::class, 'showSettingsPage'])->name('settings');
     Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
     Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');
+
+
 
 });
 
