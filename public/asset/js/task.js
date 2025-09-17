@@ -3037,6 +3037,10 @@ function applyCurrentSearchFilter() {
                     const tId = acceptBtn.getAttribute('data-task-id');
                     if (!tId) return;
                     showAcceptInviteModal(tId);
+
+                    setTimeout(() => {
+                        window.updateNewRequestArrowVisibility();
+                    }, 200);
                     return;
                 }
 
@@ -3046,6 +3050,10 @@ function applyCurrentSearchFilter() {
                     const tId = rejectBtn.getAttribute('data-task-id');
                     if (!tId) return;
                     showRejectInviteModal(tId);
+
+                    setTimeout(() => {
+                        window.updateNewRequestArrowVisibility();
+                    }, 200);
                     return;
                 }
             });
