@@ -36,7 +36,6 @@ class ResetPasswordController extends Controller
                 $user->password = Hash::make($password);
                 $user->setRememberToken(Str::random(60));
                 $user->save();
-                Auth::login($user);
             }
         );
 
